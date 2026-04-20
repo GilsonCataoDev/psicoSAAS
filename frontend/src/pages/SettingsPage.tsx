@@ -3,6 +3,15 @@ import { useAuthStore } from '@/store/auth'
 import { Bell, Lock, CreditCard, User, MessageSquare, Shield } from 'lucide-react'
 import toast from 'react-hot-toast'
 
+const tabs = [
+  { id: 'profile',  icon: User,          label: 'Perfil'     },
+  { id: 'notify',   icon: Bell,          label: 'Lembretes'  },
+  { id: 'messages', icon: MessageSquare, label: 'Mensagens'  },
+  { id: 'payment',  icon: CreditCard,    label: 'Pagamentos' },
+  { id: 'privacy',  icon: Lock,          label: 'Privacidade'},
+  { id: 'security', icon: Shield,        label: 'Segurança'  },
+]
+
 export default function SettingsPage() {
   const user = useAuthStore(s => s.user)
   const updateUser = useAuthStore(s => s.updateUser)
@@ -16,15 +25,6 @@ export default function SettingsPage() {
     toast.success('Perfil atualizado ✓')
   }
 
-  const tabs = [
-    { id: 'profile',  icon: User,          label: 'Perfil'     },
-    { id: 'notify',   icon: Bell,          label: 'Lembretes'  },
-    { id: 'messages', icon: MessageSquare, label: 'Mensagens'  },
-    { id: 'payment',  icon: CreditCard,    label: 'Pagamentos' },
-    { id: 'privacy',  icon: Lock,          label: 'Privacidade'},
-    { id: 'security', icon: Shield,        label: 'Segurança'  },
-  ]
-
   return (
     <div className="animate-slide-up space-y-6 max-w-4xl">
       <div>
@@ -32,24 +32,34 @@ export default function SettingsPage() {
         <p className="page-subtitle">Personalize a plataforma ao seu jeito de trabalhar</p>
       </div>
 
-      <div className="flex gap-6">
-        {/* Sidebar nav */}
-        <aside className="w-48 shrink-0 space-y-0.5">
-          {tabs.map(({ id, icon: Icon, label }) => (
-            <button key={id} onClick={() => setTab(id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${tab === id ? 'bg-sage-50 text-sage-700 font-medium' : 'text-neutral-500 hover:bg-neutral-100'}`}>
-              <Icon className="w-4 h-4" />{label}
-            </button>
-          ))}
-        </aside>
+      {/* Mobile: tabs em scroll horizontal / Desktop: sidebar */}
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Nav — horizontal scroll no mobile, sidebar no desktop */}
+        <nav className="lg:w-48 lg:shrink-0">
+          <div className="flex lg:flex-col gap-1 overflow-x-auto pb-1 -mx-4 px-4 lg:mx-0 lg:px-0 scrollbar-none">
+            {tabs.map(({ id, icon: Icon, label }) => (
+              <button key={id} onClick={() => setTab(id)}
+                className={`flex-none lg:w-full flex items-center gap-2 lg:gap-3 px-3 py-2 lg:py-2.5 rounded-xl text-sm transition-all whitespace-nowrap ${
+                  tab === id
+                    ? 'bg-sage-50 text-sage-700 font-medium'
+                    : 'text-neutral-500 hover:bg-neutral-100'
+                }`}>
+                <Icon className="w-4 h-4 shrink-0" />
+                {label}
+              </button>
+            ))}
+          </div>
+          {/* Separador visual no mobile */}
+          <div className="lg:hidden h-px bg-neutral-100 mt-2" />
+        </nav>
 
         {/* Content */}
         <div className="flex-1 space-y-5">
           {tab === 'profile' && (
             <div className="card space-y-4">
               <h2 className="section-title">Seus dados</h2>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="col-span-1 sm:col-span-2">
                   <label className="label">Nome completo</label>
                   <input value={name} onChange={e => setName(e.target.value)} className="input-field" />
                 </div>
@@ -59,9 +69,10 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <label className="label">Especialidade</label>
-                  <input value={specialty} onChange={e => setSpecialty(e.target.value)} className="input-field" placeholder="Ex: Psicologia Clínica" />
+                  <input value={specialty} onChange={e => setSpecialty(e.target.value)}
+                    className="input-field" placeholder="Ex: Psicologia Clínica" />
                 </div>
-                <div>
+                <div className="col-span-1 sm:col-span-2">
                   <label className="label">E-mail</label>
                   <input defaultValue={user?.email} className="input-field" readOnly />
                 </div>
@@ -81,12 +92,12 @@ export default function SettingsPage() {
                 { label: 'Cobrança automática após sessão', desc: 'Envia o valor e dados de pagamento', on: false },
                 { label: 'Confirmação de agendamento', desc: 'Notifica quando um horário é reservado', on: true },
               ].map(item => (
-                <div key={item.label} className="flex items-center justify-between py-2 border-b border-neutral-50 last:border-0">
-                  <div>
+                <div key={item.label} className="flex items-center justify-between gap-4 py-2 border-b border-neutral-50 last:border-0">
+                  <div className="min-w-0">
                     <p className="text-sm font-medium text-neutral-700">{item.label}</p>
                     <p className="text-xs text-neutral-400 mt-0.5">{item.desc}</p>
                   </div>
-                  <div className={`w-11 h-6 rounded-full cursor-pointer transition-colors ${item.on ? 'bg-sage-500' : 'bg-neutral-200'}`}>
+                  <div className={`w-11 h-6 rounded-full cursor-pointer transition-colors shrink-0 ${item.on ? 'bg-sage-500' : 'bg-neutral-200'}`}>
                     <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform mt-0.5 mx-0.5 ${item.on ? 'translate-x-5' : ''}`} />
                   </div>
                 </div>
