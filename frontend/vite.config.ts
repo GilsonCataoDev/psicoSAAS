@@ -5,7 +5,10 @@ import tailwindcss from 'tailwindcss'
 import autoprefixer from 'autoprefixer'
 import { VitePWA } from 'vite-plugin-pwa'
 
+const REPO = '/psicoSAAS/'
+
 export default defineConfig({
+  base: REPO,
   plugins: [
     react(),
     VitePWA({
@@ -19,8 +22,8 @@ export default defineConfig({
         background_color: '#fafafa',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/',
-        scope: '/',
+        start_url: REPO,
+        scope: REPO,
         lang: 'pt-BR',
         categories: ['health', 'productivity'],
         icons: [
@@ -28,8 +31,8 @@ export default defineConfig({
           { src: 'pwa-512.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' },
         ],
         shortcuts: [
-          { name: 'Agenda', short_name: 'Agenda', url: '/agenda', description: 'Ver agenda do dia' },
-          { name: 'Pessoas', short_name: 'Pessoas', url: '/pacientes', description: 'Ver pessoas em acompanhamento' },
+          { name: 'Agenda',  short_name: 'Agenda',  url: `${REPO}agenda`,    description: 'Ver agenda do dia' },
+          { name: 'Pessoas', short_name: 'Pessoas', url: `${REPO}pacientes`, description: 'Ver pessoas em acompanhamento' },
         ],
       },
       workbox: {

@@ -125,7 +125,68 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {(tab === 'messages' || tab === 'payment' || tab === 'security') && (
+          {tab === 'payment' && (
+            <div className="space-y-5">
+              <div className="card space-y-4">
+                <h2 className="section-title">Chave PIX</h2>
+                <div>
+                  <label className="label">Tipo de chave</label>
+                  <select className="input-field">
+                    <option value="cpf">CPF</option>
+                    <option value="phone">Telefone</option>
+                    <option value="email">E-mail</option>
+                    <option value="random">Chave aleatória</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Chave PIX</label>
+                  <input defaultValue="11999990000" className="input-field"
+                    placeholder="Sua chave PIX para receber pagamentos" />
+                </div>
+                <div>
+                  <label className="label">Nome favorecido (como aparece no PIX)</label>
+                  <input defaultValue="Dra. Camila Moura" className="input-field" />
+                </div>
+              </div>
+
+              <div className="card space-y-4">
+                <h2 className="section-title">Cobranças automáticas</h2>
+                {[
+                  { label: 'Enviar cobrança após sessão', desc: 'Mensagem automática com o valor e chave PIX', on: true },
+                  { label: 'Lembrete de pagamento em atraso', desc: 'Avisa após 3 dias sem pagamento', on: true },
+                  { label: 'Incluir comprovante no registro', desc: 'Solicita comprovante ao confirmar pagamento', on: false },
+                ].map(item => (
+                  <div key={item.label} className="flex items-center justify-between gap-4 py-2 border-b border-neutral-50 last:border-0">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-neutral-700">{item.label}</p>
+                      <p className="text-xs text-neutral-400 mt-0.5">{item.desc}</p>
+                    </div>
+                    <div className={`w-11 h-6 rounded-full cursor-pointer transition-colors shrink-0 ${item.on ? 'bg-sage-500' : 'bg-neutral-200'}`}>
+                      <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform mt-0.5 mx-0.5 ${item.on ? 'translate-x-5' : ''}`} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="card space-y-4">
+                <h2 className="section-title">Modelo de mensagem de cobrança</h2>
+                <p className="text-xs text-neutral-400">
+                  Use <code className="bg-neutral-100 px-1 rounded">{'{{nome}}'}</code>,{' '}
+                  <code className="bg-neutral-100 px-1 rounded">{'{{valor}}'}</code> e{' '}
+                  <code className="bg-neutral-100 px-1 rounded">{'{{pix}}'}</code> como variáveis.
+                </p>
+                <textarea rows={4} className="input-field resize-none text-sm"
+                  defaultValue={`Olá, {{nome}}! 🌿\n\nSegue o valor da nossa sessão:\n💚 *{{valor}}*\n\nPode pagar via PIX: \`{{pix}}\`\n\nObrigada! 🙏`} />
+                <div className="flex justify-end">
+                  <button className="btn-primary text-sm" onClick={() => {}}>
+                    Salvar alterações
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {(tab === 'messages' || tab === 'security') && (
             <div className="card text-center py-12">
               <p className="text-neutral-400 text-sm">Esta seção estará disponível em breve 🌱</p>
             </div>
