@@ -1,0 +1,321 @@
+import { useState } from 'react'
+import { useParams } from 'react-router-dom'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import {
+  ChevronLeft, ChevronRight, Check,
+  MapPin, Video, Heart, Clock, DollarSign,
+} from 'lucide-react'
+import {
+  format, addDays, startOfMonth, endOfMonth,
+  eachDayOfInterval, getDay, isBefore, isToday,
+  startOfDay, parseISO,
+} from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { cn, formatCurrency } from '@/lib/utils'
+import { mockBookingPage, getMockSlots } from '@/lib/mock-booking'
+import toast from 'react-hot-toast'
+
+const schema = z.object({
+  patientName:  z.string().min(2, 'Nome obrigatório'),
+  patientEmail: z.string().email('E-mail inválido'),
+  patientPhone: z.string().optional(),
+  modality:     z.enum(['presencial', 'online']),
+  patientNotes: z.string().optional(),
+})
+type FormData = z.infer<typeof schema>
+
+type Step = 'date' | 'time' | 'form' | 'success'
+
+export default function BookingPage() {
+  const { slug } = useParams()
+  const page = mockBookingPage               // substituir por API call real
+
+  const [step, setStep] = useState<Step>('date')
+  const [month, setMonth] = useState(new Date())
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [selectedTime, setSelectedTime] = useState<string | null>(null)
+  const [slots, setSlots] = useState<string[]>([])
+  const [loading, setLoading] = useState(false)
+
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
+    resolver: zodResolver(schema),
+    defaultValues: { modality: 'presencial' },
+  })
+
+  // ─── Calendário ─────────────────────────────────────────────────────────────
+  const monthDays = eachDayOfInterval({
+    start: startOfMonth(month),
+    end: endOfMonth(month),
+  })
+  const startPad = getDay(startOfMonth(month)) // domingo=0
+
+  function selectDate(date: Date) {
+    const str = format(date, 'yyyy-MM-dd')
+    setSelectedDate(str)
+    const available = getMockSlots(str)        // substituir por API call
+    setSlots(available)
+    if (available.length) setStep('time')
+    else toast.error('Não há horários disponíveis neste dia.')
+  }
+
+  function isDisabled(date: Date) {
+    const today = startOfDay(new Date())
+    const min = addDays(today, page.minAdvanceDays)
+    const max = addDays(today, page.maxAdvanceDays)
+    return isBefore(date, min) || isBefore(max, date) || getDay(date) === 0 || getDay(date) === 6
+  }
+
+  // ─── Envio ───────────────────────────────────────────────────────────────────
+  async function onSubmit(data: FormData) {
+    await new Promise(r => setTimeout(r, 800))
+    setStep('success')
+  }
+
+  // ─── Layout externo (sem sidebar) ────────────────────────────────────────────
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-sage-50 via-white to-mist-50 flex flex-col">
+      {/* Header */}
+      <header className="bg-white/80 backdrop-blur-sm border-b border-neutral-100 sticky top-0 z-10">
+        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
+          <div className="w-8 h-8 bg-sage-500 rounded-xl flex items-center justify-center shrink-0">
+            <Heart className="w-4 h-4 text-white" fill="white" />
+          </div>
+          <div>
+            <p className="font-medium text-neutral-800 text-sm leading-none">{page.psychologistName}</p>
+            <p className="text-xs text-neutral-400 mt-0.5">CRP {page.psychologistCrp}</p>
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-8">
+
+        {/* ── Sucesso ─────────────────────────────────────────────────── */}
+        {step === 'success' && (
+          <div className="animate-slide-up text-center py-12">
+            <div className="w-20 h-20 bg-sage-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Check className="w-10 h-10 text-sage-600" />
+            </div>
+            <h2 className="font-display text-2xl text-neutral-800 mb-2">Solicitação enviada!</h2>
+            <p className="text-neutral-500 mb-4 max-w-sm mx-auto">
+              {page.confirmationMessage ?? 'Recebemos sua solicitação. Entraremos em contato para confirmar em breve! 💙'}
+            </p>
+            <div className="bg-white rounded-2xl shadow-card p-5 text-left max-w-xs mx-auto mt-6">
+              <p className="text-sm font-medium text-neutral-700 mb-3">Resumo</p>
+              <div className="space-y-2 text-sm text-neutral-600">
+                <p>📅 {selectedDate && format(parseISO(selectedDate), "dd 'de' MMMM", { locale: ptBR })}</p>
+                <p>⏰ {selectedTime}</p>
+                <p>⏱ {page.sessionDuration} minutos</p>
+                <p>💰 {formatCurrency(page.sessionPrice)}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Etapas de agendamento ──────────────────────────────────── */}
+        {step !== 'success' && (
+          <>
+            {/* Intro */}
+            <div className="mb-8">
+              <h1 className="font-display text-3xl font-light text-neutral-800 mb-2">
+                {page.title ?? 'Agende sua sessão'}
+              </h1>
+              {page.description && (
+                <p className="text-neutral-500 leading-relaxed">{page.description}</p>
+              )}
+              <div className="flex flex-wrap gap-3 mt-4 text-sm text-neutral-500">
+                <span className="flex items-center gap-1.5"><Clock className="w-4 h-4 text-sage-500" />{page.sessionDuration} min</span>
+                <span className="flex items-center gap-1.5"><DollarSign className="w-4 h-4 text-sage-500" />{formatCurrency(page.sessionPrice)}</span>
+                {page.allowPresencial && <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-sage-500" />Presencial</span>}
+                {page.allowOnline && <span className="flex items-center gap-1.5"><Video className="w-4 h-4 text-mist-500" />Online</span>}
+              </div>
+            </div>
+
+            {/* Progress */}
+            <div className="flex items-center gap-2 mb-8">
+              {(['date', 'time', 'form'] as Step[]).map((s, i) => (
+                <div key={s} className="flex items-center gap-2">
+                  <div className={cn(
+                    'w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all',
+                    step === s ? 'bg-sage-500 text-white' :
+                    ['date','time','form'].indexOf(step) > i ? 'bg-sage-100 text-sage-700' :
+                    'bg-neutral-100 text-neutral-400'
+                  )}>
+                    {['date','time','form'].indexOf(step) > i ? <Check className="w-3.5 h-3.5" /> : i + 1}
+                  </div>
+                  <span className={cn('text-sm hidden sm:block', step === s ? 'text-neutral-700 font-medium' : 'text-neutral-400')}>
+                    {['Escolher data', 'Escolher horário', 'Seus dados'][i]}
+                  </span>
+                  {i < 2 && <div className="w-8 h-px bg-neutral-200" />}
+                </div>
+              ))}
+            </div>
+
+            {/* ── Step 1: Calendário ─────────────────────────────────── */}
+            {step === 'date' && (
+              <div className="bg-white rounded-3xl shadow-card p-6 animate-slide-up">
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="font-medium text-neutral-800 capitalize">
+                    {format(month, 'MMMM yyyy', { locale: ptBR })}
+                  </h2>
+                  <div className="flex gap-1">
+                    <button onClick={() => setMonth(m => new Date(m.getFullYear(), m.getMonth() - 1))}
+                      className="p-2 rounded-xl hover:bg-neutral-100 text-neutral-500 transition-colors">
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setMonth(m => new Date(m.getFullYear(), m.getMonth() + 1))}
+                      className="p-2 rounded-xl hover:bg-neutral-100 text-neutral-500 transition-colors">
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Day headers */}
+                <div className="grid grid-cols-7 mb-2">
+                  {['D','S','T','Q','Q','S','S'].map((d, i) => (
+                    <div key={i} className="text-center text-xs text-neutral-400 py-1">{d}</div>
+                  ))}
+                </div>
+
+                {/* Days */}
+                <div className="grid grid-cols-7 gap-1">
+                  {Array.from({ length: startPad }).map((_, i) => <div key={`pad-${i}`} />)}
+                  {monthDays.map(day => {
+                    const disabled = isDisabled(day)
+                    const today = isToday(day)
+                    const dateStr = format(day, 'yyyy-MM-dd')
+                    const selected = selectedDate === dateStr
+                    return (
+                      <button key={dateStr} disabled={disabled}
+                        onClick={() => selectDate(day)}
+                        className={cn(
+                          'aspect-square rounded-xl text-sm font-medium transition-all',
+                          disabled ? 'text-neutral-200 cursor-not-allowed' :
+                          selected ? 'bg-sage-500 text-white shadow-sm' :
+                          today ? 'bg-sage-50 text-sage-700 hover:bg-sage-100' :
+                          'text-neutral-700 hover:bg-sage-50'
+                        )}>
+                        {format(day, 'd')}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ── Step 2: Horários ───────────────────────────────────── */}
+            {step === 'time' && (
+              <div className="bg-white rounded-3xl shadow-card p-6 animate-slide-up">
+                <button onClick={() => setStep('date')}
+                  className="flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-700 mb-5 transition-colors">
+                  <ChevronLeft className="w-4 h-4" />
+                  {selectedDate && format(parseISO(selectedDate), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                </button>
+
+                <h2 className="font-medium text-neutral-800 mb-5">Escolha um horário</h2>
+
+                {slots.length === 0 ? (
+                  <p className="text-neutral-400 text-sm text-center py-6">Sem horários disponíveis neste dia.</p>
+                ) : (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {slots.map(slot => (
+                      <button key={slot} onClick={() => { setSelectedTime(slot); setStep('form') }}
+                        className={cn(
+                          'py-3 rounded-xl text-sm font-medium border transition-all',
+                          selectedTime === slot
+                            ? 'bg-sage-500 text-white border-sage-500'
+                            : 'border-neutral-200 text-neutral-700 hover:border-sage-300 hover:bg-sage-50'
+                        )}>
+                        {slot}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Step 3: Formulário ─────────────────────────────────── */}
+            {step === 'form' && (
+              <div className="bg-white rounded-3xl shadow-card p-6 animate-slide-up">
+                <button onClick={() => setStep('time')}
+                  className="flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-700 mb-5 transition-colors">
+                  <ChevronLeft className="w-4 h-4" />
+                  {selectedDate && format(parseISO(selectedDate), "dd/MM", { locale: ptBR })} às {selectedTime}
+                </button>
+
+                <h2 className="font-medium text-neutral-800 mb-5">Seus dados</h2>
+
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                  <div>
+                    <label className="label">Nome completo *</label>
+                    <input {...register('patientName')} className="input-field" placeholder="Como você se chama?" />
+                    {errors.patientName && <p className="text-rose-500 text-xs mt-1">{errors.patientName.message}</p>}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="label">E-mail *</label>
+                      <input {...register('patientEmail')} type="email" className="input-field" />
+                      {errors.patientEmail && <p className="text-rose-500 text-xs mt-1">{errors.patientEmail.message}</p>}
+                    </div>
+                    <div>
+                      <label className="label">WhatsApp</label>
+                      <input {...register('patientPhone')} className="input-field" placeholder="(11) 99999-9999" />
+                    </div>
+                  </div>
+
+                  {page.allowPresencial && page.allowOnline && (
+                    <div>
+                      <label className="label">Modalidade</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {(['presencial','online'] as const).map(m => (
+                          <label key={m} className="relative cursor-pointer">
+                            <input {...register('modality')} type="radio" value={m} className="sr-only peer" />
+                            <div className="flex items-center gap-2 p-3 border rounded-xl peer-checked:border-sage-400 peer-checked:bg-sage-50 transition-all border-neutral-200">
+                              {m === 'presencial' ? <MapPin className="w-4 h-4 text-sage-500" /> : <Video className="w-4 h-4 text-mist-500" />}
+                              <span className="text-sm font-medium capitalize">{m}</span>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="label">Alguma observação? (opcional)</label>
+                    <textarea {...register('patientNotes')} rows={2} className="input-field resize-none"
+                      placeholder="Conte um pouco sobre o que te traz aqui, se quiser..." />
+                  </div>
+
+                  {/* Resumo */}
+                  <div className="bg-sage-50 rounded-2xl p-4 text-sm text-sage-700 space-y-1">
+                    <p className="font-medium">Resumo da sessão</p>
+                    <p>📅 {selectedDate && format(parseISO(selectedDate), "EEEE, dd 'de' MMMM", { locale: ptBR })}</p>
+                    <p>⏰ {selectedTime} · {page.sessionDuration} minutos</p>
+                    <p>💰 {formatCurrency(page.sessionPrice)}</p>
+                  </div>
+
+                  <button type="submit" disabled={isSubmitting}
+                    className="btn-primary w-full flex items-center justify-center gap-2">
+                    {isSubmitting
+                      ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Enviando...</>
+                      : 'Solicitar agendamento 💙'
+                    }
+                  </button>
+
+                  <p className="text-xs text-neutral-400 text-center">
+                    Ao solicitar, você concorda com o uso dos seus dados para agendamento e comunicação sobre a sessão.
+                  </p>
+                </form>
+              </div>
+            )}
+          </>
+        )}
+      </main>
+
+      <footer className="text-center py-6 text-xs text-neutral-400">
+        PsicoSaaS · Agendamento seguro e respeitoso 🔒
+      </footer>
+    </div>
+  )
+}

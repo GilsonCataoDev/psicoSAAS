@@ -1,0 +1,18 @@
+import { Body, Controller, Get, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common'
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
+import { FinancialService } from './financial.service'
+import { CreateFinancialDto } from './dto/create-financial.dto'
+
+@Controller('financial')
+@UseGuards(JwtAuthGuard)
+export class FinancialController {
+  constructor(private svc: FinancialService) {}
+
+  @Get() findAll(@Request() req: any, @Query('status') status?: string) { return this.svc.findAll(req.user.id, status) }
+  @Get('summary') summary(@Request() req: any) { return this.svc.getSummary(req.user.id) }
+  @Post() create(@Body() dto: CreateFinancialDto, @Request() req: any) { return this.svc.create(dto, req.user.id) }
+  @Patch(':id/pay')
+  markPaid(@Param('id') id: string, @Body('method') method: string, @Request() req: any) {
+    return this.svc.markPaid(id, method, req.user.id)
+  }
+}
