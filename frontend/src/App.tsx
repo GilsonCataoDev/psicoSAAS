@@ -14,6 +14,8 @@ import SettingsPage from '@/pages/SettingsPage'
 import BookingManagePage from '@/pages/BookingManagePage'
 import BookingPage from '@/pages/public/BookingPage'
 import BookingConfirmPage from '@/pages/public/BookingConfirmPage'
+import ProntuarioPage from '@/pages/ProntuarioPage'
+import DocumentosPage from '@/pages/DocumentosPage'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
@@ -43,6 +45,8 @@ export default function App() {
         <Route index element={<DashboardPage />} />
         <Route path="pacientes" element={<PatientsPage />} />
         <Route path="pacientes/:id" element={<PatientDetailPage />} />
+        <Route path="prontuario/:id" element={<ProntuarioPage />} />
+        <Route path="documentos" element={<DocumentosPage />} />
         <Route path="agenda" element={<AgendaPage />} />
         <Route path="agendamentos" element={<BookingManagePage />} />
         <Route path="sessoes" element={<SessionsPage />} />

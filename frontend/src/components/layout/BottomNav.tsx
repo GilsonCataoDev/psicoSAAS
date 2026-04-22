@@ -1,12 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Users, CalendarDays, FileText, Wallet } from 'lucide-react'
+import { LayoutDashboard, Users, CalendarDays, Stamp, Wallet } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const items = [
   { to: '/',           icon: LayoutDashboard, label: 'Início'    },
   { to: '/pacientes',  icon: Users,           label: 'Pessoas'   },
   { to: '/agenda',     icon: CalendarDays,    label: 'Agenda'    },
-  { to: '/sessoes',    icon: FileText,        label: 'Sessões'   },
+  { to: '/documentos', icon: Stamp,           label: 'Docs'      },
   { to: '/financeiro', icon: Wallet,          label: 'Financeiro'},
 ]
 

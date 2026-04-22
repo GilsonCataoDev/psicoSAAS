@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Users, CalendarDays,
   FileText, Wallet, Settings, LogOut, Heart, Link2,
+  ClipboardList, Stamp,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { getInitials, cn } from '@/lib/utils'
@@ -12,6 +13,7 @@ const navItems = [
   { to: '/agenda',        icon: CalendarDays,    label: 'Agenda'       },
   { to: '/agendamentos',  icon: Link2,           label: 'Link público' },
   { to: '/sessoes',       icon: FileText,        label: 'Sessões'      },
+  { to: '/documentos',    icon: Stamp,           label: 'Documentos'   },
   { to: '/financeiro',    icon: Wallet,          label: 'Financeiro'   },
   { to: '/configuracoes', icon: Settings,        label: 'Ajustes'      },
 ]

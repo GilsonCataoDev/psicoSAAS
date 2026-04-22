@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Phone, Mail, Calendar, Edit2, Plus, Lock } from 'lucide-react'
+import { ArrowLeft, Phone, Mail, Calendar, Edit2, Plus, Lock, ClipboardList } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
 import { mockPatients, mockSessions, mockAppointments } from '@/lib/mock-data'
@@ -61,6 +61,10 @@ export default function PatientDetailPage() {
               </div>
               {/* Action buttons — topo no desktop */}
               <div className="hidden sm:flex gap-2 shrink-0">
+                <Link to={`/prontuario/${patient.id}`}
+                  className="btn-secondary text-sm flex items-center gap-1.5">
+                  <ClipboardList className="w-3.5 h-3.5" />Prontuário
+                </Link>
                 <button className="btn-secondary text-sm flex items-center gap-1.5">
                   <Edit2 className="w-3.5 h-3.5" />Editar
                 </button>
@@ -77,9 +81,10 @@ export default function PatientDetailPage() {
 
         {/* Action buttons — mobile (abaixo do avatar/nome) */}
         <div className="flex gap-2 mt-4 sm:hidden">
-          <button className="btn-secondary text-sm flex items-center gap-1.5 flex-1 justify-center">
-            <Edit2 className="w-3.5 h-3.5" />Editar
-          </button>
+          <Link to={`/prontuario/${patient.id}`}
+            className="btn-secondary text-sm flex items-center gap-1.5 flex-1 justify-center">
+            <ClipboardList className="w-3.5 h-3.5" />Prontuário
+          </Link>
           <button className="btn-primary text-sm flex items-center gap-1.5 flex-1 justify-center">
             <Plus className="w-3.5 h-3.5" />Nova sessão
           </button>
