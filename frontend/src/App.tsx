@@ -16,6 +16,7 @@ import BookingPage from '@/pages/public/BookingPage'
 import BookingConfirmPage from '@/pages/public/BookingConfirmPage'
 import ProntuarioPage from '@/pages/ProntuarioPage'
 import DocumentosPage from '@/pages/DocumentosPage'
+import PlansPage from '@/pages/PlansPage'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
@@ -52,6 +53,7 @@ export default function App() {
         <Route path="sessoes" element={<SessionsPage />} />
         <Route path="financeiro" element={<FinancialPage />} />
         <Route path="configuracoes" element={<SettingsPage />} />
+        <Route path="planos" element={<PlansPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

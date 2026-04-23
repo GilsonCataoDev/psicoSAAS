@@ -1,16 +1,19 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Users, CalendarDays, Stamp, Wallet } from 'lucide-react'
+import { LayoutDashboard, Users, CalendarDays, Wallet, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useNotificationStore } from '@/store/notifications'
 
 const items = [
-  { to: '/',           icon: LayoutDashboard, label: 'Início'    },
-  { to: '/pacientes',  icon: Users,           label: 'Pessoas'   },
-  { to: '/agenda',     icon: CalendarDays,    label: 'Agenda'    },
-  { to: '/documentos', icon: Stamp,           label: 'Docs'      },
-  { to: '/financeiro', icon: Wallet,          label: 'Financeiro'},
+  { to: '/',              icon: LayoutDashboard, label: 'Início'    },
+  { to: '/pacientes',     icon: Users,           label: 'Pessoas'   },
+  { to: '/agenda',        icon: CalendarDays,    label: 'Agenda'    },
+  { to: '/financeiro',    icon: Wallet,          label: 'Financeiro'},
+  { to: '/configuracoes', icon: Settings,        label: 'Ajustes'   },
 ]
 
 export default function BottomNav() {
+  const unread = useNotificationStore(s => s.notifications.filter(n => !n.read).length)
+
   return (
     <nav className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-neutral-100
                     flex items-stretch h-16 safe-area-bottom shadow-[0_-1px_12px_rgba(0,0,0,0.06)]">
@@ -31,10 +34,14 @@ export default function BottomNav() {
           {({ isActive }) => (
             <>
               <div className={cn(
-                'w-8 h-8 flex items-center justify-center rounded-xl transition-all',
+                'w-8 h-8 flex items-center justify-center rounded-xl transition-all relative',
                 isActive && 'bg-sage-50',
               )}>
                 <Icon className="w-5 h-5" />
+                {/* Badge de notificação não lida no item de Ajustes */}
+                {to === '/configuracoes' && unread > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-rose-500 rounded-full" />
+                )}
               </div>
               <span className="text-[10px] font-medium">{label}</span>
             </>

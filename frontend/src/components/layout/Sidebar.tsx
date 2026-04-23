@@ -2,9 +2,10 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Users, CalendarDays,
   FileText, Wallet, Settings, LogOut, Heart, Link2,
-  ClipboardList, Stamp,
+  ClipboardList, Stamp, Zap,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
+import { useSubscriptionStore, PLANS } from '@/store/subscription'
 import { getInitials, cn } from '@/lib/utils'
 
 const navItems = [
@@ -22,9 +23,15 @@ export default function Sidebar() {
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const navigate = useNavigate()
+  const { subscription } = useSubscriptionStore()
+
+  const currentPlan = PLANS.find(p => p.id === subscription.planId)
+  const isTrialing = subscription.status === 'trialing'
+  const daysLeft = subscription.trialEndsAt
+    ? Math.max(0, Math.ceil((new Date(subscription.trialEndsAt).getTime() - Date.now()) / 86400000))
+    : null
 
   return (
-    // hidden em mobile, flex em lg+
     <aside className="hidden lg:flex w-64 bg-white border-r border-neutral-100 flex-col h-full shrink-0">
       {/* Logo */}
       <div className="px-6 py-6 border-b border-neutral-50">
@@ -52,6 +59,43 @@ export default function Sidebar() {
           </NavLink>
         ))}
       </nav>
+
+      {/* Banner de plano / trial */}
+      <div className="px-3 pb-2">
+        {isTrialing && daysLeft !== null && daysLeft <= 14 ? (
+          <NavLink
+            to="/planos"
+            className="block bg-gradient-to-br from-sage-500 to-sage-600 text-white rounded-2xl p-3 hover:from-sage-600 hover:to-sage-700 transition-all"
+          >
+            <div className="flex items-center gap-2 mb-1.5">
+              <Zap className="w-4 h-4" />
+              <p className="text-xs font-semibold">Período de teste</p>
+            </div>
+            <p className="text-xs text-sage-100">
+              {daysLeft} dia{daysLeft !== 1 ? 's' : ''} restante{daysLeft !== 1 ? 's' : ''}. Assine para continuar.
+            </p>
+            <div className="mt-2 bg-white/20 rounded-full h-1.5">
+              <div
+                className="bg-white rounded-full h-1.5 transition-all"
+                style={{ width: `${Math.max(5, ((14 - daysLeft) / 14) * 100)}%` }}
+              />
+            </div>
+          </NavLink>
+        ) : subscription.status === 'active' && currentPlan ? (
+          <NavLink
+            to="/planos"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-neutral-50 transition-colors"
+          >
+            <div className="w-6 h-6 bg-sage-100 rounded-lg flex items-center justify-center">
+              <Zap className="w-3.5 h-3.5 text-sage-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-neutral-600">Plano {currentPlan.name}</p>
+              <p className="text-xs text-neutral-400">Ver detalhes</p>
+            </div>
+          </NavLink>
+        ) : null}
+      </div>
 
       {/* User footer */}
       <div className="px-3 py-4 border-t border-neutral-100">

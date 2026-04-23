@@ -1,11 +1,14 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/auth'
-import { Bell, Lock, CreditCard, User, MessageSquare, Shield, ExternalLink, CheckCircle2 } from 'lucide-react'
+import { Bell, Lock, CreditCard, User, MessageSquare, Shield, ExternalLink, CheckCircle2, Zap, ArrowRight, X } from 'lucide-react'
 import { isValidCrpFormat, getCrpRegion, openCfpVerification, formatCrpInput } from '@/lib/crp'
+import { useSubscriptionStore, PLANS } from '@/store/subscription'
 import toast from 'react-hot-toast'
 
 const tabs = [
   { id: 'profile',  icon: User,          label: 'Perfil'     },
+  { id: 'plan',     icon: Zap,           label: 'Plano'      },
   { id: 'notify',   icon: Bell,          label: 'Lembretes'  },
   { id: 'messages', icon: MessageSquare, label: 'Mensagens'  },
   { id: 'payment',  icon: CreditCard,    label: 'Pagamentos' },
@@ -27,6 +30,14 @@ export default function SettingsPage() {
     setCrp(formatCrpInput(e.target.value))
   }
   const [tab, setTab] = useState('profile')
+  const { subscription } = useSubscriptionStore()
+  const navigate = useNavigate()
+
+  const currentPlan = PLANS.find(p => p.id === subscription.planId)
+  const isTrialing = subscription.status === 'trialing'
+  const daysLeft = subscription.trialEndsAt
+    ? Math.max(0, Math.ceil((new Date(subscription.trialEndsAt).getTime() - Date.now()) / 86400000))
+    : null
 
   function saveProfile() {
     updateUser({ name, crp, specialty })
@@ -213,6 +224,90 @@ export default function SettingsPage() {
                   </button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {tab === 'plan' && (
+            <div className="space-y-5">
+              {/* Card do plano atual */}
+              <div className={`card ${isTrialing ? 'border-sage-200 bg-gradient-to-br from-sage-50 to-white' : ''}`}>
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-sage-500 rounded-xl flex items-center justify-center">
+                      <Zap className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-neutral-800">
+                        Plano {currentPlan?.name ?? 'Gratuito'}
+                        {isTrialing && <span className="ml-2 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">em teste</span>}
+                        {subscription.status === 'active' && <span className="ml-2 text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">ativo</span>}
+                      </p>
+                      {isTrialing && daysLeft !== null && (
+                        <p className="text-sm text-neutral-500 mt-0.5">
+                          {daysLeft} dia{daysLeft !== 1 ? 's' : ''} restante{daysLeft !== 1 ? 's' : ''} no período grátis
+                        </p>
+                      )}
+                      {subscription.status === 'active' && subscription.currentPeriodEnd && (
+                        <p className="text-sm text-neutral-500 mt-0.5">
+                          Renova em {new Date(subscription.currentPeriodEnd).toLocaleDateString('pt-BR')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => navigate('/planos')}
+                    className="btn-primary text-sm flex items-center gap-1.5"
+                  >
+                    {isTrialing ? 'Assinar agora' : 'Trocar plano'}
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {isTrialing && daysLeft !== null && (
+                  <div className="mt-4">
+                    <div className="flex justify-between text-xs text-neutral-400 mb-1">
+                      <span>Período de teste</span>
+                      <span>{daysLeft} dias restantes</span>
+                    </div>
+                    <div className="h-2 bg-neutral-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-sage-400 rounded-full transition-all"
+                        style={{ width: `${Math.max(5, ((14 - daysLeft) / 14) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Funcionalidades do plano */}
+              <div className="card space-y-3">
+                <h2 className="section-title">O que está incluído</h2>
+                <ul className="space-y-2">
+                  {currentPlan?.features.map(f => (
+                    <li key={f} className="flex items-center gap-2 text-sm text-neutral-600">
+                      <CheckCircle2 className="w-4 h-4 text-sage-500 shrink-0" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Cancelamento */}
+              {subscription.status === 'active' && !subscription.cancelAtPeriodEnd && (
+                <div className="card border-rose-100">
+                  <h2 className="section-title text-neutral-600">Cancelamento</h2>
+                  <p className="text-sm text-neutral-500 mt-1">
+                    Ao cancelar, você continua com acesso até o fim do período pago. Seus dados ficam seguros por 90 dias.
+                  </p>
+                  <button
+                    className="mt-3 text-sm text-rose-500 hover:text-rose-600 flex items-center gap-1 transition-colors"
+                    onClick={() => toast('Entre em contato pelo suporte para cancelar a assinatura.')}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    Cancelar assinatura
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
