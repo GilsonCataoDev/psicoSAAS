@@ -164,8 +164,8 @@ export default function CheckoutModal({ plan, yearly, onClose }: Props) {
                 <div className="grid grid-cols-3 gap-2">
                   {([
                     { id: 'pix' as PaymentMethod, label: 'PIX', icon: <Smartphone className="w-5 h-5" />, badge: '5% off' },
-                    { id: 'card' as PaymentMethod, label: 'Cartão', icon: <CreditCard className="w-5 h-5" /> },
-                    { id: 'boleto' as PaymentMethod, label: 'Boleto', icon: <Barcode className="w-5 h-5" /> },
+                    { id: 'card' as PaymentMethod, label: 'Cartão', icon: <CreditCard className="w-5 h-5" />, badge: undefined },
+                    { id: 'boleto' as PaymentMethod, label: 'Boleto', icon: <Barcode className="w-5 h-5" />, badge: undefined },
                   ] as const).map(({ id, label, icon, badge }) => (
                     <button
                       key={id}
