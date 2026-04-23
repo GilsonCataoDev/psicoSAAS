@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAuthStore } from '@/store/auth'
-import { Bell, Lock, CreditCard, User, MessageSquare, Shield } from 'lucide-react'
+import { Bell, Lock, CreditCard, User, MessageSquare, Shield, ExternalLink, CheckCircle2 } from 'lucide-react'
+import { isValidCrpFormat, getCrpRegion, openCfpVerification, formatCrpInput } from '@/lib/crp'
 import toast from 'react-hot-toast'
 
 const tabs = [
@@ -18,6 +19,13 @@ export default function SettingsPage() {
   const [name, setName] = useState(user?.name ?? '')
   const [crp, setCrp] = useState(user?.crp ?? '')
   const [specialty, setSpecialty] = useState(user?.specialty ?? '')
+
+  const crpValid = isValidCrpFormat(crp)
+  const crpRegion = getCrpRegion(crp)
+
+  function handleCrpChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setCrp(formatCrpInput(e.target.value))
+  }
   const [tab, setTab] = useState('profile')
 
   function saveProfile() {
@@ -65,7 +73,29 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <label className="label">CRP</label>
-                  <input value={crp} onChange={e => setCrp(e.target.value)} className="input-field" />
+                  <input
+                    value={crp}
+                    onChange={handleCrpChange}
+                    className="input-field"
+                    placeholder="06/123456"
+                    maxLength={9}
+                  />
+                  {crpValid && (
+                    <div className="flex items-center justify-between mt-1.5">
+                      <p className="text-xs text-emerald-600 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" />
+                        {crpRegion ?? 'CRP válido'}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={openCfpVerification}
+                        className="text-xs text-sage-600 hover:text-sage-700 flex items-center gap-1 hover:underline"
+                      >
+                        Verificar no CFP
+                        <ExternalLink className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="label">Especialidade</label>

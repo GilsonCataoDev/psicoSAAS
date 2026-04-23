@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { FilePlus, Shield, Download, Eye, Search } from 'lucide-react'
+import { FilePlus, Shield, Download, Eye, Search, ExternalLink } from 'lucide-react'
 import { mockDocumentos } from '@/lib/mock-prontuario'
 import { mockPatients } from '@/lib/mock-data'
 import { Documento, DocType, DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '@/types/prontuario'
 import { useAuthStore } from '@/store/auth'
 import { formatDate } from '@/lib/utils'
+import { openCfpVerification } from '@/lib/crp'
 import GenerateDocModal from '@/components/features/prontuario/GenerateDocModal'
 import DocumentPreviewModal from '@/components/features/prontuario/DocumentPreviewModal'
 
@@ -48,7 +49,7 @@ export default function DocumentosPage() {
           <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
             <Shield className="w-5 h-5 text-white" />
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <p className="font-medium">Certificação digital ativa</p>
             <p className="text-sage-100 text-sm mt-0.5">
               {user?.name ?? 'Psicólogo(a)'} · CRP {user?.crp ?? '00/000000'}
@@ -56,6 +57,14 @@ export default function DocumentosPage() {
             <p className="text-sage-200 text-xs mt-1">
               Documentos assinados com código único verificável · Válidos conforme CFP Res. 006/2019
             </p>
+            <button
+              type="button"
+              onClick={openCfpVerification}
+              className="mt-2 inline-flex items-center gap-1 text-xs text-white/80 hover:text-white hover:underline transition-colors"
+            >
+              Verificar registro ativo no portal CFP
+              <ExternalLink className="w-3 h-3" />
+            </button>
           </div>
         </div>
       </div>

@@ -3,14 +3,17 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { UserPlus } from 'lucide-react'
+import { UserPlus, ExternalLink, CheckCircle2, AlertCircle } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
+import { isValidCrpFormat, getCrpRegion, openCfpVerification, formatCrpInput } from '@/lib/crp'
 import toast from 'react-hot-toast'
 
 const schema = z.object({
   name: z.string().min(3, 'Nome muito curto'),
   email: z.string().email('E-mail inválido'),
-  crp: z.string().min(5, 'CRP inválido'),
+  crp: z
+    .string()
+    .regex(/^\d{2}\/\d{4,6}$/, 'Formato inválido. Use: 00/000000'),
   password: z.string()
     .min(8, 'Mínimo 8 caracteres')
     .regex(/[A-Z]/, 'Precisa de ao menos uma letra maiúscula')
@@ -24,12 +27,22 @@ type FormData = z.infer<typeof schema>
 
 export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
+  const [crpValue, setCrpValue] = useState('')
   const setAuth = useAuthStore((s) => s.setAuth)
   const navigate = useNavigate()
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
   })
+
+  const crpValid = isValidCrpFormat(crpValue)
+  const crpRegion = getCrpRegion(crpValue)
+
+  function handleCrpChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const formatted = formatCrpInput(e.target.value)
+    setCrpValue(formatted)
+    setValue('crp', formatted, { shouldValidate: formatted.length >= 7 })
+  }
 
   async function onSubmit(data: FormData) {
     setLoading(true)
@@ -65,10 +78,59 @@ export default function RegisterPage() {
           {errors.email && <p className="text-rose-500 text-xs mt-1">{errors.email.message}</p>}
         </div>
 
+        {/* ── CRP com validação em tempo real ────────────────────────── */}
         <div>
           <label className="label">CRP</label>
-          <input {...register('crp')} className="input-field" placeholder="06/123456" />
-          {errors.crp && <p className="text-rose-500 text-xs mt-1">{errors.crp.message}</p>}
+          <div className="relative">
+            <input
+              value={crpValue}
+              onChange={handleCrpChange}
+              className={`input-field pr-10 ${
+                crpValue.length >= 7
+                  ? crpValid
+                    ? 'border-emerald-400 focus:ring-emerald-200'
+                    : 'border-rose-400 focus:ring-rose-200'
+                  : ''
+              }`}
+              placeholder="06/123456"
+              maxLength={9}
+            />
+            {crpValue.length >= 7 && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                {crpValid
+                  ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  : <AlertCircle className="w-4 h-4 text-rose-400" />}
+              </span>
+            )}
+          </div>
+
+          {/* Feedback: região identificada */}
+          {crpValid && crpRegion && (
+            <div className="flex items-center justify-between mt-1.5">
+              <p className="text-xs text-emerald-600 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" />
+                Conselho Regional — {crpRegion}
+              </p>
+              <button
+                type="button"
+                onClick={openCfpVerification}
+                className="text-xs text-sage-600 hover:text-sage-700 flex items-center gap-1 hover:underline"
+              >
+                Verificar no CFP
+                <ExternalLink className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+
+          {/* Erro de validação do schema */}
+          {errors.crp && !crpValid && (
+            <p className="text-rose-500 text-xs mt-1">{errors.crp.message}</p>
+          )}
+
+          {/* Dica de formato quando ainda incompleto */}
+          {!crpValid && crpValue.length > 0 && crpValue.length < 7 && (
+            <p className="text-neutral-400 text-xs mt-1">Formato: 00/000000 (região/número)</p>
+          )}
         </div>
 
         <div>

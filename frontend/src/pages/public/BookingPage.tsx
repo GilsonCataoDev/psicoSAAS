@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
   ChevronLeft, ChevronRight, Check,
-  MapPin, Video, Heart, Clock, DollarSign,
+  MapPin, Video, Heart, Clock, DollarSign, ShieldCheck, ExternalLink,
 } from 'lucide-react'
 import {
   format, addDays, startOfMonth, endOfMonth,
@@ -82,9 +82,21 @@ export default function BookingPage() {
           <div className="w-8 h-8 bg-sage-500 rounded-xl flex items-center justify-center shrink-0">
             <Heart className="w-4 h-4 text-white" fill="white" />
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <p className="font-medium text-neutral-800 text-sm leading-none">{page.psychologistName}</p>
-            <p className="text-xs text-neutral-400 mt-0.5">CRP {page.psychologistCrp}</p>
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              <p className="text-xs text-neutral-400">CRP {page.psychologistCrp}</p>
+              <button
+                type="button"
+                onClick={() => window.open('https://cadastro.cfp.org.br/', '_blank', 'noopener,noreferrer')}
+                className="flex items-center gap-0.5 text-xs text-sage-600 hover:text-sage-700 hover:underline transition-colors"
+                title="Verificar registro ativo no portal oficial do CFP"
+              >
+                <ShieldCheck className="w-3 h-3" />
+                Verificar registro
+                <ExternalLink className="w-2.5 h-2.5" />
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -110,6 +122,17 @@ export default function BookingPage() {
                 <p>💰 {formatCurrency(page.sessionPrice)}</p>
               </div>
             </div>
+
+            {/* Badge de verificação CFP */}
+            <button
+              type="button"
+              onClick={() => window.open('https://cadastro.cfp.org.br/', '_blank', 'noopener,noreferrer')}
+              className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-sage-50 hover:bg-sage-100 border border-sage-200 rounded-full text-xs text-sage-700 transition-colors"
+            >
+              <ShieldCheck className="w-4 h-4 text-sage-500" />
+              Verificar registro do psicólogo no CFP
+              <ExternalLink className="w-3 h-3 text-sage-400" />
+            </button>
           </div>
         )}
 
