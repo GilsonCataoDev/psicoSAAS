@@ -12,9 +12,9 @@ export interface User {
 
 interface AuthState {
   user: User | null
-  token: string | null
   isAuthenticated: boolean
-  setAuth: (user: User, token: string) => void
+  // token JWT fica em HttpOnly cookie gerenciado pelo browser — nunca aqui
+  setAuth: (user: User) => void
   logout: () => void
   updateUser: (user: Partial<User>) => void
 }
@@ -23,14 +23,13 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
-      token: null,
       isAuthenticated: false,
 
-      setAuth: (user, token) =>
-        set({ user, token, isAuthenticated: true }),
+      setAuth: (user) =>
+        set({ user, isAuthenticated: true }),
 
       logout: () =>
-        set({ user: null, token: null, isAuthenticated: false }),
+        set({ user: null, isAuthenticated: false }),
 
       updateUser: (partial) =>
         set((state) => ({
@@ -39,9 +38,9 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'psicosaas-auth',
+      // Persiste SOMENTE o perfil — NUNCA o token JWT
       partialize: (state) => ({
         user: state.user,
-        token: state.token,
         isAuthenticated: state.isAuthenticated,
       }),
     },

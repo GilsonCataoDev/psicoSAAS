@@ -112,7 +112,8 @@ export class BookingService {
     })
     if (conflict) throw new ConflictException('Este horário não está mais disponível')
 
-    const confirmationToken = randomBytes(24).toString('hex')
+    const confirmationToken = randomBytes(32).toString('hex')
+    const tokenExpiresAt = addDays(new Date(), 2) // expira em 48h
 
     const booking = this.bookings.create({
       ...dto,
@@ -120,6 +121,7 @@ export class BookingService {
       duration: page.sessionDuration,
       amount: page.sessionPrice,
       confirmationToken,
+      tokenExpiresAt,
       status: 'pending',
       paymentStatus: 'pending',
     })
@@ -142,23 +144,26 @@ export class BookingService {
       relations: ['psychologist'],
     })
     if (!booking) throw new NotFoundException('Link de confirmação inválido')
+    if (new Date() > booking.tokenExpiresAt)
+      throw new BadRequestException('Este link expirou. Solicite um novo agendamento.')
     if (booking.status === 'cancelled')
       throw new BadRequestException('Esta sessão foi cancelada')
     if (booking.status === 'confirmed')
-      return { message: 'Sessão já confirmada anteriormente ✓', booking }
+      return { message: 'Sessão já confirmada anteriormente ✓' }
 
     booking.status = 'confirmed'
     booking.confirmedAt = new Date()
     await this.bookings.save(booking)
-
     await this.notifications.sendBookingConfirmation(booking)
 
-    return { message: 'Sessão confirmada com sucesso! 🎉', booking }
+    return { message: 'Sessão confirmada com sucesso! 🎉' }
   }
 
   async cancelByToken(token: string, reason?: string) {
     const booking = await this.bookings.findOne({ where: { confirmationToken: token } })
     if (!booking) throw new NotFoundException('Link inválido')
+    if (new Date() > booking.tokenExpiresAt)
+      throw new BadRequestException('Este link expirou.')
     if (booking.status === 'cancelled')
       return { message: 'Sessão já cancelada anteriormente.' }
 

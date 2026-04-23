@@ -1,18 +1,18 @@
 import axios from 'axios'
 import { useAuthStore } from '@/store/auth'
 
+// Modo mock: usa dados locais sem backend real
+// Em produção: VITE_USE_MOCK=false no .env
+export const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'
+
 export const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL ?? '/api',
   headers: { 'Content-Type': 'application/json' },
+  withCredentials: true, // envia HttpOnly cookie em toda requisição
 })
 
-api.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
+// Sem token no header — autenticação via HttpOnly cookie (mais seguro contra XSS)
+api.interceptors.request.use((config) => config)
 
 api.interceptors.response.use(
   (res) => res,
@@ -24,6 +24,3 @@ api.interceptors.response.use(
     return Promise.reject(err)
   },
 )
-
-// Mock data flag — remove when backend is ready
-export const USE_MOCK = true

@@ -30,16 +30,13 @@ export default function LoginPage() {
       // Mock login — substituir por chamada real à API
       await new Promise((r) => setTimeout(r, 800))
       if (data.email && data.password) {
-        setAuth(
-          {
-            id: '1',
-            name: 'Dra. Carolina Mendes',
-            email: data.email,
-            crp: '06/123456',
-            specialty: 'Psicologia Clínica',
-          },
-          'mock-jwt-token',
-        )
+        setAuth({
+          id: '1',
+          name: 'Dra. Carolina Mendes',
+          email: data.email,
+          crp: '06/123456',
+          specialty: 'Psicologia Clínica',
+        })
         navigate('/')
       }
     } catch {

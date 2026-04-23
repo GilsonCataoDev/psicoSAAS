@@ -11,7 +11,12 @@ const schema = z.object({
   name: z.string().min(3, 'Nome muito curto'),
   email: z.string().email('E-mail inválido'),
   crp: z.string().min(5, 'CRP inválido'),
-  password: z.string().min(8, 'Mínimo 8 caracteres'),
+  password: z.string()
+    .min(8, 'Mínimo 8 caracteres')
+    .regex(/[A-Z]/, 'Precisa de ao menos uma letra maiúscula')
+    .regex(/[a-z]/, 'Precisa de ao menos uma letra minúscula')
+    .regex(/\d/, 'Precisa de ao menos um número')
+    .regex(/[@$!%*?&\-_#]/, 'Precisa de ao menos um símbolo (@$!%*?&-_#)'),
   terms: z.boolean().refine((v) => v, 'Você precisa aceitar os termos'),
 })
 
@@ -30,10 +35,7 @@ export default function RegisterPage() {
     setLoading(true)
     try {
       await new Promise((r) => setTimeout(r, 1000))
-      setAuth(
-        { id: '1', name: data.name, email: data.email, crp: data.crp },
-        'mock-jwt-token',
-      )
+      setAuth({ id: '1', name: data.name, email: data.email, crp: data.crp })
       toast.success('Conta criada com sucesso! Seja bem-vinda 🌱')
       navigate('/')
     } catch {

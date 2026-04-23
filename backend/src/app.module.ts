@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common'
+import { APP_GUARD } from '@nestjs/core'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { TypeOrmModule } from '@nestjs/typeorm'
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler'
 import { AuthModule } from './modules/auth/auth.module'
 import { PatientsModule } from './modules/patients/patients.module'
 import { AppointmentsModule } from './modules/appointments/appointments.module'
@@ -14,6 +16,12 @@ import { AvailabilityModule } from './modules/availability/availability.module'
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
 
+    // ── Rate limiting global ─────────────────────────────────────────────────
+    ThrottlerModule.forRoot([
+      { name: 'short', ttl: 1000,  limit: 3   }, // 3 req/s (anti-DDoS)
+      { name: 'long',  ttl: 60000, limit: 100  }, // 100 req/min por IP
+    ]),
+
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (cfg: ConfigService) => ({
@@ -21,7 +29,7 @@ import { AvailabilityModule } from './modules/availability/availability.module'
         url: cfg.get('DATABASE_URL'),
         autoLoadEntities: true,
         synchronize: cfg.get('NODE_ENV') !== 'production',
-        logging: cfg.get('NODE_ENV') === 'development',
+        logging: false, // nunca logar queries em produção (dados sensíveis)
       }),
     }),
 
@@ -33,6 +41,10 @@ import { AvailabilityModule } from './modules/availability/availability.module'
     NotificationsModule,
     AvailabilityModule,
     BookingModule,
+  ],
+  providers: [
+    // ThrottlerGuard aplicado globalmente a todos os endpoints
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AppModule {}
