@@ -41,7 +41,7 @@ export default function VerifyDocumentPage() {
         if (USE_MOCK) {
           // Busca nos dados mock
           await new Promise(r => setTimeout(r, 900))
-          const doc = mockDocumentos.find(d => d.signCode === code.toUpperCase())
+          const doc = mockDocumentos.find(d => d.signCode === code?.toUpperCase())
           if (doc) {
             setResult({
               valid: true,
