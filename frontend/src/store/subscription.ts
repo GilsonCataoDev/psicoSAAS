@@ -21,10 +21,10 @@ export const PLANS: Plan[] = [
     name: 'Gratuito',
     price: 0,
     priceYearly: 0,
-    maxPatients: 5,
+    maxPatients: 2,
     maxStorage: 1,
     features: [
-      'Até 5 pessoas ativas',
+      'Até 2 pessoas ativas',
       'Agenda básica',
       '1 GB de prontuário',
       'Página de agendamento público',

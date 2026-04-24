@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { identifyUser, resetAnalytics } from '@/lib/analytics'
 
 export interface User {
   id: string
@@ -25,11 +26,15 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isAuthenticated: false,
 
-      setAuth: (user) =>
-        set({ user, isAuthenticated: true }),
+      setAuth: (user) => {
+        identifyUser(user.id, { name: user.name, crp: user.crp, specialty: user.specialty })
+        set({ user, isAuthenticated: true })
+      },
 
-      logout: () =>
-        set({ user: null, isAuthenticated: false }),
+      logout: () => {
+        resetAnalytics()
+        set({ user: null, isAuthenticated: false })
+      },
 
       updateUser: (partial) =>
         set((state) => ({

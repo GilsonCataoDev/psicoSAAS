@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common'
 import { AppModule } from './app.module'
 import helmet from 'helmet'
 import * as cookieParser from 'cookie-parser'
+import * as Sentry from '@sentry/node'
 
 async function bootstrap() {
   // ── Validação de variáveis críticas na inicialização ───────────────────────
@@ -15,6 +16,15 @@ async function bootstrap() {
   }
   if ((process.env.SIGN_SECRET ?? '').length < 32) {
     throw new Error('SIGN_SECRET deve ter ao menos 32 caracteres')
+  }
+
+  // ── Sentry (erros em produção) ─────────────────────────────────────────────
+  if (process.env.SENTRY_DSN) {
+    Sentry.init({
+      dsn: process.env.SENTRY_DSN,
+      environment: process.env.NODE_ENV ?? 'development',
+      tracesSampleRate: 0.1,   // 10% das transações
+    })
   }
 
   const app = await NestFactory.create(AppModule)

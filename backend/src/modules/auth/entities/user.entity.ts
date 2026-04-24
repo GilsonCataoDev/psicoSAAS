@@ -30,6 +30,15 @@ export class User {
   @Column({ default: true })
   isActive: boolean
 
+  @Column({ default: false })
+  onboardingCompleted: boolean
+
+  @Column({ nullable: true })
+  phone?: string
+
+  @Column({ nullable: true })
+  referralCode?: string   // código usado no cadastro
+
   @Column({ type: 'jsonb', nullable: true })
   preferences?: Record<string, unknown>
 

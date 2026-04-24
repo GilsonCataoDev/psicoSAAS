@@ -13,6 +13,9 @@ import { BookingModule } from './modules/booking/booking.module'
 import { AvailabilityModule } from './modules/availability/availability.module'
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module'
 import { DocumentsModule } from './modules/documents/documents.module'
+import { EmailModule } from './modules/email/email.module'
+import { AnalyticsModule } from './modules/analytics/analytics.module'
+import { ReferralModule } from './modules/referral/referral.module'
 
 @Module({
   imports: [
@@ -45,6 +48,9 @@ import { DocumentsModule } from './modules/documents/documents.module'
     BookingModule,
     SubscriptionsModule,
     DocumentsModule,
+    EmailModule,
+    AnalyticsModule,
+    ReferralModule,
   ],
   providers: [
     // ThrottlerGuard aplicado globalmente a todos os endpoints

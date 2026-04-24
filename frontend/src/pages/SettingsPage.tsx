@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/auth'
-import { Bell, Lock, CreditCard, User, MessageSquare, Shield, ExternalLink, CheckCircle2, Zap, ArrowRight, X } from 'lucide-react'
+import { Bell, Lock, CreditCard, User, MessageSquare, Shield, ExternalLink, CheckCircle2, Zap, ArrowRight, X, Gift } from 'lucide-react'
 import { isValidCrpFormat, getCrpRegion, openCfpVerification, formatCrpInput } from '@/lib/crp'
 import { useSubscriptionStore, PLANS } from '@/store/subscription'
+import ReferralCard from '@/components/features/referral/ReferralCard'
 import toast from 'react-hot-toast'
 
 const tabs = [
   { id: 'profile',  icon: User,          label: 'Perfil'     },
   { id: 'plan',     icon: Zap,           label: 'Plano'      },
+  { id: 'referral', icon: Gift,          label: 'Indicações' },
   { id: 'notify',   icon: Bell,          label: 'Lembretes'  },
   { id: 'messages', icon: MessageSquare, label: 'Mensagens'  },
   { id: 'payment',  icon: CreditCard,    label: 'Pagamentos' },
@@ -308,6 +310,12 @@ export default function SettingsPage() {
                   </button>
                 </div>
               )}
+            </div>
+          )}
+
+          {tab === 'referral' && (
+            <div className="max-w-md">
+              <ReferralCard />
             </div>
           )}
 

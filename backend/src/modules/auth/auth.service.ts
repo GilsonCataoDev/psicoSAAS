@@ -6,12 +6,14 @@ import * as bcrypt from 'bcryptjs'
 import { User } from './entities/user.entity'
 import { RegisterDto } from './dto/register.dto'
 import { LoginDto } from './dto/login.dto'
+import { EmailService } from '../email/email.service'
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(User) private users: Repository<User>,
     private jwt: JwtService,
+    private email: EmailService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -25,6 +27,8 @@ export class AuthService {
       passwordHash,
     })
     await this.users.save(user)
+    // Envia e-mail de boas-vindas (não bloqueia o registro)
+    this.email.sendWelcome(user.name, user.email).catch(() => {})
     return this.buildResponse(user)
   }
 
