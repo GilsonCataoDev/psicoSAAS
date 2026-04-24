@@ -14,6 +14,7 @@ import SettingsPage from '@/pages/SettingsPage'
 import BookingManagePage from '@/pages/BookingManagePage'
 import BookingPage from '@/pages/public/BookingPage'
 import BookingConfirmPage from '@/pages/public/BookingConfirmPage'
+import VerifyDocumentPage from '@/pages/public/VerifyDocumentPage'
 import ProntuarioPage from '@/pages/ProntuarioPage'
 import DocumentosPage from '@/pages/DocumentosPage'
 import PlansPage from '@/pages/PlansPage'
@@ -40,6 +41,7 @@ export default function App() {
       {/* ── Página pública de agendamento (sem auth, sem layout interno) ── */}
       <Route path="/agendar/:slug" element={<BookingPage />} />
       <Route path="/agendar/:action/:token" element={<BookingConfirmPage />} />
+      <Route path="/verificar/:code" element={<VerifyDocumentPage />} />
 
       {/* ── App interno (autenticado) ────────────────────────────── */}
       <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>

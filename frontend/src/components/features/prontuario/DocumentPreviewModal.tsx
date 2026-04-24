@@ -1,6 +1,8 @@
-import { Printer, Download, Shield, CheckCircle } from 'lucide-react'
+import { Printer, Download, Shield, CheckCircle, ExternalLink } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import { Documento, DOC_TYPE_LABELS } from '@/types/prontuario'
+
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, '')
 
 export default function DocumentPreviewModal({
   doc,
@@ -62,14 +64,23 @@ export default function DocumentPreviewModal({
               </div>
             </div>
 
-            {/* Código de verificação */}
+            {/* Código de verificação com link */}
             <div className="bg-sage-50 border border-sage-100 rounded-xl px-4 py-3 flex items-center gap-3">
               <CheckCircle className="w-4 h-4 text-sage-600 shrink-0" />
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-xs text-sage-700 font-medium">Documento assinado digitalmente</p>
                 <p className="text-xs font-mono text-sage-600 mt-0.5">Código: {doc.signCode}</p>
               </div>
-              <Shield className="w-4 h-4 text-sage-400 shrink-0 ml-auto" />
+              <a
+                href={`${BASE}/verificar/${doc.signCode}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Verificar autenticidade"
+                className="p-1 hover:text-sage-600 text-sage-400 transition-colors"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </a>
+              <Shield className="w-4 h-4 text-sage-400 shrink-0" />
             </div>
           </div>
         </div>

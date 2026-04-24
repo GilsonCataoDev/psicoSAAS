@@ -6,12 +6,15 @@ import * as cookieParser from 'cookie-parser'
 
 async function bootstrap() {
   // ── Validação de variáveis críticas na inicialização ───────────────────────
-  const requiredEnv = ['JWT_SECRET', 'DATABASE_URL']
+  const requiredEnv = ['JWT_SECRET', 'DATABASE_URL', 'SIGN_SECRET', 'ASAAS_API_KEY']
   for (const key of requiredEnv) {
     if (!process.env[key]) throw new Error(`Variável obrigatória ausente: ${key}`)
   }
   if ((process.env.JWT_SECRET ?? '').length < 32) {
     throw new Error('JWT_SECRET deve ter ao menos 32 caracteres')
+  }
+  if ((process.env.SIGN_SECRET ?? '').length < 32) {
+    throw new Error('SIGN_SECRET deve ter ao menos 32 caracteres')
   }
 
   const app = await NestFactory.create(AppModule)

@@ -11,6 +11,8 @@ import { FinancialModule } from './modules/financial/financial.module'
 import { NotificationsModule } from './modules/notifications/notifications.module'
 import { BookingModule } from './modules/booking/booking.module'
 import { AvailabilityModule } from './modules/availability/availability.module'
+import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module'
+import { DocumentsModule } from './modules/documents/documents.module'
 
 @Module({
   imports: [
@@ -41,6 +43,8 @@ import { AvailabilityModule } from './modules/availability/availability.module'
     NotificationsModule,
     AvailabilityModule,
     BookingModule,
+    SubscriptionsModule,
+    DocumentsModule,
   ],
   providers: [
     // ThrottlerGuard aplicado globalmente a todos os endpoints
