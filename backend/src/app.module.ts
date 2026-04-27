@@ -16,6 +16,8 @@ import { DocumentsModule } from './modules/documents/documents.module'
 import { EmailModule } from './modules/email/email.module'
 import { AnalyticsModule } from './modules/analytics/analytics.module'
 import { ReferralModule } from './modules/referral/referral.module'
+import { Subscription } from './modules/subscriptions/entities/subscription.entity'
+import { PlanGuard } from './common/guards/plan.guard'
 
 @Module({
   imports: [
@@ -34,9 +36,12 @@ import { ReferralModule } from './modules/referral/referral.module'
         url: cfg.get('DATABASE_URL'),
         autoLoadEntities: true,
         synchronize: cfg.get('NODE_ENV') !== 'production',
-        logging: false, // nunca logar queries em produção (dados sensíveis)
+        logging: false,
       }),
     }),
+
+    // Disponibiliza Subscription repository para o PlanGuard global
+    TypeOrmModule.forFeature([Subscription]),
 
     AuthModule,
     PatientsModule,
@@ -53,8 +58,8 @@ import { ReferralModule } from './modules/referral/referral.module'
     ReferralModule,
   ],
   providers: [
-    // ThrottlerGuard aplicado globalmente a todos os endpoints
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: PlanGuard },
   ],
 })
 export class AppModule {}

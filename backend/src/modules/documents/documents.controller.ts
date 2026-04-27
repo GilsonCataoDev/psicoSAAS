@@ -4,7 +4,6 @@ import {
 import { SkipThrottle } from '@nestjs/throttler'
 import { IsEnum, IsString, IsNotEmpty } from 'class-validator'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
-import { PlanGuard } from '../../common/guards/plan.guard'
 import { RequirePlan } from '../../common/decorators/require-plan.decorator'
 import { DocumentsService, CreateDocumentDto } from './documents.service'
 import { DocType } from './entities/document.entity'
@@ -23,7 +22,7 @@ export class DocumentsController {
 
   /** Gerar e assinar um novo documento (requer plano Essencial ou superior) */
   @Post()
-  @UseGuards(JwtAuthGuard, PlanGuard)
+  @UseGuards(JwtAuthGuard)
   @RequirePlan('essencial')
   async create(@Req() req: any, @Body() body: CreateDocumentBodyDto) {
     const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
