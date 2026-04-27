@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { UserPlus, ExternalLink, CheckCircle2, AlertCircle } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
+import { api, USE_MOCK } from '@/lib/api'
 import { isValidCrpFormat, getCrpRegion, openCfpVerification, formatCrpInput } from '@/lib/crp'
 import toast from 'react-hot-toast'
 
@@ -47,12 +48,29 @@ export default function RegisterPage() {
   async function onSubmit(data: FormData) {
     setLoading(true)
     try {
-      await new Promise((r) => setTimeout(r, 1000))
-      setAuth({ id: '1', name: data.name, email: data.email, crp: data.crp })
+      if (USE_MOCK) {
+        await new Promise((r) => setTimeout(r, 1000))
+        setAuth({ id: '1', name: data.name, email: data.email, crp: data.crp })
+        toast.success('Conta criada com sucesso! Seja bem-vinda 🌱')
+        navigate('/')
+        return
+      }
+      const res = await api.post('/auth/register', {
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        crp: data.crp,
+      })
+      setAuth(res.data.user)
       toast.success('Conta criada com sucesso! Seja bem-vinda 🌱')
       navigate('/')
-    } catch {
-      toast.error('Não foi possível criar a conta. Tente novamente.')
+    } catch (err: any) {
+      const msg = err?.response?.data?.message
+      if (msg === 'E-mail já cadastrado') {
+        toast.error('Este e-mail já está em uso. Tente fazer login.')
+      } else {
+        toast.error('Não foi possível criar a conta. Tente novamente.')
+      }
     } finally {
       setLoading(false)
     }
