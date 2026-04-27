@@ -36,14 +36,14 @@
     "date-fns": "^3.6.0",
     "axios": "^1.7.7",
     "dotenv": "^16.4.5",
-    "@nestjs/mapped-types": "^2.0.5"
+    "@nestjs/mapped-types": "^2.0.5",
+    "@nestjs/cli": "^11.0.21",
+    "typescript": "^5.5.4"
   },
   "devDependencies": {
-    "@nestjs/cli": "^11.0.21",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.5.4",
     "@types/passport-jwt": "^4.0.1",
-    "@types/passport-local": "^1.0.38",
-    "typescript": "^5.5.4"
+    "@types/passport-local": "^1.0.38"
   }
 }
