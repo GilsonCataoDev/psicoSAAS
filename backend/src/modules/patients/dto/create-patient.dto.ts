@@ -10,5 +10,5 @@ export class CreatePatientDto {
   @IsNumber() @IsOptional() sessionDuration?: number
   @IsString() @IsOptional() startDate?: string
   @IsArray() @IsOptional() tags?: string[]
-  @IsIn(['active','paused','discharged']) @IsOptional() status?: string
+  @IsIn(['active','paused','discharged']) @IsOptional() status?: 'active' | 'paused' | 'discharged'
 }

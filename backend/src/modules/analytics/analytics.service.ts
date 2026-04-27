@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository, Between, MoreThanOrEqual } from 'typeorm'
+import { Repository } from 'typeorm'
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, subMonths, format } from 'date-fns'
 import { Patient } from '../patients/entities/patient.entity'
 import { Appointment } from '../appointments/entities/appointment.entity'
 import { FinancialRecord } from '../financial/entities/financial-record.entity'
+
+const PT_MONTHS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
 
 @Injectable()
 export class AnalyticsService {
@@ -15,14 +17,14 @@ export class AnalyticsService {
   ) {}
 
   async getDashboardStats(userId: string) {
-    const now = new Date()
-    const monthStart = startOfMonth(now)
-    const monthEnd   = endOfMonth(now)
-    const weekStart  = startOfWeek(now, { weekStartsOn: 1 })
-    const weekEnd    = endOfWeek(now, { weekStartsOn: 1 })
-    const today      = format(now, 'yyyy-MM-dd')
+    const now       = new Date()
+    const today     = format(now, 'yyyy-MM-dd')
+    const monthStart = format(startOfMonth(now), 'yyyy-MM-dd')
+    const monthEnd   = format(endOfMonth(now), 'yyyy-MM-dd')
+    const weekStart  = format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+    const weekEnd    = format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+    const thirtyDaysAgo = format(subMonths(now, 1), 'yyyy-MM-dd')
 
-    // Paralelo para performance
     const [
       activePatients,
       sessionsThisMonth,
@@ -33,23 +35,22 @@ export class AnalyticsService {
       revenueChart,
       inactivePatients,
     ] = await Promise.all([
+
       this.patients.count({ where: { psychologistId: userId, status: 'active' } }),
 
-      this.appointments.count({
-        where: {
-          psychologistId: userId,
-          status: 'completed' as any,
-          scheduledAt: Between(monthStart, monthEnd),
-        },
-      }),
+      this.appointments
+        .createQueryBuilder('a')
+        .where('a.psychologistId = :userId', { userId })
+        .andWhere('a.status = :status', { status: 'completed' })
+        .andWhere('a.date BETWEEN :start AND :end', { start: monthStart, end: monthEnd })
+        .getCount(),
 
-      this.appointments.count({
-        where: {
-          psychologistId: userId,
-          status: 'completed' as any,
-          scheduledAt: Between(weekStart, weekEnd),
-        },
-      }),
+      this.appointments
+        .createQueryBuilder('a')
+        .where('a.psychologistId = :userId', { userId })
+        .andWhere('a.status = :status', { status: 'completed' })
+        .andWhere('a.date BETWEEN :start AND :end', { start: weekStart, end: weekEnd })
+        .getCount(),
 
       this.appointments.find({
         where: { psychologistId: userId, date: today },
@@ -58,7 +59,7 @@ export class AnalyticsService {
       }),
 
       this.financial.find({
-        where: { psychologistId: userId, paymentStatus: 'pending' as any, type: 'receita' as any },
+        where: { psychologistId: userId, status: 'pending', type: 'income' },
         order: { dueDate: 'ASC' },
         take: 10,
       }),
@@ -67,39 +68,40 @@ export class AnalyticsService {
         .createQueryBuilder('f')
         .select('SUM(f.amount)', 'total')
         .where('f.psychologistId = :userId', { userId })
-        .andWhere('f.type = :type', { type: 'receita' })
-        .andWhere('f.paymentStatus = :status', { status: 'paid' })
+        .andWhere('f.type = :type', { type: 'income' })
+        .andWhere('f.status = :status', { status: 'paid' })
         .andWhere('f.paidAt BETWEEN :start AND :end', { start: monthStart, end: monthEnd })
         .getRawOne(),
 
-      // Receita dos últimos 6 meses para o gráfico
       Promise.all(
         Array.from({ length: 6 }, (_, i) => {
-          const d = subMonths(now, 5 - i)
+          const d      = subMonths(now, 5 - i)
+          const mStart = format(startOfMonth(d), 'yyyy-MM-dd')
+          const mEnd   = format(endOfMonth(d), 'yyyy-MM-dd')
+          const label  = PT_MONTHS[d.getMonth()]
           return this.financial
             .createQueryBuilder('f')
             .select('SUM(f.amount)', 'total')
             .where('f.psychologistId = :userId', { userId })
-            .andWhere('f.type = :type', { type: 'receita' })
-            .andWhere('f.paymentStatus = :status', { status: 'paid' })
-            .andWhere('EXTRACT(YEAR FROM f.paidAt) = :year', { year: d.getFullYear() })
-            .andWhere('EXTRACT(MONTH FROM f.paidAt) = :month', { month: d.getMonth() + 1 })
+            .andWhere('f.type = :type', { type: 'income' })
+            .andWhere('f.status = :status', { status: 'paid' })
+            .andWhere('f.paidAt BETWEEN :start AND :end', { start: mStart, end: mEnd })
             .getRawOne()
-            .then(r => ({ mes: format(d, 'MMM'), valor: Number(r?.total ?? 0) }))
+            .then(r => ({ mes: label, valor: Number(r?.total ?? 0) }))
         }),
       ),
 
-      // Pacientes sem sessão nos últimos 30 dias (risco de churn)
-      this.patients.count({
-        where: {
-          psychologistId: userId,
-          status: 'active' as any,
-          lastSessionAt: Between(new Date(0), subMonths(now, 1)),
-        },
-      }),
+      // Pacientes ativos sem sessão completada nos últimos 30 dias
+      this.patients
+        .createQueryBuilder('p')
+        .where('p.psychologistId = :userId', { userId })
+        .andWhere('p.status = :status', { status: 'active' })
+        .andWhere(`COALESCE((
+          SELECT MAX(a.date) FROM appointments a
+          WHERE a."patientId" = p.id AND a.status = 'completed'
+        ), '1970-01-01') < :thirtyDaysAgo`, { thirtyDaysAgo })
+        .getCount(),
     ])
-
-    const pendingAmount = pendingPayments.reduce((s, p) => s + Number(p.amount), 0)
 
     return {
       activePatients,
@@ -107,8 +109,8 @@ export class AnalyticsService {
       sessionsThisWeek,
       monthRevenue: Number(monthRevenue?.total ?? 0),
       pendingPayments: pendingPayments.length,
-      pendingAmount,
-      inactivePatients,   // pacientes sem sessão há 30+ dias
+      pendingAmount: pendingPayments.reduce((s, p) => s + Number(p.amount), 0),
+      inactivePatients,
       todayAppointments,
       revenueChart,
     }
