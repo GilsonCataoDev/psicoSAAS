@@ -6,6 +6,8 @@ node_modules/
 dist/
 build/
 **/dist/
+# Exceção: dist do backend é commitado para deploy no Railway
+!backend/dist/
 **/.next/
 
 # Environment
