@@ -51,20 +51,19 @@ export class BookingService {
     if (token.length !== 16) return null
     const userPrefix = token.slice(0, 8)
 
-    // Busca páginas cujo psychologistId começa com o prefixo
-    const candidates = await this.pages.find({
-      where: { isActive: true },
-      relations: ['psychologist'],
-    })
+    // Busca apenas páginas cujo psychologistId começa com o prefixo (UUID: xxxxxxxx-...)
+    // Evita varrer a tabela inteira — O(1) na prática pois UUIDs são únicos por prefixo
+    const candidates = await this.pages
+      .createQueryBuilder('p')
+      .leftJoinAndSelect('p.psychologist', 'psychologist')
+      .where('p.isActive = true')
+      .andWhere("REPLACE(p.\"psychologistId\", '-', '') LIKE :prefix", { prefix: `${userPrefix}%` })
+      .getMany()
 
     const secret = this.config.get<string>('SIGN_SECRET') ?? 'fallback-secret'
     const today = new Date().toISOString().split('T')[0]
 
     for (const page of candidates) {
-      const pPrefix = page.psychologistId.replace(/-/g, '').slice(0, 8)
-      if (pPrefix !== userPrefix) continue
-
-      // Verifica HMAC
       const hmac = createHmac('sha256', secret)
       hmac.update(`${page.psychologistId}:${today}`)
       const expectedSig = hmac.digest('hex').slice(0, 8)
