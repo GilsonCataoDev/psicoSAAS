@@ -11,12 +11,14 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SaveBookingPageDto = void 0;
 const class_validator_1 = require("class-validator");
+const class_transformer_1 = require("class-transformer");
 class SaveBookingPageDto {
 }
 exports.SaveBookingPageDto = SaveBookingPageDto;
 __decorate([
     (0, class_validator_1.IsBoolean)(),
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Transform)(({ value }) => value === 'true' || value === true),
     __metadata("design:type", Boolean)
 ], SaveBookingPageDto.prototype, "isActive", void 0);
 __decorate([
@@ -32,41 +34,49 @@ __decorate([
 __decorate([
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
     __metadata("design:type", Number)
 ], SaveBookingPageDto.prototype, "sessionPrice", void 0);
 __decorate([
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
     __metadata("design:type", Number)
 ], SaveBookingPageDto.prototype, "sessionDuration", void 0);
 __decorate([
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
     __metadata("design:type", Number)
 ], SaveBookingPageDto.prototype, "slotInterval", void 0);
 __decorate([
-    (0, class_validator_1.IsBoolean)(),
-    (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", Boolean)
-], SaveBookingPageDto.prototype, "allowPresencial", void 0);
-__decorate([
-    (0, class_validator_1.IsBoolean)(),
-    (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", Boolean)
-], SaveBookingPageDto.prototype, "allowOnline", void 0);
-__decorate([
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
     __metadata("design:type", Number)
 ], SaveBookingPageDto.prototype, "minAdvanceDays", void 0);
 __decorate([
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
     __metadata("design:type", Number)
 ], SaveBookingPageDto.prototype, "maxAdvanceDays", void 0);
 __decorate([
     (0, class_validator_1.IsBoolean)(),
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Transform)(({ value }) => value === 'true' || value === true),
+    __metadata("design:type", Boolean)
+], SaveBookingPageDto.prototype, "allowPresencial", void 0);
+__decorate([
+    (0, class_validator_1.IsBoolean)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Transform)(({ value }) => value === 'true' || value === true),
+    __metadata("design:type", Boolean)
+], SaveBookingPageDto.prototype, "allowOnline", void 0);
+__decorate([
+    (0, class_validator_1.IsBoolean)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Transform)(({ value }) => value === 'true' || value === true),
     __metadata("design:type", Boolean)
 ], SaveBookingPageDto.prototype, "requirePaymentUpfront", void 0);
 __decorate([

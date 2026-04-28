@@ -5,10 +5,10 @@ export declare class SaveBookingPageDto {
     sessionPrice?: number;
     sessionDuration?: number;
     slotInterval?: number;
-    allowPresencial?: boolean;
-    allowOnline?: boolean;
     minAdvanceDays?: number;
     maxAdvanceDays?: number;
+    allowPresencial?: boolean;
+    allowOnline?: boolean;
     requirePaymentUpfront?: boolean;
     pixKey?: string;
     confirmationMessage?: string;

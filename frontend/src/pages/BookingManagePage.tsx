@@ -252,9 +252,10 @@ function BookingSettings({ page }: { page: any }) {
   const [form, setForm] = useState({
     title:               page?.title ?? 'Agende sua sessão',
     description:         page?.description ?? '',
-    sessionPrice:        page?.sessionPrice ?? 150,
-    sessionDuration:     page?.sessionDuration ?? 50,
-    slotInterval:        page?.slotInterval ?? 60,
+    // +() converte string "150.00" do PostgreSQL decimal para número
+    sessionPrice:        +(page?.sessionPrice ?? 150),
+    sessionDuration:     +(page?.sessionDuration ?? 50),
+    slotInterval:        +(page?.slotInterval ?? 60),
     pixKey:              page?.pixKey ?? '',
     confirmationMessage: page?.confirmationMessage ?? '',
     allowPresencial:     page?.allowPresencial ?? true,
