@@ -2,7 +2,7 @@ import {
   Injectable, NotFoundException, BadRequestException, ConflictException,
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository, Like } from 'typeorm'
+import { Repository } from 'typeorm'
 import { randomBytes, createHmac } from 'crypto'
 import { ConfigService } from '@nestjs/config'
 import {
@@ -48,22 +48,24 @@ export class BookingService {
    * Retorna null se o token for inválido ou expirado.
    */
   async resolveDailyToken(token: string): Promise<BookingPage | null> {
-    if (token.length !== 16) return null
+    if (!/^[0-9a-f]{16}$/.test(token)) return null
+
     const userPrefix = token.slice(0, 8)
-
-    // Busca apenas páginas cujo psychologistId começa com o prefixo (UUID: xxxxxxxx-...)
-    // Evita varrer a tabela inteira — O(1) na prática pois UUIDs são únicos por prefixo
-    const candidates = await this.pages
-      .createQueryBuilder('p')
-      .leftJoinAndSelect('p.psychologist', 'psychologist')
-      .where('p.isActive = true')
-      .andWhere("REPLACE(p.\"psychologistId\", '-', '') LIKE :prefix", { prefix: `${userPrefix}%` })
-      .getMany()
-
     const secret = this.config.get<string>('SIGN_SECRET') ?? 'fallback-secret'
     const today = new Date().toISOString().split('T')[0]
 
-    for (const page of candidates) {
+    // Carrega apenas páginas ativas com relations — sem SQL raw
+    const pages = await this.pages.find({
+      where: { isActive: true },
+      relations: ['psychologist'],
+    })
+
+    for (const page of pages) {
+      // Compara prefixo do userId (8 primeiros hex chars sem dashes)
+      const pPrefix = page.psychologistId.replace(/-/g, '').slice(0, 8)
+      if (pPrefix !== userPrefix) continue
+
+      // Verifica HMAC para o dia atual
       const hmac = createHmac('sha256', secret)
       hmac.update(`${page.psychologistId}:${today}`)
       const expectedSig = hmac.digest('hex').slice(0, 8)

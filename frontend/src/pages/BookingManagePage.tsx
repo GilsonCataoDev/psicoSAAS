@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Link2, Check, X, Wallet, Settings, Clock, RefreshCw } from 'lucide-react'
 import { formatCurrency, formatDateRelative } from '@/lib/utils'
@@ -276,8 +276,8 @@ function BookingSettings({ page }: { page: any }) {
   })
 
   // Preenche schedule quando os slots chegam da API
-  const [scheduleSynced, setScheduleSynced] = useState(false)
-  if (!scheduleSynced && savedSlots.length > 0) {
+  useEffect(() => {
+    if (!savedSlots.length) return
     const next: Record<number, DaySlot> = {}
     WEEKDAYS.forEach(({ d }) => {
       const slot = savedSlots.find(s => s.weekday === d)
@@ -286,8 +286,7 @@ function BookingSettings({ page }: { page: any }) {
         : { enabled: false, startTime: '09:00', endTime: '18:00' }
     })
     setSchedule(next)
-    setScheduleSynced(true)
-  }
+  }, [savedSlots])
 
   function toggleDay(d: number) {
     setSchedule(s => ({ ...s, [d]: { ...s[d], enabled: !s[d].enabled } }))

@@ -41,18 +41,19 @@ let BookingService = class BookingService {
         return `${userPrefix}${sig}`;
     }
     async resolveDailyToken(token) {
-        if (token.length !== 16)
+        if (!/^[0-9a-f]{16}$/.test(token))
             return null;
         const userPrefix = token.slice(0, 8);
-        const candidates = await this.pages
-            .createQueryBuilder('p')
-            .leftJoinAndSelect('p.psychologist', 'psychologist')
-            .where('p.isActive = true')
-            .andWhere("REPLACE(p.\"psychologistId\", '-', '') LIKE :prefix", { prefix: `${userPrefix}%` })
-            .getMany();
         const secret = this.config.get('SIGN_SECRET') ?? 'fallback-secret';
         const today = new Date().toISOString().split('T')[0];
-        for (const page of candidates) {
+        const pages = await this.pages.find({
+            where: { isActive: true },
+            relations: ['psychologist'],
+        });
+        for (const page of pages) {
+            const pPrefix = page.psychologistId.replace(/-/g, '').slice(0, 8);
+            if (pPrefix !== userPrefix)
+                continue;
             const hmac = (0, crypto_1.createHmac)('sha256', secret);
             hmac.update(`${page.psychologistId}:${today}`);
             const expectedSig = hmac.digest('hex').slice(0, 8);
