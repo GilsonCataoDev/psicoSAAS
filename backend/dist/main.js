@@ -10,7 +10,7 @@ const helmet_1 = require("helmet");
 const cookieParser = require("cookie-parser");
 const Sentry = require("@sentry/node");
 async function bootstrap() {
-    const requiredEnv = ['JWT_SECRET', 'DATABASE_URL', 'SIGN_SECRET', 'ASAAS_API_KEY'];
+    const requiredEnv = ['JWT_SECRET', 'DATABASE_URL', 'SIGN_SECRET'];
     for (const key of requiredEnv) {
         if (!process.env[key])
             throw new Error(`Variável obrigatória ausente: ${key}`);

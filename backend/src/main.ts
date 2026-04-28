@@ -11,7 +11,7 @@ import * as Sentry from '@sentry/node'
 
 async function bootstrap() {
   // ── Validação de variáveis críticas na inicialização ───────────────────────
-  const requiredEnv = ['JWT_SECRET', 'DATABASE_URL', 'SIGN_SECRET', 'ASAAS_API_KEY']
+  const requiredEnv = ['JWT_SECRET', 'DATABASE_URL', 'SIGN_SECRET']
   for (const key of requiredEnv) {
     if (!process.env[key]) throw new Error(`Variável obrigatória ausente: ${key}`)
   }
