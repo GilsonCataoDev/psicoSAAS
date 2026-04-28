@@ -1,5 +1,4 @@
 export declare class SaveBookingPageDto {
-    slug: string;
     isActive?: boolean;
     title?: string;
     description?: string;

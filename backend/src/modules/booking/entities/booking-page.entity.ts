@@ -11,8 +11,8 @@ import { User } from '../../auth/entities/user.entity'
 export class BookingPage {
   @PrimaryGeneratedColumn('uuid') id: string
 
-  // Slug único: psicosaas.com/agendar/carolina-mendes
-  @Column({ unique: true }) slug: string
+  // Slug interno único (auto-gerado a partir do userId — imutável)
+  @Column({ unique: true, nullable: true }) slug: string
 
   @Column({ default: true }) isActive: boolean
 

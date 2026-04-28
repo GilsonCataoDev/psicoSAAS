@@ -19,6 +19,13 @@ export class BookingController {
     return this.svc.getMyBookings(req.user.id, status)
   }
 
+  /** Link diário rotativo — gera token válido por 24h (renova à meia-noite UTC) */
+  @Get('daily-link')
+  getDailyLink(@Request() req: any) {
+    const baseUrl = process.env.FRONTEND_URL ?? 'https://gilsoncataodev.github.io/psicoSAAS'
+    return this.svc.getDailyLink(req.user.id, baseUrl)
+  }
+
   /** Confirmar solicitação */
   @Patch(':id/confirm')
   confirm(@Param('id') id: string, @Request() req: any) {
@@ -55,11 +62,5 @@ export class BookingController {
   @Post('page')
   savePage(@Request() req: any, @Body() dto: SaveBookingPageDto) {
     return this.svc.saveMyPage(req.user.id, dto)
-  }
-
-  /** Gerar slug sugerido com base no nome */
-  @Get('page/slug-suggest')
-  suggestSlug(@Request() req: any) {
-    return this.svc.generateSlug(req.user.name)
   }
 }

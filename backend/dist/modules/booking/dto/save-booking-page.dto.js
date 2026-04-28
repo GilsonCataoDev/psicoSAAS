@@ -15,10 +15,6 @@ class SaveBookingPageDto {
 }
 exports.SaveBookingPageDto = SaveBookingPageDto;
 __decorate([
-    (0, class_validator_1.Matches)(/^[a-z0-9-]+$/, { message: 'Slug inválido — use apenas letras minúsculas, números e hífens' }),
-    __metadata("design:type", String)
-], SaveBookingPageDto.prototype, "slug", void 0);
-__decorate([
     (0, class_validator_1.IsBoolean)(),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Boolean)

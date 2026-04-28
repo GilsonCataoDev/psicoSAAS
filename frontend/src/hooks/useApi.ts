@@ -116,6 +116,16 @@ export function useBookingPage() {
   })
 }
 
+export function useDailyBookingLink() {
+  return useQuery<{ token: string; url: string; expiresAt: string }>({
+    queryKey: ['booking-daily-link'],
+    queryFn: () => api.get('/booking/daily-link').then(r => r.data),
+    // Revalida a cada hora — o token muda à meia-noite UTC
+    staleTime: 60 * 60 * 1000,
+    retry: false,
+  })
+}
+
 export function useSaveBookingPage() {
   const qc = useQueryClient()
   return useMutation({

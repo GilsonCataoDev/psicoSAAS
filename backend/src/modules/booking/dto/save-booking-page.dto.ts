@@ -1,9 +1,6 @@
-import { IsString, IsOptional, IsBoolean, IsNumber, IsUrl, Matches } from 'class-validator'
+import { IsString, IsOptional, IsBoolean, IsNumber } from 'class-validator'
 
 export class SaveBookingPageDto {
-  @Matches(/^[a-z0-9-]+$/, { message: 'Slug inválido — use apenas letras minúsculas, números e hífens' })
-  slug: string
-
   @IsBoolean() @IsOptional() isActive?: boolean
   @IsString() @IsOptional() title?: string
   @IsString() @IsOptional() description?: string

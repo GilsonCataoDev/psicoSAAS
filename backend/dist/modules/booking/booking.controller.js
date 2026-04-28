@@ -24,6 +24,10 @@ let BookingController = class BookingController {
     getMyBookings(req, status) {
         return this.svc.getMyBookings(req.user.id, status);
     }
+    getDailyLink(req) {
+        const baseUrl = process.env.FRONTEND_URL ?? 'https://gilsoncataodev.github.io/psicoSAAS';
+        return this.svc.getDailyLink(req.user.id, baseUrl);
+    }
     confirm(id, req) {
         return this.svc.confirmBooking(id, req.user.id);
     }
@@ -39,9 +43,6 @@ let BookingController = class BookingController {
     savePage(req, dto) {
         return this.svc.saveMyPage(req.user.id, dto);
     }
-    suggestSlug(req) {
-        return this.svc.generateSlug(req.user.name);
-    }
 };
 exports.BookingController = BookingController;
 __decorate([
@@ -52,6 +53,13 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
 ], BookingController.prototype, "getMyBookings", null);
+__decorate([
+    (0, common_1.Get)('daily-link'),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], BookingController.prototype, "getDailyLink", null);
 __decorate([
     (0, common_1.Patch)(':id/confirm'),
     __param(0, (0, common_1.Param)('id')),
@@ -93,13 +101,6 @@ __decorate([
     __metadata("design:paramtypes", [Object, save_booking_page_dto_1.SaveBookingPageDto]),
     __metadata("design:returntype", void 0)
 ], BookingController.prototype, "savePage", null);
-__decorate([
-    (0, common_1.Get)('page/slug-suggest'),
-    __param(0, (0, common_1.Request)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", void 0)
-], BookingController.prototype, "suggestSlug", null);
 exports.BookingController = BookingController = __decorate([
     (0, common_1.Controller)('booking'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

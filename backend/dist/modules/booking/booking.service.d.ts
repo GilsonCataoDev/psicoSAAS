@@ -1,4 +1,5 @@
 import { Repository } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
 import { Booking } from './entities/booking.entity';
 import { BookingPage } from './entities/booking-page.entity';
 import { AvailabilityService } from '../availability/availability.service';
@@ -10,8 +11,11 @@ export declare class BookingService {
     private pages;
     private availability;
     private notifications;
-    constructor(bookings: Repository<Booking>, pages: Repository<BookingPage>, availability: AvailabilityService, notifications: NotificationsService);
-    getPublicPage(slug: string): Promise<{
+    private config;
+    constructor(bookings: Repository<Booking>, pages: Repository<BookingPage>, availability: AvailabilityService, notifications: NotificationsService, config: ConfigService);
+    generateDailyToken(userId: string): string;
+    resolveDailyToken(token: string): Promise<BookingPage | null>;
+    getPublicPage(slugOrToken: string): Promise<{
         psychologistName: string;
         psychologistCrp: string;
         specialty: string;
@@ -36,8 +40,8 @@ export declare class BookingService {
         createdAt: Date;
         updatedAt: Date;
     }>;
-    getAvailableSlots(slug: string, dateStr: string): Promise<string[]>;
-    createBooking(slug: string, dto: CreateBookingDto): Promise<{
+    getAvailableSlots(slugOrToken: string, dateStr: string): Promise<string[]>;
+    createBooking(slugOrToken: string, dto: CreateBookingDto): Promise<{
         id: string;
         confirmationToken: string;
         message: string;
@@ -54,6 +58,10 @@ export declare class BookingService {
     markPaid(id: string, psychologistId: string, method: string): Promise<Booking>;
     getMyPage(psychologistId: string): Promise<BookingPage>;
     saveMyPage(psychologistId: string, dto: SaveBookingPageDto): Promise<BookingPage>;
-    generateSlug(name: string): Promise<string>;
+    getDailyLink(psychologistId: string, baseUrl: string): {
+        token: string;
+        url: string;
+        expiresAt: string;
+    };
     private findOne;
 }

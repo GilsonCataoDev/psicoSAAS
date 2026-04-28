@@ -1,14 +1,13 @@
 import { useState } from 'react'
-import { Link2, Check, X, Wallet, Settings, Clock } from 'lucide-react'
-import { Booking } from '@/types/booking'
+import { Link2, Check, X, Wallet, Settings, Clock, RefreshCw } from 'lucide-react'
 import { formatCurrency, formatDateRelative } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import {
   useBookings, useBookingPage, useSaveBookingPage,
   useConfirmBooking, useRejectBooking, usePayBooking,
+  useDailyBookingLink,
 } from '@/hooks/useApi'
-import { useAuthStore } from '@/store/auth'
 
 const STATUS_CONFIG = {
   pending:   { label: 'Aguardando',     className: 'bg-amber-100 text-amber-700'      },
@@ -35,16 +34,15 @@ const BOOKING_FILTERS = [
 export default function BookingManagePage() {
   const [tab, setTab] = useState<'requests' | 'settings'>('requests')
   const [filter, setFilter] = useState<string>('all')
-  const user = useAuthStore(s => s.user)
 
   const { data: bookings = [], isLoading } = useBookings()
   const { data: bookingPage } = useBookingPage()
+  const { data: dailyLink, refetch: refetchLink } = useDailyBookingLink()
   const confirmBooking = useConfirmBooking()
   const rejectBooking = useRejectBooking()
   const payBooking = usePayBooking()
 
-  const slug = bookingPage?.slug ?? user?.id?.slice(0, 8) ?? 'meu-link'
-  const bookingUrl = `${window.location.origin}/psicoSAAS/agendar/${slug}`
+  const bookingUrl = dailyLink?.url ?? '…'
 
   function copyLink() {
     navigator.clipboard.writeText(bookingUrl)
@@ -68,6 +66,10 @@ export default function BookingManagePage() {
 
   const filtered = filter === 'all' ? bookings : bookings.filter((b: any) => b.status === filter)
 
+  const expiresLabel = dailyLink?.expiresAt
+    ? new Date(dailyLink.expiresAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
+    : null
+
   return (
     <div className="animate-slide-up space-y-5">
       <div className="flex items-start justify-between gap-3">
@@ -84,17 +86,31 @@ export default function BookingManagePage() {
 
       {/* Link card */}
       <div className="card bg-gradient-to-r from-sage-500 to-sage-600 text-white border-0">
-        <p className="text-sage-100 text-xs mb-1.5">Seu link de agendamento</p>
+        <div className="flex items-center gap-2 mb-1 flex-wrap">
+          <p className="text-sage-100 text-xs">Seu link de agendamento de hoje</p>
+          {expiresLabel && (
+            <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full text-white/90">
+              renova às {expiresLabel}
+            </span>
+          )}
+        </div>
         <p className="font-mono text-sm break-all mb-3">{bookingUrl}</p>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button onClick={copyLink}
             className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2">
             <Link2 className="w-4 h-4" />Copiar
           </button>
-          <a href={`/psicoSAAS/agendar/${slug}`} target="_blank" rel="noreferrer"
-            className="bg-white text-sage-700 hover:bg-sage-50 px-4 py-2 rounded-xl text-sm font-medium transition-colors">
-            Visualizar
-          </a>
+          {dailyLink?.token && (
+            <a href={`${import.meta.env.BASE_URL}agendar/${dailyLink.token}`} target="_blank" rel="noreferrer"
+              className="bg-white text-sage-700 hover:bg-sage-50 px-4 py-2 rounded-xl text-sm font-medium transition-colors">
+              Visualizar
+            </a>
+          )}
+          <button onClick={() => refetchLink()}
+            title="Atualizar link"
+            className="bg-white/20 hover:bg-white/30 text-white p-2 rounded-xl transition-colors">
+            <RefreshCw className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
@@ -103,9 +119,9 @@ export default function BookingManagePage() {
           {/* Stats */}
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: 'Aguardando',    value: bookings.filter((b: any) => b.status === 'pending').length,           icon: <Clock className="w-4 h-4 text-amber-500" /> },
-              { label: 'Confirmados',   value: bookings.filter((b: any) => b.status === 'confirmed').length,         icon: <Check className="w-4 h-4 text-sage-500" />  },
-              { label: 'Pag. pendentes',value: bookings.filter((b: any) => b.paymentStatus === 'pending').length,    icon: <Wallet className="w-4 h-4 text-amber-500" /> },
+              { label: 'Aguardando',     value: bookings.filter((b: any) => b.status === 'pending').length,        icon: <Clock className="w-4 h-4 text-amber-500" /> },
+              { label: 'Confirmados',    value: bookings.filter((b: any) => b.status === 'confirmed').length,      icon: <Check className="w-4 h-4 text-sage-500" />  },
+              { label: 'Pag. pendentes', value: bookings.filter((b: any) => b.paymentStatus === 'pending').length, icon: <Wallet className="w-4 h-4 text-amber-500" /> },
             ].map(s => (
               <div key={s.label} className="card text-center p-3 lg:p-6">
                 <div className="flex justify-center mb-1">{s.icon}</div>
@@ -218,7 +234,6 @@ function BookingCard({ booking, onConfirm, onReject, onMarkPaid }: {
 function BookingSettings({ page }: { page: any }) {
   const saveBookingPage = useSaveBookingPage()
   const [form, setForm] = useState({
-    slug:                page?.slug ?? '',
     title:               page?.title ?? 'Agende sua sessão',
     description:         page?.description ?? '',
     sessionPrice:        page?.sessionPrice ?? 150,
@@ -254,15 +269,6 @@ function BookingSettings({ page }: { page: any }) {
           <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={3} className="input-field resize-none" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="sm:col-span-2">
-            <label className="label">Slug (link)</label>
-            <div className="flex">
-              <span className="px-3 py-3 bg-neutral-100 border border-r-0 border-neutral-200 rounded-l-xl text-sm text-neutral-500 whitespace-nowrap">
-                /agendar/
-              </span>
-              <input value={form.slug} onChange={e => set('slug', e.target.value)} className="input-field rounded-l-none" />
-            </div>
-          </div>
           <div>
             <label className="label">Valor da sessão (R$)</label>
             <input type="number" value={form.sessionPrice} onChange={e => set('sessionPrice', +e.target.value)} className="input-field" />

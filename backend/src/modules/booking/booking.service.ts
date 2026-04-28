@@ -2,8 +2,9 @@ import {
   Injectable, NotFoundException, BadRequestException, ConflictException,
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository, Between } from 'typeorm'
-import { randomBytes } from 'crypto'
+import { Repository, Like } from 'typeorm'
+import { randomBytes, createHmac } from 'crypto'
+import { ConfigService } from '@nestjs/config'
 import {
   addDays, format, parseISO, setHours, setMinutes,
   addMinutes, isBefore, isAfter, getDay,
@@ -22,15 +23,76 @@ export class BookingService {
     @InjectRepository(BookingPage) private pages: Repository<BookingPage>,
     private availability: AvailabilityService,
     private notifications: NotificationsService,
+    private config: ConfigService,
   ) {}
+
+  // ─── Daily token helpers ────────────────────────────────────────────────────
+
+  /**
+   * Gera o token diário de 16 chars para o link público.
+   * Formato: {userId sem dashes, primeiros 8 chars}{HMAC(secret, userId:YYYY-MM-DD), primeiros 8 chars hex}
+   * Rotaciona à meia-noite UTC.
+   */
+  generateDailyToken(userId: string): string {
+    const secret = this.config.get<string>('SIGN_SECRET') ?? 'fallback-secret'
+    const today = new Date().toISOString().split('T')[0]           // YYYY-MM-DD UTC
+    const userPrefix = userId.replace(/-/g, '').slice(0, 8)        // 8 hex chars
+    const hmac = createHmac('sha256', secret)
+    hmac.update(`${userId}:${today}`)
+    const sig = hmac.digest('hex').slice(0, 8)                     // 8 hex chars
+    return `${userPrefix}${sig}`                                    // 16 chars total
+  }
+
+  /**
+   * Resolve um token diário para a BookingPage correspondente.
+   * Retorna null se o token for inválido ou expirado.
+   */
+  async resolveDailyToken(token: string): Promise<BookingPage | null> {
+    if (token.length !== 16) return null
+    const userPrefix = token.slice(0, 8)
+
+    // Busca páginas cujo psychologistId começa com o prefixo
+    const candidates = await this.pages.find({
+      where: { isActive: true },
+      relations: ['psychologist'],
+    })
+
+    const secret = this.config.get<string>('SIGN_SECRET') ?? 'fallback-secret'
+    const today = new Date().toISOString().split('T')[0]
+
+    for (const page of candidates) {
+      const pPrefix = page.psychologistId.replace(/-/g, '').slice(0, 8)
+      if (pPrefix !== userPrefix) continue
+
+      // Verifica HMAC
+      const hmac = createHmac('sha256', secret)
+      hmac.update(`${page.psychologistId}:${today}`)
+      const expectedSig = hmac.digest('hex').slice(0, 8)
+      if (token.slice(8) === expectedSig) return page
+    }
+    return null
+  }
 
   // ─── Página pública ────────────────────────────────────────────────────────
 
-  async getPublicPage(slug: string) {
-    const page = await this.pages.findOne({
-      where: { slug, isActive: true },
-      relations: ['psychologist'],
-    })
+  /**
+   * Aceita tanto o slug estático quanto o token diário rotativo.
+   */
+  async getPublicPage(slugOrToken: string) {
+    // Tenta token diário primeiro (16 chars hex)
+    let page: BookingPage | null = null
+    if (/^[0-9a-f]{16}$/.test(slugOrToken)) {
+      page = await this.resolveDailyToken(slugOrToken)
+    }
+
+    // Fallback: slug estático
+    if (!page) {
+      page = await this.pages.findOne({
+        where: { slug: slugOrToken, isActive: true },
+        relations: ['psychologist'],
+      })
+    }
+
     if (!page) throw new NotFoundException('Página de agendamento não encontrada')
 
     const { psychologist, ...pageData } = page
@@ -42,27 +104,29 @@ export class BookingService {
     }
   }
 
-  async getAvailableSlots(slug: string, dateStr: string) {
-    const page = await this.pages.findOne({ where: { slug, isActive: true } })
+  async getAvailableSlots(slugOrToken: string, dateStr: string) {
+    let page: BookingPage | null = null
+    if (/^[0-9a-f]{16}$/.test(slugOrToken)) {
+      page = await this.resolveDailyToken(slugOrToken)
+    }
+    if (!page) {
+      page = await this.pages.findOne({ where: { slug: slugOrToken, isActive: true } })
+    }
     if (!page) throw new NotFoundException()
 
     const date = parseISO(dateStr)
     const weekday = getDay(date)
 
-    // Verificar disponibilidade do dia
     const slots = await this.availability.getSlotsForDay(page.psychologistId, weekday)
     if (!slots.length) return []
 
-    // Verificar bloqueios
     const isBlocked = await this.availability.isDateBlocked(page.psychologistId, dateStr)
     if (isBlocked) return []
 
-    // Verificar antecedência mínima
     const minDate = addDays(new Date(), page.minAdvanceDays)
     const maxDate = addDays(new Date(), page.maxAdvanceDays)
     if (isBefore(date, minDate) || isAfter(date, maxDate)) return []
 
-    // Buscar agendamentos existentes nesse dia
     const existing = await this.bookings.find({
       where: {
         psychologistId: page.psychologistId,
@@ -72,7 +136,6 @@ export class BookingService {
     })
     const occupiedTimes = new Set(existing.map(b => b.time))
 
-    // Gerar slots disponíveis
     const available: string[] = []
     for (const slot of slots) {
       const [startH, startM] = slot.startTime.split(':').map(Number)
@@ -94,14 +157,27 @@ export class BookingService {
     return available
   }
 
-  async createBooking(slug: string, dto: CreateBookingDto) {
-    const page = await this.pages.findOne({
-      where: { slug, isActive: true },
-      relations: ['psychologist'],
-    })
+  async createBooking(slugOrToken: string, dto: CreateBookingDto) {
+    let page: BookingPage | null = null
+    if (/^[0-9a-f]{16}$/.test(slugOrToken)) {
+      page = await this.resolveDailyToken(slugOrToken)
+    }
+    if (!page) {
+      page = await this.pages.findOne({
+        where: { slug: slugOrToken, isActive: true },
+        relations: ['psychologist'],
+      })
+    }
     if (!page) throw new NotFoundException()
 
-    // Checar se horário ainda está livre
+    // Recarregar com relations se necessário
+    if (!page.psychologist) {
+      page = await this.pages.findOne({
+        where: { id: page.id },
+        relations: ['psychologist'],
+      })
+    }
+
     const conflict = await this.bookings.findOne({
       where: {
         psychologistId: page.psychologistId,
@@ -113,7 +189,7 @@ export class BookingService {
     if (conflict) throw new ConflictException('Este horário não está mais disponível')
 
     const confirmationToken = randomBytes(32).toString('hex')
-    const tokenExpiresAt = addDays(new Date(), 2) // expira em 48h
+    const tokenExpiresAt = addDays(new Date(), 2)
 
     const booking = this.bookings.create({
       ...dto,
@@ -127,8 +203,6 @@ export class BookingService {
     })
 
     const saved = await this.bookings.save(booking)
-
-    // Notificar psicólogo e paciente
     await this.notifications.sendBookingRequest(saved, page)
 
     return {
@@ -222,21 +296,26 @@ export class BookingService {
     if (page) {
       Object.assign(page, dto)
     } else {
-      page = this.pages.create({ ...dto, psychologistId })
+      // Auto-gera slug interno baseado no userId (único e imutável)
+      const autoSlug = `psi-${psychologistId.replace(/-/g, '').slice(0, 12)}`
+      page = this.pages.create({ ...dto, psychologistId, slug: autoSlug })
     }
     return this.pages.save(page)
   }
 
-  async generateSlug(name: string): Promise<string> {
-    const base = name
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '')
+  /**
+   * Retorna o link diário do psicólogo + horário de expiração (meia-noite UTC).
+   */
+  getDailyLink(psychologistId: string, baseUrl: string) {
+    const token = this.generateDailyToken(psychologistId)
+    const now = new Date()
+    const tomorrow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1))
 
-    const exists = await this.pages.findOne({ where: { slug: base } })
-    return exists ? `${base}-${randomBytes(3).toString('hex')}` : base
+    return {
+      token,
+      url: `${baseUrl}/agendar/${token}`,
+      expiresAt: tomorrow.toISOString(),
+    }
   }
 
   private async findOne(id: string, psychologistId: string) {

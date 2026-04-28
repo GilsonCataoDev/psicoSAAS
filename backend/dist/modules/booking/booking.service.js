@@ -17,23 +17,62 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const crypto_1 = require("crypto");
+const config_1 = require("@nestjs/config");
 const date_fns_1 = require("date-fns");
 const booking_entity_1 = require("./entities/booking.entity");
 const booking_page_entity_1 = require("./entities/booking-page.entity");
 const availability_service_1 = require("../availability/availability.service");
 const notifications_service_1 = require("../notifications/notifications.service");
 let BookingService = class BookingService {
-    constructor(bookings, pages, availability, notifications) {
+    constructor(bookings, pages, availability, notifications, config) {
         this.bookings = bookings;
         this.pages = pages;
         this.availability = availability;
         this.notifications = notifications;
+        this.config = config;
     }
-    async getPublicPage(slug) {
-        const page = await this.pages.findOne({
-            where: { slug, isActive: true },
+    generateDailyToken(userId) {
+        const secret = this.config.get('SIGN_SECRET') ?? 'fallback-secret';
+        const today = new Date().toISOString().split('T')[0];
+        const userPrefix = userId.replace(/-/g, '').slice(0, 8);
+        const hmac = (0, crypto_1.createHmac)('sha256', secret);
+        hmac.update(`${userId}:${today}`);
+        const sig = hmac.digest('hex').slice(0, 8);
+        return `${userPrefix}${sig}`;
+    }
+    async resolveDailyToken(token) {
+        if (token.length !== 16)
+            return null;
+        const userPrefix = token.slice(0, 8);
+        const candidates = await this.pages.find({
+            where: { isActive: true },
             relations: ['psychologist'],
         });
+        const secret = this.config.get('SIGN_SECRET') ?? 'fallback-secret';
+        const today = new Date().toISOString().split('T')[0];
+        for (const page of candidates) {
+            const pPrefix = page.psychologistId.replace(/-/g, '').slice(0, 8);
+            if (pPrefix !== userPrefix)
+                continue;
+            const hmac = (0, crypto_1.createHmac)('sha256', secret);
+            hmac.update(`${page.psychologistId}:${today}`);
+            const expectedSig = hmac.digest('hex').slice(0, 8);
+            if (token.slice(8) === expectedSig)
+                return page;
+        }
+        return null;
+    }
+    async getPublicPage(slugOrToken) {
+        let page = null;
+        if (/^[0-9a-f]{16}$/.test(slugOrToken)) {
+            page = await this.resolveDailyToken(slugOrToken);
+        }
+        if (!page) {
+            page = await this.pages.findOne({
+                where: { slug: slugOrToken, isActive: true },
+                relations: ['psychologist'],
+            });
+        }
         if (!page)
             throw new common_1.NotFoundException('Página de agendamento não encontrada');
         const { psychologist, ...pageData } = page;
@@ -44,8 +83,14 @@ let BookingService = class BookingService {
             specialty: psychologist.specialty,
         };
     }
-    async getAvailableSlots(slug, dateStr) {
-        const page = await this.pages.findOne({ where: { slug, isActive: true } });
+    async getAvailableSlots(slugOrToken, dateStr) {
+        let page = null;
+        if (/^[0-9a-f]{16}$/.test(slugOrToken)) {
+            page = await this.resolveDailyToken(slugOrToken);
+        }
+        if (!page) {
+            page = await this.pages.findOne({ where: { slug: slugOrToken, isActive: true } });
+        }
         if (!page)
             throw new common_1.NotFoundException();
         const date = (0, date_fns_1.parseISO)(dateStr);
@@ -85,13 +130,25 @@ let BookingService = class BookingService {
         }
         return available;
     }
-    async createBooking(slug, dto) {
-        const page = await this.pages.findOne({
-            where: { slug, isActive: true },
-            relations: ['psychologist'],
-        });
+    async createBooking(slugOrToken, dto) {
+        let page = null;
+        if (/^[0-9a-f]{16}$/.test(slugOrToken)) {
+            page = await this.resolveDailyToken(slugOrToken);
+        }
+        if (!page) {
+            page = await this.pages.findOne({
+                where: { slug: slugOrToken, isActive: true },
+                relations: ['psychologist'],
+            });
+        }
         if (!page)
             throw new common_1.NotFoundException();
+        if (!page.psychologist) {
+            page = await this.pages.findOne({
+                where: { id: page.id },
+                relations: ['psychologist'],
+            });
+        }
         const conflict = await this.bookings.findOne({
             where: {
                 psychologistId: page.psychologistId,
@@ -195,19 +252,20 @@ let BookingService = class BookingService {
             Object.assign(page, dto);
         }
         else {
-            page = this.pages.create({ ...dto, psychologistId });
+            const autoSlug = `psi-${psychologistId.replace(/-/g, '').slice(0, 12)}`;
+            page = this.pages.create({ ...dto, psychologistId, slug: autoSlug });
         }
         return this.pages.save(page);
     }
-    async generateSlug(name) {
-        const base = name
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/(^-|-$)/g, '');
-        const exists = await this.pages.findOne({ where: { slug: base } });
-        return exists ? `${base}-${(0, crypto_1.randomBytes)(3).toString('hex')}` : base;
+    getDailyLink(psychologistId, baseUrl) {
+        const token = this.generateDailyToken(psychologistId);
+        const now = new Date();
+        const tomorrow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+        return {
+            token,
+            url: `${baseUrl}/agendar/${token}`,
+            expiresAt: tomorrow.toISOString(),
+        };
     }
     async findOne(id, psychologistId) {
         const b = await this.bookings.findOne({ where: { id, psychologistId } });
@@ -224,6 +282,7 @@ exports.BookingService = BookingService = __decorate([
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
         availability_service_1.AvailabilityService,
-        notifications_service_1.NotificationsService])
+        notifications_service_1.NotificationsService,
+        config_1.ConfigService])
 ], BookingService);
 //# sourceMappingURL=booking.service.js.map
