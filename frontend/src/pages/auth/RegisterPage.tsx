@@ -21,6 +21,7 @@ const schema = z.object({
     .regex(/[a-z]/, 'Precisa de ao menos uma letra minúscula')
     .regex(/\d/, 'Precisa de ao menos um número')
     .regex(/[@$!%*?&\-_#]/, 'Precisa de ao menos um símbolo (@$!%*?&-_#)'),
+  crpConfirmed: z.boolean().refine((v) => v, 'Confirme que seu CRP está ativo'),
   terms: z.boolean().refine((v) => v, 'Você precisa aceitar os termos'),
 })
 
@@ -156,6 +157,22 @@ export default function RegisterPage() {
           <input {...register('password')} type="password" className="input-field" placeholder="Mínimo 8 caracteres" />
           {errors.password && <p className="text-rose-500 text-xs mt-1">{errors.password.message}</p>}
         </div>
+
+        <div className="flex items-start gap-2 pt-1">
+          <input
+            {...register('crpConfirmed')}
+            type="checkbox"
+            id="crpConfirmed"
+            className="mt-0.5 accent-sage-500"
+          />
+          <label htmlFor="crpConfirmed" className="text-sm text-neutral-500 cursor-pointer">
+            Confirmo que meu CRP está <strong>ativo e regularizado</strong> junto ao CFP.{' '}
+            <button type="button" onClick={openCfpVerification} className="text-sage-600 hover:underline inline">
+              Verificar no site do CFP
+            </button>
+          </label>
+        </div>
+        {errors.crpConfirmed && <p className="text-rose-500 text-xs">{errors.crpConfirmed.message}</p>}
 
         <div className="flex items-start gap-2 pt-1">
           <input
