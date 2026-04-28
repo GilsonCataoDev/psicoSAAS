@@ -1,19 +1,37 @@
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Phone, Mail, Calendar, Edit2, Plus, Lock, ClipboardList } from 'lucide-react'
+import { ArrowLeft, Phone, Mail, Calendar, Plus, Lock, ClipboardList, MessageCircle, CheckCircle2 } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
 import { formatDate, formatCurrency, formatDateRelative } from '@/lib/utils'
 import { useState } from 'react'
-import { usePatient, useSessions } from '@/hooks/useApi'
+import { usePatient, useSessions, useFinancial, useMarkFinancialPaid, useSendCharge } from '@/hooks/useApi'
 import NewSessionModal from '@/components/features/sessions/NewSessionModal'
+import toast from 'react-hot-toast'
 
 export default function PatientDetailPage() {
   const { id } = useParams()
   const { data: patient, isLoading } = usePatient(id ?? '')
   const { data: allSessions = [] } = useSessions({ patientId: id })
+  const { data: financialRecords = [], isLoading: loadingFinancial } = useFinancial({ patientId: id })
+  const markPaid = useMarkFinancialPaid()
+  const sendCharge = useSendCharge()
   const [note, setNote] = useState('')
   const [tab, setTab] = useState<'timeline' | 'notes' | 'financial'>('timeline')
   const [showSessionModal, setShowSessionModal] = useState(false)
+
+  async function handleMarkPaid(recordId: string) {
+    try {
+      await markPaid.mutateAsync({ id: recordId, method: 'PIX' })
+      toast.success('Pagamento registrado ✓')
+    } catch { toast.error('Erro ao registrar pagamento.') }
+  }
+
+  async function handleSendCharge(recordId: string) {
+    try {
+      await sendCharge.mutateAsync(recordId)
+      toast.success('Cobrança enviada via WhatsApp ✓')
+    } catch { toast.error('Erro ao enviar cobrança.') }
+  }
 
   if (isLoading) return (
     <div className="animate-pulse space-y-4 max-w-4xl">
@@ -173,10 +191,67 @@ export default function PatientDetailPage() {
 
       {/* Financial */}
       {tab === 'financial' && (
-        <div className="card">
-          <p className="text-sm text-neutral-500 py-4 text-center">
-            Histórico financeiro desta pessoa em breve.
-          </p>
+        <div className="space-y-3">
+          {/* Resumo */}
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: 'Total',    value: financialRecords.reduce((s, r) => s + Number(r.amount), 0), color: 'text-neutral-700' },
+              { label: 'Recebido', value: financialRecords.filter(r => r.status === 'paid').reduce((s, r) => s + Number(r.amount), 0), color: 'text-sage-700' },
+              { label: 'Pendente', value: financialRecords.filter(r => r.status === 'pending').reduce((s, r) => s + Number(r.amount), 0), color: 'text-amber-600' },
+            ].map(item => (
+              <div key={item.label} className="card py-3 text-center">
+                <p className={`text-lg font-bold ${item.color}`}>{formatCurrency(item.value)}</p>
+                <p className="text-xs text-neutral-400 mt-0.5">{item.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Lista */}
+          {loadingFinancial ? (
+            <div className="card text-center py-8">
+              <div className="w-6 h-6 border-2 border-sage-400 border-t-transparent rounded-full animate-spin mx-auto" />
+            </div>
+          ) : financialRecords.length === 0 ? (
+            <div className="card text-center py-10 text-neutral-400 text-sm">
+              Nenhum registro financeiro ainda.
+            </div>
+          ) : (
+            financialRecords.map(record => (
+              <div key={record.id} className="card flex items-center gap-4">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-neutral-700">{record.description}</p>
+                  <p className="text-xs text-neutral-400 mt-0.5">
+                    {record.dueDate ? formatDate(record.dueDate) : '—'}
+                    {record.method && <span> · {record.method}</span>}
+                  </p>
+                </div>
+                <p className="font-semibold text-neutral-700 shrink-0">{formatCurrency(Number(record.amount))}</p>
+                <div className="flex items-center gap-2 shrink-0">
+                  {record.status === 'paid' ? (
+                    <span className="flex items-center gap-1 text-xs text-sage-600 bg-sage-50 px-2 py-1 rounded-full">
+                      <CheckCircle2 className="w-3 h-3" />Pago
+                    </span>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => handleSendCharge(record.id)}
+                        title="Enviar cobrança via WhatsApp"
+                        className="p-1.5 rounded-lg hover:bg-green-50 text-green-600 transition-colors"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleMarkPaid(record.id)}
+                        className="text-xs btn-secondary py-1 px-2"
+                      >
+                        Recebido
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       )}
 

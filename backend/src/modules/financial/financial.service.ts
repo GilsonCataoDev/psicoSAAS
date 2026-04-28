@@ -3,14 +3,21 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { FinancialRecord } from './entities/financial-record.entity'
 import { CreateFinancialDto } from './dto/create-financial.dto'
+import { NotificationsService } from '../notifications/notifications.service'
+import { User } from '../auth/entities/user.entity'
 
 @Injectable()
 export class FinancialService {
-  constructor(@InjectRepository(FinancialRecord) private repo: Repository<FinancialRecord>) {}
+  constructor(
+    @InjectRepository(FinancialRecord) private repo: Repository<FinancialRecord>,
+    @InjectRepository(User) private users: Repository<User>,
+    private notifications: NotificationsService,
+  ) {}
 
-  findAll(psychologistId: string, status?: string) {
+  findAll(psychologistId: string, status?: string, patientId?: string) {
     const where: any = { psychologistId }
     if (status) where.status = status
+    if (patientId) where.patientId = patientId
     return this.repo.find({ where, relations: ['patient'], order: { createdAt: 'DESC' } })
   }
 
@@ -32,6 +39,15 @@ export class FinancialService {
     r.paidAt = new Date().toISOString()
     r.method = method
     return this.repo.save(r)
+  }
+
+  /** Envia cobrança via WhatsApp usando a chave PIX das preferências do psicólogo */
+  async sendChargeMessage(id: string, psychologistId: string): Promise<{ message: string }> {
+    const record = await this.findOne(id, psychologistId)
+    const user = await this.users.findOneBy({ id: psychologistId })
+    const pixKey = (user?.preferences as any)?.pixKey ?? undefined
+    await this.notifications.sendPaymentRequest(record.patient, Number(record.amount), pixKey)
+    return { message: 'Cobrança enviada via WhatsApp ✓' }
   }
 
   async getSummary(psychologistId: string) {

@@ -75,10 +75,10 @@ export function useCreateSession() {
 
 // ── Financial ─────────────────────────────────────────────────────────────────
 
-export function useFinancial() {
+export function useFinancial(params?: { patientId?: string; status?: string }) {
   return useQuery<FinancialRecord[]>({
-    queryKey: ['financial'],
-    queryFn: () => api.get('/financial').then(r => r.data),
+    queryKey: ['financial', params],
+    queryFn: () => api.get('/financial', { params }).then(r => r.data),
   })
 }
 
@@ -87,6 +87,21 @@ export function useCreateFinancial() {
   return useMutation({
     mutationFn: (data: Partial<FinancialRecord>) => api.post('/financial', data).then(r => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['financial'] }),
+  })
+}
+
+export function useMarkFinancialPaid() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, method }: { id: string; method: string }) =>
+      api.patch(`/financial/${id}/pay`, { method }).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['financial'] }),
+  })
+}
+
+export function useSendCharge() {
+  return useMutation({
+    mutationFn: (id: string) => api.post(`/financial/${id}/send-charge`).then(r => r.data),
   })
 }
 

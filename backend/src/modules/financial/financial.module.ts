@@ -3,10 +3,16 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import { FinancialController } from './financial.controller'
 import { FinancialService } from './financial.service'
 import { FinancialRecord } from './entities/financial-record.entity'
+import { NotificationsModule } from '../notifications/notifications.module'
+import { User } from '../auth/entities/user.entity'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([FinancialRecord])],
+  imports: [
+    TypeOrmModule.forFeature([FinancialRecord, User]),
+    NotificationsModule,
+  ],
   controllers: [FinancialController],
   providers: [FinancialService],
+  exports: [FinancialService],
 })
 export class FinancialModule {}
