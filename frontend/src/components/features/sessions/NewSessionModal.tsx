@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
-import { mockPatients } from '@/lib/mock-data'
 import { EmotionalTag, TAG_LABELS } from '@/types'
 import { cn } from '@/lib/utils'
+import { usePatients, useCreateSession } from '@/hooks/useApi'
 
 const MOODS = [
   { value: 1, emoji: '😔', label: 'Muito difícil' },
@@ -17,6 +17,8 @@ const MOODS = [
 export default function NewSessionModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [mood, setMood] = useState<number | null>(null)
   const [tags, setTags] = useState<EmotionalTag[]>([])
+  const { data: patients = [] } = usePatients()
+  const createSession = useCreateSession()
 
   const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm({
     defaultValues: { patientId: '', date: new Date().toISOString().split('T')[0], duration: 50, summary: '', privateNotes: '', nextSteps: '', paymentStatus: 'pending' },
@@ -26,10 +28,14 @@ export default function NewSessionModal({ open, onClose }: { open: boolean; onCl
     setTags(t => t.includes(tag) ? t.filter(x => x !== tag) : [...t, tag])
   }
 
-  async function onSubmit() {
-    await new Promise(r => setTimeout(r, 600))
-    toast.success('Sessão registrada com cuidado 📝')
-    reset(); setMood(null); setTags([]); onClose()
+  async function onSubmit(data: any) {
+    try {
+      await createSession.mutateAsync({ ...data, mood, tags })
+      toast.success('Sessão registrada com cuidado 📝')
+      reset(); setMood(null); setTags([]); onClose()
+    } catch {
+      toast.error('Erro ao salvar sessão. Tente novamente.')
+    }
   }
 
   return (
@@ -39,9 +45,9 @@ export default function NewSessionModal({ open, onClose }: { open: boolean; onCl
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="label">Pessoa</label>
-            <select {...register('patientId')} className="input-field">
+            <select {...register('patientId', { required: true })} className="input-field">
               <option value="">Selecione...</option>
-              {mockPatients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
           <div>
@@ -50,7 +56,6 @@ export default function NewSessionModal({ open, onClose }: { open: boolean; onCl
           </div>
         </div>
 
-        {/* Mood selector */}
         <div>
           <label className="label">Como a pessoa chegou nesta sessão?</label>
           <div className="flex gap-2">

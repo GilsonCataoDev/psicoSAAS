@@ -1,17 +1,24 @@
 import { useForm } from 'react-hook-form'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
-import { mockPatients } from '@/lib/mock-data'
+import { usePatients, useCreateAppointment } from '@/hooks/useApi'
 
 export default function NewAppointmentModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { data: patients = [] } = usePatients()
+  const createAppointment = useCreateAppointment()
+
   const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm({
     defaultValues: { patientId: '', date: '', time: '09:00', duration: 50, modality: 'presencial', notes: '' },
   })
 
-  async function onSubmit() {
-    await new Promise(r => setTimeout(r, 600))
-    toast.success('Sessão agendada! O lembrete será enviado automaticamente 📅')
-    reset(); onClose()
+  async function onSubmit(data: any) {
+    try {
+      await createAppointment.mutateAsync(data)
+      toast.success('Sessão agendada! 📅')
+      reset(); onClose()
+    } catch {
+      toast.error('Erro ao agendar. Tente novamente.')
+    }
   }
 
   return (
@@ -20,15 +27,15 @@ export default function NewAppointmentModal({ open, onClose }: { open: boolean; 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label className="label">Pessoa</label>
-          <select {...register('patientId')} className="input-field">
+          <select {...register('patientId', { required: true })} className="input-field">
             <option value="">Selecione...</option>
-            {mockPatients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="label">Data</label>
-            <input {...register('date')} type="date" className="input-field" />
+            <input {...register('date', { required: true })} type="date" className="input-field" />
           </div>
           <div>
             <label className="label">Horário</label>
