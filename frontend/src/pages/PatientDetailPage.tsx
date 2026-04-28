@@ -4,7 +4,8 @@ import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
 import { formatDate, formatCurrency, formatDateRelative } from '@/lib/utils'
 import { useState } from 'react'
-import { usePatient, useSessions, useAppointments } from '@/hooks/useApi'
+import { usePatient, useSessions } from '@/hooks/useApi'
+import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 
 export default function PatientDetailPage() {
   const { id } = useParams()
@@ -12,6 +13,7 @@ export default function PatientDetailPage() {
   const { data: allSessions = [] } = useSessions({ patientId: id })
   const [note, setNote] = useState('')
   const [tab, setTab] = useState<'timeline' | 'notes' | 'financial'>('timeline')
+  const [showSessionModal, setShowSessionModal] = useState(false)
 
   if (isLoading) return (
     <div className="animate-pulse space-y-4 max-w-4xl">
@@ -73,10 +75,7 @@ export default function PatientDetailPage() {
                   className="btn-secondary text-sm flex items-center gap-1.5">
                   <ClipboardList className="w-3.5 h-3.5" />Prontuário
                 </Link>
-                <button className="btn-secondary text-sm flex items-center gap-1.5">
-                  <Edit2 className="w-3.5 h-3.5" />Editar
-                </button>
-                <button className="btn-primary text-sm flex items-center gap-1.5">
+                <button onClick={() => setShowSessionModal(true)} className="btn-primary text-sm flex items-center gap-1.5">
                   <Plus className="w-3.5 h-3.5" />Nova sessão
                 </button>
               </div>
@@ -93,7 +92,7 @@ export default function PatientDetailPage() {
             className="btn-secondary text-sm flex items-center gap-1.5 flex-1 justify-center">
             <ClipboardList className="w-3.5 h-3.5" />Prontuário
           </Link>
-          <button className="btn-primary text-sm flex items-center gap-1.5 flex-1 justify-center">
+          <button onClick={() => setShowSessionModal(true)} className="btn-primary text-sm flex items-center gap-1.5 flex-1 justify-center">
             <Plus className="w-3.5 h-3.5" />Nova sessão
           </button>
         </div>
@@ -180,6 +179,12 @@ export default function PatientDetailPage() {
           </p>
         </div>
       )}
+
+      <NewSessionModal
+        open={showSessionModal}
+        onClose={() => setShowSessionModal(false)}
+        defaultPatientId={patient.id}
+      />
     </div>
   )
 }

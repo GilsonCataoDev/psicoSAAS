@@ -14,14 +14,18 @@ const MOODS = [
   { value: 5, emoji: '😊', label: 'Muito positivo' },
 ]
 
-export default function NewSessionModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export default function NewSessionModal({ open, onClose, defaultPatientId }: {
+  open: boolean
+  onClose: () => void
+  defaultPatientId?: string
+}) {
   const [mood, setMood] = useState<number | null>(null)
   const [tags, setTags] = useState<EmotionalTag[]>([])
   const { data: patients = [] } = usePatients()
   const createSession = useCreateSession()
 
   const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm({
-    defaultValues: { patientId: '', date: new Date().toISOString().split('T')[0], duration: 50, summary: '', privateNotes: '', nextSteps: '', paymentStatus: 'pending' },
+    defaultValues: { patientId: defaultPatientId ?? '', date: new Date().toISOString().split('T')[0], duration: 50, summary: '', privateNotes: '', nextSteps: '', paymentStatus: 'pending' },
   })
 
   function toggleTag(tag: EmotionalTag) {
