@@ -21,8 +21,8 @@ export class Referral {
   @Column({ nullable: true })
   referredId?: string
 
-  @Column({ unique: true })
-  code: string   // ex: CAROL123
+  @Column()
+  code: string   // ex: CAROL123 — mesmo código para todas as indicações do mesmo usuário
 
   @Column({ default: false })
   rewardGranted: boolean

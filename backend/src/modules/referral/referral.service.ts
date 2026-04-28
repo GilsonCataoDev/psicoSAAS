@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { IsNull, Not, Repository } from 'typeorm'
 import { addMonths } from 'date-fns'
 import { Referral } from './entities/referral.entity'
 import { Subscription } from '../subscriptions/entities/subscription.entity'
@@ -17,73 +17,99 @@ export class ReferralService {
     private email: EmailService,
   ) {}
 
-  // Gera ou retorna o código de indicação do usuário
-  async getOrCreateCode(user: User): Promise<Referral> {
-    let ref = await this.refs.findOne({ where: { referrerId: user.id, referredId: undefined } })
-    if (ref) return ref
+  /**
+   * Gera ou retorna o código de indicação do usuário.
+   * Armazena um registro "master" (sem referredId) por usuário para guardar o código.
+   */
+  async getOrCreateCode(user: User): Promise<string> {
+    // Busca registro master: aquele SEM referredId (o "dono" do código)
+    let master = await this.refs.findOne({
+      where: { referrerId: user.id, referredId: IsNull() },
+    })
 
-    const base = user.name
-      .split(' ')[0]
-      .toUpperCase()
-      .replace(/[^A-Z]/g, '')
-      .slice(0, 6)
-    const suffix = Math.random().toString(36).slice(2, 5).toUpperCase()
-    const code = `${base}${suffix}`
+    if (!master) {
+      const base = user.name
+        .split(' ')[0]
+        .toUpperCase()
+        .replace(/[^A-Z]/g, '')
+        .slice(0, 6)
+      const suffix = Math.random().toString(36).slice(2, 5).toUpperCase()
+      master = this.refs.create({ referrerId: user.id, code: `${base}${suffix}` })
+      master = await this.refs.save(master)
+    }
 
-    ref = this.refs.create({ referrerId: user.id, code })
-    return this.refs.save(ref)
+    return master.code
   }
 
-  // Chamado no registro quando vem ?ref=XXXX
+  /**
+   * Chamado no registro quando a URL contém ?ref=XXXX.
+   * Cria um registro de uso do código vinculando o novo usuário ao indicador.
+   */
   async applyReferral(code: string, newUser: User): Promise<void> {
-    const ref = await this.refs.findOne({
-      where: { code: code.toUpperCase(), referredId: undefined },
+    // Encontra o registro master do código
+    const master = await this.refs.findOne({
+      where: { code: code.toUpperCase(), referredId: IsNull() },
       relations: ['referrer'],
     })
-    if (!ref || ref.referrerId === newUser.id) return   // inválido ou auto-referral
+    if (!master) return                          // código inválido
+    if (master.referrerId === newUser.id) return  // auto-indicação
 
-    ref.referredId = newUser.id
-    await this.refs.save(ref)
+    // Cria um registro de uso (novo referral com o mesmo código)
+    const use = this.refs.create({
+      referrerId: master.referrerId,
+      code: master.code,
+      referredId: newUser.id,
+      rewardGranted: false,
+    })
+    await this.refs.save(use)
 
-    // Verifica se o indicado assinar → dá recompensa ao indicador
-    this.logger.log(`[Referral] ${ref.referrer.name} indicou ${newUser.name}`)
+    this.logger.log(`[Referral] ${master.referrer.name} indicou ${newUser.name}`)
   }
 
-  // Chamado quando indicado ativa assinatura paga
+  /**
+   * Chamado quando o indicado ativa uma assinatura paga.
+   * Estende a assinatura do indicador em 1 mês.
+   */
   async grantRewardIfEligible(newUserId: string): Promise<void> {
-    const ref = await this.refs.findOne({
+    const use = await this.refs.findOne({
       where: { referredId: newUserId, rewardGranted: false },
       relations: ['referrer'],
     })
-    if (!ref) return
+    if (!use) return
 
-    // Estende a assinatura do indicador em 1 mês
-    const sub = await this.subs.findOne({ where: { userId: ref.referrerId } })
+    const sub = await this.subs.findOne({ where: { userId: use.referrerId } })
     if (sub && (sub.status === 'active' || sub.status === 'trialing')) {
       const currentEnd = sub.currentPeriodEnd ?? new Date()
       sub.currentPeriodEnd = addMonths(currentEnd, 1)
       await this.subs.save(sub)
     }
 
-    ref.rewardGranted = true
-    ref.rewardGrantedAt = new Date()
-    await this.refs.save(ref)
+    use.rewardGranted = true
+    use.rewardGrantedAt = new Date()
+    await this.refs.save(use)
 
     await this.email.sendReferralReward(
-      ref.referrer.name,
-      ref.referrer.email,
-      (await this.refs.findOne({ where: { id: ref.id }, relations: ['referrer'] }))?.referrer?.name ?? 'um novo usuário',
-    )
+      use.referrer.name,
+      use.referrer.email,
+      newUserId,
+    ).catch(() => {})
 
-    this.logger.log(`[Referral] Recompensa concedida a ${ref.referrer.name}`)
+    this.logger.log(`[Referral] Recompensa concedida a ${use.referrer.name}`)
   }
 
   async getStats(userId: string) {
-    const refs = await this.refs.find({ where: { referrerId: userId } })
+    const master = await this.refs.findOne({
+      where: { referrerId: userId, referredId: IsNull() },
+    })
+
+    const uses = await this.refs.find({
+      where: { referrerId: userId, referredId: Not(IsNull()) },
+    })
+
     return {
-      totalInvited: refs.filter(r => r.referredId).length,
-      totalRewarded: refs.filter(r => r.rewardGranted).length,
-      code: refs[0]?.code ?? null,
+      code:          master?.code ?? null,
+      totalInvited:  uses.length,
+      totalRewarded: uses.filter(r => r.rewardGranted).length,
     }
   }
 }

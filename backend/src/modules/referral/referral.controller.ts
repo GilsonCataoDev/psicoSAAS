@@ -11,8 +11,9 @@ export class ReferralController {
 
   @Get()
   async getMyReferral(@Req() req: any) {
-    const ref = await this.svc.getOrCreateCode(req.user)
+    // Garante que o código existe para este usuário
+    const code = await this.svc.getOrCreateCode(req.user)
     const stats = await this.svc.getStats(req.user.id)
-    return { code: ref.code, ...stats }
+    return { ...stats, code }
   }
 }

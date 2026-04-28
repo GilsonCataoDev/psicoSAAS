@@ -30,4 +30,9 @@ export class RegisterDto {
   @IsString()
   @MaxLength(100)
   specialty?: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  referralCode?: string
 }

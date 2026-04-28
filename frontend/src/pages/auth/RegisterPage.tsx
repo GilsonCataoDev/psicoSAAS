@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -32,6 +32,8 @@ export default function RegisterPage() {
   const [crpValue, setCrpValue] = useState('')
   const setAuth = useAuthStore((s) => s.setAuth)
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const refCode = searchParams.get('ref') ?? undefined
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -61,6 +63,7 @@ export default function RegisterPage() {
         email: data.email,
         password: data.password,
         crp: data.crp,
+        ...(refCode ? { referralCode: refCode } : {}),
       })
       setAuth(res.data.user)
       toast.success('Conta criada com sucesso! Seja bem-vinda 🌱')
@@ -82,7 +85,17 @@ export default function RegisterPage() {
       <h2 className="font-display text-3xl font-light text-neutral-800 mb-1">
         Criar sua conta
       </h2>
-      <p className="text-neutral-500 mb-8">É rápido, gratuito e sem burocracia</p>
+      <p className="text-neutral-500 mb-6">É rápido, gratuito e sem burocracia</p>
+
+      {refCode && (
+        <div className="mb-6 flex items-center gap-3 bg-violet-50 border border-violet-200 rounded-2xl px-4 py-3">
+          <span className="text-xl">🎁</span>
+          <div>
+            <p className="text-sm font-medium text-violet-800">Você foi indicado por um colega!</p>
+            <p className="text-xs text-violet-600 mt-0.5">Seus 14 dias de teste estão garantidos.</p>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>

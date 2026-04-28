@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common'
+import { Module, forwardRef } from '@nestjs/common'
 import { JwtModule } from '@nestjs/jwt'
 import { PassportModule } from '@nestjs/passport'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -7,6 +7,7 @@ import { AuthController } from './auth.controller'
 import { AuthService } from './auth.service'
 import { JwtStrategy } from './strategies/jwt.strategy'
 import { User } from './entities/user.entity'
+import { ReferralModule } from '../referral/referral.module'
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { User } from './entities/user.entity'
         signOptions: { expiresIn: '7d' },
       }),
     }),
+    forwardRef(() => ReferralModule),
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

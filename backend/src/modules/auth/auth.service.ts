@@ -9,6 +9,7 @@ import { User } from './entities/user.entity'
 import { RegisterDto } from './dto/register.dto'
 import { LoginDto } from './dto/login.dto'
 import { EmailService } from '../email/email.service'
+import { ReferralService } from '../referral/referral.service'
 
 @Injectable()
 export class AuthService {
@@ -16,19 +17,27 @@ export class AuthService {
     @InjectRepository(User) private users: Repository<User>,
     private jwt: JwtService,
     private email: EmailService,
+    private referral: ReferralService,
   ) {}
 
   async register(dto: RegisterDto) {
     const exists = await this.users.findOneBy({ email: dto.email.toLowerCase() })
     if (exists) throw new ConflictException('E-mail já cadastrado')
 
-    const passwordHash = await bcrypt.hash(dto.password, 12)
+    const { referralCode, ...userData } = dto
+    const passwordHash = await bcrypt.hash(userData.password, 12)
     const user = this.users.create({
-      ...dto,
-      email: dto.email.toLowerCase(),
+      ...userData,
+      email: userData.email.toLowerCase(),
       passwordHash,
     })
     await this.users.save(user)
+
+    // Aplica código de indicação se veio com ?ref=
+    if (referralCode) {
+      this.referral.applyReferral(referralCode, user).catch(() => {})
+    }
+
     // Envia e-mail de boas-vindas (não bloqueia o registro)
     this.email.sendWelcome(user.name, user.email).catch(() => {})
     return this.buildResponse(user)
