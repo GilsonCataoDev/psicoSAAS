@@ -6,6 +6,7 @@ on:
     paths:
       - 'frontend/**'
       - '.github/workflows/deploy-frontend.yml'
+  workflow_dispatch:   # permite disparar manualmente pela aba Actions
 
 jobs:
   deploy:
@@ -25,6 +26,16 @@ jobs:
       - name: Install dependencies
         working-directory: frontend
         run: npm ci
+
+      - name: Check required secrets
+        run: |
+          if [ -z "${{ secrets.VITE_API_URL }}" ]; then
+            echo "❌ ERRO: secret VITE_API_URL não está configurado!"
+            echo "Vá em Settings → Secrets → Actions e adicione:"
+            echo "VITE_API_URL = https://psicosaas-production-2d6c.up.railway.app/api"
+            exit 1
+          fi
+          echo "✅ VITE_API_URL configurado"
 
       - name: Build
         working-directory: frontend
