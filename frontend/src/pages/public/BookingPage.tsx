@@ -14,8 +14,8 @@ import {
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn, formatCurrency } from '@/lib/utils'
-import { mockBookingPage, getMockSlots } from '@/lib/mock-booking'
 import toast from 'react-hot-toast'
+import { usePublicBookingPage, usePublicBookingSlots, useCreateBooking } from '@/hooks/useApi'
 
 const schema = z.object({
   patientName:  z.string().min(2, 'Nome obrigatório'),
@@ -30,14 +30,15 @@ type Step = 'date' | 'time' | 'form' | 'success'
 
 export default function BookingPage() {
   const { slug } = useParams()
-  const page = mockBookingPage               // substituir por API call real
+  const { data: page, isLoading: pageLoading, isError } = usePublicBookingPage(slug ?? '')
 
   const [step, setStep] = useState<Step>('date')
   const [month, setMonth] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedTime, setSelectedTime] = useState<string | null>(null)
-  const [slots, setSlots] = useState<string[]>([])
-  const [loading, setLoading] = useState(false)
+
+  const { data: slots = [], isFetching: slotsLoading } = usePublicBookingSlots(slug ?? '', selectedDate)
+  const createBooking = useCreateBooking(slug ?? '')
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -49,29 +50,46 @@ export default function BookingPage() {
     start: startOfMonth(month),
     end: endOfMonth(month),
   })
-  const startPad = getDay(startOfMonth(month)) // domingo=0
+  const startPad = getDay(startOfMonth(month))
 
   function selectDate(date: Date) {
     const str = format(date, 'yyyy-MM-dd')
     setSelectedDate(str)
-    const available = getMockSlots(str)        // substituir por API call
-    setSlots(available)
-    if (available.length) setStep('time')
-    else toast.error('Não há horários disponíveis neste dia.')
+    setStep('time')
   }
 
   function isDisabled(date: Date) {
     const today = startOfDay(new Date())
-    const min = addDays(today, page.minAdvanceDays)
-    const max = addDays(today, page.maxAdvanceDays)
+    const min = addDays(today, page?.minAdvanceDays ?? 1)
+    const max = addDays(today, page?.maxAdvanceDays ?? 60)
     return isBefore(date, min) || isBefore(max, date) || getDay(date) === 0 || getDay(date) === 6
   }
 
   // ─── Envio ───────────────────────────────────────────────────────────────────
   async function onSubmit(data: FormData) {
-    await new Promise(r => setTimeout(r, 800))
-    setStep('success')
+    try {
+      await createBooking.mutateAsync({ ...data, date: selectedDate, time: selectedTime })
+      setStep('success')
+    } catch {
+      toast.error('Erro ao enviar solicitação. Tente novamente.')
+    }
   }
+
+  if (pageLoading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-sage-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+
+  if (isError || !page) return (
+    <div className="min-h-screen flex items-center justify-center text-center px-4">
+      <div>
+        <p className="text-2xl mb-2">🌿</p>
+        <p className="font-medium text-neutral-700">Página de agendamento não encontrada.</p>
+        <p className="text-sm text-neutral-400 mt-1">Verifique o link com o seu psicólogo.</p>
+      </div>
+    </div>
+  )
 
   // ─── Layout externo (sem sidebar) ────────────────────────────────────────────
   return (
@@ -238,7 +256,11 @@ export default function BookingPage() {
 
                 <h2 className="font-medium text-neutral-800 mb-5">Escolha um horário</h2>
 
-                {slots.length === 0 ? (
+                {slotsLoading ? (
+                  <div className="flex justify-center py-6">
+                    <div className="w-6 h-6 border-2 border-sage-400 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : slots.length === 0 ? (
                   <p className="text-neutral-400 text-sm text-center py-6">Sem horários disponíveis neste dia.</p>
                 ) : (
                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">

@@ -1,10 +1,14 @@
 import { useState } from 'react'
 import { Link2, Check, X, Wallet, Settings, Clock } from 'lucide-react'
-import { mockBookings, mockBookingPage } from '@/lib/mock-booking'
 import { Booking } from '@/types/booking'
 import { formatCurrency, formatDateRelative } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import {
+  useBookings, useBookingPage, useSaveBookingPage,
+  useConfirmBooking, useRejectBooking, usePayBooking,
+} from '@/hooks/useApi'
+import { useAuthStore } from '@/store/auth'
 
 const STATUS_CONFIG = {
   pending:   { label: 'Aguardando',     className: 'bg-amber-100 text-amber-700'      },
@@ -29,33 +33,40 @@ const BOOKING_FILTERS = [
 ] as const
 
 export default function BookingManagePage() {
-  const [bookings, setBookings] = useState<Booking[]>(mockBookings)
   const [tab, setTab] = useState<'requests' | 'settings'>('requests')
   const [filter, setFilter] = useState<string>('all')
+  const user = useAuthStore(s => s.user)
 
-  const bookingUrl = `${window.location.origin}/agendar/${mockBookingPage.slug}`
+  const { data: bookings = [], isLoading } = useBookings()
+  const { data: bookingPage } = useBookingPage()
+  const confirmBooking = useConfirmBooking()
+  const rejectBooking = useRejectBooking()
+  const payBooking = usePayBooking()
+
+  const slug = bookingPage?.slug ?? user?.id?.slice(0, 8) ?? 'meu-link'
+  const bookingUrl = `${window.location.origin}/psicoSAAS/agendar/${slug}`
 
   function copyLink() {
     navigator.clipboard.writeText(bookingUrl)
     toast.success('Link copiado! 🔗')
   }
 
-  function confirm(id: string) {
-    setBookings(bs => bs.map(b => b.id === id ? { ...b, status: 'confirmed' } : b))
+  async function confirm(id: string) {
+    await confirmBooking.mutateAsync(id)
     toast.success('Sessão confirmada ✓')
   }
 
-  function reject(id: string) {
-    setBookings(bs => bs.map(b => b.id === id ? { ...b, status: 'cancelled' } : b))
+  async function reject(id: string) {
+    await rejectBooking.mutateAsync(id)
     toast('Solicitação recusada.', { icon: '✕' })
   }
 
-  function markPaid(id: string) {
-    setBookings(bs => bs.map(b => b.id === id ? { ...b, paymentStatus: 'paid', paymentMethod: 'pix' } : b))
+  async function markPaid(id: string) {
+    await payBooking.mutateAsync(id)
     toast.success('Pagamento registrado ✓')
   }
 
-  const filtered = filter === 'all' ? bookings : bookings.filter(b => b.status === filter)
+  const filtered = filter === 'all' ? bookings : bookings.filter((b: any) => b.status === filter)
 
   return (
     <div className="animate-slide-up space-y-5">
@@ -80,7 +91,7 @@ export default function BookingManagePage() {
             className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2">
             <Link2 className="w-4 h-4" />Copiar
           </button>
-          <a href={`/agendar/${mockBookingPage.slug}`} target="_blank" rel="noreferrer"
+          <a href={`/psicoSAAS/agendar/${slug}`} target="_blank" rel="noreferrer"
             className="bg-white text-sage-700 hover:bg-sage-50 px-4 py-2 rounded-xl text-sm font-medium transition-colors">
             Visualizar
           </a>
@@ -92,9 +103,9 @@ export default function BookingManagePage() {
           {/* Stats */}
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: 'Aguardando',  value: bookings.filter(b => b.status === 'pending').length,              icon: <Clock className="w-4 h-4 text-amber-500" /> },
-              { label: 'Confirmados', value: bookings.filter(b => b.status === 'confirmed').length,            icon: <Check className="w-4 h-4 text-sage-500" />  },
-              { label: 'Pag. pendentes', value: bookings.filter(b => b.paymentStatus === 'pending').length,    icon: <Wallet className="w-4 h-4 text-amber-500" /> },
+              { label: 'Aguardando',    value: bookings.filter((b: any) => b.status === 'pending').length,           icon: <Clock className="w-4 h-4 text-amber-500" /> },
+              { label: 'Confirmados',   value: bookings.filter((b: any) => b.status === 'confirmed').length,         icon: <Check className="w-4 h-4 text-sage-500" />  },
+              { label: 'Pag. pendentes',value: bookings.filter((b: any) => b.paymentStatus === 'pending').length,    icon: <Wallet className="w-4 h-4 text-amber-500" /> },
             ].map(s => (
               <div key={s.label} className="card text-center p-3 lg:p-6">
                 <div className="flex justify-center mb-1">{s.icon}</div>
@@ -119,32 +130,38 @@ export default function BookingManagePage() {
           </div>
 
           {/* Lista */}
-          <div className="space-y-3">
-            {filtered.length === 0
-              ? <div className="card text-center py-10 text-neutral-400 text-sm">Nenhuma solicitação aqui.</div>
-              : filtered.map(b => (
-                <BookingCard key={b.id} booking={b}
-                  onConfirm={confirm} onReject={reject} onMarkPaid={markPaid} />
-              ))
-            }
-          </div>
+          {isLoading ? (
+            <div className="space-y-3">
+              {[...Array(2)].map((_, i) => <div key={i} className="h-28 bg-neutral-100 rounded-2xl animate-pulse" />)}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filtered.length === 0
+                ? <div className="card text-center py-10 text-neutral-400 text-sm">Nenhuma solicitação aqui.</div>
+                : filtered.map((b: any) => (
+                  <BookingCard key={b.id} booking={b}
+                    onConfirm={confirm} onReject={reject} onMarkPaid={markPaid} />
+                ))
+              }
+            </div>
+          )}
         </>
       )}
 
-      {tab === 'settings' && <BookingSettings />}
+      {tab === 'settings' && <BookingSettings page={bookingPage} />}
     </div>
   )
 }
 
 // ─── Card de solicitação ──────────────────────────────────────────────────────
 function BookingCard({ booking, onConfirm, onReject, onMarkPaid }: {
-  booking: Booking
+  booking: any
   onConfirm: (id: string) => void
   onReject:  (id: string) => void
   onMarkPaid:(id: string) => void
 }) {
-  const s = STATUS_CONFIG[booking.status]
-  const p = PAY_CONFIG[booking.paymentStatus]
+  const s = STATUS_CONFIG[booking.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.pending
+  const p = PAY_CONFIG[booking.paymentStatus as keyof typeof PAY_CONFIG] ?? PAY_CONFIG.pending
 
   return (
     <div className="card space-y-3 p-4">
@@ -198,15 +215,31 @@ function BookingCard({ booking, onConfirm, onReject, onMarkPaid }: {
 }
 
 // ─── Configurações da página pública ─────────────────────────────────────────
-function BookingSettings() {
-  const page = mockBookingPage
-  const [saved, setSaved] = useState(false)
+function BookingSettings({ page }: { page: any }) {
+  const saveBookingPage = useSaveBookingPage()
+  const [form, setForm] = useState({
+    slug:                page?.slug ?? '',
+    title:               page?.title ?? 'Agende sua sessão',
+    description:         page?.description ?? '',
+    sessionPrice:        page?.sessionPrice ?? 150,
+    sessionDuration:     page?.sessionDuration ?? 50,
+    slotInterval:        page?.slotInterval ?? 60,
+    pixKey:              page?.pixKey ?? '',
+    confirmationMessage: page?.confirmationMessage ?? '',
+    allowPresencial:     page?.allowPresencial ?? true,
+    allowOnline:         page?.allowOnline ?? true,
+  })
 
-  function save() {
-    setSaved(true)
-    toast.success('Configurações salvas ✓')
-    setTimeout(() => setSaved(false), 2000)
+  async function save() {
+    try {
+      await saveBookingPage.mutateAsync(form)
+      toast.success('Configurações salvas ✓')
+    } catch {
+      toast.error('Erro ao salvar. Tente novamente.')
+    }
   }
+
+  const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }))
 
   return (
     <div className="space-y-5">
@@ -214,11 +247,11 @@ function BookingSettings() {
         <h2 className="section-title">Sua página de agendamento</h2>
         <div>
           <label className="label">Título da página</label>
-          <input defaultValue={page.title} className="input-field" />
+          <input value={form.title} onChange={e => set('title', e.target.value)} className="input-field" />
         </div>
         <div>
           <label className="label">Mensagem de boas-vindas</label>
-          <textarea defaultValue={page.description} rows={3} className="input-field resize-none" />
+          <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={3} className="input-field resize-none" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="sm:col-span-2">
@@ -227,42 +260,21 @@ function BookingSettings() {
               <span className="px-3 py-3 bg-neutral-100 border border-r-0 border-neutral-200 rounded-l-xl text-sm text-neutral-500 whitespace-nowrap">
                 /agendar/
               </span>
-              <input defaultValue={page.slug} className="input-field rounded-l-none" />
+              <input value={form.slug} onChange={e => set('slug', e.target.value)} className="input-field rounded-l-none" />
             </div>
           </div>
           <div>
             <label className="label">Valor da sessão (R$)</label>
-            <input type="number" defaultValue={page.sessionPrice} className="input-field" />
+            <input type="number" value={form.sessionPrice} onChange={e => set('sessionPrice', +e.target.value)} className="input-field" />
           </div>
           <div>
             <label className="label">Duração (min)</label>
-            <input type="number" defaultValue={page.sessionDuration} className="input-field" />
+            <input type="number" value={form.sessionDuration} onChange={e => set('sessionDuration', +e.target.value)} className="input-field" />
           </div>
           <div>
             <label className="label">Intervalo entre slots (min)</label>
-            <input type="number" defaultValue={page.slotInterval} className="input-field" />
+            <input type="number" value={form.slotInterval} onChange={e => set('slotInterval', +e.target.value)} className="input-field" />
           </div>
-        </div>
-      </div>
-
-      <div className="card space-y-4">
-        <h2 className="section-title">Disponibilidade semanal</h2>
-        <div className="space-y-3">
-          {[1, 2, 3, 4, 5].map(day => (
-            <div key={day} className="flex flex-col sm:flex-row sm:items-center gap-2 pb-3 border-b border-neutral-50 last:border-0">
-              <span className="w-20 text-sm font-medium text-neutral-700 shrink-0">
-                {['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][day]}
-              </span>
-              <div className="flex items-center gap-2 flex-1">
-                <input type="time" defaultValue="09:00" className="input-field py-2 flex-1 sm:max-w-[130px]" />
-                <span className="text-neutral-400 text-sm shrink-0">até</span>
-                <input type="time" defaultValue="18:00" className="input-field py-2 flex-1 sm:max-w-[130px]" />
-                <div className="w-10 h-5 bg-sage-500 rounded-full cursor-pointer shrink-0">
-                  <div className="w-4 h-4 bg-white rounded-full shadow mt-0.5 translate-x-5" />
-                </div>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
 
@@ -270,20 +282,23 @@ function BookingSettings() {
         <h2 className="section-title">Pagamento</h2>
         <div>
           <label className="label">Chave PIX</label>
-          <input defaultValue={page.pixKey} className="input-field"
+          <input value={form.pixKey} onChange={e => set('pixKey', e.target.value)} className="input-field"
             placeholder="CPF, e-mail, telefone ou chave aleatória" />
         </div>
         <div>
           <label className="label">Mensagem de confirmação</label>
-          <textarea defaultValue={page.confirmationMessage} rows={2}
+          <textarea value={form.confirmationMessage} onChange={e => set('confirmationMessage', e.target.value)} rows={2}
             className="input-field resize-none"
             placeholder="Mensagem enviada após o agendamento..." />
         </div>
       </div>
 
       <div className="flex justify-end">
-        <button onClick={save} className="btn-primary flex items-center gap-2">
-          {saved ? <><Check className="w-4 h-4" />Salvo!</> : 'Salvar configurações'}
+        <button onClick={save} disabled={saveBookingPage.isPending} className="btn-primary flex items-center gap-2">
+          {saveBookingPage.isPending
+            ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            : <Check className="w-4 h-4" />}
+          Salvar configurações
         </button>
       </div>
     </div>

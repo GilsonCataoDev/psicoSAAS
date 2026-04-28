@@ -98,3 +98,77 @@ export function useDashboard() {
     queryFn: () => api.get('/analytics/dashboard').then(r => r.data),
   })
 }
+
+// ── Booking (authenticated) ───────────────────────────────────────────────────
+
+export function useBookings() {
+  return useQuery<any[]>({
+    queryKey: ['bookings'],
+    queryFn: () => api.get('/booking').then(r => r.data),
+  })
+}
+
+export function useBookingPage() {
+  return useQuery<any>({
+    queryKey: ['booking-page'],
+    queryFn: () => api.get('/booking/page').then(r => r.data).catch(() => null),
+    retry: false,
+  })
+}
+
+export function useSaveBookingPage() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: any) => api.post('/booking/page', data).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['booking-page'] }),
+  })
+}
+
+export function useConfirmBooking() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.patch(`/booking/${id}/confirm`).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['bookings'] }),
+  })
+}
+
+export function useRejectBooking() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.patch(`/booking/${id}/reject`).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['bookings'] }),
+  })
+}
+
+export function usePayBooking() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.patch(`/booking/${id}/pay`).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['bookings'] }),
+  })
+}
+
+// ── Booking (public) ──────────────────────────────────────────────────────────
+
+export function usePublicBookingPage(slug: string) {
+  return useQuery<any>({
+    queryKey: ['public-booking', slug],
+    queryFn: () => api.get(`/public/booking/${slug}`).then(r => r.data),
+    enabled: !!slug,
+    retry: false,
+  })
+}
+
+export function usePublicBookingSlots(slug: string, date: string | null) {
+  return useQuery<string[]>({
+    queryKey: ['public-booking-slots', slug, date],
+    queryFn: () => api.get(`/public/booking/${slug}/slots`, { params: { date } }).then(r => r.data),
+    enabled: !!slug && !!date,
+  })
+}
+
+export function useCreateBooking(slug: string) {
+  return useMutation({
+    mutationFn: (data: any) => api.post(`/public/booking/${slug}`, data).then(r => r.data),
+  })
+}
