@@ -2,21 +2,22 @@ import { useState } from 'react'
 import { Plus, FileText } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
-import { mockSessions } from '@/lib/mock-data'
 import { formatDateRelative } from '@/lib/utils'
 import NewSessionModal from '@/components/features/sessions/NewSessionModal'
+import { useSessions } from '@/hooks/useApi'
 
 const MOODS = ['', '😔', '😟', '😐', '🙂', '😊']
 
 export default function SessionsPage() {
   const [showModal, setShowModal] = useState(false)
+  const { data: sessions = [], isLoading } = useSessions()
 
   return (
     <div className="animate-slide-up space-y-5">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="page-title">Sessões</h1>
-          <p className="page-subtitle">{mockSessions.length} sessões registradas</p>
+          <p className="page-subtitle">{sessions.length} sessões registradas</p>
         </div>
         <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2">
           <Plus className="w-4 h-4" />
@@ -24,8 +25,14 @@ export default function SessionsPage() {
         </button>
       </div>
 
+      {isLoading && (
+        <div className="space-y-3">
+          {[...Array(3)].map((_, i) => <div key={i} className="h-24 bg-neutral-100 rounded-2xl animate-pulse" />)}
+        </div>
+      )}
+
       <div className="space-y-3">
-        {mockSessions.map(session => (
+        {sessions.map(session => (
           <div key={session.id} className="card hover:shadow-lifted transition-all cursor-pointer p-4">
             <div className="flex items-start gap-3">
               <Avatar name={session.patient!.name} colorClass={session.patient!.avatarColor} />
@@ -53,7 +60,7 @@ export default function SessionsPage() {
         ))}
       </div>
 
-      {mockSessions.length === 0 && (
+      {!isLoading && sessions.length === 0 && (
         <div className="card text-center py-14">
           <FileText className="w-10 h-10 text-neutral-300 mx-auto mb-3" />
           <p className="font-medium text-neutral-600">Nenhuma sessão registrada</p>

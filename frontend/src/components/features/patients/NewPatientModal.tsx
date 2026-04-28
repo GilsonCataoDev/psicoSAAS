@@ -4,6 +4,7 @@ import { z } from 'zod'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
 import { EmotionalTag, TAG_LABELS } from '@/types'
+import { useCreatePatient } from '@/hooks/useApi'
 
 const schema = z.object({
   name: z.string().min(2, 'Nome obrigatório'),
@@ -25,7 +26,7 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
     resolver: zodResolver(schema),
     defaultValues: { sessionPrice: 150, sessionDuration: 50, tags: [] },
   })
-
+  const createPatient = useCreatePatient()
   const selectedTags = watch('tags') ?? []
 
   function toggleTag(tag: EmotionalTag) {
@@ -34,10 +35,14 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
   }
 
   async function onSubmit(data: FormData) {
-    await new Promise(r => setTimeout(r, 600))
-    toast.success(`${data.name} adicionada com sucesso 🌱`)
-    reset()
-    onClose()
+    try {
+      await createPatient.mutateAsync({ ...data, tags: (data.tags ?? []) as any })
+      toast.success(`${data.name} adicionada com sucesso 🌱`)
+      reset()
+      onClose()
+    } catch {
+      toast.error('Não foi possível adicionar. Tente novamente.')
+    }
   }
 
   return (

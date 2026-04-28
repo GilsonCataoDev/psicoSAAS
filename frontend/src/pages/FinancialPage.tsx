@@ -4,8 +4,8 @@ import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'rec
 import StatCard from '@/components/ui/StatCard'
 import Avatar from '@/components/ui/Avatar'
 import { StatusBadge } from '@/components/ui/Badge'
-import { mockFinancial } from '@/lib/mock-data'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { useFinancial } from '@/hooks/useApi'
 import { FinancialRecord } from '@/types'
 import NewPaymentModal from '@/components/features/financial/NewPaymentModal'
 import MarkPaidModal from '@/components/features/financial/MarkPaidModal'
@@ -33,21 +33,24 @@ const FILTERS = [
 ] as const
 
 export default function FinancialPage() {
-  const [records, setRecords] = useState<FinancialRecord[]>(mockFinancial)
+  const { data: records = [], isLoading } = useFinancial()
+  const [localRecords, setLocalRecords] = useState<FinancialRecord[]>([])
   const [filter, setFilter] = useState<'all' | 'paid' | 'pending' | 'overdue'>('all')
   const [showNew, setShowNew] = useState(false)
   const [markRecord, setMarkRecord] = useState<FinancialRecord | null>(null)
   const [chargeRecord, setChargeRecord] = useState<FinancialRecord | null>(null)
 
-  const total   = records.reduce((s, r) => s + (r.type === 'income' ? r.amount : 0), 0)
-  const paid    = records.filter(r => r.status === 'paid').reduce((s, r) => s + r.amount, 0)
-  const pending = records.filter(r => r.status === 'pending').reduce((s, r) => s + r.amount, 0)
-  const overdue = records.filter(r => r.status === 'overdue').reduce((s, r) => s + r.amount, 0)
+  const displayRecords = localRecords.length > 0 ? localRecords : records
 
-  const filtered = filter === 'all' ? records : records.filter(r => r.status === filter)
+  const total   = displayRecords.reduce((s, r) => s + (r.type === 'income' ? r.amount : 0), 0)
+  const paid    = displayRecords.filter(r => r.status === 'paid').reduce((s, r) => s + r.amount, 0)
+  const pending = displayRecords.filter(r => r.status === 'pending').reduce((s, r) => s + r.amount, 0)
+  const overdue = displayRecords.filter(r => r.status === 'overdue').reduce((s, r) => s + r.amount, 0)
+
+  const filtered = filter === 'all' ? displayRecords : displayRecords.filter(r => r.status === filter)
 
   function handleMarkPaid(id: string, method: string) {
-    setRecords(rs => rs.map(r =>
+    setLocalRecords((localRecords.length > 0 ? localRecords : records).map(r =>
       r.id === id
         ? { ...r, status: 'paid', method: method as FinancialRecord['method'], paidAt: new Date().toISOString() }
         : r,
@@ -146,8 +149,8 @@ export default function FinancialPage() {
                 {l}
                 {v !== 'all' && (
                   <span className="ml-1 font-bold">
-                    {records.filter(r => r.status === v).length > 0
-                      ? `(${records.filter(r => r.status === v).length})`
+                    {displayRecords.filter(r => r.status === v).length > 0
+                      ? `(${displayRecords.filter(r => r.status === v).length})`
                       : ''}
                   </span>
                 )}

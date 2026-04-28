@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Users, CalendarCheck, Wallet, Clock, ArrowRight, Video, MapPin, AlertTriangle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import StatCard from '@/components/ui/StatCard'
@@ -6,59 +6,18 @@ import Avatar from '@/components/ui/Avatar'
 import { StatusBadge } from '@/components/ui/Badge'
 import { formatCurrency, formatDateRelative, formatTime } from '@/lib/utils'
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
-import { api, USE_MOCK } from '@/lib/api'
-import { mockDashboard, mockAppointments, mockSessions } from '@/lib/mock-data'
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard'
 import { useOnboardingStore } from '@/store/onboarding'
 import { track, EVENTS } from '@/lib/analytics'
-
-interface DashStats {
-  activePatients: number
-  sessionsThisMonth: number
-  sessionsThisWeek: number
-  monthRevenue: number
-  pendingPayments: number
-  pendingAmount: number
-  inactivePatients: number
-  todayAppointments: any[]
-  revenueChart: { mes: string; valor: number }[]
-}
+import { useDashboard } from '@/hooks/useApi'
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState<DashStats | null>(null)
-  const [loading, setLoading] = useState(!USE_MOCK)
+  const { data: stats, isLoading: loading } = useDashboard()
   const { completed: onboardingDone } = useOnboardingStore()
 
-  useEffect(() => {
-    track(EVENTS.LOGIN)
+  useEffect(() => { track(EVENTS.LOGIN) }, [])
 
-    if (USE_MOCK) {
-      // Popula com dados mock
-      setStats({
-        activePatients:    mockDashboard.activePatients,
-        sessionsThisMonth: mockDashboard.sessionsThisMonth,
-        sessionsThisWeek:  mockDashboard.sessionsThisWeek,
-        monthRevenue:      mockDashboard.monthRevenue,
-        pendingPayments:   mockDashboard.pendingPayments,
-        pendingAmount:     mockDashboard.pendingAmount,
-        inactivePatients:  2,
-        todayAppointments: mockAppointments.filter(a => a.date === new Date().toISOString().split('T')[0]),
-        revenueChart: [
-          { mes: 'Out', valor: 3200 }, { mes: 'Nov', valor: 3800 },
-          { mes: 'Dez', valor: 3100 }, { mes: 'Jan', valor: 4200 },
-          { mes: 'Fev', valor: 3900 }, { mes: 'Mar', valor: 4680 },
-        ],
-      })
-      return
-    }
-
-    api.get('/analytics/dashboard')
-      .then(r => setStats(r.data))
-      .catch(console.error)
-      .finally(() => setLoading(false))
-  }, [])
-
-  const recentSessions = USE_MOCK ? mockSessions.slice(0, 3) : []
+  const recentSessions: any[] = []
 
   if (loading) {
     return (
@@ -75,7 +34,7 @@ export default function DashboardPage() {
     )
   }
 
-  const s = stats!
+  const s = stats ?? {} as any
 
   return (
     <div className="animate-slide-up space-y-5">

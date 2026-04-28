@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Lock, Save, Printer, FileText } from 'lucide-react'
-import { mockPatients } from '@/lib/mock-data'
 import { mockProntuarios } from '@/lib/mock-prontuario'
+import { usePatient } from '@/hooks/useApi'
 import { Prontuario } from '@/types/prontuario'
 import { formatDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
@@ -46,7 +46,7 @@ const FIELD = ({
 
 export default function ProntuarioPage() {
   const { id } = useParams()
-  const patient = mockPatients.find(p => p.id === id)
+  const { data: patient } = usePatient(id ?? '')
   const initial = mockProntuarios[id ?? ''] ?? ({} as Partial<Prontuario>)
   const [tab, setTab] = useState<Tab>('identificacao')
   const [form, setForm] = useState<Partial<Prontuario>>(initial)

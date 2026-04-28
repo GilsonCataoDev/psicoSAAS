@@ -4,17 +4,18 @@ import { Plus, Search } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
-import { mockPatients } from '@/lib/mock-data'
 import { formatDate } from '@/lib/utils'
 import { Patient } from '@/types'
 import NewPatientModal from '@/components/features/patients/NewPatientModal'
+import { usePatients } from '@/hooks/useApi'
 
 export default function PatientsPage() {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<'all' | 'active' | 'paused'>('all')
   const [showModal, setShowModal] = useState(false)
+  const { data: patients = [], isLoading } = usePatients()
 
-  const filtered = mockPatients.filter((p) => {
+  const filtered = patients.filter((p) => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase())
     const matchFilter = filter === 'all' || p.status === filter
     return matchSearch && matchFilter
@@ -26,7 +27,7 @@ export default function PatientsPage() {
         <div>
           <h1 className="page-title">Pessoas</h1>
           <p className="page-subtitle">
-            {mockPatients.filter(p => p.status === 'active').length} em acompanhamento
+            {patients.filter(p => p.status === 'active').length} em acompanhamento
           </p>
         </div>
         <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2">
@@ -56,9 +57,14 @@ export default function PatientsPage() {
         </div>
       </div>
 
-      {filtered.length === 0 ? (
-        <EmptyState icon={<Search className="w-6 h-6" />} title="Nenhuma pessoa encontrada"
-          description="Tente ajustar a busca ou os filtros." />
+      {isLoading ? (
+        <div className="space-y-3">
+          {[...Array(3)].map((_, i) => <div key={i} className="h-20 bg-neutral-100 rounded-2xl animate-pulse" />)}
+        </div>
+      ) : filtered.length === 0 ? (
+        <EmptyState icon={<Search className="w-6 h-6" />}
+          title={search || filter !== 'all' ? 'Nenhuma pessoa encontrada' : 'Nenhuma pessoa cadastrada'}
+          description={search || filter !== 'all' ? 'Tente ajustar a busca ou os filtros.' : 'Adicione sua primeira pessoa clicando em "Nova pessoa".'} />
       ) : (
         <div className="grid gap-3">
           {filtered.map((patient) => <PatientCard key={patient.id} patient={patient} />)}

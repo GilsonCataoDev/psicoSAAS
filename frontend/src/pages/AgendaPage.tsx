@@ -7,8 +7,8 @@ import {
 import { ptBR } from 'date-fns/locale'
 import Avatar from '@/components/ui/Avatar'
 import { StatusBadge } from '@/components/ui/Badge'
-import { mockAppointments } from '@/lib/mock-data'
 import { formatTime } from '@/lib/utils'
+import { useAppointments } from '@/hooks/useApi'
 import NewAppointmentModal from '@/components/features/agenda/NewAppointmentModal'
 
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 7) // 7h–19h
@@ -17,6 +17,7 @@ export default function AgendaPage() {
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }))
   const [showModal, setShowModal] = useState(false)
   const days = eachDayOfInterval({ start: weekStart, end: addDays(weekStart, 4) })
+  const { data: appointments = [] } = useAppointments()
 
   // Mobile: só mostra o dia atual
   const [mobileDay, setMobileDay] = useState(new Date())
@@ -72,7 +73,7 @@ export default function AgendaPage() {
 
         {/* Lista do dia selecionado */}
         <div className="space-y-2 mt-3">
-          {mockAppointments
+          {appointments
             .filter(a => isSameDay(parseISO(a.date), mobileDay))
             .sort((a, b) => a.time.localeCompare(b.time))
             .map(appt => (
@@ -95,7 +96,7 @@ export default function AgendaPage() {
                 <StatusBadge status={appt.status} />
               </div>
             ))}
-          {mockAppointments.filter(a => isSameDay(parseISO(a.date), mobileDay)).length === 0 && (
+          {appointments.filter(a => isSameDay(parseISO(a.date), mobileDay)).length === 0 && (
             <div className="card text-center py-10 text-neutral-400 text-sm">
               Nenhuma sessão neste dia 🌿
             </div>
@@ -122,7 +123,7 @@ export default function AgendaPage() {
             <div key={hour} className="grid grid-cols-[64px_repeat(5,1fr)] border-b border-neutral-50 min-h-[72px]">
               <div className="p-2 text-xs text-neutral-400 text-right pr-3 pt-2">{hour}:00</div>
               {days.map(day => {
-                const dayAppts = mockAppointments.filter(a =>
+                const dayAppts = appointments.filter(a =>
                   isSameDay(parseISO(a.date), day) && parseInt(a.time) === hour,
                 )
                 return (

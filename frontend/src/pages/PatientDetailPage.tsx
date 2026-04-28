@@ -2,15 +2,23 @@ import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Phone, Mail, Calendar, Edit2, Plus, Lock, ClipboardList } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
-import { mockPatients, mockSessions, mockAppointments } from '@/lib/mock-data'
 import { formatDate, formatCurrency, formatDateRelative } from '@/lib/utils'
 import { useState } from 'react'
+import { usePatient, useSessions, useAppointments } from '@/hooks/useApi'
 
 export default function PatientDetailPage() {
   const { id } = useParams()
-  const patient = mockPatients.find(p => p.id === id)
+  const { data: patient, isLoading } = usePatient(id ?? '')
+  const { data: allSessions = [] } = useSessions({ patientId: id })
   const [note, setNote] = useState('')
   const [tab, setTab] = useState<'timeline' | 'notes' | 'financial'>('timeline')
+
+  if (isLoading) return (
+    <div className="animate-pulse space-y-4 max-w-4xl">
+      <div className="h-6 bg-neutral-100 rounded w-32" />
+      <div className="h-32 bg-neutral-100 rounded-2xl" />
+    </div>
+  )
 
   if (!patient) return (
     <div className="text-center py-20">
@@ -19,7 +27,7 @@ export default function PatientDetailPage() {
     </div>
   )
 
-  const sessions = mockSessions.filter(s => s.patientId === id)
+  const sessions = allSessions
 
   return (
     <div className="animate-slide-up space-y-6 max-w-4xl">

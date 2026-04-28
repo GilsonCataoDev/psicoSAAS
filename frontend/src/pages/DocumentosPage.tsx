@@ -1,16 +1,17 @@
 import { useState } from 'react'
 import { FilePlus, Shield, Download, Eye, Search, ExternalLink } from 'lucide-react'
 import { mockDocumentos } from '@/lib/mock-prontuario'
-import { mockPatients } from '@/lib/mock-data'
 import { Documento, DocType, DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '@/types/prontuario'
 import { useAuthStore } from '@/store/auth'
 import { formatDate } from '@/lib/utils'
 import { openCfpVerification } from '@/lib/crp'
 import GenerateDocModal from '@/components/features/prontuario/GenerateDocModal'
+import { usePatients } from '@/hooks/useApi'
 import DocumentPreviewModal from '@/components/features/prontuario/DocumentPreviewModal'
 
 export default function DocumentosPage() {
   const user = useAuthStore(s => s.user)
+  const { data: patients = [] } = usePatients()
   const [docs, setDocs] = useState<Documento[]>(mockDocumentos)
   const [showGenerate, setShowGenerate] = useState(false)
   const [preview, setPreview] = useState<Documento | null>(null)
@@ -128,7 +129,7 @@ export default function DocumentosPage() {
         open={showGenerate}
         onClose={() => setShowGenerate(false)}
         onGenerate={handleGenerate}
-        patients={mockPatients}
+        patients={patients}
         user={user}
       />
 
