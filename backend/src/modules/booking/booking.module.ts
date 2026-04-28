@@ -7,10 +7,12 @@ import { Booking } from './entities/booking.entity'
 import { BookingPage } from './entities/booking-page.entity'
 import { AvailabilityModule } from '../availability/availability.module'
 import { NotificationsModule } from '../notifications/notifications.module'
+import { Patient } from '../patients/entities/patient.entity'
+import { Appointment } from '../appointments/entities/appointment.entity'
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Booking, BookingPage]),
+    TypeOrmModule.forFeature([Booking, BookingPage, Patient, Appointment]),
     AvailabilityModule,
     NotificationsModule,
   ],

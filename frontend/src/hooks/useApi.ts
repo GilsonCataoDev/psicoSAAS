@@ -156,7 +156,11 @@ export function useConfirmBooking() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => api.patch(`/booking/${id}/confirm`).then(r => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['bookings'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bookings'] })
+      qc.invalidateQueries({ queryKey: ['appointments'] })
+      qc.invalidateQueries({ queryKey: ['patients'] })
+    },
   })
 }
 

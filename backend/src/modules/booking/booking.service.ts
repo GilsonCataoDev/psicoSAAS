@@ -11,6 +11,8 @@ import {
 } from 'date-fns'
 import { Booking } from './entities/booking.entity'
 import { BookingPage } from './entities/booking-page.entity'
+import { Patient } from '../patients/entities/patient.entity'
+import { Appointment } from '../appointments/entities/appointment.entity'
 import { AvailabilityService } from '../availability/availability.service'
 import { NotificationsService } from '../notifications/notifications.service'
 import { CreateBookingDto } from './dto/create-booking.dto'
@@ -21,6 +23,8 @@ export class BookingService {
   constructor(
     @InjectRepository(Booking)  private bookings: Repository<Booking>,
     @InjectRepository(BookingPage) private pages: Repository<BookingPage>,
+    @InjectRepository(Patient) private patients: Repository<Patient>,
+    @InjectRepository(Appointment) private appointments: Repository<Appointment>,
     private availability: AvailabilityService,
     private notifications: NotificationsService,
     private config: ConfigService,
@@ -263,8 +267,50 @@ export class BookingService {
 
   async confirmBooking(id: string, psychologistId: string) {
     const booking = await this.findOne(id, psychologistId)
+
+    // ── 1. Encontra ou cria o Paciente ──────────────────────────────────────
+    let patient: Patient | null = null
+
+    // Tenta achar por e-mail (do mesmo psicólogo)
+    if (booking.patientEmail) {
+      patient = await this.patients.findOne({
+        where: { email: booking.patientEmail, psychologistId },
+      })
+    }
+
+    // Se não encontrou, cria como novo paciente
+    if (!patient) {
+      patient = this.patients.create({
+        name: booking.patientName,
+        email: booking.patientEmail || undefined,
+        phone: booking.patientPhone || undefined,
+        psychologistId,
+        status: 'active',
+        sessionPrice: Number(booking.amount) || 0,
+        sessionDuration: booking.duration || 50,
+        startDate: booking.date,
+        tags: [],
+      })
+      patient = await this.patients.save(patient)
+    }
+
+    // ── 2. Cria o Appointment interno ───────────────────────────────────────
+    const appointment = this.appointments.create({
+      date: booking.date,
+      time: booking.time,
+      duration: booking.duration,
+      patientId: patient.id,
+      psychologistId,
+      modality: 'online',
+      status: 'scheduled',
+      notes: booking.patientNotes || undefined,
+    })
+    const savedAppointment = await this.appointments.save(appointment)
+
+    // ── 3. Confirma o Booking e guarda referência ───────────────────────────
     booking.status = 'confirmed'
     booking.confirmedAt = new Date()
+    booking.appointmentId = savedAppointment.id
     const saved = await this.bookings.save(booking)
     await this.notifications.sendBookingConfirmation(saved)
     return saved
