@@ -11,10 +11,10 @@ import type { Response as Res } from 'express'
 
 const COOKIE_NAME = 'psicosaas_token'
 const COOKIE_OPTS = {
-  httpOnly: true,                                    // JS não acessa
-  secure: process.env.NODE_ENV === 'production',     // HTTPS em produção
-  sameSite: 'strict' as const,                       // proteção CSRF
-  maxAge: 7 * 24 * 60 * 60 * 1000,                  // 7 dias
+  httpOnly: true,
+  secure: true,           // sempre HTTPS (obrigatório para SameSite=none)
+  sameSite: 'none' as const, // permite cookie cross-origin (GitHub Pages → Railway)
+  maxAge: 7 * 24 * 60 * 60 * 1000,
   path: '/',
 }
 

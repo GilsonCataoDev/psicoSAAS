@@ -22,8 +22,8 @@ const jwt_auth_guard_1 = require("./guards/jwt-auth.guard");
 const COOKIE_NAME = 'psicosaas_token';
 const COOKIE_OPTS = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    secure: true,
+    sameSite: 'none',
     maxAge: 7 * 24 * 60 * 60 * 1000,
     path: '/',
 };
