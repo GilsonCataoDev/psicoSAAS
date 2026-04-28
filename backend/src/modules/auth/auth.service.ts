@@ -1,4 +1,6 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common'
+import {
+  Injectable, UnauthorizedException, ConflictException, BadRequestException, NotFoundException,
+} from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { JwtService } from '@nestjs/jwt'
@@ -47,6 +49,34 @@ export class AuthService {
 
   async findById(id: string) {
     return this.users.findOneBy({ id })
+  }
+
+  async updateProfile(id: string, data: { name?: string; crp?: string; specialty?: string; phone?: string }) {
+    const user = await this.users.findOneBy({ id })
+    if (!user) throw new NotFoundException()
+    Object.assign(user, data)
+    await this.users.save(user)
+    const { passwordHash: _, ...profile } = user
+    return profile
+  }
+
+  async updatePreferences(id: string, preferences: Record<string, unknown>) {
+    const user = await this.users.findOneBy({ id })
+    if (!user) throw new NotFoundException()
+    user.preferences = { ...(user.preferences ?? {}), ...preferences }
+    await this.users.save(user)
+    return user.preferences
+  }
+
+  async changePassword(id: string, currentPassword: string, newPassword: string) {
+    const user = await this.users.findOneBy({ id })
+    if (!user) throw new NotFoundException()
+    const valid = await bcrypt.compare(currentPassword, user.passwordHash)
+    if (!valid) throw new BadRequestException('Senha atual incorreta')
+    if (newPassword.length < 8) throw new BadRequestException('A nova senha deve ter pelo menos 8 caracteres')
+    user.passwordHash = await bcrypt.hash(newPassword, 12)
+    await this.users.save(user)
+    return { message: 'Senha alterada com sucesso' }
   }
 
   private buildResponse(user: User) {

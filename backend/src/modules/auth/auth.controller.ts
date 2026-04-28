@@ -1,5 +1,5 @@
 import {
-  Body, Controller, Get, Post, UseGuards,
+  Body, Controller, Get, Post, Patch, UseGuards,
   Request, Response, HttpCode, HttpStatus,
 } from '@nestjs/common'
 import { Throttle, SkipThrottle } from '@nestjs/throttler'
@@ -63,5 +63,37 @@ export class AuthController {
   me(@Request() req: any) {
     const { passwordHash: _, ...user } = req.user
     return user
+  }
+
+  /** Atualiza nome, CRP, especialidade e telefone */
+  @Patch('profile')
+  @UseGuards(JwtAuthGuard)
+  @SkipThrottle()
+  updateProfile(
+    @Request() req: any,
+    @Body() body: { name?: string; crp?: string; specialty?: string; phone?: string },
+  ) {
+    return this.auth.updateProfile(req.user.id, body)
+  }
+
+  /** Atualiza preferências (notificações, PIX, mensagens, etc.) */
+  @Patch('preferences')
+  @UseGuards(JwtAuthGuard)
+  @SkipThrottle()
+  updatePreferences(
+    @Request() req: any,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.auth.updatePreferences(req.user.id, body)
+  }
+
+  /** Troca de senha */
+  @Patch('password')
+  @UseGuards(JwtAuthGuard)
+  changePassword(
+    @Request() req: any,
+    @Body() body: { currentPassword: string; newPassword: string },
+  ) {
+    return this.auth.changePassword(req.user.id, body.currentPassword, body.newPassword)
   }
 }
