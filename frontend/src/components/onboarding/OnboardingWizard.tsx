@@ -13,8 +13,8 @@ const STEPS = [
     title: 'Configure seus horários',
     description: 'Defina seus dias e horários disponíveis para atendimento.',
     cta: 'Configurar agenda',
-    ctaLink: '/configuracoes',
-    tip: 'Você pode alterar isso a qualquer momento nas configurações.',
+    ctaLink: '/agendamentos?tab=settings',
+    tip: 'Ative os dias da semana e defina o início/fim do expediente.',
   },
   {
     id: 'first_patient' as OnboardingStep,

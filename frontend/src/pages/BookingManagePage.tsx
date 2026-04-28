@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Link2, Check, X, Wallet, Settings, Clock, RefreshCw } from 'lucide-react'
 import { formatCurrency, formatDateRelative } from '@/lib/utils'
 import { cn } from '@/lib/utils'
@@ -32,7 +33,10 @@ const BOOKING_FILTERS = [
 ] as const
 
 export default function BookingManagePage() {
-  const [tab, setTab] = useState<'requests' | 'settings'>('requests')
+  const [searchParams] = useSearchParams()
+  const [tab, setTab] = useState<'requests' | 'settings'>(
+    searchParams.get('tab') === 'settings' ? 'settings' : 'requests'
+  )
   const [filter, setFilter] = useState<string>('all')
 
   const { data: bookings = [], isLoading } = useBookings()
