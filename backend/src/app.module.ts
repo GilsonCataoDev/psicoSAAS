@@ -35,7 +35,7 @@ import { PlanGuard } from './common/guards/plan.guard'
         type: 'postgres',
         url: cfg.get('DATABASE_URL'),
         autoLoadEntities: true,
-        synchronize: cfg.get('NODE_ENV') !== 'production',
+        synchronize: cfg.get('NODE_ENV') !== 'production' || cfg.get('TYPEORM_SYNC') === 'true',
         logging: false,
       }),
     }),
