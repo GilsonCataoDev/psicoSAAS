@@ -99,6 +99,24 @@ export function useDashboard() {
   })
 }
 
+// ── Availability ─────────────────────────────────────────────────────────────
+
+export function useAvailability() {
+  return useQuery<{ id: string; weekday: number; startTime: string; endTime: string }[]>({
+    queryKey: ['availability'],
+    queryFn: () => api.get('/availability').then(r => r.data),
+  })
+}
+
+export function useSaveAvailability() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (slots: { weekday: number; startTime: string; endTime: string }[]) =>
+      api.post('/availability/slots', { slots }).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['availability'] }),
+  })
+}
+
 // ── Booking (authenticated) ───────────────────────────────────────────────────
 
 export function useBookings() {

@@ -288,7 +288,22 @@ export class BookingService {
   // ─── Booking Page (configurações) ──────────────────────────────────────────
 
   async getMyPage(psychologistId: string) {
-    return this.pages.findOne({ where: { psychologistId } })
+    let page = await this.pages.findOne({ where: { psychologistId } })
+    // Auto-cria a página na primeira visita para que o token diário funcione imediatamente
+    if (!page) {
+      const autoSlug = `psi-${psychologistId.replace(/-/g, '').slice(0, 12)}`
+      page = this.pages.create({
+        psychologistId,
+        slug: autoSlug,
+        title: 'Agende sua sessão',
+        sessionPrice: 150,
+        sessionDuration: 50,
+        slotInterval: 60,
+        isActive: true,
+      })
+      page = await this.pages.save(page)
+    }
+    return page
   }
 
   async saveMyPage(psychologistId: string, dto: SaveBookingPageDto) {

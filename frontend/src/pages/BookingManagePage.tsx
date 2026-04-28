@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 import {
   useBookings, useBookingPage, useSaveBookingPage,
   useConfirmBooking, useRejectBooking, usePayBooking,
-  useDailyBookingLink,
+  useDailyBookingLink, useAvailability, useSaveAvailability,
 } from '@/hooks/useApi'
 
 const STATUS_CONFIG = {
@@ -231,8 +231,24 @@ function BookingCard({ booking, onConfirm, onReject, onMarkPaid }: {
 }
 
 // ─── Configurações da página pública ─────────────────────────────────────────
+
+const WEEKDAYS = [
+  { d: 1, label: 'Seg' },
+  { d: 2, label: 'Ter' },
+  { d: 3, label: 'Qua' },
+  { d: 4, label: 'Qui' },
+  { d: 5, label: 'Sex' },
+  { d: 6, label: 'Sáb' },
+  { d: 0, label: 'Dom' },
+]
+
+type DaySlot = { enabled: boolean; startTime: string; endTime: string }
+
 function BookingSettings({ page }: { page: any }) {
   const saveBookingPage = useSaveBookingPage()
+  const { data: savedSlots = [] } = useAvailability()
+  const saveAvailability = useSaveAvailability()
+
   const [form, setForm] = useState({
     title:               page?.title ?? 'Agende sua sessão',
     description:         page?.description ?? '',
@@ -245,9 +261,45 @@ function BookingSettings({ page }: { page: any }) {
     allowOnline:         page?.allowOnline ?? true,
   })
 
+  // Horários por dia da semana
+  const [schedule, setSchedule] = useState<Record<number, DaySlot>>(() => {
+    const base: Record<number, DaySlot> = {}
+    WEEKDAYS.forEach(({ d }) => {
+      base[d] = { enabled: false, startTime: '09:00', endTime: '18:00' }
+    })
+    return base
+  })
+
+  // Preenche schedule quando os slots chegam da API
+  const [scheduleSynced, setScheduleSynced] = useState(false)
+  if (!scheduleSynced && savedSlots.length > 0) {
+    const next: Record<number, DaySlot> = {}
+    WEEKDAYS.forEach(({ d }) => {
+      const slot = savedSlots.find(s => s.weekday === d)
+      next[d] = slot
+        ? { enabled: true, startTime: slot.startTime.slice(0, 5), endTime: slot.endTime.slice(0, 5) }
+        : { enabled: false, startTime: '09:00', endTime: '18:00' }
+    })
+    setSchedule(next)
+    setScheduleSynced(true)
+  }
+
+  function toggleDay(d: number) {
+    setSchedule(s => ({ ...s, [d]: { ...s[d], enabled: !s[d].enabled } }))
+  }
+  function setTime(d: number, field: 'startTime' | 'endTime', val: string) {
+    setSchedule(s => ({ ...s, [d]: { ...s[d], [field]: val } }))
+  }
+
   async function save() {
     try {
+      // Salva configurações gerais
       await saveBookingPage.mutateAsync(form)
+      // Salva horários de disponibilidade
+      const slots = WEEKDAYS
+        .filter(({ d }) => schedule[d]?.enabled)
+        .map(({ d }) => ({ weekday: d, startTime: schedule[d].startTime, endTime: schedule[d].endTime }))
+      await saveAvailability.mutateAsync(slots)
       toast.success('Configurações salvas ✓')
     } catch {
       toast.error('Erro ao salvar. Tente novamente.')
@@ -255,9 +307,70 @@ function BookingSettings({ page }: { page: any }) {
   }
 
   const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }))
+  const isSaving = saveBookingPage.isPending || saveAvailability.isPending
+
+  const enabledCount = WEEKDAYS.filter(({ d }) => schedule[d]?.enabled).length
 
   return (
     <div className="space-y-5">
+      {/* ── Horários de atendimento ─────────────────── */}
+      <div className="card space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="section-title">Horários de atendimento</h2>
+          {enabledCount === 0 && (
+            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-lg">
+              ⚠️ Nenhum dia configurado — slots não aparecerão
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-neutral-400">Selecione os dias e defina o início/fim do expediente. Os slots são gerados automaticamente pelo intervalo abaixo.</p>
+
+        <div className="space-y-2">
+          {WEEKDAYS.map(({ d, label }) => {
+            const slot = schedule[d]
+            return (
+              <div key={d} className={cn(
+                'flex items-center gap-3 p-3 rounded-xl border transition-all',
+                slot.enabled ? 'border-sage-200 bg-sage-50' : 'border-neutral-100 bg-neutral-50'
+              )}>
+                {/* Toggle */}
+                <button type="button" onClick={() => toggleDay(d)}
+                  className={cn(
+                    'w-11 h-6 rounded-full transition-colors shrink-0',
+                    slot.enabled ? 'bg-sage-500' : 'bg-neutral-200'
+                  )}>
+                  <div className={cn(
+                    'w-5 h-5 bg-white rounded-full shadow transition-transform mt-0.5 mx-0.5',
+                    slot.enabled ? 'translate-x-5' : ''
+                  )} />
+                </button>
+                <span className={cn('w-8 text-sm font-medium shrink-0', slot.enabled ? 'text-sage-700' : 'text-neutral-400')}>
+                  {label}
+                </span>
+                {slot.enabled ? (
+                  <div className="flex items-center gap-2 flex-1 flex-wrap">
+                    <input
+                      type="time" value={slot.startTime}
+                      onChange={e => setTime(d, 'startTime', e.target.value)}
+                      className="input-field py-1.5 text-sm w-28"
+                    />
+                    <span className="text-neutral-400 text-xs">até</span>
+                    <input
+                      type="time" value={slot.endTime}
+                      onChange={e => setTime(d, 'endTime', e.target.value)}
+                      className="input-field py-1.5 text-sm w-28"
+                    />
+                  </div>
+                ) : (
+                  <span className="text-xs text-neutral-400 flex-1">Indisponível</span>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* ── Sessão ──────────────────────────────────── */}
       <div className="card space-y-4">
         <h2 className="section-title">Sua página de agendamento</h2>
         <div>
@@ -274,7 +387,7 @@ function BookingSettings({ page }: { page: any }) {
             <input type="number" value={form.sessionPrice} onChange={e => set('sessionPrice', +e.target.value)} className="input-field" />
           </div>
           <div>
-            <label className="label">Duração (min)</label>
+            <label className="label">Duração da sessão (min)</label>
             <input type="number" value={form.sessionDuration} onChange={e => set('sessionDuration', +e.target.value)} className="input-field" />
           </div>
           <div>
@@ -284,6 +397,7 @@ function BookingSettings({ page }: { page: any }) {
         </div>
       </div>
 
+      {/* ── Pagamento ───────────────────────────────── */}
       <div className="card space-y-4">
         <h2 className="section-title">Pagamento</h2>
         <div>
@@ -300,8 +414,8 @@ function BookingSettings({ page }: { page: any }) {
       </div>
 
       <div className="flex justify-end">
-        <button onClick={save} disabled={saveBookingPage.isPending} className="btn-primary flex items-center gap-2">
-          {saveBookingPage.isPending
+        <button onClick={save} disabled={isSaving} className="btn-primary flex items-center gap-2">
+          {isSaving
             ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             : <Check className="w-4 h-4" />}
           Salvar configurações
