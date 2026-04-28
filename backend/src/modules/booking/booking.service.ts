@@ -380,6 +380,64 @@ export class BookingService {
     }
   }
 
+  /**
+   * Sincroniza retroativamente bookings confirmados que ainda não têm
+   * um Appointment correspondente (ex.: confirmados antes do fix).
+   */
+  async syncConfirmedBookings(psychologistId: string) {
+    const confirmed = await this.bookings.find({
+      where: { psychologistId, status: 'confirmed' as any },
+    })
+
+    let created = 0
+    for (const booking of confirmed) {
+      // Já tem Appointment? Pula.
+      if (booking.appointmentId) continue
+
+      // Encontra ou cria Paciente
+      let patient: Patient | null = null
+      if (booking.patientEmail) {
+        patient = await this.patients.findOne({
+          where: { email: booking.patientEmail, psychologistId },
+        })
+      }
+      if (!patient) {
+        patient = this.patients.create({
+          name: booking.patientName,
+          email: booking.patientEmail || undefined,
+          phone: booking.patientPhone || undefined,
+          psychologistId,
+          status: 'active',
+          sessionPrice: Number(booking.amount) || 0,
+          sessionDuration: booking.duration || 50,
+          startDate: booking.date,
+          tags: [],
+        })
+        patient = await this.patients.save(patient)
+      }
+
+      // Cria o Appointment
+      const appointment = this.appointments.create({
+        date: booking.date,
+        time: booking.time,
+        duration: booking.duration,
+        patientId: patient.id,
+        psychologistId,
+        modality: 'online',
+        status: 'scheduled',
+        notes: booking.patientNotes || undefined,
+      })
+      const savedAppt = await this.appointments.save(appointment)
+
+      // Atualiza referência no Booking
+      booking.appointmentId = savedAppt.id
+      await this.bookings.save(booking)
+      created++
+    }
+
+    return { synced: created, total: confirmed.length }
+  }
+
   private async findOne(id: string, psychologistId: string) {
     const b = await this.bookings.findOne({ where: { id, psychologistId } })
     if (!b) throw new NotFoundException()

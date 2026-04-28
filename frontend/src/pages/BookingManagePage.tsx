@@ -8,6 +8,7 @@ import {
   useBookings, useBookingPage, useSaveBookingPage,
   useConfirmBooking, useRejectBooking, usePayBooking,
   useDailyBookingLink, useAvailability, useSaveAvailability,
+  useSyncBookingAppointments,
 } from '@/hooks/useApi'
 
 const STATUS_CONFIG = {
@@ -45,6 +46,13 @@ export default function BookingManagePage() {
   const confirmBooking = useConfirmBooking()
   const rejectBooking = useRejectBooking()
   const payBooking = usePayBooking()
+  const syncAppointments = useSyncBookingAppointments()
+
+  // Sincroniza retroativamente bookings confirmados sem Appointment ao montar
+  useEffect(() => {
+    syncAppointments.mutate()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const bookingUrl = dailyLink?.url ?? '…'
 

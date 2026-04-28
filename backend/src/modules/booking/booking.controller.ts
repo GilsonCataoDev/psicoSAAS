@@ -52,6 +52,15 @@ export class BookingController {
     return this.svc.markPaid(id, req.user.id, method)
   }
 
+  /**
+   * Sincroniza bookings confirmados sem Appointment correspondente.
+   * Útil para corrigir bookings confirmados antes da integração automática.
+   */
+  @Post('sync-appointments')
+  syncAppointments(@Request() req: any) {
+    return this.svc.syncConfirmedBookings(req.user.id)
+  }
+
   /** Obter configurações da página pública */
   @Get('page')
   getPage(@Request() req: any) {

@@ -180,6 +180,18 @@ export function usePayBooking() {
   })
 }
 
+/** Sincroniza bookings confirmados que não têm Appointment ainda */
+export function useSyncBookingAppointments() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.post('/booking/sync-appointments').then(r => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['appointments'] })
+      qc.invalidateQueries({ queryKey: ['patients'] })
+    },
+  })
+}
+
 // ── Booking (public) ──────────────────────────────────────────────────────────
 
 export function usePublicBookingPage(slug: string) {
