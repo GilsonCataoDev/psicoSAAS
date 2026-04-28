@@ -90,7 +90,7 @@ function PatientCard({ patient }: { patient: Patient }) {
           <StatusBadge status={patient.status} />
         </div>
         <p className="text-xs text-neutral-500 mt-0.5 truncate">
-          Desde {formatDate(patient.startDate)} · R$ {patient.sessionPrice}/sessão
+          Desde {formatDate(patient.startDate ?? patient.createdAt)} · R$ {patient.sessionPrice}/sessão
         </p>
         <div className="flex flex-wrap gap-1 mt-1.5">
           {patient.tags.slice(0, 2).map(tag => <TagBadge key={tag} tag={tag} small />)}

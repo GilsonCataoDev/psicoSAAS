@@ -14,17 +14,27 @@ export function formatCurrency(value: number): string {
   }).format(value)
 }
 
-export function formatDate(date: string | Date, pattern = 'dd/MM/yyyy'): string {
-  const d = typeof date === 'string' ? parseISO(date) : date
-  return format(d, pattern, { locale: ptBR })
+export function formatDate(date: string | Date | null | undefined, pattern = 'dd/MM/yyyy'): string {
+  if (!date) return '—'
+  try {
+    const d = typeof date === 'string' ? parseISO(date) : date
+    return format(d, pattern, { locale: ptBR })
+  } catch {
+    return '—'
+  }
 }
 
-export function formatDateRelative(date: string | Date): string {
-  const d = typeof date === 'string' ? parseISO(date) : date
-  if (isToday(d)) return 'Hoje'
-  if (isTomorrow(d)) return 'Amanhã'
-  if (isYesterday(d)) return 'Ontem'
-  return format(d, "dd 'de' MMMM", { locale: ptBR })
+export function formatDateRelative(date: string | Date | null | undefined): string {
+  if (!date) return '—'
+  try {
+    const d = typeof date === 'string' ? parseISO(date) : date
+    if (isToday(d)) return 'Hoje'
+    if (isTomorrow(d)) return 'Amanhã'
+    if (isYesterday(d)) return 'Ontem'
+    return format(d, "dd 'de' MMMM", { locale: ptBR })
+  } catch {
+    return '—'
+  }
 }
 
 export function formatTime(time: string): string {
