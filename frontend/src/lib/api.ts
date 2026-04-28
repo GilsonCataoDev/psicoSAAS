@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store/auth'
 export const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? '/api',
+  baseURL: import.meta.env.VITE_API_URL || 'https://psicosaas-production-2d6c.up.railway.app/api',
   headers: { 'Content-Type': 'application/json' },
   withCredentials: true, // envia HttpOnly cookie em toda requisição
 })
