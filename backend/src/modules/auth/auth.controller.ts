@@ -87,7 +87,7 @@ export class AuthController {
     return this.auth.updatePreferences(req.user.id, body)
   }
 
-  /** Troca de senha */
+  /** Troca de senha (autenticado) */
   @Patch('password')
   @UseGuards(JwtAuthGuard)
   changePassword(
@@ -95,5 +95,30 @@ export class AuthController {
     @Body() body: { currentPassword: string; newPassword: string },
   ) {
     return this.auth.changePassword(req.user.id, body.currentPassword, body.newPassword)
+  }
+
+  /**
+   * Esqueci a senha — envia e-mail com link de recuperação.
+   * Limitado a 3 tentativas/min por IP para evitar spam.
+   * Sempre retorna 200 (não revela se o e-mail existe).
+   */
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ short: { limit: 3, ttl: 60000 } })
+  async forgotPassword(@Body('email') email: string) {
+    if (!email) return { message: 'Se este e-mail estiver cadastrado, você receberá as instruções.' }
+    await this.auth.forgotPassword(email)
+    return { message: 'Se este e-mail estiver cadastrado, você receberá as instruções em breve.' }
+  }
+
+  /**
+   * Redefine a senha com o token recebido por e-mail.
+   */
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
+  async resetPassword(@Body() body: { token: string; password: string }) {
+    await this.auth.resetPassword(body.token, body.password)
+    return { message: 'Senha redefinida com sucesso. Faça login para continuar.' }
   }
 }

@@ -5,6 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { JwtService } from '@nestjs/jwt'
 import * as bcrypt from 'bcryptjs'
+import { randomBytes } from 'crypto'
 import { User } from './entities/user.entity'
 import { RegisterDto } from './dto/register.dto'
 import { LoginDto } from './dto/login.dto'
@@ -86,6 +87,41 @@ export class AuthService {
     user.passwordHash = await bcrypt.hash(newPassword, 12)
     await this.users.save(user)
     return { message: 'Senha alterada com sucesso' }
+  }
+
+  /**
+   * Inicia o fluxo de recuperação: gera token seguro, salva com expiração de 2h
+   * e envia e-mail. Sempre retorna sucesso para não vazar se o e-mail existe.
+   */
+  async forgotPassword(email: string): Promise<void> {
+    const user = await this.users.findOneBy({ email: email.toLowerCase().trim() })
+    if (!user) return   // resposta idêntica para evitar user enumeration
+
+    const token = randomBytes(32).toString('hex')
+    user.resetPasswordToken = token
+    user.resetPasswordExpiry = new Date(Date.now() + 2 * 60 * 60 * 1000) // +2h
+    await this.users.save(user)
+
+    this.email.sendPasswordReset(user.name, user.email, token).catch(() => {})
+  }
+
+  /**
+   * Valida o token e, se válido e não expirado, redefine a senha.
+   */
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    if (!token || !newPassword) throw new BadRequestException('Dados inválidos')
+    if (newPassword.length < 8) throw new BadRequestException('A senha deve ter pelo menos 8 caracteres')
+
+    const user = await this.users.findOneBy({ resetPasswordToken: token })
+
+    if (!user || !user.resetPasswordExpiry || user.resetPasswordExpiry < new Date()) {
+      throw new BadRequestException('Link inválido ou expirado. Solicite um novo.')
+    }
+
+    user.passwordHash = await bcrypt.hash(newPassword, 12)
+    user.resetPasswordToken = undefined
+    user.resetPasswordExpiry = undefined
+    await this.users.save(user)
   }
 
   private buildResponse(user: User) {

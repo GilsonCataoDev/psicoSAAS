@@ -4,6 +4,8 @@ import AppLayout from '@/components/layout/AppLayout'
 import AuthLayout from '@/components/layout/AuthLayout'
 import LoginPage from '@/pages/auth/LoginPage'
 import RegisterPage from '@/pages/auth/RegisterPage'
+import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage'
+import ResetPasswordPage from '@/pages/auth/ResetPasswordPage'
 import DashboardPage from '@/pages/DashboardPage'
 import PatientsPage from '@/pages/PatientsPage'
 import PatientDetailPage from '@/pages/PatientDetailPage'
@@ -36,6 +38,12 @@ export default function App() {
       <Route element={<PublicRoute><AuthLayout /></PublicRoute>}>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/cadastro" element={<RegisterPage />} />
+        <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
+      </Route>
+
+      {/* Reset de senha — acessível mesmo logado (token na URL) */}
+      <Route element={<AuthLayout />}>
+        <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
       </Route>
 
       {/* ── Página pública de agendamento (sem auth, sem layout interno) ── */}

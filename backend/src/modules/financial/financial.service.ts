@@ -28,7 +28,12 @@ export class FinancialService {
     return r
   }
 
-  create(dto: CreateFinancialDto, psychologistId: string) {
+  /** Busca o registro financeiro vinculado a uma sessão específica */
+  findBySessionId(sessionId: string, psychologistId: string) {
+    return this.repo.findOne({ where: { sessionId, psychologistId } })
+  }
+
+  create(dto: CreateFinancialDto & { status?: string; paidAt?: string }, psychologistId: string) {
     const record = this.repo.create({ ...dto, psychologistId })
     return this.repo.save(record)
   }
@@ -38,6 +43,15 @@ export class FinancialService {
     r.status = 'paid'
     r.paidAt = new Date().toISOString()
     r.method = method
+    return this.repo.save(r)
+  }
+
+  /** Reverte um pagamento para pendente (ex: sessão editada) */
+  async resetToPending(id: string, psychologistId: string) {
+    const r = await this.findOne(id, psychologistId)
+    r.status = 'pending'
+    r.paidAt = undefined
+    r.method = undefined
     return this.repo.save(r)
   }
 

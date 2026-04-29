@@ -39,6 +39,13 @@ export class User {
   @Column({ nullable: true })
   referralCode?: string   // código usado no cadastro
 
+  /** Token de reset de senha (HMAC hex) — limpo após uso ou expiração */
+  @Column({ nullable: true })
+  resetPasswordToken?: string
+
+  @Column({ type: 'timestamptz', nullable: true })
+  resetPasswordExpiry?: Date
+
   @Column({ type: 'jsonb', nullable: true })
   preferences?: Record<string, unknown>
 

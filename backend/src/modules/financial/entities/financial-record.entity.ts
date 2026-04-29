@@ -17,9 +17,9 @@ export class FinancialRecord {
   @Column({ nullable: true }) method?: string
   @Column({ nullable: true }) sessionId?: string
   @Column({ nullable: true }) receiptUrl?: string
-  @Column() patientId: string
-  @ManyToOne(() => Patient, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'patientId' }) patient: Patient
+  @Column({ nullable: true }) patientId?: string
+  @ManyToOne(() => Patient, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'patientId' }) patient?: Patient
   @Column() psychologistId: string
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'psychologistId' }) psychologist: User

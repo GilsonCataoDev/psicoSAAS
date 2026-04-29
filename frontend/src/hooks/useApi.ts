@@ -3,6 +3,21 @@ import { api } from '@/lib/api'
 import { Patient, Appointment, Session, FinancialRecord } from '@/types'
 import { Documento } from '@/types/prontuario'
 
+// ── Auth ──────────────────────────────────────────────────────────────────────
+
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: (email: string) => api.post('/auth/forgot-password', { email }).then(r => r.data),
+  })
+}
+
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: ({ token, password }: { token: string; password: string }) =>
+      api.post('/auth/reset-password', { token, password }).then(r => r.data),
+  })
+}
+
 // ── Patients ──────────────────────────────────────────────────────────────────
 
 export function usePatients() {
