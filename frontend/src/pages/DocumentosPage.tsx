@@ -77,7 +77,7 @@ export default function DocumentosPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
           {(Object.entries(DOC_TYPE_LABELS) as [DocType, string][]).map(([type, label]) => (
             <button key={type} onClick={() => setShowGenerate(true)}
-              className="card p-3 text-center hover:shadow-lifted transition-all cursor-pointer hover:border-sage-200 group">
+              className="card p-3 text-center hover:shadow-lifted hover:-translate-y-px transition-all cursor-pointer hover:border-sage-200 group">
               <span className="text-2xl">{DOC_TYPE_ICONS[type]}</span>
               <p className="text-xs font-medium text-neutral-600 mt-1.5 leading-tight group-hover:text-sage-700">
                 {label}
@@ -116,10 +116,14 @@ export default function DocumentosPage() {
             <div className="w-6 h-6 border-2 border-sage-400 border-t-transparent rounded-full animate-spin mx-auto" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="card text-center py-12">
-            <FilePlus className="w-10 h-10 text-neutral-300 mx-auto mb-3" />
-            <p className="font-medium text-neutral-600">Nenhum documento encontrado</p>
-            <p className="text-sm text-neutral-400 mt-1 mb-4">Gere declarações, recibos e relatórios com assinatura digital.</p>
+          <div className="card text-center py-14">
+            <div className="w-12 h-12 bg-sage-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <FilePlus className="w-5 h-5 text-sage-400" />
+            </div>
+            <p className="font-semibold text-neutral-600 mb-1">Nenhum documento encontrado</p>
+            <p className="text-sm text-neutral-400 mb-5 max-w-xs mx-auto">
+              Gere declarações, recibos e relatórios com assinatura digital.
+            </p>
             <button onClick={() => setShowGenerate(true)} className="btn-primary text-sm">
               Gerar primeiro documento
             </button>
@@ -159,7 +163,7 @@ export default function DocumentosPage() {
 
 function DocCard({ doc, onPreview, onDelete }: { doc: Documento; onPreview: () => void; onDelete: () => void }) {
   return (
-    <div className="card flex items-center gap-4 p-4 hover:shadow-lifted transition-all group">
+    <div className="card flex items-center gap-4 p-4 hover:shadow-lifted hover:-translate-y-px transition-all duration-200 group">
       <div className="w-10 h-10 bg-neutral-100 rounded-xl flex items-center justify-center text-xl shrink-0">
         {DOC_TYPE_ICONS[doc.type]}
       </div>
