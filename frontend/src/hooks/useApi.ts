@@ -153,6 +153,13 @@ export function useSendCharge() {
   })
 }
 
+export function useGeneratePaymentLink() {
+  return useMutation({
+    mutationFn: (id: string) =>
+      api.post<{ url: string }>(`/financial/${id}/payment-link`).then(r => r.data),
+  })
+}
+
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
 export function useDashboard() {

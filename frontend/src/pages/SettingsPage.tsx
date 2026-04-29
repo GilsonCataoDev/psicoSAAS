@@ -50,6 +50,8 @@ const DEFAULT_PREFS = {
   lateReminder: true,
   includeReceipt: false,
   chargeTemplate: 'Olá, {{nome}}! 🌿\n\nSegue o valor da nossa sessão:\n💚 *{{valor}}*\n\nPode pagar via PIX: `{{pix}}`\n\nObrigada! 🙏',
+  // Asaas — link de pagamento
+  asaasApiKey: '',
   // Mensagens
   whatsapp: '',
   confirmationTemplate: 'Olá, {{nome}}! 🌿 Sua sessão está confirmada para {{data}} às {{hora}}. Até lá! 💙',
@@ -356,6 +358,43 @@ export default function SettingsPage() {
                     <Toggle on={!!prefs[item.key]} onChange={() => togglePref(item.key)} />
                   </div>
                 ))}
+              </div>
+
+              {/* Asaas — pagamento via link */}
+              <div className="card space-y-4">
+                <div>
+                  <h2 className="section-title mb-0.5">Pagamento por link (Asaas)</h2>
+                  <p className="text-xs text-neutral-400">
+                    Permite gerar links de cobrança que o paciente paga via{' '}
+                    <strong>cartão de crédito, PIX ou boleto</strong>.{' '}
+                    Precisa de uma conta gratuita em{' '}
+                    <a href="https://www.asaas.com" target="_blank" rel="noreferrer"
+                      className="text-sage-600 underline underline-offset-2 hover:no-underline">
+                      asaas.com
+                    </a>.
+                  </p>
+                </div>
+                <div>
+                  <label className="label">Chave API Asaas</label>
+                  <input
+                    type="password"
+                    value={prefs.asaasApiKey ?? ''}
+                    onChange={e => setPref('asaasApiKey', e.target.value)}
+                    className="input-field"
+                    placeholder="$aact_…"
+                    autoComplete="off"
+                  />
+                  <p className="text-xs text-neutral-400 mt-1.5">
+                    Encontre em: Asaas → Configurações → Integrações → Chave API
+                  </p>
+                </div>
+                <div className="flex justify-end">
+                  <button onClick={() => savePrefs('Pagamentos')} disabled={savingPrefs}
+                    className="btn-primary text-sm flex items-center gap-2">
+                    {savingPrefs && <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                    Salvar chave
+                  </button>
+                </div>
               </div>
 
               <div className="card space-y-4">

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Wallet, TrendingUp, Clock, CheckCircle, Plus, MessageCircle, CreditCard, Trash2 } from 'lucide-react'
+import { Wallet, TrendingUp, Clock, CheckCircle, Plus, MessageCircle, CreditCard, Trash2, Link2 } from 'lucide-react'
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import StatCard from '@/components/ui/StatCard'
 import Avatar from '@/components/ui/Avatar'
@@ -10,6 +10,7 @@ import { FinancialRecord } from '@/types'
 import NewPaymentModal from '@/components/features/financial/NewPaymentModal'
 import MarkPaidModal from '@/components/features/financial/MarkPaidModal'
 import SendChargeModal from '@/components/features/financial/SendChargeModal'
+import PaymentLinkModal from '@/components/features/financial/PaymentLinkModal'
 import toast from 'react-hot-toast'
 
 const METHOD_LABELS: Record<string, string> = {
@@ -33,6 +34,7 @@ export default function FinancialPage() {
   const [showNew, setShowNew] = useState(false)
   const [markRecord, setMarkRecord] = useState<FinancialRecord | null>(null)
   const [chargeRecord, setChargeRecord] = useState<FinancialRecord | null>(null)
+  const [linkRecord, setLinkRecord] = useState<FinancialRecord | null>(null)
 
   const total   = records.reduce((s, r) => s + (r.type === 'income' ? Number(r.amount) : 0), 0)
   const paid    = records.filter(r => r.status === 'paid').reduce((s, r) => s + Number(r.amount), 0)
@@ -184,6 +186,7 @@ export default function FinancialPage() {
             <FinancialRow key={record.id} record={record}
               onMarkPaid={() => setMarkRecord(record)}
               onSendCharge={() => setChargeRecord(record)}
+              onPaymentLink={() => setLinkRecord(record)}
               onDelete={async () => {
                 if (!confirm(`Excluir lançamento de ${record.patient?.name ?? 'paciente'}? Esta ação não pode ser desfeita.`)) return
                 try {
@@ -211,15 +214,21 @@ export default function FinancialPage() {
         open={!!chargeRecord}
         onClose={() => setChargeRecord(null)}
       />
+      <PaymentLinkModal
+        record={linkRecord}
+        open={!!linkRecord}
+        onClose={() => setLinkRecord(null)}
+      />
     </div>
   )
 }
 
 // ─── Linha de lançamento ──────────────────────────────────────────────────────
-function FinancialRow({ record, onMarkPaid, onSendCharge, onDelete }: {
+function FinancialRow({ record, onMarkPaid, onSendCharge, onPaymentLink, onDelete }: {
   record: FinancialRecord
   onMarkPaid: () => void
   onSendCharge: () => void
+  onPaymentLink: () => void
   onDelete: () => void
 }) {
   const isPending = record.status === 'pending' || record.status === 'overdue'
@@ -245,12 +254,17 @@ function FinancialRow({ record, onMarkPaid, onSendCharge, onDelete }: {
         {isPending && (
           <>
             <button onClick={onSendCharge}
-              title="Enviar cobrança via WhatsApp"
+              title="Enviar cobrança PIX via WhatsApp"
               className="p-1.5 rounded-lg hover:bg-neutral-100 text-neutral-400 hover:text-sage-600 transition-colors">
               <MessageCircle className="w-4 h-4" />
             </button>
+            <button onClick={onPaymentLink}
+              title="Gerar link de pagamento (cartão, PIX, boleto)"
+              className="p-1.5 rounded-lg hover:bg-neutral-100 text-neutral-400 hover:text-mist-600 transition-colors">
+              <Link2 className="w-4 h-4" />
+            </button>
             <button onClick={onMarkPaid}
-              title="Registrar pagamento"
+              title="Registrar pagamento manualmente"
               className="p-1.5 rounded-lg hover:bg-neutral-100 text-neutral-400 hover:text-sage-600 transition-colors">
               <CreditCard className="w-4 h-4" />
             </button>
