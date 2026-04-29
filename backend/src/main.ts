@@ -11,7 +11,7 @@ import * as Sentry from '@sentry/node'
 
 async function bootstrap() {
   // ── Validação de variáveis críticas na inicialização ───────────────────────
-  const requiredEnv = ['JWT_SECRET', 'DATABASE_URL', 'SIGN_SECRET']
+  const requiredEnv = ['JWT_SECRET', 'DATABASE_URL', 'SIGN_SECRET', 'ENCRYPTION_KEY']
   for (const key of requiredEnv) {
     if (!process.env[key]) throw new Error(`Variável obrigatória ausente: ${key}`)
   }
@@ -20,6 +20,9 @@ async function bootstrap() {
   }
   if ((process.env.SIGN_SECRET ?? '').length < 32) {
     throw new Error('SIGN_SECRET deve ter ao menos 32 caracteres')
+  }
+  if ((process.env.ENCRYPTION_KEY ?? '').length < 32) {
+    throw new Error('ENCRYPTION_KEY deve ter ao menos 32 caracteres')
   }
 
   // ── Sentry (erros em produção) ─────────────────────────────────────────────
@@ -55,13 +58,19 @@ async function bootstrap() {
   const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? 'http://localhost:3000')
     .split(',').map(o => o.trim())
 
+  const isProduction = process.env.NODE_ENV === 'production'
+
   app.enableCors({
     origin: (origin, cb) => {
-      if (!origin) return cb(null, true) // Postman / SSR
+      // Em produção: exige origem conhecida. Em dev: permite sem origem (Postman, curl)
+      if (!origin) {
+        if (isProduction) return cb(new Error('Requisição sem Origin bloqueada em produção'))
+        return cb(null, true)
+      }
       if (allowedOrigins.includes(origin)) return cb(null, true)
       cb(new Error(`Origem bloqueada pelo CORS: ${origin}`))
     },
-    credentials: true, // necessário para HttpOnly cookies
+    credentials: true, // necessário para HttpOnly cookies cross-origin
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type'],
   })

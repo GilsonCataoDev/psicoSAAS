@@ -9,10 +9,10 @@ import { AuthService } from '../auth.service'
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(cfg: ConfigService, private auth: AuthService) {
     super({
-      // Lê o JWT do cookie HttpOnly — fallback para Bearer token (clientes de API)
+      // Autenticação exclusiva via HttpOnly cookie — Bearer desabilitado
+      // (elimina vetor de ataque por token vazado em header/log)
       jwtFromRequest: ExtractJwt.fromExtractors([
         (req: Request) => req?.cookies?.['psicosaas_token'] ?? null,
-        ExtractJwt.fromAuthHeaderAsBearerToken(),
       ]),
       ignoreExpiration: false,
       secretOrKey: cfg.get<string>('JWT_SECRET'),

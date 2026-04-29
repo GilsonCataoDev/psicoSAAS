@@ -6,6 +6,7 @@ import { Repository } from 'typeorm'
 import { JwtService } from '@nestjs/jwt'
 import * as bcrypt from 'bcryptjs'
 import { randomBytes } from 'crypto'
+import { hashToken } from '../../common/crypto/encrypt.util'
 import { User } from './entities/user.entity'
 import { RegisterDto } from './dto/register.dto'
 import { LoginDto } from './dto/login.dto'
@@ -98,10 +99,12 @@ export class AuthService {
     if (!user) return   // resposta idêntica para evitar user enumeration
 
     const token = randomBytes(32).toString('hex')
-    user.resetPasswordToken = token
+    // Salva apenas o hash — se o banco vazar, o token bruto não pode ser reutilizado
+    user.resetPasswordToken = hashToken(token)
     user.resetPasswordExpiry = new Date(Date.now() + 2 * 60 * 60 * 1000) // +2h
     await this.users.save(user)
 
+    // E-mail carrega o token bruto (só o usuário tem acesso)
     this.email.sendPasswordReset(user.name, user.email, token).catch(() => {})
   }
 
@@ -112,7 +115,8 @@ export class AuthService {
     if (!token || !newPassword) throw new BadRequestException('Dados inválidos')
     if (newPassword.length < 8) throw new BadRequestException('A senha deve ter pelo menos 8 caracteres')
 
-    const user = await this.users.findOneBy({ resetPasswordToken: token })
+    // Compara pelo hash — nunca por token bruto
+    const user = await this.users.findOneBy({ resetPasswordToken: hashToken(token) })
 
     if (!user || !user.resetPasswordExpiry || user.resetPasswordExpiry < new Date()) {
       throw new BadRequestException('Link inválido ou expirado. Solicite um novo.')

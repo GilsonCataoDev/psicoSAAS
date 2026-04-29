@@ -7,6 +7,7 @@ import { FinancialService } from '../financial/financial.service'
 import { NotificationsService } from '../notifications/notifications.service'
 import { Patient } from '../patients/entities/patient.entity'
 import { User } from '../auth/entities/user.entity'
+import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
 
 @Injectable()
 export class SessionsService {
@@ -20,25 +21,57 @@ export class SessionsService {
     private notifications: NotificationsService,
   ) {}
 
-  findAll(psychologistId: string, patientId?: string) {
-    const where: any = { psychologistId }
-    if (patientId) where.patientId = patientId
-    return this.repo.find({ where, relations: ['patient'], order: { date: 'DESC' } })
+  // ─── Helpers de criptografia ────────────────────────────────────────────────
+
+  /** Criptografa campos clínicos sensíveis antes de persistir no banco */
+  private encryptFields<T extends Partial<CreateSessionDto>>(dto: T): T {
+    const r: any = { ...dto }
+    if (r.summary)      r.summary      = encrypt(r.summary)
+    if (r.privateNotes) r.privateNotes = encrypt(r.privateNotes)
+    if (r.nextSteps)    r.nextSteps    = encrypt(r.nextSteps)
+    return r
   }
 
-  async findOne(id: string, psychologistId: string) {
+  /** Descriptografa campos clínicos ao retornar para a camada HTTP */
+  private dec(s: Session): Session {
+    return {
+      ...s,
+      summary:      safeDecrypt(s.summary),
+      privateNotes: safeDecrypt(s.privateNotes),
+      nextSteps:    safeDecrypt(s.nextSteps),
+    } as Session
+  }
+
+  // ─── Finder interno (retorna entidade bruta para operações de escrita) ───────
+
+  private async findRaw(id: string, psychologistId: string): Promise<Session> {
     const s = await this.repo.findOne({ where: { id }, relations: ['patient'] })
     if (!s) throw new NotFoundException()
     if (s.psychologistId !== psychologistId) throw new ForbiddenException()
     return s
   }
 
-  async create(dto: CreateSessionDto, psychologistId: string) {
-    const session = this.repo.create({ ...dto, psychologistId })
-    const saved = await this.repo.save(session)
+  // ─── API pública ─────────────────────────────────────────────────────────────
+
+  async findAll(psychologistId: string, patientId?: string): Promise<Session[]> {
+    const where: any = { psychologistId }
+    if (patientId) where.patientId = patientId
+    const sessions = await this.repo.find({ where, relations: ['patient'], order: { date: 'DESC' } })
+    return sessions.map(s => this.dec(s))
+  }
+
+  async findOne(id: string, psychologistId: string): Promise<Session> {
+    return this.dec(await this.findRaw(id, psychologistId))
+  }
+
+  async create(dto: CreateSessionDto, psychologistId: string): Promise<Session> {
+    // Criptografa campos clínicos antes de persistir
+    const encrypted = this.encryptFields(dto)
+    const session   = this.repo.create({ ...encrypted, psychologistId })
+    const saved     = await this.repo.save(session)
 
     // Auto-cria FinancialRecord para sessões pagas ou pendentes
-    // Envolto em try/catch para não prejudicar o save da sessão em caso de falha financeira
+    // Usa dto original (não criptografado) para paymentStatus, date, patientId
     if (dto.paymentStatus !== 'waived' && dto.patientId) {
       try {
         const patient = await this.patients.findOne({
@@ -46,15 +79,14 @@ export class SessionsService {
         })
 
         if (patient) {
-          const amount = Number(patient.sessionPrice) || 0
-          const description = `Sessão — ${dto.date}`
-          const isPaid = dto.paymentStatus === 'paid'
+          const amount  = Number(patient.sessionPrice) || 0
+          const isPaid  = dto.paymentStatus === 'paid'
 
           await this.financial.create(
             {
               type: 'income',
               amount,
-              description,
+              description: `Sessão — ${dto.date}`,
               status: isPaid ? 'paid' : 'pending',
               dueDate: dto.date,
               paidAt: isPaid ? dto.date : undefined,
@@ -65,29 +97,30 @@ export class SessionsService {
             psychologistId,
           )
 
-          // Envia cobrança via WhatsApp se pagamento pendente e autoCharge ativo
           if (!isPaid && patient.phone) {
-            const user = await this.users.findOneBy({ id: psychologistId })
+            const user  = await this.users.findOneBy({ id: psychologistId })
             const prefs = (user?.preferences ?? {}) as Record<string, any>
             if (prefs.autoCharge !== false) {
-              const pixKey = prefs.pixKey ?? undefined
-              this.notifications.sendPaymentRequest(patient, amount, pixKey).catch(() => {})
+              this.notifications.sendPaymentRequest(patient, amount, prefs.pixKey).catch(() => {})
             }
           }
         }
       } catch (err) {
-        // Não falha a criação da sessão por erro no financeiro
         this.logger.warn(`Falha ao criar registro financeiro para sessão ${saved.id}: ${err}`)
       }
     }
 
-    return saved
+    return this.dec(saved)
   }
 
-  async update(id: string, dto: Partial<CreateSessionDto>, psychologistId: string) {
-    const s = await this.findOne(id, psychologistId)
+  async update(id: string, dto: Partial<CreateSessionDto>, psychologistId: string): Promise<Session> {
+    // Carrega entidade bruta (campos ainda criptografados no banco)
+    const s              = await this.findRaw(id, psychologistId)
     const oldPaymentStatus = s.paymentStatus
-    Object.assign(s, dto)
+
+    // Criptografa os campos que estão sendo atualizados; campos não enviados permanecem intactos
+    const encrypted = this.encryptFields(dto)
+    Object.assign(s, encrypted)
     const updated = await this.repo.save(s)
 
     // Sincroniza o registro financeiro quando o status de pagamento muda
@@ -97,15 +130,23 @@ export class SessionsService {
       )
     }
 
-    return updated
+    return this.dec(updated)
   }
+
+  async remove(id: string, psychologistId: string) {
+    // remove() do TypeORM precisa da entidade real, não do plain object decriptado
+    const s = await this.findRaw(id, psychologistId)
+    await this.repo.remove(s)
+    return { deleted: true }
+  }
+
+  // ─── Sincronização financeira ────────────────────────────────────────────────
 
   /** Sincroniza o registro financeiro vinculado a uma sessão após mudança de status */
   private async syncFinancialRecord(session: Session, psychologistId: string): Promise<void> {
     const existing = await this.financial.findBySessionId(session.id, psychologistId)
 
     if (session.paymentStatus === 'waived') {
-      // Remove o registro financeiro se existir (cortesia não gera cobrança)
       if (existing) await this.financial.remove(existing.id, psychologistId)
       return
     }
@@ -117,7 +158,7 @@ export class SessionsService {
         await this.financial.resetToPending(existing.id, psychologistId)
       }
     } else {
-      // Sem registro financeiro (sessão antiga) — cria agora
+      // Sessão antiga sem registro financeiro — cria agora
       const patient = await this.patients.findOne({
         where: { id: session.patientId, psychologistId },
       })
@@ -143,32 +184,16 @@ export class SessionsService {
     }
   }
 
-  async remove(id: string, psychologistId: string) {
-    const s = await this.findOne(id, psychologistId)
-    await this.repo.remove(s)
-    return { deleted: true }
-  }
+  // ─── Dashboard ───────────────────────────────────────────────────────────────
 
   async getDashboard(psychologistId: string) {
-    const now = new Date()
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
-    const weekStart  = new Date(now.setDate(now.getDate() - now.getDay())).toISOString().split('T')[0]
-
-    const [monthSessions, weekSessions, allSessions] = await Promise.all([
-      this.repo.count({ where: { psychologistId } }),
-      this.repo.count({ where: { psychologistId } }),
-      this.repo.find({ where: { psychologistId } }),
-    ])
-
-    const pendingAmount = allSessions
-      .filter(s => s.paymentStatus === 'pending')
-      .reduce((sum, _) => sum, 0)
+    const allSessions = await this.repo.find({ where: { psychologistId } })
 
     return {
-      sessionsThisMonth: monthSessions,
-      sessionsThisWeek:  weekSessions,
+      sessionsThisMonth: allSessions.length,
+      sessionsThisWeek:  allSessions.length,
       pendingPayments:   allSessions.filter(s => s.paymentStatus === 'pending').length,
-      pendingAmount,
+      pendingAmount:     0,
     }
   }
 }
