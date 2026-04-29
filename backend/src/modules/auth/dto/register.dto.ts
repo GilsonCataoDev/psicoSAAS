@@ -1,21 +1,26 @@
-import { IsEmail, IsString, MinLength, MaxLength, Matches, IsOptional } from 'class-validator'
+import { IsEmail, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator'
+import { Transform } from 'class-transformer'
 
 export class RegisterDto {
   @IsString()
-  @MinLength(2)
+  @MinLength(2, { message: 'Nome deve ter ao menos 2 caracteres' })
   @MaxLength(100)
+  @Transform(({ value }) => value?.trim())
   name: string
 
   @IsEmail({}, { message: 'E-mail inválido' })
   @MaxLength(254)
+  @Transform(({ value }) => value?.toLowerCase().trim())
   email: string
 
   @IsString()
   @Matches(/^\d{2}\/\d{4,6}$/, { message: 'CRP inválido. Formato: 00/000000' })
+  @Transform(({ value }) => value?.trim())
   crp: string
 
   /**
-   * Senha forte: 8+ chars com maiúscula, minúscula, número e símbolo
+   * Senha forte: 8+ chars, maiúscula, minúscula, número e símbolo.
+   * Mesma política usada no ResetPasswordDto e ChangePasswordDto.
    */
   @IsString()
   @MinLength(8, { message: 'A senha deve ter ao menos 8 caracteres' })
@@ -29,10 +34,12 @@ export class RegisterDto {
   @IsOptional()
   @IsString()
   @MaxLength(100)
+  @Transform(({ value }) => value?.trim())
   specialty?: string
 
   @IsOptional()
   @IsString()
   @MaxLength(20)
+  @Transform(({ value }) => value?.trim().toUpperCase())
   referralCode?: string
 }

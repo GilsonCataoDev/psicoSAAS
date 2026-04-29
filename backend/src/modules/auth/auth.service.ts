@@ -1,5 +1,6 @@
 import {
-  Injectable, UnauthorizedException, ConflictException, BadRequestException, NotFoundException,
+  BadRequestException, ConflictException, Injectable,
+  NotFoundException, UnauthorizedException,
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
@@ -8,8 +9,10 @@ import * as bcrypt from 'bcryptjs'
 import { randomBytes } from 'crypto'
 import { hashToken } from '../../common/crypto/encrypt.util'
 import { User } from './entities/user.entity'
-import { RegisterDto } from './dto/register.dto'
-import { LoginDto } from './dto/login.dto'
+import { RegisterDto }          from './dto/register.dto'
+import { LoginDto }             from './dto/login.dto'
+import { UpdateProfileDto }     from './dto/update-profile.dto'
+import { UpdatePreferencesDto } from './dto/update-preferences.dto'
 import { EmailService } from '../email/email.service'
 import { ReferralService } from '../referral/referral.service'
 
@@ -62,7 +65,7 @@ export class AuthService {
     return this.users.findOneBy({ id })
   }
 
-  async updateProfile(id: string, data: { name?: string; crp?: string; specialty?: string; phone?: string }) {
+  async updateProfile(id: string, data: UpdateProfileDto) {
     const user = await this.users.findOneBy({ id })
     if (!user) throw new NotFoundException()
     Object.assign(user, data)
@@ -71,9 +74,10 @@ export class AuthService {
     return profile
   }
 
-  async updatePreferences(id: string, preferences: Record<string, unknown>) {
+  async updatePreferences(id: string, preferences: UpdatePreferencesDto) {
     const user = await this.users.findOneBy({ id })
     if (!user) throw new NotFoundException()
+    // Merge parcial — preserva campos não enviados nesta requisição
     user.preferences = { ...(user.preferences ?? {}), ...preferences }
     await this.users.save(user)
     return user.preferences
@@ -83,8 +87,8 @@ export class AuthService {
     const user = await this.users.findOneBy({ id })
     if (!user) throw new NotFoundException()
     const valid = await bcrypt.compare(currentPassword, user.passwordHash)
-    if (!valid) throw new BadRequestException('Senha atual incorreta')
-    if (newPassword.length < 8) throw new BadRequestException('A nova senha deve ter pelo menos 8 caracteres')
+    // Resposta genérica — não revela se a conta existe
+    if (!valid) throw new UnauthorizedException('Credenciais inválidas')
     user.passwordHash = await bcrypt.hash(newPassword, 12)
     await this.users.save(user)
     return { message: 'Senha alterada com sucesso' }
