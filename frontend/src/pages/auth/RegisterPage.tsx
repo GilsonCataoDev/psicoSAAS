@@ -30,7 +30,8 @@ type FormData = z.infer<typeof schema>
 export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [crpValue, setCrpValue] = useState('')
-  const setAuth = useAuthStore((s) => s.setAuth)
+  const setAuth      = useAuthStore((s) => s.setAuth)
+  const setCsrfToken = useAuthStore((s) => s.setCsrfToken)
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const refCode = searchParams.get('ref') ?? undefined
@@ -66,6 +67,7 @@ export default function RegisterPage() {
         ...(refCode ? { referralCode: refCode } : {}),
       })
       setAuth(res.data.user)
+      if (res.data.csrfToken) setCsrfToken(res.data.csrfToken)
       toast.success('Conta criada com sucesso! Seja bem-vinda 🌱')
       navigate('/')
     } catch (err: any) {

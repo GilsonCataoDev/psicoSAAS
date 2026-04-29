@@ -18,7 +18,8 @@ type FormData = z.infer<typeof schema>
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const setAuth = useAuthStore((s) => s.setAuth)
+  const setAuth      = useAuthStore((s) => s.setAuth)
+  const setCsrfToken = useAuthStore((s) => s.setCsrfToken)
   const navigate = useNavigate()
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
@@ -36,6 +37,7 @@ export default function LoginPage() {
       }
       const res = await api.post('/auth/login', { email: data.email, password: data.password })
       setAuth(res.data.user)
+      if (res.data.csrfToken) setCsrfToken(res.data.csrfToken)
       navigate('/')
     } catch (err: any) {
       const msg = err?.response?.data?.message

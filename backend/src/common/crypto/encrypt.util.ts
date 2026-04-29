@@ -10,7 +10,7 @@
  * Requisito: variável de ambiente ENCRYPTION_KEY com ≥ 32 chars.
  * A chave derivada é cacheada em memória para performance.
  */
-import { createCipheriv, createDecipheriv, randomBytes, scryptSync, createHash } from 'crypto'
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, scryptSync } from 'crypto'
 
 const ALG    = 'aes-256-gcm' as const
 const SALT   = 'psicosaas-field-enc-v1'
@@ -87,3 +87,18 @@ export function safeDecrypt(value: string | null | undefined): string | undefine
 export function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex')
 }
+
+/**
+ * Gera um CSRF token stateless via HMAC-SHA256(JWT_SECRET, "csrf:" + userId).
+ *
+ * - Determinístico: mesma saída para o mesmo userId sem precisar de DB.
+ * - Não é o JWT — não revela o token de sessão.
+ * - Requer JWT_SECRET para forjar → atacante sem o secret não consegue replicar.
+ * - Utilizado no padrão Synchronizer Token: retornado no body do login/me,
+ *   armazenado em memória no frontend e enviado via header X-CSRF-Token.
+ */
+export function generateCsrfToken(userId: string): string {
+  const secret = process.env.JWT_SECRET ?? ''
+  return createHmac('sha256', secret).update(`csrf:${userId}`).digest('hex')
+}
+
