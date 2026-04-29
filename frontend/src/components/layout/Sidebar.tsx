@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Users, CalendarDays,
   FileText, Wallet, Settings, LogOut, Heart, Link2,
-  ClipboardList, Stamp, Zap,
+  Stamp, Zap,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { useSubscriptionStore, PLANS } from '@/store/subscription'
@@ -32,51 +32,74 @@ export default function Sidebar() {
     : null
 
   return (
-    <aside className="hidden lg:flex w-64 bg-white border-r border-neutral-100 flex-col h-full shrink-0">
+    <aside className="hidden lg:flex w-60 bg-white border-r border-neutral-100 flex-col h-full shrink-0">
+
       {/* Logo */}
-      <div className="px-6 py-6 border-b border-neutral-50">
+      <div className="px-5 py-5 border-b border-neutral-50">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-sage-500 rounded-xl flex items-center justify-center">
+          <div className="w-8 h-8 hero-gradient rounded-xl flex items-center justify-center shadow-sm">
             <Heart className="w-4 h-4 text-white" fill="white" />
           </div>
-          <span className="font-display font-medium text-neutral-800 text-lg">
+          <span className="font-display font-medium text-neutral-800 text-lg tracking-tight">
             Psico<span className="text-sage-500">SaaS</span>
           </span>
         </div>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
         {navItems.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
             to={to}
             end={to === '/'}
-            className={({ isActive }) => cn('nav-item', isActive && 'active')}
           >
-            <Icon className="w-5 h-5 shrink-0" />
-            <span className="text-sm">{label}</span>
+            {({ isActive }) => (
+              <div className={cn(
+                'relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 cursor-pointer select-none',
+                isActive
+                  ? 'bg-sage-50 text-sage-700'
+                  : 'text-neutral-500 hover:bg-neutral-50 hover:text-neutral-700',
+              )}>
+                {/* Indicador lateral ativo */}
+                {isActive && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-sage-500 rounded-r-full" />
+                )}
+
+                {/* Ícone */}
+                <div className={cn(
+                  'w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-150 shrink-0',
+                  isActive ? 'bg-sage-100' : 'group-hover:bg-neutral-100',
+                )}>
+                  <Icon className="w-4 h-4" />
+                </div>
+
+                <span className={cn('text-sm', isActive && 'font-semibold')}>
+                  {label}
+                </span>
+              </div>
+            )}
           </NavLink>
         ))}
       </nav>
 
-      {/* Banner de plano / trial */}
+      {/* Banner trial / plano */}
       <div className="px-3 pb-2">
         {isTrialing && daysLeft !== null && daysLeft <= 14 ? (
           <NavLink
             to="/planos"
-            className="block bg-gradient-to-br from-sage-500 to-sage-600 text-white rounded-2xl p-3 hover:from-sage-600 hover:to-sage-700 transition-all"
+            className="block hero-gradient text-white rounded-2xl p-3.5 hover:opacity-90 transition-opacity"
           >
             <div className="flex items-center gap-2 mb-1.5">
-              <Zap className="w-4 h-4" />
+              <Zap className="w-3.5 h-3.5" />
               <p className="text-xs font-semibold">Período de teste</p>
             </div>
-            <p className="text-xs text-sage-100">
-              {daysLeft} dia{daysLeft !== 1 ? 's' : ''} restante{daysLeft !== 1 ? 's' : ''}. Assine para continuar.
+            <p className="text-xs text-sage-100 mb-2.5">
+              {daysLeft} dia{daysLeft !== 1 ? 's' : ''} restante{daysLeft !== 1 ? 's' : ''}.
             </p>
-            <div className="mt-2 bg-white/20 rounded-full h-1.5">
+            <div className="bg-white/20 rounded-full h-1">
               <div
-                className="bg-white rounded-full h-1.5 transition-all"
+                className="bg-white rounded-full h-1 transition-all"
                 style={{ width: `${Math.max(5, ((14 - daysLeft) / 14) * 100)}%` }}
               />
             </div>
@@ -84,35 +107,35 @@ export default function Sidebar() {
         ) : subscription.status === 'active' && currentPlan ? (
           <NavLink
             to="/planos"
-            className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-neutral-50 transition-colors"
+            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-neutral-50 transition-colors"
           >
-            <div className="w-6 h-6 bg-sage-100 rounded-lg flex items-center justify-center">
+            <div className="w-7 h-7 bg-sage-100 rounded-lg flex items-center justify-center shrink-0">
               <Zap className="w-3.5 h-3.5 text-sage-600" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-medium text-neutral-600">Plano {currentPlan.name}</p>
-              <p className="text-xs text-neutral-400">Ver detalhes</p>
+              <p className="text-xs font-semibold text-neutral-700">Plano {currentPlan.name}</p>
+              <p className="text-xs text-neutral-400">Gerenciar assinatura</p>
             </div>
           </NavLink>
         ) : null}
       </div>
 
-      {/* User footer */}
-      <div className="px-3 py-4 border-t border-neutral-100">
-        <div className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-neutral-50 transition-colors">
-          <div className="w-8 h-8 rounded-full bg-sage-100 text-sage-700 flex items-center justify-center text-xs font-semibold shrink-0">
+      {/* Usuário */}
+      <div className="px-3 py-3 border-t border-neutral-100">
+        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-neutral-50 transition-colors group">
+          <div className="w-8 h-8 rounded-xl bg-sage-100 text-sage-700 flex items-center justify-center text-xs font-bold shrink-0">
             {user ? getInitials(user.name) : 'PS'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-neutral-700 truncate">{user?.name ?? 'Psicólogo(a)'}</p>
+            <p className="text-sm font-semibold text-neutral-700 truncate leading-tight">{user?.name ?? 'Psicólogo(a)'}</p>
             <p className="text-xs text-neutral-400 truncate">{user?.crp ? `CRP ${user.crp}` : 'Minha conta'}</p>
           </div>
           <button
             onClick={() => { logout(); navigate('/login') }}
-            className="p-1.5 rounded-lg hover:bg-neutral-100 text-neutral-400 hover:text-neutral-600 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-rose-50 text-neutral-300 hover:text-rose-400 transition-colors opacity-0 group-hover:opacity-100"
             title="Sair"
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
