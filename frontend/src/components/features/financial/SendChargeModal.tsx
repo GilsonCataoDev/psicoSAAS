@@ -3,9 +3,8 @@ import { MessageCircle, Copy, Check } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import { FinancialRecord } from '@/types'
 import { formatCurrency } from '@/lib/utils'
+import { useMe } from '@/hooks/useApi'
 import toast from 'react-hot-toast'
-
-const PIX_KEY = '11999990000' // viria das configurações do psicólogo
 
 function buildWhatsAppMsg(record: FinancialRecord, pixKey: string): string {
   const lines = [
@@ -31,11 +30,13 @@ export default function SendChargeModal({
   open: boolean
   onClose: () => void
 }) {
+  const { data: me } = useMe()
+  const pixKey: string = me?.preferences?.pixKey ?? ''
   const [copied, setCopied] = useState(false)
 
   if (!record) return null
 
-  const msg = buildWhatsAppMsg(record, PIX_KEY)
+  const msg = buildWhatsAppMsg(record, pixKey)
   const phone = record.patient?.phone?.replace(/\D/g, '') ?? ''
   const whatsappUrl = `https://wa.me/55${phone}?text=${encodeURIComponent(msg)}`
 
@@ -47,7 +48,8 @@ export default function SendChargeModal({
   }
 
   function copyPix() {
-    navigator.clipboard.writeText(PIX_KEY)
+    if (!pixKey) { toast.error('Configure sua chave PIX em Ajustes → Pagamentos'); return }
+    navigator.clipboard.writeText(pixKey)
     toast.success('Chave PIX copiada!')
   }
 
@@ -65,11 +67,16 @@ export default function SendChargeModal({
           <div className="text-right">
             <p className="text-xs text-neutral-400">Chave PIX</p>
             <div className="flex items-center gap-2 mt-1">
-              <p className="font-mono text-sm text-neutral-700">{PIX_KEY}</p>
-              <button onClick={copyPix}
-                className="text-sage-600 hover:text-sage-700">
-                <Copy className="w-3.5 h-3.5" />
-              </button>
+              {pixKey ? (
+                <>
+                  <p className="font-mono text-sm text-neutral-700 max-w-[120px] truncate">{pixKey}</p>
+                  <button onClick={copyPix} className="text-sage-600 hover:text-sage-700 shrink-0">
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                </>
+              ) : (
+                <p className="text-xs text-amber-600">Não configurada</p>
+              )}
             </div>
           </div>
         </div>

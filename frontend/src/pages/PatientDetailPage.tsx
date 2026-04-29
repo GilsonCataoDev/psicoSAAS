@@ -1,10 +1,10 @@
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Phone, Mail, Calendar, Plus, Lock, ClipboardList, MessageCircle, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, Phone, Mail, Calendar, Plus, Lock, ClipboardList, MessageCircle, CheckCircle2, Save } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
 import { formatDate, formatCurrency, formatDateRelative } from '@/lib/utils'
-import { useState } from 'react'
-import { usePatient, useSessions, useFinancial, useMarkFinancialPaid, useSendCharge } from '@/hooks/useApi'
+import { useState, useEffect } from 'react'
+import { usePatient, useSessions, useFinancial, useMarkFinancialPaid, useSendCharge, useUpdatePatient } from '@/hooks/useApi'
 import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 import toast from 'react-hot-toast'
 
@@ -15,9 +15,15 @@ export default function PatientDetailPage() {
   const { data: financialRecords = [], isLoading: loadingFinancial } = useFinancial({ patientId: id })
   const markPaid = useMarkFinancialPaid()
   const sendCharge = useSendCharge()
+  const updatePatient = useUpdatePatient()
   const [note, setNote] = useState('')
   const [tab, setTab] = useState<'timeline' | 'notes' | 'financial'>('timeline')
   const [showSessionModal, setShowSessionModal] = useState(false)
+
+  // Inicializa a nota com o valor salvo no paciente
+  useEffect(() => {
+    if (patient?.privateNotes) setNote(patient.privateNotes)
+  }, [patient?.id])
 
   async function handleMarkPaid(recordId: string) {
     try {
@@ -184,7 +190,19 @@ export default function PatientDetailPage() {
             placeholder="Escreva suas observações clínicas com liberdade. Ninguém mais terá acesso a este espaço..."
             className="input-field resize-none" />
           <div className="flex justify-end">
-            <button className="btn-primary">Salvar anotação</button>
+            <button
+              onClick={async () => {
+                if (!id) return
+                try {
+                  await updatePatient.mutateAsync({ id, data: { privateNotes: note } })
+                  toast.success('Anotação salva com segurança 🔒')
+                } catch { toast.error('Erro ao salvar anotação.') }
+              }}
+              disabled={updatePatient.isPending}
+              className="btn-primary flex items-center gap-2">
+              <Save className="w-3.5 h-3.5" />
+              {updatePatient.isPending ? 'Salvando...' : 'Salvar anotação'}
+            </button>
           </div>
         </div>
       )}

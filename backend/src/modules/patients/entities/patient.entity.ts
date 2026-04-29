@@ -31,6 +31,9 @@ export class Patient {
   // Encrypted in application layer before save
   @Column({ type: 'text', nullable: true }) privateNotes?: string
 
+  // Prontuário clínico (dados de anamnese, plano terapêutico, etc.)
+  @Column({ type: 'jsonb', nullable: true }) prontuario?: Record<string, any>
+
   @Column({ type: 'simple-array', nullable: true }) tags: string[]
 
   @Column({ nullable: true }) psychologistId: string

@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Shield, CheckCircle2, XCircle, Loader2, Heart, ExternalLink, FileText } from 'lucide-react'
-import { api, USE_MOCK } from '@/lib/api'
-import { mockDocumentos } from '@/lib/mock-prontuario'
+import { api } from '@/lib/api'
 
 type DocType = 'declaracao' | 'recibo' | 'relatorio' | 'atestado' | 'encaminhamento'
 
@@ -38,30 +37,6 @@ export default function VerifyDocumentPage() {
 
     async function verify() {
       try {
-        if (USE_MOCK) {
-          // Busca nos dados mock
-          await new Promise(r => setTimeout(r, 900))
-          const doc = mockDocumentos.find(d => d.signCode === code?.toUpperCase())
-          if (doc) {
-            setResult({
-              valid: true,
-              document: {
-                signCode: doc.signCode,
-                type: doc.type as DocType,
-                title: doc.title,
-                patientName: doc.patientName,
-                psychologistName: doc.psychologistName,
-                psychologistCrp: doc.crp,
-                signedAt: doc.signedAt,
-                createdAt: doc.createdAt,
-              },
-            })
-          } else {
-            setResult({ valid: false })
-          }
-          return
-        }
-
         const { data } = await api.get(`/documents/verify/${code}`)
         setResult(data)
       } catch {

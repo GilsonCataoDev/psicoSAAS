@@ -50,7 +50,7 @@ export class NotificationsService {
           },
           body: JSON.stringify({
             number: withDdi,
-            textMessage: { text },
+            text,
           }),
         },
       )

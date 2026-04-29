@@ -1,4 +1,4 @@
-import { IsString, IsEmail, IsOptional, IsNumber, IsArray, IsIn } from 'class-validator'
+import { IsString, IsEmail, IsOptional, IsNumber, IsArray, IsIn, IsObject } from 'class-validator'
 
 export class CreatePatientDto {
   @IsString() name: string
@@ -11,4 +11,6 @@ export class CreatePatientDto {
   @IsString() @IsOptional() startDate?: string
   @IsArray() @IsOptional() tags?: string[]
   @IsIn(['active','paused','discharged']) @IsOptional() status?: 'active' | 'paused' | 'discharged'
+  @IsString() @IsOptional() privateNotes?: string
+  @IsObject() @IsOptional() prontuario?: Record<string, any>
 }

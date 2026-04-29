@@ -3,6 +3,7 @@ import { Check, Copy } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import { FinancialRecord } from '@/types'
 import { formatCurrency } from '@/lib/utils'
+import { useMe } from '@/hooks/useApi'
 import toast from 'react-hot-toast'
 
 const METHODS = [
@@ -12,8 +13,6 @@ const METHODS = [
   { v: 'cash',        l: 'Dinheiro',          icon: '💵' },
   { v: 'transfer',    l: 'Transferência',     icon: '🏦' },
 ]
-
-const PIX_KEY = '11999990000' // viria das configurações
 
 export default function MarkPaidModal({
   record,
@@ -26,20 +25,23 @@ export default function MarkPaidModal({
   onClose: () => void
   onConfirm: (id: string, method: string) => void
 }) {
+  const { data: me } = useMe()
+  const pixKey: string = me?.preferences?.pixKey ?? ''
   const [method, setMethod] = useState('pix')
   const [loading, setLoading] = useState(false)
 
   async function handleConfirm() {
     if (!record) return
     setLoading(true)
-    await new Promise(r => setTimeout(r, 500))
+    await new Promise(r => setTimeout(r, 300))
     onConfirm(record.id, method)
     setLoading(false)
     onClose()
   }
 
   function copyPix() {
-    navigator.clipboard.writeText(PIX_KEY)
+    if (!pixKey) { toast.error('Configure sua chave PIX em Ajustes → Pagamentos'); return }
+    navigator.clipboard.writeText(pixKey)
     toast.success('Chave PIX copiada!')
   }
 
@@ -63,13 +65,19 @@ export default function MarkPaidModal({
         {method === 'pix' && (
           <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-4 space-y-2">
             <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">Sua chave PIX</p>
-            <div className="flex items-center justify-between gap-3">
-              <p className="font-mono text-sm text-neutral-800">{PIX_KEY}</p>
-              <button onClick={copyPix}
-                className="flex items-center gap-1.5 text-xs text-sage-600 hover:text-sage-700 font-medium">
-                <Copy className="w-3.5 h-3.5" />Copiar
-              </button>
-            </div>
+            {pixKey ? (
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-mono text-sm text-neutral-800 truncate">{pixKey}</p>
+                <button onClick={copyPix}
+                  className="flex items-center gap-1.5 text-xs text-sage-600 hover:text-sage-700 font-medium shrink-0">
+                  <Copy className="w-3.5 h-3.5" />Copiar
+                </button>
+              </div>
+            ) : (
+              <p className="text-xs text-amber-600">
+                Chave PIX não configurada. Acesse Ajustes → Pagamentos.
+              </p>
+            )}
           </div>
         )}
 

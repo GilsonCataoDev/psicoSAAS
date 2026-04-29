@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Wallet, TrendingUp, Clock, CheckCircle, Plus, MessageCircle, CreditCard } from 'lucide-react'
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import StatCard from '@/components/ui/StatCard'
 import Avatar from '@/components/ui/Avatar'
 import { StatusBadge } from '@/components/ui/Badge'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { useFinancial } from '@/hooks/useApi'
+import { useFinancial, useMarkFinancialPaid } from '@/hooks/useApi'
 import { FinancialRecord } from '@/types'
 import NewPaymentModal from '@/components/features/financial/NewPaymentModal'
 import MarkPaidModal from '@/components/features/financial/MarkPaidModal'
@@ -16,14 +16,7 @@ const METHOD_LABELS: Record<string, string> = {
   pix: 'PIX', credit_card: 'Cartão', debit_card: 'Débito', cash: 'Dinheiro', transfer: 'Transferência',
 }
 
-const revenueData = [
-  { mes: 'Nov', valor: 3200, meta: 4000 },
-  { mes: 'Dez', valor: 3800, meta: 4000 },
-  { mes: 'Jan', valor: 3100, meta: 4200 },
-  { mes: 'Fev', valor: 4200, meta: 4200 },
-  { mes: 'Mar', valor: 3900, meta: 4200 },
-  { mes: 'Abr', valor: 4680, meta: 4500 },
-]
+const MONTH_NAMES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
 
 const FILTERS = [
   { v: 'all',     l: 'Todos'     },
@@ -34,28 +27,42 @@ const FILTERS = [
 
 export default function FinancialPage() {
   const { data: records = [], isLoading } = useFinancial()
-  const [localRecords, setLocalRecords] = useState<FinancialRecord[]>([])
+  const markPaid = useMarkFinancialPaid()
   const [filter, setFilter] = useState<'all' | 'paid' | 'pending' | 'overdue'>('all')
   const [showNew, setShowNew] = useState(false)
   const [markRecord, setMarkRecord] = useState<FinancialRecord | null>(null)
   const [chargeRecord, setChargeRecord] = useState<FinancialRecord | null>(null)
 
-  const displayRecords = localRecords.length > 0 ? localRecords : records
+  const total   = records.reduce((s, r) => s + (r.type === 'income' ? Number(r.amount) : 0), 0)
+  const paid    = records.filter(r => r.status === 'paid').reduce((s, r) => s + Number(r.amount), 0)
+  const pending = records.filter(r => r.status === 'pending').reduce((s, r) => s + Number(r.amount), 0)
+  const overdue = records.filter(r => r.status === 'overdue').reduce((s, r) => s + Number(r.amount), 0)
 
-  const total   = displayRecords.reduce((s, r) => s + (r.type === 'income' ? r.amount : 0), 0)
-  const paid    = displayRecords.filter(r => r.status === 'paid').reduce((s, r) => s + r.amount, 0)
-  const pending = displayRecords.filter(r => r.status === 'pending').reduce((s, r) => s + r.amount, 0)
-  const overdue = displayRecords.filter(r => r.status === 'overdue').reduce((s, r) => s + r.amount, 0)
+  const filtered = filter === 'all' ? records : records.filter(r => r.status === filter)
 
-  const filtered = filter === 'all' ? displayRecords : displayRecords.filter(r => r.status === filter)
+  // Constrói gráfico dos últimos 6 meses a partir dos registros reais
+  const revenueData = useMemo(() => {
+    const now = new Date()
+    return Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1)
+      const mes = MONTH_NAMES[d.getMonth()]
+      const valor = records
+        .filter(r => {
+          const rDate = new Date(r.paidAt ?? r.dueDate ?? r.createdAt)
+          return r.status === 'paid' && rDate.getFullYear() === d.getFullYear() && rDate.getMonth() === d.getMonth()
+        })
+        .reduce((s, r) => s + Number(r.amount), 0)
+      return { mes, valor }
+    })
+  }, [records])
 
-  function handleMarkPaid(id: string, method: string) {
-    setLocalRecords((localRecords.length > 0 ? localRecords : records).map(r =>
-      r.id === id
-        ? { ...r, status: 'paid', method: method as FinancialRecord['method'], paidAt: new Date().toISOString() }
-        : r,
-    ))
-    toast.success('Pagamento registrado ✓')
+  async function handleMarkPaid(id: string, method: string) {
+    try {
+      await markPaid.mutateAsync({ id, method })
+      toast.success('Pagamento registrado ✓')
+    } catch {
+      toast.error('Erro ao registrar pagamento.')
+    }
   }
 
   return (
@@ -114,7 +121,7 @@ export default function FinancialPage() {
         {(() => {
           const last = revenueData[revenueData.length - 1]
           const prev = revenueData[revenueData.length - 2]
-          const pct  = (((last.valor - prev.valor) / prev.valor) * 100).toFixed(0)
+          const diff = prev?.valor > 0 ? (((last.valor - prev.valor) / prev.valor) * 100).toFixed(0) : null
           return (
             <div className="flex gap-6 mt-3 pt-3 border-t border-neutral-50">
               <div>
@@ -122,13 +129,17 @@ export default function FinancialPage() {
                 <p className="font-semibold text-neutral-800 text-sm">{formatCurrency(last.valor)}</p>
               </div>
               <div>
-                <p className="text-xs text-neutral-400">Meta</p>
-                <p className="font-semibold text-neutral-800 text-sm">{formatCurrency(last.meta)}</p>
+                <p className="text-xs text-neutral-400">Mês anterior</p>
+                <p className="font-semibold text-neutral-800 text-sm">{formatCurrency(prev?.valor ?? 0)}</p>
               </div>
-              <div>
-                <p className="text-xs text-neutral-400">Vs. mês anterior</p>
-                <p className="font-semibold text-sage-600 text-sm">+{pct}%</p>
-              </div>
+              {diff !== null && (
+                <div>
+                  <p className="text-xs text-neutral-400">Variação</p>
+                  <p className={`font-semibold text-sm ${Number(diff) >= 0 ? 'text-sage-600' : 'text-rose-500'}`}>
+                    {Number(diff) >= 0 ? '+' : ''}{diff}%
+                  </p>
+                </div>
+              )}
             </div>
           )
         })()}
@@ -149,8 +160,8 @@ export default function FinancialPage() {
                 {l}
                 {v !== 'all' && (
                   <span className="ml-1 font-bold">
-                    {displayRecords.filter(r => r.status === v).length > 0
-                      ? `(${displayRecords.filter(r => r.status === v).length})`
+                    {records.filter(r => r.status === v).length > 0
+                      ? `(${records.filter(r => r.status === v).length})`
                       : ''}
                   </span>
                 )}
@@ -160,16 +171,19 @@ export default function FinancialPage() {
         </div>
 
         <div className="space-y-1">
-          {filtered.map(record => (
+          {isLoading ? (
+            <div className="py-8 text-center">
+              <div className="w-6 h-6 border-2 border-sage-400 border-t-transparent rounded-full animate-spin mx-auto" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <p className="text-neutral-400 text-sm text-center py-8">
+              Nenhum lançamento nesta categoria.
+            </p>
+          ) : filtered.map(record => (
             <FinancialRow key={record.id} record={record}
               onMarkPaid={() => setMarkRecord(record)}
               onSendCharge={() => setChargeRecord(record)} />
           ))}
-          {filtered.length === 0 && (
-            <p className="text-neutral-400 text-sm text-center py-8">
-              Nenhum lançamento nesta categoria.
-            </p>
-          )}
         </div>
       </div>
 

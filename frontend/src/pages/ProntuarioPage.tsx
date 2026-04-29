@@ -1,8 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Lock, Save, Printer, FileText } from 'lucide-react'
-import { mockProntuarios } from '@/lib/mock-prontuario'
-import { usePatient } from '@/hooks/useApi'
+import { usePatient, useUpdatePatient, useSessions, useCreateSession } from '@/hooks/useApi'
 import { Prontuario } from '@/types/prontuario'
 import { formatDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
@@ -47,16 +46,33 @@ const FIELD = ({
 export default function ProntuarioPage() {
   const { id } = useParams()
   const { data: patient } = usePatient(id ?? '')
-  const initial = mockProntuarios[id ?? ''] ?? ({} as Partial<Prontuario>)
+  const { data: sessions = [] } = useSessions({ patientId: id })
+  const createSession = useCreateSession()
+  const updatePatient = useUpdatePatient()
+  const [evolText, setEvolText] = useState('')
+  const [evolDate, setEvolDate] = useState(new Date().toISOString().split('T')[0])
   const [tab, setTab] = useState<Tab>('identificacao')
-  const [form, setForm] = useState<Partial<Prontuario>>(initial)
+  const [form, setForm] = useState<Partial<Prontuario>>({})
+
+  // Inicializa form quando o paciente carregar
+  useEffect(() => {
+    if (patient?.prontuario) {
+      setForm(patient.prontuario as Partial<Prontuario>)
+    }
+  }, [patient?.id])
 
   function set(field: keyof Prontuario, value: string) {
     setForm(f => ({ ...f, [field]: value }))
   }
 
-  function save() {
-    toast.success('Prontuário salvo com segurança 🔒')
+  async function save() {
+    if (!id) return
+    try {
+      await updatePatient.mutateAsync({ id, data: { prontuario: form } })
+      toast.success('Prontuário salvo com segurança 🔒')
+    } catch {
+      toast.error('Erro ao salvar prontuário.')
+    }
   }
 
   if (!patient) return (
@@ -253,42 +269,63 @@ export default function ProntuarioPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="label">Data</label>
-                <input type="date" defaultValue={new Date().toISOString().split('T')[0]}
+                <input type="date" value={evolDate} onChange={e => setEvolDate(e.target.value)}
                   className="input-field text-sm" />
               </div>
               <div>
                 <label className="label">Sessão Nº</label>
-                <input type="number" defaultValue="9" className="input-field text-sm" />
+                <input type="number" value={sessions.length + 1} readOnly className="input-field text-sm bg-neutral-50" />
               </div>
             </div>
             <div>
               <label className="label">Descrição da sessão</label>
-              <textarea rows={5} className="input-field resize-none text-sm"
+              <textarea rows={5} value={evolText} onChange={e => setEvolText(e.target.value)}
+                className="input-field resize-none text-sm"
                 placeholder="Descreva o conteúdo trabalhado, observações clínicas, intercorrências, resposta da pessoa ao processo terapêutico..." />
             </div>
             <div className="flex justify-end">
-              <button onClick={save} className="btn-primary text-sm flex items-center gap-2">
+              <button
+                onClick={async () => {
+                  if (!id || !evolText.trim()) return
+                  try {
+                    await createSession.mutateAsync({
+                      patientId: id,
+                      date: evolDate,
+                      summary: evolText,
+                      duration: patient?.sessionDuration ?? 50,
+                      paymentStatus: 'pending',
+                    } as any)
+                    setEvolText('')
+                    toast.success('Evolução registrada 🔒')
+                  } catch { toast.error('Erro ao salvar evolução.') }
+                }}
+                disabled={createSession.isPending}
+                className="btn-primary text-sm flex items-center gap-2">
                 <Lock className="w-3.5 h-3.5" />Salvar evolução
               </button>
             </div>
           </div>
 
-          {/* Histórico simulado */}
-          {[
-            { n: 8, date: '2026-04-15', text: 'Pessoa relatou melhora na qualidade do sono após aplicação das técnicas de higiene do sono. Trabalhamos reestruturação cognitiva de pensamentos catastróficos relacionados ao ambiente de trabalho. Demonstrou insight significativo sobre padrões de evitação.' },
-            { n: 7, date: '2026-04-08', text: 'Sessão focada em exposição gradual a situações sociais ansiogênicas. Trouxe relato de experiência positiva em reunião de equipe. Reforçamento dos progressos observados.' },
-            { n: 6, date: '2026-04-01', text: 'Exploração de crenças nucleares relacionadas a autoeficácia. Identificamos crença central "sou incompetente" com origem em experiências escolares. Iniciamos registro de pensamentos.' },
-          ].map(e => (
-            <div key={e.n} className="card">
+          {/* Histórico real de sessões */}
+          {sessions.map((s, i) => (
+            <div key={s.id} className="card">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-semibold text-sage-700 bg-sage-50 px-2 py-0.5 rounded-lg">
-                  Sessão {e.n}
+                  Sessão {sessions.length - i}
                 </span>
-                <span className="text-xs text-neutral-400">{formatDate(e.date)}</span>
+                <span className="text-xs text-neutral-400">{formatDate(s.date)}</span>
               </div>
-              <p className="text-sm text-neutral-600 leading-relaxed">{e.text}</p>
+              {s.summary
+                ? <p className="text-sm text-neutral-600 leading-relaxed">{s.summary}</p>
+                : <p className="text-sm text-neutral-400 italic">Sem anotações registradas.</p>
+              }
             </div>
           ))}
+          {sessions.length === 0 && (
+            <div className="card text-center py-8 text-neutral-400 text-sm">
+              Nenhuma sessão registrada ainda.
+            </div>
+          )}
         </div>
       )}
 

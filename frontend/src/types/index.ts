@@ -11,6 +11,8 @@ export interface Patient {
   sessionDuration: number
   startDate: string
   notes?: string
+  privateNotes?: string
+  prontuario?: Record<string, any>
   avatarColor: string
   createdAt: string
   updatedAt: string

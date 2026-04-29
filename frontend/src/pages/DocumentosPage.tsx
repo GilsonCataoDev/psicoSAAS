@@ -1,18 +1,17 @@
 import { useState } from 'react'
 import { FilePlus, Shield, Download, Eye, Search, ExternalLink } from 'lucide-react'
-import { mockDocumentos } from '@/lib/mock-prontuario'
 import { Documento, DocType, DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '@/types/prontuario'
 import { useAuthStore } from '@/store/auth'
 import { formatDate } from '@/lib/utils'
 import { openCfpVerification } from '@/lib/crp'
 import GenerateDocModal from '@/components/features/prontuario/GenerateDocModal'
-import { usePatients } from '@/hooks/useApi'
+import { usePatients, useDocuments } from '@/hooks/useApi'
 import DocumentPreviewModal from '@/components/features/prontuario/DocumentPreviewModal'
 
 export default function DocumentosPage() {
   const user = useAuthStore(s => s.user)
   const { data: patients = [] } = usePatients()
-  const [docs, setDocs] = useState<Documento[]>(mockDocumentos)
+  const { data: docs = [], isLoading } = useDocuments()
   const [showGenerate, setShowGenerate] = useState(false)
   const [preview, setPreview] = useState<Documento | null>(null)
   const [search, setSearch] = useState('')
@@ -26,7 +25,7 @@ export default function DocumentosPage() {
   })
 
   function handleGenerate(doc: Documento) {
-    setDocs(ds => [doc, ...ds])
+    // O GenerateDocModal já chama a API; ao fechar, revalida automaticamente via queryKey
     setPreview(doc)
   }
 
@@ -110,7 +109,11 @@ export default function DocumentosPage() {
 
       {/* Lista de documentos */}
       <div className="space-y-2">
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div className="card text-center py-8">
+            <div className="w-6 h-6 border-2 border-sage-400 border-t-transparent rounded-full animate-spin mx-auto" />
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="card text-center py-12">
             <FilePlus className="w-10 h-10 text-neutral-300 mx-auto mb-3" />
             <p className="font-medium text-neutral-600">Nenhum documento encontrado</p>

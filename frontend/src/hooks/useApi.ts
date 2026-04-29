@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Patient, Appointment, Session, FinancialRecord } from '@/types'
+import { Documento } from '@/types/prontuario'
 
 // ── Patients ──────────────────────────────────────────────────────────────────
 
@@ -24,6 +25,26 @@ export function useCreatePatient() {
   return useMutation({
     mutationFn: (data: Partial<Patient>) => api.post('/patients', data).then(r => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['patients'] }),
+  })
+}
+
+export function useUpdatePatient() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<Patient> & { prontuario?: Record<string, any>; privateNotes?: string } }) =>
+      api.patch(`/patients/${id}`, data).then(r => r.data),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['patients'] })
+      qc.invalidateQueries({ queryKey: ['patients', vars.id] })
+    },
+  })
+}
+
+export function useMe() {
+  return useQuery<any>({
+    queryKey: ['me'],
+    queryFn: () => api.get('/auth/me').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
   })
 }
 
@@ -229,5 +250,23 @@ export function usePublicBookingSlots(slug: string, date: string | null) {
 export function useCreateBooking(slug: string) {
   return useMutation({
     mutationFn: (data: any) => api.post(`/public/booking/${slug}`, data).then(r => r.data),
+  })
+}
+
+// ── Documents ─────────────────────────────────────────────────────────────────
+
+export function useDocuments() {
+  return useQuery<Documento[]>({
+    queryKey: ['documents'],
+    queryFn: () => api.get('/documents').then(r => r.data),
+  })
+}
+
+export function useCreateDocument() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: { patientId: string; patientName: string; type: string; title: string; content: string }) =>
+      api.post('/documents', data).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['documents'] }),
   })
 }

@@ -4,6 +4,7 @@ import Modal from '@/components/ui/Modal'
 import { Patient } from '@/types'
 import { Documento, DocType, DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '@/types/prontuario'
 import { formatCurrency } from '@/lib/utils'
+import { useCreateDocument } from '@/hooks/useApi'
 import toast from 'react-hot-toast'
 
 type FormData = {
@@ -64,6 +65,7 @@ export default function GenerateDocModal({
 }) {
   const [step, setStep] = useState<'type' | 'form'>('type')
   const [selectedType, setSelectedType] = useState<DocType>('declaracao')
+  const createDocument = useCreateDocument()
   const { register, handleSubmit, watch, reset, formState: { isSubmitting } } = useForm<FormData>({
     defaultValues: { type: 'declaracao' },
   })
@@ -79,24 +81,26 @@ export default function GenerateDocModal({
 
   async function onSubmit(data: FormData) {
     if (!patient) { toast.error('Selecione uma pessoa'); return }
-    await new Promise(r => setTimeout(r, 700))
     const content = buildContent({ ...data, type: selectedType }, patient, selectedType)
-    const doc: Documento = {
-      id: `d${Date.now()}`,
-      patientId: patient.id,
-      patientName: patient.name,
-      type: selectedType,
-      title: `${DOC_TYPE_LABELS[selectedType]} — ${patient.name}`,
-      content,
-      signedAt: new Date().toISOString(),
-      signCode: generateSignCode(),
-      crp: user?.crp ?? '00/000000',
-      psychologistName: user?.name ?? 'Psicólogo(a)',
-      createdAt: new Date().toISOString(),
+    const title = `${DOC_TYPE_LABELS[selectedType]} — ${patient.name}`
+    try {
+      const doc = await createDocument.mutateAsync({
+        patientId: patient.id,
+        patientName: patient.name,
+        type: selectedType,
+        title,
+        content,
+      })
+      onGenerate(doc)
+      toast.success('Documento gerado e assinado digitalmente ✓')
+      handleClose()
+    } catch (err: any) {
+      if (err?.response?.status === 403) {
+        toast.error('Plano Essencial necessário para gerar documentos.')
+      } else {
+        toast.error('Erro ao gerar documento.')
+      }
     }
-    onGenerate(doc)
-    toast.success('Documento gerado e assinado digitalmente ✓')
-    handleClose()
   }
 
   return (

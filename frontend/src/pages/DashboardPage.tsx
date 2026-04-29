@@ -9,15 +9,14 @@ import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard'
 import { useOnboardingStore } from '@/store/onboarding'
 import { track, EVENTS } from '@/lib/analytics'
-import { useDashboard } from '@/hooks/useApi'
+import { useDashboard, useSessions } from '@/hooks/useApi'
 
 export default function DashboardPage() {
   const { data: stats, isLoading: loading } = useDashboard()
+  const { data: recentSessions = [] } = useSessions()
   const { completed: onboardingDone } = useOnboardingStore()
 
   useEffect(() => { track(EVENTS.LOGIN) }, [])
-
-  const recentSessions: any[] = []
 
   if (loading) {
     return (
@@ -171,7 +170,7 @@ export default function DashboardPage() {
             </Link>
           </div>
           <div className="space-y-3">
-            {recentSessions.map((session: any) => (
+            {recentSessions.slice(0, 5).map((session: any) => (
               <div key={session.id} className="flex items-start gap-3 py-3 border-b border-neutral-50 last:border-0">
                 <Avatar name={session.patient?.name ?? session.patientName ?? '?'} size="sm" />
                 <div className="flex-1 min-w-0">
