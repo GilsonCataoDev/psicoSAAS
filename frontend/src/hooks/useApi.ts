@@ -94,6 +94,18 @@ export function useCreateSession() {
   })
 }
 
+export function useDeleteSession() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/sessions/${id}`).then(r => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['sessions'] })
+      qc.invalidateQueries({ queryKey: ['financial'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+}
+
 // ── Financial ─────────────────────────────────────────────────────────────────
 
 export function useFinancial(params?: { patientId?: string; status?: string }) {
@@ -250,6 +262,25 @@ export function usePublicBookingSlots(slug: string, date: string | null) {
 export function useCreateBooking(slug: string) {
   return useMutation({
     mutationFn: (data: any) => api.post(`/public/booking/${slug}`, data).then(r => r.data),
+  })
+}
+
+export function useDeleteDocument() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/documents/${id}`).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['documents'] }),
+  })
+}
+
+export function useDeleteFinancial() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/financial/${id}`).then(r => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['financial'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+    },
   })
 }
 

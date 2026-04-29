@@ -50,6 +50,12 @@ export class FinancialService {
     return { message: 'Cobrança enviada via WhatsApp ✓' }
   }
 
+  async remove(id: string, psychologistId: string) {
+    const r = await this.findOne(id, psychologistId)
+    await this.repo.remove(r)
+    return { deleted: true }
+  }
+
   async getSummary(psychologistId: string) {
     const records = await this.repo.find({ where: { psychologistId } })
     const income = records.filter(r => r.type === 'income')

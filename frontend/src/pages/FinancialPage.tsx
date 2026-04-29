@@ -1,11 +1,11 @@
 import { useState, useMemo } from 'react'
-import { Wallet, TrendingUp, Clock, CheckCircle, Plus, MessageCircle, CreditCard } from 'lucide-react'
+import { Wallet, TrendingUp, Clock, CheckCircle, Plus, MessageCircle, CreditCard, Trash2 } from 'lucide-react'
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import StatCard from '@/components/ui/StatCard'
 import Avatar from '@/components/ui/Avatar'
 import { StatusBadge } from '@/components/ui/Badge'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { useFinancial, useMarkFinancialPaid } from '@/hooks/useApi'
+import { useFinancial, useMarkFinancialPaid, useDeleteFinancial } from '@/hooks/useApi'
 import { FinancialRecord } from '@/types'
 import NewPaymentModal from '@/components/features/financial/NewPaymentModal'
 import MarkPaidModal from '@/components/features/financial/MarkPaidModal'
@@ -28,6 +28,7 @@ const FILTERS = [
 export default function FinancialPage() {
   const { data: records = [], isLoading } = useFinancial()
   const markPaid = useMarkFinancialPaid()
+  const deleteRecord = useDeleteFinancial()
   const [filter, setFilter] = useState<'all' | 'paid' | 'pending' | 'overdue'>('all')
   const [showNew, setShowNew] = useState(false)
   const [markRecord, setMarkRecord] = useState<FinancialRecord | null>(null)
@@ -182,7 +183,17 @@ export default function FinancialPage() {
           ) : filtered.map(record => (
             <FinancialRow key={record.id} record={record}
               onMarkPaid={() => setMarkRecord(record)}
-              onSendCharge={() => setChargeRecord(record)} />
+              onSendCharge={() => setChargeRecord(record)}
+              onDelete={async () => {
+                if (!confirm(`Excluir lançamento de ${record.patient?.name ?? 'paciente'}? Esta ação não pode ser desfeita.`)) return
+                try {
+                  await deleteRecord.mutateAsync(record.id)
+                  toast.success('Lançamento excluído')
+                } catch {
+                  toast.error('Erro ao excluir lançamento')
+                }
+              }}
+            />
           ))}
         </div>
       </div>
@@ -205,10 +216,11 @@ export default function FinancialPage() {
 }
 
 // ─── Linha de lançamento ──────────────────────────────────────────────────────
-function FinancialRow({ record, onMarkPaid, onSendCharge }: {
+function FinancialRow({ record, onMarkPaid, onSendCharge, onDelete }: {
   record: FinancialRecord
   onMarkPaid: () => void
   onSendCharge: () => void
+  onDelete: () => void
 }) {
   const isPending = record.status === 'pending' || record.status === 'overdue'
 
@@ -229,20 +241,27 @@ function FinancialRow({ record, onMarkPaid, onSendCharge }: {
       </div>
 
       {/* Ações — aparecem no hover (desktop) ou sempre (mobile) */}
-      {isPending && (
-        <div className="flex items-center gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
-          <button onClick={onSendCharge}
-            title="Enviar cobrança via WhatsApp"
-            className="p-1.5 rounded-lg hover:bg-neutral-100 text-neutral-400 hover:text-sage-600 transition-colors">
-            <MessageCircle className="w-4 h-4" />
-          </button>
-          <button onClick={onMarkPaid}
-            title="Registrar pagamento"
-            className="p-1.5 rounded-lg hover:bg-neutral-100 text-neutral-400 hover:text-sage-600 transition-colors">
-            <CreditCard className="w-4 h-4" />
-          </button>
-        </div>
-      )}
+      <div className="flex items-center gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
+        {isPending && (
+          <>
+            <button onClick={onSendCharge}
+              title="Enviar cobrança via WhatsApp"
+              className="p-1.5 rounded-lg hover:bg-neutral-100 text-neutral-400 hover:text-sage-600 transition-colors">
+              <MessageCircle className="w-4 h-4" />
+            </button>
+            <button onClick={onMarkPaid}
+              title="Registrar pagamento"
+              className="p-1.5 rounded-lg hover:bg-neutral-100 text-neutral-400 hover:text-sage-600 transition-colors">
+              <CreditCard className="w-4 h-4" />
+            </button>
+          </>
+        )}
+        <button onClick={onDelete}
+          title="Excluir lançamento"
+          className="p-1.5 rounded-lg hover:bg-rose-50 text-neutral-300 hover:text-rose-500 transition-colors">
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
 
       <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1.5 shrink-0">
         <span className={`font-semibold text-sm ${

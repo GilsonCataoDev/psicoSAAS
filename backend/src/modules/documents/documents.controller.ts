@@ -1,5 +1,5 @@
 import {
-  Controller, Post, Get, Param, Body, Req, UseGuards,
+  Controller, Post, Get, Delete, Param, Body, Req, UseGuards,
 } from '@nestjs/common'
 import { SkipThrottle } from '@nestjs/throttler'
 import { IsEnum, IsString, IsNotEmpty } from 'class-validator'
@@ -36,6 +36,13 @@ export class DocumentsController {
   @UseGuards(JwtAuthGuard)
   async findMine(@Req() req: any) {
     return this.svc.findByUser(req.user.id)
+  }
+
+  /** Excluir documento próprio */
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  async remove(@Param('id') id: string, @Req() req: any) {
+    return this.svc.remove(id, req.user.id)
   }
 
   /**

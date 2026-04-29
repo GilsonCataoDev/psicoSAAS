@@ -82,6 +82,16 @@ export class DocumentsService {
     return this.repo.find({ where, order: { createdAt: 'DESC' } })
   }
 
+  // ─── Excluir documento ───────────────────────────────────────────────────
+
+  async remove(id: string, userId: string): Promise<{ deleted: boolean }> {
+    const doc = await this.repo.findOne({ where: { id } })
+    if (!doc) throw new NotFoundException()
+    if (doc.userId !== userId) throw new NotFoundException() // não revela existência
+    await this.repo.remove(doc)
+    return { deleted: true }
+  }
+
   // ─── Verificação pública por código ──────────────────────────────────────
 
   /**

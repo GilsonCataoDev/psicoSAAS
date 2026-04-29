@@ -1,16 +1,28 @@
 import { useState } from 'react'
-import { Plus, FileText } from 'lucide-react'
+import { Plus, FileText, Trash2 } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
 import { formatDateRelative } from '@/lib/utils'
 import NewSessionModal from '@/components/features/sessions/NewSessionModal'
-import { useSessions } from '@/hooks/useApi'
+import { useSessions, useDeleteSession } from '@/hooks/useApi'
+import toast from 'react-hot-toast'
 
 const MOODS = ['', '😔', '😟', '😐', '🙂', '😊']
 
 export default function SessionsPage() {
   const [showModal, setShowModal] = useState(false)
   const { data: sessions = [], isLoading } = useSessions()
+  const deleteSession = useDeleteSession()
+
+  async function handleDelete(id: string, patientName: string) {
+    if (!confirm(`Excluir sessão de ${patientName}? Esta ação não pode ser desfeita.`)) return
+    try {
+      await deleteSession.mutateAsync(id)
+      toast.success('Sessão excluída')
+    } catch {
+      toast.error('Erro ao excluir sessão')
+    }
+  }
 
   return (
     <div className="animate-slide-up space-y-5">
@@ -33,7 +45,7 @@ export default function SessionsPage() {
 
       <div className="space-y-3">
         {sessions.map(session => (
-          <div key={session.id} className="card hover:shadow-lifted transition-all cursor-pointer p-4">
+          <div key={session.id} className="card hover:shadow-lifted transition-all p-4 group">
             <div className="flex items-start gap-3">
               <Avatar name={session.patient!.name} colorClass={session.patient!.avatarColor} />
               <div className="flex-1 min-w-0">
@@ -54,6 +66,13 @@ export default function SessionsPage() {
               <div className="flex flex-col items-end gap-1.5 shrink-0">
                 {session.mood && <span className="text-xl">{MOODS[session.mood]}</span>}
                 <StatusBadge status={session.paymentStatus} />
+                <button
+                  onClick={() => handleDelete(session.id, session.patient!.name)}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-rose-50 text-neutral-300 hover:text-rose-500"
+                  title="Excluir sessão"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
           </div>

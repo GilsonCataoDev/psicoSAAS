@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { FinancialService } from './financial.service'
 import { CreateFinancialDto } from './dto/create-financial.dto'
@@ -38,5 +38,10 @@ export class FinancialController {
   @Post(':id/send-charge')
   sendCharge(@Param('id') id: string, @Request() req: any) {
     return this.svc.sendChargeMessage(id, req.user.id)
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string, @Request() req: any) {
+    return this.svc.remove(id, req.user.id)
   }
 }

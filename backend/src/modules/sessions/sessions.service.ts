@@ -81,6 +81,12 @@ export class SessionsService {
     return this.repo.save(s)
   }
 
+  async remove(id: string, psychologistId: string) {
+    const s = await this.findOne(id, psychologistId)
+    await this.repo.remove(s)
+    return { deleted: true }
+  }
+
   async getDashboard(psychologistId: string) {
     const now = new Date()
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]

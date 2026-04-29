@@ -1,17 +1,19 @@
 import { useState } from 'react'
-import { FilePlus, Shield, Download, Eye, Search, ExternalLink } from 'lucide-react'
+import { FilePlus, Shield, Download, Eye, Search, ExternalLink, Trash2 } from 'lucide-react'
 import { Documento, DocType, DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '@/types/prontuario'
 import { useAuthStore } from '@/store/auth'
 import { formatDate } from '@/lib/utils'
 import { openCfpVerification } from '@/lib/crp'
 import GenerateDocModal from '@/components/features/prontuario/GenerateDocModal'
-import { usePatients, useDocuments } from '@/hooks/useApi'
+import { usePatients, useDocuments, useDeleteDocument } from '@/hooks/useApi'
 import DocumentPreviewModal from '@/components/features/prontuario/DocumentPreviewModal'
+import toast from 'react-hot-toast'
 
 export default function DocumentosPage() {
   const user = useAuthStore(s => s.user)
   const { data: patients = [] } = usePatients()
   const { data: docs = [], isLoading } = useDocuments()
+  const deleteDoc = useDeleteDocument()
   const [showGenerate, setShowGenerate] = useState(false)
   const [preview, setPreview] = useState<Documento | null>(null)
   const [search, setSearch] = useState('')
@@ -124,7 +126,17 @@ export default function DocumentosPage() {
           </div>
         ) : filtered.map(doc => (
           <DocCard key={doc.id} doc={doc}
-            onPreview={() => setPreview(doc)} />
+            onPreview={() => setPreview(doc)}
+            onDelete={async () => {
+              if (!confirm(`Excluir "${doc.title}"? Esta ação não pode ser desfeita.`)) return
+              try {
+                await deleteDoc.mutateAsync(doc.id)
+                toast.success('Documento excluído')
+              } catch {
+                toast.error('Erro ao excluir documento')
+              }
+            }}
+          />
         ))}
       </div>
 
@@ -145,9 +157,9 @@ export default function DocumentosPage() {
   )
 }
 
-function DocCard({ doc, onPreview }: { doc: Documento; onPreview: () => void }) {
+function DocCard({ doc, onPreview, onDelete }: { doc: Documento; onPreview: () => void; onDelete: () => void }) {
   return (
-    <div className="card flex items-center gap-4 p-4 hover:shadow-lifted transition-all">
+    <div className="card flex items-center gap-4 p-4 hover:shadow-lifted transition-all group">
       <div className="w-10 h-10 bg-neutral-100 rounded-xl flex items-center justify-center text-xl shrink-0">
         {DOC_TYPE_ICONS[doc.type]}
       </div>
@@ -174,6 +186,11 @@ function DocCard({ doc, onPreview }: { doc: Documento; onPreview: () => void }) 
           title="Baixar"
           onClick={() => window.print()}>
           <Download className="w-4 h-4" />
+        </button>
+        <button onClick={onDelete}
+          className="p-2 rounded-lg hover:bg-rose-50 text-neutral-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
+          title="Excluir documento">
+          <Trash2 className="w-4 h-4" />
         </button>
       </div>
     </div>
