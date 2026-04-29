@@ -70,7 +70,17 @@ export class NotificationsService {
     const { patient, date, time } = appointment
     const first = patient.name.split(' ')[0]
 
-    const msg = `Olá, ${first}! 🌿\n\nLembrando que temos nosso encontro amanhã às ${time}. Até lá! 💙`
+    // Formata a data para pt-BR (ex: "terça-feira, 29 de abril")
+    const dateLabel = (() => {
+      try {
+        const [y, m, d] = String(date).split('-').map(Number)
+        return new Date(y, m - 1, d).toLocaleDateString('pt-BR', {
+          weekday: 'long', day: 'numeric', month: 'long',
+        })
+      } catch { return String(date) }
+    })()
+
+    const msg = `Olá, ${first}! 🌿\n\nLembrando que temos nosso encontro em *${dateLabel}* às *${time}*.\n\nAté lá! 💙`
     await this.sendWhatsApp(patient.phone, msg)
   }
 
