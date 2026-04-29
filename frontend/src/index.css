@@ -50,7 +50,7 @@
   }
 
   .card-hover {
-    @apply card hover:shadow-md hover:-translate-y-px cursor-pointer;
+    @apply card hover:shadow-lifted hover:-translate-y-px cursor-pointer;
   }
 
   /* ── Botões ───────────────────────────────────────────────────────── */
