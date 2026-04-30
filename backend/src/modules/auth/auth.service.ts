@@ -265,10 +265,17 @@ export class AuthService {
       tokenHash: hashToken(rawToken),
       userId,
       ipAddress: ip,
-      userAgent: userAgent?.slice(0, 200),   // limita tamanho
+      userAgent: userAgent?.slice(0, 200),
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     })
-    await this.rtRepo.save(rt)
+    try {
+      await this.rtRepo.save(rt)
+    } catch (err: any) {
+      // Causa mais comum: tabela refresh_tokens não existe (synchronize: false em prod)
+      // Solução: adicionar TYPEORM_SYNC=true no Railway e reimplantar uma vez
+      this.logger.error(`createRefreshToken falhou: ${err?.message ?? err}`)
+      throw err
+    }
     return rawToken
   }
 
