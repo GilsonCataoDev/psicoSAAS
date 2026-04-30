@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/psicoSAAS/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="PsicoSaaS — Plataforma humanizada para psicólogos" />
+    <meta name="theme-color" content="#3f8866" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="PsicoSaaS" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="PsicoSaaS" />
+    <meta property="og:description" content="Plataforma humanizada para psicólogos" />
+    <meta property="og:type" content="website" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+    <title>PsicoSaaS</title>
+    <script type="module" crossorigin src="/psicoSAAS/assets/index-CVmN6R9T.js"></script>
+    <link rel="stylesheet" crossorigin href="/psicoSAAS/assets/index-4i_OPzdj.css">
+  <link rel="manifest" href="/psicoSAAS/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/psicoSAAS/registerSW.js"></script></head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
