@@ -58,14 +58,18 @@ export class SubscriptionGuard extends AuthGuard('jwt') implements CanActivate {
   }
 
   private isIgnoredPath(path = ''): boolean {
+    const normalizedPath = path.startsWith('/api/')
+      ? path.replace(/^\/api/, '')
+      : path
+
     return (
-      path.startsWith('/auth/') ||
-      path.startsWith('/public/') ||
-      path === '/billing/me' ||
-      path === '/billing/webhook' ||
-      path === '/billing/tokenize' ||
-      path === '/billing/update-card' ||
-      path === '/billing/subscribe'
+      normalizedPath.startsWith('/auth/') ||
+      normalizedPath.startsWith('/public/') ||
+      normalizedPath === '/billing/me' ||
+      normalizedPath === '/billing/webhook' ||
+      normalizedPath === '/billing/tokenize' ||
+      normalizedPath === '/billing/update-card' ||
+      normalizedPath === '/billing/subscribe'
     )
   }
 

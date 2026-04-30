@@ -53,13 +53,16 @@ let SubscriptionGuard = class SubscriptionGuard extends (0, passport_1.AuthGuard
         return this.reflector.getAllAndOverride(public_route_decorator_1.PUBLIC_ROUTE_KEY, [ctx.getHandler(), ctx.getClass()]) === true;
     }
     isIgnoredPath(path = '') {
-        return (path.startsWith('/auth/') ||
-            path.startsWith('/public/') ||
-            path === '/billing/me' ||
-            path === '/billing/webhook' ||
-            path === '/billing/tokenize' ||
-            path === '/billing/update-card' ||
-            path === '/billing/subscribe');
+        const normalizedPath = path.startsWith('/api/')
+            ? path.replace(/^\/api/, '')
+            : path;
+        return (normalizedPath.startsWith('/auth/') ||
+            normalizedPath.startsWith('/public/') ||
+            normalizedPath === '/billing/me' ||
+            normalizedPath === '/billing/webhook' ||
+            normalizedPath === '/billing/tokenize' ||
+            normalizedPath === '/billing/update-card' ||
+            normalizedPath === '/billing/subscribe');
     }
     isWithinGracePeriod(currentPeriodEnd) {
         if (!currentPeriodEnd)
