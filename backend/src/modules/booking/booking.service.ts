@@ -232,11 +232,14 @@ export class BookingService {
     if (booking.status === 'confirmed')
       return { message: 'Sessão já confirmada anteriormente ✓' }
 
-    booking.status = 'confirmed'
+    booking.status    = 'confirmed'
     booking.confirmedAt = new Date()
     await this.bookings.save(booking)
-    await this.notifications.sendBookingConfirmation(booking)
 
+    // Cria Patient + Appointment + FinancialRecord (mesmo fluxo do painel)
+    await this.createSessionResources(booking, booking.psychologistId)
+
+    await this.notifications.sendBookingConfirmation(booking)
     return { message: 'Sessão confirmada com sucesso! 🎉' }
   }
 
@@ -270,68 +273,14 @@ export class BookingService {
   async confirmBooking(id: string, psychologistId: string) {
     const booking = await this.findOne(id, psychologistId)
 
-    // ── 1. Encontra ou cria o Paciente ──────────────────────────────────────
-    let patient: Patient | null = null
-
-    // Tenta achar por e-mail (do mesmo psicólogo)
-    if (booking.patientEmail) {
-      patient = await this.patients.findOne({
-        where: { email: booking.patientEmail, psychologistId },
-      })
-    }
-
-    // Se não encontrou, cria como novo paciente
-    if (!patient) {
-      patient = this.patients.create({
-        name: booking.patientName,
-        email: booking.patientEmail || undefined,
-        phone: booking.patientPhone || undefined,
-        psychologistId,
-        status: 'active',
-        sessionPrice: Number(booking.amount) || 0,
-        sessionDuration: booking.duration || 50,
-        startDate: booking.date,
-        tags: [],
-      })
-      patient = await this.patients.save(patient)
-    }
-
-    // ── 2. Cria o Appointment interno ───────────────────────────────────────
-    const appointment = this.appointments.create({
-      date: booking.date,
-      time: booking.time,
-      duration: booking.duration,
-      patientId: patient.id,
-      psychologistId,
-      modality: 'online',
-      status: 'scheduled',
-      notes: booking.patientNotes || undefined,
-    })
-    const savedAppointment = await this.appointments.save(appointment)
-
-    // ── 3. Confirma o Booking e guarda referência ───────────────────────────
-    booking.status = 'confirmed'
+    booking.status    = 'confirmed'
     booking.confirmedAt = new Date()
-    booking.appointmentId = savedAppointment.id
-    const saved = await this.bookings.save(booking)
-    await this.notifications.sendBookingConfirmation(saved)
+    await this.bookings.save(booking)
 
-    // ── 4. Cria registro financeiro pendente ────────────────────────────────
-    // sessionId guarda a referência ao Appointment para permitir atualização posterior
-    await this.financial.save(
-      this.financial.create({
-        type:          'income',
-        amount:        Number(booking.amount) || 0,
-        description:   `Sessão - ${patient.name}`,
-        status:        'pending',
-        dueDate:       booking.date,
-        patientId:     patient.id,
-        psychologistId,
-        sessionId:     savedAppointment.id,
-      }),
-    ).catch(() => {})   // não falha o confirm se o financeiro der erro
+    await this.createSessionResources(booking, psychologistId)
 
-    return saved
+    await this.notifications.sendBookingConfirmation(booking)
+    return booking
   }
 
   async rejectBooking(id: string, psychologistId: string, reason?: string) {
@@ -444,8 +393,8 @@ export class BookingService {
   }
 
   /**
-   * Sincroniza retroativamente bookings confirmados que ainda não têm
-   * um Appointment correspondente (ex.: confirmados antes do fix).
+   * Sincroniza retroativamente bookings confirmados sem Appointment/FinancialRecord.
+   * Usa createSessionResources (idempotente) — seguro rodar múltiplas vezes.
    */
   async syncConfirmedBookings(psychologistId: string) {
     const confirmed = await this.bookings.find({
@@ -454,51 +403,77 @@ export class BookingService {
 
     let created = 0
     for (const booking of confirmed) {
-      // Já tem Appointment? Pula.
-      if (booking.appointmentId) continue
-
-      // Encontra ou cria Paciente
-      let patient: Patient | null = null
-      if (booking.patientEmail) {
-        patient = await this.patients.findOne({
-          where: { email: booking.patientEmail, psychologistId },
-        })
-      }
-      if (!patient) {
-        patient = this.patients.create({
-          name: booking.patientName,
-          email: booking.patientEmail || undefined,
-          phone: booking.patientPhone || undefined,
-          psychologistId,
-          status: 'active',
-          sessionPrice: Number(booking.amount) || 0,
-          sessionDuration: booking.duration || 50,
-          startDate: booking.date,
-          tags: [],
-        })
-        patient = await this.patients.save(patient)
-      }
-
-      // Cria o Appointment
-      const appointment = this.appointments.create({
-        date: booking.date,
-        time: booking.time,
-        duration: booking.duration,
-        patientId: patient.id,
-        psychologistId,
-        modality: 'online',
-        status: 'scheduled',
-        notes: booking.patientNotes || undefined,
-      })
-      const savedAppt = await this.appointments.save(appointment)
-
-      // Atualiza referência no Booking
-      booking.appointmentId = savedAppt.id
-      await this.bookings.save(booking)
+      if (booking.appointmentId) continue   // já processado
+      await this.createSessionResources(booking, psychologistId)
       created++
     }
 
     return { synced: created, total: confirmed.length }
+  }
+
+  /**
+   * Cria (ou reaproveita) Patient + Appointment + FinancialRecord para um Booking confirmado.
+   * Idempotente: se appointmentId já existir, não cria duplicata.
+   * Usado tanto pelo fluxo do painel (confirmBooking) quanto pelo link público (confirmByToken).
+   */
+  private async createSessionResources(booking: Booking, psychologistId: string): Promise<void> {
+    // Idempotência: já foi processado
+    if (booking.appointmentId) return
+
+    // ── 1. Encontra ou cria o Paciente ──────────────────────────────────────
+    let patient: Patient | null = null
+    if (booking.patientEmail) {
+      patient = await this.patients.findOne({
+        where: { email: booking.patientEmail, psychologistId },
+      })
+    }
+    if (!patient) {
+      patient = await this.patients.save(
+        this.patients.create({
+          name:            booking.patientName,
+          email:           booking.patientEmail  || undefined,
+          phone:           booking.patientPhone  || undefined,
+          psychologistId,
+          status:          'active',
+          sessionPrice:    Number(booking.amount) || 0,
+          sessionDuration: booking.duration || 50,
+          startDate:       booking.date,
+          tags:            [],
+        }),
+      )
+    }
+
+    // ── 2. Cria o Appointment interno ───────────────────────────────────────
+    const appointment = await this.appointments.save(
+      this.appointments.create({
+        date:           booking.date,
+        time:           booking.time,
+        duration:       booking.duration,
+        patientId:      patient.id,
+        psychologistId,
+        modality:       'online',
+        status:         'scheduled',
+        notes:          booking.patientNotes || undefined,
+      }),
+    )
+
+    // ── 3. Vincula Appointment ao Booking ───────────────────────────────────
+    booking.appointmentId = appointment.id
+    await this.bookings.save(booking)
+
+    // ── 4. Cria lançamento financeiro pendente ──────────────────────────────
+    await this.financial.save(
+      this.financial.create({
+        type:          'income',
+        amount:        Number(booking.amount) || 0,
+        description:   `Sessão - ${patient.name}`,
+        status:        'pending',
+        dueDate:       booking.date,
+        patientId:     patient.id,
+        psychologistId,
+        sessionId:     appointment.id,   // referência para markPaid encontrar o registro
+      }),
+    ).catch(() => {})  // não derruba o fluxo se a coluna ainda não existir em prod
   }
 
   private async findOne(id: string, psychologistId: string) {
