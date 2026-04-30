@@ -55,8 +55,10 @@ async function bootstrap() {
   app.use(cookieParser())
 
   // ── CORS: whitelist explícita ───────────────────────────────────────────────
-  const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? 'http://localhost:3000')
-    .split(',').map(o => o.trim())
+  const allowedOrigins = (
+    process.env.ALLOWED_ORIGINS ??
+    'http://localhost:3000,http://localhost:5173,https://gilsoncataodev.github.io'
+  ).split(',').map(o => o.trim())
 
   const isProduction = process.env.NODE_ENV === 'production'
 
@@ -72,7 +74,8 @@ async function bootstrap() {
     },
     credentials: true, // necessário para HttpOnly cookies cross-origin
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type'],
+    // X-CSRF-Token: cabeçalho customizado enviado em toda mutação pelo frontend
+    allowedHeaders: ['Content-Type', 'X-CSRF-Token'],
   })
 
   // ── Validação e sanitização global de DTOs ─────────────────────────────────
