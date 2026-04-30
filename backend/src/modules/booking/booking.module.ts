@@ -9,10 +9,11 @@ import { AvailabilityModule } from '../availability/availability.module'
 import { NotificationsModule } from '../notifications/notifications.module'
 import { Patient } from '../patients/entities/patient.entity'
 import { Appointment } from '../appointments/entities/appointment.entity'
+import { FinancialRecord } from '../financial/entities/financial-record.entity'
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Booking, BookingPage, Patient, Appointment]),
+    TypeOrmModule.forFeature([Booking, BookingPage, Patient, Appointment, FinancialRecord]),
     AvailabilityModule,
     NotificationsModule,
   ],

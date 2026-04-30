@@ -72,7 +72,7 @@ export default function BookingManagePage() {
   }
 
   async function markPaid(id: string) {
-    await payBooking.mutateAsync(id)
+    await payBooking.mutateAsync({ id, method: 'outros' })
     toast.success('Pagamento registrado ✓')
   }
 

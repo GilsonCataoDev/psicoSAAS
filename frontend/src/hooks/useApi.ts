@@ -230,6 +230,8 @@ export function useConfirmBooking() {
       qc.invalidateQueries({ queryKey: ['bookings'] })
       qc.invalidateQueries({ queryKey: ['appointments'] })
       qc.invalidateQueries({ queryKey: ['patients'] })
+      qc.invalidateQueries({ queryKey: ['financial'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
     },
   })
 }
@@ -245,8 +247,13 @@ export function useRejectBooking() {
 export function usePayBooking() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: string) => api.patch(`/booking/${id}/pay`).then(r => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['bookings'] }),
+    mutationFn: ({ id, method }: { id: string; method?: string }) =>
+      api.patch(`/booking/${id}/pay`, { method: method ?? 'outros' }).then(r => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bookings'] })
+      qc.invalidateQueries({ queryKey: ['financial'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+    },
   })
 }
 

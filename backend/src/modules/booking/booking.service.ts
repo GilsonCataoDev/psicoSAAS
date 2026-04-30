@@ -13,6 +13,7 @@ import { Booking } from './entities/booking.entity'
 import { BookingPage } from './entities/booking-page.entity'
 import { Patient } from '../patients/entities/patient.entity'
 import { Appointment } from '../appointments/entities/appointment.entity'
+import { FinancialRecord } from '../financial/entities/financial-record.entity'
 import { AvailabilityService } from '../availability/availability.service'
 import { NotificationsService } from '../notifications/notifications.service'
 import { CreateBookingDto } from './dto/create-booking.dto'
@@ -21,13 +22,14 @@ import { SaveBookingPageDto } from './dto/save-booking-page.dto'
 @Injectable()
 export class BookingService {
   constructor(
-    @InjectRepository(Booking)  private bookings: Repository<Booking>,
-    @InjectRepository(BookingPage) private pages: Repository<BookingPage>,
-    @InjectRepository(Patient) private patients: Repository<Patient>,
-    @InjectRepository(Appointment) private appointments: Repository<Appointment>,
-    private availability: AvailabilityService,
+    @InjectRepository(Booking)         private bookings:     Repository<Booking>,
+    @InjectRepository(BookingPage)     private pages:        Repository<BookingPage>,
+    @InjectRepository(Patient)         private patients:     Repository<Patient>,
+    @InjectRepository(Appointment)     private appointments: Repository<Appointment>,
+    @InjectRepository(FinancialRecord) private financial:    Repository<FinancialRecord>,
+    private availability:  AvailabilityService,
     private notifications: NotificationsService,
-    private config: ConfigService,
+    private config:        ConfigService,
   ) {}
 
   // ─── Daily token helpers ────────────────────────────────────────────────────
@@ -313,6 +315,22 @@ export class BookingService {
     booking.appointmentId = savedAppointment.id
     const saved = await this.bookings.save(booking)
     await this.notifications.sendBookingConfirmation(saved)
+
+    // ── 4. Cria registro financeiro pendente ────────────────────────────────
+    // sessionId guarda a referência ao Appointment para permitir atualização posterior
+    await this.financial.save(
+      this.financial.create({
+        type:          'income',
+        amount:        Number(booking.amount) || 0,
+        description:   `Sessão - ${patient.name}`,
+        status:        'pending',
+        dueDate:       booking.date,
+        patientId:     patient.id,
+        psychologistId,
+        sessionId:     savedAppointment.id,
+      }),
+    ).catch(() => {})   // não falha o confirm se o financeiro der erro
+
     return saved
   }
 
@@ -326,10 +344,55 @@ export class BookingService {
 
   async markPaid(id: string, psychologistId: string, method: string) {
     const booking = await this.findOne(id, psychologistId)
+    const today   = format(new Date(), 'yyyy-MM-dd')
+
+    // Atualiza o Booking
     booking.paymentStatus = 'paid'
     booking.paymentMethod = method
-    booking.paidAt = new Date()
-    return this.bookings.save(booking)
+    booking.paidAt        = new Date()
+    await this.bookings.save(booking)
+
+    // ── Atualiza ou cria o FinancialRecord ──────────────────────────────────
+    // Tenta achar pelo appointmentId (salvo em sessionId no confirm)
+    let record: FinancialRecord | null = null
+    if (booking.appointmentId) {
+      record = await this.financial.findOne({
+        where: { sessionId: booking.appointmentId, psychologistId },
+      })
+    }
+
+    if (record) {
+      // Marca o existente como pago
+      record.status  = 'paid'
+      record.paidAt  = today
+      record.method  = method
+      await this.financial.save(record)
+    } else {
+      // Booking antigo (anterior ao fix): cria diretamente como pago
+      let patientName = 'Paciente'
+      if (booking.appointmentId) {
+        const appt = await this.appointments.findOne({
+          where: { id: booking.appointmentId },
+          relations: ['patient'],
+        })
+        patientName = appt?.patient?.name ?? booking.patientName ?? 'Paciente'
+      }
+      await this.financial.save(
+        this.financial.create({
+          type:          'income',
+          amount:        Number(booking.amount) || 0,
+          description:   `Sessão - ${patientName}`,
+          status:        'paid',
+          dueDate:       booking.date,
+          paidAt:        today,
+          method,
+          psychologistId,
+          sessionId:     booking.appointmentId ?? undefined,
+        }),
+      )
+    }
+
+    return booking
   }
 
   // ─── Booking Page (configurações) ──────────────────────────────────────────
