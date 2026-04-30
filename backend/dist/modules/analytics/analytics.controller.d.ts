@@ -8,7 +8,7 @@ export declare class AnalyticsController {
         sessionsThisWeek: number;
         monthRevenue: number;
         pendingPayments: number;
-        pendingAmount: number;
+        pendingAmount: any;
         inactivePatients: number;
         todayAppointments: import("../appointments/entities/appointment.entity").Appointment[];
         revenueChart: {

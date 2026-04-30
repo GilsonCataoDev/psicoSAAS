@@ -12,6 +12,9 @@ export declare class DocumentsController {
     constructor(svc: DocumentsService);
     create(req: any, body: CreateDocumentBodyDto): Promise<import("./entities/document.entity").Document>;
     findMine(req: any): Promise<import("./entities/document.entity").Document[]>;
+    remove(id: string, req: any): Promise<{
+        deleted: boolean;
+    }>;
     verify(code: string): Promise<{
         valid: boolean;
         document?: {

@@ -16,8 +16,11 @@ import { DocumentsModule } from './modules/documents/documents.module'
 import { EmailModule } from './modules/email/email.module'
 import { AnalyticsModule } from './modules/analytics/analytics.module'
 import { ReferralModule } from './modules/referral/referral.module'
+import { BillingModule } from './modules/billing/billing.module'
 import { Subscription } from './modules/subscriptions/entities/subscription.entity'
+import { Subscription as BillingSubscription } from './modules/billing/entities/subscription.entity'
 import { PlanGuard } from './common/guards/plan.guard'
+import { SubscriptionGuard } from './common/guards/subscription.guard'
 
 @Module({
   imports: [
@@ -41,7 +44,7 @@ import { PlanGuard } from './common/guards/plan.guard'
     }),
 
     // Disponibiliza Subscription repository para o PlanGuard global
-    TypeOrmModule.forFeature([Subscription]),
+    TypeOrmModule.forFeature([Subscription, BillingSubscription]),
 
     AuthModule,
     PatientsModule,
@@ -56,9 +59,11 @@ import { PlanGuard } from './common/guards/plan.guard'
     EmailModule,
     AnalyticsModule,
     ReferralModule,
+    BillingModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: SubscriptionGuard },
     { provide: APP_GUARD, useClass: PlanGuard },
   ],
 })

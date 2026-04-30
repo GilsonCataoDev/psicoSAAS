@@ -9,4 +9,6 @@ export declare class CreatePatientDto {
     startDate?: string;
     tags?: string[];
     status?: 'active' | 'paused' | 'discharged';
+    privateNotes?: string;
+    prontuario?: Record<string, any>;
 }

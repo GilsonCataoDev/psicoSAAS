@@ -6,6 +6,7 @@ export declare class AnalyticsService {
     private patients;
     private appointments;
     private financial;
+    private readonly logger;
     constructor(patients: Repository<Patient>, appointments: Repository<Appointment>, financial: Repository<FinancialRecord>);
     getDashboardStats(userId: string): Promise<{
         activePatients: number;
@@ -13,7 +14,7 @@ export declare class AnalyticsService {
         sessionsThisWeek: number;
         monthRevenue: number;
         pendingPayments: number;
-        pendingAmount: number;
+        pendingAmount: any;
         inactivePatients: number;
         todayAppointments: Appointment[];
         revenueChart: {

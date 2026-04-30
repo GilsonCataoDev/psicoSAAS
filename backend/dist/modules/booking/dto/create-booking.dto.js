@@ -11,20 +11,25 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CreateBookingDto = void 0;
 const class_validator_1 = require("class-validator");
+const class_transformer_1 = require("class-transformer");
 class CreateBookingDto {
 }
 exports.CreateBookingDto = CreateBookingDto;
 __decorate([
     (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(100),
+    (0, class_transformer_1.Transform)(({ value }) => typeof value === 'string' ? value.trim() : value),
     __metadata("design:type", String)
 ], CreateBookingDto.prototype, "patientName", void 0);
 __decorate([
     (0, class_validator_1.IsEmail)(),
+    (0, class_validator_1.MaxLength)(254),
     __metadata("design:type", String)
 ], CreateBookingDto.prototype, "patientEmail", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.MaxLength)(20),
     __metadata("design:type", String)
 ], CreateBookingDto.prototype, "patientPhone", void 0);
 __decorate([
@@ -43,6 +48,10 @@ __decorate([
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.MaxLength)(500),
+    (0, class_transformer_1.Transform)(({ value }) => typeof value === 'string'
+        ? value.replace(/<[^>]*>/g, '').replace(/[<>]/g, '').trim()
+        : value),
     __metadata("design:type", String)
 ], CreateBookingDto.prototype, "patientNotes", void 0);
 //# sourceMappingURL=create-booking.dto.js.map

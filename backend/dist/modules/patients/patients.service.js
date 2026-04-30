@@ -19,10 +19,41 @@ const typeorm_2 = require("typeorm");
 const patient_entity_1 = require("./entities/patient.entity");
 const subscription_entity_1 = require("../subscriptions/entities/subscription.entity");
 const plan_guard_1 = require("../../common/guards/plan.guard");
+const encrypt_util_1 = require("../../common/crypto/encrypt.util");
 let PatientsService = class PatientsService {
     constructor(repo, subs) {
         this.repo = repo;
         this.subs = subs;
+    }
+    encryptFields(dto) {
+        if (!dto.privateNotes)
+            return dto;
+        return { ...dto, privateNotes: (0, encrypt_util_1.encrypt)(dto.privateNotes) };
+    }
+    dec(patient) {
+        const p = { ...patient };
+        if (p.privateNotes)
+            p.privateNotes = (0, encrypt_util_1.safeDecrypt)(p.privateNotes);
+        if (p.sessions?.length) {
+            p.sessions = p.sessions.map((s) => ({
+                ...s,
+                summary: (0, encrypt_util_1.safeDecrypt)(s.summary),
+                privateNotes: (0, encrypt_util_1.safeDecrypt)(s.privateNotes),
+                nextSteps: (0, encrypt_util_1.safeDecrypt)(s.nextSteps),
+            }));
+        }
+        return p;
+    }
+    async findRaw(id, psychologistId, relations) {
+        const patient = await this.repo.findOne({
+            where: { id },
+            ...(relations ? { relations } : {}),
+        });
+        if (!patient)
+            throw new common_1.NotFoundException('Pessoa não encontrada');
+        if (patient.psychologistId !== psychologistId)
+            throw new common_1.ForbiddenException();
+        return patient;
     }
     async checkPatientLimit(userId) {
         const sub = await this.subs.findOne({ where: { userId } });
@@ -41,32 +72,31 @@ let PatientsService = class PatientsService {
             });
         }
     }
-    findAll(psychologistId) {
-        return this.repo.find({
+    async findAll(psychologistId) {
+        const patients = await this.repo.find({
             where: { psychologistId },
             order: { name: 'ASC' },
         });
+        return patients.map(p => this.dec(p));
     }
     async findOne(id, psychologistId) {
-        const patient = await this.repo.findOne({ where: { id }, relations: ['sessions', 'appointments'] });
-        if (!patient)
-            throw new common_1.NotFoundException('Pessoa não encontrada');
-        if (patient.psychologistId !== psychologistId)
-            throw new common_1.ForbiddenException();
-        return patient;
+        const patient = await this.findRaw(id, psychologistId, ['sessions', 'appointments']);
+        return this.dec(patient);
     }
     async create(dto, psychologistId) {
         await this.checkPatientLimit(psychologistId);
-        const patient = this.repo.create({ ...dto, psychologistId });
-        return this.repo.save(patient);
+        const encrypted = this.encryptFields(dto);
+        const patient = this.repo.create({ status: 'active', ...encrypted, psychologistId });
+        return this.dec(await this.repo.save(patient));
     }
     async update(id, dto, psychologistId) {
-        const patient = await this.findOne(id, psychologistId);
-        Object.assign(patient, dto);
-        return this.repo.save(patient);
+        const patient = await this.findRaw(id, psychologistId);
+        const encrypted = this.encryptFields(dto);
+        Object.assign(patient, encrypted);
+        return this.dec(await this.repo.save(patient));
     }
     async remove(id, psychologistId) {
-        const patient = await this.findOne(id, psychologistId);
+        const patient = await this.findRaw(id, psychologistId);
         return this.repo.softRemove(patient);
     }
 };

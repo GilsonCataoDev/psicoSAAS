@@ -1,5 +1,5 @@
 export declare class CreateFinancialDto {
-    patientId: string;
+    patientId?: string;
     type: 'income' | 'expense';
     amount: number;
     description: string;

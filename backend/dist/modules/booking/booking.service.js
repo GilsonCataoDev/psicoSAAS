@@ -21,12 +21,18 @@ const config_1 = require("@nestjs/config");
 const date_fns_1 = require("date-fns");
 const booking_entity_1 = require("./entities/booking.entity");
 const booking_page_entity_1 = require("./entities/booking-page.entity");
+const patient_entity_1 = require("../patients/entities/patient.entity");
+const appointment_entity_1 = require("../appointments/entities/appointment.entity");
+const financial_record_entity_1 = require("../financial/entities/financial-record.entity");
 const availability_service_1 = require("../availability/availability.service");
 const notifications_service_1 = require("../notifications/notifications.service");
 let BookingService = class BookingService {
-    constructor(bookings, pages, availability, notifications, config) {
+    constructor(bookings, pages, patients, appointments, financial, availability, notifications, config) {
         this.bookings = bookings;
         this.pages = pages;
+        this.patients = patients;
+        this.appointments = appointments;
+        this.financial = financial;
         this.availability = availability;
         this.notifications = notifications;
         this.config = config;
@@ -195,6 +201,7 @@ let BookingService = class BookingService {
         booking.status = 'confirmed';
         booking.confirmedAt = new Date();
         await this.bookings.save(booking);
+        await this.createSessionResources(booking, booking.psychologistId);
         await this.notifications.sendBookingConfirmation(booking);
         return { message: 'Sessão confirmada com sucesso! 🎉' };
     }
@@ -225,9 +232,10 @@ let BookingService = class BookingService {
         const booking = await this.findOne(id, psychologistId);
         booking.status = 'confirmed';
         booking.confirmedAt = new Date();
-        const saved = await this.bookings.save(booking);
-        await this.notifications.sendBookingConfirmation(saved);
-        return saved;
+        await this.bookings.save(booking);
+        await this.createSessionResources(booking, psychologistId);
+        await this.notifications.sendBookingConfirmation(booking);
+        return booking;
     }
     async rejectBooking(id, psychologistId, reason) {
         const booking = await this.findOne(id, psychologistId);
@@ -238,10 +246,45 @@ let BookingService = class BookingService {
     }
     async markPaid(id, psychologistId, method) {
         const booking = await this.findOne(id, psychologistId);
+        const today = (0, date_fns_1.format)(new Date(), 'yyyy-MM-dd');
         booking.paymentStatus = 'paid';
         booking.paymentMethod = method;
         booking.paidAt = new Date();
-        return this.bookings.save(booking);
+        await this.bookings.save(booking);
+        let record = null;
+        if (booking.appointmentId) {
+            record = await this.financial.findOne({
+                where: { sessionId: booking.appointmentId, psychologistId },
+            });
+        }
+        if (record) {
+            record.status = 'paid';
+            record.paidAt = today;
+            record.method = method;
+            await this.financial.save(record);
+        }
+        else {
+            let patientName = 'Paciente';
+            if (booking.appointmentId) {
+                const appt = await this.appointments.findOne({
+                    where: { id: booking.appointmentId },
+                    relations: ['patient'],
+                });
+                patientName = appt?.patient?.name ?? booking.patientName ?? 'Paciente';
+            }
+            await this.financial.save(this.financial.create({
+                type: 'income',
+                amount: Number(booking.amount) || 0,
+                description: `Sessão - ${patientName}`,
+                status: 'paid',
+                dueDate: booking.date,
+                paidAt: today,
+                method,
+                psychologistId,
+                sessionId: booking.appointmentId ?? undefined,
+            }));
+        }
+        return booking;
     }
     async getMyPage(psychologistId) {
         let page = await this.pages.findOne({ where: { psychologistId } });
@@ -281,6 +324,64 @@ let BookingService = class BookingService {
             expiresAt: tomorrow.toISOString(),
         };
     }
+    async syncConfirmedBookings(psychologistId) {
+        const confirmed = await this.bookings.find({
+            where: { psychologistId, status: 'confirmed' },
+        });
+        let created = 0;
+        for (const booking of confirmed) {
+            if (booking.appointmentId)
+                continue;
+            await this.createSessionResources(booking, psychologistId);
+            created++;
+        }
+        return { synced: created, total: confirmed.length };
+    }
+    async createSessionResources(booking, psychologistId) {
+        if (booking.appointmentId)
+            return;
+        let patient = null;
+        if (booking.patientEmail) {
+            patient = await this.patients.findOne({
+                where: { email: booking.patientEmail, psychologistId },
+            });
+        }
+        if (!patient) {
+            patient = await this.patients.save(this.patients.create({
+                name: booking.patientName,
+                email: booking.patientEmail || undefined,
+                phone: booking.patientPhone || undefined,
+                psychologistId,
+                status: 'active',
+                sessionPrice: Number(booking.amount) || 0,
+                sessionDuration: booking.duration || 50,
+                startDate: booking.date,
+                tags: [],
+            }));
+        }
+        const appointment = await this.appointments.save(this.appointments.create({
+            date: booking.date,
+            time: booking.time,
+            duration: booking.duration,
+            patientId: patient.id,
+            psychologistId,
+            modality: 'online',
+            status: 'scheduled',
+            notes: booking.patientNotes || undefined,
+        }));
+        booking.appointmentId = appointment.id;
+        await this.bookings.save(booking);
+        await this.financial.save(this.financial.create({
+            type: 'income',
+            amount: Number(booking.amount) || 0,
+            description: `Sessão - ${patient.name}`,
+            status: 'pending',
+            dueDate: booking.date,
+            patientId: patient.id,
+            psychologistId,
+            sessionId: appointment.id,
+        })).catch(() => { });
+    }
     async findOne(id, psychologistId) {
         const b = await this.bookings.findOne({ where: { id, psychologistId } });
         if (!b)
@@ -293,7 +394,13 @@ exports.BookingService = BookingService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(booking_entity_1.Booking)),
     __param(1, (0, typeorm_1.InjectRepository)(booking_page_entity_1.BookingPage)),
+    __param(2, (0, typeorm_1.InjectRepository)(patient_entity_1.Patient)),
+    __param(3, (0, typeorm_1.InjectRepository)(appointment_entity_1.Appointment)),
+    __param(4, (0, typeorm_1.InjectRepository)(financial_record_entity_1.FinancialRecord)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         availability_service_1.AvailabilityService,
         notifications_service_1.NotificationsService,

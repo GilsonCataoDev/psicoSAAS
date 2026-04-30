@@ -12,7 +12,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FinancialController = void 0;
+exports.AsaasWebhookController = exports.FinancialController = void 0;
 const common_1 = require("@nestjs/common");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const financial_service_1 = require("./financial.service");
@@ -21,11 +21,24 @@ let FinancialController = class FinancialController {
     constructor(svc) {
         this.svc = svc;
     }
-    findAll(req, status) { return this.svc.findAll(req.user.id, status); }
+    findAll(req, status, patientId) {
+        return this.svc.findAll(req.user.id, status, patientId);
+    }
     summary(req) { return this.svc.getSummary(req.user.id); }
-    create(dto, req) { return this.svc.create(dto, req.user.id); }
+    create(dto, req) {
+        return this.svc.create(dto, req.user.id);
+    }
     markPaid(id, method, req) {
         return this.svc.markPaid(id, method, req.user.id);
+    }
+    sendCharge(id, req) {
+        return this.svc.sendChargeMessage(id, req.user.id);
+    }
+    generatePaymentLink(id, req) {
+        return this.svc.generatePaymentLink(id, req.user.id);
+    }
+    remove(id, req) {
+        return this.svc.remove(id, req.user.id);
     }
 };
 exports.FinancialController = FinancialController;
@@ -33,8 +46,9 @@ __decorate([
     (0, common_1.Get)(),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Query)('status')),
+    __param(2, (0, common_1.Query)('patientId')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:paramtypes", [Object, String, String]),
     __metadata("design:returntype", void 0)
 ], FinancialController.prototype, "findAll", null);
 __decorate([
@@ -61,9 +75,59 @@ __decorate([
     __metadata("design:paramtypes", [String, String, Object]),
     __metadata("design:returntype", void 0)
 ], FinancialController.prototype, "markPaid", null);
+__decorate([
+    (0, common_1.Post)(':id/send-charge'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], FinancialController.prototype, "sendCharge", null);
+__decorate([
+    (0, common_1.Post)(':id/payment-link'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], FinancialController.prototype, "generatePaymentLink", null);
+__decorate([
+    (0, common_1.Delete)(':id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], FinancialController.prototype, "remove", null);
 exports.FinancialController = FinancialController = __decorate([
     (0, common_1.Controller)('financial'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __metadata("design:paramtypes", [financial_service_1.FinancialService])
 ], FinancialController);
+let AsaasWebhookController = class AsaasWebhookController {
+    constructor(svc) {
+        this.svc = svc;
+    }
+    async handle(token, body) {
+        const expected = process.env.ASAAS_WEBHOOK_TOKEN;
+        if (expected && token !== expected)
+            return { ok: false };
+        await this.svc.handleAsaasWebhook(body.event, body.payment);
+        return { ok: true };
+    }
+};
+exports.AsaasWebhookController = AsaasWebhookController;
+__decorate([
+    (0, common_1.Post)(),
+    (0, common_1.HttpCode)(200),
+    __param(0, (0, common_1.Headers)('asaas-access-token')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], AsaasWebhookController.prototype, "handle", null);
+exports.AsaasWebhookController = AsaasWebhookController = __decorate([
+    (0, common_1.Controller)('webhooks/asaas'),
+    __metadata("design:paramtypes", [financial_service_1.FinancialService])
+], AsaasWebhookController);
 //# sourceMappingURL=financial.controller.js.map

@@ -9,12 +9,12 @@ export declare class ReferralService {
     private email;
     private readonly logger;
     constructor(refs: Repository<Referral>, subs: Repository<Subscription>, email: EmailService);
-    getOrCreateCode(user: User): Promise<Referral>;
+    getOrCreateCode(user: User): Promise<string>;
     applyReferral(code: string, newUser: User): Promise<void>;
     grantRewardIfEligible(newUserId: string): Promise<void>;
     getStats(userId: string): Promise<{
+        code: string;
         totalInvited: number;
         totalRewarded: number;
-        code: string;
     }>;
 }

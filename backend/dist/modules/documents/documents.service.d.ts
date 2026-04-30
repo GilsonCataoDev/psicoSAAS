@@ -18,6 +18,9 @@ export declare class DocumentsService {
     private generateSignature;
     create(user: User, dto: CreateDocumentDto, signerIp?: string): Promise<Document>;
     findByUser(userId: string, type?: DocType): Promise<Document[]>;
+    remove(id: string, userId: string): Promise<{
+        deleted: boolean;
+    }>;
     verifyByCode(signCode: string): Promise<{
         valid: boolean;
         document?: {

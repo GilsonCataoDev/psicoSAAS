@@ -11,23 +11,27 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RegisterDto = void 0;
 const class_validator_1 = require("class-validator");
+const class_transformer_1 = require("class-transformer");
 class RegisterDto {
 }
 exports.RegisterDto = RegisterDto;
 __decorate([
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.MinLength)(2),
+    (0, class_validator_1.MinLength)(2, { message: 'Nome deve ter ao menos 2 caracteres' }),
     (0, class_validator_1.MaxLength)(100),
+    (0, class_transformer_1.Transform)(({ value }) => value?.trim()),
     __metadata("design:type", String)
 ], RegisterDto.prototype, "name", void 0);
 __decorate([
     (0, class_validator_1.IsEmail)({}, { message: 'E-mail inválido' }),
     (0, class_validator_1.MaxLength)(254),
+    (0, class_transformer_1.Transform)(({ value }) => value?.toLowerCase().trim()),
     __metadata("design:type", String)
 ], RegisterDto.prototype, "email", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.Matches)(/^\d{2}\/\d{4,6}$/, { message: 'CRP inválido. Formato: 00/000000' }),
+    (0, class_transformer_1.Transform)(({ value }) => value?.trim()),
     __metadata("design:type", String)
 ], RegisterDto.prototype, "crp", void 0);
 __decorate([
@@ -41,6 +45,14 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.MaxLength)(100),
+    (0, class_transformer_1.Transform)(({ value }) => value?.trim()),
     __metadata("design:type", String)
 ], RegisterDto.prototype, "specialty", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(20),
+    (0, class_transformer_1.Transform)(({ value }) => value?.trim().toUpperCase()),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "referralCode", void 0);
 //# sourceMappingURL=register.dto.js.map

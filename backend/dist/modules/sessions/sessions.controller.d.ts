@@ -13,4 +13,7 @@ export declare class SessionsController {
     findOne(id: string, req: any): Promise<import("./entities/session.entity").Session>;
     create(dto: CreateSessionDto, req: any): Promise<import("./entities/session.entity").Session>;
     update(id: string, dto: Partial<CreateSessionDto>, req: any): Promise<import("./entities/session.entity").Session>;
+    remove(id: string, req: any): Promise<{
+        deleted: boolean;
+    }>;
 }

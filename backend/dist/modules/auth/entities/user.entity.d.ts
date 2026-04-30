@@ -11,6 +11,8 @@ export declare class User {
     onboardingCompleted: boolean;
     phone?: string;
     referralCode?: string;
+    resetPasswordToken?: string;
+    resetPasswordExpiry?: Date;
     preferences?: Record<string, unknown>;
     patients: Patient[];
     createdAt: Date;

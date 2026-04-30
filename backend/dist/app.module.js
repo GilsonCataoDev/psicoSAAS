@@ -25,8 +25,11 @@ const documents_module_1 = require("./modules/documents/documents.module");
 const email_module_1 = require("./modules/email/email.module");
 const analytics_module_1 = require("./modules/analytics/analytics.module");
 const referral_module_1 = require("./modules/referral/referral.module");
+const billing_module_1 = require("./modules/billing/billing.module");
 const subscription_entity_1 = require("./modules/subscriptions/entities/subscription.entity");
+const subscription_entity_2 = require("./modules/billing/entities/subscription.entity");
 const plan_guard_1 = require("./common/guards/plan.guard");
+const subscription_guard_1 = require("./common/guards/subscription.guard");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -45,10 +48,10 @@ exports.AppModule = AppModule = __decorate([
                     url: cfg.get('DATABASE_URL'),
                     autoLoadEntities: true,
                     synchronize: cfg.get('NODE_ENV') !== 'production' || cfg.get('TYPEORM_SYNC') === 'true',
-                    logging: false,
+                    logging: ['error'],
                 }),
             }),
-            typeorm_1.TypeOrmModule.forFeature([subscription_entity_1.Subscription]),
+            typeorm_1.TypeOrmModule.forFeature([subscription_entity_1.Subscription, subscription_entity_2.Subscription]),
             auth_module_1.AuthModule,
             patients_module_1.PatientsModule,
             appointments_module_1.AppointmentsModule,
@@ -62,9 +65,11 @@ exports.AppModule = AppModule = __decorate([
             email_module_1.EmailModule,
             analytics_module_1.AnalyticsModule,
             referral_module_1.ReferralModule,
+            billing_module_1.BillingModule,
         ],
         providers: [
             { provide: core_1.APP_GUARD, useClass: throttler_1.ThrottlerGuard },
+            { provide: core_1.APP_GUARD, useClass: subscription_guard_1.SubscriptionGuard },
             { provide: core_1.APP_GUARD, useClass: plan_guard_1.PlanGuard },
         ],
     })

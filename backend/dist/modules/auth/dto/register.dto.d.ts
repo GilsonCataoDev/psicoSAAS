@@ -4,4 +4,5 @@ export declare class RegisterDto {
     crp: string;
     password: string;
     specialty?: string;
+    referralCode?: string;
 }

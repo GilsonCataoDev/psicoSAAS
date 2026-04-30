@@ -1,52 +1,39 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-export type PlanId = 'free' | 'essencial' | 'pro'
-export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'cancelled' | 'none'
+export type PlanId = string
+export type SubscriptionStatus =
+  | 'pending'
+  | 'trialing'
+  | 'active'
+  | 'past_due'
+  | 'canceled'
+  | 'cancelled'
+  | 'none'
 
 export interface Plan {
   id: PlanId
   name: string
-  price: number          // R$/mês
-  priceYearly: number    // R$/mês cobrado anualmente
-  maxPatients: number    // -1 = ilimitado
-  maxStorage: number     // GB
+  price: number
+  priceYearly: number
+  maxPatients: number
+  maxStorage: number
   features: string[]
   highlight?: boolean
 }
 
 export const PLANS: Plan[] = [
   {
-    id: 'free',
-    name: 'Gratuito',
-    price: 0,
-    priceYearly: 0,
-    maxPatients: 2,
-    maxStorage: 1,
-    features: [
-      'Até 2 pessoas ativas',
-      'Agenda básica',
-      '1 GB de prontuário',
-      'Página de agendamento público',
-      'Suporte por e-mail',
-    ],
-  },
-  {
-    id: 'essencial',
-    name: 'Essencial',
+    id: 'basic',
+    name: 'Basic',
     price: 79,
     priceYearly: 63,
     maxPatients: 30,
     maxStorage: 10,
-    highlight: true,
     features: [
-      'Até 30 pessoas ativas',
-      'Agenda + lembretes WhatsApp',
-      '10 GB de prontuário',
-      'Certificação digital de documentos',
-      'Controle financeiro completo',
-      'Página de agendamento público',
-      'Suporte prioritário',
+      'Agenda e pacientes',
+      'Controle financeiro',
+      'Página pública de agendamento',
     ],
   },
   {
@@ -56,60 +43,77 @@ export const PLANS: Plan[] = [
     priceYearly: 119,
     maxPatients: -1,
     maxStorage: 50,
+    highlight: true,
     features: [
-      'Pessoas ilimitadas',
-      'Tudo do Essencial',
-      'Relatórios e análises avançadas',
-      'Múltiplas páginas de agendamento',
-      'API de integração',
-      'Backup diário automático',
-      'Suporte via WhatsApp',
+      'Pacientes ilimitados',
+      'Prontuário e documentos',
+      'Relatórios e automações',
+    ],
+  },
+  {
+    id: 'premium',
+    name: 'Premium',
+    price: 249,
+    priceYearly: 199,
+    maxPatients: -1,
+    maxStorage: 100,
+    features: [
+      'Tudo do Pro',
+      'Suporte prioritário',
+      'Recursos avançados de clínica',
     ],
   },
 ]
 
 export interface Subscription {
-  planId: PlanId
+  id?: string
+  plan?: PlanId | string
+  planId?: PlanId | string
   status: SubscriptionStatus
-  trialEndsAt?: string     // ISO
-  currentPeriodEnd?: string // ISO
+  gatewayCustomerId?: string | null
+  gatewaySubscriptionId?: string | null
+  currentPeriodEnd?: string | null
+  trialEndsAt?: string | null
   cancelAtPeriodEnd?: boolean
+  createdAt?: string
 }
 
 interface SubscriptionState {
   subscription: Subscription
+  isLoaded: boolean
   setSubscription: (s: Subscription) => void
-  startTrial: (planId: PlanId) => void
+  setSubscriptionStatus: (status: SubscriptionStatus) => void
+  resetSubscription: () => void
 }
 
-// Padrão: 14 dias de trial no Essencial
-const TRIAL_DAYS = 14
-const trialEnd = new Date()
-trialEnd.setDate(trialEnd.getDate() + TRIAL_DAYS)
+const emptySubscription: Subscription = {
+  plan: 'basic',
+  planId: 'basic',
+  status: 'none',
+}
+
+function normalizeSubscription(subscription: Subscription): Subscription {
+  const plan = subscription.plan ?? subscription.planId ?? 'basic'
+  return { ...subscription, plan, planId: plan }
+}
 
 export const useSubscriptionStore = create<SubscriptionState>()(
   persist(
     (set) => ({
-      subscription: {
-        planId: 'essencial',
-        status: 'trialing',
-        trialEndsAt: trialEnd.toISOString(),
-      },
+      subscription: emptySubscription,
+      isLoaded: false,
 
-      setSubscription: (s) => set({ subscription: s }),
+      setSubscription: (subscription) =>
+        set({ subscription: normalizeSubscription(subscription), isLoaded: true }),
 
-      startTrial: (planId) => {
-        const end = new Date()
-        end.setDate(end.getDate() + TRIAL_DAYS)
-        set({
-          subscription: {
-            planId,
-            status: 'trialing',
-            trialEndsAt: end.toISOString(),
-          },
-        })
-      },
+      setSubscriptionStatus: (status) =>
+        set((state) => ({ subscription: { ...state.subscription, status }, isLoaded: true })),
+
+      resetSubscription: () => set({ subscription: emptySubscription, isLoaded: true }),
     }),
-    { name: 'psicosaas-subscription' },
+    {
+      name: 'psicosaas-subscription',
+      partialize: (state) => ({ subscription: state.subscription }),
+    },
   ),
 )

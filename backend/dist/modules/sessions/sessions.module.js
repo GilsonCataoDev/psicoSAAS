@@ -12,12 +12,20 @@ const typeorm_1 = require("@nestjs/typeorm");
 const sessions_controller_1 = require("./sessions.controller");
 const sessions_service_1 = require("./sessions.service");
 const session_entity_1 = require("./entities/session.entity");
+const financial_module_1 = require("../financial/financial.module");
+const notifications_module_1 = require("../notifications/notifications.module");
+const patient_entity_1 = require("../patients/entities/patient.entity");
+const user_entity_1 = require("../auth/entities/user.entity");
 let SessionsModule = class SessionsModule {
 };
 exports.SessionsModule = SessionsModule;
 exports.SessionsModule = SessionsModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([session_entity_1.Session])],
+        imports: [
+            typeorm_1.TypeOrmModule.forFeature([session_entity_1.Session, patient_entity_1.Patient, user_entity_1.User]),
+            financial_module_1.FinancialModule,
+            notifications_module_1.NotificationsModule,
+        ],
         controllers: [sessions_controller_1.SessionsController],
         providers: [sessions_service_1.SessionsService],
     })

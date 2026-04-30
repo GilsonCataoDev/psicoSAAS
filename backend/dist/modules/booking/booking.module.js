@@ -16,13 +16,16 @@ const booking_entity_1 = require("./entities/booking.entity");
 const booking_page_entity_1 = require("./entities/booking-page.entity");
 const availability_module_1 = require("../availability/availability.module");
 const notifications_module_1 = require("../notifications/notifications.module");
+const patient_entity_1 = require("../patients/entities/patient.entity");
+const appointment_entity_1 = require("../appointments/entities/appointment.entity");
+const financial_record_entity_1 = require("../financial/entities/financial-record.entity");
 let BookingModule = class BookingModule {
 };
 exports.BookingModule = BookingModule;
 exports.BookingModule = BookingModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            typeorm_1.TypeOrmModule.forFeature([booking_entity_1.Booking, booking_page_entity_1.BookingPage]),
+            typeorm_1.TypeOrmModule.forFeature([booking_entity_1.Booking, booking_page_entity_1.BookingPage, patient_entity_1.Patient, appointment_entity_1.Appointment, financial_record_entity_1.FinancialRecord]),
             availability_module_1.AvailabilityModule,
             notifications_module_1.NotificationsModule,
         ],

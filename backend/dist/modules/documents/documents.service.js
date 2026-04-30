@@ -62,6 +62,15 @@ let DocumentsService = DocumentsService_1 = class DocumentsService {
             where.type = type;
         return this.repo.find({ where, order: { createdAt: 'DESC' } });
     }
+    async remove(id, userId) {
+        const doc = await this.repo.findOne({ where: { id } });
+        if (!doc)
+            throw new common_1.NotFoundException();
+        if (doc.userId !== userId)
+            throw new common_1.NotFoundException();
+        await this.repo.remove(doc);
+        return { deleted: true };
+    }
     async verifyByCode(signCode) {
         const doc = await this.repo.findOne({ where: { signCode } });
         if (!doc) {

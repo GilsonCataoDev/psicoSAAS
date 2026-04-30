@@ -57,6 +57,9 @@ let DocumentsController = class DocumentsController {
     async findMine(req) {
         return this.svc.findByUser(req.user.id);
     }
+    async remove(id, req) {
+        return this.svc.remove(id, req.user.id);
+    }
     async verify(code) {
         return this.svc.verifyByCode(code.toUpperCase());
     }
@@ -81,6 +84,15 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], DocumentsController.prototype, "findMine", null);
+__decorate([
+    (0, common_1.Delete)(':id'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], DocumentsController.prototype, "remove", null);
 __decorate([
     (0, common_1.Get)('verify/:code'),
     (0, throttler_1.SkipThrottle)(),

@@ -37,6 +37,9 @@ let BookingController = class BookingController {
     markPaid(id, req, method) {
         return this.svc.markPaid(id, req.user.id, method);
     }
+    syncAppointments(req) {
+        return this.svc.syncConfirmedBookings(req.user.id);
+    }
     getPage(req) {
         return this.svc.getMyPage(req.user.id);
     }
@@ -86,6 +89,13 @@ __decorate([
     __metadata("design:paramtypes", [String, Object, String]),
     __metadata("design:returntype", void 0)
 ], BookingController.prototype, "markPaid", null);
+__decorate([
+    (0, common_1.Post)('sync-appointments'),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], BookingController.prototype, "syncAppointments", null);
 __decorate([
     (0, common_1.Get)('page'),
     __param(0, (0, common_1.Request)()),

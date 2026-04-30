@@ -24,7 +24,7 @@ export class RefreshToken {
   @Column({ nullable: true })
   userAgent?: string
 
-  @Column({ nullable: true })
+  @Column({ name: 'ip', nullable: true })
   ipAddress?: string
 
   /** Marcado como true na rotação ou no logout — não é removido imediatamente */

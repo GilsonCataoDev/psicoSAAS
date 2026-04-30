@@ -57,11 +57,19 @@ __decorate([
     __metadata("design:type", String)
 ], FinancialRecord.prototype, "receiptUrl", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], FinancialRecord.prototype, "asaasPaymentId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], FinancialRecord.prototype, "paymentLinkUrl", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], FinancialRecord.prototype, "patientId", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => patient_entity_1.Patient, { onDelete: 'CASCADE' }),
+    (0, typeorm_1.ManyToOne)(() => patient_entity_1.Patient, { onDelete: 'SET NULL', nullable: true }),
     (0, typeorm_1.JoinColumn)({ name: 'patientId' }),
     __metadata("design:type", patient_entity_1.Patient)
 ], FinancialRecord.prototype, "patient", void 0);

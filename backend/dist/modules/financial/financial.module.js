@@ -12,14 +12,20 @@ const typeorm_1 = require("@nestjs/typeorm");
 const financial_controller_1 = require("./financial.controller");
 const financial_service_1 = require("./financial.service");
 const financial_record_entity_1 = require("./entities/financial-record.entity");
+const notifications_module_1 = require("../notifications/notifications.module");
+const user_entity_1 = require("../auth/entities/user.entity");
 let FinancialModule = class FinancialModule {
 };
 exports.FinancialModule = FinancialModule;
 exports.FinancialModule = FinancialModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([financial_record_entity_1.FinancialRecord])],
-        controllers: [financial_controller_1.FinancialController],
+        imports: [
+            typeorm_1.TypeOrmModule.forFeature([financial_record_entity_1.FinancialRecord, user_entity_1.User]),
+            notifications_module_1.NotificationsModule,
+        ],
+        controllers: [financial_controller_1.FinancialController, financial_controller_1.AsaasWebhookController],
         providers: [financial_service_1.FinancialService],
+        exports: [financial_service_1.FinancialService],
     })
 ], FinancialModule);
 //# sourceMappingURL=financial.module.js.map

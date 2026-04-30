@@ -12,6 +12,10 @@ export declare class BookingController {
     confirm(id: string, req: any): Promise<import("./entities/booking.entity").Booking>;
     reject(id: string, req: any, reason?: string): Promise<import("./entities/booking.entity").Booking>;
     markPaid(id: string, req: any, method: string): Promise<import("./entities/booking.entity").Booking>;
+    syncAppointments(req: any): Promise<{
+        synced: number;
+        total: number;
+    }>;
     getPage(req: any): Promise<import("./entities/booking-page.entity").BookingPage>;
     savePage(req: any, dto: SaveBookingPageDto): Promise<import("./entities/booking-page.entity").BookingPage>;
 }

@@ -16,21 +16,24 @@ const auth_controller_1 = require("./auth.controller");
 const auth_service_1 = require("./auth.service");
 const jwt_strategy_1 = require("./strategies/jwt.strategy");
 const user_entity_1 = require("./entities/user.entity");
+const refresh_token_entity_1 = require("./entities/refresh-token.entity");
+const referral_module_1 = require("../referral/referral.module");
 let AuthModule = class AuthModule {
 };
 exports.AuthModule = AuthModule;
 exports.AuthModule = AuthModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            typeorm_1.TypeOrmModule.forFeature([user_entity_1.User]),
+            typeorm_1.TypeOrmModule.forFeature([user_entity_1.User, refresh_token_entity_1.RefreshToken]),
             passport_1.PassportModule,
             jwt_1.JwtModule.registerAsync({
                 inject: [config_1.ConfigService],
                 useFactory: (cfg) => ({
                     secret: cfg.get('JWT_SECRET'),
-                    signOptions: { expiresIn: '7d' },
+                    signOptions: { expiresIn: '15m' },
                 }),
             }),
+            (0, common_1.forwardRef)(() => referral_module_1.ReferralModule),
         ],
         controllers: [auth_controller_1.AuthController],
         providers: [auth_service_1.AuthService, jwt_strategy_1.JwtStrategy],

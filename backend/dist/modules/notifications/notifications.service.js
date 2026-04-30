@@ -41,7 +41,7 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
                 },
                 body: JSON.stringify({
                     number: withDdi,
-                    textMessage: { text },
+                    text,
                 }),
             });
             if (!res.ok) {
@@ -58,7 +58,18 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
             return;
         const { patient, date, time } = appointment;
         const first = patient.name.split(' ')[0];
-        const msg = `Olá, ${first}! 🌿\n\nLembrando que temos nosso encontro amanhã às ${time}. Até lá! 💙`;
+        const dateLabel = (() => {
+            try {
+                const [y, m, d] = String(date).split('-').map(Number);
+                return new Date(y, m - 1, d).toLocaleDateString('pt-BR', {
+                    weekday: 'long', day: 'numeric', month: 'long',
+                });
+            }
+            catch {
+                return String(date);
+            }
+        })();
+        const msg = `Olá, ${first}! 🌿\n\nLembrando que temos nosso encontro em *${dateLabel}* às *${time}*.\n\nAté lá! 💙`;
         await this.sendWhatsApp(patient.phone, msg);
     }
     async sendPaymentRequest(patient, amount, pixKey) {

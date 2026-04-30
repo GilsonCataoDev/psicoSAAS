@@ -26,6 +26,7 @@ let SessionsController = class SessionsController {
     findOne(id, req) { return this.svc.findOne(id, req.user.id); }
     create(dto, req) { return this.svc.create(dto, req.user.id); }
     update(id, dto, req) { return this.svc.update(id, dto, req.user.id); }
+    remove(id, req) { return this.svc.remove(id, req.user.id); }
 };
 exports.SessionsController = SessionsController;
 __decorate([
@@ -68,6 +69,14 @@ __decorate([
     __metadata("design:paramtypes", [String, Object, Object]),
     __metadata("design:returntype", void 0)
 ], SessionsController.prototype, "update", null);
+__decorate([
+    (0, common_1.Delete)(':id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], SessionsController.prototype, "remove", null);
 exports.SessionsController = SessionsController = __decorate([
     (0, common_1.Controller)('sessions'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

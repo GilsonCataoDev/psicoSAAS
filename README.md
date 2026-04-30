@@ -32,9 +32,13 @@ PsicoSaaS é um SaaS completo para psicólogos brasileiros que reduz a carga ope
 - Alerta de pacientes inativos há mais de 30 dias
 - Gráfico de receita mensal (Recharts)
 
-### Planos e acesso
-- Plano gratuito (2 pacientes, 10 documentos) e planos pagos (Essencial / Pro)
-- Período de teste de 14 dias com onboarding guiado
+### Monetizacao e acesso
+- **Trial de 7 dias com cartao obrigatorio** — tokenizacao do cartao feita no backend via Asaas; dados do cartao nao sao salvos
+- **Billing desacoplado do dominio clinico** — modulo `billing` com subscription propria, migrations e `SubscriptionGuard`
+- **Asaas** — criacao de customer, subscription com `CREDIT_CARD`, webhook idempotente e atualizacao de cartao
+- **Controle de acesso global** — usuarios `active` e `trialing` acessam; `past_due` usa grace period; `canceled` e `none` bloqueiam
+- **Frontend de monetizacao** — `/pricing`, banner de trial, countdown, polling de status e fluxo de pagamento atrasado
+- **Metricas SaaS** — endpoint de contagem por status e MRR basico por plano
 
 ---
 
@@ -67,7 +71,8 @@ PsicoSaaS é um SaaS completo para psicólogos brasileiros que reduz a carga ope
 | bcryptjs (salt 12) | Hash de senhas |
 | class-validator + class-transformer | Validação e sanitização de DTOs |
 | @nestjs/throttler | Rate limiting global e por endpoint |
-| Nodemailer | E-mails transacionais (confirmação, reset de senha) |
+| Resend API | E-mails transacionais (boas-vindas, reset de senha, trial e billing) |
+| Asaas | Billing real, tokenizacao de cartao, subscriptions e webhooks |
 
 ### Infraestrutura
 | Serviço | Uso |
@@ -95,6 +100,8 @@ PsicoSaaS é um SaaS completo para psicólogos brasileiros que reduz a carga ope
 | Validação de DTOs | `whitelist: true, forbidNonWhitelisted: true, transform: true` |
 | Audit log estruturado | LOGIN_SUCCESS, LOGOUT, REFRESH_TOKEN_ROTATED, PASSWORD_RESET, etc. |
 | Variáveis sensíveis em `.env` | Nunca versionadas |
+| Cartao de credito | Tokenizado no backend via Asaas; PAN/CVV nunca persistidos |
+| Webhook idempotente | Eventos Asaas registrados em `billing_webhook_events` para evitar reprocessamento |
 
 ---
 
@@ -144,7 +151,8 @@ psicosaas/
         │   ├── documents/       # Geração e verificação de documentos
         │   ├── analytics/       # Dashboard stats resilientes
         │   ├── notifications/   # E-mails transacionais
-        │   ├── subscriptions/   # Planos e limites
+        │   ├── subscriptions/   # Planos e limites legados
+        │   ├── billing/         # Asaas, trial, subscriptions, webhook e metricas SaaS
         │   ├── referral/        # Programa de indicação
         │   └── email/           # Templates e envio
         └── common/
@@ -188,8 +196,12 @@ SMTP_PORT=587
 SMTP_USER=seu@email.com
 SMTP_PASS=senha
 
-# Opcional — link de pagamento via Asaas
-# (configurado por psicólogo em Ajustes → Pagamentos)
+# Asaas billing
+ASAAS_API_KEY=seu-token-asaas
+ASAAS_BASE_URL=https://sandbox.asaas.com/api/v3
+ASAAS_WEBHOOK_TOKEN=token-configurado-no-webhook
+FRONTEND_URL=http://localhost:5173
+RESEND_API_KEY=opcional-para-emails
 ```
 
 ```bash
@@ -208,8 +220,12 @@ docker run -d --name psicosaas-db \
   -e POSTGRES_PASSWORD=pass \
   -p 5432:5432 postgres:16
 
-# No backend/.env adicione:
-# TYPEORM_SYNC=true   (apenas na primeira execução para criar as tabelas)
+# Rodar migrations do backend:
+cd backend
+npm run build
+npm run migration:run
+
+# Nao use synchronize=true em producao.
 ```
 
 ### 4. Iniciar
@@ -234,7 +250,60 @@ cd frontend && npm run dev
 | `SIGN_SECRET` | Segredo para tokens públicos de agendamento |
 | `NODE_ENV` | `production` |
 | `FRONTEND_URL` | URL do frontend (ex: `https://gilsoncataodev.github.io/psicoSAAS`) |
-| `TYPEORM_SYNC` | `true` apenas para migrations pontuais; remover após |
+| `ASAAS_API_KEY` | Token privado da API Asaas |
+| `ASAAS_BASE_URL` | `https://sandbox.asaas.com/api/v3` em sandbox ou URL de producao |
+| `ASAAS_WEBHOOK_TOKEN` | Token usado para validar origem dos webhooks Asaas |
+| `RESEND_API_KEY` | Chave Resend para emails transacionais |
+| `TYPEORM_SYNC` | Manter ausente/false em producao; use migrations |
+
+---
+
+## Billing, trial e monetizacao
+
+### Fluxo principal
+1. Usuario autenticado acessa `/pricing`.
+2. Frontend coleta dados do cartao e chama `POST /billing/tokenize`.
+3. Backend tokeniza no Asaas e retorna apenas `{ creditCardToken }`.
+4. Frontend chama `POST /billing/subscribe` com `{ plan, creditCardToken }`.
+5. Backend cria ou reutiliza a subscription local, agenda cobranca para D+7 e salva:
+   - `status = trialing`
+   - `trialEndsAt = agora + 7 dias`
+   - `hasUsedTrial = true`
+6. Webhook Asaas atualiza:
+   - `PAYMENT_RECEIVED` ou `PAYMENT_CONFIRMED` -> `active`
+   - `PAYMENT_OVERDUE` -> `past_due`
+   - `SUBSCRIPTION_CANCELLED` ou `SUBSCRIPTION_DELETED` -> `canceled`
+
+### Endpoints de billing
+
+| Metodo | Rota | Uso |
+|---|---|---|
+| `GET` | `/billing/me` | Retorna a subscription do usuario ou `{ status: "none" }` |
+| `POST` | `/billing/tokenize` | Tokeniza cartao no backend; nao persiste dados sensiveis |
+| `POST` | `/billing/subscribe` | Inicia trial de 7 dias com cartao obrigatorio |
+| `POST` | `/billing/update-card` | Atualiza cartao e tenta nova cobranca quando `past_due` |
+| `POST` | `/billing/webhook` | Webhook publico do Asaas, sem CSRF, idempotente |
+| `GET` | `/billing/metrics` | Retorna `active`, `trialing`, `past_due`, `canceled` e `mrr` |
+
+### Regras de trial
+- Um usuario so pode usar trial uma vez.
+- A regra usa `hasUsedTrial`, nao `trialEndsAt`.
+- `trialEndsAt` pode ser zerado apos pagamento sem liberar novo trial.
+- A ultima subscription do usuario e reutilizada para evitar multiplas subscriptions simultaneas.
+- O frontend nunca decide status de plano; ele apenas exibe o estado retornado pelo backend.
+
+### Jobs e emails
+- Job diario em memoria procura subscriptions `trialing`.
+- Dia 5 do trial: envia "Seu teste esta acabando".
+- Dia 7: envia "Vamos cobrar hoje".
+- Falha de pagamento via webhook: envia "Pagamento recusado".
+
+### Frontend
+- `/pricing` mostra planos `basic`, `pro`, `premium`.
+- Botao padrao: "Testar 7 dias gratis".
+- `past_due`: mostra "Seu teste terminou e o pagamento falhou." e botao "Pagar agora".
+- Banner global mostra countdown do trial.
+- Polling de `/billing/me` roda a cada 5s apenas em `trialing` ou `pending` e para ao virar `active`.
 
 ---
 

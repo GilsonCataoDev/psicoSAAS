@@ -2,6 +2,9 @@ import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Booking } from './entities/booking.entity';
 import { BookingPage } from './entities/booking-page.entity';
+import { Patient } from '../patients/entities/patient.entity';
+import { Appointment } from '../appointments/entities/appointment.entity';
+import { FinancialRecord } from '../financial/entities/financial-record.entity';
 import { AvailabilityService } from '../availability/availability.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -9,10 +12,13 @@ import { SaveBookingPageDto } from './dto/save-booking-page.dto';
 export declare class BookingService {
     private bookings;
     private pages;
+    private patients;
+    private appointments;
+    private financial;
     private availability;
     private notifications;
     private config;
-    constructor(bookings: Repository<Booking>, pages: Repository<BookingPage>, availability: AvailabilityService, notifications: NotificationsService, config: ConfigService);
+    constructor(bookings: Repository<Booking>, pages: Repository<BookingPage>, patients: Repository<Patient>, appointments: Repository<Appointment>, financial: Repository<FinancialRecord>, availability: AvailabilityService, notifications: NotificationsService, config: ConfigService);
     generateDailyToken(userId: string): string;
     resolveDailyToken(token: string): Promise<BookingPage | null>;
     getPublicPage(slugOrToken: string): Promise<{
@@ -63,5 +69,10 @@ export declare class BookingService {
         url: string;
         expiresAt: string;
     };
+    syncConfirmedBookings(psychologistId: string): Promise<{
+        synced: number;
+        total: number;
+    }>;
+    private createSessionResources;
     private findOne;
 }

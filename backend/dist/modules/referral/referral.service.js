@@ -29,55 +29,69 @@ let ReferralService = ReferralService_1 = class ReferralService {
         this.logger = new common_1.Logger(ReferralService_1.name);
     }
     async getOrCreateCode(user) {
-        let ref = await this.refs.findOne({ where: { referrerId: user.id, referredId: undefined } });
-        if (ref)
-            return ref;
-        const base = user.name
-            .split(' ')[0]
-            .toUpperCase()
-            .replace(/[^A-Z]/g, '')
-            .slice(0, 6);
-        const suffix = Math.random().toString(36).slice(2, 5).toUpperCase();
-        const code = `${base}${suffix}`;
-        ref = this.refs.create({ referrerId: user.id, code });
-        return this.refs.save(ref);
+        let master = await this.refs.findOne({
+            where: { referrerId: user.id, referredId: (0, typeorm_2.IsNull)() },
+        });
+        if (!master) {
+            const base = user.name
+                .split(' ')[0]
+                .toUpperCase()
+                .replace(/[^A-Z]/g, '')
+                .slice(0, 6);
+            const suffix = Math.random().toString(36).slice(2, 5).toUpperCase();
+            master = this.refs.create({ referrerId: user.id, code: `${base}${suffix}` });
+            master = await this.refs.save(master);
+        }
+        return master.code;
     }
     async applyReferral(code, newUser) {
-        const ref = await this.refs.findOne({
-            where: { code: code.toUpperCase(), referredId: undefined },
+        const master = await this.refs.findOne({
+            where: { code: code.toUpperCase(), referredId: (0, typeorm_2.IsNull)() },
             relations: ['referrer'],
         });
-        if (!ref || ref.referrerId === newUser.id)
+        if (!master)
             return;
-        ref.referredId = newUser.id;
-        await this.refs.save(ref);
-        this.logger.log(`[Referral] ${ref.referrer.name} indicou ${newUser.name}`);
+        if (master.referrerId === newUser.id)
+            return;
+        const use = this.refs.create({
+            referrerId: master.referrerId,
+            code: master.code,
+            referredId: newUser.id,
+            rewardGranted: false,
+        });
+        await this.refs.save(use);
+        this.logger.log(`[Referral] ${master.referrer.name} indicou ${newUser.name}`);
     }
     async grantRewardIfEligible(newUserId) {
-        const ref = await this.refs.findOne({
+        const use = await this.refs.findOne({
             where: { referredId: newUserId, rewardGranted: false },
             relations: ['referrer'],
         });
-        if (!ref)
+        if (!use)
             return;
-        const sub = await this.subs.findOne({ where: { userId: ref.referrerId } });
+        const sub = await this.subs.findOne({ where: { userId: use.referrerId } });
         if (sub && (sub.status === 'active' || sub.status === 'trialing')) {
             const currentEnd = sub.currentPeriodEnd ?? new Date();
             sub.currentPeriodEnd = (0, date_fns_1.addMonths)(currentEnd, 1);
             await this.subs.save(sub);
         }
-        ref.rewardGranted = true;
-        ref.rewardGrantedAt = new Date();
-        await this.refs.save(ref);
-        await this.email.sendReferralReward(ref.referrer.name, ref.referrer.email, (await this.refs.findOne({ where: { id: ref.id }, relations: ['referrer'] }))?.referrer?.name ?? 'um novo usuário');
-        this.logger.log(`[Referral] Recompensa concedida a ${ref.referrer.name}`);
+        use.rewardGranted = true;
+        use.rewardGrantedAt = new Date();
+        await this.refs.save(use);
+        await this.email.sendReferralReward(use.referrer.name, use.referrer.email, newUserId).catch(() => { });
+        this.logger.log(`[Referral] Recompensa concedida a ${use.referrer.name}`);
     }
     async getStats(userId) {
-        const refs = await this.refs.find({ where: { referrerId: userId } });
+        const master = await this.refs.findOne({
+            where: { referrerId: userId, referredId: (0, typeorm_2.IsNull)() },
+        });
+        const uses = await this.refs.find({
+            where: { referrerId: userId, referredId: (0, typeorm_2.Not)((0, typeorm_2.IsNull)()) },
+        });
         return {
-            totalInvited: refs.filter(r => r.referredId).length,
-            totalRewarded: refs.filter(r => r.rewardGranted).length,
-            code: refs[0]?.code ?? null,
+            code: master?.code ?? null,
+            totalInvited: uses.length,
+            totalRewarded: uses.filter(r => r.rewardGranted).length,
         };
     }
 };

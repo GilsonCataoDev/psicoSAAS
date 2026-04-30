@@ -66,6 +66,10 @@ __decorate([
     __metadata("design:type", String)
 ], Patient.prototype, "privateNotes", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
+    __metadata("design:type", Object)
+], Patient.prototype, "prontuario", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: 'simple-array', nullable: true }),
     __metadata("design:type", Array)
 ], Patient.prototype, "tags", void 0);

@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/auth'
+import { useSubscriptionStore } from '@/store/subscription'
 import AppLayout from '@/components/layout/AppLayout'
 import AuthLayout from '@/components/layout/AuthLayout'
 import LoginPage from '@/pages/auth/LoginPage'
@@ -20,10 +21,23 @@ import VerifyDocumentPage from '@/pages/public/VerifyDocumentPage'
 import ProntuarioPage from '@/pages/ProntuarioPage'
 import DocumentosPage from '@/pages/DocumentosPage'
 import PlansPage from '@/pages/PlansPage'
+import PricingPage from '@/pages/PricingPage'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />
+}
+
+function SubscriptionRoute({ children }: { children: React.ReactNode }) {
+  const subscription = useSubscriptionStore((s) => s.subscription)
+  const isLoaded = useSubscriptionStore((s) => s.isLoaded)
+
+  if (!isLoaded) return null
+  if (subscription.status !== 'active' && subscription.status !== 'trialing') {
+    return <Navigate to="/pricing" replace />
+  }
+
+  return <>{children}</>
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
@@ -53,6 +67,10 @@ export default function App() {
 
       {/* ── App interno (autenticado) ────────────────────────────── */}
       <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
+        <Route path="pricing" element={<PricingPage />} />
+      </Route>
+
+      <Route element={<PrivateRoute><SubscriptionRoute><AppLayout /></SubscriptionRoute></PrivateRoute>}>
         <Route index element={<DashboardPage />} />
         <Route path="pacientes" element={<PatientsPage />} />
         <Route path="pacientes/:id" element={<PatientDetailPage />} />

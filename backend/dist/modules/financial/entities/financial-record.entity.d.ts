@@ -11,8 +11,10 @@ export declare class FinancialRecord {
     method?: string;
     sessionId?: string;
     receiptUrl?: string;
-    patientId: string;
-    patient: Patient;
+    asaasPaymentId?: string;
+    paymentLinkUrl?: string;
+    patientId?: string;
+    patient?: Patient;
     psychologistId: string;
     psychologist: User;
     createdAt: Date;

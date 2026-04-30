@@ -22,9 +22,9 @@ let ReferralController = class ReferralController {
         this.svc = svc;
     }
     async getMyReferral(req) {
-        const ref = await this.svc.getOrCreateCode(req.user);
+        const code = await this.svc.getOrCreateCode(req.user);
         const stats = await this.svc.getStats(req.user.id);
-        return { code: ref.code, ...stats };
+        return { ...stats, code };
     }
 };
 exports.ReferralController = ReferralController;

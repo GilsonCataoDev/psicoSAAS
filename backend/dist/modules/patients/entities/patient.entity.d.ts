@@ -15,6 +15,7 @@ export declare class Patient {
     startDate?: string;
     avatarColor?: string;
     privateNotes?: string;
+    prontuario?: Record<string, any>;
     tags: string[];
     psychologistId: string;
     psychologist: User;

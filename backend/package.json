@@ -6,6 +6,8 @@
     "start": "node dist/main",
     "start:dev": "nest start --watch",
     "build": "nest build",
+    "migration:run": "typeorm migration:run -d dist/data-source.js",
+    "migration:show": "typeorm migration:show -d dist/data-source.js",
     "lint": "eslint src --ext ts"
   },
   "dependencies": {
