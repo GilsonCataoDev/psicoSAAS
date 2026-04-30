@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository, Not, In } from 'typeorm'
+import { Repository } from 'typeorm'
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, subMonths, format } from 'date-fns'
 import { Patient } from '../patients/entities/patient.entity'
 import { Appointment } from '../appointments/entities/appointment.entity'
@@ -10,6 +10,8 @@ const PT_MONTHS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','
 
 @Injectable()
 export class AnalyticsService {
+  private readonly logger = new Logger(AnalyticsService.name)
+
   constructor(
     @InjectRepository(Patient)         private patients: Repository<Patient>,
     @InjectRepository(Appointment)     private appointments: Repository<Appointment>,
@@ -17,6 +19,7 @@ export class AnalyticsService {
   ) {}
 
   async getDashboardStats(userId: string) {
+    this.logger.debug(`getDashboardStats userId=${userId}`)
     const now       = new Date()
     const today     = format(now, 'yyyy-MM-dd')
     const monthStart = format(startOfMonth(now), 'yyyy-MM-dd')
@@ -36,8 +39,13 @@ export class AnalyticsService {
       inactivePatients,
     ] = await Promise.all([
 
-      // Conta ativos: exclui pausados/desligados, mas inclui NULL (pacientes legados sem status)
-      this.patients.count({ where: { psychologistId: userId, status: Not(In(['paused', 'discharged'])) } }),
+      // Conta ativos: NULL é tratado como 'active' (pacientes legados sem status definido)
+      // NOT IN não funciona com NULL no PostgreSQL — usar QueryBuilder com IS NULL explícito
+      this.patients
+        .createQueryBuilder('p')
+        .where('p.psychologistId = :userId', { userId })
+        .andWhere("(p.status IS NULL OR p.status NOT IN ('paused', 'discharged'))")
+        .getCount(),
 
       this.appointments
         .createQueryBuilder('a')
@@ -103,6 +111,8 @@ export class AnalyticsService {
         ), '1970-01-01') < :thirtyDaysAgo`, { thirtyDaysAgo })
         .getCount(),
     ])
+
+    this.logger.debug(`dashboard result: activePatients=${activePatients} sessionsMonth=${sessionsThisMonth} pending=${pendingPayments.length}`)
 
     return {
       activePatients,
