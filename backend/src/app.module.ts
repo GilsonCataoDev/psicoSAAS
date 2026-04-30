@@ -36,7 +36,7 @@ import { PlanGuard } from './common/guards/plan.guard'
         url: cfg.get('DATABASE_URL'),
         autoLoadEntities: true,
         synchronize: cfg.get('NODE_ENV') !== 'production' || cfg.get('TYPEORM_SYNC') === 'true',
-        logging: false,
+        logging: ['error'],   // log de erros SQL sempre visível no Railway
       }),
     }),
 
