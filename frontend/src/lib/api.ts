@@ -36,7 +36,7 @@ function processQueue(error: unknown): void {
 
 function redirectToLogin(): void {
   useAuthStore.getState().logout()
-  window.location.href = `${import.meta.env.BASE_URL}login`
+  window.location.href = `${import.meta.env.BASE_URL}#/login`
 }
 
 api.interceptors.response.use(

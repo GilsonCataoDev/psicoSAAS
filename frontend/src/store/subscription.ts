@@ -114,6 +114,9 @@ export const useSubscriptionStore = create<SubscriptionState>()(
     {
       name: 'psicosaas-subscription',
       partialize: (state) => ({ subscription: state.subscription }),
+      onRehydrateStorage: () => (state) => {
+        if (state) state.isLoaded = true
+      },
     },
   ),
 )
