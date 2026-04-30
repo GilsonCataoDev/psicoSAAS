@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { Repository, Not, In } from 'typeorm'
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, subMonths, format } from 'date-fns'
 import { Patient } from '../patients/entities/patient.entity'
 import { Appointment } from '../appointments/entities/appointment.entity'
@@ -36,7 +36,8 @@ export class AnalyticsService {
       inactivePatients,
     ] = await Promise.all([
 
-      this.patients.count({ where: { psychologistId: userId, status: 'active' } }),
+      // Conta ativos: exclui pausados/desligados, mas inclui NULL (pacientes legados sem status)
+      this.patients.count({ where: { psychologistId: userId, status: Not(In(['paused', 'discharged'])) } }),
 
       this.appointments
         .createQueryBuilder('a')
@@ -91,11 +92,11 @@ export class AnalyticsService {
         }),
       ),
 
-      // Pacientes ativos sem sessão completada nos últimos 30 dias
+      // Pacientes ativos (inclui NULL legado) sem sessão completada nos últimos 30 dias
       this.patients
         .createQueryBuilder('p')
         .where('p.psychologistId = :userId', { userId })
-        .andWhere('p.status = :status', { status: 'active' })
+        .andWhere("(p.status NOT IN ('paused', 'discharged') OR p.status IS NULL)")
         .andWhere(`COALESCE((
           SELECT MAX(a.date) FROM appointments a
           WHERE a."patientId" = p.id AND a.status = 'completed'

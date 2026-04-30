@@ -99,7 +99,8 @@ export class PatientsService {
   async create(dto: CreatePatientDto, psychologistId: string): Promise<Patient> {
     await this.checkPatientLimit(psychologistId)
     const encrypted = this.encryptFields(dto)
-    const patient   = this.repo.create({ ...encrypted, psychologistId })
+    // status 'active' definido explicitamente (não depende só do default DB)
+    const patient   = this.repo.create({ status: 'active', ...encrypted, psychologistId })
     return this.dec(await this.repo.save(patient))
   }
 
