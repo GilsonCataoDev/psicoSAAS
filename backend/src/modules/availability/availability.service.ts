@@ -12,11 +12,17 @@ export class AvailabilityService {
   ) {}
 
   findAll(psychologistId: string) {
-    return this.slots.find({ where: { psychologistId, isActive: true }, order: { weekday: 'ASC', startTime: 'ASC' } })
+    return this.slots.find({
+      where: { psychologistId, isActive: true },
+      order: { modality: 'ASC', weekday: 'ASC', startTime: 'ASC' },
+    })
   }
 
-  getSlotsForDay(psychologistId: string, weekday: number) {
-    return this.slots.find({ where: { psychologistId, weekday, isActive: true } })
+  getSlotsForDay(psychologistId: string, weekday: number, modality?: 'presencial' | 'online') {
+    return this.slots.find({
+      where: { psychologistId, weekday, isActive: true, ...(modality ? { modality } : {}) },
+      order: { startTime: 'ASC' },
+    })
   }
 
   async isDateBlocked(psychologistId: string, date: string): Promise<boolean> {
@@ -24,10 +30,10 @@ export class AvailabilityService {
     return !!b
   }
 
-  async saveSlots(psychologistId: string, slotsData: { weekday: number; startTime: string; endTime: string }[]) {
+  async saveSlots(psychologistId: string, slotsData: { weekday: number; startTime: string; endTime: string; modality?: 'presencial' | 'online' }[]) {
     // Remove os existentes e recria
     await this.slots.delete({ psychologistId })
-    const newSlots = slotsData.map(s => this.slots.create({ ...s, psychologistId }))
+    const newSlots = slotsData.map(s => this.slots.create({ ...s, modality: s.modality ?? 'online', psychologistId }))
     return this.slots.save(newSlots)
   }
 

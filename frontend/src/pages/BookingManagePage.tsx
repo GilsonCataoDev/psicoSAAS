@@ -257,6 +257,20 @@ const WEEKDAYS = [
 ]
 
 type DaySlot = { enabled: boolean; startTime: string; endTime: string }
+type BookingModality = 'presencial' | 'online'
+
+const MODALITIES: { key: BookingModality; label: string }[] = [
+  { key: 'presencial', label: 'Presencial' },
+  { key: 'online', label: 'Online' },
+]
+
+function createEmptySchedule(): Record<number, DaySlot> {
+  const base: Record<number, DaySlot> = {}
+  WEEKDAYS.forEach(({ d }) => {
+    base[d] = { enabled: false, startTime: '09:00', endTime: '18:00' }
+  })
+  return base
+}
 
 function BookingSettings({ page }: { page: any }) {
   const saveBookingPage = useSaveBookingPage()
@@ -281,32 +295,47 @@ function BookingSettings({ page }: { page: any }) {
   })
 
   // Horários por dia da semana
-  const [schedule, setSchedule] = useState<Record<number, DaySlot>>(() => {
-    const base: Record<number, DaySlot> = {}
-    WEEKDAYS.forEach(({ d }) => {
-      base[d] = { enabled: false, startTime: '09:00', endTime: '18:00' }
-    })
-    return base
-  })
+  const [scheduleTab, setScheduleTab] = useState<BookingModality>('presencial')
+  const [schedules, setSchedules] = useState<Record<BookingModality, Record<number, DaySlot>>>(() => ({
+    presencial: createEmptySchedule(),
+    online: createEmptySchedule(),
+  }))
 
   // Preenche schedule quando os slots chegam da API
   useEffect(() => {
     if (!savedSlots.length) return
-    const next: Record<number, DaySlot> = {}
-    WEEKDAYS.forEach(({ d }) => {
-      const slot = savedSlots.find(s => s.weekday === d)
-      next[d] = slot
-        ? { enabled: true, startTime: slot.startTime.slice(0, 5), endTime: slot.endTime.slice(0, 5) }
-        : { enabled: false, startTime: '09:00', endTime: '18:00' }
+    const next: Record<BookingModality, Record<number, DaySlot>> = {
+      presencial: createEmptySchedule(),
+      online: createEmptySchedule(),
+    }
+    MODALITIES.forEach(({ key }) => {
+      WEEKDAYS.forEach(({ d }) => {
+        const slot = savedSlots.find(s => s.weekday === d && (s.modality ?? 'online') === key)
+        next[key][d] = slot
+          ? { enabled: true, startTime: slot.startTime.slice(0, 5), endTime: slot.endTime.slice(0, 5) }
+          : { enabled: false, startTime: '09:00', endTime: '18:00' }
+      })
     })
-    setSchedule(next)
+    setSchedules(next)
   }, [savedSlots])
 
   function toggleDay(d: number) {
-    setSchedule(s => ({ ...s, [d]: { ...s[d], enabled: !s[d].enabled } }))
+    setSchedules(s => ({
+      ...s,
+      [scheduleTab]: {
+        ...s[scheduleTab],
+        [d]: { ...s[scheduleTab][d], enabled: !s[scheduleTab][d].enabled },
+      },
+    }))
   }
   function setTime(d: number, field: 'startTime' | 'endTime', val: string) {
-    setSchedule(s => ({ ...s, [d]: { ...s[d], [field]: val } }))
+    setSchedules(s => ({
+      ...s,
+      [scheduleTab]: {
+        ...s[scheduleTab],
+        [d]: { ...s[scheduleTab][d], [field]: val },
+      },
+    }))
   }
 
   async function save() {
@@ -318,9 +347,16 @@ function BookingSettings({ page }: { page: any }) {
       }
       await saveBookingPage.mutateAsync(form)
       // Salva horários de disponibilidade
-      const slots = WEEKDAYS
-        .filter(({ d }) => schedule[d]?.enabled)
-        .map(({ d }) => ({ weekday: d, startTime: schedule[d].startTime, endTime: schedule[d].endTime }))
+      const slots = MODALITIES.flatMap(({ key }) =>
+        WEEKDAYS
+          .filter(({ d }) => schedules[key][d]?.enabled)
+          .map(({ d }) => ({
+            weekday: d,
+            modality: key,
+            startTime: schedules[key][d].startTime,
+            endTime: schedules[key][d].endTime,
+          })),
+      )
       await saveAvailability.mutateAsync(slots)
       toast.success('Configurações salvas ✓')
     } catch {
@@ -348,7 +384,8 @@ function BookingSettings({ page }: { page: any }) {
   const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }))
   const isSaving = saveBookingPage.isPending || saveAvailability.isPending
 
-  const enabledCount = WEEKDAYS.filter(({ d }) => schedule[d]?.enabled).length
+  const currentSchedule = schedules[scheduleTab]
+  const enabledCount = WEEKDAYS.filter(({ d }) => currentSchedule[d]?.enabled).length
 
   return (
     <div className="space-y-5">
@@ -364,9 +401,25 @@ function BookingSettings({ page }: { page: any }) {
         </div>
         <p className="text-xs text-neutral-400">Selecione os dias e defina o início/fim do expediente. Os slots são gerados automaticamente pelo intervalo abaixo.</p>
 
+        <div className="flex gap-1 bg-neutral-100 p-1 rounded-xl">
+          {MODALITIES.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setScheduleTab(key)}
+              className={cn(
+                'flex-1 h-9 rounded-lg text-sm font-medium transition-colors',
+                scheduleTab === key ? 'bg-white text-neutral-800 shadow-sm' : 'text-neutral-500 hover:text-neutral-700',
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         <div className="space-y-2">
           {WEEKDAYS.map(({ d, label }) => {
-            const slot = schedule[d]
+            const slot = currentSchedule[d]
             return (
               <div key={d} className={cn(
                 'flex items-center gap-3 p-3 rounded-xl border transition-all',

@@ -184,7 +184,7 @@ export function useDashboard() {
 // ── Availability ─────────────────────────────────────────────────────────────
 
 export function useAvailability() {
-  return useQuery<{ id: string; weekday: number; startTime: string; endTime: string }[]>({
+  return useQuery<{ id: string; weekday: number; startTime: string; endTime: string; modality?: 'presencial' | 'online' }[]>({
     queryKey: ['availability'],
     queryFn: () => api.get('/availability').then(r => r.data),
   })
@@ -217,7 +217,7 @@ export function useRemoveBlockedDate() {
 export function useSaveAvailability() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (slots: { weekday: number; startTime: string; endTime: string }[]) =>
+    mutationFn: (slots: { weekday: number; startTime: string; endTime: string; modality?: 'presencial' | 'online' }[]) =>
       api.post('/availability/slots', { slots }).then(r => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['availability'] }),
   })
@@ -316,11 +316,11 @@ export function usePublicBookingPage(slug: string) {
   })
 }
 
-export function usePublicBookingSlots(slug: string, date: string | null) {
+export function usePublicBookingSlots(slug: string, date: string | null, modality?: string | null) {
   return useQuery<string[]>({
-    queryKey: ['public-booking-slots', slug, date],
-    queryFn: () => api.get(`/public/booking/${slug}/slots`, { params: { date } }).then(r => r.data),
-    enabled: !!slug && !!date,
+    queryKey: ['public-booking-slots', slug, date, modality],
+    queryFn: () => api.get(`/public/booking/${slug}/slots`, { params: { date, modality } }).then(r => r.data),
+    enabled: !!slug && !!date && !!modality,
   })
 }
 

@@ -11,7 +11,7 @@ export class AvailabilityController {
   getSlots(@Request() req: any) { return this.svc.findAll(req.user.id) }
 
   @Post('slots')
-  saveSlots(@Request() req: any, @Body() body: { slots: { weekday: number; startTime: string; endTime: string }[] }) {
+  saveSlots(@Request() req: any, @Body() body: { slots: { weekday: number; startTime: string; endTime: string; modality?: 'presencial' | 'online' }[] }) {
     return this.svc.saveSlots(req.user.id, body.slots)
   }
 

@@ -24,10 +24,16 @@ let AvailabilityService = class AvailabilityService {
         this.blocked = blocked;
     }
     findAll(psychologistId) {
-        return this.slots.find({ where: { psychologistId, isActive: true }, order: { weekday: 'ASC', startTime: 'ASC' } });
+        return this.slots.find({
+            where: { psychologistId, isActive: true },
+            order: { modality: 'ASC', weekday: 'ASC', startTime: 'ASC' },
+        });
     }
-    getSlotsForDay(psychologistId, weekday) {
-        return this.slots.find({ where: { psychologistId, weekday, isActive: true } });
+    getSlotsForDay(psychologistId, weekday, modality) {
+        return this.slots.find({
+            where: { psychologistId, weekday, isActive: true, ...(modality ? { modality } : {}) },
+            order: { startTime: 'ASC' },
+        });
     }
     async isDateBlocked(psychologistId, date) {
         const b = await this.blocked.findOne({ where: { psychologistId, date } });
@@ -35,7 +41,7 @@ let AvailabilityService = class AvailabilityService {
     }
     async saveSlots(psychologistId, slotsData) {
         await this.slots.delete({ psychologistId });
-        const newSlots = slotsData.map(s => this.slots.create({ ...s, psychologistId }));
+        const newSlots = slotsData.map(s => this.slots.create({ ...s, modality: s.modality ?? 'online', psychologistId }));
         return this.slots.save(newSlots);
     }
     getBlockedDates(psychologistId) {

@@ -111,7 +111,7 @@ export class BookingService {
     }
   }
 
-  async getAvailableSlots(slugOrToken: string, dateStr: string) {
+  async getAvailableSlots(slugOrToken: string, dateStr: string, modality?: 'presencial' | 'online') {
     let page: BookingPage | null = null
     if (/^[0-9a-f]{16}$/.test(slugOrToken)) {
       page = await this.resolveDailyToken(slugOrToken)
@@ -120,11 +120,13 @@ export class BookingService {
       page = await this.pages.findOne({ where: { slug: slugOrToken, isActive: true } })
     }
     if (!page) throw new NotFoundException()
+    if (modality === 'presencial' && !page.allowPresencial) return []
+    if (modality === 'online' && !page.allowOnline) return []
 
     const date = parseISO(dateStr)
     const weekday = getDay(date)
 
-    const slots = await this.availability.getSlotsForDay(page.psychologistId, weekday)
+    const slots = await this.availability.getSlotsForDay(page.psychologistId, weekday, modality)
     if (!slots.length) return []
 
     const isBlocked = await this.availability.isDateBlocked(page.psychologistId, dateStr)
@@ -139,6 +141,7 @@ export class BookingService {
         psychologistId: page.psychologistId,
         date: dateStr,
         status: 'confirmed' as any,
+        ...(modality ? { modality } : {}),
       },
     })
     const occupiedTimes = new Set(existing.map(b => b.time))

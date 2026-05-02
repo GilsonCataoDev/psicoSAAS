@@ -89,7 +89,7 @@ let BookingService = class BookingService {
             specialty: psychologist.specialty,
         };
     }
-    async getAvailableSlots(slugOrToken, dateStr) {
+    async getAvailableSlots(slugOrToken, dateStr, modality) {
         let page = null;
         if (/^[0-9a-f]{16}$/.test(slugOrToken)) {
             page = await this.resolveDailyToken(slugOrToken);
@@ -99,9 +99,13 @@ let BookingService = class BookingService {
         }
         if (!page)
             throw new common_1.NotFoundException();
+        if (modality === 'presencial' && !page.allowPresencial)
+            return [];
+        if (modality === 'online' && !page.allowOnline)
+            return [];
         const date = (0, date_fns_1.parseISO)(dateStr);
         const weekday = (0, date_fns_1.getDay)(date);
-        const slots = await this.availability.getSlotsForDay(page.psychologistId, weekday);
+        const slots = await this.availability.getSlotsForDay(page.psychologistId, weekday, modality);
         if (!slots.length)
             return [];
         const isBlocked = await this.availability.isDateBlocked(page.psychologistId, dateStr);
@@ -116,6 +120,7 @@ let BookingService = class BookingService {
                 psychologistId: page.psychologistId,
                 date: dateStr,
                 status: 'confirmed',
+                ...(modality ? { modality } : {}),
             },
         });
         const occupiedTimes = new Set(existing.map(b => b.time));

@@ -4,6 +4,7 @@ export declare class AvailabilitySlot {
     weekday: number;
     startTime: string;
     endTime: string;
+    modality: 'presencial' | 'online';
     isActive: boolean;
     psychologistId: string;
     psychologist: User;

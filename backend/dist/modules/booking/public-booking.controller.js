@@ -24,8 +24,8 @@ let PublicBookingController = class PublicBookingController {
     getPage(slug) {
         return this.svc.getPublicPage(slug);
     }
-    getSlots(slug, date) {
-        return this.svc.getAvailableSlots(slug, date);
+    getSlots(slug, date, modality) {
+        return this.svc.getAvailableSlots(slug, date, modality);
     }
     createBooking(slug, dto) {
         return this.svc.createBooking(slug, dto);
@@ -51,8 +51,9 @@ __decorate([
     (0, throttler_1.Throttle)({ short: { limit: 30, ttl: 60000 } }),
     __param(0, (0, common_1.Param)('slug')),
     __param(1, (0, common_1.Query)('date')),
+    __param(2, (0, common_1.Query)('modality')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:paramtypes", [String, String, String]),
     __metadata("design:returntype", void 0)
 ], PublicBookingController.prototype, "getSlots", null);
 __decorate([

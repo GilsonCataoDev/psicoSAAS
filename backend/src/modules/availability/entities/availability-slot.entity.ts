@@ -18,6 +18,9 @@ export class AvailabilitySlot {
   @Column({ type: 'time' }) startTime: string   // "09:00"
   @Column({ type: 'time' }) endTime: string     // "18:00"
 
+  @Column({ type: 'varchar', default: 'online' })
+  modality: 'presencial' | 'online'
+
   @Column({ default: true }) isActive: boolean
 
   @Column() psychologistId: string

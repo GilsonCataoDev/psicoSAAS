@@ -37,20 +37,26 @@ export default function BookingPage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedTime, setSelectedTime] = useState<string | null>(null)
 
-  const { data: slots = [], isFetching: slotsLoading } = usePublicBookingSlots(slug ?? '', selectedDate)
-  const createBooking = useCreateBooking(slug ?? '')
-
   const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { modality: 'presencial' },
   })
   const selectedModality = watch('modality')
+  const { data: slots = [], isFetching: slotsLoading } = usePublicBookingSlots(slug ?? '', selectedDate, selectedModality)
+  const createBooking = useCreateBooking(slug ?? '')
 
   useEffect(() => {
     if (!page) return
     if (page.allowOnline && !page.allowPresencial) setValue('modality', 'online')
     if (page.allowPresencial && !page.allowOnline) setValue('modality', 'presencial')
   }, [page, setValue])
+
+  function chooseModality(modality: 'presencial' | 'online') {
+    setValue('modality', modality)
+    setSelectedDate(null)
+    setSelectedTime(null)
+    setStep('date')
+  }
 
   // ─── Calendário ─────────────────────────────────────────────────────────────
   const monthDays = eachDayOfInterval({
@@ -203,6 +209,27 @@ export default function BookingPage() {
             {/* ── Step 1: Calendário ─────────────────────────────────── */}
             {step === 'date' && (
               <div className="bg-white rounded-3xl shadow-card p-6 animate-slide-up">
+                {page.allowPresencial && page.allowOnline && (
+                  <div className="mb-6">
+                    <h2 className="font-medium text-neutral-800 mb-3">Escolha o tipo de atendimento</h2>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(['presencial','online'] as const).map(m => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => chooseModality(m)}
+                          className={cn(
+                            'flex items-center gap-2 p-3 border rounded-xl transition-all text-left',
+                            selectedModality === m ? 'border-sage-400 bg-sage-50 text-sage-700' : 'border-neutral-200 text-neutral-600 hover:bg-neutral-50',
+                          )}
+                        >
+                          {m === 'presencial' ? <MapPin className="w-4 h-4 text-sage-500" /> : <Video className="w-4 h-4 text-mist-500" />}
+                          <span className="text-sm font-medium capitalize">{m}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center justify-between mb-5">
                   <h2 className="font-medium text-neutral-800 capitalize">
                     {format(month, 'MMMM yyyy', { locale: ptBR })}
@@ -316,32 +343,23 @@ export default function BookingPage() {
                     </div>
                   </div>
 
-                  {page.allowPresencial && page.allowOnline ? (
-                    <div>
-                      <label className="label">Modalidade</label>
-                      <div className="grid grid-cols-2 gap-2">
-                        {(['presencial','online'] as const).map(m => (
-                          <label key={m} className="relative cursor-pointer">
-                            <input {...register('modality')} type="radio" value={m} className="sr-only peer" />
-                            <div className="flex items-center gap-2 p-3 border rounded-xl peer-checked:border-sage-400 peer-checked:bg-sage-50 transition-all border-neutral-200">
-                              {m === 'presencial' ? <MapPin className="w-4 h-4 text-sage-500" /> : <Video className="w-4 h-4 text-mist-500" />}
-                              <span className="text-sm font-medium capitalize">{m}</span>
-                            </div>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <label className="label">Modalidade</label>
-                      <div className="flex items-center gap-2 p-3 border border-sage-200 bg-sage-50 rounded-xl text-sm font-medium text-sage-700">
+                  <input {...register('modality')} type="hidden" value={selectedModality} />
+                  <div>
+                    <label className="label">Modalidade</label>
+                    <div className="flex items-center justify-between gap-2 p-3 border border-sage-200 bg-sage-50 rounded-xl text-sm font-medium text-sage-700">
+                      <span className="flex items-center gap-2">
                         {selectedModality === 'presencial'
                           ? <MapPin className="w-4 h-4 text-sage-500" />
                           : <Video className="w-4 h-4 text-mist-500" />}
                         {selectedModality === 'presencial' ? 'Presencial' : 'Online'}
-                      </div>
+                      </span>
+                      {page.allowPresencial && page.allowOnline && (
+                        <button type="button" onClick={() => setStep('date')} className="text-xs text-sage-600 hover:underline">
+                          Trocar
+                        </button>
+                      )}
                     </div>
-                  )}
+                  </div>
 
                   <div>
                     <label className="label">Alguma observação? (opcional)</label>

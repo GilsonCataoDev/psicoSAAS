@@ -46,7 +46,7 @@ export declare class BookingService {
         createdAt: Date;
         updatedAt: Date;
     }>;
-    getAvailableSlots(slugOrToken: string, dateStr: string): Promise<string[]>;
+    getAvailableSlots(slugOrToken: string, dateStr: string, modality?: 'presencial' | 'online'): Promise<string[]>;
     createBooking(slugOrToken: string, dto: CreateBookingDto): Promise<{
         id: string;
         confirmationToken: string;

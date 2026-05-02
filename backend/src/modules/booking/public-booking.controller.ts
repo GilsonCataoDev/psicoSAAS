@@ -26,8 +26,12 @@ export class PublicBookingController {
   /** GET /api/public/booking/:slug/slots?date=2024-12-01 — horários disponíveis */
   @Get(':slug/slots')
   @Throttle({ short: { limit: 30, ttl: 60000 } })
-  getSlots(@Param('slug') slug: string, @Query('date') date: string) {
-    return this.svc.getAvailableSlots(slug, date)
+  getSlots(
+    @Param('slug') slug: string,
+    @Query('date') date: string,
+    @Query('modality') modality?: 'presencial' | 'online',
+  ) {
+    return this.svc.getAvailableSlots(slug, date, modality)
   }
 
   /** POST /api/public/booking/:slug — criar solicitação de agendamento */

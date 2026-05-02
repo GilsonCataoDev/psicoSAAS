@@ -8,6 +8,7 @@ export declare class AvailabilityController {
             weekday: number;
             startTime: string;
             endTime: string;
+            modality?: 'presencial' | 'online';
         }[];
     }): Promise<import("./entities/availability-slot.entity").AvailabilitySlot[]>;
     getBlocked(req: any): Promise<import("./entities/blocked-date.entity").BlockedDate[]>;
