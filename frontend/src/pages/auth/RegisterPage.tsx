@@ -27,9 +27,12 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>
 
+const TERMS_VERSION = '2026-05-02'
+
 export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [crpValue, setCrpValue] = useState('')
+  const [showTerms, setShowTerms] = useState(false)
   const setAuth      = useAuthStore((s) => s.setAuth)
   const setCsrfToken = useAuthStore((s) => s.setCsrfToken)
   const navigate = useNavigate()
@@ -64,6 +67,8 @@ export default function RegisterPage() {
         email: data.email,
         password: data.password,
         crp: data.crp,
+        termsAccepted: data.terms,
+        termsVersion: TERMS_VERSION,
         ...(refCode ? { referralCode: refCode } : {}),
       })
       setAuth(res.data.user)
@@ -198,9 +203,13 @@ export default function RegisterPage() {
           />
           <label htmlFor="terms" className="text-sm text-neutral-500 cursor-pointer">
             Concordo com os{' '}
-            <a href="#" className="text-sage-600 hover:underline">Termos de Uso</a>
+            <button type="button" onClick={(e) => { e.preventDefault(); setShowTerms(true) }} className="text-sage-600 hover:underline">
+              Termos de Uso
+            </button>
             {' '}e{' '}
-            <a href="#" className="text-sage-600 hover:underline">Política de Privacidade</a>
+            <button type="button" onClick={(e) => { e.preventDefault(); setShowTerms(true) }} className="text-sage-600 hover:underline">
+              Politica de Privacidade
+            </button>
           </label>
         </div>
         {errors.terms && <p className="text-rose-500 text-xs">{errors.terms.message}</p>}
@@ -225,6 +234,52 @@ export default function RegisterPage() {
           Entrar
         </Link>
       </p>
+
+      {showTerms && (
+        <div className="fixed inset-0 z-50 bg-black/40 px-4 py-6 flex items-center justify-center">
+          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[85vh] overflow-hidden">
+            <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between gap-4">
+              <div>
+                <h3 className="font-semibold text-neutral-800">Termos de Uso e Politica de Privacidade</h3>
+                <p className="text-xs text-neutral-400">Versao {TERMS_VERSION}</p>
+              </div>
+              <button type="button" onClick={() => setShowTerms(false)} className="text-neutral-400 hover:text-neutral-700 text-sm">
+                Fechar
+              </button>
+            </div>
+            <div className="px-5 py-4 overflow-y-auto max-h-[65vh] text-sm text-neutral-600 space-y-4 leading-relaxed">
+              <p>
+                O PsicoSaaS e uma plataforma para gestao de agenda, pacientes, prontuario, documentos e financeiro por profissionais de psicologia.
+                Ao criar a conta, voce declara que usara a plataforma de acordo com a LGPD, o Codigo de Etica Profissional e as normas aplicaveis do CFP.
+              </p>
+              <p>
+                Tratamos dados de cadastro, dados de uso, dados financeiros e dados clinicos inseridos pelo profissional para executar o servico,
+                manter seguranca, cumprir obrigacoes legais, prevenir abuso e melhorar a plataforma. Dados clinicos pertencem ao profissional/controlador
+                e devem ser cadastrados apenas quando houver base legal adequada.
+              </p>
+              <p>
+                Dados sensiveis do prontuario, sessoes e documentos sao protegidos com criptografia em repouso. Senhas sao armazenadas com hash,
+                tokens de sessao sao protegidos e cookies de autenticacao usam configuracoes HttpOnly. Nenhuma medida elimina todos os riscos,
+                por isso o usuario deve proteger sua senha e encerrar sessoes em dispositivos compartilhados.
+              </p>
+              <p>
+                Podemos compartilhar dados estritamente necessarios com provedores de infraestrutura, e-mail, analytics com mascaramento e pagamento,
+                como Railway, servicos de envio e Asaas, sempre para operar a plataforma. Dados financeiros enviados ao Asaas seguem as regras e
+                politicas do proprio provedor de pagamento.
+              </p>
+              <p>
+                O profissional e responsavel pela veracidade das informacoes, pelo consentimento/base legal dos pacientes, pela configuracao dos
+                links publicos e pela guarda etica dos registros. O titular pode solicitar acesso, correcao ou exclusao quando aplicavel, observadas
+                obrigacoes legais, regulatorias e de preservacao profissional.
+              </p>
+              <p>
+                O servico pode ser suspenso em caso de uso indevido, risco de seguranca, inadimplencia ou violacao destes termos. Alteracoes relevantes
+                destes termos serao versionadas e poderao exigir novo aceite.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -40,6 +40,12 @@ export class User {
   @Column({ nullable: true })
   cpfCnpj?: string
 
+  @Column({ type: 'timestamptz', nullable: true })
+  termsAcceptedAt?: Date
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  termsVersion?: string
+
   @Column({ nullable: true })
   referralCode?: string   // código usado no cadastro
 

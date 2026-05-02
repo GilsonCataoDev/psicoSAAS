@@ -22,6 +22,7 @@ const asaas_service_1 = require("./asaas.service");
 const notifications_service_1 = require("../notifications/notifications.service");
 const user_entity_1 = require("../auth/entities/user.entity");
 const patient_entity_1 = require("../patients/entities/patient.entity");
+const encrypt_util_1 = require("../../common/crypto/encrypt.util");
 let FinancialService = FinancialService_1 = class FinancialService {
     constructor(repo, users, patients, asaas, notifications) {
         this.repo = repo;
@@ -82,7 +83,7 @@ let FinancialService = FinancialService_1 = class FinancialService {
         if (record.psychologistId !== psychologistId)
             throw new common_1.ForbiddenException();
         const user = await this.users.findOneBy({ id: psychologistId });
-        const apiKey = user?.preferences?.asaasApiKey;
+        const apiKey = (0, encrypt_util_1.safeDecryptSecret)(user?.preferences?.asaasApiKey);
         if (!apiKey) {
             throw new common_1.BadRequestException('Configure sua chave Asaas em Configurações → Pagamentos para gerar links de cobrança.');
         }
@@ -119,7 +120,7 @@ let FinancialService = FinancialService_1 = class FinancialService {
         if (record.status === 'paid')
             throw new common_1.BadRequestException('Este lançamento já foi pago.');
         const user = await this.users.findOneBy({ id: psychologistId });
-        const apiKey = user?.preferences?.asaasApiKey;
+        const apiKey = (0, encrypt_util_1.safeDecryptSecret)(user?.preferences?.asaasApiKey);
         if (!apiKey) {
             throw new common_1.BadRequestException('Configure sua chave Asaas em Configurações → Pagamentos para cobrar por cartão.');
         }

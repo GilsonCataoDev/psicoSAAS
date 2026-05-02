@@ -11,6 +11,8 @@ export declare class User {
     onboardingCompleted: boolean;
     phone?: string;
     cpfCnpj?: string;
+    termsAcceptedAt?: Date;
+    termsVersion?: string;
     referralCode?: string;
     resetPasswordToken?: string;
     resetPasswordExpiry?: Date;

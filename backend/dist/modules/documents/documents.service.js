@@ -19,12 +19,14 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const crypto_1 = require("crypto");
 const config_1 = require("@nestjs/config");
+const encrypt_util_1 = require("../../common/crypto/encrypt.util");
 const document_entity_1 = require("./entities/document.entity");
 let DocumentsService = DocumentsService_1 = class DocumentsService {
     constructor(repo, cfg) {
         this.repo = repo;
         this.cfg = cfg;
         this.logger = new common_1.Logger(DocumentsService_1.name);
+        this.encryptedPrefix = 'psicosaas.document.v1:';
         this.signSecret = cfg.getOrThrow('SIGN_SECRET');
     }
     generateSignature(content, userId, timestamp) {
@@ -35,6 +37,17 @@ let DocumentsService = DocumentsService_1 = class DocumentsService {
         const signCode = `PS-${year}-${shortCode}`;
         return { signCode, signHash: fullHash };
     }
+    encryptContent(content) {
+        return `${this.encryptedPrefix}${(0, encrypt_util_1.encrypt)(content)}`;
+    }
+    decryptContent(content) {
+        if (!content.startsWith(this.encryptedPrefix))
+            return (0, encrypt_util_1.safeDecrypt)(content) ?? '';
+        return (0, encrypt_util_1.safeDecrypt)(content.slice(this.encryptedPrefix.length)) ?? '';
+    }
+    exposeDocument(doc) {
+        return { ...doc, content: this.decryptContent(doc.content) };
+    }
     async create(user, dto, signerIp) {
         const timestamp = Date.now();
         const { signCode, signHash } = this.generateSignature(dto.content, user.id, timestamp);
@@ -44,6 +57,7 @@ let DocumentsService = DocumentsService_1 = class DocumentsService {
             : signCode;
         const doc = this.repo.create({
             ...dto,
+            content: this.encryptContent(dto.content),
             userId: user.id,
             signCode: finalCode,
             signHash,
@@ -54,13 +68,14 @@ let DocumentsService = DocumentsService_1 = class DocumentsService {
         });
         const saved = await this.repo.save(doc);
         this.logger.log(`[Documento] Assinado: ${saved.signCode} por ${user.name} (CRP ${user.crp})`);
-        return saved;
+        return this.exposeDocument(saved);
     }
     async findByUser(userId, type) {
         const where = { userId };
         if (type)
             where.type = type;
-        return this.repo.find({ where, order: { createdAt: 'DESC' } });
+        const docs = await this.repo.find({ where, order: { createdAt: 'DESC' } });
+        return docs.map((doc) => this.exposeDocument(doc));
     }
     async remove(id, userId) {
         const doc = await this.repo.findOne({ where: { id } });
@@ -77,7 +92,8 @@ let DocumentsService = DocumentsService_1 = class DocumentsService {
             return { valid: false };
         }
         const timestamp = doc.signedAt.getTime();
-        const data = `${doc.content}:${doc.userId}:${timestamp}`;
+        const content = this.decryptContent(doc.content);
+        const data = `${content}:${doc.userId}:${timestamp}`;
         const recomputedHash = (0, crypto_1.createHmac)('sha256', this.signSecret).update(data).digest('hex');
         const valid = recomputedHash === doc.signHash;
         if (!valid) {

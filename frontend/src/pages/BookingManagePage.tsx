@@ -54,7 +54,9 @@ export default function BookingManagePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const bookingUrl = dailyLink?.url ?? '…'
+  const appBasePath = import.meta.env.BASE_URL || '/'
+  const publicBaseUrl = new URL(appBasePath, window.location.origin).toString().replace(/\/$/, '')
+  const bookingUrl = dailyLink?.token ? `${publicBaseUrl}/agendar/${dailyLink.token}` : dailyLink?.url ?? '...'
 
   function copyLink() {
     navigator.clipboard.writeText(bookingUrl)
@@ -113,7 +115,7 @@ export default function BookingManagePage() {
             <Link2 className="w-4 h-4" />Copiar
           </button>
           {dailyLink?.token && (
-            <a href={`${import.meta.env.BASE_URL}agendar/${dailyLink.token}`} target="_blank" rel="noreferrer"
+            <a href={bookingUrl} target="_blank" rel="noreferrer"
               className="bg-white text-sage-700 hover:bg-sage-50 px-4 py-2 rounded-xl text-sm font-medium transition-colors">
               Visualizar
             </a>

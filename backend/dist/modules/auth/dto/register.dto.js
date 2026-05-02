@@ -55,4 +55,16 @@ __decorate([
     (0, class_transformer_1.Transform)(({ value }) => value?.trim().toUpperCase()),
     __metadata("design:type", String)
 ], RegisterDto.prototype, "referralCode", void 0);
+__decorate([
+    (0, class_validator_1.IsBoolean)(),
+    (0, class_validator_1.Equals)(true, { message: 'E necessario aceitar os Termos de Uso e a Politica de Privacidade' }),
+    __metadata("design:type", Boolean)
+], RegisterDto.prototype, "termsAccepted", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(20),
+    (0, class_transformer_1.Transform)(({ value }) => value?.trim()),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "termsVersion", void 0);
 //# sourceMappingURL=register.dto.js.map

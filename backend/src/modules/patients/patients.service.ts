@@ -4,7 +4,7 @@ import { Repository } from 'typeorm'
 import { Patient } from './entities/patient.entity'
 import { CreatePatientDto } from './dto/create-patient.dto'
 import { UpdatePatientDto } from './dto/update-patient.dto'
-import { Subscription } from '../subscriptions/entities/subscription.entity'
+import { Subscription } from '../billing/entities/subscription.entity'
 import { PLAN_LIMITS } from '../../common/guards/plan.guard'
 import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
 
@@ -96,7 +96,7 @@ export class PatientsService {
   private async checkPatientLimit(userId: string) {
     const sub  = await this.subs.findOne({ where: { userId } })
     const plan = (sub?.status === 'active' || sub?.status === 'trialing')
-      ? (sub.planId as keyof typeof PLAN_LIMITS)
+      ? (sub.plan as keyof typeof PLAN_LIMITS)
       : 'free'
 
     const limit = PLAN_LIMITS[plan]?.maxPatients ?? 2

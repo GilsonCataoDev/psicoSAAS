@@ -20,7 +20,6 @@ import BookingConfirmPage from '@/pages/public/BookingConfirmPage'
 import VerifyDocumentPage from '@/pages/public/VerifyDocumentPage'
 import ProntuarioPage from '@/pages/ProntuarioPage'
 import DocumentosPage from '@/pages/DocumentosPage'
-import PlansPage from '@/pages/PlansPage'
 import PricingPage from '@/pages/PricingPage'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -81,7 +80,7 @@ export default function App() {
         <Route path="sessoes" element={<SessionsPage />} />
         <Route path="financeiro" element={<FinancialPage />} />
         <Route path="configuracoes" element={<SettingsPage />} />
-        <Route path="planos" element={<PlansPage />} />
+        <Route path="planos" element={<PricingPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

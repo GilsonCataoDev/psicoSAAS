@@ -17,7 +17,7 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const patient_entity_1 = require("./entities/patient.entity");
-const subscription_entity_1 = require("../subscriptions/entities/subscription.entity");
+const subscription_entity_1 = require("../billing/entities/subscription.entity");
 const plan_guard_1 = require("../../common/guards/plan.guard");
 const encrypt_util_1 = require("../../common/crypto/encrypt.util");
 let PatientsService = class PatientsService {
@@ -82,7 +82,7 @@ let PatientsService = class PatientsService {
     async checkPatientLimit(userId) {
         const sub = await this.subs.findOne({ where: { userId } });
         const plan = (sub?.status === 'active' || sub?.status === 'trialing')
-            ? sub.planId
+            ? sub.plan
             : 'free';
         const limit = plan_guard_1.PLAN_LIMITS[plan]?.maxPatients ?? 2;
         if (limit === -1)

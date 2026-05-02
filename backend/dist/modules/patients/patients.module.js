@@ -12,7 +12,7 @@ const typeorm_1 = require("@nestjs/typeorm");
 const patients_controller_1 = require("./patients.controller");
 const patients_service_1 = require("./patients.service");
 const patient_entity_1 = require("./entities/patient.entity");
-const subscription_entity_1 = require("../subscriptions/entities/subscription.entity");
+const subscription_entity_1 = require("../billing/entities/subscription.entity");
 let PatientsModule = class PatientsModule {
 };
 exports.PatientsModule = PatientsModule;

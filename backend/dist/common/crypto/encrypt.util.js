@@ -3,6 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.encrypt = encrypt;
 exports.decrypt = decrypt;
 exports.safeDecrypt = safeDecrypt;
+exports.encryptSecret = encryptSecret;
+exports.safeDecryptSecret = safeDecryptSecret;
 exports.hashToken = hashToken;
 exports.generateCsrfToken = generateCsrfToken;
 const crypto_1 = require("crypto");
@@ -10,6 +12,7 @@ const ALG = 'aes-256-gcm';
 const SALT = 'psicosaas-field-enc-v1';
 const IV_LEN = 12;
 const TAG_LEN = 16;
+const SECRET_PREFIX = 'psicosaas.secret.v1:';
 let _key = null;
 function getKey() {
     if (_key)
@@ -55,6 +58,18 @@ function safeDecrypt(value) {
     catch {
         return value;
     }
+}
+function encryptSecret(value) {
+    if (value.startsWith(SECRET_PREFIX))
+        return value;
+    return `${SECRET_PREFIX}${encrypt(value)}`;
+}
+function safeDecryptSecret(value) {
+    if (typeof value !== 'string')
+        return value;
+    if (!value.startsWith(SECRET_PREFIX))
+        return value;
+    return safeDecrypt(value.slice(SECRET_PREFIX.length)) ?? value;
 }
 function hashToken(token) {
     return (0, crypto_1.createHash)('sha256').update(token).digest('hex');

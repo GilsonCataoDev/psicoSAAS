@@ -5,4 +5,6 @@ export declare class RegisterDto {
     password: string;
     specialty?: string;
     referralCode?: string;
+    termsAccepted: boolean;
+    termsVersion?: string;
 }

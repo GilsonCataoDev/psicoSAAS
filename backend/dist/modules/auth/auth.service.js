@@ -13,7 +13,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 var AuthService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AuthService = void 0;
+exports.AuthService = exports.CURRENT_TERMS_VERSION = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
@@ -25,6 +25,7 @@ const user_entity_1 = require("./entities/user.entity");
 const refresh_token_entity_1 = require("./entities/refresh-token.entity");
 const email_service_1 = require("../email/email.service");
 const referral_service_1 = require("../referral/referral.service");
+exports.CURRENT_TERMS_VERSION = '2026-05-02';
 let AuthService = AuthService_1 = class AuthService {
     constructor(users, rtRepo, jwt, email, referral) {
         this.users = users;
@@ -42,9 +43,18 @@ let AuthService = AuthService_1 = class AuthService {
         const exists = await this.users.findOneBy({ email: dto.email.toLowerCase() });
         if (exists)
             throw new common_1.ConflictException('E-mail já cadastrado');
-        const { referralCode, ...userData } = dto;
-        const passwordHash = await bcrypt.hash(userData.password, 12);
-        const user = this.users.create({ ...userData, email: userData.email.toLowerCase(), passwordHash });
+        if (!dto.termsAccepted) {
+            throw new common_1.BadRequestException('E necessario aceitar os Termos de Uso e a Politica de Privacidade');
+        }
+        const { referralCode, password, termsAccepted: _termsAccepted, termsVersion, ...userData } = dto;
+        const passwordHash = await bcrypt.hash(password, 12);
+        const user = this.users.create({
+            ...userData,
+            email: userData.email.toLowerCase(),
+            passwordHash,
+            termsAcceptedAt: new Date(),
+            termsVersion: termsVersion ?? exports.CURRENT_TERMS_VERSION,
+        });
         await this.users.save(user);
         if (referralCode) {
             this.referral.applyReferral(referralCode, user).catch(() => { });
@@ -101,7 +111,10 @@ let AuthService = AuthService_1 = class AuthService {
         this.audit('LOGOUT', { userId, ip });
     }
     async findById(id) {
-        return this.users.findOneBy({ id });
+        const user = await this.users.findOneBy({ id });
+        if (user?.preferences)
+            user.preferences = this.exposePreferences(user.preferences);
+        return user;
     }
     async updateProfile(id, data) {
         const user = await this.users.findOneBy({ id });
@@ -116,9 +129,13 @@ let AuthService = AuthService_1 = class AuthService {
         const user = await this.users.findOneBy({ id });
         if (!user)
             throw new common_1.NotFoundException();
-        user.preferences = { ...(user.preferences ?? {}), ...preferences };
+        const next = { ...(user.preferences ?? {}), ...preferences };
+        if (typeof next.asaasApiKey === 'string' && next.asaasApiKey.trim()) {
+            next.asaasApiKey = (0, encrypt_util_1.encryptSecret)(next.asaasApiKey.trim());
+        }
+        user.preferences = next;
         await this.users.save(user);
-        return user.preferences;
+        return this.exposePreferences(user.preferences);
     }
     async changePassword(id, currentPassword, newPassword) {
         const user = await this.users.findOneBy({ id });
@@ -167,7 +184,15 @@ let AuthService = AuthService_1 = class AuthService {
         const refreshToken = await this.createRefreshToken(user.id, ip, userAgent);
         const csrfToken = (0, encrypt_util_1.generateCsrfToken)(user.id);
         const { passwordHash: _, resetPasswordToken: __, resetPasswordExpiry: ___, ...safeUser } = user;
+        if (safeUser.preferences)
+            safeUser.preferences = this.exposePreferences(safeUser.preferences);
         return { user: safeUser, tokens: { accessToken, refreshToken }, csrfToken };
+    }
+    exposePreferences(preferences) {
+        return {
+            ...preferences,
+            asaasApiKey: (0, encrypt_util_1.safeDecryptSecret)(preferences.asaasApiKey),
+        };
     }
     async createRefreshToken(userId, ip, userAgent) {
         const rawToken = (0, crypto_1.randomBytes)(40).toString('hex');

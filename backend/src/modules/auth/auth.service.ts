@@ -7,7 +7,7 @@ import { Repository } from 'typeorm'
 import { JwtService } from '@nestjs/jwt'
 import * as bcrypt from 'bcryptjs'
 import { randomBytes } from 'crypto'
-import { generateCsrfToken, hashToken } from '../../common/crypto/encrypt.util'
+import { encryptSecret, generateCsrfToken, hashToken, safeDecryptSecret } from '../../common/crypto/encrypt.util'
 import { User }         from './entities/user.entity'
 import { RefreshToken } from './entities/refresh-token.entity'
 import { RegisterDto }          from './dto/register.dto'
@@ -30,6 +30,8 @@ export interface AuthResult {
   tokens:    AuthTokens
   csrfToken: string
 }
+
+export const CURRENT_TERMS_VERSION = '2026-05-02'
 
 // ── Rate limiting por email (brute-force por usuário) ─────────────────────────
 interface LoginAttemptEntry {
@@ -60,10 +62,19 @@ export class AuthService {
   async register(dto: RegisterDto, ip?: string, userAgent?: string): Promise<AuthResult> {
     const exists = await this.users.findOneBy({ email: dto.email.toLowerCase() })
     if (exists) throw new ConflictException('E-mail já cadastrado')
+    if (!dto.termsAccepted) {
+      throw new BadRequestException('E necessario aceitar os Termos de Uso e a Politica de Privacidade')
+    }
 
-    const { referralCode, ...userData } = dto
-    const passwordHash = await bcrypt.hash(userData.password, 12)
-    const user = this.users.create({ ...userData, email: userData.email.toLowerCase(), passwordHash })
+    const { referralCode, password, termsAccepted: _termsAccepted, termsVersion, ...userData } = dto
+    const passwordHash = await bcrypt.hash(password, 12)
+    const user = this.users.create({
+      ...userData,
+      email: userData.email.toLowerCase(),
+      passwordHash,
+      termsAcceptedAt: new Date(),
+      termsVersion: termsVersion ?? CURRENT_TERMS_VERSION,
+    })
     await this.users.save(user)
 
     if (referralCode) {
@@ -160,7 +171,9 @@ export class AuthService {
   // ── Perfil ─────────────────────────────────────────────────────────────────
 
   async findById(id: string): Promise<User | null> {
-    return this.users.findOneBy({ id })
+    const user = await this.users.findOneBy({ id })
+    if (user?.preferences) user.preferences = this.exposePreferences(user.preferences)
+    return user
   }
 
   async updateProfile(id: string, data: UpdateProfileDto): Promise<SafeUser> {
@@ -175,9 +188,13 @@ export class AuthService {
   async updatePreferences(id: string, preferences: UpdatePreferencesDto): Promise<Record<string, unknown>> {
     const user = await this.users.findOneBy({ id })
     if (!user) throw new NotFoundException()
-    user.preferences = { ...(user.preferences ?? {}), ...preferences }
+    const next = { ...(user.preferences ?? {}), ...preferences }
+    if (typeof next.asaasApiKey === 'string' && next.asaasApiKey.trim()) {
+      next.asaasApiKey = encryptSecret(next.asaasApiKey.trim())
+    }
+    user.preferences = next
     await this.users.save(user)
-    return user.preferences!
+    return this.exposePreferences(user.preferences!)
   }
 
   async changePassword(id: string, currentPassword: string, newPassword: string): Promise<{ message: string }> {
@@ -255,8 +272,16 @@ export class AuthService {
     const csrfToken    = generateCsrfToken(user.id)
 
     const { passwordHash: _, resetPasswordToken: __, resetPasswordExpiry: ___, ...safeUser } = user
+    if (safeUser.preferences) safeUser.preferences = this.exposePreferences(safeUser.preferences)
 
     return { user: safeUser as SafeUser, tokens: { accessToken, refreshToken }, csrfToken }
+  }
+
+  private exposePreferences(preferences: Record<string, unknown>): Record<string, unknown> {
+    return {
+      ...preferences,
+      asaasApiKey: safeDecryptSecret(preferences.asaasApiKey),
+    }
   }
 
   private async createRefreshToken(userId: string, ip?: string, userAgent?: string): Promise<string> {

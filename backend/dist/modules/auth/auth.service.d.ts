@@ -19,6 +19,7 @@ export interface AuthResult {
     tokens: AuthTokens;
     csrfToken: string;
 }
+export declare const CURRENT_TERMS_VERSION = "2026-05-02";
 export declare class AuthService {
     private users;
     private rtRepo;
@@ -45,6 +46,7 @@ export declare class AuthService {
     resetPassword(token: string, newPassword: string): Promise<void>;
     generateCsrfToken(userId: string): string;
     private buildResult;
+    private exposePreferences;
     private createRefreshToken;
     private checkLoginRateLimit;
     private recordLoginFailure;

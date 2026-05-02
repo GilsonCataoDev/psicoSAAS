@@ -16,6 +16,7 @@ const ALG    = 'aes-256-gcm' as const
 const SALT   = 'psicosaas-field-enc-v1'
 const IV_LEN = 12   // GCM nonce recomendado
 const TAG_LEN = 16  // tag de autenticação padrão do GCM
+const SECRET_PREFIX = 'psicosaas.secret.v1:'
 
 let _key: Buffer | null = null
 
@@ -80,6 +81,17 @@ export function safeDecrypt(value: string | null | undefined): string | undefine
   }
 }
 
+export function encryptSecret(value: string): string {
+  if (value.startsWith(SECRET_PREFIX)) return value
+  return `${SECRET_PREFIX}${encrypt(value)}`
+}
+
+export function safeDecryptSecret(value: unknown): unknown {
+  if (typeof value !== 'string') return value
+  if (!value.startsWith(SECRET_PREFIX)) return value
+  return safeDecrypt(value.slice(SECRET_PREFIX.length)) ?? value
+}
+
 /**
  * Retorna o SHA-256 hex de um token.
  * Usado para armazenar tokens de reset de senha sem expô-los no banco.
@@ -101,4 +113,3 @@ export function generateCsrfToken(userId: string): string {
   const secret = process.env.JWT_SECRET ?? ''
   return createHmac('sha256', secret).update(`csrf:${userId}`).digest('hex')
 }
-

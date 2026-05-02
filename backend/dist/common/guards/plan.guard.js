@@ -18,12 +18,14 @@ const core_1 = require("@nestjs/core");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const require_plan_decorator_1 = require("../decorators/require-plan.decorator");
-const subscription_entity_1 = require("../../modules/subscriptions/entities/subscription.entity");
-const PLAN_ORDER = { free: 0, essencial: 1, pro: 2 };
+const subscription_entity_1 = require("../../modules/billing/entities/subscription.entity");
+const PLAN_ORDER = { free: 0, basic: 1, essencial: 1, pro: 2, premium: 3 };
 exports.PLAN_LIMITS = {
     free: { maxPatients: 2, maxDocuments: 10 },
+    basic: { maxPatients: 30, maxDocuments: 200 },
     essencial: { maxPatients: 30, maxDocuments: 200 },
     pro: { maxPatients: -1, maxDocuments: -1 },
+    premium: { maxPatients: -1, maxDocuments: -1 },
 };
 let PlanGuard = class PlanGuard {
     constructor(reflector, subs) {
@@ -40,7 +42,7 @@ let PlanGuard = class PlanGuard {
             return false;
         const sub = await this.subs.findOne({ where: { userId } });
         const currentPlan = (sub?.status === 'active' || sub?.status === 'trialing')
-            ? sub.planId
+            ? sub.plan
             : 'free';
         if (PLAN_ORDER[currentPlan] >= PLAN_ORDER[requiredPlan])
             return true;

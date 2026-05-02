@@ -14,8 +14,12 @@ export declare class DocumentsService {
     private cfg;
     private readonly logger;
     private readonly signSecret;
+    private readonly encryptedPrefix;
     constructor(repo: Repository<Document>, cfg: ConfigService);
     private generateSignature;
+    private encryptContent;
+    private decryptContent;
+    private exposeDocument;
     create(user: User, dto: CreateDocumentDto, signerIp?: string): Promise<Document>;
     findByUser(userId: string, type?: DocType): Promise<Document[]>;
     remove(id: string, userId: string): Promise<{

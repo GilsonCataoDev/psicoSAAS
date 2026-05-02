@@ -8,6 +8,7 @@ import { PatientAsaasService } from './asaas.service'
 import { NotificationsService } from '../notifications/notifications.service'
 import { User } from '../auth/entities/user.entity'
 import { Patient } from '../patients/entities/patient.entity'
+import { safeDecryptSecret } from '../../common/crypto/encrypt.util'
 
 @Injectable()
 export class FinancialService {
@@ -85,7 +86,7 @@ export class FinancialService {
     if (record.psychologistId !== psychologistId) throw new ForbiddenException()
 
     const user   = await this.users.findOneBy({ id: psychologistId })
-    const apiKey = (user?.preferences as any)?.asaasApiKey as string | undefined
+    const apiKey = safeDecryptSecret((user?.preferences as any)?.asaasApiKey) as string | undefined
     if (!apiKey) {
       throw new BadRequestException(
         'Configure sua chave Asaas em Configurações → Pagamentos para gerar links de cobrança.',
@@ -154,7 +155,7 @@ export class FinancialService {
     if (record.status === 'paid') throw new BadRequestException('Este lançamento já foi pago.')
 
     const user   = await this.users.findOneBy({ id: psychologistId })
-    const apiKey = (user?.preferences as any)?.asaasApiKey as string | undefined
+    const apiKey = safeDecryptSecret((user?.preferences as any)?.asaasApiKey) as string | undefined
     if (!apiKey) {
       throw new BadRequestException(
         'Configure sua chave Asaas em Configurações → Pagamentos para cobrar por cartão.',

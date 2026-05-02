@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { createHmac, randomBytes } from 'crypto'
 import { ConfigService } from '@nestjs/config'
+import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
 import { Document, DocType } from './entities/document.entity'
 import { User } from '../auth/entities/user.entity'
 
@@ -18,6 +19,7 @@ export interface CreateDocumentDto {
 export class DocumentsService {
   private readonly logger = new Logger(DocumentsService.name)
   private readonly signSecret: string
+  private readonly encryptedPrefix = 'psicosaas.document.v1:'
 
   constructor(
     @InjectRepository(Document) private repo: Repository<Document>,
@@ -46,6 +48,19 @@ export class DocumentsService {
     return { signCode, signHash: fullHash }
   }
 
+  private encryptContent(content: string): string {
+    return `${this.encryptedPrefix}${encrypt(content)}`
+  }
+
+  private decryptContent(content: string): string {
+    if (!content.startsWith(this.encryptedPrefix)) return safeDecrypt(content) ?? ''
+    return safeDecrypt(content.slice(this.encryptedPrefix.length)) ?? ''
+  }
+
+  private exposeDocument(doc: Document): Document {
+    return { ...doc, content: this.decryptContent(doc.content) } as Document
+  }
+
   // ─── Criar e assinar documento ────────────────────────────────────────────
 
   async create(user: User, dto: CreateDocumentDto, signerIp?: string): Promise<Document> {
@@ -60,6 +75,7 @@ export class DocumentsService {
 
     const doc = this.repo.create({
       ...dto,
+      content: this.encryptContent(dto.content),
       userId: user.id,
       signCode: finalCode,
       signHash,
@@ -71,7 +87,7 @@ export class DocumentsService {
 
     const saved = await this.repo.save(doc)
     this.logger.log(`[Documento] Assinado: ${saved.signCode} por ${user.name} (CRP ${user.crp})`)
-    return saved
+    return this.exposeDocument(saved)
   }
 
   // ─── Listar documentos do psicólogo ──────────────────────────────────────
@@ -79,7 +95,8 @@ export class DocumentsService {
   async findByUser(userId: string, type?: DocType): Promise<Document[]> {
     const where: any = { userId }
     if (type) where.type = type
-    return this.repo.find({ where, order: { createdAt: 'DESC' } })
+    const docs = await this.repo.find({ where, order: { createdAt: 'DESC' } })
+    return docs.map((doc) => this.exposeDocument(doc))
   }
 
   // ─── Excluir documento ───────────────────────────────────────────────────
@@ -119,7 +136,8 @@ export class DocumentsService {
 
     // Re-verifica o hash para garantir que o conteúdo não foi adulterado
     const timestamp = doc.signedAt.getTime()
-    const data = `${doc.content}:${doc.userId}:${timestamp}`
+    const content = this.decryptContent(doc.content)
+    const data = `${content}:${doc.userId}:${timestamp}`
     const recomputedHash = createHmac('sha256', this.signSecret).update(data).digest('hex')
     const valid = recomputedHash === doc.signHash
 

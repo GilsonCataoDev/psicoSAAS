@@ -1,4 +1,4 @@
-import { IsEmail, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator'
+import { Equals, IsBoolean, IsEmail, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator'
 import { Transform } from 'class-transformer'
 
 export class RegisterDto {
@@ -42,4 +42,14 @@ export class RegisterDto {
   @MaxLength(20)
   @Transform(({ value }) => value?.trim().toUpperCase())
   referralCode?: string
+
+  @IsBoolean()
+  @Equals(true, { message: 'E necessario aceitar os Termos de Uso e a Politica de Privacidade' })
+  termsAccepted: boolean
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  @Transform(({ value }) => value?.trim())
+  termsVersion?: string
 }

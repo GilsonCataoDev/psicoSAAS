@@ -2,7 +2,7 @@ import { Repository } from 'typeorm';
 import { Patient } from './entities/patient.entity';
 import { CreatePatientDto } from './dto/create-patient.dto';
 import { UpdatePatientDto } from './dto/update-patient.dto';
-import { Subscription } from '../subscriptions/entities/subscription.entity';
+import { Subscription } from '../billing/entities/subscription.entity';
 export declare class PatientsService {
     private repo;
     private subs;
