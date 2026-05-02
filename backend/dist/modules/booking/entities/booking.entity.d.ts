@@ -7,6 +7,7 @@ export declare class Booking {
     date: string;
     time: string;
     duration: number;
+    modality: 'presencial' | 'online';
     status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no_show';
     confirmationToken: string;
     tokenExpiresAt: Date;

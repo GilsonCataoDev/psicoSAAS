@@ -4,11 +4,11 @@ export declare class BookingController {
     private svc;
     constructor(svc: BookingService);
     getMyBookings(req: any, status?: string): Promise<import("./entities/booking.entity").Booking[]>;
-    getDailyLink(req: any): {
+    getDailyLink(req: any): Promise<{
         token: string;
         url: string;
         expiresAt: string;
-    };
+    }>;
     confirm(id: string, req: any): Promise<import("./entities/booking.entity").Booking>;
     reject(id: string, req: any, reason?: string): Promise<import("./entities/booking.entity").Booking>;
     markPaid(id: string, req: any, method: string): Promise<import("./entities/booking.entity").Booking>;

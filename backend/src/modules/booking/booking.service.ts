@@ -176,6 +176,12 @@ export class BookingService {
       })
     }
     if (!page) throw new NotFoundException()
+    if (dto.modality === 'presencial' && !page.allowPresencial) {
+      throw new BadRequestException('Atendimento presencial indisponivel')
+    }
+    if (dto.modality === 'online' && !page.allowOnline) {
+      throw new BadRequestException('Atendimento online indisponivel')
+    }
 
     // Recarregar com relations se necessário
     if (!page.psychologist) {
@@ -200,6 +206,7 @@ export class BookingService {
 
     const booking = this.bookings.create({
       ...dto,
+      modality: dto.modality ?? (page.allowOnline ? 'online' : 'presencial'),
       psychologistId: page.psychologistId,
       duration: page.sessionDuration,
       amount: page.sessionPrice,
@@ -451,7 +458,7 @@ export class BookingService {
         duration:       booking.duration,
         patientId:      patient.id,
         psychologistId,
-        modality:       'online',
+        modality:       booking.modality ?? 'online',
         status:         'scheduled',
         notes:          booking.patientNotes || undefined,
       }),

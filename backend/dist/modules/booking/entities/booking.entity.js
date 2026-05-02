@@ -44,6 +44,10 @@ __decorate([
     __metadata("design:type", Number)
 ], Booking.prototype, "duration", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', default: 'online' }),
+    __metadata("design:type", String)
+], Booking.prototype, "modality", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: 'text', default: 'pending' }),
     __metadata("design:type", String)
 ], Booking.prototype, "status", void 0);

@@ -24,7 +24,8 @@ let BookingController = class BookingController {
     getMyBookings(req, status) {
         return this.svc.getMyBookings(req.user.id, status);
     }
-    getDailyLink(req) {
+    async getDailyLink(req) {
+        await this.svc.getMyPage(req.user.id);
         const baseUrl = process.env.FRONTEND_URL ?? 'https://gilsoncataodev.github.io/psicoSAAS';
         return this.svc.getDailyLink(req.user.id, baseUrl);
     }
@@ -61,7 +62,7 @@ __decorate([
     __param(0, (0, common_1.Request)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], BookingController.prototype, "getDailyLink", null);
 __decorate([
     (0, common_1.Patch)(':id/confirm'),

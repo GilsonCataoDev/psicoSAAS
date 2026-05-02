@@ -149,6 +149,12 @@ let BookingService = class BookingService {
         }
         if (!page)
             throw new common_1.NotFoundException();
+        if (dto.modality === 'presencial' && !page.allowPresencial) {
+            throw new common_1.BadRequestException('Atendimento presencial indisponivel');
+        }
+        if (dto.modality === 'online' && !page.allowOnline) {
+            throw new common_1.BadRequestException('Atendimento online indisponivel');
+        }
         if (!page.psychologist) {
             page = await this.pages.findOne({
                 where: { id: page.id },
@@ -169,6 +175,7 @@ let BookingService = class BookingService {
         const tokenExpiresAt = (0, date_fns_1.addDays)(new Date(), 2);
         const booking = this.bookings.create({
             ...dto,
+            modality: dto.modality ?? (page.allowOnline ? 'online' : 'presencial'),
             psychologistId: page.psychologistId,
             duration: page.sessionDuration,
             amount: page.sessionPrice,
@@ -365,7 +372,7 @@ let BookingService = class BookingService {
             duration: booking.duration,
             patientId: patient.id,
             psychologistId,
-            modality: 'online',
+            modality: booking.modality ?? 'online',
             status: 'scheduled',
             notes: booking.patientNotes || undefined,
         }));

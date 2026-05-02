@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -40,10 +40,17 @@ export default function BookingPage() {
   const { data: slots = [], isFetching: slotsLoading } = usePublicBookingSlots(slug ?? '', selectedDate)
   const createBooking = useCreateBooking(slug ?? '')
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { modality: 'presencial' },
   })
+  const selectedModality = watch('modality')
+
+  useEffect(() => {
+    if (!page) return
+    if (page.allowOnline && !page.allowPresencial) setValue('modality', 'online')
+    if (page.allowPresencial && !page.allowOnline) setValue('modality', 'presencial')
+  }, [page, setValue])
 
   // ─── Calendário ─────────────────────────────────────────────────────────────
   const monthDays = eachDayOfInterval({
@@ -309,7 +316,7 @@ export default function BookingPage() {
                     </div>
                   </div>
 
-                  {page.allowPresencial && page.allowOnline && (
+                  {page.allowPresencial && page.allowOnline ? (
                     <div>
                       <label className="label">Modalidade</label>
                       <div className="grid grid-cols-2 gap-2">
@@ -322,6 +329,16 @@ export default function BookingPage() {
                             </div>
                           </label>
                         ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="label">Modalidade</label>
+                      <div className="flex items-center gap-2 p-3 border border-sage-200 bg-sage-50 rounded-xl text-sm font-medium text-sage-700">
+                        {selectedModality === 'presencial'
+                          ? <MapPin className="w-4 h-4 text-sage-500" />
+                          : <Video className="w-4 h-4 text-mist-500" />}
+                        {selectedModality === 'presencial' ? 'Presencial' : 'Online'}
                       </div>
                     </div>
                   )}

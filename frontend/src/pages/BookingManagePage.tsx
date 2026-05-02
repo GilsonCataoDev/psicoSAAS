@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Link2, Check, X, Wallet, Settings, Clock, RefreshCw } from 'lucide-react'
+import { Link2, Check, X, Wallet, Settings, Clock, RefreshCw, Trash2 } from 'lucide-react'
 import { formatCurrency, formatDateRelative } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
@@ -8,7 +8,7 @@ import {
   useBookings, useBookingPage, useSaveBookingPage,
   useConfirmBooking, useRejectBooking, usePayBooking,
   useDailyBookingLink, useAvailability, useSaveAvailability,
-  useSyncBookingAppointments,
+  useSyncBookingAppointments, useBlockedDates, useAddBlockedDate, useRemoveBlockedDate,
 } from '@/hooks/useApi'
 
 const STATUS_CONFIG = {
@@ -56,7 +56,7 @@ export default function BookingManagePage() {
 
   const appBasePath = import.meta.env.BASE_URL || '/'
   const publicBaseUrl = new URL(appBasePath, window.location.origin).toString().replace(/\/$/, '')
-  const bookingUrl = dailyLink?.token ? `${publicBaseUrl}/agendar/${dailyLink.token}` : dailyLink?.url ?? '...'
+  const bookingUrl = dailyLink?.token ? `${publicBaseUrl}/#/agendar/${dailyLink.token}` : dailyLink?.url ?? '...'
 
   function copyLink() {
     navigator.clipboard.writeText(bookingUrl)
@@ -262,6 +262,10 @@ function BookingSettings({ page }: { page: any }) {
   const saveBookingPage = useSaveBookingPage()
   const { data: savedSlots = [] } = useAvailability()
   const saveAvailability = useSaveAvailability()
+  const { data: blockedDates = [] } = useBlockedDates()
+  const addBlockedDate = useAddBlockedDate()
+  const removeBlockedDate = useRemoveBlockedDate()
+  const [blockedForm, setBlockedForm] = useState({ date: '', reason: '' })
 
   const [form, setForm] = useState({
     title:               page?.title ?? 'Agende sua sessão',
@@ -308,6 +312,10 @@ function BookingSettings({ page }: { page: any }) {
   async function save() {
     try {
       // Salva configurações gerais
+      if (!form.allowPresencial && !form.allowOnline) {
+        toast.error('Ative pelo menos uma modalidade.')
+        return
+      }
       await saveBookingPage.mutateAsync(form)
       // Salva horários de disponibilidade
       const slots = WEEKDAYS
@@ -317,6 +325,23 @@ function BookingSettings({ page }: { page: any }) {
       toast.success('Configurações salvas ✓')
     } catch {
       toast.error('Erro ao salvar. Tente novamente.')
+    }
+  }
+
+  async function blockDate() {
+    if (!blockedForm.date) {
+      toast.error('Escolha uma data para bloquear.')
+      return
+    }
+    try {
+      await addBlockedDate.mutateAsync({
+        date: blockedForm.date,
+        reason: blockedForm.reason.trim() || undefined,
+      })
+      setBlockedForm({ date: '', reason: '' })
+      toast.success('Data bloqueada.')
+    } catch {
+      toast.error('Erro ao bloquear data.')
     }
   }
 
@@ -412,6 +437,81 @@ function BookingSettings({ page }: { page: any }) {
       </div>
 
       {/* ── Pagamento ───────────────────────────────── */}
+      <div className="card space-y-4">
+        <h2 className="section-title">Modalidades</h2>
+        <div>
+          <label className="label">Modalidades aceitas no link publico</label>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { key: 'allowPresencial', label: 'Presencial' },
+              { key: 'allowOnline', label: 'Online' },
+            ].map((item) => {
+              const checked = Boolean((form as any)[item.key])
+              return (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => set(item.key, !checked)}
+                  className={cn(
+                    'h-11 rounded-xl border text-sm font-medium transition-colors',
+                    checked ? 'border-sage-300 bg-sage-50 text-sage-700' : 'border-neutral-200 bg-white text-neutral-500',
+                  )}
+                >
+                  {item.label}
+                </button>
+              )
+            })}
+          </div>
+          {!form.allowPresencial && !form.allowOnline && (
+            <p className="text-xs text-rose-500 mt-1">Ative pelo menos uma modalidade para receber agendamentos.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="card space-y-4">
+        <h2 className="section-title">Datas bloqueadas</h2>
+        <p className="text-xs text-neutral-400">Ferias, feriados e dias sem atendimento nao aparecem como disponiveis no link publico.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-[160px_1fr_auto] gap-3">
+          <input
+            type="date"
+            value={blockedForm.date}
+            onChange={e => setBlockedForm(f => ({ ...f, date: e.target.value }))}
+            className="input-field"
+          />
+          <input
+            value={blockedForm.reason}
+            onChange={e => setBlockedForm(f => ({ ...f, reason: e.target.value }))}
+            className="input-field"
+            placeholder="Motivo opcional"
+          />
+          <button type="button" onClick={blockDate} className="btn-secondary text-sm">
+            Bloquear
+          </button>
+        </div>
+        <div className="space-y-2">
+          {blockedDates.length === 0 ? (
+            <p className="text-sm text-neutral-400 py-2">Nenhuma data bloqueada.</p>
+          ) : blockedDates.map((blocked) => (
+            <div key={blocked.id} className="flex items-center justify-between gap-3 rounded-xl border border-neutral-100 px-3 py-2">
+              <div>
+                <p className="text-sm font-medium text-neutral-700">
+                  {new Date(`${blocked.date}T00:00:00`).toLocaleDateString('pt-BR')}
+                </p>
+                {blocked.reason && <p className="text-xs text-neutral-400">{blocked.reason}</p>}
+              </div>
+              <button
+                type="button"
+                onClick={() => removeBlockedDate.mutateAsync(blocked.id)}
+                className="p-2 rounded-lg text-neutral-400 hover:text-rose-600 hover:bg-rose-50"
+                title="Remover bloqueio"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="card space-y-4">
         <h2 className="section-title">Pagamento</h2>
         <div>

@@ -21,6 +21,7 @@ export class Booking {
   @Column({ type: 'date' }) date: string
   @Column({ type: 'time' }) time: string
   @Column({ default: 50 }) duration: number
+  @Column({ type: 'varchar', default: 'online' }) modality: 'presencial' | 'online'
 
   @Column({ type: 'text', default: 'pending' })
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no_show'

@@ -190,6 +190,30 @@ export function useAvailability() {
   })
 }
 
+export function useBlockedDates() {
+  return useQuery<{ id: string; date: string; reason?: string }[]>({
+    queryKey: ['blocked-dates'],
+    queryFn: () => api.get('/availability/blocked').then(r => r.data),
+  })
+}
+
+export function useAddBlockedDate() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: { date: string; reason?: string }) =>
+      api.post('/availability/blocked', data).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['blocked-dates'] }),
+  })
+}
+
+export function useRemoveBlockedDate() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/availability/blocked/${id}`).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['blocked-dates'] }),
+  })
+}
+
 export function useSaveAvailability() {
   const qc = useQueryClient()
   return useMutation({

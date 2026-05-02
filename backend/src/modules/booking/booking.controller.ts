@@ -21,7 +21,8 @@ export class BookingController {
 
   /** Link diário rotativo — gera token válido por 24h (renova à meia-noite UTC) */
   @Get('daily-link')
-  getDailyLink(@Request() req: any) {
+  async getDailyLink(@Request() req: any) {
+    await this.svc.getMyPage(req.user.id)
     const baseUrl = process.env.FRONTEND_URL ?? 'https://gilsoncataodev.github.io/psicoSAAS'
     return this.svc.getDailyLink(req.user.id, baseUrl)
   }
