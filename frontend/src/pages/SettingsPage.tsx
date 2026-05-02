@@ -153,13 +153,32 @@ export default function SettingsPage() {
   }
 
   // ── Plano ──────────────────────────────────────────────────────────────────
-  const { subscription } = useSubscriptionStore()
+  const { subscription, setSubscription } = useSubscriptionStore()
   const navigate = useNavigate()
+  const [cancelingPlan, setCancelingPlan] = useState(false)
   const currentPlan  = PLANS.find(p => p.id === subscription.planId)
   const isTrialing   = subscription.status === 'trialing'
   const daysLeft     = subscription.trialEndsAt
     ? Math.max(0, Math.ceil((new Date(subscription.trialEndsAt).getTime() - Date.now()) / 86400000))
     : null
+
+  async function cancelPlan() {
+    const ok = window.confirm(
+      'Cancelar sua assinatura? Voce nao sera cobrado novamente. Se houver periodo pago ativo, o acesso continua ate o fim dele.',
+    )
+    if (!ok) return
+
+    setCancelingPlan(true)
+    try {
+      const { data } = await api.post('/billing/cancel')
+      setSubscription(data)
+      toast.success(data.cancelAtPeriodEnd ? 'Plano cancelado. Acesso mantido ate o fim do periodo.' : 'Plano cancelado.')
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? 'Erro ao cancelar assinatura.')
+    } finally {
+      setCancelingPlan(false)
+    }
+  }
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -438,7 +457,8 @@ export default function SettingsPage() {
                       )}
                       {subscription.status === 'active' && subscription.currentPeriodEnd && (
                         <p className="text-sm text-neutral-500 mt-0.5">
-                          Renova em {new Date(subscription.currentPeriodEnd).toLocaleDateString('pt-BR')}
+                          {subscription.cancelAtPeriodEnd ? 'Acesso ate ' : 'Renova em '}
+                          {new Date(subscription.currentPeriodEnd).toLocaleDateString('pt-BR')}
                         </p>
                       )}
                     </div>
@@ -469,16 +489,33 @@ export default function SettingsPage() {
                   ))}
                 </ul>
               </div>
-              {subscription.status === 'active' && !subscription.cancelAtPeriodEnd && (
+              {subscription.status === 'active' && (
                 <div className="card border-rose-100">
-                  <h2 className="section-title text-neutral-600">Cancelamento</h2>
-                  <p className="text-sm text-neutral-500 mt-1">
-                    Ao cancelar, você continua com acesso até o fim do período pago. Seus dados ficam seguros por 90 dias.
-                  </p>
-                  <button className="mt-3 text-sm text-rose-500 hover:text-rose-600 flex items-center gap-1 transition-colors"
-                    onClick={() => toast('Entre em contato pelo suporte para cancelar a assinatura.')}>
-                    <X className="w-3.5 h-3.5" />Cancelar assinatura
-                  </button>
+                  <h2 className="section-title text-neutral-600">
+                    {subscription.cancelAtPeriodEnd ? 'Cancelamento agendado' : 'Cancelamento'}
+                  </h2>
+                  {subscription.cancelAtPeriodEnd ? (
+                    <p className="text-sm text-neutral-500 mt-1">
+                      Sua assinatura nao sera renovada. O acesso continua ate{' '}
+                      {subscription.currentPeriodEnd
+                        ? new Date(subscription.currentPeriodEnd).toLocaleDateString('pt-BR')
+                        : 'o fim do periodo atual'}.
+                    </p>
+                  ) : (
+                    <>
+                      <p className="text-sm text-neutral-500 mt-1">
+                        Ao cancelar, voce continua com acesso ate o fim do periodo pago. Seus dados ficam seguros por 90 dias.
+                      </p>
+                      <button
+                        className="mt-3 text-sm text-rose-500 hover:text-rose-600 flex items-center gap-1 transition-colors disabled:opacity-60"
+                        onClick={cancelPlan}
+                        disabled={cancelingPlan}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        {cancelingPlan ? 'Cancelando...' : 'Cancelar assinatura'}
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>

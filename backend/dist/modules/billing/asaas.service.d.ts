@@ -22,6 +22,7 @@ export declare class AsaasService {
     tokenizeCreditCard(user: User, input: TokenizeCreditCardInput): Promise<string>;
     createSubscription(customerId: string, plan: string, externalReference: string, creditCardToken: string, nextDueDate?: string): Promise<string>;
     updateSubscriptionCreditCard(subscriptionId: string, creditCardToken: string): Promise<void>;
+    cancelSubscription(subscriptionId: string): Promise<void>;
     retryLatestSubscriptionPayment(subscriptionId: string, creditCardToken: string): Promise<void>;
     addDays(days: number): string;
     private validateCreditCardInput;

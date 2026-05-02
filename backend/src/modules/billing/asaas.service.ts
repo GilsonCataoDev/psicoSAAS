@@ -147,6 +147,18 @@ export class AsaasService {
     }
   }
 
+  async cancelSubscription(subscriptionId: string): Promise<void> {
+    try {
+      await this.api.delete(`/subscriptions/${subscriptionId}`)
+      this.logger.log(`[Asaas] Assinatura cancelada: ${subscriptionId}`)
+    } catch (err: any) {
+      this.logger.warn('[Asaas] Falha ao cancelar assinatura', err?.response?.data ?? err)
+      throw new BadRequestException(
+        err?.response?.data?.errors?.[0]?.description ?? 'Nao foi possivel cancelar a assinatura',
+      )
+    }
+  }
+
   async retryLatestSubscriptionPayment(subscriptionId: string, creditCardToken: string): Promise<void> {
     try {
       const { data } = await this.api.get(`/subscriptions/${subscriptionId}/payments`, {

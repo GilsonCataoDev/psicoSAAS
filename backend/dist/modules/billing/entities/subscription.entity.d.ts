@@ -10,6 +10,7 @@ export declare class Subscription {
     gatewaySubscriptionId?: string;
     currentPeriodEnd?: Date;
     trialEndsAt?: Date | null;
+    cancelAtPeriodEnd: boolean;
     hasUsedTrial: boolean;
     createdAt: Date;
 }

@@ -65,6 +65,7 @@ let BillingWebhookService = BillingWebhookService_1 = class BillingWebhookServic
             case 'PAYMENT_CONFIRMED':
                 subscription.status = 'active';
                 subscription.trialEndsAt = null;
+                subscription.cancelAtPeriodEnd = false;
                 subscription.currentPeriodEnd = this.getCurrentPeriodEnd(payload);
                 break;
             case 'PAYMENT_OVERDUE':
@@ -77,6 +78,7 @@ let BillingWebhookService = BillingWebhookService_1 = class BillingWebhookServic
             case 'SUBSCRIPTION_CANCELLED':
             case 'SUBSCRIPTION_DELETED':
                 subscription.status = 'canceled';
+                subscription.cancelAtPeriodEnd = false;
                 break;
             default:
                 this.logger.log(`[Asaas webhook] Evento ignorado event=${eventType}`);

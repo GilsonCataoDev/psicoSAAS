@@ -12,6 +12,7 @@ export declare class BillingController {
     }>;
     subscribe(req: any, plan?: string, creditCardToken?: string): Promise<import("./entities/subscription.entity").Subscription>;
     updateCard(req: any, creditCardToken?: string): Promise<import("./entities/subscription.entity").Subscription>;
+    cancel(req: any): Promise<import("./entities/subscription.entity").Subscription>;
     metrics(): Promise<{
         active: number;
         trialing: number;
@@ -20,7 +21,7 @@ export declare class BillingController {
         mrr: number;
     }>;
     me(req: any): Promise<import("./entities/subscription.entity").Subscription | {
-        status: "none";
+        status: string;
     }>;
     webhook(headers: Record<string, any>, body: any): {
         received: boolean;

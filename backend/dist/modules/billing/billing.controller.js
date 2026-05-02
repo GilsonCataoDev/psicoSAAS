@@ -52,6 +52,9 @@ let BillingController = BillingController_1 = class BillingController {
     updateCard(req, creditCardToken) {
         return this.billing.updateCard(req.user.id, creditCardToken);
     }
+    cancel(req) {
+        return this.billing.cancel(req.user.id);
+    }
     metrics() {
         return this.billing.getMetrics();
     }
@@ -98,6 +101,14 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
 ], BillingController.prototype, "updateCard", null);
+__decorate([
+    (0, common_1.Post)('cancel'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], BillingController.prototype, "cancel", null);
 __decorate([
     (0, common_1.Get)('metrics'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

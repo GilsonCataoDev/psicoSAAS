@@ -47,6 +47,9 @@ export class Subscription {
   trialEndsAt?: Date | null
 
   @Column({ type: 'boolean', default: false })
+  cancelAtPeriodEnd: boolean
+
+  @Column({ type: 'boolean', default: false })
   hasUsedTrial: boolean
 
   @CreateDateColumn({ type: 'timestamptz' })

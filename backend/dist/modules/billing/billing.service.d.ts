@@ -7,10 +7,11 @@ export declare class BillingService {
     private readonly asaas;
     constructor(repo: Repository<Subscription>, asaas: AsaasService);
     getMine(userId: string): Promise<Subscription | {
-        status: "none";
+        status: string;
     }>;
     subscribe(user: User, plan?: string, creditCardToken?: string): Promise<Subscription>;
     updateCard(userId: string, creditCardToken?: string): Promise<Subscription>;
+    cancel(userId: string): Promise<Subscription>;
     getMetrics(): Promise<{
         active: number;
         trialing: number;

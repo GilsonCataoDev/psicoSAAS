@@ -9,6 +9,8 @@ export declare class PatientsService {
     constructor(repo: Repository<Patient>, subs: Repository<Subscription>);
     private encryptFields;
     private dec;
+    private encryptProntuario;
+    private decryptProntuario;
     private findRaw;
     private checkPatientLimit;
     findAll(psychologistId: string): Promise<Patient[]>;

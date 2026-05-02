@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable } from '@nestjs/common'
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { In, Repository } from 'typeorm'
 import { User } from '../auth/entities/user.entity'
@@ -19,7 +19,19 @@ export class BillingService {
       order: { createdAt: 'DESC' },
     })
 
-    return subscription ?? { status: 'none' }
+    if (!subscription) return { status: 'none' }
+
+    if (
+      subscription.cancelAtPeriodEnd
+      && subscription.currentPeriodEnd
+      && new Date(subscription.currentPeriodEnd).getTime() <= Date.now()
+    ) {
+      subscription.status = 'canceled'
+      subscription.cancelAtPeriodEnd = false
+      return this.repo.save(subscription)
+    }
+
+    return subscription
   }
 
   async subscribe(user: User, plan = 'pro', creditCardToken?: string) {
@@ -90,6 +102,34 @@ export class BillingService {
       await this.asaas.retryLatestSubscriptionPayment(subscription.gatewaySubscriptionId, creditCardToken)
     }
 
+    return this.repo.save(subscription)
+  }
+
+  async cancel(userId: string) {
+    const subscription = await this.repo.findOne({
+      where: { userId, status: In(['active', 'trialing', 'past_due']) },
+      order: { createdAt: 'DESC' },
+    })
+
+    if (!subscription) throw new NotFoundException('Assinatura ativa nao encontrada')
+
+    if (subscription.gatewaySubscriptionId) {
+      await this.asaas.cancelSubscription(subscription.gatewaySubscriptionId)
+    }
+
+    const periodEnd = subscription.currentPeriodEnd
+      ? new Date(subscription.currentPeriodEnd)
+      : null
+
+    if (subscription.status === 'active' && periodEnd && periodEnd.getTime() > Date.now()) {
+      subscription.cancelAtPeriodEnd = true
+      return this.repo.save(subscription)
+    }
+
+    subscription.status = 'canceled'
+    subscription.cancelAtPeriodEnd = false
+    subscription.currentPeriodEnd = new Date()
+    subscription.trialEndsAt = null
     return this.repo.save(subscription)
   }
 

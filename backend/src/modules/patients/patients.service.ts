@@ -8,6 +8,11 @@ import { Subscription } from '../subscriptions/entities/subscription.entity'
 import { PLAN_LIMITS } from '../../common/guards/plan.guard'
 import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
 
+type EncryptedProntuario = {
+  __encrypted: 'psicosaas.prontuario.v1'
+  data: string
+}
+
 @Injectable()
 export class PatientsService {
   constructor(
@@ -21,9 +26,11 @@ export class PatientsService {
    * Retorna uma cópia do DTO com privateNotes criptografadas.
    * Campos ausentes não são modificados.
    */
-  private encryptFields<T extends { privateNotes?: string }>(dto: T): T {
-    if (!dto.privateNotes) return dto
-    return { ...dto, privateNotes: encrypt(dto.privateNotes) }
+  private encryptFields<T extends { privateNotes?: string; prontuario?: Record<string, any> }>(dto: T): T {
+    const encrypted: any = { ...dto }
+    if (dto.privateNotes) encrypted.privateNotes = encrypt(dto.privateNotes)
+    if (dto.prontuario) encrypted.prontuario = this.encryptProntuario(dto.prontuario)
+    return encrypted
   }
 
   /**
@@ -34,6 +41,7 @@ export class PatientsService {
     const p: any = { ...patient }
 
     if (p.privateNotes) p.privateNotes = safeDecrypt(p.privateNotes)
+    if (p.prontuario) p.prontuario = this.decryptProntuario(p.prontuario)
 
     // Descriptografa anotações das sessões se foram carregadas via relação
     if (p.sessions?.length) {
@@ -46,6 +54,29 @@ export class PatientsService {
     }
 
     return p as Patient
+  }
+
+  private encryptProntuario(value: Record<string, any>): EncryptedProntuario {
+    return {
+      __encrypted: 'psicosaas.prontuario.v1',
+      data: encrypt(JSON.stringify(value)),
+    }
+  }
+
+  private decryptProntuario(value: Record<string, any>): Record<string, any> {
+    if (
+      value
+      && value.__encrypted === 'psicosaas.prontuario.v1'
+      && typeof value.data === 'string'
+    ) {
+      try {
+        return JSON.parse(safeDecrypt(value.data) ?? '{}')
+      } catch {
+        return {}
+      }
+    }
+
+    return value
   }
 
   // ─── Finder interno (entidade bruta para saves) ──────────────────────────────

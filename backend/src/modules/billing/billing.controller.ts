@@ -55,6 +55,12 @@ export class BillingController {
     return this.billing.updateCard(req.user.id, creditCardToken)
   }
 
+  @Post('cancel')
+  @UseGuards(JwtAuthGuard)
+  cancel(@Request() req: any) {
+    return this.billing.cancel(req.user.id)
+  }
+
   @Get('metrics')
   @UseGuards(JwtAuthGuard)
   metrics() {

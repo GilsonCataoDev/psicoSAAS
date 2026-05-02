@@ -122,6 +122,16 @@ let AsaasService = AsaasService_1 = class AsaasService {
             throw new common_1.BadRequestException(err?.response?.data?.errors?.[0]?.description ?? 'Nao foi possivel atualizar o cartao');
         }
     }
+    async cancelSubscription(subscriptionId) {
+        try {
+            await this.api.delete(`/subscriptions/${subscriptionId}`);
+            this.logger.log(`[Asaas] Assinatura cancelada: ${subscriptionId}`);
+        }
+        catch (err) {
+            this.logger.warn('[Asaas] Falha ao cancelar assinatura', err?.response?.data ?? err);
+            throw new common_1.BadRequestException(err?.response?.data?.errors?.[0]?.description ?? 'Nao foi possivel cancelar a assinatura');
+        }
+    }
     async retryLatestSubscriptionPayment(subscriptionId, creditCardToken) {
         try {
             const { data } = await this.api.get(`/subscriptions/${subscriptionId}/payments`, {

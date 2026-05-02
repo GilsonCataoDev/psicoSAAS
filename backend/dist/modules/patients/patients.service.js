@@ -26,14 +26,19 @@ let PatientsService = class PatientsService {
         this.subs = subs;
     }
     encryptFields(dto) {
-        if (!dto.privateNotes)
-            return dto;
-        return { ...dto, privateNotes: (0, encrypt_util_1.encrypt)(dto.privateNotes) };
+        const encrypted = { ...dto };
+        if (dto.privateNotes)
+            encrypted.privateNotes = (0, encrypt_util_1.encrypt)(dto.privateNotes);
+        if (dto.prontuario)
+            encrypted.prontuario = this.encryptProntuario(dto.prontuario);
+        return encrypted;
     }
     dec(patient) {
         const p = { ...patient };
         if (p.privateNotes)
             p.privateNotes = (0, encrypt_util_1.safeDecrypt)(p.privateNotes);
+        if (p.prontuario)
+            p.prontuario = this.decryptProntuario(p.prontuario);
         if (p.sessions?.length) {
             p.sessions = p.sessions.map((s) => ({
                 ...s,
@@ -43,6 +48,25 @@ let PatientsService = class PatientsService {
             }));
         }
         return p;
+    }
+    encryptProntuario(value) {
+        return {
+            __encrypted: 'psicosaas.prontuario.v1',
+            data: (0, encrypt_util_1.encrypt)(JSON.stringify(value)),
+        };
+    }
+    decryptProntuario(value) {
+        if (value
+            && value.__encrypted === 'psicosaas.prontuario.v1'
+            && typeof value.data === 'string') {
+            try {
+                return JSON.parse((0, encrypt_util_1.safeDecrypt)(value.data) ?? '{}');
+            }
+            catch {
+                return {};
+            }
+        }
+        return value;
     }
     async findRaw(id, psychologistId, relations) {
         const patient = await this.repo.findOne({

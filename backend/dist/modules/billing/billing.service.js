@@ -28,7 +28,16 @@ let BillingService = class BillingService {
             where: { userId },
             order: { createdAt: 'DESC' },
         });
-        return subscription ?? { status: 'none' };
+        if (!subscription)
+            return { status: 'none' };
+        if (subscription.cancelAtPeriodEnd
+            && subscription.currentPeriodEnd
+            && new Date(subscription.currentPeriodEnd).getTime() <= Date.now()) {
+            subscription.status = 'canceled';
+            subscription.cancelAtPeriodEnd = false;
+            return this.repo.save(subscription);
+        }
+        return subscription;
     }
     async subscribe(user, plan = 'pro', creditCardToken) {
         if (!creditCardToken) {
@@ -81,6 +90,29 @@ let BillingService = class BillingService {
         if (subscription.status === 'past_due') {
             await this.asaas.retryLatestSubscriptionPayment(subscription.gatewaySubscriptionId, creditCardToken);
         }
+        return this.repo.save(subscription);
+    }
+    async cancel(userId) {
+        const subscription = await this.repo.findOne({
+            where: { userId, status: (0, typeorm_2.In)(['active', 'trialing', 'past_due']) },
+            order: { createdAt: 'DESC' },
+        });
+        if (!subscription)
+            throw new common_1.NotFoundException('Assinatura ativa nao encontrada');
+        if (subscription.gatewaySubscriptionId) {
+            await this.asaas.cancelSubscription(subscription.gatewaySubscriptionId);
+        }
+        const periodEnd = subscription.currentPeriodEnd
+            ? new Date(subscription.currentPeriodEnd)
+            : null;
+        if (subscription.status === 'active' && periodEnd && periodEnd.getTime() > Date.now()) {
+            subscription.cancelAtPeriodEnd = true;
+            return this.repo.save(subscription);
+        }
+        subscription.status = 'canceled';
+        subscription.cancelAtPeriodEnd = false;
+        subscription.currentPeriodEnd = new Date();
+        subscription.trialEndsAt = null;
         return this.repo.save(subscription);
     }
     async getMetrics() {
