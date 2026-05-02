@@ -14,7 +14,7 @@ export class CreditCardDto {
 
 export class CreditCardHolderInfoDto {
   @IsString() @IsNotEmpty() name: string
-  @IsString() @IsNotEmpty() email: string
+  @IsOptional() @IsString() email?: string
   @IsString() @Matches(/^\d{11,14}$/, { message: 'CPF/CNPJ inválido (somente dígitos)' }) cpfCnpj: string
   @IsString() @IsNotEmpty() postalCode: string
   @IsString() @IsNotEmpty() addressNumber: string

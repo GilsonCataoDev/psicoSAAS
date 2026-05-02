@@ -7,17 +7,16 @@ export declare class CreditCardDto {
 }
 export declare class CreditCardHolderInfoDto {
     name: string;
-    email?: string;
+    email: string;
     cpfCnpj: string;
     postalCode: string;
     addressNumber: string;
+    addressComplement?: string;
     phone: string;
+    mobilePhone?: string;
 }
-export declare class CreateSubscriptionDto {
-    planId: 'essencial' | 'pro';
-    billingType: 'CREDIT_CARD' | 'PIX' | 'BOLETO';
-    yearly: boolean;
-    cpfCnpj: string;
-    creditCard?: CreditCardDto;
-    creditCardHolderInfo?: CreditCardHolderInfoDto;
+export declare class ChargeCardDto {
+    creditCard: CreditCardDto;
+    creditCardHolderInfo: CreditCardHolderInfoDto;
+    saveCustomer?: boolean;
 }

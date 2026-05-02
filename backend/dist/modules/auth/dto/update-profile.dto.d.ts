@@ -3,4 +3,5 @@ export declare class UpdateProfileDto {
     crp?: string;
     specialty?: string;
     phone?: string;
+    cpfCnpj?: string;
 }

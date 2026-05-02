@@ -11,20 +11,22 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const financial_controller_1 = require("./financial.controller");
 const financial_service_1 = require("./financial.service");
+const asaas_service_1 = require("./asaas.service");
 const financial_record_entity_1 = require("./entities/financial-record.entity");
 const notifications_module_1 = require("../notifications/notifications.module");
 const user_entity_1 = require("../auth/entities/user.entity");
+const patient_entity_1 = require("../patients/entities/patient.entity");
 let FinancialModule = class FinancialModule {
 };
 exports.FinancialModule = FinancialModule;
 exports.FinancialModule = FinancialModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            typeorm_1.TypeOrmModule.forFeature([financial_record_entity_1.FinancialRecord, user_entity_1.User]),
+            typeorm_1.TypeOrmModule.forFeature([financial_record_entity_1.FinancialRecord, user_entity_1.User, patient_entity_1.Patient]),
             notifications_module_1.NotificationsModule,
         ],
         controllers: [financial_controller_1.FinancialController, financial_controller_1.AsaasWebhookController],
-        providers: [financial_service_1.FinancialService],
+        providers: [financial_service_1.FinancialService, asaas_service_1.PatientAsaasService],
         exports: [financial_service_1.FinancialService],
     })
 ], FinancialModule);

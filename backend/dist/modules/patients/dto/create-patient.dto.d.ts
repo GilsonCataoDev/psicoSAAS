@@ -11,4 +11,5 @@ export declare class CreatePatientDto {
     status?: 'active' | 'paused' | 'discharged';
     privateNotes?: string;
     prontuario?: Record<string, any>;
+    cpfCnpj?: string;
 }

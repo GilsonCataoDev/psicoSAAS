@@ -6,6 +6,12 @@ export interface TokenizeCreditCardInput {
     expiryMonth: string;
     expiryYear: string;
     ccv: string;
+    cpfCnpj?: string;
+    postalCode?: string;
+    addressNumber?: string;
+    phone?: string;
+    email?: string;
+    remoteIp?: string;
 }
 export declare class AsaasService {
     private readonly cfg;
@@ -13,10 +19,11 @@ export declare class AsaasService {
     private readonly logger;
     constructor(cfg: ConfigService);
     createCustomer(user: User): Promise<string>;
-    tokenizeCreditCard(input: TokenizeCreditCardInput): Promise<string>;
+    tokenizeCreditCard(user: User, input: TokenizeCreditCardInput): Promise<string>;
     createSubscription(customerId: string, plan: string, externalReference: string, creditCardToken: string, nextDueDate?: string): Promise<string>;
     updateSubscriptionCreditCard(subscriptionId: string, creditCardToken: string): Promise<void>;
     retryLatestSubscriptionPayment(subscriptionId: string, creditCardToken: string): Promise<void>;
     addDays(days: number): string;
     private validateCreditCardInput;
+    private findOrCreateTokenizationCustomer;
 }

@@ -34,6 +34,12 @@ export class Patient {
   // Prontuário clínico (dados de anamnese, plano terapêutico, etc.)
   @Column({ type: 'jsonb', nullable: true }) prontuario?: Record<string, any>
 
+  /** CPF (11 dígitos) ou CNPJ (14 dígitos) — obrigatório para criar cliente no Asaas */
+  @Column({ nullable: true }) cpfCnpj?: string
+
+  /** ID do cliente no Asaas do psicólogo — evita criar duplicatas a cada cobrança */
+  @Column({ nullable: true }) asaasCustomerId?: string
+
   @Column({ type: 'simple-array', nullable: true }) tags: string[]
 
   @Column({ nullable: true }) psychologistId: string

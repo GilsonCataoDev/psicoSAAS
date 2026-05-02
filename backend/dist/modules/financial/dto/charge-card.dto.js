@@ -9,9 +9,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CreateSubscriptionDto = exports.CreditCardHolderInfoDto = exports.CreditCardDto = void 0;
-const class_validator_1 = require("class-validator");
+exports.ChargeCardDto = exports.CreditCardHolderInfoDto = exports.CreditCardDto = void 0;
 const class_transformer_1 = require("class-transformer");
+const class_validator_1 = require("class-validator");
 class CreditCardDto {
 }
 exports.CreditCardDto = CreditCardDto;
@@ -22,17 +22,17 @@ __decorate([
 ], CreditCardDto.prototype, "holderName", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.Length)(13, 19),
+    (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], CreditCardDto.prototype, "number", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.Matches)(/^(0[1-9]|1[0-2])$/),
+    (0, class_validator_1.Matches)(/^(0[1-9]|1[0-2])$/, { message: 'expiryMonth inválido (01-12)' }),
     __metadata("design:type", String)
 ], CreditCardDto.prototype, "expiryMonth", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.Matches)(/^\d{2,4}$/),
+    (0, class_validator_1.Matches)(/^\d{4}$/, { message: 'expiryYear inválido (ex: 2027)' }),
     __metadata("design:type", String)
 ], CreditCardDto.prototype, "expiryYear", void 0);
 __decorate([
@@ -49,18 +49,18 @@ __decorate([
     __metadata("design:type", String)
 ], CreditCardHolderInfoDto.prototype, "name", void 0);
 __decorate([
-    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], CreditCardHolderInfoDto.prototype, "email", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.Matches)(/^\d{11,14}$/, { message: 'CPF/CNPJ inválido (somente dígitos)' }),
+    (0, class_validator_1.Matches)(/^\d{11}(\d{3})?$/, { message: 'cpfCnpj deve ter 11 (CPF) ou 14 (CNPJ) dígitos' }),
     __metadata("design:type", String)
 ], CreditCardHolderInfoDto.prototype, "cpfCnpj", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.Matches)(/^\d{8}$/, { message: 'postalCode deve ter 8 dígitos' }),
     __metadata("design:type", String)
 ], CreditCardHolderInfoDto.prototype, "postalCode", void 0);
 __decorate([
@@ -70,39 +70,34 @@ __decorate([
 ], CreditCardHolderInfoDto.prototype, "addressNumber", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
-], CreditCardHolderInfoDto.prototype, "phone", void 0);
-class CreateSubscriptionDto {
-}
-exports.CreateSubscriptionDto = CreateSubscriptionDto;
-__decorate([
-    (0, class_validator_1.IsEnum)(['essencial', 'pro']),
-    __metadata("design:type", String)
-], CreateSubscriptionDto.prototype, "planId", void 0);
-__decorate([
-    (0, class_validator_1.IsEnum)(['CREDIT_CARD', 'PIX', 'BOLETO']),
-    __metadata("design:type", String)
-], CreateSubscriptionDto.prototype, "billingType", void 0);
-__decorate([
-    (0, class_validator_1.IsBoolean)(),
-    __metadata("design:type", Boolean)
-], CreateSubscriptionDto.prototype, "yearly", void 0);
+], CreditCardHolderInfoDto.prototype, "addressComplement", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.Matches)(/^\d{11}$/, { message: 'CPF inválido (somente 11 dígitos)' }),
+    (0, class_validator_1.Matches)(/^\d{10,11}$/, { message: 'phone inválido' }),
     __metadata("design:type", String)
-], CreateSubscriptionDto.prototype, "cpfCnpj", void 0);
+], CreditCardHolderInfoDto.prototype, "phone", void 0);
 __decorate([
+    (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreditCardHolderInfoDto.prototype, "mobilePhone", void 0);
+class ChargeCardDto {
+}
+exports.ChargeCardDto = ChargeCardDto;
+__decorate([
     (0, class_validator_1.ValidateNested)(),
     (0, class_transformer_1.Type)(() => CreditCardDto),
     __metadata("design:type", CreditCardDto)
-], CreateSubscriptionDto.prototype, "creditCard", void 0);
+], ChargeCardDto.prototype, "creditCard", void 0);
 __decorate([
-    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.ValidateNested)(),
     (0, class_transformer_1.Type)(() => CreditCardHolderInfoDto),
     __metadata("design:type", CreditCardHolderInfoDto)
-], CreateSubscriptionDto.prototype, "creditCardHolderInfo", void 0);
-//# sourceMappingURL=create-subscription.dto.js.map
+], ChargeCardDto.prototype, "creditCardHolderInfo", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Boolean)
+], ChargeCardDto.prototype, "saveCustomer", void 0);
+//# sourceMappingURL=charge-card.dto.js.map

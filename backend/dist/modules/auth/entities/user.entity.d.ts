@@ -10,6 +10,7 @@ export declare class User {
     isActive: boolean;
     onboardingCompleted: boolean;
     phone?: string;
+    cpfCnpj?: string;
     referralCode?: string;
     resetPasswordToken?: string;
     resetPasswordExpiry?: Date;

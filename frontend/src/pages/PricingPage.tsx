@@ -21,6 +21,10 @@ export default function PricingPage() {
   const [cardName, setCardName] = useState('')
   const [cardExpiry, setCardExpiry] = useState('')
   const [cardCvv, setCardCvv] = useState('')
+  const [cpfCnpj, setCpfCnpj] = useState('')
+  const [phone, setPhone] = useState('')
+  const [postalCode, setPostalCode] = useState('')
+  const [addressNumber, setAddressNumber] = useState('')
   const { subscription, setSubscription } = useSubscriptionStore()
 
   function formatCardNumber(value: string) {
@@ -29,6 +33,31 @@ export default function PricingPage() {
 
   function formatExpiry(value: string) {
     return value.replace(/\D/g, '').slice(0, 4).replace(/(\d{2})(\d)/, '$1/$2')
+  }
+
+  function formatCpfCnpj(value: string) {
+    const digits = value.replace(/\D/g, '').slice(0, 14)
+    if (digits.length > 11) {
+      return digits
+        .replace(/(\d{2})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d)/, '$1/$2')
+        .replace(/(\d{4})(\d{1,2})$/, '$1-$2')
+    }
+
+    return digits
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
+  }
+
+  function formatPhone(value: string) {
+    const digits = value.replace(/\D/g, '').slice(0, 11)
+    return digits.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2')
+  }
+
+  function formatPostalCode(value: string) {
+    return value.replace(/\D/g, '').slice(0, 8).replace(/(\d{5})(\d)/, '$1-$2')
   }
 
   function isValidCardNumber(value: string) {
@@ -64,6 +93,10 @@ export default function PricingPage() {
     if (cardName.trim().length < 3) return 'Informe o nome impresso no cartão.'
     if (!isValidExpiry(cardExpiry)) return 'Validade inválida.'
     if (!/^\d{3,4}$/.test(cardCvv)) return 'CVV inválido.'
+    if (!/^\d{11}$|^\d{14}$/.test(cpfCnpj.replace(/\D/g, ''))) return 'CPF/CNPJ invalido.'
+    if (!/^\d{10,11}$/.test(phone.replace(/\D/g, ''))) return 'Telefone invalido.'
+    if (!/^\d{8}$/.test(postalCode.replace(/\D/g, ''))) return 'CEP invalido.'
+    if (!addressNumber.trim()) return 'Informe o numero do endereco.'
     return null
   }
 
@@ -75,6 +108,10 @@ export default function PricingPage() {
       expiryMonth,
       expiryYear: expiryYear.length === 2 ? `20${expiryYear}` : expiryYear,
       ccv: cardCvv,
+      cpfCnpj: cpfCnpj.replace(/\D/g, ''),
+      postalCode: postalCode.replace(/\D/g, ''),
+      addressNumber: addressNumber.trim(),
+      phone: phone.replace(/\D/g, ''),
     })
 
     const token = data?.creditCardToken
@@ -243,6 +280,58 @@ export default function PricingPage() {
                   type="password"
                   value={cardCvv}
                   onChange={(event) => setCardCvv(event.target.value.replace(/\D/g, '').slice(0, 4))}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">CPF/CNPJ do titular</label>
+                <input
+                  className="input-field"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder="000.000.000-00"
+                  value={cpfCnpj}
+                  onChange={(event) => setCpfCnpj(formatCpfCnpj(event.target.value))}
+                />
+              </div>
+
+              <div>
+                <label className="label">Telefone</label>
+                <input
+                  className="input-field"
+                  inputMode="numeric"
+                  autoComplete="tel"
+                  placeholder="(11) 99999-9999"
+                  value={phone}
+                  onChange={(event) => setPhone(formatPhone(event.target.value))}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">CEP</label>
+                <input
+                  className="input-field"
+                  inputMode="numeric"
+                  autoComplete="postal-code"
+                  placeholder="00000-000"
+                  value={postalCode}
+                  onChange={(event) => setPostalCode(formatPostalCode(event.target.value))}
+                />
+              </div>
+
+              <div>
+                <label className="label">Numero</label>
+                <input
+                  className="input-field"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder="123"
+                  value={addressNumber}
+                  onChange={(event) => setAddressNumber(event.target.value.replace(/\D/g, '').slice(0, 8))}
                 />
               </div>
             </div>

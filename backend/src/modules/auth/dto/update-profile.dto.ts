@@ -26,4 +26,10 @@ export class UpdateProfileDto {
   @MaxLength(20)
   @Transform(({ value }) => value?.trim())
   phone?: string
+
+  /** CPF (11 dígitos) ou CNPJ (14 dígitos) — para assinatura via Asaas */
+  @IsOptional()
+  @Matches(/^\d{11}$|^\d{14}$/, { message: 'cpfCnpj deve ter 11 (CPF) ou 14 (CNPJ) dígitos' })
+  @Transform(({ value }) => value?.replace(/\D/g, ''))
+  cpfCnpj?: string
 }

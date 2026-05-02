@@ -16,13 +16,24 @@ export class BillingController {
 
   @Post('tokenize')
   @UseGuards(JwtAuthGuard)
-  async tokenize(@Body() body: TokenizeCreditCardInput) {
-    const creditCardToken = await this.asaas.tokenizeCreditCard({
+  async tokenize(@Request() req: any, @Body() body: TokenizeCreditCardInput) {
+    const remoteIp = req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim()
+      || req.ip
+      || req.socket?.remoteAddress
+      || '0.0.0.0'
+
+    const creditCardToken = await this.asaas.tokenizeCreditCard(req.user, {
       holderName: body.holderName,
       number: body.number,
       expiryMonth: body.expiryMonth,
       expiryYear: body.expiryYear,
       ccv: body.ccv,
+      cpfCnpj: body.cpfCnpj?.replace(/\D/g, ''),
+      postalCode: body.postalCode?.replace(/\D/g, ''),
+      addressNumber: body.addressNumber,
+      phone: body.phone?.replace(/\D/g, ''),
+      email: req.user.email,
+      remoteIp,
     })
 
     return { creditCardToken }

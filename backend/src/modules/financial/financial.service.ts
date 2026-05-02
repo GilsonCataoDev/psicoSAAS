@@ -1,11 +1,13 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import axios from 'axios'
 import { FinancialRecord } from './entities/financial-record.entity'
 import { CreateFinancialDto } from './dto/create-financial.dto'
+import { ChargeCardDto } from './dto/charge-card.dto'
+import { PatientAsaasService } from './asaas.service'
 import { NotificationsService } from '../notifications/notifications.service'
 import { User } from '../auth/entities/user.entity'
+import { Patient } from '../patients/entities/patient.entity'
 
 @Injectable()
 export class FinancialService {
@@ -14,6 +16,8 @@ export class FinancialService {
   constructor(
     @InjectRepository(FinancialRecord) private repo: Repository<FinancialRecord>,
     @InjectRepository(User) private users: Repository<User>,
+    @InjectRepository(Patient) private patients: Repository<Patient>,
+    private asaas: PatientAsaasService,
     private notifications: NotificationsService,
   ) {}
 
@@ -71,11 +75,16 @@ export class FinancialService {
    * Gera um link de pagamento Asaas para o paciente pagar via cartão, PIX ou boleto.
    * Usa a chave Asaas do próprio psicólogo (salva em preferences.asaasApiKey).
    * O dinheiro vai direto para a conta Asaas do psicólogo.
+   *
+   * cpfCnpj do paciente é obrigatório para criar o customer no Asaas.
+   * Deve estar cadastrado na ficha do paciente antes de gerar o link.
    */
   async generatePaymentLink(id: string, psychologistId: string): Promise<{ url: string }> {
-    const record = await this.findOne(id, psychologistId)
-    const user   = await this.users.findOne({ where: { id: psychologistId }, relations: ['patients'] })
+    const record  = await this.repo.findOne({ where: { id }, relations: ['patient'] })
+    if (!record) throw new NotFoundException()
+    if (record.psychologistId !== psychologistId) throw new ForbiddenException()
 
+    const user   = await this.users.findOneBy({ id: psychologistId })
     const apiKey = (user?.preferences as any)?.asaasApiKey as string | undefined
     if (!apiKey) {
       throw new BadRequestException(
@@ -88,69 +97,123 @@ export class FinancialService {
       return { url: record.paymentLinkUrl }
     }
 
-    const isSandbox = process.env.NODE_ENV !== 'production'
-    const baseURL   = isSandbox
-      ? 'https://sandbox.asaas.com/api/v3'
-      : 'https://api.asaas.com/v3'
+    const patient    = record.patient
+    const cpfCnpj    = patient?.cpfCnpj
+    const patientName = patient?.name ?? record.description
 
-    const api = axios.create({
-      baseURL,
-      headers: { 'access_token': apiKey, 'Content-Type': 'application/json' },
+    // ── 1. Criar/localizar customer (com cpfCnpj obrigatório) ────────────────
+    const customerId = await this.asaas.findOrCreateCustomer(
+      apiKey,
+      record.patientId ?? id,
+      patientName,
+      cpfCnpj ?? '',
+      patient?.email,
+    )
+
+    // Persiste customerId para reutilização
+    if (patient && !patient.asaasCustomerId) {
+      await this.patients.update(patient.id, { asaasCustomerId: customerId })
+    }
+
+    // ── 2. Criar cobrança (billingType UNDEFINED = paciente escolhe o método) ─
+    const dueDate = record.dueDate
+      ?? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+
+    const payment = await this.asaas.createInvoicePayment(apiKey, customerId, {
+      value:        Number(record.amount),
+      dueDate,
+      description:  record.description,
+      externalRef:  id,
     })
 
-    try {
-      // 1. Cria ou localiza o cliente no Asaas do psicólogo
-      const patient = (record as any).patient ?? await this.repo
-        .findOne({ where: { id }, relations: ['patient'] })
-        .then(r => r?.patient)
+    // ── 3. Salva IDs para rastreamento e webhook ─────────────────────────────
+    record.asaasPaymentId = payment.id
+    record.paymentLinkUrl = payment.invoiceUrl
+    await this.repo.save(record)
 
-      const patientName  = patient?.name  ?? record.description
-      const patientEmail = patient?.email ?? undefined
+    this.logger.log(`[Asaas] Link gerado: ${payment.invoiceUrl} (paymentId=${payment.id})`)
+    return { url: payment.invoiceUrl! }
+  }
 
-      let customerId: string
-      try {
-        const { data: existing } = await api.get('/customers', {
-          params: { externalReference: record.patientId ?? id, limit: 1 },
-        })
-        if (existing.data?.length) {
-          customerId = existing.data[0].id
-        } else {
-          const payload: any = { name: patientName, externalReference: record.patientId ?? id, notificationDisabled: false }
-          if (patientEmail) payload.email = patientEmail
-          const { data: created } = await api.post('/customers', payload)
-          customerId = created.id
-        }
-      } catch {
-        // Fallback: cria cliente mínimo sem externalReference
-        const { data: fallback } = await api.post('/customers', { name: patientName })
-        customerId = fallback.id
-      }
+  /**
+   * Cobra diretamente por cartão de crédito via Asaas (conta do próprio psicólogo):
+   * 1. findOrCreateCustomer — usa patient.cpfCnpj (obrigatório pelo Asaas)
+   * 2. tokenizeCard         — envia payload completo com remoteIp
+   * 3. createCardPayment    — cria cobrança com o token
+   * 4. Marca lançamento como pago
+   */
+  async chargeWithCard(
+    id: string,
+    psychologistId: string,
+    dto: ChargeCardDto,
+    remoteIp: string,
+  ): Promise<{ message: string; paymentId: string }> {
+    const record = await this.repo.findOne({ where: { id }, relations: ['patient'] })
+    if (!record) throw new NotFoundException()
+    if (record.psychologistId !== psychologistId) throw new ForbiddenException()
+    if (record.status === 'paid') throw new BadRequestException('Este lançamento já foi pago.')
 
-      // 2. Cria a cobrança (billingType UNDEFINED = paciente escolhe o método)
-      const dueDate = record.dueDate
-        ?? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-
-      const { data: payment } = await api.post('/payments', {
-        customer:     customerId,
-        billingType:  'UNDEFINED',   // aceita cartão, PIX e boleto
-        value:        Number(record.amount),
-        dueDate,
-        description:  record.description,
-        externalReference: id,       // nosso ID — usado no webhook
-      })
-
-      // 3. Salva IDs para rastreamento e webhook
-      record.asaasPaymentId = payment.id
-      record.paymentLinkUrl = payment.invoiceUrl
-      await this.repo.save(record)
-
-      this.logger.log(`[Asaas] Link gerado: ${payment.invoiceUrl} (paymentId=${payment.id})`)
-      return { url: payment.invoiceUrl }
-    } catch (err: any) {
-      const msg = err?.response?.data?.errors?.[0]?.description ?? err?.message ?? 'Erro ao gerar link'
-      this.logger.error('[Asaas] Erro ao gerar link de pagamento', err?.response?.data)
-      throw new BadRequestException(msg)
+    const user   = await this.users.findOneBy({ id: psychologistId })
+    const apiKey = (user?.preferences as any)?.asaasApiKey as string | undefined
+    if (!apiKey) {
+      throw new BadRequestException(
+        'Configure sua chave Asaas em Configurações → Pagamentos para cobrar por cartão.',
+      )
     }
+
+    const patient = record.patient
+
+    // ── 1. Criar/localizar customer no Asaas ────────────────────────────────
+    // Prioridade: cpfCnpj do formulário > cpfCnpj salvo no paciente
+    const cpfCnpj = dto.creditCardHolderInfo.cpfCnpj || patient?.cpfCnpj
+    const customerId = await this.asaas.findOrCreateCustomer(
+      apiKey,
+      record.patientId ?? id,
+      dto.creditCardHolderInfo.name,
+      cpfCnpj ?? '',
+      dto.creditCardHolderInfo.email,
+    )
+
+    // Persiste customerId no paciente para futuras cobranças sem precisar buscar
+    if (patient && !patient.asaasCustomerId) {
+      await this.patients.update(patient.id, { asaasCustomerId: customerId })
+    }
+
+    // ── 2. Tokenizar o cartão ────────────────────────────────────────────────
+    const creditCardToken = await this.asaas.tokenizeCard(
+      apiKey,
+      customerId,
+      dto.creditCard,
+      dto.creditCardHolderInfo,
+      remoteIp,
+    )
+
+    // ── 3. Criar cobrança com o token ────────────────────────────────────────
+    const dueDate = record.dueDate ?? new Date().toISOString().split('T')[0]
+
+    const payment = await this.asaas.createCardPayment(apiKey, customerId, {
+      value:           Number(record.amount),
+      dueDate,
+      description:     record.description,
+      externalRef:     id,
+      creditCardToken,
+      holderInfo:      dto.creditCardHolderInfo,
+    })
+
+    // ── 4. Marcar lançamento como pago ───────────────────────────────────────
+    record.status         = 'paid'
+    record.paidAt         = new Date().toISOString()
+    record.method         = 'credit_card'
+    record.asaasPaymentId = payment.id
+    await this.repo.save(record)
+
+    // Salva também o CPF no paciente para próximas cobranças (se ainda não tiver)
+    if (patient && !patient.cpfCnpj && cpfCnpj) {
+      await this.patients.update(patient.id, { cpfCnpj: cpfCnpj.replace(/\D/g, '') })
+    }
+
+    this.logger.log(`[Asaas] Cobrança por cartão confirmada: paymentId=${payment.id}`)
+    return { message: 'Cobrança realizada com sucesso', paymentId: payment.id }
   }
 
   /**

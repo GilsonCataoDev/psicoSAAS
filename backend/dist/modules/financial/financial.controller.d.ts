@@ -1,5 +1,6 @@
 import { FinancialService } from './financial.service';
 import { CreateFinancialDto } from './dto/create-financial.dto';
+import { ChargeCardDto } from './dto/charge-card.dto';
 export declare class FinancialController {
     private svc;
     constructor(svc: FinancialService);
@@ -17,6 +18,10 @@ export declare class FinancialController {
     }>;
     generatePaymentLink(id: string, req: any): Promise<{
         url: string;
+    }>;
+    chargeWithCard(id: string, dto: ChargeCardDto, req: any, ip: string): Promise<{
+        message: string;
+        paymentId: string;
     }>;
     remove(id: string, req: any): Promise<{
         deleted: boolean;

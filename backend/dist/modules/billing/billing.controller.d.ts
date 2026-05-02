@@ -7,7 +7,7 @@ export declare class BillingController {
     private readonly webhooks;
     private readonly logger;
     constructor(billing: BillingService, asaas: AsaasService, webhooks: BillingWebhookService);
-    tokenize(body: TokenizeCreditCardInput): Promise<{
+    tokenize(req: any, body: TokenizeCreditCardInput): Promise<{
         creditCardToken: string;
     }>;
     subscribe(req: any, plan?: string, creditCardToken?: string): Promise<import("./entities/subscription.entity").Subscription>;

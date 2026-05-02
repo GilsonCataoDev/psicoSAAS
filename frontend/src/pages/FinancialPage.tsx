@@ -11,6 +11,7 @@ import NewPaymentModal from '@/components/features/financial/NewPaymentModal'
 import MarkPaidModal from '@/components/features/financial/MarkPaidModal'
 import SendChargeModal from '@/components/features/financial/SendChargeModal'
 import PaymentLinkModal from '@/components/features/financial/PaymentLinkModal'
+import CardPaymentModal from '@/components/features/financial/CardPaymentModal'
 import toast from 'react-hot-toast'
 
 const METHOD_LABELS: Record<string, string> = {
@@ -35,6 +36,7 @@ export default function FinancialPage() {
   const [markRecord, setMarkRecord] = useState<FinancialRecord | null>(null)
   const [chargeRecord, setChargeRecord] = useState<FinancialRecord | null>(null)
   const [linkRecord, setLinkRecord] = useState<FinancialRecord | null>(null)
+  const [cardRecord, setCardRecord] = useState<FinancialRecord | null>(null)
 
   const total   = records.reduce((s, r) => s + (r.type === 'income' ? Number(r.amount) : 0), 0)
   const paid    = records.filter(r => r.status === 'paid').reduce((s, r) => s + Number(r.amount), 0)
@@ -187,6 +189,7 @@ export default function FinancialPage() {
               onMarkPaid={() => setMarkRecord(record)}
               onSendCharge={() => setChargeRecord(record)}
               onPaymentLink={() => setLinkRecord(record)}
+              onCardCharge={() => setCardRecord(record)}
               onDelete={async () => {
                 if (!confirm(`Excluir lançamento de ${record.patient?.name ?? 'paciente'}? Esta ação não pode ser desfeita.`)) return
                 try {
@@ -219,16 +222,22 @@ export default function FinancialPage() {
         open={!!linkRecord}
         onClose={() => setLinkRecord(null)}
       />
+      <CardPaymentModal
+        record={cardRecord}
+        open={!!cardRecord}
+        onClose={() => setCardRecord(null)}
+      />
     </div>
   )
 }
 
 // ─── Linha de lançamento ──────────────────────────────────────────────────────
-function FinancialRow({ record, onMarkPaid, onSendCharge, onPaymentLink, onDelete }: {
+function FinancialRow({ record, onMarkPaid, onSendCharge, onPaymentLink, onCardCharge, onDelete }: {
   record: FinancialRecord
   onMarkPaid: () => void
   onSendCharge: () => void
   onPaymentLink: () => void
+  onCardCharge: () => void
   onDelete: () => void
 }) {
   const isPending = record.status === 'pending' || record.status === 'overdue'
@@ -263,10 +272,15 @@ function FinancialRow({ record, onMarkPaid, onSendCharge, onPaymentLink, onDelet
               className="p-1.5 rounded-lg hover:bg-neutral-100 text-neutral-400 hover:text-mist-600 transition-colors">
               <Link2 className="w-4 h-4" />
             </button>
+            <button onClick={onCardCharge}
+              title="Cobrar agora por cartão de crédito"
+              className="p-1.5 rounded-lg hover:bg-neutral-100 text-neutral-400 hover:text-violet-600 transition-colors">
+              <CreditCard className="w-4 h-4" />
+            </button>
             <button onClick={onMarkPaid}
               title="Registrar pagamento manualmente"
               className="p-1.5 rounded-lg hover:bg-neutral-100 text-neutral-400 hover:text-sage-600 transition-colors">
-              <CreditCard className="w-4 h-4" />
+              <CheckCircle className="w-4 h-4" />
             </button>
           </>
         )}

@@ -36,6 +36,10 @@ export class User {
   @Column({ nullable: true })
   phone?: string
 
+  /** CPF (11 dígitos) ou CNPJ (14 dígitos) — usado como customer no Asaas para assinatura */
+  @Column({ nullable: true })
+  cpfCnpj?: string
+
   @Column({ nullable: true })
   referralCode?: string   // código usado no cadastro
 

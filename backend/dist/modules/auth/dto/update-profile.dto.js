@@ -44,4 +44,10 @@ __decorate([
     (0, class_transformer_1.Transform)(({ value }) => value?.trim()),
     __metadata("design:type", String)
 ], UpdateProfileDto.prototype, "phone", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.Matches)(/^\d{11}$|^\d{14}$/, { message: 'cpfCnpj deve ter 11 (CPF) ou 14 (CNPJ) dígitos' }),
+    (0, class_transformer_1.Transform)(({ value }) => value?.replace(/\D/g, '')),
+    __metadata("design:type", String)
+], UpdateProfileDto.prototype, "cpfCnpj", void 0);
 //# sourceMappingURL=update-profile.dto.js.map

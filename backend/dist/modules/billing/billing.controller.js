@@ -26,13 +26,23 @@ let BillingController = BillingController_1 = class BillingController {
         this.webhooks = webhooks;
         this.logger = new common_1.Logger(BillingController_1.name);
     }
-    async tokenize(body) {
-        const creditCardToken = await this.asaas.tokenizeCreditCard({
+    async tokenize(req, body) {
+        const remoteIp = req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim()
+            || req.ip
+            || req.socket?.remoteAddress
+            || '0.0.0.0';
+        const creditCardToken = await this.asaas.tokenizeCreditCard(req.user, {
             holderName: body.holderName,
             number: body.number,
             expiryMonth: body.expiryMonth,
             expiryYear: body.expiryYear,
             ccv: body.ccv,
+            cpfCnpj: body.cpfCnpj?.replace(/\D/g, ''),
+            postalCode: body.postalCode?.replace(/\D/g, ''),
+            addressNumber: body.addressNumber,
+            phone: body.phone?.replace(/\D/g, ''),
+            email: req.user.email,
+            remoteIp,
         });
         return { creditCardToken };
     }
@@ -63,9 +73,10 @@ exports.BillingController = BillingController;
 __decorate([
     (0, common_1.Post)('tokenize'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    __param(0, (0, common_1.Body)()),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], BillingController.prototype, "tokenize", null);
 __decorate([

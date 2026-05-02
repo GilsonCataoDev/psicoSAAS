@@ -73,4 +73,9 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Object)
 ], CreatePatientDto.prototype, "prontuario", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.Matches)(/^\d{11}$|^\d{14}$/, { message: 'cpfCnpj deve ter 11 dígitos (CPF) ou 14 dígitos (CNPJ)' }),
+    __metadata("design:type", String)
+], CreatePatientDto.prototype, "cpfCnpj", void 0);
 //# sourceMappingURL=create-patient.dto.js.map

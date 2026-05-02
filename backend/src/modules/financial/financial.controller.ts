@@ -1,10 +1,11 @@
 import {
-  Body, Controller, Delete, Get, Headers, HttpCode,
+  Body, Controller, Delete, Get, Headers, HttpCode, Ip,
   Param, Patch, Post, Query, Request, UseGuards,
 } from '@nestjs/common'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { FinancialService } from './financial.service'
 import { CreateFinancialDto } from './dto/create-financial.dto'
+import { ChargeCardDto } from './dto/charge-card.dto'
 
 @Controller('financial')
 @UseGuards(JwtAuthGuard)
@@ -50,6 +51,25 @@ export class FinancialController {
   @Post(':id/payment-link')
   generatePaymentLink(@Param('id') id: string, @Request() req: any) {
     return this.svc.generatePaymentLink(id, req.user.id)
+  }
+
+  /**
+   * Cobra diretamente por cartão de crédito via Asaas (tokenização + cobrança).
+   * remoteIp é extraído do request para atender ao antifraude do Asaas.
+   */
+  @Post(':id/charge-card')
+  chargeWithCard(
+    @Param('id') id: string,
+    @Body() dto: ChargeCardDto,
+    @Request() req: any,
+    @Ip() ip: string,
+  ) {
+    // Em produção com proxy (Railway/Nginx), o IP real vem no X-Forwarded-For
+    const remoteIp = (req.headers['x-forwarded-for'] as string)
+      ?.split(',')[0]?.trim()
+      ?? ip
+      ?? '177.0.0.1'
+    return this.svc.chargeWithCard(id, req.user.id, dto, remoteIp)
   }
 
   @Delete(':id')

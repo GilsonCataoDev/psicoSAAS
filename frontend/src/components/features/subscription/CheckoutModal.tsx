@@ -81,6 +81,8 @@ export default function CheckoutModal({ plan, yearly, onClose }: Props) {
 
   async function handlePay() {
     // ── Validação básica ──────────────────────────────────────────────────
+    if (cpf.replace(/\D/g, '').length !== 11) { toast.error('CPF invalido'); return }
+
     if (method === 'card') {
       const digits = cardNumber.replace(/\s/g, '')
       if (digits.length < 13) { toast.error('Número do cartão inválido'); return }
@@ -268,6 +270,18 @@ export default function CheckoutModal({ plan, yearly, onClose }: Props) {
               </div>
 
               {/* ── Campos do cartão ─────────────────────────────────── */}
+              <div>
+                <label className="label">CPF do titular</label>
+                <input
+                  value={cpf}
+                  onChange={e => setCpf(formatCpf(e.target.value))}
+                  className="input-field"
+                  placeholder="000.000.000-00"
+                  maxLength={14}
+                  inputMode="numeric"
+                />
+              </div>
+
               {method === 'card' && (
                 <div className="space-y-3">
                   <div className="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 flex gap-2 text-xs text-amber-700">
@@ -325,28 +339,15 @@ export default function CheckoutModal({ plan, yearly, onClose }: Props) {
                   <p className="text-xs font-medium text-neutral-500 pt-1 border-t border-neutral-100">
                     Dados do titular (obrigatório pelo emissor)
                   </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="label">CPF</label>
-                      <input
-                        value={cpf}
-                        onChange={e => setCpf(formatCpf(e.target.value))}
-                        className="input-field"
-                        placeholder="000.000.000-00"
-                        maxLength={14}
-                        inputMode="numeric"
-                      />
-                    </div>
-                    <div>
-                      <label className="label">Telefone</label>
-                      <input
-                        value={phone}
-                        onChange={e => setPhone(formatPhone(e.target.value))}
-                        className="input-field"
-                        placeholder="(11) 99999-9999"
-                        inputMode="numeric"
-                      />
-                    </div>
+                  <div>
+                    <label className="label">Telefone</label>
+                    <input
+                      value={phone}
+                      onChange={e => setPhone(formatPhone(e.target.value))}
+                      className="input-field"
+                      placeholder="(11) 99999-9999"
+                      inputMode="numeric"
+                    />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>

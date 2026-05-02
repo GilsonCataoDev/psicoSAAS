@@ -56,7 +56,13 @@ export class SubscriptionsService {
       yearly: dto.yearly,
       ...(dto.creditCard && {
         creditCard: dto.creditCard,
-        creditCardHolderInfo: dto.creditCardHolderInfo,
+        creditCardHolderInfo: dto.creditCardHolderInfo
+          ? {
+              ...dto.creditCardHolderInfo,
+              email: dto.creditCardHolderInfo.email || user.email,
+              cpfCnpj: dto.creditCardHolderInfo.cpfCnpj || dto.cpfCnpj,
+            }
+          : undefined,
         remoteIp,
       }),
     }

@@ -16,6 +16,8 @@ export declare class Patient {
     avatarColor?: string;
     privateNotes?: string;
     prontuario?: Record<string, any>;
+    cpfCnpj?: string;
+    asaasCustomerId?: string;
     tags: string[];
     psychologistId: string;
     psychologist: User;

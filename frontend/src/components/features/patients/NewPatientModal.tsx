@@ -15,6 +15,10 @@ const schema = z.object({
   sessionPrice: z.coerce.number().min(0),
   sessionDuration: z.coerce.number().min(20).max(180),
   tags: z.array(z.string()).optional(),
+  cpfCnpj: z.string()
+    .regex(/^\d{11}$|^\d{14}$/, 'CPF (11 dígitos) ou CNPJ (14 dígitos)')
+    .optional()
+    .or(z.literal('')),
 })
 
 type FormData = z.infer<typeof schema>
@@ -70,6 +74,19 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
           <div>
             <label className="label">Pronomes</label>
             <input {...register('pronouns')} className="input-field" placeholder="ela/dele, ele/dele..." />
+          </div>
+          <div>
+            <label className="label">CPF / CNPJ <span className="text-neutral-400 font-normal">(para cobrança)</span></label>
+            <input {...register('cpfCnpj')}
+              className="input-field font-mono"
+              placeholder="Apenas números"
+              maxLength={14}
+              onChange={e => {
+                const v = e.target.value.replace(/\D/g, '')
+                ;(e.target as HTMLInputElement).value = v
+              }}
+            />
+            {errors.cpfCnpj && <p className="text-rose-500 text-xs mt-1">{errors.cpfCnpj.message}</p>}
           </div>
           <div>
             <label className="label">Valor da sessão (R$)</label>
