@@ -8,8 +8,6 @@ import Avatar from '@/components/ui/Avatar'
 import { StatusBadge } from '@/components/ui/Badge'
 import { formatCurrency, formatDateRelative, formatTime } from '@/lib/utils'
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
-import OnboardingWizard from '@/components/onboarding/OnboardingWizard'
-import { useOnboardingStore } from '@/store/onboarding'
 import { useAuthStore } from '@/store/auth'
 import { track, EVENTS } from '@/lib/analytics'
 import { useDashboard, useSessions } from '@/hooks/useApi'
@@ -34,7 +32,6 @@ const MOODS = ['', '😔', '😟', '😐', '🙂', '😊']
 export default function DashboardPage() {
   const { data: stats, isLoading: loading } = useDashboard()
   const { data: recentSessions = [] } = useSessions()
-  const { completed: onboardingDone } = useOnboardingStore()
   const user = useAuthStore(s => s.user)
   const firstName = user?.name?.split(' ')[0] ?? 'Psicólogo(a)'
 
@@ -114,11 +111,8 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Onboarding */}
-      {!onboardingDone && <OnboardingWizard />}
-
       {/* Alerta de pacientes inativos */}
-      {(s?.inactivePatients ?? 0) > 0 && onboardingDone && (
+      {(s?.inactivePatients ?? 0) > 0 && (
         <div className="bg-amber-50 border border-amber-200/70 rounded-2xl px-4 py-3 flex items-center gap-3">
           <div className="w-8 h-8 bg-amber-100 rounded-xl flex items-center justify-center shrink-0">
             <AlertTriangle className="w-4 h-4 text-amber-500" />

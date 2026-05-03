@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { X, CreditCard, Smartphone, Barcode, Lock, CheckCircle2, Copy, Zap, AlertCircle } from 'lucide-react'
 import { Plan, useSubscriptionStore } from '@/store/subscription'
-import { useNotificationStore } from '@/store/notifications'
 import { api, USE_MOCK } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { useNavigate } from 'react-router-dom'
@@ -70,12 +69,6 @@ export default function CheckoutModal({ plan, yearly, onClose }: Props) {
       status: 'active',
       currentPeriodEnd: periodEnd.toISOString(),
       cancelAtPeriodEnd: false,
-    })
-    useNotificationStore.getState().addNotification({
-      type: 'system',
-      title: `Assinatura ${plan.name} ativada! 🎉`,
-      body: `Seu plano ${plan.name} está ativo. Próxima cobrança em ${periodEnd.toLocaleDateString('pt-BR')}.`,
-      link: '/configuracoes',
     })
   }
 

@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { UserPlus, ExternalLink, CheckCircle2, AlertCircle } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
-import { api, USE_MOCK } from '@/lib/api'
+import { api } from '@/lib/api'
 import { isValidCrpFormat, getCrpRegion, openCfpVerification, formatCrpInput } from '@/lib/crp'
 import toast from 'react-hot-toast'
 
@@ -55,13 +55,6 @@ export default function RegisterPage() {
   async function onSubmit(data: FormData) {
     setLoading(true)
     try {
-      if (USE_MOCK) {
-        await new Promise((r) => setTimeout(r, 1000))
-        setAuth({ id: '1', name: data.name, email: data.email, crp: data.crp })
-        toast.success('Conta criada com sucesso! Seja bem-vinda 🌱')
-        navigate('/')
-        return
-      }
       const res = await api.post('/auth/register', {
         name: data.name,
         email: data.email,
@@ -107,7 +100,7 @@ export default function RegisterPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label className="label">Nome completo</label>
-          <input {...register('name')} className="input-field" placeholder="Dra. Carolina Mendes" />
+          <input {...register('name')} className="input-field" placeholder="Nome completo" />
           {errors.name && <p className="text-rose-500 text-xs mt-1">{errors.name.message}</p>}
         </div>
 

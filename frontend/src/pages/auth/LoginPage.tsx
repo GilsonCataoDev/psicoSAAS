@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Eye, EyeOff, LogIn } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
-import { api, USE_MOCK } from '@/lib/api'
+import { api } from '@/lib/api'
 import toast from 'react-hot-toast'
 
 const schema = z.object({
@@ -29,12 +29,6 @@ export default function LoginPage() {
   async function onSubmit(data: FormData) {
     setLoading(true)
     try {
-      if (USE_MOCK) {
-        await new Promise((r) => setTimeout(r, 800))
-        setAuth({ id: '1', name: 'Dra. Carolina Mendes', email: data.email, crp: '06/123456', specialty: 'Psicologia Clínica' })
-        navigate('/')
-        return
-      }
       const res = await api.post('/auth/login', { email: data.email, password: data.password })
       setAuth(res.data.user)
       if (res.data.csrfToken) setCsrfToken(res.data.csrfToken)
