@@ -96,11 +96,14 @@ export class AnalyticsService {
 
       // ── Pagamentos pendentes ────────────────────────────────────────────────
       safe('pendingPayments', log, () =>
-        this.financial.find({
-          where: { psychologistId: userId, status: 'pending', type: 'income' },
-          order: { dueDate: 'ASC' },
-          take: 10,
-        }),
+        this.financial
+          .createQueryBuilder('f')
+          .where('f.psychologistId = :userId', { userId })
+          .andWhere('f.status IN (:...statuses)', { statuses: ['pending', 'overdue'] })
+          .andWhere("(f.type IS NULL OR f.type = 'income')")
+          .orderBy('f.dueDate', 'ASC', 'NULLS LAST')
+          .take(10)
+          .getMany(),
         [],
       ),
 

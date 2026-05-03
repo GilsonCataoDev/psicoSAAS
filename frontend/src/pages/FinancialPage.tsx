@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Wallet, TrendingUp, Clock, CheckCircle, Plus, MessageCircle, CreditCard, Trash2, Link2 } from 'lucide-react'
+import { Wallet, TrendingUp, Clock, CheckCircle, Plus, Trash2 } from 'lucide-react'
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import StatCard from '@/components/ui/StatCard'
 import Avatar from '@/components/ui/Avatar'
@@ -9,13 +9,10 @@ import { useFinancial, useMarkFinancialPaid, useDeleteFinancial } from '@/hooks/
 import { FinancialRecord } from '@/types'
 import NewPaymentModal from '@/components/features/financial/NewPaymentModal'
 import MarkPaidModal from '@/components/features/financial/MarkPaidModal'
-import SendChargeModal from '@/components/features/financial/SendChargeModal'
-import PaymentLinkModal from '@/components/features/financial/PaymentLinkModal'
-import CardPaymentModal from '@/components/features/financial/CardPaymentModal'
 import toast from 'react-hot-toast'
 
 const METHOD_LABELS: Record<string, string> = {
-  pix: 'PIX', credit_card: 'Cartão', debit_card: 'Débito', cash: 'Dinheiro', transfer: 'Transferência',
+  pix: 'PIX', credit_card: 'Cartao', debit_card: 'Debito', cash: 'Dinheiro', transfer: 'Transferencia',
 }
 
 const MONTH_NAMES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
@@ -34,9 +31,6 @@ export default function FinancialPage() {
   const [filter, setFilter] = useState<'all' | 'paid' | 'pending' | 'overdue'>('all')
   const [showNew, setShowNew] = useState(false)
   const [markRecord, setMarkRecord] = useState<FinancialRecord | null>(null)
-  const [chargeRecord, setChargeRecord] = useState<FinancialRecord | null>(null)
-  const [linkRecord, setLinkRecord] = useState<FinancialRecord | null>(null)
-  const [cardRecord, setCardRecord] = useState<FinancialRecord | null>(null)
 
   const total   = records.reduce((s, r) => s + (r.type === 'income' ? Number(r.amount) : 0), 0)
   const paid    = records.filter(r => r.status === 'paid').reduce((s, r) => s + Number(r.amount), 0)
@@ -45,7 +39,7 @@ export default function FinancialPage() {
 
   const filtered = filter === 'all' ? records : records.filter(r => r.status === filter)
 
-  // Constrói gráfico dos últimos 6 meses a partir dos registros reais
+  // Constroi grafico dos ultimos 6 meses a partir dos registros reais
   const revenueData = useMemo(() => {
     const now = new Date()
     return Array.from({ length: 6 }, (_, i) => {
@@ -64,7 +58,7 @@ export default function FinancialPage() {
   async function handleMarkPaid(id: string, method: string) {
     try {
       await markPaid.mutateAsync({ id, method })
-      toast.success('Pagamento registrado ✓')
+      toast.success('Pagamento registrado ok')
     } catch {
       toast.error('Erro ao registrar pagamento.')
     }
@@ -79,7 +73,7 @@ export default function FinancialPage() {
         </div>
         <button onClick={() => setShowNew(true)} className="btn-primary flex items-center gap-2">
           <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Novo lançamento</span>
+          <span className="hidden sm:inline">Novo lancamento</span>
         </button>
       </div>
 
@@ -95,11 +89,11 @@ export default function FinancialPage() {
           icon={<TrendingUp className="w-5 h-5" />}   accent={overdue > 0 ? 'rose' : 'sage'} />
       </div>
 
-      {/* Gráfico de receita mensal */}
+      {/* Grafico de receita mensal */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
           <h2 className="section-title mb-0">Receita mensal</h2>
-          <span className="text-xs text-neutral-400">Últimos 6 meses</span>
+          <span className="text-xs text-neutral-400">Ultimos 6 meses</span>
         </div>
         <div className="h-40">
           <ResponsiveContainer width="100%" height="100%">
@@ -130,16 +124,16 @@ export default function FinancialPage() {
           return (
             <div className="flex gap-6 mt-3 pt-3 border-t border-neutral-50">
               <div>
-                <p className="text-xs text-neutral-400">Este mês</p>
+                <p className="text-xs text-neutral-400">Este mes</p>
                 <p className="font-semibold text-neutral-800 text-sm">{formatCurrency(last.valor)}</p>
               </div>
               <div>
-                <p className="text-xs text-neutral-400">Mês anterior</p>
+                <p className="text-xs text-neutral-400">Mes anterior</p>
                 <p className="font-semibold text-neutral-800 text-sm">{formatCurrency(prev?.valor ?? 0)}</p>
               </div>
               {diff !== null && (
                 <div>
-                  <p className="text-xs text-neutral-400">Variação</p>
+                  <p className="text-xs text-neutral-400">Variacao</p>
                   <p className={`font-semibold text-sm ${Number(diff) >= 0 ? 'text-sage-600' : 'text-rose-500'}`}>
                     {Number(diff) >= 0 ? '+' : ''}{diff}%
                   </p>
@@ -150,10 +144,10 @@ export default function FinancialPage() {
         })()}
       </div>
 
-      {/* Lista de lançamentos */}
+      {/* Lista de lancamentos */}
       <div className="card">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-          <h2 className="section-title mb-0">Lançamentos</h2>
+          <h2 className="section-title mb-0">Lancamentos</h2>
           <div className="flex gap-1 bg-neutral-100 p-1 rounded-xl overflow-x-auto scrollbar-none">
             {FILTERS.map(({ v, l }) => (
               <button key={v} onClick={() => setFilter(v)}
@@ -182,21 +176,18 @@ export default function FinancialPage() {
             </div>
           ) : filtered.length === 0 ? (
             <p className="text-neutral-400 text-sm text-center py-8">
-              Nenhum lançamento nesta categoria.
+              Nenhum lancamento nesta categoria.
             </p>
           ) : filtered.map(record => (
             <FinancialRow key={record.id} record={record}
               onMarkPaid={() => setMarkRecord(record)}
-              onSendCharge={() => setChargeRecord(record)}
-              onPaymentLink={() => setLinkRecord(record)}
-              onCardCharge={() => setCardRecord(record)}
               onDelete={async () => {
-                if (!confirm(`Excluir lançamento de ${record.patient?.name ?? 'paciente'}? Esta ação não pode ser desfeita.`)) return
+                if (!confirm(`Excluir lancamento de ${record.patient?.name ?? 'paciente'}? Esta acao nao pode ser desfeita.`)) return
                 try {
                   await deleteRecord.mutateAsync(record.id)
-                  toast.success('Lançamento excluído')
+                  toast.success('Lancamento excluido')
                 } catch {
-                  toast.error('Erro ao excluir lançamento')
+                  toast.error('Erro ao excluir lancamento')
                 }
               }}
             />
@@ -212,39 +203,22 @@ export default function FinancialPage() {
         onClose={() => setMarkRecord(null)}
         onConfirm={handleMarkPaid}
       />
-      <SendChargeModal
-        record={chargeRecord}
-        open={!!chargeRecord}
-        onClose={() => setChargeRecord(null)}
-      />
-      <PaymentLinkModal
-        record={linkRecord}
-        open={!!linkRecord}
-        onClose={() => setLinkRecord(null)}
-      />
-      <CardPaymentModal
-        record={cardRecord}
-        open={!!cardRecord}
-        onClose={() => setCardRecord(null)}
-      />
     </div>
   )
 }
 
-// ─── Linha de lançamento ──────────────────────────────────────────────────────
-function FinancialRow({ record, onMarkPaid, onSendCharge, onPaymentLink, onCardCharge, onDelete }: {
+// --- Linha de lancamento ------------------------------------------------------
+function FinancialRow({ record, onMarkPaid, onDelete }: {
   record: FinancialRecord
   onMarkPaid: () => void
-  onSendCharge: () => void
-  onPaymentLink: () => void
-  onCardCharge: () => void
   onDelete: () => void
 }) {
   const isPending = record.status === 'pending' || record.status === 'overdue'
+  const patientName = record.patient?.name ?? record.description
 
   return (
     <div className="group flex items-center gap-3 p-3 rounded-xl hover:bg-neutral-50 transition-colors">
-      <Avatar name={record.patient!.name} colorClass={record.patient!.avatarColor} size="sm" />
+      <Avatar name={patientName} colorClass={record.patient?.avatarColor} size="sm" />
 
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-neutral-700 truncate">{record.description}</p>
@@ -253,39 +227,21 @@ function FinancialRow({ record, onMarkPaid, onSendCharge, onPaymentLink, onCardC
             ? `Pago em ${formatDate(record.paidAt)}`
             : record.dueDate
             ? `Vence ${formatDate(record.dueDate)}`
-            : '—'}
-          {record.method && ` · ${METHOD_LABELS[record.method]}`}
+            : '-'}
+          {record.method && ` · ${METHOD_LABELS[record.method] ?? record.method}`}
         </p>
       </div>
 
-      {/* Ações — aparecem no hover (desktop) ou sempre (mobile) */}
       <div className="flex items-center gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
         {isPending && (
-          <>
-            <button onClick={onSendCharge}
-              title="Enviar cobrança PIX via WhatsApp"
-              className="p-1.5 rounded-lg hover:bg-neutral-100 text-neutral-400 hover:text-sage-600 transition-colors">
-              <MessageCircle className="w-4 h-4" />
-            </button>
-            <button onClick={onPaymentLink}
-              title="Gerar link de pagamento (cartão, PIX, boleto)"
-              className="p-1.5 rounded-lg hover:bg-neutral-100 text-neutral-400 hover:text-mist-600 transition-colors">
-              <Link2 className="w-4 h-4" />
-            </button>
-            <button onClick={onCardCharge}
-              title="Cobrar agora por cartão de crédito"
-              className="p-1.5 rounded-lg hover:bg-neutral-100 text-neutral-400 hover:text-violet-600 transition-colors">
-              <CreditCard className="w-4 h-4" />
-            </button>
-            <button onClick={onMarkPaid}
-              title="Registrar pagamento manualmente"
-              className="p-1.5 rounded-lg hover:bg-neutral-100 text-neutral-400 hover:text-sage-600 transition-colors">
-              <CheckCircle className="w-4 h-4" />
-            </button>
-          </>
+          <button onClick={onMarkPaid}
+            title="Registrar pagamento manualmente"
+            className="p-1.5 rounded-lg hover:bg-neutral-100 text-neutral-400 hover:text-sage-600 transition-colors">
+            <CheckCircle className="w-4 h-4" />
+          </button>
         )}
         <button onClick={onDelete}
-          title="Excluir lançamento"
+          title="Excluir lancamento"
           className="p-1.5 rounded-lg hover:bg-rose-50 text-neutral-300 hover:text-rose-500 transition-colors">
           <Trash2 className="w-4 h-4" />
         </button>
@@ -303,3 +259,4 @@ function FinancialRow({ record, onMarkPaid, onSendCharge, onPaymentLink, onCardC
     </div>
   )
 }
+

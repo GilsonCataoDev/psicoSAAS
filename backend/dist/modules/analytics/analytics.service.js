@@ -71,11 +71,14 @@ let AnalyticsService = AnalyticsService_1 = class AnalyticsService {
                 relations: ['patient'],
                 order: { time: 'ASC' },
             }), []),
-            safe('pendingPayments', log, () => this.financial.find({
-                where: { psychologistId: userId, status: 'pending', type: 'income' },
-                order: { dueDate: 'ASC' },
-                take: 10,
-            }), []),
+            safe('pendingPayments', log, () => this.financial
+                .createQueryBuilder('f')
+                .where('f.psychologistId = :userId', { userId })
+                .andWhere('f.status IN (:...statuses)', { statuses: ['pending', 'overdue'] })
+                .andWhere("(f.type IS NULL OR f.type = 'income')")
+                .orderBy('f.dueDate', 'ASC', 'NULLS LAST')
+                .take(10)
+                .getMany(), []),
             safe('monthRevenue', log, () => this.financial
                 .createQueryBuilder('f')
                 .select('SUM(f.amount)', 'total')
