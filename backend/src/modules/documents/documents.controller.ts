@@ -1,8 +1,9 @@
 import {
-  Controller, Post, Get, Delete, Param, Body, Req, UseGuards,
+  Controller, Post, Get, Delete, Param, Body, Req, Res, UseGuards,
 } from '@nestjs/common'
 import { SkipThrottle } from '@nestjs/throttler'
 import { IsEnum, IsString, IsNotEmpty } from 'class-validator'
+import { Response } from 'express'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { RequirePlan } from '../../common/decorators/require-plan.decorator'
 import { DocumentsService, CreateDocumentDto } from './documents.service'
@@ -39,6 +40,20 @@ export class DocumentsController {
   }
 
   /** Excluir documento próprio */
+  /** Gerar PDF do documento proprio, com QR e codigo de verificacao */
+  @Get(':id/pdf')
+  @UseGuards(JwtAuthGuard)
+  async pdf(@Param('id') id: string, @Req() req: any, @Res() res: Response) {
+    const { filename, buffer } = await this.svc.generatePdf(id, req.user.id)
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': buffer.length,
+      'Cache-Control': 'private, no-store',
+    })
+    res.end(buffer)
+  }
+
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   async remove(@Param('id') id: string, @Req() req: any) {

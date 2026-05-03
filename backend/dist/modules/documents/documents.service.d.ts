@@ -21,8 +21,13 @@ export declare class DocumentsService {
     private decryptContent;
     private getVerificationUrl;
     private exposeDocument;
+    private collectPdf;
     create(user: User, dto: CreateDocumentDto, signerIp?: string): Promise<Document>;
     findByUser(userId: string, type?: DocType): Promise<Document[]>;
+    generatePdf(id: string, userId: string): Promise<{
+        filename: string;
+        buffer: Buffer;
+    }>;
     remove(id: string, userId: string): Promise<{
         deleted: boolean;
     }>;

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import * as QRCode from 'qrcode'
-import { Printer, Download, Shield, CheckCircle, ExternalLink } from 'lucide-react'
+import { Download, Loader2, Shield, CheckCircle, ExternalLink } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import { Documento, DOC_TYPE_LABELS } from '@/types/prontuario'
+import { api } from '@/lib/api'
+import toast from 'react-hot-toast'
 
 function getVerificationUrl(signCode: string) {
   const base = import.meta.env.BASE_URL.replace(/\/$/, '')
@@ -19,6 +21,7 @@ export default function DocumentPreviewModal({
   onClose: () => void
 }) {
   const [qrCode, setQrCode] = useState('')
+  const [downloading, setDownloading] = useState(false)
 
   const verificationUrl = useMemo(
     () => doc ? getVerificationUrl(doc.signCode) : '',
@@ -39,6 +42,26 @@ export default function DocumentPreviewModal({
 
   const signedDate = new Date(doc.signedAt).toLocaleDateString('pt-BR', { dateStyle: 'long' })
   const crp = doc.psychologistCrp ?? doc.crp
+
+  async function downloadPdf() {
+    if (!doc) return
+    setDownloading(true)
+    try {
+      const response = await api.get(`/documents/${doc.id}/pdf`, { responseType: 'blob' })
+      const url = URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }))
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `${doc.signCode}-${doc.type}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    } catch {
+      toast.error('Nao foi possivel gerar o PDF agora.')
+    } finally {
+      setDownloading(false)
+    }
+  }
 
   return (
     <Modal open={open} onClose={onClose} title={DOC_TYPE_LABELS[doc.type]} size="lg">
@@ -90,7 +113,7 @@ export default function DocumentPreviewModal({
             <div className="bg-sage-50 border border-sage-100 rounded-xl px-4 py-3 flex items-center gap-3">
               <CheckCircle className="w-4 h-4 text-sage-600 shrink-0" />
               <div className="min-w-0 flex-1">
-                <p className="text-xs text-sage-700 font-medium">Documento assinado digitalmente</p>
+                <p className="text-xs text-sage-700 font-medium">Documento com autenticidade verificavel</p>
                 <p className="text-xs font-mono text-sage-600 mt-0.5">Codigo: {doc.signCode}</p>
               </div>
               <a
@@ -108,13 +131,20 @@ export default function DocumentPreviewModal({
         </div>
 
         <div className="flex gap-3">
-          <button onClick={() => window.print()}
+          <a
+            href={verificationUrl}
+            target="_blank"
+            rel="noopener noreferrer"
             className="btn-secondary flex-1 flex items-center justify-center gap-2 text-sm">
-            <Printer className="w-4 h-4" />Imprimir
-          </button>
-          <button onClick={() => window.print()}
-            className="btn-primary flex-1 flex items-center justify-center gap-2 text-sm">
-            <Download className="w-4 h-4" />Baixar PDF
+            <ExternalLink className="w-4 h-4" />Verificar
+          </a>
+          <button
+            onClick={downloadPdf}
+            disabled={downloading}
+            className="btn-primary flex-1 flex items-center justify-center gap-2 text-sm disabled:opacity-70"
+          >
+            {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            Baixar PDF
           </button>
         </div>
       </div>

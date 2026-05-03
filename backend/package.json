@@ -34,7 +34,9 @@
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
+    "pdfkit": "^0.18.0",
     "pg": "^8.12.0",
+    "qrcode": "^1.5.4",
     "reflect-metadata": "^0.2.2",
     "resend": "^4.0.0",
     "rxjs": "^7.8.1",
@@ -46,6 +48,8 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.5.4",
     "@types/passport-jwt": "^4.0.1",
-    "@types/passport-local": "^1.0.38"
+    "@types/passport-local": "^1.0.38",
+    "@types/pdfkit": "^0.17.6",
+    "@types/qrcode": "^1.5.6"
   }
 }

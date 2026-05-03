@@ -57,6 +57,16 @@ let DocumentsController = class DocumentsController {
     async findMine(req) {
         return this.svc.findByUser(req.user.id);
     }
+    async pdf(id, req, res) {
+        const { filename, buffer } = await this.svc.generatePdf(id, req.user.id);
+        res.set({
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `attachment; filename="${filename}"`,
+            'Content-Length': buffer.length,
+            'Cache-Control': 'private, no-store',
+        });
+        res.end(buffer);
+    }
     async remove(id, req) {
         return this.svc.remove(id, req.user.id);
     }
@@ -84,6 +94,16 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], DocumentsController.prototype, "findMine", null);
+__decorate([
+    (0, common_1.Get)(':id/pdf'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Req)()),
+    __param(2, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:returntype", Promise)
+], DocumentsController.prototype, "pdf", null);
 __decorate([
     (0, common_1.Delete)(':id'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

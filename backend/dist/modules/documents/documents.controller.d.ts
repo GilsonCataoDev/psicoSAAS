@@ -1,3 +1,4 @@
+import { Response } from 'express';
 import { DocumentsService, CreateDocumentDto } from './documents.service';
 import { DocType } from './entities/document.entity';
 declare class CreateDocumentBodyDto implements CreateDocumentDto {
@@ -12,6 +13,7 @@ export declare class DocumentsController {
     constructor(svc: DocumentsService);
     create(req: any, body: CreateDocumentBodyDto): Promise<import("./entities/document.entity").Document>;
     findMine(req: any): Promise<import("./entities/document.entity").Document[]>;
+    pdf(id: string, req: any, res: Response): Promise<void>;
     remove(id: string, req: any): Promise<{
         deleted: boolean;
     }>;
