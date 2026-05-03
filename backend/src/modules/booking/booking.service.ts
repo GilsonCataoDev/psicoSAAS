@@ -7,7 +7,7 @@ import { randomBytes, createHmac } from 'crypto'
 import { ConfigService } from '@nestjs/config'
 import {
   addDays, format, parseISO, setHours, setMinutes,
-  addMinutes, isBefore, isAfter, getDay,
+  addMinutes, isBefore, isAfter, getDay, eachDayOfInterval,
 } from 'date-fns'
 import { Booking } from './entities/booking.entity'
 import { BookingPage } from './entities/booking-page.entity'
@@ -141,7 +141,6 @@ export class BookingService {
         psychologistId: page.psychologistId,
         date: dateStr,
         status: 'confirmed' as any,
-        ...(modality ? { modality } : {}),
       },
     })
     const occupiedTimes = new Set(existing.map(b => b.time))
@@ -162,6 +161,25 @@ export class BookingService {
         }
         current = addMinutes(current, page.slotInterval)
       }
+    }
+
+    return available
+  }
+
+  async getAvailableDates(slugOrToken: string, monthStr: string, modality?: 'presencial' | 'online') {
+    if (!/^\d{4}-\d{2}$/.test(monthStr)) {
+      throw new BadRequestException('Mes invalido (use YYYY-MM)')
+    }
+
+    const start = parseISO(`${monthStr}-01`)
+    const end = new Date(start.getFullYear(), start.getMonth() + 1, 0)
+    const days = eachDayOfInterval({ start, end })
+    const available: string[] = []
+
+    for (const day of days) {
+      const dateStr = format(day, 'yyyy-MM-dd')
+      const slots = await this.getAvailableSlots(slugOrToken, dateStr, modality)
+      if (slots.length > 0) available.push(dateStr)
     }
 
     return available

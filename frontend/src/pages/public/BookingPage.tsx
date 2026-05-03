@@ -15,7 +15,7 @@ import {
 import { ptBR } from 'date-fns/locale'
 import { cn, formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
-import { usePublicBookingPage, usePublicBookingSlots, useCreateBooking } from '@/hooks/useApi'
+import { usePublicBookingPage, usePublicBookingSlots, useCreateBooking, usePublicBookingDates } from '@/hooks/useApi'
 
 const schema = z.object({
   patientName:  z.string().min(2, 'Nome obrigatório'),
@@ -42,6 +42,8 @@ export default function BookingPage() {
     defaultValues: { modality: 'presencial' },
   })
   const selectedModality = watch('modality')
+  const monthKey = format(month, 'yyyy-MM')
+  const { data: availableDates = [], isFetching: datesLoading } = usePublicBookingDates(slug ?? '', monthKey, selectedModality)
   const { data: slots = [], isFetching: slotsLoading } = usePublicBookingSlots(slug ?? '', selectedDate, selectedModality)
   const createBooking = useCreateBooking(slug ?? '')
 
@@ -75,7 +77,8 @@ export default function BookingPage() {
     const today = startOfDay(new Date())
     const min = addDays(today, page?.minAdvanceDays ?? 1)
     const max = addDays(today, page?.maxAdvanceDays ?? 60)
-    return isBefore(date, min) || isBefore(max, date) || getDay(date) === 0 || getDay(date) === 6
+    const dateStr = format(date, 'yyyy-MM-dd')
+    return isBefore(date, min) || isBefore(max, date) || !availableDates.includes(dateStr)
   }
 
   // ─── Envio ───────────────────────────────────────────────────────────────────
@@ -245,6 +248,12 @@ export default function BookingPage() {
                     </button>
                   </div>
                 </div>
+                {datesLoading && (
+                  <div className="mb-3 flex items-center gap-2 text-xs text-neutral-400">
+                    <span className="w-3 h-3 border-2 border-sage-300 border-t-transparent rounded-full animate-spin" />
+                    Buscando datas disponiveis...
+                  </div>
+                )}
 
                 {/* Day headers */}
                 <div className="grid grid-cols-7 mb-2">

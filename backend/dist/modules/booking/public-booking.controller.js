@@ -27,6 +27,9 @@ let PublicBookingController = class PublicBookingController {
     getSlots(slug, date, modality) {
         return this.svc.getAvailableSlots(slug, date, modality);
     }
+    getDates(slug, month, modality) {
+        return this.svc.getAvailableDates(slug, month, modality);
+    }
     createBooking(slug, dto) {
         return this.svc.createBooking(slug, dto);
     }
@@ -56,6 +59,16 @@ __decorate([
     __metadata("design:paramtypes", [String, String, String]),
     __metadata("design:returntype", void 0)
 ], PublicBookingController.prototype, "getSlots", null);
+__decorate([
+    (0, common_1.Get)(':slug/dates'),
+    (0, throttler_1.Throttle)({ short: { limit: 30, ttl: 60000 } }),
+    __param(0, (0, common_1.Param)('slug')),
+    __param(1, (0, common_1.Query)('month')),
+    __param(2, (0, common_1.Query)('modality')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:returntype", void 0)
+], PublicBookingController.prototype, "getDates", null);
 __decorate([
     (0, common_1.Post)(':slug'),
     (0, throttler_1.Throttle)({ short: { limit: 5, ttl: 60000 } }),

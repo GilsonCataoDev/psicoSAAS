@@ -120,7 +120,6 @@ let BookingService = class BookingService {
                 psychologistId: page.psychologistId,
                 date: dateStr,
                 status: 'confirmed',
-                ...(modality ? { modality } : {}),
             },
         });
         const occupiedTimes = new Set(existing.map(b => b.time));
@@ -138,6 +137,22 @@ let BookingService = class BookingService {
                 }
                 current = (0, date_fns_1.addMinutes)(current, page.slotInterval);
             }
+        }
+        return available;
+    }
+    async getAvailableDates(slugOrToken, monthStr, modality) {
+        if (!/^\d{4}-\d{2}$/.test(monthStr)) {
+            throw new common_1.BadRequestException('Mes invalido (use YYYY-MM)');
+        }
+        const start = (0, date_fns_1.parseISO)(`${monthStr}-01`);
+        const end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+        const days = (0, date_fns_1.eachDayOfInterval)({ start, end });
+        const available = [];
+        for (const day of days) {
+            const dateStr = (0, date_fns_1.format)(day, 'yyyy-MM-dd');
+            const slots = await this.getAvailableSlots(slugOrToken, dateStr, modality);
+            if (slots.length > 0)
+                available.push(dateStr);
         }
         return available;
     }

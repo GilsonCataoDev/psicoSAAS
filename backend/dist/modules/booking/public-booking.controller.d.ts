@@ -29,6 +29,7 @@ export declare class PublicBookingController {
         updatedAt: Date;
     }>;
     getSlots(slug: string, date: string, modality?: 'presencial' | 'online'): Promise<string[]>;
+    getDates(slug: string, month: string, modality?: 'presencial' | 'online'): Promise<string[]>;
     createBooking(slug: string, dto: CreateBookingDto): Promise<{
         id: string;
         confirmationToken: string;

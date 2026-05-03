@@ -324,6 +324,14 @@ export function usePublicBookingSlots(slug: string, date: string | null, modalit
   })
 }
 
+export function usePublicBookingDates(slug: string, month: string, modality?: string | null) {
+  return useQuery<string[]>({
+    queryKey: ['public-booking-dates', slug, month, modality],
+    queryFn: () => api.get(`/public/booking/${slug}/dates`, { params: { month, modality } }).then(r => r.data),
+    enabled: !!slug && !!month && !!modality,
+  })
+}
+
 export function useCreateBooking(slug: string) {
   return useMutation({
     mutationFn: (data: any) => api.post(`/public/booking/${slug}`, data).then(r => r.data),
