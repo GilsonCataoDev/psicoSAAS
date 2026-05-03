@@ -62,7 +62,9 @@ let SubscriptionGuard = class SubscriptionGuard extends (0, passport_1.AuthGuard
             normalizedPath === '/billing/webhook' ||
             normalizedPath === '/billing/tokenize' ||
             normalizedPath === '/billing/update-card' ||
-            normalizedPath === '/billing/subscribe');
+            normalizedPath === '/billing/subscribe' ||
+            normalizedPath === '/billing/free' ||
+            normalizedPath === '/billing/cancel');
     }
     isWithinGracePeriod(currentPeriodEnd) {
         if (!currentPeriodEnd)
