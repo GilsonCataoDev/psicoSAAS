@@ -89,6 +89,17 @@ export function useUpdateAppointmentStatus() {
   })
 }
 
+export function useDeleteAppointment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/appointments/${id}`).then(r => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['appointments'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+}
+
 // ── Sessions ──────────────────────────────────────────────────────────────────
 
 export function useSessions(params?: { patientId?: string }) {

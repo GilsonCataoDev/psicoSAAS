@@ -83,11 +83,16 @@ export default function BookingPage() {
 
   // ─── Envio ───────────────────────────────────────────────────────────────────
   async function onSubmit(data: FormData) {
+    if (!selectedDate || !selectedTime) {
+      toast.error('Escolha uma data e um horario.')
+      return
+    }
+
     try {
       await createBooking.mutateAsync({ ...data, date: selectedDate, time: selectedTime })
       setStep('success')
-    } catch {
-      toast.error('Erro ao enviar solicitação. Tente novamente.')
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'Erro ao enviar solicitacao. Tente novamente.')
     }
   }
 
@@ -384,9 +389,9 @@ export default function BookingPage() {
                     <p>💰 {formatCurrency(page.sessionPrice)}</p>
                   </div>
 
-                  <button type="submit" disabled={isSubmitting}
+                  <button type="submit" disabled={isSubmitting || createBooking.isPending}
                     className="btn-primary w-full flex items-center justify-center gap-2">
-                    {isSubmitting
+                    {isSubmitting || createBooking.isPending
                       ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Enviando...</>
                       : 'Solicitar agendamento 💙'
                     }

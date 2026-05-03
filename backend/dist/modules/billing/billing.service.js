@@ -18,6 +18,7 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const asaas_service_1 = require("./asaas.service");
 const subscription_entity_1 = require("./entities/subscription.entity");
+const TRIAL_DAYS = 7;
 let BillingService = class BillingService {
     constructor(repo, asaas) {
         this.repo = repo;
@@ -52,8 +53,7 @@ let BillingService = class BillingService {
         }
         if (existing?.hasUsedTrial)
             throw new common_1.ConflictException('Teste gratuito já utilizado');
-        const trialEndsAt = new Date();
-        trialEndsAt.setDate(trialEndsAt.getDate() + 7);
+        const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 86400000);
         const subscription = existing ?? this.repo.create({ userId: user.id });
         Object.assign(subscription, {
             userId: user.id,
@@ -65,7 +65,7 @@ let BillingService = class BillingService {
         });
         const saved = await this.repo.save(subscription);
         const gatewayCustomerId = saved.gatewayCustomerId ?? await this.asaas.createCustomer(user);
-        const gatewaySubscriptionId = await this.asaas.createSubscription(gatewayCustomerId, plan, saved.id, creditCardToken, this.asaas.addDays(7));
+        const gatewaySubscriptionId = await this.asaas.createSubscription(gatewayCustomerId, plan, saved.id, creditCardToken, this.asaas.addDays(TRIAL_DAYS));
         Object.assign(saved, {
             gatewayCustomerId,
             gatewaySubscriptionId,

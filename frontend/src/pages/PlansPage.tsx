@@ -218,7 +218,7 @@ export default function PlansPage() {
       {/* Garantia */}
       <div className="flex items-center justify-center gap-3 text-sm text-neutral-500">
         <Shield className="w-4 h-4 text-sage-400" />
-        <span>14 dias de teste grátis · Cancele a qualquer momento · Sem cartão para começar</span>
+        <span>7 dias de teste gratis · Cancele a qualquer momento · Cartao usado so apos o teste</span>
       </div>
 
       {/* FAQ */}

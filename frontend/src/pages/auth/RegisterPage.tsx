@@ -92,7 +92,7 @@ export default function RegisterPage() {
           <span className="text-xl">🎁</span>
           <div>
             <p className="text-sm font-medium text-violet-800">Você foi indicado por um colega!</p>
-            <p className="text-xs text-violet-600 mt-0.5">Seus 14 dias de teste estão garantidos.</p>
+            <p className="text-xs text-violet-600 mt-0.5">Seus 7 dias de teste estao garantidos.</p>
           </div>
         </div>
       )}

@@ -55,7 +55,7 @@ export class EmailService {
       html: this.wrap(`
         <h1 style="color:#4a7c59;font-weight:300;font-size:28px">Olá, ${firstName}! 🌱</h1>
         <p style="color:#555;font-size:16px;line-height:1.6">
-          Sua conta foi criada com sucesso. Você tem <strong>14 dias grátis</strong>
+          Sua conta foi criada com sucesso. Você tem <strong>7 dias grátis</strong>
           para explorar todas as funcionalidades do plano Essencial.
         </p>
         <p style="color:#555;font-size:16px;line-height:1.6">Veja o que você pode fazer agora:</p>

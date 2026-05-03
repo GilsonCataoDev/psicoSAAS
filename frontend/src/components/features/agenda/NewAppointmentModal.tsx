@@ -16,8 +16,8 @@ export default function NewAppointmentModal({ open, onClose }: { open: boolean; 
       await createAppointment.mutateAsync(data)
       toast.success('Sessão agendada! 📅')
       reset(); onClose()
-    } catch {
-      toast.error('Erro ao agendar. Tente novamente.')
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'Erro ao agendar. Tente novamente.')
     }
   }
 
@@ -59,8 +59,8 @@ export default function NewAppointmentModal({ open, onClose }: { open: boolean; 
         </div>
         <div className="flex justify-end gap-3 pt-2">
           <button type="button" onClick={onClose} className="btn-secondary">Cancelar</button>
-          <button type="submit" disabled={isSubmitting} className="btn-primary flex items-center gap-2">
-            {isSubmitting && <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+          <button type="submit" disabled={isSubmitting || createAppointment.isPending} className="btn-primary flex items-center gap-2">
+            {(isSubmitting || createAppointment.isPending) && <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
             Agendar
           </button>
         </div>

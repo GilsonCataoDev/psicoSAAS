@@ -18,6 +18,7 @@ const navItems = [
   { to: '/financeiro',    icon: Wallet,          label: 'Financeiro'   },
   { to: '/configuracoes', icon: Settings,        label: 'Ajustes'      },
 ]
+const TRIAL_DAYS = 7
 
 export default function Sidebar() {
   const user = useAuthStore((s) => s.user)
@@ -85,7 +86,7 @@ export default function Sidebar() {
 
       {/* Banner trial / plano */}
       <div className="px-3 pb-2">
-        {isTrialing && daysLeft !== null && daysLeft <= 14 ? (
+        {isTrialing && daysLeft !== null && daysLeft <= TRIAL_DAYS ? (
           <NavLink
             to="/planos"
             className="block hero-gradient text-white rounded-2xl p-3.5 hover:opacity-90 transition-opacity"
@@ -100,7 +101,7 @@ export default function Sidebar() {
             <div className="bg-white/20 rounded-full h-1">
               <div
                 className="bg-white rounded-full h-1 transition-all"
-                style={{ width: `${Math.max(5, ((14 - daysLeft) / 14) * 100)}%` }}
+                style={{ width: `${Math.max(5, ((TRIAL_DAYS - daysLeft) / TRIAL_DAYS) * 100)}%` }}
               />
             </div>
           </NavLink>

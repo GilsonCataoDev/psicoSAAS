@@ -26,8 +26,10 @@ const appointment_entity_1 = require("../appointments/entities/appointment.entit
 const financial_record_entity_1 = require("../financial/entities/financial-record.entity");
 const availability_service_1 = require("../availability/availability.service");
 const notifications_service_1 = require("../notifications/notifications.service");
+const OCCUPYING_BOOKING_STATUSES = ['pending', 'confirmed'];
+const FREE_APPOINTMENT_STATUSES = ['cancelled', 'no_show'];
 let BookingService = class BookingService {
-    constructor(bookings, pages, patients, appointments, financial, availability, notifications, config) {
+    constructor(bookings, pages, patients, appointments, financial, availability, notifications, config, dataSource) {
         this.bookings = bookings;
         this.pages = pages;
         this.patients = patients;
@@ -36,6 +38,7 @@ let BookingService = class BookingService {
         this.availability = availability;
         this.notifications = notifications;
         this.config = config;
+        this.dataSource = dataSource;
     }
     generateDailyToken(userId) {
         const secret = this.config.get('SIGN_SECRET') ?? 'fallback-secret';
@@ -115,14 +118,26 @@ let BookingService = class BookingService {
         const maxDate = (0, date_fns_1.addDays)(new Date(), page.maxAdvanceDays);
         if ((0, date_fns_1.isBefore)(date, minDate) || (0, date_fns_1.isAfter)(date, maxDate))
             return [];
-        const existing = await this.bookings.find({
-            where: {
-                psychologistId: page.psychologistId,
-                date: dateStr,
-                status: 'confirmed',
-            },
-        });
-        const occupiedTimes = new Set(existing.map(b => b.time));
+        const [existingBookings, existingAppointments] = await Promise.all([
+            this.bookings.find({
+                where: {
+                    psychologistId: page.psychologistId,
+                    date: dateStr,
+                    status: (0, typeorm_2.In)(OCCUPYING_BOOKING_STATUSES),
+                },
+            }),
+            this.appointments.find({
+                where: {
+                    psychologistId: page.psychologistId,
+                    date: dateStr,
+                    status: (0, typeorm_2.Not)((0, typeorm_2.In)(FREE_APPOINTMENT_STATUSES)),
+                },
+            }),
+        ]);
+        const occupiedTimes = new Set([
+            ...existingBookings.map(b => this.normalizeTime(b.time)),
+            ...existingAppointments.map(a => this.normalizeTime(a.time)),
+        ]);
         const available = [];
         for (const slot of slots) {
             const [startH, startM] = slot.startTime.split(':').map(Number);
@@ -181,30 +196,27 @@ let BookingService = class BookingService {
                 relations: ['psychologist'],
             });
         }
-        const conflict = await this.bookings.findOne({
-            where: {
-                psychologistId: page.psychologistId,
-                date: dto.date,
-                time: dto.time,
-                status: 'confirmed',
-            },
-        });
-        if (conflict)
-            throw new common_1.ConflictException('Este horário não está mais disponível');
         const confirmationToken = (0, crypto_1.randomBytes)(32).toString('hex');
         const tokenExpiresAt = (0, date_fns_1.addDays)(new Date(), 2);
-        const booking = this.bookings.create({
-            ...dto,
-            modality: dto.modality ?? (page.allowOnline ? 'online' : 'presencial'),
-            psychologistId: page.psychologistId,
-            duration: page.sessionDuration,
-            amount: page.sessionPrice,
-            confirmationToken,
-            tokenExpiresAt,
-            status: 'pending',
-            paymentStatus: 'pending',
+        const saved = await this.dataSource.transaction(async (manager) => {
+            await manager.query('SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))', ['appointment-slot', `${page.psychologistId}:${dto.date}:${dto.time}`]);
+            const availableSlots = await this.getAvailableSlots(slugOrToken, dto.date, dto.modality);
+            if (!availableSlots.includes(dto.time)) {
+                throw new common_1.ConflictException('Este horario nao esta mais disponivel');
+            }
+            const booking = manager.create(booking_entity_1.Booking, {
+                ...dto,
+                modality: dto.modality ?? (page.allowOnline ? 'online' : 'presencial'),
+                psychologistId: page.psychologistId,
+                duration: page.sessionDuration,
+                amount: page.sessionPrice,
+                confirmationToken,
+                tokenExpiresAt,
+                status: 'pending',
+                paymentStatus: 'pending',
+            });
+            return manager.save(booking_entity_1.Booking, booking);
         });
-        const saved = await this.bookings.save(booking);
         await this.notifications.sendBookingRequest(saved, page);
         return {
             id: saved.id,
@@ -225,6 +237,7 @@ let BookingService = class BookingService {
             throw new common_1.BadRequestException('Esta sessão foi cancelada');
         if (booking.status === 'confirmed')
             return { message: 'Sessão já confirmada anteriormente ✓' };
+        await this.ensureScheduleIsFree(booking, booking.psychologistId);
         booking.status = 'confirmed';
         booking.confirmedAt = new Date();
         await this.bookings.save(booking);
@@ -257,6 +270,7 @@ let BookingService = class BookingService {
     }
     async confirmBooking(id, psychologistId) {
         const booking = await this.findOne(id, psychologistId);
+        await this.ensureScheduleIsFree(booking, psychologistId);
         booking.status = 'confirmed';
         booking.confirmedAt = new Date();
         await this.bookings.save(booking);
@@ -415,6 +429,33 @@ let BookingService = class BookingService {
             throw new common_1.NotFoundException();
         return b;
     }
+    normalizeTime(time) {
+        return time.slice(0, 5);
+    }
+    async ensureScheduleIsFree(booking, psychologistId) {
+        const [bookingConflict, appointmentConflict] = await Promise.all([
+            this.bookings.findOne({
+                where: {
+                    id: (0, typeorm_2.Not)(booking.id),
+                    psychologistId,
+                    date: booking.date,
+                    time: booking.time,
+                    status: 'confirmed',
+                },
+            }),
+            this.appointments.findOne({
+                where: {
+                    psychologistId,
+                    date: booking.date,
+                    time: booking.time,
+                    status: (0, typeorm_2.Not)((0, typeorm_2.In)(FREE_APPOINTMENT_STATUSES)),
+                },
+            }),
+        ]);
+        if (bookingConflict || appointmentConflict) {
+            throw new common_1.ConflictException('Este horario nao esta mais disponivel');
+        }
+    }
 };
 exports.BookingService = BookingService;
 exports.BookingService = BookingService = __decorate([
@@ -431,6 +472,7 @@ exports.BookingService = BookingService = __decorate([
         typeorm_2.Repository,
         availability_service_1.AvailabilityService,
         notifications_service_1.NotificationsService,
-        config_1.ConfigService])
+        config_1.ConfigService,
+        typeorm_2.DataSource])
 ], BookingService);
 //# sourceMappingURL=booking.service.js.map

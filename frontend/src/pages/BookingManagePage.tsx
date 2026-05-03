@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Link2, Check, X, Wallet, Settings, Clock, RefreshCw, Trash2 } from 'lucide-react'
+import { Link2, Check, X, Wallet, Settings, Clock, RefreshCw, Trash2, MessageCircle } from 'lucide-react'
 import { formatCurrency, formatDateRelative } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import { openWhatsApp } from '@/lib/whatsapp'
 import {
   useBookings, useBookingPage, useSaveBookingPage,
   useConfirmBooking, useRejectBooking, usePayBooking,
@@ -193,6 +194,19 @@ function BookingCard({ booking, onConfirm, onReject, onMarkPaid }: {
   const s = STATUS_CONFIG[booking.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.pending
   const p = PAY_CONFIG[booking.paymentStatus as keyof typeof PAY_CONFIG] ?? PAY_CONFIG.pending
 
+  function messagePatient() {
+    if (!booking.patientPhone) {
+      toast.error('Essa pessoa nao informou WhatsApp.')
+      return
+    }
+
+    const first = booking.patientName?.split(' ')[0] ?? ''
+    const text = booking.status === 'confirmed'
+      ? `Ola, ${first}! Sua sessao esta confirmada para ${formatDateRelative(booking.date)} as ${booking.time}. Ate la!`
+      : `Ola, ${first}! Recebi sua solicitacao para ${formatDateRelative(booking.date)} as ${booking.time}. Ja retorno para confirmar.`
+    openWhatsApp(booking.patientPhone, text)
+  }
+
   return (
     <div className="card space-y-3 p-4">
       <div>
@@ -216,6 +230,10 @@ function BookingCard({ booking, onConfirm, onReject, onMarkPaid }: {
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
+        <button onClick={messagePatient}
+          className="btn-secondary text-sm py-2 flex items-center gap-1.5">
+          <MessageCircle className="w-3.5 h-3.5" />WhatsApp
+        </button>
         {booking.status === 'pending' && (
           <>
             <button onClick={() => onConfirm(booking.id)}

@@ -36,7 +36,7 @@ export default function ReferralCard() {
   function shareWhatsApp() {
     const msg = encodeURIComponent(
       `Estou usando o PsicoSaaS para gerenciar meu consultório e adorando! 🌱\n\n` +
-      `Experimente 14 dias grátis com meu link: ${referralUrl}`
+      `Experimente 7 dias gratis com meu link: ${referralUrl}`
     )
     window.open(`https://wa.me/?text=${msg}`, '_blank', 'noopener')
     track(EVENTS.REFERRAL_SHARED)

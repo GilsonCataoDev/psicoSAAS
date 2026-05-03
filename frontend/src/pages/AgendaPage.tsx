@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, Plus, Video, MapPin } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Video, MapPin, Trash2, MessageCircle } from 'lucide-react'
 import {
   format, addDays, startOfWeek, eachDayOfInterval, addWeeks,
   subWeeks, isSameDay, parseISO, isToday,
@@ -8,8 +8,10 @@ import { ptBR } from 'date-fns/locale'
 import Avatar from '@/components/ui/Avatar'
 import { StatusBadge } from '@/components/ui/Badge'
 import { formatTime } from '@/lib/utils'
-import { useAppointments } from '@/hooks/useApi'
+import { useAppointments, useDeleteAppointment } from '@/hooks/useApi'
 import NewAppointmentModal from '@/components/features/agenda/NewAppointmentModal'
+import toast from 'react-hot-toast'
+import { openWhatsApp } from '@/lib/whatsapp'
 
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 7) // 7h–19h
 
@@ -18,10 +20,36 @@ export default function AgendaPage() {
   const [showModal, setShowModal] = useState(false)
   const days = eachDayOfInterval({ start: weekStart, end: addDays(weekStart, 4) })
   const { data: appointments = [] } = useAppointments()
+  const deleteAppointment = useDeleteAppointment()
 
   // Mobile: só mostra o dia atual
   const [mobileDay, setMobileDay] = useState(new Date())
   const mobileDays = eachDayOfInterval({ start: weekStart, end: addDays(weekStart, 4) })
+
+  async function removeAppointment(id: string, patientName?: string) {
+    if (!confirm(`Remover agendamento${patientName ? ` de ${patientName}` : ''}?`)) return
+    try {
+      await deleteAppointment.mutateAsync(id)
+      toast.success('Agendamento removido')
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'Erro ao remover agendamento.')
+    }
+  }
+
+  function messageAppointment(appt: any) {
+    const phone = appt.patient?.phone
+    if (!phone) {
+      toast.error('Essa pessoa nao tem WhatsApp cadastrado.')
+      return
+    }
+
+    const first = appt.patient?.name?.split(' ')[0] ?? ''
+    const dateLabel = format(parseISO(appt.date), "EEEE, dd 'de' MMMM", { locale: ptBR })
+    openWhatsApp(
+      phone,
+      `Ola, ${first}! Lembrando que temos sessao em ${dateLabel} as ${formatTime(appt.time)}. Ate la!`,
+    )
+  }
 
   return (
     <div className="animate-slide-up space-y-5">
@@ -94,6 +122,23 @@ export default function AgendaPage() {
                   </div>
                 </div>
                 <StatusBadge status={appt.status} />
+                <button
+                  type="button"
+                  onClick={() => messageAppointment(appt)}
+                  className="p-2 rounded-lg text-neutral-300 hover:text-sage-600 hover:bg-sage-50 transition-colors"
+                  title="Enviar WhatsApp"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeAppointment(appt.id, appt.patient?.name)}
+                  disabled={deleteAppointment.isPending}
+                  className="p-2 rounded-lg text-neutral-300 hover:text-rose-500 hover:bg-rose-50 transition-colors disabled:opacity-50"
+                  title="Remover agendamento"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
             ))}
           {appointments.filter(a => isSameDay(parseISO(a.date), mobileDay)).length === 0 && (
@@ -131,12 +176,29 @@ export default function AgendaPage() {
                     className={`border-l border-neutral-100 p-1 ${isToday(day) ? 'bg-sage-50/40' : ''}`}>
                     {dayAppts.map(appt => (
                       <div key={appt.id}
-                        className="bg-sage-100 border border-sage-200 rounded-xl p-2 cursor-pointer hover:bg-sage-200 transition-colors mb-1">
+                        className="group bg-sage-100 border border-sage-200 rounded-xl p-2 hover:bg-sage-200 transition-colors mb-1">
                         <div className="flex items-center gap-1.5">
                           {appt.modality === 'online'
                             ? <Video className="w-3 h-3 text-mist-500 shrink-0" />
                             : <MapPin className="w-3 h-3 text-sage-600 shrink-0" />}
-                          <span className="text-xs text-sage-800 font-medium">{formatTime(appt.time)}</span>
+                          <span className="text-xs text-sage-800 font-medium flex-1">{formatTime(appt.time)}</span>
+                          <button
+                            type="button"
+                            onClick={() => messageAppointment(appt)}
+                            className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-sage-700 hover:text-sage-800 hover:bg-white/70 transition-all"
+                            title="Enviar WhatsApp"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeAppointment(appt.id, appt.patient?.name)}
+                            disabled={deleteAppointment.isPending}
+                            className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-sage-700 hover:text-rose-600 hover:bg-white/70 transition-all disabled:opacity-50"
+                            title="Remover agendamento"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                         <p className="text-xs text-sage-700 truncate mt-0.5">
                           {appt.patient?.name.split(' ')[0]}

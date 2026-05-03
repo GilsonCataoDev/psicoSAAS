@@ -16,17 +16,21 @@ exports.AppointmentsService = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
+const typeorm_3 = require("typeorm");
 const appointment_entity_1 = require("./entities/appointment.entity");
 const notifications_service_1 = require("../notifications/notifications.service");
+const booking_entity_1 = require("../booking/entities/booking.entity");
 let AppointmentsService = class AppointmentsService {
-    constructor(repo, notifications) {
+    constructor(repo, bookings, dataSource, notifications) {
         this.repo = repo;
+        this.bookings = bookings;
+        this.dataSource = dataSource;
         this.notifications = notifications;
     }
     findAll(psychologistId, dateFrom, dateTo) {
         const where = { psychologistId };
         if (dateFrom && dateTo)
-            where.date = (0, typeorm_2.Between)(dateFrom, dateTo);
+            where.date = (0, typeorm_3.Between)(dateFrom, dateTo);
         return this.repo.find({ where, relations: ['patient'], order: { date: 'ASC', time: 'ASC' } });
     }
     async findOne(id, psychologistId) {
@@ -38,8 +42,36 @@ let AppointmentsService = class AppointmentsService {
         return a;
     }
     async create(dto, psychologistId) {
-        const appointment = this.repo.create({ ...dto, psychologistId });
-        const saved = await this.repo.save(appointment);
+        const saved = await this.dataSource.transaction(async (manager) => {
+            await manager.query('SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))', ['appointment-slot', `${psychologistId}:${dto.date}:${dto.time}`]);
+            const [appointmentConflict, bookingConflict] = await Promise.all([
+                manager.findOne(appointment_entity_1.Appointment, {
+                    where: {
+                        psychologistId,
+                        date: dto.date,
+                        time: dto.time,
+                        status: (0, typeorm_3.Not)((0, typeorm_3.In)(['cancelled', 'no_show'])),
+                    },
+                }),
+                manager.findOne(booking_entity_1.Booking, {
+                    where: {
+                        psychologistId,
+                        date: dto.date,
+                        time: dto.time,
+                        status: (0, typeorm_3.In)(['pending', 'confirmed']),
+                    },
+                }),
+            ]);
+            if (appointmentConflict || bookingConflict) {
+                throw new common_1.ConflictException('Este horario ja esta ocupado');
+            }
+            const appointment = manager.create(appointment_entity_1.Appointment, { ...dto, psychologistId });
+            const saved = await manager.save(appointment_entity_1.Appointment, appointment);
+            return manager.findOneOrFail(appointment_entity_1.Appointment, {
+                where: { id: saved.id },
+                relations: ['patient'],
+            });
+        });
         this.notifications.scheduleReminder(saved).catch(console.error);
         return saved;
     }
@@ -57,7 +89,10 @@ exports.AppointmentsService = AppointmentsService;
 exports.AppointmentsService = AppointmentsService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(appointment_entity_1.Appointment)),
-    __metadata("design:paramtypes", [typeorm_2.Repository,
+    __param(1, (0, typeorm_1.InjectRepository)(booking_entity_1.Booking)),
+    __metadata("design:paramtypes", [typeorm_3.Repository,
+        typeorm_3.Repository,
+        typeorm_2.DataSource,
         notifications_service_1.NotificationsService])
 ], AppointmentsService);
 //# sourceMappingURL=appointments.service.js.map

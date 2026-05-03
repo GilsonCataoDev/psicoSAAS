@@ -153,36 +153,51 @@ let DocumentsService = DocumentsService_1 = class DocumentsService {
         };
         pdf.on('pageAdded', drawHeader);
         drawHeader();
-        pdf.fillColor(ink).font('Helvetica').fontSize(11);
-        pdf.text(content, left, 126, {
-            width: contentWidth,
-            align: 'justify',
-            lineGap: 5,
-        });
-        if (pdf.y > pageHeight - 315) {
-            pdf.addPage();
+        const contentTop = 122;
+        const signatureY = 515;
+        const maxContentHeight = signatureY - contentTop - 22;
+        let bodyFontSize = 10.5;
+        let lineGap = 3;
+        while (bodyFontSize > 7.2) {
+            pdf.font('Helvetica').fontSize(bodyFontSize);
+            const height = pdf.heightOfString(content, {
+                width: contentWidth,
+                align: 'justify',
+                lineGap,
+            });
+            if (height <= maxContentHeight)
+                break;
+            bodyFontSize -= 0.4;
+            lineGap = Math.max(1.2, lineGap - 0.25);
         }
-        const signatureY = Math.max(pdf.y + 38, 450);
-        pdf.strokeColor('#8D928C').lineWidth(1.2).moveTo(left, signatureY).lineTo(left + 210, signatureY).stroke();
-        pdf.fillColor(ink).font('Helvetica-Bold').fontSize(10).text(stored.psychologistName, left, signatureY + 12);
-        pdf.fillColor(muted).font('Helvetica').fontSize(9).text(`Psicologo(a) - CRP ${stored.psychologistCrp}`, left, signatureY + 28);
-        pdf.text(`Assinado em ${stored.signedAt.toLocaleDateString('pt-BR', { dateStyle: 'long' })}`, left, signatureY + 42);
-        const qrX = right - 96;
-        pdf.roundedRect(qrX - 10, signatureY - 12, 106, 132, 8).strokeColor('#D6DDD8').stroke();
-        pdf.image(qrBuffer, qrX, signatureY - 2, { width: 86, height: 86 });
+        pdf.fillColor(ink).font('Helvetica').fontSize(bodyFontSize);
+        pdf.text(content, left, contentTop, {
+            width: contentWidth,
+            height: maxContentHeight,
+            align: 'justify',
+            lineGap,
+            ellipsis: true,
+        });
+        pdf.strokeColor('#8D928C').lineWidth(1.1).moveTo(left, signatureY).lineTo(left + 210, signatureY).stroke();
+        pdf.fillColor(ink).font('Helvetica-Bold').fontSize(9.5).text(stored.psychologistName, left, signatureY + 11);
+        pdf.fillColor(muted).font('Helvetica').fontSize(8.4).text(`Psicologo(a) - CRP ${stored.psychologistCrp}`, left, signatureY + 26);
+        pdf.text(`Assinado em ${stored.signedAt.toLocaleDateString('pt-BR')}`, left, signatureY + 40);
+        const qrX = right - 84;
+        pdf.roundedRect(qrX - 8, signatureY - 10, 92, 106, 7).strokeColor('#D6DDD8').stroke();
+        pdf.image(qrBuffer, qrX, signatureY - 2, { width: 76, height: 76 });
+        pdf.fillColor(muted).font('Helvetica').fontSize(6.8)
+            .text('Verificar autenticidade', qrX - 6, signatureY + 78, { width: 88, align: 'center' });
+        const boxY = 632;
+        pdf.roundedRect(left, boxY, contentWidth, 62, 9).fillAndStroke('#EEF8F3', '#CFE5D9');
+        pdf.fillColor(sage).font('Helvetica-Bold').fontSize(9)
+            .text('Documento com autenticidade verificavel', left + 14, boxY + 12);
+        pdf.fillColor(sage).font('Helvetica').fontSize(8)
+            .text(`Codigo: ${stored.signCode}`, left + 14, boxY + 28)
+            .text(`Hash: ${stored.signHash.slice(0, 16).toUpperCase()} | HMAC-SHA256`, left + 14, boxY + 42);
         pdf.fillColor(muted).font('Helvetica').fontSize(7)
-            .text('Verificar autenticidade', qrX - 5, signatureY + 88, { width: 96, align: 'center' });
-        const boxY = signatureY + 150;
-        pdf.roundedRect(left, boxY, contentWidth, 78, 10).fillAndStroke('#EEF8F3', '#CFE5D9');
-        pdf.fillColor(sage).font('Helvetica-Bold').fontSize(10)
-            .text('Documento com autenticidade verificavel', left + 18, boxY + 16);
-        pdf.fillColor(sage).font('Helvetica').fontSize(9)
-            .text(`Codigo: ${stored.signCode}`, left + 18, boxY + 34)
-            .text(`Hash: ${stored.signHash.slice(0, 16).toUpperCase()} | Algoritmo: HMAC-SHA256`, left + 18, boxY + 49);
-        pdf.fillColor(muted).font('Helvetica').fontSize(8)
-            .text(verificationUrl, left + 270, boxY + 25, { width: contentWidth - 288, align: 'right' });
-        pdf.fillColor('#777B76').font('Helvetica').fontSize(7.5)
-            .text('A verificacao acima confirma que o documento registrado na plataforma nao foi alterado desde a emissao. Para assinatura digital com validade juridica plena, utilize certificado ICP-Brasil ou assinatura gov.br nos termos aplicaveis.', left, boxY + 98, { width: contentWidth, align: 'center', lineGap: 2 });
+            .text(verificationUrl, left + 260, boxY + 23, { width: contentWidth - 274, align: 'right' });
+        pdf.fillColor('#777B76').font('Helvetica').fontSize(6.8)
+            .text('A verificacao confirma que o documento registrado na plataforma nao foi alterado desde a emissao. Para assinatura digital com validade juridica plena, utilize certificado ICP-Brasil ou assinatura gov.br quando aplicavel.', left, 710, { width: contentWidth, align: 'center', lineGap: 1 });
         const range = pdf.bufferedPageRange();
         for (let i = range.start; i < range.start + range.count; i += 1) {
             pdf.switchToPage(i);

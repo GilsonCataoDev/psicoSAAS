@@ -2,7 +2,7 @@ import {
   Injectable, NotFoundException, BadRequestException, ConflictException,
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { DataSource, In, Not, Repository } from 'typeorm'
 import { randomBytes, createHmac } from 'crypto'
 import { ConfigService } from '@nestjs/config'
 import {
@@ -19,6 +19,9 @@ import { NotificationsService } from '../notifications/notifications.service'
 import { CreateBookingDto } from './dto/create-booking.dto'
 import { SaveBookingPageDto } from './dto/save-booking-page.dto'
 
+const OCCUPYING_BOOKING_STATUSES: Booking['status'][] = ['pending', 'confirmed']
+const FREE_APPOINTMENT_STATUSES = ['cancelled', 'no_show']
+
 @Injectable()
 export class BookingService {
   constructor(
@@ -30,6 +33,7 @@ export class BookingService {
     private availability:  AvailabilityService,
     private notifications: NotificationsService,
     private config:        ConfigService,
+    private dataSource:    DataSource,
   ) {}
 
   // ─── Daily token helpers ────────────────────────────────────────────────────
@@ -136,14 +140,26 @@ export class BookingService {
     const maxDate = addDays(new Date(), page.maxAdvanceDays)
     if (isBefore(date, minDate) || isAfter(date, maxDate)) return []
 
-    const existing = await this.bookings.find({
-      where: {
-        psychologistId: page.psychologistId,
-        date: dateStr,
-        status: 'confirmed' as any,
-      },
-    })
-    const occupiedTimes = new Set(existing.map(b => b.time))
+    const [existingBookings, existingAppointments] = await Promise.all([
+      this.bookings.find({
+        where: {
+          psychologistId: page.psychologistId,
+          date: dateStr,
+          status: In(OCCUPYING_BOOKING_STATUSES),
+        },
+      }),
+      this.appointments.find({
+        where: {
+          psychologistId: page.psychologistId,
+          date: dateStr,
+          status: Not(In(FREE_APPOINTMENT_STATUSES)),
+        },
+      }),
+    ])
+    const occupiedTimes = new Set([
+      ...existingBookings.map(b => this.normalizeTime(b.time)),
+      ...existingAppointments.map(a => this.normalizeTime(a.time)),
+    ])
 
     const available: string[] = []
     for (const slot of slots) {
@@ -212,32 +228,35 @@ export class BookingService {
       })
     }
 
-    const conflict = await this.bookings.findOne({
-      where: {
-        psychologistId: page.psychologistId,
-        date: dto.date,
-        time: dto.time,
-        status: 'confirmed' as any,
-      },
-    })
-    if (conflict) throw new ConflictException('Este horário não está mais disponível')
-
     const confirmationToken = randomBytes(32).toString('hex')
     const tokenExpiresAt = addDays(new Date(), 2)
 
-    const booking = this.bookings.create({
-      ...dto,
-      modality: dto.modality ?? (page.allowOnline ? 'online' : 'presencial'),
-      psychologistId: page.psychologistId,
-      duration: page.sessionDuration,
-      amount: page.sessionPrice,
-      confirmationToken,
-      tokenExpiresAt,
-      status: 'pending',
-      paymentStatus: 'pending',
+    const saved = await this.dataSource.transaction(async (manager) => {
+      await manager.query(
+        'SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))',
+        ['appointment-slot', `${page.psychologistId}:${dto.date}:${dto.time}`],
+      )
+
+      const availableSlots = await this.getAvailableSlots(slugOrToken, dto.date, dto.modality)
+      if (!availableSlots.includes(dto.time)) {
+        throw new ConflictException('Este horario nao esta mais disponivel')
+      }
+
+      const booking = manager.create(Booking, {
+        ...dto,
+        modality: dto.modality ?? (page.allowOnline ? 'online' : 'presencial'),
+        psychologistId: page.psychologistId,
+        duration: page.sessionDuration,
+        amount: page.sessionPrice,
+        confirmationToken,
+        tokenExpiresAt,
+        status: 'pending',
+        paymentStatus: 'pending',
+      })
+
+      return manager.save(Booking, booking)
     })
 
-    const saved = await this.bookings.save(booking)
     await this.notifications.sendBookingRequest(saved, page)
 
     return {
@@ -259,6 +278,8 @@ export class BookingService {
       throw new BadRequestException('Esta sessão foi cancelada')
     if (booking.status === 'confirmed')
       return { message: 'Sessão já confirmada anteriormente ✓' }
+
+    await this.ensureScheduleIsFree(booking, booking.psychologistId)
 
     booking.status    = 'confirmed'
     booking.confirmedAt = new Date()
@@ -300,6 +321,8 @@ export class BookingService {
 
   async confirmBooking(id: string, psychologistId: string) {
     const booking = await this.findOne(id, psychologistId)
+
+    await this.ensureScheduleIsFree(booking, psychologistId)
 
     booking.status    = 'confirmed'
     booking.confirmedAt = new Date()
@@ -508,5 +531,35 @@ export class BookingService {
     const b = await this.bookings.findOne({ where: { id, psychologistId } })
     if (!b) throw new NotFoundException()
     return b
+  }
+
+  private normalizeTime(time: string) {
+    return time.slice(0, 5)
+  }
+
+  private async ensureScheduleIsFree(booking: Booking, psychologistId: string) {
+    const [bookingConflict, appointmentConflict] = await Promise.all([
+      this.bookings.findOne({
+        where: {
+          id: Not(booking.id),
+          psychologistId,
+          date: booking.date,
+          time: booking.time,
+          status: 'confirmed',
+        },
+      }),
+      this.appointments.findOne({
+        where: {
+          psychologistId,
+          date: booking.date,
+          time: booking.time,
+          status: Not(In(FREE_APPOINTMENT_STATUSES)),
+        },
+      }),
+    ])
+
+    if (bookingConflict || appointmentConflict) {
+      throw new ConflictException('Este horario nao esta mais disponivel')
+    }
   }
 }

@@ -8,6 +8,7 @@ import GenerateDocModal from '@/components/features/prontuario/GenerateDocModal'
 import { usePatients, useDocuments, useDeleteDocument } from '@/hooks/useApi'
 import DocumentPreviewModal from '@/components/features/prontuario/DocumentPreviewModal'
 import toast from 'react-hot-toast'
+import { api } from '@/lib/api'
 
 export default function DocumentosPage() {
   const user = useAuthStore(s => s.user)
@@ -29,6 +30,22 @@ export default function DocumentosPage() {
   function handleGenerate(doc: Documento) {
     // O GenerateDocModal já chama a API; ao fechar, revalida automaticamente via queryKey
     setPreview(doc)
+  }
+
+  async function downloadPdf(doc: Documento) {
+    try {
+      const response = await api.get(`/documents/${doc.id}/pdf`, { responseType: 'blob' })
+      const url = URL.createObjectURL(response.data)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `${doc.signCode}-${doc.type}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    } catch {
+      toast.error('Erro ao baixar PDF')
+    }
   }
 
   return (
@@ -131,6 +148,7 @@ export default function DocumentosPage() {
         ) : filtered.map(doc => (
           <DocCard key={doc.id} doc={doc}
             onPreview={() => setPreview(doc)}
+            onDownload={() => downloadPdf(doc)}
             onDelete={async () => {
               if (!confirm(`Excluir "${doc.title}"? Esta ação não pode ser desfeita.`)) return
               try {
@@ -161,7 +179,12 @@ export default function DocumentosPage() {
   )
 }
 
-function DocCard({ doc, onPreview, onDelete }: { doc: Documento; onPreview: () => void; onDelete: () => void }) {
+function DocCard({ doc, onPreview, onDownload, onDelete }: {
+  doc: Documento
+  onPreview: () => void
+  onDownload: () => void
+  onDelete: () => void
+}) {
   return (
     <div className="card flex items-center gap-4 p-4 hover:shadow-lifted hover:-translate-y-px transition-all duration-200 group">
       <div className="w-10 h-10 bg-neutral-100 rounded-xl flex items-center justify-center text-xl shrink-0">
@@ -188,7 +211,7 @@ function DocCard({ doc, onPreview, onDelete }: { doc: Documento; onPreview: () =
         <button
           className="p-2 rounded-lg hover:bg-neutral-100 text-neutral-400 hover:text-sage-600 transition-colors"
           title="Baixar"
-          onClick={() => window.print()}>
+          onClick={onDownload}>
           <Download className="w-4 h-4" />
         </button>
         <button onClick={onDelete}

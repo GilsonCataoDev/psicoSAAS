@@ -7,6 +7,8 @@ import { AsaasService, CreateSubscriptionDto as AsaasCreateDto } from './asaas.s
 import { CreateSubscriptionDto } from './dto/create-subscription.dto'
 import { User } from '../auth/entities/user.entity'
 
+const TRIAL_DAYS = 7
+
 @Injectable()
 export class SubscriptionsService {
   private readonly logger = new Logger(SubscriptionsService.name)
@@ -30,7 +32,7 @@ export class SubscriptionsService {
       userId,
       planId: 'essencial',
       status: 'trialing',
-      trialEndsAt: addDays(new Date(), 14),
+      trialEndsAt: addDays(new Date(), TRIAL_DAYS),
     })
     return this.repo.save(sub)
   }

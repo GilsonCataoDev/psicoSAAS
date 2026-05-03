@@ -1,4 +1,4 @@
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Booking } from './entities/booking.entity';
 import { BookingPage } from './entities/booking-page.entity';
@@ -18,7 +18,8 @@ export declare class BookingService {
     private availability;
     private notifications;
     private config;
-    constructor(bookings: Repository<Booking>, pages: Repository<BookingPage>, patients: Repository<Patient>, appointments: Repository<Appointment>, financial: Repository<FinancialRecord>, availability: AvailabilityService, notifications: NotificationsService, config: ConfigService);
+    private dataSource;
+    constructor(bookings: Repository<Booking>, pages: Repository<BookingPage>, patients: Repository<Patient>, appointments: Repository<Appointment>, financial: Repository<FinancialRecord>, availability: AvailabilityService, notifications: NotificationsService, config: ConfigService, dataSource: DataSource);
     generateDailyToken(userId: string): string;
     resolveDailyToken(token: string): Promise<BookingPage | null>;
     getPublicPage(slugOrToken: string): Promise<{
@@ -76,4 +77,6 @@ export declare class BookingService {
     }>;
     private createSessionResources;
     private findOne;
+    private normalizeTime;
+    private ensureScheduleIsFree;
 }

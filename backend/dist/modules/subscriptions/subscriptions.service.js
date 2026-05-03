@@ -20,6 +20,7 @@ const typeorm_2 = require("typeorm");
 const date_fns_1 = require("date-fns");
 const subscription_entity_1 = require("./entities/subscription.entity");
 const asaas_service_1 = require("./asaas.service");
+const TRIAL_DAYS = 7;
 let SubscriptionsService = SubscriptionsService_1 = class SubscriptionsService {
     constructor(repo, asaas) {
         this.repo = repo;
@@ -37,7 +38,7 @@ let SubscriptionsService = SubscriptionsService_1 = class SubscriptionsService {
             userId,
             planId: 'essencial',
             status: 'trialing',
-            trialEndsAt: (0, date_fns_1.addDays)(new Date(), 14),
+            trialEndsAt: (0, date_fns_1.addDays)(new Date(), TRIAL_DAYS),
         });
         return this.repo.save(sub);
     }

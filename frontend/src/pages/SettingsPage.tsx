@@ -20,6 +20,7 @@ const tabs = [
   { id: 'privacy',  icon: Lock,          label: 'Privacidade'},
   { id: 'security', icon: Shield,        label: 'Segurança'  },
 ]
+const TRIAL_DAYS = 7
 
 // ─── Toggle component ──────────────────────────────────────────────────────────
 function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
@@ -472,7 +473,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="h-2 bg-neutral-100 rounded-full overflow-hidden">
                       <div className="h-full bg-sage-400 rounded-full transition-all"
-                        style={{ width: `${Math.max(5, ((14 - daysLeft) / 14) * 100)}%` }} />
+                        style={{ width: `${Math.max(5, ((TRIAL_DAYS - daysLeft) / TRIAL_DAYS) * 100)}%` }} />
                     </div>
                   </div>
                 )}

@@ -5,6 +5,8 @@ import { User } from '../auth/entities/user.entity'
 import { AsaasService } from './asaas.service'
 import { Subscription } from './entities/subscription.entity'
 
+const TRIAL_DAYS = 7
+
 @Injectable()
 export class BillingService {
   constructor(
@@ -49,8 +51,7 @@ export class BillingService {
     }
     if (existing?.hasUsedTrial) throw new ConflictException('Teste gratuito já utilizado')
 
-    const trialEndsAt = new Date()
-    trialEndsAt.setDate(trialEndsAt.getDate() + 7)
+    const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 86400000)
 
     const subscription = existing ?? this.repo.create({ userId: user.id })
     Object.assign(subscription, {
@@ -69,7 +70,7 @@ export class BillingService {
       plan,
       saved.id,
       creditCardToken,
-      this.asaas.addDays(7),
+      this.asaas.addDays(TRIAL_DAYS),
     )
 
     Object.assign(saved, {
