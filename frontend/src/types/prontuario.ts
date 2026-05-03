@@ -43,7 +43,8 @@ export interface Documento {
   content: string
   signedAt: string
   signCode: string
-  crp: string
+  crp?: string
+  psychologistCrp?: string
   psychologistName: string
   createdAt: string
 }

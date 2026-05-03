@@ -57,8 +57,14 @@ export class DocumentsService {
     return safeDecrypt(content.slice(this.encryptedPrefix.length)) ?? ''
   }
 
+  private getVerificationUrl(signCode: string): string {
+    const frontendUrl = (this.cfg.get('FRONTEND_URL') ?? '').replace(/\/$/, '')
+    return `${frontendUrl}/#/verificar/${encodeURIComponent(signCode)}`
+  }
+
   private exposeDocument(doc: Document): Document {
-    return { ...doc, content: this.decryptContent(doc.content) } as Document
+    const { signHash: _signHash, signerIp: _signerIp, ...safeDoc } = doc as any
+    return { ...safeDoc, content: this.decryptContent(doc.content) } as Document
   }
 
   // ─── Criar e assinar documento ────────────────────────────────────────────
@@ -126,6 +132,9 @@ export class DocumentsService {
       psychologistCrp: string
       signedAt: Date
       createdAt: Date
+      fingerprint: string
+      algorithm: string
+      verificationUrl: string
     }
   }> {
     const doc = await this.repo.findOne({ where: { signCode } })
@@ -157,6 +166,9 @@ export class DocumentsService {
         psychologistCrp: doc.psychologistCrp,
         signedAt: doc.signedAt,
         createdAt: doc.createdAt,
+        fingerprint: doc.signHash.slice(0, 16).toUpperCase(),
+        algorithm: 'HMAC-SHA256',
+        verificationUrl: this.getVerificationUrl(doc.signCode),
       },
     }
   }

@@ -24,6 +24,9 @@ interface VerifyResult {
     psychologistCrp: string
     signedAt: string
     createdAt: string
+    fingerprint?: string
+    algorithm?: string
+    verificationUrl?: string
   }
 }
 
@@ -140,8 +143,13 @@ export default function VerifyDocumentPage() {
                     {result.document.signCode}
                   </p>
                   <p className="text-xs text-neutral-400 mt-1">
-                    Assinado com HMAC-SHA256 · CFP Res. 006/2019
+                    Assinado com {result.document.algorithm ?? 'HMAC-SHA256'} · CFP Res. 006/2019
                   </p>
+                  {result.document.fingerprint && (
+                    <p className="text-[11px] text-neutral-400 mt-1 font-mono">
+                      Hash: {result.document.fingerprint}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

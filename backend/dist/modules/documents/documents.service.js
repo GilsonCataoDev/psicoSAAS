@@ -45,8 +45,13 @@ let DocumentsService = DocumentsService_1 = class DocumentsService {
             return (0, encrypt_util_1.safeDecrypt)(content) ?? '';
         return (0, encrypt_util_1.safeDecrypt)(content.slice(this.encryptedPrefix.length)) ?? '';
     }
+    getVerificationUrl(signCode) {
+        const frontendUrl = (this.cfg.get('FRONTEND_URL') ?? '').replace(/\/$/, '');
+        return `${frontendUrl}/#/verificar/${encodeURIComponent(signCode)}`;
+    }
     exposeDocument(doc) {
-        return { ...doc, content: this.decryptContent(doc.content) };
+        const { signHash: _signHash, signerIp: _signerIp, ...safeDoc } = doc;
+        return { ...safeDoc, content: this.decryptContent(doc.content) };
     }
     async create(user, dto, signerIp) {
         const timestamp = Date.now();
@@ -111,6 +116,9 @@ let DocumentsService = DocumentsService_1 = class DocumentsService {
                 psychologistCrp: doc.psychologistCrp,
                 signedAt: doc.signedAt,
                 createdAt: doc.createdAt,
+                fingerprint: doc.signHash.slice(0, 16).toUpperCase(),
+                algorithm: 'HMAC-SHA256',
+                verificationUrl: this.getVerificationUrl(doc.signCode),
             },
         };
     }

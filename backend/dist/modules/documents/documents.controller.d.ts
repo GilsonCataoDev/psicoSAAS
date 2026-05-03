@@ -26,6 +26,9 @@ export declare class DocumentsController {
             psychologistCrp: string;
             signedAt: Date;
             createdAt: Date;
+            fingerprint: string;
+            algorithm: string;
+            verificationUrl: string;
         };
     }>;
 }

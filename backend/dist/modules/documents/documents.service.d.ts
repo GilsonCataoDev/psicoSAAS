@@ -19,6 +19,7 @@ export declare class DocumentsService {
     private generateSignature;
     private encryptContent;
     private decryptContent;
+    private getVerificationUrl;
     private exposeDocument;
     create(user: User, dto: CreateDocumentDto, signerIp?: string): Promise<Document>;
     findByUser(userId: string, type?: DocType): Promise<Document[]>;
@@ -36,6 +37,9 @@ export declare class DocumentsService {
             psychologistCrp: string;
             signedAt: Date;
             createdAt: Date;
+            fingerprint: string;
+            algorithm: string;
+            verificationUrl: string;
         };
     }>;
 }
