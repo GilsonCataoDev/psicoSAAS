@@ -18,7 +18,7 @@ export interface AsaasSubscription {
 
 export interface CreateSubscriptionDto {
   customerId: string
-  planId: 'essencial' | 'pro'
+  planId: 'essencial' | 'pro' | 'premium'
   billingType: 'CREDIT_CARD' | 'PIX' | 'BOLETO'
   yearly: boolean
   creditCard?: {
@@ -46,6 +46,7 @@ export interface CreateSubscriptionDto {
 const PLAN_PRICES: Record<string, Record<string, number>> = {
   essencial: { monthly: 79, yearly: 63 },
   pro:       { monthly: 149, yearly: 119 },
+  premium:   { monthly: 249, yearly: 199 },
 }
 
 @Injectable()

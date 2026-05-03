@@ -17,6 +17,7 @@ const axios_1 = require("axios");
 const PLAN_PRICES = {
     essencial: { monthly: 79, yearly: 63 },
     pro: { monthly: 149, yearly: 119 },
+    premium: { monthly: 249, yearly: 199 },
 };
 let AsaasService = AsaasService_1 = class AsaasService {
     constructor(cfg) {

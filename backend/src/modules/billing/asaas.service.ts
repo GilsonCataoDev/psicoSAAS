@@ -4,10 +4,9 @@ import axios, { AxiosInstance } from 'axios'
 import { User } from '../auth/entities/user.entity'
 
 const PLAN_PRICES: Record<string, number> = {
-  basic: 79,
-  premium: 249,
   essencial: 79,
   pro: 149,
+  premium: 249,
 }
 
 export interface TokenizeCreditCardInput {

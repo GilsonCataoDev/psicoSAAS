@@ -41,7 +41,7 @@ function useCsrfBoot() {
         return api.get('/billing/me')
       })
       .then(res => {
-        setSubscription(res.data?.status ? res.data : { plan: 'basic', planId: 'basic', status: 'none' })
+        setSubscription(res.data?.status ? res.data : { plan: 'essencial', planId: 'essencial', status: 'none' })
       })
       .catch((err) => {
         if (err?.response?.status === 403) resetSubscription()
@@ -62,7 +62,7 @@ function useSubscriptionPolling() {
     const timer = window.setInterval(() => {
       api.get('/billing/me')
         .then((res) => {
-          setSubscription(res.data?.status ? res.data : { plan: 'basic', planId: 'basic', status: 'none' })
+          setSubscription(res.data?.status ? res.data : { plan: 'essencial', planId: 'essencial', status: 'none' })
         })
         .catch(() => {})
     }, 5000)

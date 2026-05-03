@@ -157,6 +157,8 @@ export default function SettingsPage() {
   const navigate = useNavigate()
   const [cancelingPlan, setCancelingPlan] = useState(false)
   const currentPlan  = PLANS.find(p => p.id === subscription.planId)
+  const currentPlanId = String(subscription.planId ?? subscription.plan ?? '')
+  const hasProAutomation = ['pro', 'premium'].includes(currentPlanId)
   const isTrialing   = subscription.status === 'trialing'
   const daysLeft     = subscription.trialEndsAt
     ? Math.max(0, Math.ceil((new Date(subscription.trialEndsAt).getTime() - Date.now()) / 86400000))
@@ -262,6 +264,12 @@ export default function SettingsPage() {
           {tab === 'notify' && (
             <div className="card space-y-5">
               <h2 className="section-title">Lembretes automáticos</h2>
+              {!hasProAutomation && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  <p className="font-medium">Automacoes de WhatsApp ficam no plano Pro.</p>
+                  <p className="mt-1">No Essencial, os botoes manuais de WhatsApp continuam liberados na agenda e nos agendamentos.</p>
+                </div>
+              )}
               {loadingPrefs ? (
                 <div className="flex justify-center py-6">
                   <div className="w-6 h-6 border-2 border-sage-400 border-t-transparent rounded-full animate-spin" />
@@ -294,6 +302,12 @@ export default function SettingsPage() {
             <div className="space-y-5">
               <div className="card space-y-4">
                 <h2 className="section-title">WhatsApp</h2>
+                {!hasProAutomation && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    <p className="font-medium">Envio automatico sera recurso Pro.</p>
+                    <p className="mt-1">Voce ainda pode usar o WhatsApp manual com mensagem pronta nos planos pagos.</p>
+                  </div>
+                )}
                 <div>
                   <label className="label">Seu número de WhatsApp</label>
                   <input value={prefs.whatsapp} onChange={e => setPref('whatsapp', e.target.value)}

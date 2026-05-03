@@ -1,7 +1,7 @@
 import { User } from '../../auth/entities/user.entity';
 export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'cancelled';
 export type BillingType = 'CREDIT_CARD' | 'PIX' | 'BOLETO';
-export type PlanId = 'free' | 'essencial' | 'pro';
+export type PlanId = 'free' | 'essencial' | 'pro' | 'premium';
 export declare class Subscription {
     id: string;
     userId: string;

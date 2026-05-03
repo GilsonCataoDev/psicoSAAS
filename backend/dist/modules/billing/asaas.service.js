@@ -15,10 +15,9 @@ const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const axios_1 = require("axios");
 const PLAN_PRICES = {
-    basic: 79,
-    premium: 249,
     essencial: 79,
     pro: 149,
+    premium: 249,
 };
 let AsaasService = AsaasService_1 = class AsaasService {
     constructor(cfg) {

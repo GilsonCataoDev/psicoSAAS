@@ -19,6 +19,7 @@ const typeorm_2 = require("typeorm");
 const asaas_service_1 = require("./asaas.service");
 const subscription_entity_1 = require("./entities/subscription.entity");
 const TRIAL_DAYS = 7;
+const PLAN_PRICES = { essencial: 79, pro: 149, premium: 249 };
 let BillingService = class BillingService {
     constructor(repo, asaas) {
         this.repo = repo;
@@ -41,6 +42,8 @@ let BillingService = class BillingService {
         return subscription;
     }
     async subscribe(user, plan = 'pro', creditCardToken) {
+        if (!PLAN_PRICES[plan])
+            throw new common_1.BadRequestException('Plano invalido');
         if (!creditCardToken) {
             throw new common_1.BadRequestException('Cartão de crédito obrigatório para iniciar o teste');
         }
@@ -123,8 +126,7 @@ let BillingService = class BillingService {
             this.repo.count({ where: { status: 'canceled' } }),
         ]);
         const activeSubs = await this.repo.find({ where: { status: 'active' } });
-        const prices = { basic: 79, essencial: 79, pro: 149, premium: 249 };
-        const mrr = activeSubs.reduce((sum, sub) => sum + (prices[sub.plan] ?? 0), 0);
+        const mrr = activeSubs.reduce((sum, sub) => sum + (PLAN_PRICES[sub.plan] ?? 0), 0);
         return { active, trialing, past_due: pastDue, canceled, mrr };
     }
 };

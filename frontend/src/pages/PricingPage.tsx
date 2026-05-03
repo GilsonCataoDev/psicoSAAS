@@ -167,7 +167,7 @@ export default function PricingPage() {
           </div>
         )}
         <p className="text-neutral-500">
-          Você não será cobrado agora. A cobrança será feita após 7 dias.
+          Comece com 7 dias de teste. O Essencial organiza a rotina; o Pro libera automacoes; o Clinica atende equipes.
         </p>
         {subscription.status === 'past_due' && (
           <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -178,21 +178,32 @@ export default function PricingPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {PLANS.map((plan) => (
+        {PLANS.map((plan) => {
+          const isCurrentPlan = subscription.plan === plan.id || subscription.planId === plan.id
+          return (
           <section
             key={plan.id}
             className={cn(
-              'bg-white border rounded-2xl p-6 flex flex-col gap-5 shadow-card',
-              plan.highlight ? 'border-sage-300' : 'border-neutral-100',
+              'relative bg-white border rounded-2xl p-6 flex flex-col gap-5 shadow-card',
+              plan.highlight ? 'border-sage-300 ring-1 ring-sage-100' : 'border-neutral-100',
             )}
           >
+            {plan.highlight && (
+              <span className="absolute right-4 top-4 rounded-full bg-sage-100 px-2.5 py-1 text-xs font-medium text-sage-700">
+                Melhor custo-beneficio
+              </span>
+            )}
             <div>
               <h2 className="text-lg font-semibold text-neutral-800">{plan.name}</h2>
+              <p className="mt-1 min-h-10 text-sm text-neutral-500">{plan.audience}</p>
               <div className="mt-3 flex items-end gap-1">
                 <span className="text-sm text-neutral-400 mb-1">R$</span>
                 <span className="text-3xl font-bold text-neutral-900">{plan.price}</span>
                 <span className="text-sm text-neutral-400 mb-1">/mês</span>
               </div>
+              <p className="mt-1 text-xs text-neutral-400">
+                Anual: R$ {plan.priceYearly}/mes, cobrado por ano
+              </p>
             </div>
 
             <ul className="space-y-2 flex-1">
@@ -217,10 +228,17 @@ export default function PricingPage() {
               )}
             >
               {loadingPlan === plan.id && <Loader2 className="w-4 h-4 animate-spin" />}
-              {subscription.status === 'past_due' ? 'Pagar agora' : 'Testar 7 dias grátis'}
+              {subscription.status === 'active' && isCurrentPlan
+                ? 'Plano atual'
+                : subscription.status === 'active'
+                  ? 'Troca pelo suporte'
+                  : subscription.status === 'past_due'
+                  ? 'Pagar agora'
+                  : 'Testar 7 dias gratis'}
             </button>
           </section>
-        ))}
+          )
+        })}
       </div>
 
       {selectedPlan && (

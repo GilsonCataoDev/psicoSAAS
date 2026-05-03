@@ -14,7 +14,7 @@ export declare class CreditCardHolderInfoDto {
     phone: string;
 }
 export declare class CreateSubscriptionDto {
-    planId: 'essencial' | 'pro';
+    planId: 'essencial' | 'pro' | 'premium';
     billingType: 'CREDIT_CARD' | 'PIX' | 'BOLETO';
     yearly: boolean;
     cpfCnpj: string;

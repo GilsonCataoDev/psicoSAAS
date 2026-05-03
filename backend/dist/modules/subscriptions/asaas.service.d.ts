@@ -13,7 +13,7 @@ export interface AsaasSubscription {
 }
 export interface CreateSubscriptionDto {
     customerId: string;
-    planId: 'essencial' | 'pro';
+    planId: 'essencial' | 'pro' | 'premium';
     billingType: 'CREDIT_CARD' | 'PIX' | 'BOLETO';
     yearly: boolean;
     creditCard?: {

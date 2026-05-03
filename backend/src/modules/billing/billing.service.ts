@@ -6,6 +6,7 @@ import { AsaasService } from './asaas.service'
 import { Subscription } from './entities/subscription.entity'
 
 const TRIAL_DAYS = 7
+const PLAN_PRICES: Record<string, number> = { essencial: 79, pro: 149, premium: 249 }
 
 @Injectable()
 export class BillingService {
@@ -37,6 +38,8 @@ export class BillingService {
   }
 
   async subscribe(user: User, plan = 'pro', creditCardToken?: string) {
+    if (!PLAN_PRICES[plan]) throw new BadRequestException('Plano invalido')
+
     if (!creditCardToken) {
       throw new BadRequestException('Cartão de crédito obrigatório para iniciar o teste')
     }
@@ -143,8 +146,7 @@ export class BillingService {
     ])
 
     const activeSubs = await this.repo.find({ where: { status: 'active' } })
-    const prices: Record<string, number> = { basic: 79, essencial: 79, pro: 149, premium: 249 }
-    const mrr = activeSubs.reduce((sum, sub) => sum + (prices[sub.plan] ?? 0), 0)
+    const mrr = activeSubs.reduce((sum, sub) => sum + (PLAN_PRICES[sub.plan] ?? 0), 0)
 
     return { active, trialing, past_due: pastDue, canceled, mrr }
   }

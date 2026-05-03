@@ -77,7 +77,7 @@ class CreateSubscriptionDto {
 }
 exports.CreateSubscriptionDto = CreateSubscriptionDto;
 __decorate([
-    (0, class_validator_1.IsEnum)(['essencial', 'pro']),
+    (0, class_validator_1.IsEnum)(['essencial', 'pro', 'premium']),
     __metadata("design:type", String)
 ], CreateSubscriptionDto.prototype, "planId", void 0);
 __decorate([

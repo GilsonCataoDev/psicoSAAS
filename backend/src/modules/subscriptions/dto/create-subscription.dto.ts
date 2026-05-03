@@ -22,7 +22,7 @@ export class CreditCardHolderInfoDto {
 }
 
 export class CreateSubscriptionDto {
-  @IsEnum(['essencial', 'pro']) planId: 'essencial' | 'pro'
+  @IsEnum(['essencial', 'pro', 'premium']) planId: 'essencial' | 'pro' | 'premium'
   @IsEnum(['CREDIT_CARD', 'PIX', 'BOLETO']) billingType: 'CREDIT_CARD' | 'PIX' | 'BOLETO'
   @IsBoolean() yearly: boolean
 

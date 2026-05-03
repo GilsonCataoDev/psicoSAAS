@@ -18,22 +18,27 @@ export interface Plan {
   priceYearly: number
   maxPatients: number
   maxStorage: number
+  audience: string
   features: string[]
   highlight?: boolean
 }
 
 export const PLANS: Plan[] = [
   {
-    id: 'basic',
-    name: 'Basic',
+    id: 'essencial',
+    name: 'Essencial',
     price: 79,
     priceYearly: 63,
     maxPatients: 30,
     maxStorage: 10,
+    audience: 'Para psicologo solo organizando a rotina',
     features: [
-      'Agenda e pacientes',
-      'Controle financeiro',
-      'Página pública de agendamento',
+      'Agenda, pacientes e sessoes',
+      'Link publico de agendamento',
+      'Documentos e PDF com verificacao',
+      'Financeiro basico',
+      'WhatsApp manual com mensagem pronta',
+      'Ate 30 pacientes ativos',
     ],
   },
   {
@@ -43,24 +48,33 @@ export const PLANS: Plan[] = [
     priceYearly: 119,
     maxPatients: -1,
     maxStorage: 50,
+    audience: 'Para quem quer economizar tempo com automacoes',
     highlight: true,
     features: [
+      'Tudo do Essencial',
       'Pacientes ilimitados',
-      'Prontuário e documentos',
-      'Relatórios e automações',
+      'Documentos ilimitados',
+      'Relatorios avancados',
+      'WhatsApp automatico no plano Pro',
+      'Lembretes e cobrancas automaticas',
+      'Modelos de mensagem personalizados',
     ],
   },
   {
     id: 'premium',
-    name: 'Premium',
+    name: 'Clinica',
     price: 249,
     priceYearly: 199,
     maxPatients: -1,
     maxStorage: 100,
+    audience: 'Para clinicas e equipes com mais de um profissional',
     features: [
       'Tudo do Pro',
-      'Suporte prioritário',
-      'Recursos avançados de clínica',
+      'Multiplos profissionais',
+      'Agenda por profissional',
+      'Visao administrativa da clinica',
+      'Financeiro consolidado',
+      'Suporte prioritario',
     ],
   },
 ]
@@ -87,13 +101,13 @@ interface SubscriptionState {
 }
 
 const emptySubscription: Subscription = {
-  plan: 'basic',
-  planId: 'basic',
+  plan: 'essencial',
+  planId: 'essencial',
   status: 'none',
 }
 
 function normalizeSubscription(subscription: Subscription): Subscription {
-  const plan = subscription.plan ?? subscription.planId ?? 'basic'
+  const plan = subscription.plan ?? subscription.planId ?? 'essencial'
   return { ...subscription, plan, planId: plan }
 }
 
