@@ -159,6 +159,7 @@ export default function SettingsPage() {
   const currentPlan  = PLANS.find(p => p.id === subscription.planId)
   const currentPlanId = String(subscription.planId ?? subscription.plan ?? '')
   const hasProAutomation = ['pro', 'premium'].includes(currentPlanId)
+  const hasCancelablePlan = subscription.status === 'active' || subscription.status === 'trialing'
   const isTrialing   = subscription.status === 'trialing'
   const daysLeft     = subscription.trialEndsAt
     ? Math.max(0, Math.ceil((new Date(subscription.trialEndsAt).getTime() - Date.now()) / 86400000))
@@ -166,7 +167,9 @@ export default function SettingsPage() {
 
   async function cancelPlan() {
     const ok = window.confirm(
-      'Cancelar sua assinatura? Voce nao sera cobrado novamente. Se houver periodo pago ativo, o acesso continua ate o fim dele.',
+      currentPlanId === 'free'
+        ? 'Sair do plano gratis? Seu acesso sera bloqueado ate escolher outro plano.'
+        : 'Cancelar sua assinatura? Voce nao sera cobrado novamente. Se houver periodo pago ativo, o acesso continua ate o fim dele.',
     )
     if (!ok) return
 
@@ -502,7 +505,7 @@ export default function SettingsPage() {
                   ))}
                 </ul>
               </div>
-              {subscription.status === 'active' && (
+              {hasCancelablePlan && (
                 <div className="card border-rose-100">
                   <h2 className="section-title text-neutral-600">
                     {subscription.cancelAtPeriodEnd ? 'Cancelamento agendado' : 'Cancelamento'}
@@ -517,7 +520,11 @@ export default function SettingsPage() {
                   ) : (
                     <>
                       <p className="text-sm text-neutral-500 mt-1">
-                        Ao cancelar, voce continua com acesso ate o fim do periodo pago. Seus dados ficam seguros por 90 dias.
+                        {currentPlanId === 'free'
+                          ? 'Ao sair do plano gratis, voce volta para a tela de planos. Seus dados ficam seguros.'
+                          : isTrialing
+                            ? 'Ao cancelar o teste, a assinatura sera encerrada e voce volta para a tela de planos.'
+                            : 'Ao cancelar, voce continua com acesso ate o fim do periodo pago. Seus dados ficam seguros por 90 dias.'}
                       </p>
                       <button
                         className="mt-3 text-sm text-rose-500 hover:text-rose-600 flex items-center gap-1 transition-colors disabled:opacity-60"

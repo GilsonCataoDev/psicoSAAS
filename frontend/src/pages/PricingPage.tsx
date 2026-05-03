@@ -26,6 +26,7 @@ export default function PricingPage() {
   const [postalCode, setPostalCode] = useState('')
   const [addressNumber, setAddressNumber] = useState('')
   const { subscription, setSubscription } = useSubscriptionStore()
+  const currentPlanId = String(subscription.planId ?? subscription.plan ?? '')
 
   function formatCardNumber(value: string) {
     return value.replace(/\D/g, '').slice(0, 19).replace(/(\d{4})(?=\d)/g, '$1 ')
@@ -193,7 +194,9 @@ export default function PricingPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {PLANS.map((plan) => {
-          const isCurrentPlan = subscription.plan === plan.id || subscription.planId === plan.id
+          const isCurrentPlan = currentPlanId === plan.id
+          const isActivePaidPlan = subscription.status === 'active' && currentPlanId !== 'free'
+          const isDisabled = loadingPlan !== null || isActivePaidPlan
           return (
           <section
             key={plan.id}
@@ -242,19 +245,19 @@ export default function PricingPage() {
             <button
               type="button"
               onClick={() => plan.id === 'free' ? subscribe(plan) : setSelectedPlan(plan)}
-              disabled={loadingPlan !== null || subscription.status === 'active'}
+              disabled={isDisabled}
               className={cn(
                 'h-11 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-colors',
                 plan.highlight
                   ? 'bg-sage-600 text-white hover:bg-sage-700'
                   : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200',
-                (loadingPlan !== null || subscription.status === 'active') && 'opacity-60 cursor-not-allowed',
+                isDisabled && 'opacity-60 cursor-not-allowed',
               )}
             >
               {loadingPlan === plan.id && <Loader2 className="w-4 h-4 animate-spin" />}
-              {subscription.status === 'active' && isCurrentPlan
+              {isActivePaidPlan && isCurrentPlan
                 ? 'Plano atual'
-                : subscription.status === 'active'
+                : isActivePaidPlan
                   ? 'Troca pelo suporte'
                   : subscription.status === 'past_due'
                   ? 'Pagar agora'

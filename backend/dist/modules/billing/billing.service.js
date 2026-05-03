@@ -51,28 +51,32 @@ let BillingService = class BillingService {
             where: { userId: user.id },
             order: { createdAt: 'DESC' },
         });
-        if (existing?.status === 'active' || existing?.status === 'trialing') {
-            throw new common_1.ConflictException('Usuário já possui uma subscription ativa');
+        const canUpgradeFromFree = existing?.status === 'active' && existing.plan === 'free' && !existing.gatewaySubscriptionId;
+        const canAttachPaymentToLocalTrial = existing?.status === 'trialing' && !existing.gatewaySubscriptionId;
+        if ((existing?.status === 'active' || existing?.status === 'trialing')
+            && !canUpgradeFromFree
+            && !canAttachPaymentToLocalTrial) {
+            throw new common_1.ConflictException('Usuario ja possui uma assinatura ativa');
         }
-        if (existing?.hasUsedTrial)
-            throw new common_1.ConflictException('Teste gratuito já utilizado');
-        const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 86400000);
+        const shouldStartTrial = !existing?.hasUsedTrial;
+        const trialEndsAt = shouldStartTrial ? new Date(Date.now() + TRIAL_DAYS * 86400000) : null;
+        const nextDueDate = shouldStartTrial ? this.asaas.addDays(TRIAL_DAYS) : this.asaas.addDays(1);
         const subscription = existing ?? this.repo.create({ userId: user.id });
         Object.assign(subscription, {
             userId: user.id,
             plan,
-            status: 'trialing',
+            status: shouldStartTrial ? 'trialing' : 'active',
             trialEndsAt,
             hasUsedTrial: true,
             currentPeriodEnd: null,
         });
         const saved = await this.repo.save(subscription);
         const gatewayCustomerId = saved.gatewayCustomerId ?? await this.asaas.createCustomer(user);
-        const gatewaySubscriptionId = await this.asaas.createSubscription(gatewayCustomerId, plan, saved.id, creditCardToken, this.asaas.addDays(TRIAL_DAYS));
+        const gatewaySubscriptionId = await this.asaas.createSubscription(gatewayCustomerId, plan, saved.id, creditCardToken, nextDueDate);
         Object.assign(saved, {
             gatewayCustomerId,
             gatewaySubscriptionId,
-            status: 'trialing',
+            status: shouldStartTrial ? 'trialing' : 'active',
             trialEndsAt,
             hasUsedTrial: true,
             currentPeriodEnd: null,

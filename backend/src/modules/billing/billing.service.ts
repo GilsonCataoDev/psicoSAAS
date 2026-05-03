@@ -49,18 +49,26 @@ export class BillingService {
       order: { createdAt: 'DESC' },
     })
 
-    if (existing?.status === 'active' || existing?.status === 'trialing') {
-      throw new ConflictException('Usuário já possui uma subscription ativa')
-    }
-    if (existing?.hasUsedTrial) throw new ConflictException('Teste gratuito já utilizado')
+    const canUpgradeFromFree = existing?.status === 'active' && existing.plan === 'free' && !existing.gatewaySubscriptionId
+    const canAttachPaymentToLocalTrial = existing?.status === 'trialing' && !existing.gatewaySubscriptionId
 
-    const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 86400000)
+    if (
+      (existing?.status === 'active' || existing?.status === 'trialing')
+      && !canUpgradeFromFree
+      && !canAttachPaymentToLocalTrial
+    ) {
+      throw new ConflictException('Usuario ja possui uma assinatura ativa')
+    }
+
+    const shouldStartTrial = !existing?.hasUsedTrial
+    const trialEndsAt = shouldStartTrial ? new Date(Date.now() + TRIAL_DAYS * 86400000) : null
+    const nextDueDate = shouldStartTrial ? this.asaas.addDays(TRIAL_DAYS) : this.asaas.addDays(1)
 
     const subscription = existing ?? this.repo.create({ userId: user.id })
     Object.assign(subscription, {
       userId: user.id,
       plan,
-      status: 'trialing',
+      status: shouldStartTrial ? 'trialing' : 'active',
       trialEndsAt,
       hasUsedTrial: true,
       currentPeriodEnd: null,
@@ -73,13 +81,13 @@ export class BillingService {
       plan,
       saved.id,
       creditCardToken,
-      this.asaas.addDays(TRIAL_DAYS),
+      nextDueDate,
     )
 
     Object.assign(saved, {
       gatewayCustomerId,
       gatewaySubscriptionId,
-      status: 'trialing',
+      status: shouldStartTrial ? 'trialing' : 'active',
       trialEndsAt,
       hasUsedTrial: true,
       currentPeriodEnd: null,
