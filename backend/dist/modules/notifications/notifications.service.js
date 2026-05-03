@@ -8,16 +8,23 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
 var NotificationsService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NotificationsService = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
+const typeorm_1 = require("@nestjs/typeorm");
+const typeorm_2 = require("typeorm");
 const email_service_1 = require("../email/email.service");
+const subscription_entity_1 = require("../billing/entities/subscription.entity");
 let NotificationsService = NotificationsService_1 = class NotificationsService {
-    constructor(cfg, email) {
+    constructor(cfg, email, subs) {
         this.cfg = cfg;
         this.email = email;
+        this.subs = subs;
         this.logger = new common_1.Logger(NotificationsService_1.name);
         this.BASE_URL = cfg.get('FRONTEND_URL') ?? 'http://localhost:3000';
         this.WA_URL = cfg.get('WHATSAPP_API_URL') ?? '';
@@ -25,7 +32,21 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
         this.WA_INSTANCE = cfg.get('WHATSAPP_INSTANCE') ?? 'default';
         this.waEnabled = !!(this.WA_URL && this.WA_KEY && cfg.get('NODE_ENV') === 'production');
     }
-    async sendWhatsApp(phone, text) {
+    async canUseWhatsAppAutomation(userId) {
+        if (!userId)
+            return false;
+        const sub = await this.subs.findOne({
+            where: { userId },
+            order: { createdAt: 'DESC' },
+        });
+        const plan = (sub?.status === 'active' || sub?.status === 'trialing') ? sub.plan : 'free';
+        return plan === 'pro' || plan === 'premium';
+    }
+    async sendWhatsApp(phone, text, ownerId) {
+        if (!await this.canUseWhatsAppAutomation(ownerId)) {
+            this.logger.log(`[WhatsApp bloqueado por plano] owner=${ownerId ?? 'unknown'} phone=${phone}`);
+            return;
+        }
         if (!this.waEnabled) {
             this.logger.log(`[WhatsApp DEV] ${phone}: ${text.slice(0, 60)}...`);
             return;
@@ -70,7 +91,7 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
             }
         })();
         const msg = `Olá, ${first}! 🌿\n\nLembrando que temos nosso encontro em *${dateLabel}* às *${time}*.\n\nAté lá! 💙`;
-        await this.sendWhatsApp(patient.phone, msg);
+        await this.sendWhatsApp(patient.phone, msg, appointment.psychologistId);
     }
     async sendPaymentRequest(patient, amount, pixKey) {
         if (!patient?.phone)
@@ -80,7 +101,7 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
             `O valor da nossa sessão é R$ ${amount.toFixed(2)}.\n\n` +
             (pixKey ? `PIX: \`${pixKey}\`\n\n` : '') +
             `Obrigada! 🌿`;
-        await this.sendWhatsApp(patient.phone, msg);
+        await this.sendWhatsApp(patient.phone, msg, patient.psychologistId);
     }
     async sendBookingRequest(booking, page) {
         const confirmUrl = `${this.BASE_URL}/agendar/confirmar/${booking.confirmationToken}`;
@@ -90,7 +111,7 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
                 `Recebemos sua solicitação para *${booking.date}* às *${booking.time}*.\n\n` +
                 `Assim que confirmarmos, você receberá uma mensagem.\n` +
                 `Precisando cancelar: ${cancelUrl}\n\nAté breve! 💙`;
-            await this.sendWhatsApp(booking.patientPhone, patientMsg);
+            await this.sendWhatsApp(booking.patientPhone, patientMsg, page.psychologistId);
         }
         if (page.psychologist?.phone) {
             const psychMsg = `📅 *Nova solicitação de sessão*\n\n` +
@@ -98,7 +119,7 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
                 `Data: ${booking.date} às ${booking.time}\n` +
                 (booking.patientNotes ? `Obs: ${booking.patientNotes}\n` : '') +
                 `\nConfirmar: ${confirmUrl}`;
-            await this.sendWhatsApp(page.psychologist.phone, psychMsg);
+            await this.sendWhatsApp(page.psychologist.phone, psychMsg, page.psychologistId);
         }
         if (page.psychologist?.email) {
             await this.email.sendBookingRequest(booking.patientName, page.psychologist.email, booking.date, booking.time, confirmUrl);
@@ -112,7 +133,7 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
             const msg = `Ótima notícia, ${first}! 🎉\n\n` +
                 `Sua sessão foi confirmada para *${booking.date}* às *${booking.time}*.\n\n` +
                 `Precisando cancelar: ${cancelUrl}\n\nNos vemos lá! 💙`;
-            await this.sendWhatsApp(booking.patientPhone, msg);
+            await this.sendWhatsApp(booking.patientPhone, msg, booking.psychologistId);
         }
         if (booking.patientEmail) {
             await this.email.sendBookingConfirmation(booking.patientName, booking.patientEmail, booking.date, booking.time, cancelUrl);
@@ -128,13 +149,15 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
             `(*R$ ${Number(booking.amount).toFixed(2)}*).\n\n` +
             (pixKey ? `Chave PIX: \`${pixKey}\`\n\n` : '') +
             `Qualquer dúvida, é só falar. 🌿`;
-        await this.sendWhatsApp(booking.patientPhone, msg);
+        await this.sendWhatsApp(booking.patientPhone, msg, booking.psychologistId);
     }
 };
 exports.NotificationsService = NotificationsService;
 exports.NotificationsService = NotificationsService = NotificationsService_1 = __decorate([
     (0, common_1.Injectable)(),
+    __param(2, (0, typeorm_1.InjectRepository)(subscription_entity_1.Subscription)),
     __metadata("design:paramtypes", [config_1.ConfigService,
-        email_service_1.EmailService])
+        email_service_1.EmailService,
+        typeorm_2.Repository])
 ], NotificationsService);
 //# sourceMappingURL=notifications.service.js.map

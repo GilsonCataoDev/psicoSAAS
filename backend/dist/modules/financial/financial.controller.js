@@ -18,6 +18,7 @@ const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const financial_service_1 = require("./financial.service");
 const create_financial_dto_1 = require("./dto/create-financial.dto");
 const charge_card_dto_1 = require("./dto/charge-card.dto");
+const require_plan_decorator_1 = require("../../common/decorators/require-plan.decorator");
 let FinancialController = class FinancialController {
     constructor(svc) {
         this.svc = svc;
@@ -85,6 +86,7 @@ __decorate([
 ], FinancialController.prototype, "markPaid", null);
 __decorate([
     (0, common_1.Post)(':id/send-charge'),
+    (0, require_plan_decorator_1.RequirePlan)('pro'),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
@@ -93,6 +95,7 @@ __decorate([
 ], FinancialController.prototype, "sendCharge", null);
 __decorate([
     (0, common_1.Post)(':id/payment-link'),
+    (0, require_plan_decorator_1.RequirePlan)('pro'),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
@@ -101,6 +104,7 @@ __decorate([
 ], FinancialController.prototype, "generatePaymentLink", null);
 __decorate([
     (0, common_1.Post)(':id/charge-card'),
+    (0, require_plan_decorator_1.RequirePlan)('pro'),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __param(2, (0, common_1.Request)()),

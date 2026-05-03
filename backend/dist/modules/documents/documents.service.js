@@ -23,6 +23,8 @@ const PDFDocument = require("pdfkit");
 const QRCode = require("qrcode");
 const encrypt_util_1 = require("../../common/crypto/encrypt.util");
 const document_entity_1 = require("./entities/document.entity");
+const subscription_entity_1 = require("../billing/entities/subscription.entity");
+const plan_guard_1 = require("../../common/guards/plan.guard");
 const DOC_TYPE_LABELS = {
     declaracao: 'Declaracao de Comparecimento',
     recibo: 'Recibo de Pagamento',
@@ -31,8 +33,9 @@ const DOC_TYPE_LABELS = {
     encaminhamento: 'Carta de Encaminhamento',
 };
 let DocumentsService = DocumentsService_1 = class DocumentsService {
-    constructor(repo, cfg) {
+    constructor(repo, subs, cfg) {
         this.repo = repo;
+        this.subs = subs;
         this.cfg = cfg;
         this.logger = new common_1.Logger(DocumentsService_1.name);
         this.encryptedPrefix = 'psicosaas.document.v1:';
@@ -71,6 +74,7 @@ let DocumentsService = DocumentsService_1 = class DocumentsService {
         });
     }
     async create(user, dto, signerIp) {
+        await this.checkDocumentLimit(user.id);
         const timestamp = Date.now();
         const { signCode, signHash } = this.generateSignature(dto.content, user.id, timestamp);
         const exists = await this.repo.findOne({ where: { signCode } });
@@ -91,6 +95,26 @@ let DocumentsService = DocumentsService_1 = class DocumentsService {
         const saved = await this.repo.save(doc);
         this.logger.log(`[Documento] Assinado: ${saved.signCode} por ${user.name} (CRP ${user.crp})`);
         return this.exposeDocument(saved);
+    }
+    async checkDocumentLimit(userId) {
+        const sub = await this.subs.findOne({
+            where: { userId },
+            order: { createdAt: 'DESC' },
+        });
+        const plan = (sub?.status === 'active' || sub?.status === 'trialing')
+            ? sub.plan
+            : 'free';
+        const limit = plan_guard_1.PLAN_LIMITS[plan]?.maxDocuments ?? 0;
+        if (limit === -1)
+            return;
+        const count = await this.repo.count({ where: { userId } });
+        if (count >= limit) {
+            throw new common_1.ForbiddenException({
+                message: `Limite de ${limit} documento${limit !== 1 ? 's' : ''} atingido para o plano ${plan}. Faça upgrade para gerar mais.`,
+                upgradeUrl: '/planos',
+                currentPlan: plan,
+            });
+        }
     }
     async findByUser(userId, type) {
         const where = { userId };
@@ -253,7 +277,9 @@ exports.DocumentsService = DocumentsService;
 exports.DocumentsService = DocumentsService = DocumentsService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(document_entity_1.Document)),
+    __param(1, (0, typeorm_1.InjectRepository)(subscription_entity_1.Subscription)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
         config_1.ConfigService])
 ], DocumentsService);
 //# sourceMappingURL=documents.service.js.map

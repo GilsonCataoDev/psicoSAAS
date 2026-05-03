@@ -97,6 +97,7 @@ __decorate([
 __decorate([
     (0, common_1.Get)(':id/pdf'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, require_plan_decorator_1.RequirePlan)('essencial'),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Req)()),
     __param(2, (0, common_1.Res)()),

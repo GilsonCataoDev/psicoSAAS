@@ -6,6 +6,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { FinancialService } from './financial.service'
 import { CreateFinancialDto } from './dto/create-financial.dto'
 import { ChargeCardDto } from './dto/charge-card.dto'
+import { RequirePlan } from '../../common/decorators/require-plan.decorator'
 
 @Controller('financial')
 @UseGuards(JwtAuthGuard)
@@ -40,6 +41,7 @@ export class FinancialController {
 
   /** Envia cobrança via WhatsApp usando PIX das preferências do psicólogo */
   @Post(':id/send-charge')
+  @RequirePlan('pro')
   sendCharge(@Param('id') id: string, @Request() req: any) {
     return this.svc.sendChargeMessage(id, req.user.id)
   }
@@ -49,6 +51,7 @@ export class FinancialController {
    * O psicólogo precisa ter configurado preferences.asaasApiKey nas configurações.
    */
   @Post(':id/payment-link')
+  @RequirePlan('pro')
   generatePaymentLink(@Param('id') id: string, @Request() req: any) {
     return this.svc.generatePaymentLink(id, req.user.id)
   }
@@ -58,6 +61,7 @@ export class FinancialController {
    * remoteIp é extraído do request para atender ao antifraude do Asaas.
    */
   @Post(':id/charge-card')
+  @RequirePlan('pro')
   chargeWithCard(
     @Param('id') id: string,
     @Body() dto: ChargeCardDto,

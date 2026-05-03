@@ -40,7 +40,10 @@ let PlanGuard = class PlanGuard {
         const userId = req.user?.id;
         if (!userId)
             return false;
-        const sub = await this.subs.findOne({ where: { userId } });
+        const sub = await this.subs.findOne({
+            where: { userId },
+            order: { createdAt: 'DESC' },
+        });
         const currentPlan = (sub?.status === 'active' || sub?.status === 'trialing')
             ? sub.plan
             : 'free';

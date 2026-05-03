@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { InjectRepository } from '@nestjs/typeorm'
+import { Repository } from 'typeorm'
 import { EmailService } from '../email/email.service'
+import { Subscription } from '../billing/entities/subscription.entity'
 
 /**
  * NotificationsService
@@ -19,6 +22,7 @@ export class NotificationsService {
   constructor(
     private cfg: ConfigService,
     private email: EmailService,
+    @InjectRepository(Subscription) private subs: Repository<Subscription>,
   ) {
     this.BASE_URL     = cfg.get('FRONTEND_URL') ?? 'http://localhost:3000'
     this.WA_URL       = cfg.get('WHATSAPP_API_URL') ?? ''
@@ -27,9 +31,25 @@ export class NotificationsService {
     this.waEnabled    = !!(this.WA_URL && this.WA_KEY && cfg.get('NODE_ENV') === 'production')
   }
 
+  private async canUseWhatsAppAutomation(userId?: string | null): Promise<boolean> {
+    if (!userId) return false
+
+    const sub = await this.subs.findOne({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+    })
+    const plan = (sub?.status === 'active' || sub?.status === 'trialing') ? sub.plan : 'free'
+    return plan === 'pro' || plan === 'premium'
+  }
+
   // ─── Envio via WhatsApp (Evolution API) ──────────────────────────────────
 
-  private async sendWhatsApp(phone: string, text: string): Promise<void> {
+  private async sendWhatsApp(phone: string, text: string, ownerId?: string | null): Promise<void> {
+    if (!await this.canUseWhatsAppAutomation(ownerId)) {
+      this.logger.log(`[WhatsApp bloqueado por plano] owner=${ownerId ?? 'unknown'} phone=${phone}`)
+      return
+    }
+
     if (!this.waEnabled) {
       this.logger.log(`[WhatsApp DEV] ${phone}: ${text.slice(0, 60)}...`)
       return
@@ -81,7 +101,7 @@ export class NotificationsService {
     })()
 
     const msg = `Olá, ${first}! 🌿\n\nLembrando que temos nosso encontro em *${dateLabel}* às *${time}*.\n\nAté lá! 💙`
-    await this.sendWhatsApp(patient.phone, msg)
+    await this.sendWhatsApp(patient.phone, msg, appointment.psychologistId)
   }
 
   async sendPaymentRequest(patient: any, amount: number, pixKey?: string): Promise<void> {
@@ -92,7 +112,7 @@ export class NotificationsService {
       `O valor da nossa sessão é R$ ${amount.toFixed(2)}.\n\n` +
       (pixKey ? `PIX: \`${pixKey}\`\n\n` : '') +
       `Obrigada! 🌿`
-    await this.sendWhatsApp(patient.phone, msg)
+    await this.sendWhatsApp(patient.phone, msg, patient.psychologistId)
   }
 
   // ─── Booking público ───────────────────────────────────────────────────────
@@ -108,7 +128,7 @@ export class NotificationsService {
         `Recebemos sua solicitação para *${booking.date}* às *${booking.time}*.\n\n` +
         `Assim que confirmarmos, você receberá uma mensagem.\n` +
         `Precisando cancelar: ${cancelUrl}\n\nAté breve! 💙`
-      await this.sendWhatsApp(booking.patientPhone, patientMsg)
+      await this.sendWhatsApp(booking.patientPhone, patientMsg, page.psychologistId)
     }
 
     // Para o psicólogo — WhatsApp + e-mail
@@ -119,7 +139,7 @@ export class NotificationsService {
         `Data: ${booking.date} às ${booking.time}\n` +
         (booking.patientNotes ? `Obs: ${booking.patientNotes}\n` : '') +
         `\nConfirmar: ${confirmUrl}`
-      await this.sendWhatsApp(page.psychologist.phone, psychMsg)
+      await this.sendWhatsApp(page.psychologist.phone, psychMsg, page.psychologistId)
     }
 
     // E-mail de backup para o psicólogo
@@ -146,7 +166,7 @@ export class NotificationsService {
         `Ótima notícia, ${first}! 🎉\n\n` +
         `Sua sessão foi confirmada para *${booking.date}* às *${booking.time}*.\n\n` +
         `Precisando cancelar: ${cancelUrl}\n\nNos vemos lá! 💙`
-      await this.sendWhatsApp(booking.patientPhone, msg)
+      await this.sendWhatsApp(booking.patientPhone, msg, booking.psychologistId)
     }
 
     // E-mail para o paciente
@@ -172,6 +192,6 @@ export class NotificationsService {
       `(*R$ ${Number(booking.amount).toFixed(2)}*).\n\n` +
       (pixKey ? `Chave PIX: \`${pixKey}\`\n\n` : '') +
       `Qualquer dúvida, é só falar. 🌿`
-    await this.sendWhatsApp(booking.patientPhone, msg)
+    await this.sendWhatsApp(booking.patientPhone, msg, booking.psychologistId)
   }
 }

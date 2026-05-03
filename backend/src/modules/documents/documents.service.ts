@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common'
+import { ForbiddenException, Injectable, NotFoundException, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { createHmac, randomBytes } from 'crypto'
@@ -8,6 +8,8 @@ import * as QRCode from 'qrcode'
 import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
 import { Document, DocType } from './entities/document.entity'
 import { User } from '../auth/entities/user.entity'
+import { Subscription } from '../billing/entities/subscription.entity'
+import { PLAN_LIMITS } from '../../common/guards/plan.guard'
 
 export interface CreateDocumentDto {
   patientId: string
@@ -33,6 +35,7 @@ export class DocumentsService {
 
   constructor(
     @InjectRepository(Document) private repo: Repository<Document>,
+    @InjectRepository(Subscription) private subs: Repository<Subscription>,
     private cfg: ConfigService,
   ) {
     // SIGN_SECRET deve ter >= 32 chars — validado no bootstrap
@@ -89,6 +92,8 @@ export class DocumentsService {
   // ─── Criar e assinar documento ────────────────────────────────────────────
 
   async create(user: User, dto: CreateDocumentDto, signerIp?: string): Promise<Document> {
+    await this.checkDocumentLimit(user.id)
+
     const timestamp = Date.now()
     const { signCode, signHash } = this.generateSignature(dto.content, user.id, timestamp)
 
@@ -113,6 +118,28 @@ export class DocumentsService {
     const saved = await this.repo.save(doc)
     this.logger.log(`[Documento] Assinado: ${saved.signCode} por ${user.name} (CRP ${user.crp})`)
     return this.exposeDocument(saved)
+  }
+
+  private async checkDocumentLimit(userId: string): Promise<void> {
+    const sub = await this.subs.findOne({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+    })
+    const plan = (sub?.status === 'active' || sub?.status === 'trialing')
+      ? (sub.plan as keyof typeof PLAN_LIMITS)
+      : 'free'
+
+    const limit = PLAN_LIMITS[plan]?.maxDocuments ?? 0
+    if (limit === -1) return
+
+    const count = await this.repo.count({ where: { userId } })
+    if (count >= limit) {
+      throw new ForbiddenException({
+        message: `Limite de ${limit} documento${limit !== 1 ? 's' : ''} atingido para o plano ${plan}. Faça upgrade para gerar mais.`,
+        upgradeUrl: '/planos',
+        currentPlan: plan,
+      })
+    }
   }
 
   // ─── Listar documentos do psicólogo ──────────────────────────────────────

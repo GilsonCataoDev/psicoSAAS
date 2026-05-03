@@ -43,6 +43,7 @@ export class DocumentsController {
   /** Gerar PDF do documento proprio, com QR e codigo de verificacao */
   @Get(':id/pdf')
   @UseGuards(JwtAuthGuard)
+  @RequirePlan('essencial')
   async pdf(@Param('id') id: string, @Req() req: any, @Res() res: Response) {
     const { filename, buffer } = await this.svc.generatePdf(id, req.user.id)
     res.set({
