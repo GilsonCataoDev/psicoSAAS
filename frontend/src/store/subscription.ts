@@ -25,6 +25,23 @@ export interface Plan {
 
 export const PLANS: Plan[] = [
   {
+    id: 'free',
+    name: 'Gratis',
+    price: 0,
+    priceYearly: 0,
+    maxPatients: 3,
+    maxStorage: 1,
+    audience: 'Para testar e organizar os primeiros atendimentos',
+    features: [
+      'Agenda basica',
+      'Ate 3 pacientes ativos',
+      'Link publico simples',
+      'Financeiro basico',
+      'Sem documentos/PDF',
+      'Sem WhatsApp automatico',
+    ],
+  },
+  {
     id: 'essencial',
     name: 'Essencial',
     price: 79,

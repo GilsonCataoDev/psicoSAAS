@@ -120,6 +120,20 @@ export default function PricingPage() {
   }
 
   async function subscribe(plan: Plan) {
+    if (plan.id === 'free') {
+      setLoadingPlan(plan.id)
+      try {
+        const { data } = await api.post('/billing/free')
+        setSubscription(data)
+        toast.success('Plano Gratis ativado.')
+      } catch (err: any) {
+        toast.error(err?.response?.data?.message ?? 'Nao foi possivel ativar o plano gratis.')
+      } finally {
+        setLoadingPlan(null)
+      }
+      return
+    }
+
     const validationError = validateCard()
     if (validationError) {
       toast.error(validationError)
@@ -167,7 +181,7 @@ export default function PricingPage() {
           </div>
         )}
         <p className="text-neutral-500">
-          Comece com 7 dias de teste. O Essencial organiza a rotina; o Pro libera automacoes; o Clinica atende equipes.
+          Comece gratis ou teste um plano pago por 7 dias. O Essencial organiza a rotina; o Pro libera automacoes; o Clinica atende equipes.
         </p>
         {subscription.status === 'past_due' && (
           <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -177,7 +191,7 @@ export default function PricingPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {PLANS.map((plan) => {
           const isCurrentPlan = subscription.plan === plan.id || subscription.planId === plan.id
           return (
@@ -197,13 +211,23 @@ export default function PricingPage() {
               <h2 className="text-lg font-semibold text-neutral-800">{plan.name}</h2>
               <p className="mt-1 min-h-10 text-sm text-neutral-500">{plan.audience}</p>
               <div className="mt-3 flex items-end gap-1">
-                <span className="text-sm text-neutral-400 mb-1">R$</span>
-                <span className="text-3xl font-bold text-neutral-900">{plan.price}</span>
-                <span className="text-sm text-neutral-400 mb-1">/mês</span>
+                {plan.price === 0 ? (
+                  <span className="text-3xl font-bold text-neutral-900">Gratis</span>
+                ) : (
+                  <>
+                    <span className="text-sm text-neutral-400 mb-1">R$</span>
+                    <span className="text-3xl font-bold text-neutral-900">{plan.price}</span>
+                    <span className="text-sm text-neutral-400 mb-1">/mes</span>
+                  </>
+                )}
               </div>
-              <p className="mt-1 text-xs text-neutral-400">
-                Anual: R$ {plan.priceYearly}/mes, cobrado por ano
-              </p>
+              {plan.price > 0 ? (
+                <p className="mt-1 text-xs text-neutral-400">
+                  Anual: R$ {plan.priceYearly}/mes, cobrado por ano
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-neutral-400">Sem cartao e sem prazo para expirar</p>
+              )}
             </div>
 
             <ul className="space-y-2 flex-1">
@@ -217,7 +241,7 @@ export default function PricingPage() {
 
             <button
               type="button"
-              onClick={() => setSelectedPlan(plan)}
+              onClick={() => plan.id === 'free' ? subscribe(plan) : setSelectedPlan(plan)}
               disabled={loadingPlan !== null || subscription.status === 'active'}
               className={cn(
                 'h-11 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-colors',
@@ -234,7 +258,9 @@ export default function PricingPage() {
                   ? 'Troca pelo suporte'
                   : subscription.status === 'past_due'
                   ? 'Pagar agora'
-                  : 'Testar 7 dias gratis'}
+                  : plan.id === 'free'
+                    ? 'Comecar gratis'
+                    : 'Testar 7 dias gratis'}
             </button>
           </section>
           )

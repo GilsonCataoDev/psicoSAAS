@@ -88,6 +88,29 @@ export class BillingService {
     return this.repo.save(saved)
   }
 
+  async activateFree(userId: string) {
+    const existing = await this.repo.findOne({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+    })
+
+    if (existing?.gatewaySubscriptionId && existing.status !== 'canceled') {
+      throw new ConflictException('Cancele a assinatura atual antes de migrar para o plano gratis')
+    }
+
+    const subscription = existing ?? this.repo.create({ userId })
+    Object.assign(subscription, {
+      userId,
+      plan: 'free',
+      status: 'active',
+      currentPeriodEnd: null,
+      trialEndsAt: null,
+      cancelAtPeriodEnd: false,
+    })
+
+    return this.repo.save(subscription)
+  }
+
   async updateCard(userId: string, creditCardToken?: string) {
     if (!creditCardToken) throw new BadRequestException('creditCardToken é obrigatório')
 

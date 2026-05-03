@@ -49,6 +49,9 @@ let BillingController = BillingController_1 = class BillingController {
     subscribe(req, plan, creditCardToken) {
         return this.billing.subscribe(req.user, plan, creditCardToken);
     }
+    activateFree(req) {
+        return this.billing.activateFree(req.user.id);
+    }
     updateCard(req, creditCardToken) {
         return this.billing.updateCard(req.user.id, creditCardToken);
     }
@@ -92,6 +95,14 @@ __decorate([
     __metadata("design:paramtypes", [Object, String, String]),
     __metadata("design:returntype", void 0)
 ], BillingController.prototype, "subscribe", null);
+__decorate([
+    (0, common_1.Post)('free'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], BillingController.prototype, "activateFree", null);
 __decorate([
     (0, common_1.Post)('update-card'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

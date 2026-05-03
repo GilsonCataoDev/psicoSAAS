@@ -11,7 +11,7 @@ const PLAN_ORDER: Record<PlanLevel, number> = { free: 0, basic: 1, essencial: 1,
 
 /** Limites por plano — única fonte da verdade no backend */
 export const PLAN_LIMITS = {
-  free:      { maxPatients: 2,  maxDocuments: 10 },
+  free:      { maxPatients: 3,  maxDocuments: 0 },
   basic:     { maxPatients: 30, maxDocuments: 200 },
   essencial: { maxPatients: 30, maxDocuments: 200 },
   pro:       { maxPatients: -1, maxDocuments: -1 }, // ilimitado

@@ -10,6 +10,7 @@ export declare class BillingService {
         status: string;
     }>;
     subscribe(user: User, plan?: string, creditCardToken?: string): Promise<Subscription>;
+    activateFree(userId: string): Promise<Subscription>;
     updateCard(userId: string, creditCardToken?: string): Promise<Subscription>;
     cancel(userId: string): Promise<Subscription>;
     getMetrics(): Promise<{

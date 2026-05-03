@@ -49,6 +49,12 @@ export class BillingController {
     return this.billing.subscribe(req.user, plan, creditCardToken)
   }
 
+  @Post('free')
+  @UseGuards(JwtAuthGuard)
+  activateFree(@Request() req: any) {
+    return this.billing.activateFree(req.user.id)
+  }
+
   @Post('update-card')
   @UseGuards(JwtAuthGuard)
   updateCard(@Request() req: any, @Body('creditCardToken') creditCardToken?: string) {

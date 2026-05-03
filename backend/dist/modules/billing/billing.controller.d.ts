@@ -11,6 +11,7 @@ export declare class BillingController {
         creditCardToken: string;
     }>;
     subscribe(req: any, plan?: string, creditCardToken?: string): Promise<import("./entities/subscription.entity").Subscription>;
+    activateFree(req: any): Promise<import("./entities/subscription.entity").Subscription>;
     updateCard(req: any, creditCardToken?: string): Promise<import("./entities/subscription.entity").Subscription>;
     cancel(req: any): Promise<import("./entities/subscription.entity").Subscription>;
     metrics(): Promise<{
