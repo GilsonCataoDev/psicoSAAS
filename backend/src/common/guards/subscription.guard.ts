@@ -71,7 +71,8 @@ export class SubscriptionGuard extends AuthGuard('jwt') implements CanActivate {
       normalizedPath === '/billing/update-card' ||
       normalizedPath === '/billing/subscribe' ||
       normalizedPath === '/billing/free' ||
-      normalizedPath === '/billing/cancel'
+      normalizedPath === '/billing/cancel' ||
+      normalizedPath === '/data-export'
     )
   }
 

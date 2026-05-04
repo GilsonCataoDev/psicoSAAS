@@ -64,7 +64,8 @@ let SubscriptionGuard = class SubscriptionGuard extends (0, passport_1.AuthGuard
             normalizedPath === '/billing/update-card' ||
             normalizedPath === '/billing/subscribe' ||
             normalizedPath === '/billing/free' ||
-            normalizedPath === '/billing/cancel');
+            normalizedPath === '/billing/cancel' ||
+            normalizedPath === '/data-export');
     }
     isWithinGracePeriod(currentPeriodEnd) {
         if (!currentPeriodEnd)

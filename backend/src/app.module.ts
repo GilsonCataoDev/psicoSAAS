@@ -17,6 +17,7 @@ import { EmailModule } from './modules/email/email.module'
 import { AnalyticsModule } from './modules/analytics/analytics.module'
 import { ReferralModule } from './modules/referral/referral.module'
 import { BillingModule } from './modules/billing/billing.module'
+import { DataExportModule } from './modules/data-export/data-export.module'
 import { Subscription } from './modules/subscriptions/entities/subscription.entity'
 import { Subscription as BillingSubscription } from './modules/billing/entities/subscription.entity'
 import { PlanGuard } from './common/guards/plan.guard'
@@ -60,6 +61,7 @@ import { SubscriptionGuard } from './common/guards/subscription.guard'
     AnalyticsModule,
     ReferralModule,
     BillingModule,
+    DataExportModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

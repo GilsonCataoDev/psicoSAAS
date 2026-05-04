@@ -26,6 +26,7 @@ const email_module_1 = require("./modules/email/email.module");
 const analytics_module_1 = require("./modules/analytics/analytics.module");
 const referral_module_1 = require("./modules/referral/referral.module");
 const billing_module_1 = require("./modules/billing/billing.module");
+const data_export_module_1 = require("./modules/data-export/data-export.module");
 const subscription_entity_1 = require("./modules/subscriptions/entities/subscription.entity");
 const subscription_entity_2 = require("./modules/billing/entities/subscription.entity");
 const plan_guard_1 = require("./common/guards/plan.guard");
@@ -66,6 +67,7 @@ exports.AppModule = AppModule = __decorate([
             analytics_module_1.AnalyticsModule,
             referral_module_1.ReferralModule,
             billing_module_1.BillingModule,
+            data_export_module_1.DataExportModule,
         ],
         providers: [
             { provide: core_1.APP_GUARD, useClass: throttler_1.ThrottlerGuard },
