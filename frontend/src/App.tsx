@@ -21,6 +21,8 @@ import VerifyDocumentPage from '@/pages/public/VerifyDocumentPage'
 import ProntuarioPage from '@/pages/ProntuarioPage'
 import DocumentosPage from '@/pages/DocumentosPage'
 import PricingPage from '@/pages/PricingPage'
+import LandingPage from '@/pages/LandingPage'
+import LegalPage from '@/pages/LegalPage'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
@@ -47,6 +49,10 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <Routes>
+      <Route path="/venda" element={<LandingPage />} />
+      <Route path="/privacidade" element={<LegalPage type="privacy" />} />
+      <Route path="/termos" element={<LegalPage type="terms" />} />
+
       {/* ── Rotas públicas de autenticação ──────────────────────── */}
       <Route element={<PublicRoute><AuthLayout /></PublicRoute>}>
         <Route path="/login" element={<LoginPage />} />

@@ -182,7 +182,7 @@ export default function PricingPage() {
           </div>
         )}
         <p className="text-neutral-500">
-          Comece gratis ou teste um plano pago por 7 dias. O Essencial organiza a rotina; o Pro libera automacoes; o Clinica atende equipes.
+          Comece gratis ou teste um plano pago por 7 dias. O Essencial organiza a rotina; o Pro libera pagamentos, mensagens e automacoes; o Clinica atende equipes.
         </p>
         {subscription.status === 'past_due' && (
           <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -207,7 +207,7 @@ export default function PricingPage() {
           >
             {plan.highlight && (
               <span className="absolute right-4 top-4 rounded-full bg-sage-100 px-2.5 py-1 text-xs font-medium text-sage-700">
-                Melhor custo-beneficio
+                Recomendado para vender
               </span>
             )}
             <div>
@@ -275,8 +275,8 @@ export default function PricingPage() {
           <div className="mb-5">
             <h2 className="font-semibold text-neutral-800">Cartão de crédito</h2>
             <p className="text-sm text-neutral-500">
-              Plano {selectedPlan.name}. Os dados do cartão são enviados ao Asaas para tokenização.
-              Você não será cobrado agora. A cobrança será feita após 7 dias.
+              Plano {selectedPlan.name}. Os dados do cartao sao enviados ao Asaas para tokenizacao.
+              Voce nao sera cobrado agora. A cobranca sera feita apos 7 dias.
             </p>
           </div>
 

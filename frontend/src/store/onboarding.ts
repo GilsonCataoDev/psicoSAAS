@@ -15,8 +15,8 @@ interface OnboardingState {
 export const useOnboardingStore = create<OnboardingState>()(
   persist(
     (set) => ({
-      completed: true,
-      currentStep: 'done',
+      completed: false,
+      currentStep: 'availability',
       stepsCompleted: [],
 
       completeStep: (step) =>
@@ -35,8 +35,8 @@ export const useOnboardingStore = create<OnboardingState>()(
     }),
     {
       name: 'psicosaas-onboarding',
-      version: 2,
-      migrate: () => ({ completed: true, currentStep: 'done', stepsCompleted: [] }),
+      version: 3,
+      migrate: () => ({ completed: false, currentStep: 'availability', stepsCompleted: [] }),
     },
   ),
 )

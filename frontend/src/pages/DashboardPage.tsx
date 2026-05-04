@@ -11,6 +11,8 @@ import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
 import { useAuthStore } from '@/store/auth'
 import { track, EVENTS } from '@/lib/analytics'
 import { useDashboard, useSessions } from '@/hooks/useApi'
+import OnboardingWizard from '@/components/onboarding/OnboardingWizard'
+import { useOnboardingStore } from '@/store/onboarding'
 
 function greeting() {
   const h = new Date().getHours()
@@ -33,6 +35,7 @@ export default function DashboardPage() {
   const { data: stats, isLoading: loading } = useDashboard()
   const { data: recentSessions = [] } = useSessions()
   const user = useAuthStore(s => s.user)
+  const onboardingCompleted = useOnboardingStore(s => s.completed)
   const firstName = user?.name?.split(' ')[0] ?? 'Psicólogo(a)'
 
   useEffect(() => { track(EVENTS.LOGIN) }, [])
@@ -57,6 +60,7 @@ export default function DashboardPage() {
 
   return (
     <div className="animate-slide-up space-y-5">
+      {!onboardingCompleted && <OnboardingWizard />}
 
       {/* ── Hero: saudação ──────────────────────────────────────────── */}
       <div className="hero-gradient rounded-2xl p-7 text-white relative overflow-hidden shadow-soft">

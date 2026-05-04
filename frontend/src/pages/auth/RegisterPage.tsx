@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -36,8 +36,6 @@ export default function RegisterPage() {
   const setAuth      = useAuthStore((s) => s.setAuth)
   const setCsrfToken = useAuthStore((s) => s.setCsrfToken)
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const refCode = searchParams.get('ref') ?? undefined
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -62,7 +60,6 @@ export default function RegisterPage() {
         crp: data.crp,
         termsAccepted: data.terms,
         termsVersion: TERMS_VERSION,
-        ...(refCode ? { referralCode: refCode } : {}),
       })
       setAuth(res.data.user)
       if (res.data.csrfToken) setCsrfToken(res.data.csrfToken)
@@ -86,16 +83,6 @@ export default function RegisterPage() {
         Criar sua conta
       </h2>
       <p className="text-neutral-500 mb-6">É rápido, gratuito e sem burocracia</p>
-
-      {refCode && (
-        <div className="mb-6 flex items-center gap-3 bg-violet-50 border border-violet-200 rounded-2xl px-4 py-3">
-          <span className="text-xl">🎁</span>
-          <div>
-            <p className="text-sm font-medium text-violet-800">Você foi indicado por um colega!</p>
-            <p className="text-xs text-violet-600 mt-0.5">Seus 7 dias de teste estao garantidos.</p>
-          </div>
-        </div>
-      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
@@ -196,13 +183,9 @@ export default function RegisterPage() {
           />
           <label htmlFor="terms" className="text-sm text-neutral-500 cursor-pointer">
             Concordo com os{' '}
-            <button type="button" onClick={(e) => { e.preventDefault(); setShowTerms(true) }} className="text-sage-600 hover:underline">
-              Termos de Uso
-            </button>
+            <Link to="/termos" target="_blank" className="text-sage-600 hover:underline">Termos de Uso</Link>
             {' '}e{' '}
-            <button type="button" onClick={(e) => { e.preventDefault(); setShowTerms(true) }} className="text-sage-600 hover:underline">
-              Politica de Privacidade
-            </button>
+            <Link to="/privacidade" target="_blank" className="text-sage-600 hover:underline">Politica de Privacidade</Link>
           </label>
         </div>
         {errors.terms && <p className="text-rose-500 text-xs">{errors.terms.message}</p>}
