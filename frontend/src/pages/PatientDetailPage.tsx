@@ -71,7 +71,7 @@ export default function PatientDetailPage() {
       <Link to="/pacientes"
         className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-700 transition-colors">
         <ArrowLeft className="w-4 h-4" />
-        <span>Pessoas</span>
+        <span>Pacientes</span>
       </Link>
 
       {/* Header card */}

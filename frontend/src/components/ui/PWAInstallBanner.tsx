@@ -23,7 +23,7 @@ export default function PWAInstallBanner() {
         <span className="text-white text-xl">🌿</span>
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-neutral-800">Instalar PsicoSaaS</p>
+        <p className="text-sm font-medium text-neutral-800">Instalar UseCognia</p>
         <p className="text-xs text-neutral-500 mt-0.5">
           {isIOS
             ? 'Toque em compartilhar e "Adicionar à Tela Inicial"'

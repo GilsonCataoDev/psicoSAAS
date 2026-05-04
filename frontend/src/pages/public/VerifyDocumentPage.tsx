@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { Shield, CheckCircle2, XCircle, Loader2, Heart, ExternalLink, FileText } from 'lucide-react'
+import { Shield, CheckCircle2, XCircle, Loader2, ExternalLink, FileText } from 'lucide-react'
 import { api } from '@/lib/api'
+import BrandLogo from '@/components/ui/BrandLogo'
 
 type DocType = 'declaracao' | 'recibo' | 'relatorio' | 'atestado' | 'encaminhamento'
 
@@ -57,14 +58,7 @@ export default function VerifyDocumentPage() {
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-neutral-100 sticky top-0 z-10">
         <div className="max-w-xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-sage-500 rounded-lg flex items-center justify-center">
-              <Heart className="w-3.5 h-3.5 text-white" fill="white" />
-            </div>
-            <span className="font-display font-medium text-neutral-800">
-              Psico<span className="text-sage-500">SaaS</span>
-            </span>
-          </div>
+          <BrandLogo className="w-auto h-9" />
           <div className="flex items-center gap-1.5 text-xs text-neutral-400">
             <Shield className="w-3.5 h-3.5 text-sage-400" />
             Verificação de autenticidade
@@ -158,7 +152,7 @@ export default function VerifyDocumentPage() {
             <div className="bg-sage-50 rounded-2xl p-4 text-sm text-sage-700 space-y-1">
               <p className="font-medium">Sobre esta verificação</p>
               <p className="text-sage-600 text-xs leading-relaxed">
-                Este documento foi gerado e assinado digitalmente pela plataforma PsicoSaaS.
+                Este documento foi gerado e assinado digitalmente pela plataforma UseCognia.
                 A assinatura é verificada por código HMAC-SHA256, garantindo que o conteúdo
                 não foi alterado desde a emissão. Válido conforme CFP Resolução 006/2019.
               </p>
@@ -198,7 +192,7 @@ export default function VerifyDocumentPage() {
       </main>
 
       <footer className="text-center py-6 text-xs text-neutral-400 space-y-1">
-        <p>PsicoSaaS · Documentação clínica segura 🔒</p>
+        <p>UseCognia · Documentacao clinica segura</p>
         <a
           href="https://cadastro.cfp.org.br/"
           target="_blank"

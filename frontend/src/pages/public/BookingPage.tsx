@@ -408,7 +408,7 @@ export default function BookingPage() {
       </main>
 
       <footer className="text-center py-6 text-xs text-neutral-400">
-        PsicoSaaS · Agendamento seguro e respeitoso 🔒
+        UseCognia · Agendamento seguro e respeitoso
       </footer>
     </div>
   )

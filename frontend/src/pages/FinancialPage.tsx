@@ -100,8 +100,8 @@ export default function FinancialPage() {
             <AreaChart data={revenueData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorValor" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#3f8866" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#3f8866" stopOpacity={0} />
+                  <stop offset="5%"  stopColor="#4DA8DA" stopOpacity={0.18} />
+                  <stop offset="95%" stopColor="#4DA8DA" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <XAxis dataKey="mes" tick={{ fontSize: 11, fill: '#a3a3a3' }} axisLine={false} tickLine={false} />
@@ -111,7 +111,7 @@ export default function FinancialPage() {
                 formatter={(v: number) => [formatCurrency(v), 'Receita']}
                 contentStyle={{ borderRadius: 12, border: '1px solid #f0f0f0', fontSize: 12 }}
               />
-              <Area type="monotone" dataKey="valor" stroke="#3f8866" strokeWidth={2}
+              <Area type="monotone" dataKey="valor" stroke="#4DA8DA" strokeWidth={2}
                 fill="url(#colorValor)" dot={false} />
             </AreaChart>
           </ResponsiveContainer>

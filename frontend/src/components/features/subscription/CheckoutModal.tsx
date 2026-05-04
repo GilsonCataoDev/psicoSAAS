@@ -100,7 +100,7 @@ export default function CheckoutModal({ plan, yearly, onClose }: Props) {
           confirmSubscriptionLocally(periodEnd)
           setStep('success')
         } else if (method === 'pix') {
-          setPixCode('00020126580014br.gov.bcb.pix0136f9e72e21-5c72-4e2c-a0d4-8e7d3f2b1c5a5204000053039865802BR5925PSICOSAAS TECNOLOGIA LT6009SAO PAULO62070503***6304B14F')
+          setPixCode('00020126580014br.gov.bcb.pix0136f9e72e21-5c72-4e2c-a0d4-8e7d3f2b1c5a5204000053039865802BR5925USECOGNIA TECNOLOGIA LT6009SAO PAULO62070503***6304B14F')
           setPixQrCode('')
           setStep('pix')
         } else {

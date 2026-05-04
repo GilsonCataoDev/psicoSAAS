@@ -43,10 +43,10 @@ export default function LoginPage() {
 
   return (
     <div>
-      <h2 className="font-display text-3xl font-light text-neutral-800 mb-1">
-        Bem-vinda de volta
+      <h2 className="font-display text-3xl font-bold text-neutral-900 mb-1">
+        Acesse a UseCognia
       </h2>
-      <p className="text-neutral-500 mb-8">Entre para acessar sua conta</p>
+      <p className="text-neutral-500 mb-8">Organize agenda, pacientes e financeiro em poucos cliques.</p>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>

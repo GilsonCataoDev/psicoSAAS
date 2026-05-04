@@ -555,7 +555,7 @@ export default function SettingsPage() {
               <div className="space-y-3 text-sm text-neutral-600">
                 {[
                   { icon: '🔒', text: 'Todas as anotações clínicas são criptografadas com AES-256.' },
-                  { icon: '🗂️', text: 'Você é o único responsável pelos dados de suas pessoas — nunca os vendemos ou compartilhamos.' },
+                  { icon: '🗂️', text: 'Voce e o unico responsavel pelos dados de seus pacientes; nunca os vendemos ou compartilhamos.' },
                   { icon: '📤', text: 'Você pode exportar ou deletar todos os seus dados a qualquer momento.' },
                   { icon: '🇧🇷', text: 'Operamos em conformidade total com a LGPD (Lei Geral de Proteção de Dados).' },
                 ].map(item => (

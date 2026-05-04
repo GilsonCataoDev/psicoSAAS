@@ -1,16 +1,17 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Users, CalendarDays,
-  FileText, Wallet, Settings, LogOut, Heart, Link2,
+  FileText, Wallet, Settings, LogOut, Link2,
   Stamp, Zap,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { useSubscriptionStore, PLANS } from '@/store/subscription'
 import { getInitials, cn } from '@/lib/utils'
+import BrandLogo from '@/components/ui/BrandLogo'
 
 const navItems = [
   { to: '/',              icon: LayoutDashboard, label: 'Início'       },
-  { to: '/pacientes',     icon: Users,           label: 'Pessoas'      },
+  { to: '/pacientes',     icon: Users,           label: 'Pacientes'    },
   { to: '/agenda',        icon: CalendarDays,    label: 'Agenda'       },
   { to: '/agendamentos',  icon: Link2,           label: 'Link público' },
   { to: '/sessoes',       icon: FileText,        label: 'Sessões'      },
@@ -33,18 +34,11 @@ export default function Sidebar() {
     : null
 
   return (
-    <aside className="hidden lg:flex w-60 bg-white border-r border-neutral-100 flex-col h-full shrink-0">
+    <aside className="hidden lg:flex w-64 bg-white border-r border-sage-100/70 flex-col h-full shrink-0">
 
       {/* Logo */}
-      <div className="px-5 py-5 border-b border-neutral-50">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 hero-gradient rounded-xl flex items-center justify-center shadow-sm">
-            <Heart className="w-4 h-4 text-white" fill="white" />
-          </div>
-          <span className="font-display font-medium text-neutral-800 text-lg tracking-tight">
-            Psico<span className="text-sage-500">SaaS</span>
-          </span>
-        </div>
+      <div className="px-5 py-5 border-b border-sage-100/70">
+        <BrandLogo />
       </div>
 
       {/* Nav */}
@@ -59,8 +53,8 @@ export default function Sidebar() {
               <div className={cn(
                 'relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 cursor-pointer select-none',
                 isActive
-                  ? 'bg-sage-50 text-sage-700'
-                  : 'text-neutral-500 hover:bg-neutral-50 hover:text-neutral-700',
+                  ? 'bg-sage-50 text-sage-700 shadow-sm'
+                  : 'text-neutral-500 hover:bg-sage-50/70 hover:text-sage-700',
               )}>
                 {/* Indicador lateral ativo */}
                 {isActive && (
@@ -70,7 +64,7 @@ export default function Sidebar() {
                 {/* Ícone */}
                 <div className={cn(
                   'w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-150 shrink-0',
-                  isActive ? 'bg-sage-100' : 'group-hover:bg-neutral-100',
+                  isActive ? 'bg-white text-sage-600 shadow-sm' : 'group-hover:bg-white',
                 )}>
                   <Icon className="w-4 h-4" />
                 </div>
@@ -89,7 +83,7 @@ export default function Sidebar() {
         {isTrialing && daysLeft !== null && daysLeft <= TRIAL_DAYS ? (
           <NavLink
             to="/planos"
-            className="block hero-gradient text-white rounded-2xl p-3.5 hover:opacity-90 transition-opacity"
+            className="block hero-gradient text-white rounded-2xl p-3.5 hover:opacity-90 transition-opacity shadow-soft"
           >
             <div className="flex items-center gap-2 mb-1.5">
               <Zap className="w-3.5 h-3.5" />
@@ -108,7 +102,7 @@ export default function Sidebar() {
         ) : subscription.status === 'active' && currentPlan ? (
           <NavLink
             to="/planos"
-            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-neutral-50 transition-colors"
+            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-sage-50 transition-colors"
           >
             <div className="w-7 h-7 bg-sage-100 rounded-lg flex items-center justify-center shrink-0">
               <Zap className="w-3.5 h-3.5 text-sage-600" />
@@ -122,7 +116,7 @@ export default function Sidebar() {
       </div>
 
       {/* Usuário */}
-      <div className="px-3 py-3 border-t border-neutral-100">
+      <div className="px-3 py-3 border-t border-sage-100/70">
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-neutral-50 transition-colors group">
           <div className="w-8 h-8 rounded-xl bg-sage-100 text-sage-700 flex items-center justify-center text-xs font-bold shrink-0">
             {user ? getInitials(user.name) : 'PS'}

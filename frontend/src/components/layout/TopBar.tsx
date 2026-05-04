@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
-import { Bell, Search, Heart, X, Check, CheckCheck, Trash2, Calendar, CreditCard, Clock, Settings2 } from 'lucide-react'
+import { Bell, Search, X, Check, CheckCheck, Trash2, Calendar, CreditCard, Clock, Settings2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/auth'
 import { useNotificationStore, AppNotification, NotificationType } from '@/store/notifications'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
+import BrandLogo from '@/components/ui/BrandLogo'
 
 const TYPE_ICON: Record<NotificationType, React.ReactNode> = {
   booking_request:   <Calendar  className="w-3.5 h-3.5 text-sage-500"    />,
@@ -89,22 +90,18 @@ export default function TopBar() {
   }
 
   return (
-    <header className="bg-white/80 backdrop-blur-sm border-b border-neutral-100 px-4 lg:px-6 py-3 flex items-center gap-3 shrink-0 sticky top-0 z-30">
+    <header className="bg-white/85 backdrop-blur-xl border-b border-sage-100/70 px-4 lg:px-6 py-3 flex items-center gap-3 shrink-0 sticky top-0 z-30">
 
       {/* Logo mobile */}
       <div className="lg:hidden flex items-center gap-2 mr-auto">
-        <div className="w-7 h-7 hero-gradient rounded-lg flex items-center justify-center">
-          <Heart className="w-3.5 h-3.5 text-white" fill="white" />
-        </div>
-        <span className="font-display font-medium text-neutral-800 tracking-tight">
-          Psico<span className="text-sage-500">SaaS</span>
-        </span>
+        <BrandLogo compact />
+        <span className="font-display font-bold text-neutral-900 tracking-tight">UseCognia</span>
       </div>
 
       {/* Saudação desktop — visível fora do dashboard (o dashboard tem a própria) */}
       <div className="hidden lg:block flex-1">
         <p className="text-sm font-medium text-neutral-600">
-          Bem-vindo de volta, <span className="text-neutral-800">{firstName}</span>
+          Bem-vindo de volta, <span className="text-sage-700">{firstName}</span>
         </p>
       </div>
 
@@ -123,7 +120,7 @@ export default function TopBar() {
             <input
               autoFocus
               type="text"
-              placeholder="Buscar pessoas..."
+              placeholder="Buscar pacientes..."
               className="pl-8 pr-8 py-2 text-sm bg-neutral-50 border border-neutral-200 rounded-xl
                          focus:outline-none focus:ring-2 focus:ring-sage-200 focus:border-sage-400 w-full"
               onBlur={() => setSearchOpen(false)}

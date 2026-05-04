@@ -45,7 +45,7 @@
 
   /* ── Cards ────────────────────────────────────────────────────────── */
   .card {
-    @apply bg-white rounded-2xl border border-neutral-100 p-5 shadow-sm
+    @apply bg-white rounded-2xl border border-neutral-100 p-5 shadow-card
            transition-shadow duration-200;
   }
 
@@ -55,7 +55,7 @@
 
   /* ── Botões ───────────────────────────────────────────────────────── */
   .btn-primary {
-    @apply bg-sage-500 hover:bg-sage-600 active:bg-sage-700
+    @apply bg-[#22C55E] hover:bg-[#16a34a] active:bg-[#15803d]
            text-white font-medium px-5 py-2.5 rounded-xl
            transition-all duration-150 active:scale-[.98]
            shadow-sm hover:shadow-md;
@@ -78,7 +78,7 @@
   .input-field {
     @apply w-full px-4 py-2.5 bg-white border border-neutral-200 rounded-xl
            text-neutral-800 placeholder-neutral-400 text-sm
-           focus:outline-none focus:ring-2 focus:ring-sage-200 focus:border-sage-400
+           focus:outline-none focus:ring-2 focus:ring-sage-100 focus:border-sage-500
            transition-all duration-150;
   }
 
@@ -145,6 +145,13 @@
 
   /* Gradiente de hero do dashboard */
   .hero-gradient {
-    background: linear-gradient(135deg, #265741 0%, #3f8866 60%, #62a585 100%);
+    background: linear-gradient(135deg, #24166f 0%, #5B3EFF 58%, #4DA8DA 100%);
+  }
+
+  .cognia-surface {
+    background:
+      radial-gradient(circle at 18% 12%, rgba(91, 62, 255, 0.10), transparent 32%),
+      radial-gradient(circle at 82% 0%, rgba(77, 168, 218, 0.14), transparent 30%),
+      #F5F7FA;
   }
 }

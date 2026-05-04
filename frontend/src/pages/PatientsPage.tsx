@@ -27,16 +27,16 @@ export default function PatientsPage() {
     <div className="animate-slide-up space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="page-title">Pessoas</h1>
+          <h1 className="page-title">Pacientes</h1>
           <p className="page-subtitle">
             {activeCount > 0
               ? `${activeCount} em acompanhamento`
-              : 'Nenhuma pessoa cadastrada ainda'}
+              : 'Nenhum paciente cadastrado ainda'}
           </p>
         </div>
         <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2">
           <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Nova pessoa</span>
+          <span className="hidden sm:inline">Novo paciente</span>
         </button>
       </div>
 
@@ -74,7 +74,7 @@ export default function PatientsPage() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<Users className="w-6 h-6" />}
-          title={search || filter !== 'all' ? 'Nenhuma pessoa encontrada' : 'Nenhuma pessoa cadastrada ainda'}
+          title={search || filter !== 'all' ? 'Nenhum paciente encontrado' : 'Nenhum paciente cadastrado ainda'}
           description={
             search || filter !== 'all'
               ? 'Tente ajustar a busca ou os filtros.'
@@ -82,7 +82,7 @@ export default function PatientsPage() {
           }
           action={
             !search && filter === 'all'
-              ? <button onClick={() => setShowModal(true)} className="btn-primary">Cadastrar primeira pessoa</button>
+              ? <button onClick={() => setShowModal(true)} className="btn-primary">Cadastrar primeiro paciente</button>
               : undefined
           }
         />

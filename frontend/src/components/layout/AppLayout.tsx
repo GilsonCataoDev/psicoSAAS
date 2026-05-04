@@ -106,7 +106,7 @@ export default function AppLayout() {
   useSubscriptionPolling()
 
   return (
-    <div className="flex h-screen bg-neutral-50 overflow-hidden">
+    <div className="flex h-screen cognia-surface overflow-hidden">
       {/* Sidebar — visível apenas em lg+ */}
       <Sidebar />
 

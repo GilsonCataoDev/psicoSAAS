@@ -242,7 +242,7 @@ export default function RegisterPage() {
             </div>
             <div className="px-5 py-4 overflow-y-auto max-h-[65vh] text-sm text-neutral-600 space-y-4 leading-relaxed">
               <p>
-                O PsicoSaaS e uma plataforma para gestao de agenda, pacientes, prontuario, documentos e financeiro por profissionais de psicologia.
+                O UseCognia e uma plataforma para gestao de agenda, pacientes, prontuario, documentos e financeiro por profissionais de psicologia.
                 Ao criar a conta, voce declara que usara a plataforma de acordo com a LGPD, o Codigo de Etica Profissional e as normas aplicaveis do CFP.
               </p>
               <p>

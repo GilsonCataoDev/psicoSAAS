@@ -12,8 +12,8 @@ interface StatCardProps {
 
 const accents = {
   sage:  { bar: 'bg-sage-500',  icon: 'bg-sage-100  text-sage-600',  sub: 'text-sage-600'  },
-  amber: { bar: 'bg-amber-400', icon: 'bg-amber-100 text-amber-600', sub: 'text-amber-600' },
-  rose:  { bar: 'bg-rose-400',  icon: 'bg-rose-100  text-rose-600',  sub: 'text-rose-600'  },
+  amber: { bar: 'bg-mist-400',  icon: 'bg-mist-100 text-mist-600',  sub: 'text-mist-600'  },
+  rose:  { bar: 'bg-sage-400',  icon: 'bg-sage-100 text-sage-600',  sub: 'text-sage-600'  },
   mist:  { bar: 'bg-mist-500',  icon: 'bg-mist-100  text-mist-600',  sub: 'text-mist-600'  },
 }
 
@@ -50,7 +50,7 @@ export default function StatCard({ label, value, sub, icon, trend, accent = 'sag
         )}
         {trend && (
           <p className={cn('text-xs mt-1.5 font-medium flex items-center gap-0.5',
-            trend.positive ? 'text-sage-600' : 'text-rose-500')}>
+            trend.positive ? 'text-sage-600' : 'text-mist-600')}>
             <span>{trend.positive ? '↑' : '↓'}</span>
             <span>{Math.abs(trend.value)}% este mês</span>
           </p>

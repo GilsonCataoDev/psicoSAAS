@@ -20,11 +20,11 @@ function greeting() {
 function contextMessage(sessionsToday: number, pendingPayments: number): string {
   if (sessionsToday > 0) {
     return sessionsToday === 1
-      ? 'Você tem 1 sessão hoje. Que seja um encontro significativo. 🌿'
-      : `Você tem ${sessionsToday} sessões hoje. Reserve um momento para você também. 🌿`
+      ? 'Voce tem 1 consulta hoje. Tudo organizado para um atendimento tranquilo.'
+      : `Voce tem ${sessionsToday} consultas hoje. Sua agenda esta sob controle.`
   }
-  if (pendingPayments > 0) return 'Sem sessões hoje. Aproveite para organizar sua agenda. 🌸'
-  return 'Nenhuma sessão agendada. Um dia tranquilo para você. 🌿'
+  if (pendingPayments > 0) return 'Sem consultas hoje. Um bom momento para revisar pendencias financeiras.'
+  return 'Nenhuma consulta agendada. Use o dia para planejar com clareza.'
 }
 
 const MOODS = ['', '😔', '😟', '😐', '🙂', '😊']
@@ -59,7 +59,7 @@ export default function DashboardPage() {
     <div className="animate-slide-up space-y-5">
 
       {/* ── Hero: saudação ──────────────────────────────────────────── */}
-      <div className="hero-gradient rounded-3xl p-6 text-white relative overflow-hidden">
+      <div className="hero-gradient rounded-2xl p-7 text-white relative overflow-hidden shadow-soft">
         {/* Círculos decorativos */}
         <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/5 rounded-full" />
         <div className="absolute -bottom-10 -right-2 w-28 h-28 bg-white/5 rounded-full" />
@@ -69,7 +69,7 @@ export default function DashboardPage() {
             <p className="text-sage-200 text-xs font-medium uppercase tracking-widest mb-1.5">
               {greeting()}
             </p>
-            <h1 className="font-display text-2xl sm:text-3xl font-light text-white leading-tight mb-2">
+            <h1 className="font-display text-2xl sm:text-3xl font-bold text-white leading-tight mb-2">
               {firstName} 👋
             </h1>
             <p className="text-sage-100 text-sm leading-relaxed">
@@ -129,21 +129,21 @@ export default function DashboardPage() {
       {/* ── Stats ───────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard
-          label="Pessoas ativas"
+          label="Pacientes ativos"
           value={s?.activePatients ?? 0}
           icon={<Users className="w-4 h-4" />}
           accent="sage"
-          sub={s?.activePatients > 0 ? 'em acompanhamento' : 'cadastre sua primeira'}
+          sub={s?.activePatients > 0 ? 'em acompanhamento' : 'cadastre o primeiro'}
         />
         <StatCard
-          label="Sessões este mês"
+          label="Consultas do mes"
           value={s?.sessionsThisMonth ?? 0}
           icon={<CalendarCheck className="w-4 h-4" />}
           accent="mist"
           sub={`${s?.sessionsThisWeek ?? 0} esta semana`}
         />
         <StatCard
-          label="Receita do mês"
+          label="Receita mensal"
           value={formatCurrency(s?.monthRevenue ?? 0)}
           icon={<Wallet className="w-4 h-4" />}
           accent="sage"
@@ -247,9 +247,9 @@ export default function DashboardPage() {
             <ResponsiveContainer width="100%" height={110}>
               <AreaChart data={s?.revenueChart ?? []} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="colorSage" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#3f8866" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="#3f8866" stopOpacity={0}   />
+                  <linearGradient id="colorCogniaBlue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor="#4DA8DA" stopOpacity={0.22} />
+                    <stop offset="95%" stopColor="#4DA8DA" stopOpacity={0}   />
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="mes" tick={{ fontSize: 10, fill: '#a8a89e' }} axisLine={false} tickLine={false} />
@@ -257,8 +257,8 @@ export default function DashboardPage() {
                   contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 24px rgba(0,0,0,0.10)', fontSize: 12 }}
                   formatter={(v: number) => [formatCurrency(v), 'Receita']}
                 />
-                <Area type="monotone" dataKey="valor" stroke="#3f8866" strokeWidth={2}
-                  fill="url(#colorSage)" dot={false} activeDot={{ r: 4, fill: '#3f8866' }} />
+                <Area type="monotone" dataKey="valor" stroke="#4DA8DA" strokeWidth={2}
+                  fill="url(#colorCogniaBlue)" dot={false} activeDot={{ r: 4, fill: '#4DA8DA' }} />
               </AreaChart>
             </ResponsiveContainer>
           </div>

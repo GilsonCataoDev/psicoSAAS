@@ -5,7 +5,7 @@ import { useNotificationStore } from '@/store/notifications'
 
 const items = [
   { to: '/',              icon: LayoutDashboard, label: 'Início'    },
-  { to: '/pacientes',     icon: Users,           label: 'Pessoas'   },
+  { to: '/pacientes',     icon: Users,           label: 'Pacientes' },
   { to: '/agenda',        icon: CalendarDays,    label: 'Agenda'    },
   { to: '/financeiro',    icon: Wallet,          label: 'Financeiro'},
   { to: '/configuracoes', icon: Settings,        label: 'Ajustes'   },
