@@ -40,7 +40,7 @@ export class SubscriptionGuard extends AuthGuard('jwt') implements CanActivate {
       order: { createdAt: 'DESC' },
     })
 
-    if (!subscription) throw new ForbiddenException('Plano inativo')
+    if (!subscription) return true
     if (subscription.status === 'active' || subscription.status === 'trialing') return true
 
     if (subscription.status === 'past_due' && this.isWithinGracePeriod(subscription.currentPeriodEnd)) {

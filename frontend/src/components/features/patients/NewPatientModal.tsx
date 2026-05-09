@@ -40,12 +40,15 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
 
   async function onSubmit(data: FormData) {
     try {
-      await createPatient.mutateAsync({ ...data, tags: (data.tags ?? []) as any })
+      const payload = Object.fromEntries(
+        Object.entries({ ...data, tags: data.tags ?? [] }).filter(([, value]) => value !== ''),
+      )
+      await createPatient.mutateAsync(payload as any)
       toast.success(`${data.name} adicionada com sucesso 🌱`)
       reset()
       onClose()
-    } catch {
-      toast.error('Não foi possível adicionar. Tente novamente.')
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'Nao foi possivel adicionar. Tente novamente.')
     }
   }
 
