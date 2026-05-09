@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Plus, Search, Users } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
@@ -8,20 +8,41 @@ import { formatDate } from '@/lib/utils'
 import { Patient } from '@/types'
 import NewPatientModal from '@/components/features/patients/NewPatientModal'
 import { usePatients } from '@/hooks/useApi'
+import { PLANS, useSubscriptionStore } from '@/store/subscription'
+import toast from 'react-hot-toast'
+import { patientMatchesSearch } from '@/lib/patientSearch'
 
 export default function PatientsPage() {
-  const [search, setSearch] = useState('')
+  const location = useLocation()
+  const initialSearch = typeof location.state === 'object'
+    && location.state
+    && 'search' in location.state
+    ? String(location.state.search ?? '')
+    : ''
+  const [search, setSearch] = useState(initialSearch)
   const [filter, setFilter] = useState<'all' | 'active' | 'paused'>('all')
   const [showModal, setShowModal] = useState(false)
   const { data: patients = [], isLoading } = usePatients()
+  const subscription = useSubscriptionStore((s) => s.subscription)
 
   const filtered = patients.filter((p) => {
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase())
+    const matchSearch = patientMatchesSearch(p, search)
     const matchFilter = filter === 'all' || p.status === filter
     return matchSearch && matchFilter
   })
 
   const activeCount = patients.filter(p => p.status === 'active').length
+  const currentPlan = PLANS.find(p => p.id === (subscription.planId ?? subscription.plan)) ?? PLANS[0]
+  const patientLimit = currentPlan.maxPatients
+  const reachedPatientLimit = patientLimit !== -1 && activeCount >= patientLimit
+
+  function openCreatePatientModal() {
+    if (reachedPatientLimit) {
+      toast.error(`Limite de ${patientLimit} pacientes ativos atingido no plano ${currentPlan.name}.`)
+      return
+    }
+    setShowModal(true)
+  }
 
   return (
     <div className="animate-slide-up space-y-5">
@@ -29,12 +50,16 @@ export default function PatientsPage() {
         <div>
           <h1 className="page-title">Pacientes</h1>
           <p className="page-subtitle">
-            {activeCount > 0
-              ? `${activeCount} em acompanhamento`
-              : 'Nenhum paciente cadastrado ainda'}
+            {patientLimit === -1
+              ? `${activeCount} em acompanhamento · sem limite no plano ${currentPlan.name}`
+              : `${activeCount}/${patientLimit} pacientes ativos no plano ${currentPlan.name}`}
           </p>
         </div>
-        <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2">
+        <button
+          onClick={openCreatePatientModal}
+          className="btn-primary flex items-center gap-2"
+          aria-disabled={reachedPatientLimit}
+        >
           <Plus className="w-4 h-4" />
           <span className="hidden sm:inline">Novo paciente</span>
         </button>
@@ -47,7 +72,7 @@ export default function PatientsPage() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar pelo nome..."
+            placeholder="Buscar por nome, telefone, email ou tag..."
             className="input-field pl-9"
           />
         </div>
@@ -78,11 +103,13 @@ export default function PatientsPage() {
           description={
             search || filter !== 'all'
               ? 'Tente ajustar a busca ou os filtros.'
-              : 'Adicione sua primeira pessoa para começar a acompanhar o processo.'
+              : reachedPatientLimit
+                ? `Seu plano ${currentPlan.name} permite ate ${patientLimit} pacientes ativos.`
+                : 'Adicione sua primeira pessoa para começar a acompanhar o processo.'
           }
           action={
-            !search && filter === 'all'
-              ? <button onClick={() => setShowModal(true)} className="btn-primary">Cadastrar primeiro paciente</button>
+            !search && filter === 'all' && !reachedPatientLimit
+              ? <button onClick={openCreatePatientModal} className="btn-primary">Cadastrar primeiro paciente</button>
               : undefined
           }
         />

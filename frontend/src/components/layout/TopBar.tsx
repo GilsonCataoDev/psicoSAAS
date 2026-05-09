@@ -7,6 +7,8 @@ import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import BrandLogo from '@/components/ui/BrandLogo'
+import { usePatients } from '@/hooks/useApi'
+import { patientMatchesSearch } from '@/lib/patientSearch'
 
 const TYPE_ICON: Record<NotificationType, React.ReactNode> = {
   booking_request:   <Calendar  className="w-3.5 h-3.5 text-sage-500"    />,
@@ -66,12 +68,17 @@ export default function TopBar() {
   const user = useAuthStore(s => s.user)
   const firstName = user?.name?.split(' ')[0] ?? 'Psicólogo(a)'
   const [searchOpen, setSearchOpen] = useState(false)
+  const [search, setSearch] = useState('')
   const [panelOpen, setPanelOpen] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
+  const { data: patients = [] } = usePatients()
 
   const { notifications, markRead, markAllRead, remove } = useNotificationStore()
   const unread = notifications.filter(n => !n.read).length
+  const patientResults = search.trim()
+    ? patients.filter(patient => patientMatchesSearch(patient, search)).slice(0, 6)
+    : []
 
   useEffect(() => {
     function handler(e: MouseEvent) {
@@ -87,6 +94,28 @@ export default function TopBar() {
     markRead(n.id)
     setPanelOpen(false)
     if (n.link) navigate(n.link)
+  }
+
+  function closeSearch() {
+    setSearchOpen(false)
+    setSearch('')
+  }
+
+  function openPatient(id: string) {
+    closeSearch()
+    navigate(`/pacientes/${id}`)
+  }
+
+  function handleSearchSubmit(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key !== 'Enter') return
+    if (patientResults[0]) {
+      openPatient(patientResults[0].id)
+      return
+    }
+    if (search.trim()) {
+      navigate('/pacientes', { state: { search } })
+      closeSearch()
+    }
   }
 
   return (
@@ -121,13 +150,50 @@ export default function TopBar() {
               autoFocus
               type="text"
               placeholder="Buscar pacientes..."
+              value={search}
+              onChange={event => setSearch(event.target.value)}
+              onKeyDown={handleSearchSubmit}
               className="pl-8 pr-8 py-2 text-sm bg-neutral-50 border border-neutral-200 rounded-xl
                          focus:outline-none focus:ring-2 focus:ring-sage-200 focus:border-sage-400 w-full"
-              onBlur={() => setSearchOpen(false)}
+              onBlur={() => window.setTimeout(closeSearch, 120)}
             />
-            <button onClick={() => setSearchOpen(false)} className="absolute right-2 text-neutral-400 hover:text-neutral-600">
+            <button onClick={closeSearch} className="absolute right-2 text-neutral-400 hover:text-neutral-600">
               <X className="w-3.5 h-3.5" />
             </button>
+            {search.trim() && (
+              <div className="absolute right-0 top-full mt-2 w-full overflow-hidden rounded-xl border border-neutral-100 bg-white shadow-xl">
+                {patientResults.length > 0 ? (
+                  patientResults.map(patient => (
+                    <button
+                      key={patient.id}
+                      type="button"
+                      onMouseDown={event => {
+                        event.preventDefault()
+                        openPatient(patient.id)
+                      }}
+                      className="flex w-full flex-col px-3 py-2 text-left hover:bg-sage-50"
+                    >
+                      <span className="text-sm font-medium text-neutral-800">{patient.name}</span>
+                      <span className="text-xs text-neutral-400">
+                        {[patient.phone, patient.email].filter(Boolean).join(' · ') || 'Abrir ficha'}
+                      </span>
+                    </button>
+                  ))
+                ) : (
+                  <button
+                    type="button"
+                    onMouseDown={event => {
+                      event.preventDefault()
+                      navigate('/pacientes', { state: { search } })
+                      closeSearch()
+                    }}
+                    className="w-full px-3 py-3 text-left text-sm text-neutral-500 hover:bg-neutral-50"
+                  >
+                    Nenhum resultado. Ver pacientes
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
