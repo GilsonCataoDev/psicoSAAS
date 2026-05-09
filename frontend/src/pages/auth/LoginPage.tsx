@@ -3,10 +3,11 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Eye, EyeOff, LogIn } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
 import toast from 'react-hot-toast'
+import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 
 const schema = z.object({
   email: z.string().email('E-mail inválido'),
@@ -95,7 +96,7 @@ export default function LoginPage() {
           {loading ? (
             <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           ) : (
-            <LogIn className="w-4 h-4" />
+            <UseCogniaIcon name="login" size={24} />
           )}
           {loading ? 'Entrando...' : 'Entrar'}
         </button>
@@ -110,7 +111,8 @@ export default function LoginPage() {
 
       <div className="mt-8 p-4 bg-sage-50 rounded-2xl border border-sage-100">
         <p className="text-xs text-sage-700 text-center">
-          🔒 Seus dados sensiveis sao protegidos com criptografia em repouso, controles de acesso e praticas alinhadas a LGPD.
+          <UseCogniaIcon name="security-lgpd" size={24} className="mr-1 inline-block align-middle" />
+          Seus dados sensiveis sao protegidos com criptografia em repouso, controles de acesso e praticas alinhadas a LGPD.
         </p>
       </div>
     </div>

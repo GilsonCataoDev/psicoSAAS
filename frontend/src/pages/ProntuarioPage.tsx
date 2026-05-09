@@ -69,7 +69,7 @@ export default function ProntuarioPage() {
     if (!id) return
     try {
       await updatePatient.mutateAsync({ id, data: { prontuario: form } })
-      toast.success('Prontuário salvo com segurança 🔒')
+      toast.success('Prontuario salvo com seguranca')
     } catch {
       toast.error('Erro ao salvar prontuário.')
     }
@@ -296,7 +296,7 @@ export default function ProntuarioPage() {
                       paymentStatus: 'pending',
                     } as any)
                     setEvolText('')
-                    toast.success('Evolução registrada 🔒')
+                    toast.success('Evolucao registrada')
                   } catch { toast.error('Erro ao salvar evolução.') }
                 }}
                 disabled={createSession.isPending}

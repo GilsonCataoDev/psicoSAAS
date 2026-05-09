@@ -44,7 +44,7 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
         Object.entries({ ...data, tags: data.tags ?? [] }).filter(([, value]) => value !== ''),
       )
       await createPatient.mutateAsync(payload as any)
-      toast.success(`${data.name} adicionada com sucesso 🌱`)
+      toast.success(`${data.name} adicionada com sucesso`)
       reset()
       onClose()
     } catch (err: any) {

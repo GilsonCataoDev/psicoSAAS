@@ -2,6 +2,7 @@ import { useForm } from 'react-hook-form'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
 import { usePatients, useCreateFinancial } from '@/hooks/useApi'
+import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 
 type FormData = {
   patientId: string
@@ -32,7 +33,7 @@ export default function NewPaymentModal({ open, onClose }: { open: boolean; onCl
         paidAt: data.paidNow ? new Date().toISOString() : undefined,
         patientId: data.patientId || undefined,
       } as any)
-      toast.success('Lançamento registrado ✓')
+      toast.success('Lancamento registrado')
       reset(); onClose()
     } catch {
       toast.error('Erro ao salvar. Tente novamente.')
@@ -46,11 +47,12 @@ export default function NewPaymentModal({ open, onClose }: { open: boolean; onCl
         <div>
           <label className="label">Tipo</label>
           <div className="flex gap-2">
-            {[{ v: 'income', l: '💚 Receita' }, { v: 'expense', l: '🔴 Despesa' }].map(({ v, l }) => (
+            {[{ v: 'income', l: 'Receita' }, { v: 'expense', l: 'Despesa' }].map(({ v, l }) => (
               <label key={v} className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border cursor-pointer transition-all text-sm font-medium ${
                 type === v ? 'bg-sage-50 border-sage-300 text-sage-700' : 'border-neutral-200 text-neutral-500 hover:border-neutral-300'
               }`}>
                 <input type="radio" value={v} {...register('type')} className="sr-only" />
+                <UseCogniaIcon name={v === 'income' ? 'financial' : 'billing'} size={24} />
                 {l}
               </label>
             ))}

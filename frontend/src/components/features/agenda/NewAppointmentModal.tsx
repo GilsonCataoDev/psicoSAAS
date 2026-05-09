@@ -14,7 +14,7 @@ export default function NewAppointmentModal({ open, onClose }: { open: boolean; 
   async function onSubmit(data: any) {
     try {
       await createAppointment.mutateAsync(data)
-      toast.success('Sessão agendada! 📅')
+      toast.success('Sessao agendada!')
       reset(); onClose()
     } catch (err: any) {
       toast.error(err?.response?.data?.message ?? 'Erro ao agendar. Tente novamente.')

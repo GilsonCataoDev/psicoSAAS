@@ -57,10 +57,10 @@ export const DOC_TYPE_LABELS: Record<DocType, string> = {
   encaminhamento:'Encaminhamento',
 }
 
-export const DOC_TYPE_ICONS: Record<DocType, string> = {
-  declaracao:    '📋',
-  recibo:        '🧾',
-  relatorio:     '📄',
-  atestado:      '✅',
-  encaminhamento:'↗️',
+export const DOC_TYPE_ICONS: Record<DocType, 'documents' | 'billing' | 'success' | 'public-link'> = {
+  declaracao:    'documents',
+  recibo:        'billing',
+  relatorio:     'documents',
+  atestado:      'success',
+  encaminhamento:'public-link',
 }

@@ -92,7 +92,7 @@ export default function GenerateDocModal({
         content,
       })
       onGenerate(doc)
-      toast.success('Documento gerado e assinado digitalmente ✓')
+      toast.success('Documento gerado e assinado digitalmente')
       handleClose()
     } catch (err: any) {
       if (err?.response?.status === 403) {
@@ -215,7 +215,7 @@ export default function GenerateDocModal({
               className="btn-primary flex items-center gap-2">
               {isSubmitting
                 ? <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                : '✍️'}
+                : 'Editar'}
               Gerar e assinar
             </button>
           </div>

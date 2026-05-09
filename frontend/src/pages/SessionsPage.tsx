@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, FileText, Trash2, CalendarDays } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
@@ -8,7 +8,7 @@ import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 import { useSessions, useDeleteSession } from '@/hooks/useApi'
 import toast from 'react-hot-toast'
 
-const MOODS = ['', '😔', '😟', '😐', '🙂', '😊']
+const MOODS = ['', '1', '2', '3', '4', '5']
 
 export default function SessionsPage() {
   const [showModal, setShowModal] = useState(false)
@@ -52,7 +52,7 @@ export default function SessionsPage() {
 
       {!isLoading && sessions.length === 0 && (
         <EmptyState
-          icon={<CalendarDays className="w-6 h-6" />}
+          image="empty-state-no-appointments.png"
           title="Nenhuma sessão registrada ainda"
           description="Após cada atendimento, registre o que aconteceu. Seus registros ficam seguros e organizados aqui."
           action={

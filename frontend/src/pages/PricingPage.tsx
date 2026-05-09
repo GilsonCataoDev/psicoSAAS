@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Check, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { PLANS, Plan, useSubscriptionStore } from '@/store/subscription'
+import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 
 function statusMessage(status: string) {
   if (status === 'pending') return 'Aguardando pagamento'
@@ -175,7 +176,10 @@ export default function PricingPage() {
         <h1 className="font-display text-3xl font-light text-neutral-800">Planos</h1>
         {subscription.status === 'active' && (
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
-            <p className="font-semibold">Seu plano foi ativado 🎉</p>
+            <p className="flex items-center gap-2 font-semibold">
+              <UseCogniaIcon name="plan-professional" size={24} />
+              Seu plano foi ativado
+            </p>
             <Link to="/" className="mt-3 inline-flex h-10 items-center rounded-lg bg-emerald-600 px-4 text-white">
               Ir para dashboard
             </Link>
@@ -236,7 +240,7 @@ export default function PricingPage() {
             <ul className="space-y-2 flex-1">
               {plan.features.map((feature) => (
                 <li key={feature} className="flex items-start gap-2 text-sm text-neutral-600">
-                  <Check className="w-4 h-4 text-sage-500 mt-0.5 shrink-0" />
+                  <UseCogniaIcon name="success" size={24} />
                   <span>{feature}</span>
                 </li>
               ))}

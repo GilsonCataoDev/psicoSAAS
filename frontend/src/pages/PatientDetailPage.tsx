@@ -15,7 +15,7 @@ import {
 import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 import toast from 'react-hot-toast'
 
-const MOODS = ['', '😔', '😟', '😐', '🙂', '😊']
+const MOODS = ['', '1', '2', '3', '4', '5']
 
 export default function PatientDetailPage() {
   const { id } = useParams()
@@ -36,14 +36,14 @@ export default function PatientDetailPage() {
   async function handleMarkPaid(recordId: string) {
     try {
       await markPaid.mutateAsync({ id: recordId, method: 'PIX' })
-      toast.success('Pagamento registrado ✓')
+      toast.success('Pagamento registrado')
     } catch { toast.error('Erro ao registrar pagamento.') }
   }
 
   async function handleSendCharge(recordId: string) {
     try {
       await sendCharge.mutateAsync(recordId)
-      toast.success('Cobrança enviada via WhatsApp ✓')
+      toast.success('Cobranca enviada via WhatsApp')
     } catch { toast.error('Erro ao enviar cobrança.') }
   }
 
@@ -162,7 +162,7 @@ export default function PatientDetailPage() {
       <div className="flex gap-1 bg-neutral-100 p-1 rounded-xl">
         {[
           { id: 'timeline',  label: 'Histórico',    icon: CalendarDays  },
-          { id: 'notes',     label: 'Anotações 🔒', icon: Lock          },
+          { id: 'notes',     label: 'Anotacoes privadas', icon: Lock          },
           { id: 'financial', label: 'Financeiro',   icon: Banknote      },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id as any)}
@@ -196,7 +196,7 @@ export default function PatientDetailPage() {
                 <div className="w-12 text-center shrink-0 pt-0.5">
                   <p className="text-[11px] text-neutral-400 leading-tight">{formatDateRelative(s.date)}</p>
                   <span className="text-xl mt-1 block">
-                    {s.mood ? MOODS[s.mood] : '📝'}
+                    {s.mood ? MOODS[s.mood] : 'Registro'}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -241,7 +241,7 @@ export default function PatientDetailPage() {
                 if (!id) return
                 try {
                   await updatePatient.mutateAsync({ id, data: { privateNotes: note } })
-                  toast.success('Anotação salva com segurança 🔒')
+                  toast.success('Anotacao salva com seguranca')
                 } catch { toast.error('Erro ao salvar anotação.') }
               }}
               disabled={updatePatient.isPending}

@@ -5,13 +5,14 @@ import { FinancialRecord } from '@/types'
 import { formatCurrency } from '@/lib/utils'
 import { useMe } from '@/hooks/useApi'
 import toast from 'react-hot-toast'
+import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 
 const METHODS = [
-  { v: 'pix',         l: 'PIX',              icon: '⚡' },
-  { v: 'credit_card', l: 'Cartão de crédito', icon: '💳' },
-  { v: 'debit_card',  l: 'Débito',            icon: '💳' },
-  { v: 'cash',        l: 'Dinheiro',          icon: '💵' },
-  { v: 'transfer',    l: 'Transferência',     icon: '🏦' },
+  { v: 'pix',         l: 'PIX' },
+  { v: 'credit_card', l: 'Cartao de credito' },
+  { v: 'debit_card',  l: 'Debito' },
+  { v: 'cash',        l: 'Dinheiro' },
+  { v: 'transfer',    l: 'Transferencia' },
 ]
 
 export default function MarkPaidModal({
@@ -85,14 +86,15 @@ export default function MarkPaidModal({
         <div>
           <label className="label">Como foi recebido?</label>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {METHODS.map(({ v, l, icon }) => (
+            {METHODS.map(({ v, l }) => (
               <button key={v} type="button" onClick={() => setMethod(v)}
                 className={`flex items-center gap-2 p-3 rounded-xl border text-sm transition-all ${
                   method === v
                     ? 'bg-sage-50 border-sage-300 text-sage-700 font-medium'
                     : 'border-neutral-200 text-neutral-500 hover:border-neutral-300'
                 }`}>
-                <span>{icon}</span>{l}
+                <UseCogniaIcon name="payment-methods" size={24} />
+                {l}
               </button>
             ))}
           </div>

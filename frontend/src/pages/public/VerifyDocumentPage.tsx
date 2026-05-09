@@ -87,7 +87,7 @@ export default function VerifyDocumentPage() {
                   <CheckCircle2 className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <p className="text-white font-semibold">Documento autêntico ✓</p>
+                  <p className="text-white font-semibold">Documento autentico</p>
                   <p className="text-emerald-100 text-sm mt-0.5">
                     Assinatura digital verificada com sucesso
                   </p>

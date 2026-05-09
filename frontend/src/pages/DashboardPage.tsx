@@ -29,7 +29,7 @@ function contextMessage(sessionsToday: number, pendingPayments: number): string 
   return 'Nenhuma consulta agendada. Use o dia para planejar com clareza.'
 }
 
-const MOODS = ['', '😔', '😟', '😐', '🙂', '😊']
+const MOODS = ['', '1', '2', '3', '4', '5']
 
 export default function DashboardPage() {
   const { data: stats, isLoading: loading } = useDashboard()
@@ -74,7 +74,7 @@ export default function DashboardPage() {
               {greeting()}
             </p>
             <h1 className="font-display text-2xl sm:text-3xl font-bold text-white leading-tight mb-2">
-              {firstName} 👋
+              {firstName}
             </h1>
             <p className="text-sage-100 text-sm leading-relaxed">
               {contextMessage(sessionsToday, s?.pendingPayments ?? 0)}
@@ -155,7 +155,7 @@ export default function DashboardPage() {
         <StatCard
           label="Pagamentos pendentes"
           value={s?.pendingPayments ?? 0}
-          sub={s?.pendingAmount ? formatCurrency(s.pendingAmount) : 'tudo em dia ✓'}
+          sub={s?.pendingAmount ? formatCurrency(s.pendingAmount) : 'tudo em dia'}
           icon={<Clock className="w-4 h-4" />}
           accent={(s?.pendingPayments ?? 0) > 0 ? 'amber' : 'sage'}
         />

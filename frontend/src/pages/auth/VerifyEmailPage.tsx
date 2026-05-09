@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { CheckCircle2, Loader2, MailWarning } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
+import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 
 type VerifyState = 'loading' | 'success' | 'error'
 
@@ -39,8 +40,8 @@ export default function VerifyEmailPage() {
     <div className="rounded-2xl border border-white/80 bg-white/90 p-6 shadow-card backdrop-blur-xl text-center">
       <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-sage-50">
         {state === 'loading' && <Loader2 className="h-6 w-6 animate-spin text-sage-600" />}
-        {success && <CheckCircle2 className="h-6 w-6 text-emerald-600" />}
-        {state === 'error' && <MailWarning className="h-6 w-6 text-amber-600" />}
+        {success && <UseCogniaIcon name="success" size={32} />}
+        {state === 'error' && <UseCogniaIcon name="warning" size={32} />}
       </div>
 
       <h1 className="font-display text-2xl font-bold text-neutral-900">

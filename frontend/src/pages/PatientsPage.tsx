@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Plus, Search, Users } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
@@ -98,7 +98,7 @@ export default function PatientsPage() {
         </div>
       ) : filtered.length === 0 ? (
         <EmptyState
-          icon={<Users className="w-6 h-6" />}
+          image="empty-state-no-patients.png"
           title={search || filter !== 'all' ? 'Nenhum paciente encontrado' : 'Nenhum paciente cadastrado ainda'}
           description={
             search || filter !== 'all'

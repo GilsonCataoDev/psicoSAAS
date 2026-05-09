@@ -9,6 +9,7 @@ import {
 import { isValidCrpFormat, getCrpRegion, openCfpVerification, formatCrpInput } from '@/lib/crp'
 import { useSubscriptionStore, PLANS } from '@/store/subscription'
 import toast from 'react-hot-toast'
+import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 
 const tabs = [
   { id: 'profile',  icon: User,          label: 'Perfil'     },
@@ -82,7 +83,7 @@ export default function SettingsPage() {
     try {
       const updated = await api.patch('/auth/profile', { name, crp, specialty, phone }).then(r => r.data)
       updateUser({ name: updated.name, crp: updated.crp, specialty: updated.specialty })
-      toast.success('Perfil atualizado ✓')
+      toast.success('Perfil atualizado')
     } catch {
       toast.error('Erro ao salvar perfil.')
     } finally {
@@ -111,7 +112,7 @@ export default function SettingsPage() {
     setSavingPrefs(true)
     try {
       await api.patch('/auth/preferences', prefs)
-      toast.success(section ? `${section} salvo ✓` : 'Preferências salvas ✓')
+      toast.success(section ? `${section} salvo` : 'Preferencias salvas')
     } catch {
       toast.error('Erro ao salvar. Tente novamente.')
     } finally {
@@ -143,7 +144,7 @@ export default function SettingsPage() {
     setSavingPw(true)
     try {
       await api.patch('/auth/password', { currentPassword: currentPw, newPassword: newPw })
-      toast.success('Senha alterada com sucesso 🔒')
+      toast.success('Senha alterada com sucesso')
       setCurrentPw(''); setNewPw(''); setConfirmPw('')
     } catch (e: any) {
       toast.error(e?.response?.data?.message ?? 'Erro ao alterar senha.')
@@ -583,13 +584,13 @@ export default function SettingsPage() {
               <h2 className="section-title">Privacidade e LGPD</h2>
               <div className="space-y-3 text-sm text-neutral-600">
                 {[
-                  { icon: '🔒', text: 'Todas as anotações clínicas são criptografadas com AES-256.' },
-                  { icon: '🗂️', text: 'Voce e o unico responsavel pelos dados de seus pacientes; nunca os vendemos ou compartilhamos.' },
-                  { icon: '📤', text: 'Você pode exportar ou deletar todos os seus dados a qualquer momento.' },
-                  { icon: '🇧🇷', text: 'Operamos em conformidade total com a LGPD (Lei Geral de Proteção de Dados).' },
+                  { icon: 'security-lgpd' as const, text: 'Todas as anotações clínicas são criptografadas com AES-256.' },
+                  { icon: 'documents' as const, text: 'Voce e o unico responsavel pelos dados de seus pacientes; nunca os vendemos ou compartilhamos.' },
+                  { icon: 'billing' as const, text: 'Voce pode exportar ou deletar todos os seus dados a qualquer momento.' },
+                  { icon: 'success' as const, text: 'Operamos em conformidade total com a LGPD (Lei Geral de Protecao de Dados).' },
                 ].map(item => (
                   <div key={item.text} className="flex gap-3 p-3 bg-neutral-50 rounded-xl">
-                    <span className="text-lg shrink-0">{item.icon}</span>
+                    <UseCogniaIcon name={item.icon} size={24} />
                     <p>{item.text}</p>
                   </div>
                 ))}

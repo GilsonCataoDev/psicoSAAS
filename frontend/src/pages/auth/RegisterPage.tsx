@@ -3,11 +3,12 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { UserPlus, ExternalLink, CheckCircle2, AlertCircle } from 'lucide-react'
+import { ExternalLink, CheckCircle2, AlertCircle } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
 import { isValidCrpFormat, getCrpRegion, openCfpVerification, formatCrpInput } from '@/lib/crp'
 import toast from 'react-hot-toast'
+import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 
 const schema = z.object({
   name: z.string().min(3, 'Nome muito curto'),
@@ -63,7 +64,7 @@ export default function RegisterPage() {
       })
       setAuth(res.data.user)
       if (res.data.csrfToken) setCsrfToken(res.data.csrfToken)
-      toast.success('Conta criada com sucesso! Seja bem-vinda 🌱')
+      toast.success('Conta criada com sucesso! Seja bem-vinda')
       navigate('/')
     } catch (err: any) {
       const msg = err?.response?.data?.message
@@ -198,7 +199,7 @@ export default function RegisterPage() {
           {loading ? (
             <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           ) : (
-            <UserPlus className="w-4 h-4" />
+            <UseCogniaIcon name="signup" size={24} />
           )}
           {loading ? 'Criando conta...' : 'Criar conta gratuita'}
         </button>

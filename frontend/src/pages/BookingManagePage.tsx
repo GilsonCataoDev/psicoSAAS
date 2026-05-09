@@ -61,22 +61,22 @@ export default function BookingManagePage() {
 
   function copyLink() {
     navigator.clipboard.writeText(bookingUrl)
-    toast.success('Link copiado! 🔗')
+    toast.success('Link copiado!')
   }
 
   async function confirm(id: string) {
     await confirmBooking.mutateAsync(id)
-    toast.success('Sessão confirmada ✓')
+    toast.success('Sessao confirmada')
   }
 
   async function reject(id: string) {
     await rejectBooking.mutateAsync(id)
-    toast('Solicitação recusada.', { icon: '✕' })
+    toast('Solicitacao recusada.')
   }
 
   async function markPaid(id: string) {
     await payBooking.mutateAsync({ id, method: 'outros' })
-    toast.success('Pagamento registrado ✓')
+    toast.success('Pagamento registrado')
   }
 
   const filtered = filter === 'all' ? bookings : bookings.filter((b: any) => b.status === filter)
@@ -220,7 +220,7 @@ function BookingCard({ booking, onConfirm, onReject, onMarkPaid }: {
           {booking.patientPhone && ` · ${booking.patientPhone}`}
         </p>
         <p className="text-sm font-medium text-neutral-700 mt-1.5">
-          📅 {formatDateRelative(booking.date)} às {booking.time} · {booking.duration}min · {formatCurrency(booking.amount)}
+          {formatDateRelative(booking.date)} às {booking.time} · {booking.duration}min · {formatCurrency(booking.amount)}
         </p>
         {booking.patientNotes && (
           <p className="text-sm text-neutral-500 mt-2 bg-neutral-50 rounded-xl px-3 py-2">
@@ -376,7 +376,7 @@ function BookingSettings({ page }: { page: any }) {
           })),
       )
       await saveAvailability.mutateAsync(slots)
-      toast.success('Configurações salvas ✓')
+      toast.success('Configuracoes salvas')
     } catch {
       toast.error('Erro ao salvar. Tente novamente.')
     }
@@ -413,7 +413,7 @@ function BookingSettings({ page }: { page: any }) {
           <h2 className="section-title">Horários de atendimento</h2>
           {enabledCount === 0 && (
             <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-lg">
-              ⚠️ Nenhum dia configurado — slots não aparecerão
+              Nenhum dia configurado — slots não aparecerão
             </span>
           )}
         </div>

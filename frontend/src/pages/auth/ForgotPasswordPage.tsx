@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Mail, ArrowLeft, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { api } from '@/lib/api'
 import toast from 'react-hot-toast'
+import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 
 const schema = z.object({
   email: z.string().email('E-mail inválido'),
@@ -37,7 +38,7 @@ export default function ForgotPasswordPage() {
     return (
       <div className="text-center">
         <div className="w-16 h-16 bg-sage-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <CheckCircle2 className="w-8 h-8 text-sage-600" />
+          <UseCogniaIcon name="email-verification" size={64} />
         </div>
         <h2 className="font-display text-2xl font-light text-neutral-800 mb-2">
           E-mail enviado!
@@ -75,7 +76,7 @@ export default function ForgotPasswordPage() {
         <div>
           <label className="label">E-mail cadastrado</label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+            <UseCogniaIcon name="password-recovery" size={24} className="absolute left-2.5 top-1/2 -translate-y-1/2" />
             <input
               {...register('email')}
               type="email"
@@ -96,7 +97,7 @@ export default function ForgotPasswordPage() {
           {loading ? (
             <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           ) : (
-            <Mail className="w-4 h-4" />
+            <UseCogniaIcon name="password-recovery" size={24} />
           )}
           {loading ? 'Enviando...' : 'Enviar link de recuperação'}
         </button>

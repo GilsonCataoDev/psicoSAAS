@@ -155,10 +155,10 @@ export default function BookingPage() {
             <div className="bg-white rounded-2xl shadow-card p-5 text-left max-w-xs mx-auto mt-6">
               <p className="text-sm font-medium text-neutral-700 mb-3">Resumo</p>
               <div className="space-y-2 text-sm text-neutral-600">
-                <p>📅 {selectedDate && format(parseISO(selectedDate), "dd 'de' MMMM", { locale: ptBR })}</p>
+                <p>{selectedDate && format(parseISO(selectedDate), "dd 'de' MMMM", { locale: ptBR })}</p>
                 <p>⏰ {selectedTime}</p>
                 <p>⏱ {page.sessionDuration} minutos</p>
-                <p>💰 {formatCurrency(page.sessionPrice)}</p>
+                <p>{formatCurrency(page.sessionPrice)}</p>
               </div>
             </div>
 
@@ -384,9 +384,9 @@ export default function BookingPage() {
                   {/* Resumo */}
                   <div className="bg-sage-50 rounded-2xl p-4 text-sm text-sage-700 space-y-1">
                     <p className="font-medium">Resumo da sessão</p>
-                    <p>📅 {selectedDate && format(parseISO(selectedDate), "EEEE, dd 'de' MMMM", { locale: ptBR })}</p>
+                    <p>{selectedDate && format(parseISO(selectedDate), "EEEE, dd 'de' MMMM", { locale: ptBR })}</p>
                     <p>⏰ {selectedTime} · {page.sessionDuration} minutos</p>
-                    <p>💰 {formatCurrency(page.sessionPrice)}</p>
+                    <p>{formatCurrency(page.sessionPrice)}</p>
                   </div>
 
                   <button type="submit" disabled={isSubmitting || createBooking.isPending}

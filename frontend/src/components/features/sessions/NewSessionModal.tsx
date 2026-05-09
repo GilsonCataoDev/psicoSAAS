@@ -5,13 +5,14 @@ import toast from 'react-hot-toast'
 import { EmotionalTag, TAG_LABELS } from '@/types'
 import { cn } from '@/lib/utils'
 import { usePatients, useCreateSession } from '@/hooks/useApi'
+import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 
 const MOODS = [
-  { value: 1, emoji: '😔', label: 'Muito difícil' },
-  { value: 2, emoji: '😟', label: 'Difícil' },
-  { value: 3, emoji: '😐', label: 'Neutro' },
-  { value: 4, emoji: '🙂', label: 'Positivo' },
-  { value: 5, emoji: '😊', label: 'Muito positivo' },
+  { value: 1, label: 'Muito dificil' },
+  { value: 2, label: 'Dificil' },
+  { value: 3, label: 'Neutro' },
+  { value: 4, label: 'Positivo' },
+  { value: 5, label: 'Muito positivo' },
 ]
 
 export default function NewSessionModal({ open, onClose, defaultPatientId }: {
@@ -35,7 +36,7 @@ export default function NewSessionModal({ open, onClose, defaultPatientId }: {
   async function onSubmit(data: any) {
     try {
       await createSession.mutateAsync({ ...data, mood, tags })
-      toast.success('Sessão registrada com cuidado 📝')
+      toast.success('Sessao registrada com cuidado')
       reset(); setMood(null); setTags([]); onClose()
     } catch {
       toast.error('Erro ao salvar sessão. Tente novamente.')
@@ -69,7 +70,9 @@ export default function NewSessionModal({ open, onClose, defaultPatientId }: {
                   'flex-1 flex flex-col items-center gap-1 p-2.5 rounded-xl border transition-all text-xs',
                   mood === m.value ? 'bg-sage-50 border-sage-300 text-sage-700' : 'border-neutral-200 text-neutral-500 hover:border-sage-200'
                 )}>
-                <span className="text-2xl">{m.emoji}</span>
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-sm font-semibold text-sage-700 shadow-sm">
+                  {m.value}
+                </span>
                 <span>{m.label}</span>
               </button>
             ))}
@@ -83,7 +86,10 @@ export default function NewSessionModal({ open, onClose, defaultPatientId }: {
         </div>
 
         <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 space-y-3">
-          <p className="text-xs font-medium text-amber-700 flex items-center gap-1.5">🔒 Anotações privadas — apenas você vê</p>
+          <p className="text-xs font-medium text-amber-700 flex items-center gap-1.5">
+            <UseCogniaIcon name="security-lgpd" size={24} />
+            Anotacoes privadas - apenas voce ve
+          </p>
           <textarea {...register('privateNotes')} rows={2} className="input-field resize-none text-sm"
             placeholder="Percepções, hipóteses de trabalho, reflexões clínicas..." />
         </div>
