@@ -6,17 +6,11 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { PLAN_KEY, PlanLevel } from '../decorators/require-plan.decorator'
 import { Subscription } from '../../modules/billing/entities/subscription.entity'
+import { PLAN_LIMITS, normalizePlan } from '../plans'
 
-const PLAN_ORDER: Record<PlanLevel, number> = { free: 0, basic: 1, essencial: 1, pro: 2, premium: 3 }
+const PLAN_ORDER: Record<PlanLevel, number> = { free: 0, basic: 1, essencial: 1, pro: 2, premium: 2 }
 
-/** Limites por plano — única fonte da verdade no backend */
-export const PLAN_LIMITS = {
-  free:      { maxPatients: 3,  maxDocuments: 0 },
-  basic:     { maxPatients: 30, maxDocuments: 200 },
-  essencial: { maxPatients: 30, maxDocuments: 200 },
-  pro:       { maxPatients: -1, maxDocuments: -1 }, // ilimitado
-  premium:   { maxPatients: -1, maxDocuments: -1 },
-}
+export { PLAN_LIMITS }
 
 @Injectable()
 export class PlanGuard implements CanActivate {
@@ -29,7 +23,7 @@ export class PlanGuard implements CanActivate {
     const requiredPlan = this.reflector.getAllAndOverride<PlanLevel>(
       PLAN_KEY, [ctx.getHandler(), ctx.getClass()],
     )
-    if (!requiredPlan) return true   // sem restrição
+    if (!requiredPlan) return true
 
     const req = ctx.switchToHttp().getRequest()
     const userId = req.user?.id
@@ -39,9 +33,9 @@ export class PlanGuard implements CanActivate {
       where: { userId },
       order: { createdAt: 'DESC' },
     })
-    const currentPlan = (sub?.status === 'active' || sub?.status === 'trialing')
-      ? (sub.plan as PlanLevel)
-      : 'free'
+    const currentPlan = normalizePlan(
+      (sub?.status === 'active' || sub?.status === 'trialing') ? sub.plan : 'free',
+    ) as PlanLevel
 
     if (PLAN_ORDER[currentPlan] >= PLAN_ORDER[requiredPlan]) return true
 

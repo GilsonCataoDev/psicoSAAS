@@ -18,7 +18,7 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const patient_entity_1 = require("./entities/patient.entity");
 const subscription_entity_1 = require("../billing/entities/subscription.entity");
-const plan_guard_1 = require("../../common/guards/plan.guard");
+const plans_1 = require("../../common/plans");
 const encrypt_util_1 = require("../../common/crypto/encrypt.util");
 let PatientsService = class PatientsService {
     constructor(repo, subs) {
@@ -81,11 +81,8 @@ let PatientsService = class PatientsService {
     }
     async checkPatientLimit(userId) {
         const sub = await this.subs.findOne({ where: { userId } });
-        const rawPlan = (sub?.status === 'active' || sub?.status === 'trialing')
-            ? sub.plan
-            : 'free';
-        const plan = plan_guard_1.PLAN_LIMITS[rawPlan] ? rawPlan : 'free';
-        const limit = plan_guard_1.PLAN_LIMITS[plan].maxPatients;
+        const plan = (0, plans_1.normalizePlan)((sub?.status === 'active' || sub?.status === 'trialing') ? sub.plan : 'free');
+        const limit = plans_1.PLAN_LIMITS[plan].maxPatients;
         if (limit === -1)
             return;
         const count = await this.repo.count({ where: { psychologistId: userId, status: 'active' } });

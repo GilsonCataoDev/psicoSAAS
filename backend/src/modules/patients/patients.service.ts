@@ -5,7 +5,7 @@ import { Patient } from './entities/patient.entity'
 import { CreatePatientDto } from './dto/create-patient.dto'
 import { UpdatePatientDto } from './dto/update-patient.dto'
 import { Subscription } from '../billing/entities/subscription.entity'
-import { PLAN_LIMITS } from '../../common/guards/plan.guard'
+import { PLAN_LIMITS, normalizePlan } from '../../common/plans'
 import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
 
 type EncryptedProntuario = {
@@ -95,10 +95,7 @@ export class PatientsService {
 
   private async checkPatientLimit(userId: string) {
     const sub  = await this.subs.findOne({ where: { userId } })
-    const rawPlan = (sub?.status === 'active' || sub?.status === 'trialing')
-      ? (sub.plan as keyof typeof PLAN_LIMITS)
-      : 'free'
-    const plan = PLAN_LIMITS[rawPlan] ? rawPlan : 'free'
+    const plan = normalizePlan((sub?.status === 'active' || sub?.status === 'trialing') ? sub.plan : 'free')
 
     const limit = PLAN_LIMITS[plan].maxPatients
     if (limit === -1) return
