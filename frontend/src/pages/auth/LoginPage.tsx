@@ -20,6 +20,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const setAuth      = useAuthStore((s) => s.setAuth)
   const setCsrfToken = useAuthStore((s) => s.setCsrfToken)
+  const logout       = useAuthStore((s) => s.logout)
   const navigate = useNavigate()
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
@@ -34,6 +35,7 @@ export default function LoginPage() {
       if (res.data.csrfToken) setCsrfToken(res.data.csrfToken)
       navigate('/')
     } catch (err: any) {
+      logout()
       const msg = err?.response?.data?.message
       toast.error(msg === 'Unauthorized' ? 'E-mail ou senha incorretos.' : 'Não foi possível entrar. Tente novamente.')
     } finally {
