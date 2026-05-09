@@ -47,7 +47,9 @@ export class SubscriptionGuard extends AuthGuard('jwt') implements CanActivate {
       return true
     }
 
-    throw new ForbiddenException('Plano inativo')
+    // Conta sem plano pago ativo continua podendo usar os recursos do plano gratis.
+    // Funcionalidades pagas ficam protegidas pelo PlanGuard/@RequirePlan.
+    return true
   }
 
   private isPublicRoute(ctx: ExecutionContext): boolean {
