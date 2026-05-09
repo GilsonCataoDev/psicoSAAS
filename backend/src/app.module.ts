@@ -11,14 +11,12 @@ import { FinancialModule } from './modules/financial/financial.module'
 import { NotificationsModule } from './modules/notifications/notifications.module'
 import { BookingModule } from './modules/booking/booking.module'
 import { AvailabilityModule } from './modules/availability/availability.module'
-import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module'
 import { DocumentsModule } from './modules/documents/documents.module'
 import { EmailModule } from './modules/email/email.module'
 import { AnalyticsModule } from './modules/analytics/analytics.module'
 import { ReferralModule } from './modules/referral/referral.module'
 import { BillingModule } from './modules/billing/billing.module'
 import { DataExportModule } from './modules/data-export/data-export.module'
-import { Subscription } from './modules/subscriptions/entities/subscription.entity'
 import { Subscription as BillingSubscription } from './modules/billing/entities/subscription.entity'
 import { PlanGuard } from './common/guards/plan.guard'
 import { SubscriptionGuard } from './common/guards/subscription.guard'
@@ -45,7 +43,7 @@ import { SubscriptionGuard } from './common/guards/subscription.guard'
     }),
 
     // Disponibiliza Subscription repository para o PlanGuard global
-    TypeOrmModule.forFeature([Subscription, BillingSubscription]),
+    TypeOrmModule.forFeature([BillingSubscription]),
 
     AuthModule,
     PatientsModule,
@@ -55,7 +53,6 @@ import { SubscriptionGuard } from './common/guards/subscription.guard'
     NotificationsModule,
     AvailabilityModule,
     BookingModule,
-    SubscriptionsModule,
     DocumentsModule,
     EmailModule,
     AnalyticsModule,

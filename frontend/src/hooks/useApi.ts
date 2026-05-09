@@ -164,25 +164,6 @@ export function useSendCharge() {
   })
 }
 
-export function useGeneratePaymentLink() {
-  return useMutation({
-    mutationFn: (id: string) =>
-      api.post<{ url: string }>(`/financial/${id}/payment-link`).then(r => r.data),
-  })
-}
-
-export function useChargeCard() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, ...dto }: { id: string; creditCard: any; creditCardHolderInfo: any }) =>
-      api.post<{ message: string; paymentId: string }>(`/financial/${id}/charge-card`, dto).then(r => r.data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['financial'] })
-      qc.invalidateQueries({ queryKey: ['dashboard'] })
-    },
-  })
-}
-
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
 export function useDashboard() {

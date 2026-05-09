@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { IsNull, Not, Repository } from 'typeorm'
 import { addMonths } from 'date-fns'
 import { Referral } from './entities/referral.entity'
-import { Subscription } from '../subscriptions/entities/subscription.entity'
+import { Subscription } from '../billing/entities/subscription.entity'
 import { User } from '../auth/entities/user.entity'
 import { EmailService } from '../email/email.service'
 

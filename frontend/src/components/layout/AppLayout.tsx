@@ -41,13 +41,13 @@ function useCsrfBoot() {
         return api.get('/billing/me')
       })
       .then(res => {
-        setSubscription(res.data?.status ? res.data : { plan: 'essencial', planId: 'essencial', status: 'none' })
+        setSubscription(res.data?.status ? res.data : { plan: 'free', planId: 'free', status: 'none' })
       })
       .catch((err) => {
         if (err?.response?.status === 403) resetSubscription()
         /* 401 → interceptor já redireciona para /login */
       })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [])
 }
 
@@ -62,7 +62,7 @@ function useSubscriptionPolling() {
     const timer = window.setInterval(() => {
       api.get('/billing/me')
         .then((res) => {
-          setSubscription(res.data?.status ? res.data : { plan: 'essencial', planId: 'essencial', status: 'none' })
+          setSubscription(res.data?.status ? res.data : { plan: 'free', planId: 'free', status: 'none' })
         })
         .catch(() => {})
     }, 5000)

@@ -43,7 +43,7 @@ export default function LandingPage() {
         <div className="mx-auto grid min-h-[calc(100vh-64px)] max-w-6xl grid-cols-1 items-center gap-10 px-5 py-12 lg:grid-cols-[1fr_0.9fr]">
           <div className="max-w-2xl">
             <p className="mb-4 inline-flex rounded-full border border-sage-100 bg-white px-3 py-1 text-sm font-medium text-sage-700 shadow-sm">
-              SaaS para psicologos e clinicas de saude mental
+              SaaS para psicologos brasileiros
             </p>
             <h1 className="font-display text-4xl font-bold leading-tight text-neutral-950 sm:text-5xl">
               Gestao inteligente para profissionais da mente.

@@ -29,12 +29,12 @@ export const PLANS: Plan[] = [
     name: 'Gratis',
     price: 0,
     priceYearly: 0,
-    maxPatients: 3,
+    maxPatients: 10,
     maxStorage: 1,
     audience: 'Para testar e organizar os primeiros atendimentos',
     features: [
       'Agenda basica',
-      'Ate 3 pacientes ativos',
+      'Ate 10 pacientes ativos',
       'Link publico simples',
       'Financeiro basico',
       'Sem documentos/PDF',
@@ -46,7 +46,7 @@ export const PLANS: Plan[] = [
     name: 'Essencial',
     price: 79,
     priceYearly: 63,
-    maxPatients: 30,
+    maxPatients: 50,
     maxStorage: 10,
     audience: 'Para psicologo solo organizando a rotina',
     features: [
@@ -55,7 +55,7 @@ export const PLANS: Plan[] = [
       'Documentos e PDF com verificacao',
       'Financeiro basico',
       'WhatsApp manual com mensagem pronta',
-      'Ate 30 pacientes ativos',
+      'Ate 50 pacientes ativos',
     ],
   },
   {
@@ -75,23 +75,6 @@ export const PLANS: Plan[] = [
       'WhatsApp automatico e modelos personalizados',
       'Lembretes de consulta e cobranca',
       'Relatorios avancados para decisao',
-    ],
-  },
-  {
-    id: 'premium',
-    name: 'Clinica',
-    price: 249,
-    priceYearly: 199,
-    maxPatients: -1,
-    maxStorage: 100,
-    audience: 'Para clinicas e equipes com mais de um profissional',
-    features: [
-      'Tudo do Pro',
-      'Multiplos profissionais',
-      'Agenda por profissional',
-      'Visao administrativa da clinica',
-      'Financeiro consolidado',
-      'Suporte prioritario',
     ],
   },
 ]
@@ -118,13 +101,13 @@ interface SubscriptionState {
 }
 
 const emptySubscription: Subscription = {
-  plan: 'essencial',
-  planId: 'essencial',
+  plan: 'free',
+  planId: 'free',
   status: 'none',
 }
 
 function normalizeSubscription(subscription: Subscription): Subscription {
-  const plan = subscription.plan ?? subscription.planId ?? 'essencial'
+  const plan = subscription.plan ?? subscription.planId ?? 'free'
   return { ...subscription, plan, planId: plan }
 }
 
