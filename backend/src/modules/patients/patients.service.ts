@@ -95,11 +95,12 @@ export class PatientsService {
 
   private async checkPatientLimit(userId: string) {
     const sub  = await this.subs.findOne({ where: { userId } })
-    const plan = (sub?.status === 'active' || sub?.status === 'trialing')
+    const rawPlan = (sub?.status === 'active' || sub?.status === 'trialing')
       ? (sub.plan as keyof typeof PLAN_LIMITS)
       : 'free'
+    const plan = PLAN_LIMITS[rawPlan] ? rawPlan : 'free'
 
-    const limit = PLAN_LIMITS[plan]?.maxPatients ?? 2
+    const limit = PLAN_LIMITS[plan].maxPatients
     if (limit === -1) return
 
     const count = await this.repo.count({ where: { psychologistId: userId, status: 'active' } })
