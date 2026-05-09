@@ -10,20 +10,21 @@ interface SendEmailOptions {
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name)
-  private readonly from = 'PsicoSaaS <oi@psicosaas.com.br>'
+  private readonly from: string
   private readonly apiKey: string
   private readonly enabled: boolean
   private readonly frontendUrl: string
 
   constructor(private cfg: ConfigService) {
-    this.apiKey = cfg.get('RESEND_API_KEY') ?? ''
-    this.enabled = !!this.apiKey && cfg.get('NODE_ENV') === 'production'
+    this.apiKey = cfg.get<string>('RESEND_API_KEY') ?? ''
+    this.from = cfg.get<string>('RESEND_FROM') ?? 'UseCognia <noreply@usecognia.com.br>'
+    this.enabled = !!this.apiKey
     this.frontendUrl = cfg.get('FRONTEND_URL') ?? 'http://localhost:3000'
   }
 
   async send(opts: SendEmailOptions): Promise<void> {
     if (!this.enabled) {
-      this.logger.log(`[Email DEV] Para: ${opts.to} | Assunto: ${opts.subject}`)
+      this.logger.warn(`[Email desativado] RESEND_API_KEY ausente. Para: ${opts.to} | Assunto: ${opts.subject}`)
       return
     }
 
@@ -39,7 +40,9 @@ export class EmailService {
       if (!res.ok) {
         const err = await res.text()
         this.logger.error(`[Resend] Erro ao enviar email: ${err}`)
+        return
       }
+      this.logger.log(`[Resend] Email enviado para ${opts.to}: ${opts.subject}`)
     } catch (err) {
       this.logger.error('[Resend] Falha de conexão', err)
     }
