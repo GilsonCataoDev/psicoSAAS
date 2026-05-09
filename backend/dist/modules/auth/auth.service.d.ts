@@ -12,7 +12,7 @@ export interface AuthTokens {
     accessToken: string;
     refreshToken: string;
 }
-export interface SafeUser extends Omit<User, 'passwordHash' | 'resetPasswordToken' | 'resetPasswordExpiry'> {
+export interface SafeUser extends Omit<User, 'passwordHash' | 'resetPasswordToken' | 'resetPasswordExpiry' | 'emailVerificationToken' | 'emailVerificationExpiry'> {
 }
 export interface AuthResult {
     user: SafeUser;
@@ -33,6 +33,12 @@ export declare class AuthService {
     private readonly WINDOW_MS;
     constructor(users: Repository<User>, rtRepo: Repository<RefreshToken>, jwt: JwtService, email: EmailService, referral: ReferralService);
     register(dto: RegisterDto, ip?: string, userAgent?: string): Promise<AuthResult>;
+    verifyEmail(token: string): Promise<{
+        message: string;
+    }>;
+    resendEmailVerification(userId: string): Promise<{
+        message: string;
+    }>;
     login(dto: LoginDto, ip?: string, userAgent?: string): Promise<AuthResult>;
     refresh(rawToken: string, ip?: string, userAgent?: string): Promise<AuthResult>;
     revokeAllTokens(userId: string, ip?: string): Promise<void>;

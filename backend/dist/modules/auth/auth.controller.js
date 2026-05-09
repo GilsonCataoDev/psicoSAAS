@@ -102,6 +102,12 @@ let AuthController = class AuthController {
         await this.auth.resetPassword(dto.token, dto.password);
         return { message: 'Senha redefinida com sucesso. Faça login para continuar.' };
     }
+    verifyEmail(token) {
+        return this.auth.verifyEmail(token);
+    }
+    resendVerification(req) {
+        return this.auth.resendEmailVerification(req.user.id);
+    }
     setAuthCookies(res, tokens) {
         res.cookie(ACCESS_COOKIE, tokens.accessToken, accessCookieOpts());
         res.cookie(REFRESH_COOKIE, tokens.refreshToken, refreshCookieOpts());
@@ -205,6 +211,24 @@ __decorate([
     __metadata("design:paramtypes", [reset_password_dto_1.ResetPasswordDto]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "resetPassword", null);
+__decorate([
+    (0, common_1.Get)('verify-email'),
+    (0, throttler_1.Throttle)({ short: { limit: 10, ttl: 60000 } }),
+    __param(0, (0, common_1.Query)('token')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AuthController.prototype, "verifyEmail", null);
+__decorate([
+    (0, common_1.Post)('resend-verification'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, csrf_guard_1.CsrfGuard),
+    (0, throttler_1.Throttle)({ short: { limit: 3, ttl: 60000 } }),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AuthController.prototype, "resendVerification", null);
 exports.AuthController = AuthController = __decorate([
     (0, common_1.Controller)('auth'),
     __metadata("design:paramtypes", [auth_service_1.AuthService])

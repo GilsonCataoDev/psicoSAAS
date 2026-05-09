@@ -17,7 +17,6 @@ const common_1 = require("@nestjs/common");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const financial_service_1 = require("./financial.service");
 const create_financial_dto_1 = require("./dto/create-financial.dto");
-const charge_card_dto_1 = require("./dto/charge-card.dto");
 const require_plan_decorator_1 = require("../../common/decorators/require-plan.decorator");
 let FinancialController = class FinancialController {
     constructor(svc) {
@@ -35,16 +34,6 @@ let FinancialController = class FinancialController {
     }
     sendCharge(id, req) {
         return this.svc.sendChargeMessage(id, req.user.id);
-    }
-    generatePaymentLink(id, req) {
-        return this.svc.generatePaymentLink(id, req.user.id);
-    }
-    chargeWithCard(id, dto, req, ip) {
-        const remoteIp = req.headers['x-forwarded-for']
-            ?.split(',')[0]?.trim()
-            ?? ip
-            ?? '177.0.0.1';
-        return this.svc.chargeWithCard(id, req.user.id, dto, remoteIp);
     }
     remove(id, req) {
         return this.svc.remove(id, req.user.id);
@@ -93,26 +82,6 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", void 0)
 ], FinancialController.prototype, "sendCharge", null);
-__decorate([
-    (0, common_1.Post)(':id/payment-link'),
-    (0, require_plan_decorator_1.RequirePlan)('pro'),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Request)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
-    __metadata("design:returntype", void 0)
-], FinancialController.prototype, "generatePaymentLink", null);
-__decorate([
-    (0, common_1.Post)(':id/charge-card'),
-    (0, require_plan_decorator_1.RequirePlan)('pro'),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Body)()),
-    __param(2, (0, common_1.Request)()),
-    __param(3, (0, common_1.Ip)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, charge_card_dto_1.ChargeCardDto, Object, String]),
-    __metadata("design:returntype", void 0)
-], FinancialController.prototype, "chargeWithCard", null);
 __decorate([
     (0, common_1.Delete)(':id'),
     __param(0, (0, common_1.Param)('id')),

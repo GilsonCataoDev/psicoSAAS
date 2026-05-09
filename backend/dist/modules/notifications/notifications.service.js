@@ -40,7 +40,7 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
             order: { createdAt: 'DESC' },
         });
         const plan = (sub?.status === 'active' || sub?.status === 'trialing') ? sub.plan : 'free';
-        return plan === 'pro' || plan === 'premium';
+        return plan === 'pro';
     }
     async sendWhatsApp(phone, text, ownerId) {
         if (!await this.canUseWhatsAppAutomation(ownerId)) {

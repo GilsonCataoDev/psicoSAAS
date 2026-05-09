@@ -1,6 +1,6 @@
 import { Repository } from 'typeorm';
 import { Referral } from './entities/referral.entity';
-import { Subscription } from '../subscriptions/entities/subscription.entity';
+import { Subscription } from '../billing/entities/subscription.entity';
 import { User } from '../auth/entities/user.entity';
 import { EmailService } from '../email/email.service';
 export declare class ReferralService {

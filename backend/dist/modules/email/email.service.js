@@ -17,14 +17,14 @@ let EmailService = EmailService_1 = class EmailService {
     constructor(cfg) {
         this.cfg = cfg;
         this.logger = new common_1.Logger(EmailService_1.name);
-        this.from = 'PsicoSaaS <oi@psicosaas.com.br>';
         this.apiKey = cfg.get('RESEND_API_KEY') ?? '';
-        this.enabled = !!this.apiKey && cfg.get('NODE_ENV') === 'production';
+        this.from = cfg.get('RESEND_FROM') ?? 'UseCognia <noreply@usecognia.com.br>';
+        this.enabled = !!this.apiKey;
         this.frontendUrl = cfg.get('FRONTEND_URL') ?? 'http://localhost:3000';
     }
     async send(opts) {
         if (!this.enabled) {
-            this.logger.log(`[Email DEV] Para: ${opts.to} | Assunto: ${opts.subject}`);
+            this.logger.warn(`[Email desativado] RESEND_API_KEY ausente. Para: ${opts.to} | Assunto: ${opts.subject}`);
             return;
         }
         try {
@@ -39,7 +39,9 @@ let EmailService = EmailService_1 = class EmailService {
             if (!res.ok) {
                 const err = await res.text();
                 this.logger.error(`[Resend] Erro ao enviar email: ${err}`);
+                return;
             }
+            this.logger.log(`[Resend] Email enviado para ${opts.to}: ${opts.subject}`);
         }
         catch (err) {
             this.logger.error('[Resend] Falha de conexão', err);
@@ -86,6 +88,28 @@ let EmailService = EmailService_1 = class EmailService {
         </a>
         <p style="color:#999;font-size:13px">
           Se você não solicitou isso, ignore este e-mail. Sua senha permanece a mesma.
+        </p>
+      `),
+        });
+    }
+    async sendEmailVerification(name, email, verificationToken) {
+        const link = `${this.frontendUrl}/#/verificar-email?token=${encodeURIComponent(verificationToken)}`;
+        await this.send({
+            to: email,
+            subject: 'Confirme seu e-mail — UseCognia',
+            html: this.wrap(`
+        <h1 style="color:#4a7c59;font-weight:300;font-size:24px">Confirme seu e-mail</h1>
+        <p style="color:#555;font-size:16px;line-height:1.6">
+          Olá, ${name.split(' ')[0]}! Clique no botão abaixo para confirmar o e-mail da sua conta UseCognia.
+        </p>
+        <p style="color:#555;font-size:16px;line-height:1.6">
+          Este link é válido por <strong>48 horas</strong>.
+        </p>
+        <a href="${link}" style="display:inline-block;background:#4a7c59;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:8px;margin-bottom:16px">
+          Confirmar e-mail
+        </a>
+        <p style="color:#999;font-size:13px">
+          Se você não criou uma conta na UseCognia, ignore este e-mail.
         </p>
       `),
         });

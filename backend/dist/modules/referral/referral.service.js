@@ -19,7 +19,7 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const date_fns_1 = require("date-fns");
 const referral_entity_1 = require("./entities/referral.entity");
-const subscription_entity_1 = require("../subscriptions/entities/subscription.entity");
+const subscription_entity_1 = require("../billing/entities/subscription.entity");
 const email_service_1 = require("../email/email.service");
 let ReferralService = ReferralService_1 = class ReferralService {
     constructor(refs, subs, email) {

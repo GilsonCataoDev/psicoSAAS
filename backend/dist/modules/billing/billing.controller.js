@@ -31,18 +31,29 @@ let BillingController = BillingController_1 = class BillingController {
             || req.ip
             || req.socket?.remoteAddress
             || '0.0.0.0';
-        const creditCardToken = await this.asaas.tokenizeCreditCard(req.user, {
-            holderName: body.holderName,
-            number: body.number,
-            expiryMonth: body.expiryMonth,
-            expiryYear: body.expiryYear,
-            ccv: body.ccv,
-            cpfCnpj: body.cpfCnpj?.replace(/\D/g, ''),
-            postalCode: body.postalCode?.replace(/\D/g, ''),
-            addressNumber: body.addressNumber,
-            phone: body.phone?.replace(/\D/g, ''),
-            email: req.user.email,
+        const creditCardHolderInfo = {
+            name: body.creditCardHolderInfo?.name?.trim(),
+            email: body.creditCardHolderInfo?.email?.trim() || req.user.email,
+            cpfCnpj: body.creditCardHolderInfo?.cpfCnpj?.replace(/\D/g, ''),
+            postalCode: body.creditCardHolderInfo?.postalCode?.replace(/\D/g, ''),
+            addressNumber: body.creditCardHolderInfo?.addressNumber?.trim(),
+            phone: body.creditCardHolderInfo?.phone?.replace(/\D/g, ''),
+        };
+        const customerId = await this.asaas.createCustomer({
+            ...req.user,
+            cpfCnpj: req.user.cpfCnpj || creditCardHolderInfo.cpfCnpj,
+        });
+        const creditCardToken = await this.asaas.tokenizeCreditCard({
+            customerId,
             remoteIp,
+            creditCard: {
+                holderName: body.creditCard?.holderName?.trim(),
+                number: body.creditCard?.number?.replace(/\D/g, ''),
+                expiryMonth: body.creditCard?.expiryMonth,
+                expiryYear: body.creditCard?.expiryYear,
+                ccv: body.creditCard?.ccv?.replace(/\D/g, ''),
+            },
+            creditCardHolderInfo,
         });
         return { creditCardToken };
     }

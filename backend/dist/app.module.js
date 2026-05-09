@@ -20,15 +20,13 @@ const financial_module_1 = require("./modules/financial/financial.module");
 const notifications_module_1 = require("./modules/notifications/notifications.module");
 const booking_module_1 = require("./modules/booking/booking.module");
 const availability_module_1 = require("./modules/availability/availability.module");
-const subscriptions_module_1 = require("./modules/subscriptions/subscriptions.module");
 const documents_module_1 = require("./modules/documents/documents.module");
 const email_module_1 = require("./modules/email/email.module");
 const analytics_module_1 = require("./modules/analytics/analytics.module");
 const referral_module_1 = require("./modules/referral/referral.module");
 const billing_module_1 = require("./modules/billing/billing.module");
 const data_export_module_1 = require("./modules/data-export/data-export.module");
-const subscription_entity_1 = require("./modules/subscriptions/entities/subscription.entity");
-const subscription_entity_2 = require("./modules/billing/entities/subscription.entity");
+const subscription_entity_1 = require("./modules/billing/entities/subscription.entity");
 const plan_guard_1 = require("./common/guards/plan.guard");
 const subscription_guard_1 = require("./common/guards/subscription.guard");
 let AppModule = class AppModule {
@@ -52,7 +50,7 @@ exports.AppModule = AppModule = __decorate([
                     logging: ['error'],
                 }),
             }),
-            typeorm_1.TypeOrmModule.forFeature([subscription_entity_1.Subscription, subscription_entity_2.Subscription]),
+            typeorm_1.TypeOrmModule.forFeature([subscription_entity_1.Subscription]),
             auth_module_1.AuthModule,
             patients_module_1.PatientsModule,
             appointments_module_1.AppointmentsModule,
@@ -61,7 +59,6 @@ exports.AppModule = AppModule = __decorate([
             notifications_module_1.NotificationsModule,
             availability_module_1.AvailabilityModule,
             booking_module_1.BookingModule,
-            subscriptions_module_1.SubscriptionsModule,
             documents_module_1.DocumentsModule,
             email_module_1.EmailModule,
             analytics_module_1.AnalyticsModule,

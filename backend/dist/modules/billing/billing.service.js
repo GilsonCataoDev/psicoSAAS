@@ -19,7 +19,7 @@ const typeorm_2 = require("typeorm");
 const asaas_service_1 = require("./asaas.service");
 const subscription_entity_1 = require("./entities/subscription.entity");
 const TRIAL_DAYS = 7;
-const PLAN_PRICES = { essencial: 79, pro: 149, premium: 249 };
+const PLAN_PRICES = { essencial: 79, pro: 149 };
 let BillingService = class BillingService {
     constructor(repo, asaas) {
         this.repo = repo;

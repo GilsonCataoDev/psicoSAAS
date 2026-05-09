@@ -10,7 +10,11 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CreatePatientDto = void 0;
+const class_transformer_1 = require("class-transformer");
 const class_validator_1 = require("class-validator");
+function emptyToUndefined(value) {
+    return typeof value === 'string' && value.trim() === '' ? undefined : value;
+}
 class CreatePatientDto {
 }
 exports.CreatePatientDto = CreatePatientDto;
@@ -19,21 +23,25 @@ __decorate([
     __metadata("design:type", String)
 ], CreatePatientDto.prototype, "name", void 0);
 __decorate([
+    (0, class_transformer_1.Transform)(({ value }) => emptyToUndefined(value)),
     (0, class_validator_1.IsEmail)(),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], CreatePatientDto.prototype, "email", void 0);
 __decorate([
+    (0, class_transformer_1.Transform)(({ value }) => emptyToUndefined(value)),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], CreatePatientDto.prototype, "phone", void 0);
 __decorate([
+    (0, class_transformer_1.Transform)(({ value }) => emptyToUndefined(value)),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], CreatePatientDto.prototype, "birthDate", void 0);
 __decorate([
+    (0, class_transformer_1.Transform)(({ value }) => emptyToUndefined(value)),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
@@ -74,8 +82,9 @@ __decorate([
     __metadata("design:type", Object)
 ], CreatePatientDto.prototype, "prontuario", void 0);
 __decorate([
+    (0, class_transformer_1.Transform)(({ value }) => typeof value === 'string' ? emptyToUndefined(value.replace(/\D/g, '')) : value),
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.Matches)(/^\d{11}$|^\d{14}$/, { message: 'cpfCnpj deve ter 11 dígitos (CPF) ou 14 dígitos (CNPJ)' }),
+    (0, class_validator_1.Matches)(/^\d{11}$|^\d{14}$/, { message: 'cpfCnpj deve ter 11 digitos (CPF) ou 14 digitos (CNPJ)' }),
     __metadata("design:type", String)
 ], CreatePatientDto.prototype, "cpfCnpj", void 0);
 //# sourceMappingURL=create-patient.dto.js.map

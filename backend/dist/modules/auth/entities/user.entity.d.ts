@@ -14,6 +14,9 @@ export declare class User {
     termsAcceptedAt?: Date;
     termsVersion?: string;
     referralCode?: string;
+    emailVerified: boolean;
+    emailVerificationToken?: string;
+    emailVerificationExpiry?: Date;
     resetPasswordToken?: string;
     resetPasswordExpiry?: Date;
     preferences?: Record<string, unknown>;

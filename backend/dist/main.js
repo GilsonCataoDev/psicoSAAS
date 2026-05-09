@@ -47,8 +47,9 @@ async function bootstrap() {
     }));
     app.use(cookieParser());
     const allowedOrigins = (process.env.ALLOWED_ORIGINS ??
-        'http://localhost:3000,http://localhost:5173,https://gilsoncataodev.github.io').split(',').map(o => o.trim());
+        'http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173,https://gilsoncataodev.github.io').split(',').map(o => o.trim());
     const isProduction = process.env.NODE_ENV === 'production';
+    const isLocalDevOrigin = (origin) => /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
     app.enableCors({
         origin: (origin, cb) => {
             if (!origin) {
@@ -57,6 +58,8 @@ async function bootstrap() {
                 return cb(null, true);
             }
             if (allowedOrigins.includes(origin))
+                return cb(null, true);
+            if (!isProduction && isLocalDevOrigin(origin))
                 return cb(null, true);
             cb(new Error(`Origem bloqueada pelo CORS: ${origin}`));
         },
@@ -73,7 +76,7 @@ async function bootstrap() {
     app.setGlobalPrefix('api');
     const port = process.env.PORT ?? 3001;
     await app.listen(port);
-    console.log(`PsicoSaaS API rodando na porta ${port} 🌱`);
+    new common_1.Logger('Bootstrap').log(`PsicoSaaS API rodando na porta ${port}`);
 }
 bootstrap();
 //# sourceMappingURL=main.js.map

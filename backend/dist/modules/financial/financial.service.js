@@ -18,17 +18,12 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const financial_record_entity_1 = require("./entities/financial-record.entity");
-const asaas_service_1 = require("./asaas.service");
 const notifications_service_1 = require("../notifications/notifications.service");
 const user_entity_1 = require("../auth/entities/user.entity");
-const patient_entity_1 = require("../patients/entities/patient.entity");
-const encrypt_util_1 = require("../../common/crypto/encrypt.util");
 let FinancialService = FinancialService_1 = class FinancialService {
-    constructor(repo, users, patients, asaas, notifications) {
+    constructor(repo, users, notifications) {
         this.repo = repo;
         this.users = users;
-        this.patients = patients;
-        this.asaas = asaas;
         this.notifications = notifications;
         this.logger = new common_1.Logger(FinancialService_1.name);
     }
@@ -76,81 +71,6 @@ let FinancialService = FinancialService_1 = class FinancialService {
         await this.notifications.sendPaymentRequest(record.patient, Number(record.amount), pixKey);
         return { message: 'Cobrança enviada via WhatsApp ✓' };
     }
-    async generatePaymentLink(id, psychologistId) {
-        const record = await this.repo.findOne({ where: { id }, relations: ['patient'] });
-        if (!record)
-            throw new common_1.NotFoundException();
-        if (record.psychologistId !== psychologistId)
-            throw new common_1.ForbiddenException();
-        const user = await this.users.findOneBy({ id: psychologistId });
-        const apiKey = (0, encrypt_util_1.safeDecryptSecret)(user?.preferences?.asaasApiKey);
-        if (!apiKey) {
-            throw new common_1.BadRequestException('Configure sua chave Asaas em Configurações → Pagamentos para gerar links de cobrança.');
-        }
-        if (record.paymentLinkUrl && record.status !== 'paid') {
-            return { url: record.paymentLinkUrl };
-        }
-        const patient = record.patient;
-        const cpfCnpj = patient?.cpfCnpj;
-        const patientName = patient?.name ?? record.description;
-        const customerId = await this.asaas.findOrCreateCustomer(apiKey, record.patientId ?? id, patientName, cpfCnpj ?? '', patient?.email);
-        if (patient && !patient.asaasCustomerId) {
-            await this.patients.update(patient.id, { asaasCustomerId: customerId });
-        }
-        const dueDate = record.dueDate
-            ?? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        const payment = await this.asaas.createInvoicePayment(apiKey, customerId, {
-            value: Number(record.amount),
-            dueDate,
-            description: record.description,
-            externalRef: id,
-        });
-        record.asaasPaymentId = payment.id;
-        record.paymentLinkUrl = payment.invoiceUrl;
-        await this.repo.save(record);
-        this.logger.log(`[Asaas] Link gerado: ${payment.invoiceUrl} (paymentId=${payment.id})`);
-        return { url: payment.invoiceUrl };
-    }
-    async chargeWithCard(id, psychologistId, dto, remoteIp) {
-        const record = await this.repo.findOne({ where: { id }, relations: ['patient'] });
-        if (!record)
-            throw new common_1.NotFoundException();
-        if (record.psychologistId !== psychologistId)
-            throw new common_1.ForbiddenException();
-        if (record.status === 'paid')
-            throw new common_1.BadRequestException('Este lançamento já foi pago.');
-        const user = await this.users.findOneBy({ id: psychologistId });
-        const apiKey = (0, encrypt_util_1.safeDecryptSecret)(user?.preferences?.asaasApiKey);
-        if (!apiKey) {
-            throw new common_1.BadRequestException('Configure sua chave Asaas em Configurações → Pagamentos para cobrar por cartão.');
-        }
-        const patient = record.patient;
-        const cpfCnpj = dto.creditCardHolderInfo.cpfCnpj || patient?.cpfCnpj;
-        const customerId = await this.asaas.findOrCreateCustomer(apiKey, record.patientId ?? id, dto.creditCardHolderInfo.name, cpfCnpj ?? '', dto.creditCardHolderInfo.email);
-        if (patient && !patient.asaasCustomerId) {
-            await this.patients.update(patient.id, { asaasCustomerId: customerId });
-        }
-        const creditCardToken = await this.asaas.tokenizeCard(apiKey, customerId, dto.creditCard, dto.creditCardHolderInfo, remoteIp);
-        const dueDate = record.dueDate ?? new Date().toISOString().split('T')[0];
-        const payment = await this.asaas.createCardPayment(apiKey, customerId, {
-            value: Number(record.amount),
-            dueDate,
-            description: record.description,
-            externalRef: id,
-            creditCardToken,
-            holderInfo: dto.creditCardHolderInfo,
-        });
-        record.status = 'paid';
-        record.paidAt = new Date().toISOString();
-        record.method = 'credit_card';
-        record.asaasPaymentId = payment.id;
-        await this.repo.save(record);
-        if (patient && !patient.cpfCnpj && cpfCnpj) {
-            await this.patients.update(patient.id, { cpfCnpj: cpfCnpj.replace(/\D/g, '') });
-        }
-        this.logger.log(`[Asaas] Cobrança por cartão confirmada: paymentId=${payment.id}`);
-        return { message: 'Cobrança realizada com sucesso', paymentId: payment.id };
-    }
     async handleAsaasWebhook(event, payment) {
         if (event !== 'PAYMENT_RECEIVED' && event !== 'PAYMENT_CONFIRMED')
             return;
@@ -190,11 +110,8 @@ exports.FinancialService = FinancialService = FinancialService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(financial_record_entity_1.FinancialRecord)),
     __param(1, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
-    __param(2, (0, typeorm_1.InjectRepository)(patient_entity_1.Patient)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
-        typeorm_2.Repository,
-        asaas_service_1.PatientAsaasService,
         notifications_service_1.NotificationsService])
 ], FinancialService);
 //# sourceMappingURL=financial.service.js.map

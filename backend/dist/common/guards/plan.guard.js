@@ -19,11 +19,11 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const require_plan_decorator_1 = require("../decorators/require-plan.decorator");
 const subscription_entity_1 = require("../../modules/billing/entities/subscription.entity");
-const PLAN_ORDER = { free: 0, basic: 1, essencial: 1, pro: 2, premium: 3 };
+const PLAN_ORDER = { free: 0, basic: 1, essencial: 1, pro: 2, premium: 2 };
 exports.PLAN_LIMITS = {
-    free: { maxPatients: 3, maxDocuments: 0 },
-    basic: { maxPatients: 30, maxDocuments: 200 },
-    essencial: { maxPatients: 30, maxDocuments: 200 },
+    free: { maxPatients: 10, maxDocuments: 0 },
+    basic: { maxPatients: 50, maxDocuments: 200 },
+    essencial: { maxPatients: 50, maxDocuments: 200 },
     pro: { maxPatients: -1, maxDocuments: -1 },
     premium: { maxPatients: -1, maxDocuments: -1 },
 };

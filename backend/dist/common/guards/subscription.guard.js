@@ -41,13 +41,13 @@ let SubscriptionGuard = class SubscriptionGuard extends (0, passport_1.AuthGuard
             order: { createdAt: 'DESC' },
         });
         if (!subscription)
-            throw new common_1.ForbiddenException('Plano inativo');
+            return true;
         if (subscription.status === 'active' || subscription.status === 'trialing')
             return true;
         if (subscription.status === 'past_due' && this.isWithinGracePeriod(subscription.currentPeriodEnd)) {
             return true;
         }
-        throw new common_1.ForbiddenException('Plano inativo');
+        return true;
     }
     isPublicRoute(ctx) {
         return this.reflector.getAllAndOverride(public_route_decorator_1.PUBLIC_ROUTE_KEY, [ctx.getHandler(), ctx.getClass()]) === true;

@@ -17,14 +17,16 @@ const axios_1 = require("axios");
 const PLAN_PRICES = {
     essencial: 79,
     pro: 149,
-    premium: 249,
 };
 let AsaasService = AsaasService_1 = class AsaasService {
     constructor(cfg) {
         this.cfg = cfg;
         this.logger = new common_1.Logger(AsaasService_1.name);
+        const defaultBaseUrl = this.cfg.get('NODE_ENV') === 'production'
+            ? 'https://api.asaas.com/v3'
+            : 'https://sandbox.asaas.com/api/v3';
         this.api = axios_1.default.create({
-            baseURL: this.cfg.get('ASAAS_BASE_URL') ?? 'https://sandbox.asaas.com/api/v3',
+            baseURL: this.cfg.get('ASAAS_BASE_URL') ?? defaultBaseUrl,
             headers: {
                 access_token: this.cfg.getOrThrow('ASAAS_API_KEY'),
                 'Content-Type': 'application/json',
@@ -52,28 +54,27 @@ let AsaasService = AsaasService_1 = class AsaasService {
             throw new common_1.BadRequestException(err?.response?.data?.errors?.[0]?.description ?? 'Erro ao criar cliente no Asaas');
         }
     }
-    async tokenizeCreditCard(user, input) {
+    async tokenizeCreditCard(input) {
         this.validateCreditCardInput(input);
         try {
-            const customer = await this.findOrCreateTokenizationCustomer(user, input.cpfCnpj);
             const { data } = await this.api.post('/creditCard/tokenize', {
-                customer,
+                customer: input.customerId,
                 creditCard: {
-                    holderName: input.holderName,
-                    number: input.number,
-                    expiryMonth: input.expiryMonth,
-                    expiryYear: input.expiryYear,
-                    ccv: input.ccv,
+                    holderName: input.creditCard.holderName,
+                    number: input.creditCard.number,
+                    expiryMonth: input.creditCard.expiryMonth,
+                    expiryYear: input.creditCard.expiryYear,
+                    ccv: input.creditCard.ccv,
                 },
                 creditCardHolderInfo: {
-                    name: input.holderName,
-                    email: input.email || user.email,
-                    cpfCnpj: input.cpfCnpj,
-                    postalCode: input.postalCode,
-                    addressNumber: input.addressNumber,
-                    phone: input.phone,
+                    name: input.creditCardHolderInfo.name,
+                    email: input.creditCardHolderInfo.email,
+                    cpfCnpj: input.creditCardHolderInfo.cpfCnpj,
+                    postalCode: input.creditCardHolderInfo.postalCode,
+                    addressNumber: input.creditCardHolderInfo.addressNumber,
+                    phone: input.creditCardHolderInfo.phone,
                 },
-                remoteIp: input.remoteIp ?? '0.0.0.0',
+                remoteIp: input.remoteIp,
             });
             const token = data?.creditCardToken ?? data?.token;
             if (!token)
@@ -156,24 +157,34 @@ let AsaasService = AsaasService_1 = class AsaasService {
         return date.toISOString().split('T')[0];
     }
     validateCreditCardInput(input) {
-        const number = input.number?.replace(/\D/g, '');
-        const ccv = input.ccv?.replace(/\D/g, '');
-        const cpfCnpj = input.cpfCnpj?.replace(/\D/g, '');
-        const postalCode = input.postalCode?.replace(/\D/g, '');
-        const phone = input.phone?.replace(/\D/g, '');
-        if (!input.holderName?.trim())
+        const number = input.creditCard?.number?.replace(/\D/g, '');
+        const ccv = input.creditCard?.ccv?.replace(/\D/g, '');
+        const cpfCnpj = input.creditCardHolderInfo?.cpfCnpj?.replace(/\D/g, '');
+        const postalCode = input.creditCardHolderInfo?.postalCode?.replace(/\D/g, '');
+        const phone = input.creditCardHolderInfo?.phone?.replace(/\D/g, '');
+        if (!input.customerId?.trim())
+            throw new common_1.BadRequestException('Cliente Asaas e obrigatorio');
+        if (!input.remoteIp?.trim())
+            throw new common_1.BadRequestException('IP remoto e obrigatorio');
+        if (!input.creditCard?.holderName?.trim())
             throw new common_1.BadRequestException('Nome do cartao e obrigatorio');
         if (!number || number.length < 13 || number.length > 19) {
             throw new common_1.BadRequestException('Numero do cartao invalido');
         }
-        if (!/^\d{1,2}$/.test(input.expiryMonth) || Number(input.expiryMonth) < 1 || Number(input.expiryMonth) > 12) {
+        if (!/^\d{1,2}$/.test(input.creditCard.expiryMonth) || Number(input.creditCard.expiryMonth) < 1 || Number(input.creditCard.expiryMonth) > 12) {
             throw new common_1.BadRequestException('Mes de validade invalido');
         }
-        if (!/^\d{4}$/.test(input.expiryYear)) {
+        if (!/^\d{4}$/.test(input.creditCard.expiryYear)) {
             throw new common_1.BadRequestException('Ano de validade invalido');
         }
         if (!ccv || ccv.length < 3 || ccv.length > 4) {
             throw new common_1.BadRequestException('CVV invalido');
+        }
+        if (!input.creditCardHolderInfo.name?.trim()) {
+            throw new common_1.BadRequestException('Nome do titular e obrigatorio');
+        }
+        if (!input.creditCardHolderInfo.email?.trim()) {
+            throw new common_1.BadRequestException('E-mail do titular e obrigatorio');
         }
         if (!cpfCnpj || !/^\d{11}$|^\d{14}$/.test(cpfCnpj)) {
             throw new common_1.BadRequestException('CPF/CNPJ invalido');
@@ -181,28 +192,12 @@ let AsaasService = AsaasService_1 = class AsaasService {
         if (!postalCode || postalCode.length !== 8) {
             throw new common_1.BadRequestException('CEP invalido');
         }
-        if (!input.addressNumber?.trim()) {
+        if (!input.creditCardHolderInfo.addressNumber?.trim()) {
             throw new common_1.BadRequestException('Numero do endereco e obrigatorio');
         }
         if (!phone || phone.length < 10 || phone.length > 11) {
             throw new common_1.BadRequestException('Telefone invalido');
         }
-    }
-    async findOrCreateTokenizationCustomer(user, cpfCnpj) {
-        const normalizedCpfCnpj = cpfCnpj?.replace(/\D/g, '') || user.cpfCnpj;
-        const { data: list } = await this.api.get('/customers', {
-            params: { externalReference: user.id, limit: 1 },
-        });
-        if (list.data?.length)
-            return list.data[0].id;
-        const { data } = await this.api.post('/customers', {
-            name: user.name,
-            email: user.email,
-            cpfCnpj: normalizedCpfCnpj,
-            externalReference: user.id,
-            notificationDisabled: false,
-        });
-        return data.id;
     }
 };
 exports.AsaasService = AsaasService;

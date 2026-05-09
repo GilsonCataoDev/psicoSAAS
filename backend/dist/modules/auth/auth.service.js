@@ -48,10 +48,14 @@ let AuthService = AuthService_1 = class AuthService {
         }
         const { referralCode, password, termsAccepted: _termsAccepted, termsVersion, ...userData } = dto;
         const passwordHash = await bcrypt.hash(password, 12);
+        const verificationToken = (0, crypto_1.randomBytes)(32).toString('hex');
         const user = this.users.create({
             ...userData,
             email: userData.email.toLowerCase(),
             passwordHash,
+            emailVerified: false,
+            emailVerificationToken: (0, encrypt_util_1.hashToken)(verificationToken),
+            emailVerificationExpiry: new Date(Date.now() + 48 * 60 * 60 * 1000),
             termsAcceptedAt: new Date(),
             termsVersion: termsVersion ?? exports.CURRENT_TERMS_VERSION,
         });
@@ -59,9 +63,38 @@ let AuthService = AuthService_1 = class AuthService {
         if (referralCode) {
             this.referral.applyReferral(referralCode, user).catch(() => { });
         }
+        this.email.sendEmailVerification(user.name, user.email, verificationToken).catch(() => { });
         this.email.sendWelcome(user.name, user.email).catch(() => { });
         this.audit('REGISTER', { userId: user.id, ip });
         return this.buildResult(user, ip, userAgent);
+    }
+    async verifyEmail(token) {
+        if (!token)
+            throw new common_1.BadRequestException('Token ausente');
+        const user = await this.users.findOneBy({ emailVerificationToken: (0, encrypt_util_1.hashToken)(token) });
+        if (!user || !user.emailVerificationExpiry || user.emailVerificationExpiry < new Date()) {
+            throw new common_1.BadRequestException('Link invalido ou expirado. Solicite um novo.');
+        }
+        user.emailVerified = true;
+        user.emailVerificationToken = undefined;
+        user.emailVerificationExpiry = undefined;
+        await this.users.save(user);
+        this.audit('EMAIL_VERIFIED', { userId: user.id });
+        return { message: 'E-mail verificado com sucesso.' };
+    }
+    async resendEmailVerification(userId) {
+        const user = await this.users.findOneBy({ id: userId });
+        if (!user)
+            throw new common_1.NotFoundException();
+        if (user.emailVerified)
+            return { message: 'Seu e-mail ja esta verificado.' };
+        const token = (0, crypto_1.randomBytes)(32).toString('hex');
+        user.emailVerificationToken = (0, encrypt_util_1.hashToken)(token);
+        user.emailVerificationExpiry = new Date(Date.now() + 48 * 60 * 60 * 1000);
+        await this.users.save(user);
+        await this.email.sendEmailVerification(user.name, user.email, token);
+        this.audit('EMAIL_VERIFICATION_RESENT', { userId: user.id });
+        return { message: 'Enviamos um novo link de verificacao para seu e-mail.' };
     }
     async login(dto, ip, userAgent) {
         const email = dto.email.toLowerCase();
@@ -122,7 +155,7 @@ let AuthService = AuthService_1 = class AuthService {
             throw new common_1.NotFoundException();
         Object.assign(user, data);
         await this.users.save(user);
-        const { passwordHash: _, resetPasswordToken: __, resetPasswordExpiry: ___, ...profile } = user;
+        const { passwordHash: _, resetPasswordToken: __, resetPasswordExpiry: ___, emailVerificationToken: ____, emailVerificationExpiry: _____, ...profile } = user;
         return profile;
     }
     async updatePreferences(id, preferences) {
@@ -183,7 +216,7 @@ let AuthService = AuthService_1 = class AuthService {
         const accessToken = this.jwt.sign({ sub: user.id, email: user.email }, { expiresIn: '15m' });
         const refreshToken = await this.createRefreshToken(user.id, ip, userAgent);
         const csrfToken = (0, encrypt_util_1.generateCsrfToken)(user.id);
-        const { passwordHash: _, resetPasswordToken: __, resetPasswordExpiry: ___, ...safeUser } = user;
+        const { passwordHash: _, resetPasswordToken: __, resetPasswordExpiry: ___, emailVerificationToken: ____, emailVerificationExpiry: _____, ...safeUser } = user;
         if (safeUser.preferences)
             safeUser.preferences = this.exposePreferences(safeUser.preferences);
         return { user: safeUser, tokens: { accessToken, refreshToken }, csrfToken };

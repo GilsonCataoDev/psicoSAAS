@@ -37,5 +37,11 @@ export declare class AuthController {
     resetPassword(dto: ResetPasswordDto): Promise<{
         message: string;
     }>;
+    verifyEmail(token: string): Promise<{
+        message: string;
+    }>;
+    resendVerification(req: any): Promise<{
+        message: string;
+    }>;
     private setAuthCookies;
 }

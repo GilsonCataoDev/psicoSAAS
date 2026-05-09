@@ -15,6 +15,7 @@ export declare class EmailService {
     send(opts: SendEmailOptions): Promise<void>;
     sendWelcome(name: string, email: string): Promise<void>;
     sendPasswordReset(name: string, email: string, resetToken: string): Promise<void>;
+    sendEmailVerification(name: string, email: string, verificationToken: string): Promise<void>;
     sendBookingRequest(patientName: string, psychologistEmail: string, date: string, time: string, confirmUrl: string): Promise<void>;
     sendBookingConfirmation(patientName: string, patientEmail: string, date: string, time: string, cancelUrl: string): Promise<void>;
     sendTrialEndingReminder(name: string, email: string, daysLeft: number): Promise<void>;

@@ -40,6 +40,9 @@ export declare class DataExportService {
             termsAcceptedAt?: Date;
             termsVersion?: string;
             referralCode?: string;
+            emailVerified: boolean;
+            emailVerificationToken?: string;
+            emailVerificationExpiry?: Date;
             preferences?: Record<string, unknown>;
             patients: Patient[];
             createdAt: Date;
