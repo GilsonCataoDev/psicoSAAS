@@ -9,6 +9,9 @@ export interface User {
   crp: string
   avatar?: string
   specialty?: string
+  phone?: string
+  cpfCnpj?: string
+  emailVerified?: boolean
 }
 
 interface AuthState {

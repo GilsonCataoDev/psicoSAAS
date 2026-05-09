@@ -94,6 +94,29 @@ export class EmailService {
     })
   }
 
+  async sendEmailVerification(name: string, email: string, verificationToken: string) {
+    const link = `${this.frontendUrl}/#/verificar-email?token=${encodeURIComponent(verificationToken)}`
+    await this.send({
+      to: email,
+      subject: 'Confirme seu e-mail — UseCognia',
+      html: this.wrap(`
+        <h1 style="color:#4a7c59;font-weight:300;font-size:24px">Confirme seu e-mail</h1>
+        <p style="color:#555;font-size:16px;line-height:1.6">
+          Olá, ${name.split(' ')[0]}! Clique no botão abaixo para confirmar o e-mail da sua conta UseCognia.
+        </p>
+        <p style="color:#555;font-size:16px;line-height:1.6">
+          Este link é válido por <strong>48 horas</strong>.
+        </p>
+        <a href="${link}" style="display:inline-block;background:#4a7c59;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:8px;margin-bottom:16px">
+          Confirmar e-mail
+        </a>
+        <p style="color:#999;font-size:13px">
+          Se você não criou uma conta na UseCognia, ignore este e-mail.
+        </p>
+      `),
+    })
+  }
+
   async sendBookingRequest(patientName: string, psychologistEmail: string, date: string, time: string, confirmUrl: string) {
     await this.send({
       to: psychologistEmail,

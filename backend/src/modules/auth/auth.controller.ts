@@ -1,6 +1,6 @@
 import {
   Body, Controller, Get, HttpCode, HttpStatus,
-  Patch, Post, Request, Response, UseGuards,
+  Patch, Post, Query, Request, Response, UseGuards,
 } from '@nestjs/common'
 import { Throttle, SkipThrottle } from '@nestjs/throttler'
 import type { CookieOptions, Request as Req, Response as Res } from 'express'
@@ -181,6 +181,20 @@ export class AuthController {
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
+
+  @Get('verify-email')
+  @Throttle({ short: { limit: 10, ttl: 60000 } })
+  verifyEmail(@Query('token') token: string) {
+    return this.auth.verifyEmail(token)
+  }
+
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, CsrfGuard)
+  @Throttle({ short: { limit: 3, ttl: 60000 } })
+  resendVerification(@Request() req: any) {
+    return this.auth.resendEmailVerification(req.user.id)
+  }
 
   private setAuthCookies(res: Res, tokens: { accessToken: string; refreshToken: string }): void {
     res.cookie(ACCESS_COOKIE,  tokens.accessToken,  accessCookieOpts())

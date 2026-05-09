@@ -1,5 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, Outlet } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import Sidebar from './Sidebar'
 import BottomNav from './BottomNav'
 import TopBar from './TopBar'
@@ -101,6 +102,40 @@ function SubscriptionBanner() {
   return null
 }
 
+function EmailVerificationBanner() {
+  const user = useAuthStore((s) => s.user)
+  const [sending, setSending] = useState(false)
+
+  if (!user || user.emailVerified) return null
+
+  async function resendVerification() {
+    setSending(true)
+    try {
+      const { data } = await api.post('/auth/resend-verification')
+      toast.success(data?.message ?? 'Link de verificacao enviado.')
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'Nao foi possivel reenviar agora.')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+      <p className="font-medium">Confirme seu e-mail para proteger sua conta.</p>
+      <p className="mt-1">Enviamos um link para {user.email}. Confira tambem spam ou lixo eletrônico.</p>
+      <button
+        type="button"
+        onClick={resendVerification}
+        disabled={sending}
+        className="mt-2 inline-flex h-9 items-center rounded-lg bg-amber-600 px-3 text-white disabled:opacity-60"
+      >
+        {sending ? 'Enviando...' : 'Reenviar link'}
+      </button>
+    </div>
+  )
+}
+
 export default function AppLayout() {
   useCsrfBoot()
   useSubscriptionPolling()
@@ -114,6 +149,7 @@ export default function AppLayout() {
         <TopBar />
         <main className="flex-1 overflow-y-auto p-4 lg:p-6 pb-24 lg:pb-6 animate-fade-in">
           <div className="max-w-7xl mx-auto">
+            <EmailVerificationBanner />
             <SubscriptionBanner />
             <Outlet />
           </div>

@@ -7,6 +7,7 @@ import LoginPage from '@/pages/auth/LoginPage'
 import RegisterPage from '@/pages/auth/RegisterPage'
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage'
 import ResetPasswordPage from '@/pages/auth/ResetPasswordPage'
+import VerifyEmailPage from '@/pages/auth/VerifyEmailPage'
 import DashboardPage from '@/pages/DashboardPage'
 import PatientsPage from '@/pages/PatientsPage'
 import PatientDetailPage from '@/pages/PatientDetailPage'
@@ -63,6 +64,7 @@ export default function App() {
       {/* Reset de senha — acessível mesmo logado (token na URL) */}
       <Route element={<AuthLayout />}>
         <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
+        <Route path="/verificar-email" element={<VerifyEmailPage />} />
       </Route>
 
       {/* ── Página pública de agendamento (sem auth, sem layout interno) ── */}

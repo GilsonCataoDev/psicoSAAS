@@ -50,6 +50,15 @@ export class User {
   referralCode?: string   // código usado no cadastro
 
   /** Token de reset de senha (HMAC hex) — limpo após uso ou expiração */
+  @Column({ default: false })
+  emailVerified: boolean
+
+  @Column({ nullable: true })
+  emailVerificationToken?: string
+
+  @Column({ type: 'timestamptz', nullable: true })
+  emailVerificationExpiry?: Date
+
   @Column({ nullable: true })
   resetPasswordToken?: string
 

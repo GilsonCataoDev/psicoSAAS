@@ -23,7 +23,10 @@ export interface AuthTokens {
   refreshToken: string
 }
 
-export interface SafeUser extends Omit<User, 'passwordHash' | 'resetPasswordToken' | 'resetPasswordExpiry'> {}
+export interface SafeUser extends Omit<
+  User,
+  'passwordHash' | 'resetPasswordToken' | 'resetPasswordExpiry' | 'emailVerificationToken' | 'emailVerificationExpiry'
+> {}
 
 export interface AuthResult {
   user:      SafeUser
@@ -68,10 +71,14 @@ export class AuthService {
 
     const { referralCode, password, termsAccepted: _termsAccepted, termsVersion, ...userData } = dto
     const passwordHash = await bcrypt.hash(password, 12)
+    const verificationToken = randomBytes(32).toString('hex')
     const user = this.users.create({
       ...userData,
       email: userData.email.toLowerCase(),
       passwordHash,
+      emailVerified: false,
+      emailVerificationToken: hashToken(verificationToken),
+      emailVerificationExpiry: new Date(Date.now() + 48 * 60 * 60 * 1000),
       termsAcceptedAt: new Date(),
       termsVersion: termsVersion ?? CURRENT_TERMS_VERSION,
     })
@@ -81,10 +88,43 @@ export class AuthService {
       this.referral.applyReferral(referralCode, user).catch(() => {})
     }
 
+    this.email.sendEmailVerification(user.name, user.email, verificationToken).catch(() => {})
     this.email.sendWelcome(user.name, user.email).catch(() => {})
     this.audit('REGISTER', { userId: user.id, ip })
 
     return this.buildResult(user, ip, userAgent)
+  }
+
+  async verifyEmail(token: string): Promise<{ message: string }> {
+    if (!token) throw new BadRequestException('Token ausente')
+
+    const user = await this.users.findOneBy({ emailVerificationToken: hashToken(token) })
+    if (!user || !user.emailVerificationExpiry || user.emailVerificationExpiry < new Date()) {
+      throw new BadRequestException('Link invalido ou expirado. Solicite um novo.')
+    }
+
+    user.emailVerified = true
+    user.emailVerificationToken = undefined
+    user.emailVerificationExpiry = undefined
+    await this.users.save(user)
+
+    this.audit('EMAIL_VERIFIED', { userId: user.id })
+    return { message: 'E-mail verificado com sucesso.' }
+  }
+
+  async resendEmailVerification(userId: string): Promise<{ message: string }> {
+    const user = await this.users.findOneBy({ id: userId })
+    if (!user) throw new NotFoundException()
+    if (user.emailVerified) return { message: 'Seu e-mail ja esta verificado.' }
+
+    const token = randomBytes(32).toString('hex')
+    user.emailVerificationToken = hashToken(token)
+    user.emailVerificationExpiry = new Date(Date.now() + 48 * 60 * 60 * 1000)
+    await this.users.save(user)
+
+    await this.email.sendEmailVerification(user.name, user.email, token)
+    this.audit('EMAIL_VERIFICATION_RESENT', { userId: user.id })
+    return { message: 'Enviamos um novo link de verificacao para seu e-mail.' }
   }
 
   // ── Login ──────────────────────────────────────────────────────────────────
@@ -181,7 +221,14 @@ export class AuthService {
     if (!user) throw new NotFoundException()
     Object.assign(user, data)
     await this.users.save(user)
-    const { passwordHash: _, resetPasswordToken: __, resetPasswordExpiry: ___, ...profile } = user
+    const {
+      passwordHash: _,
+      resetPasswordToken: __,
+      resetPasswordExpiry: ___,
+      emailVerificationToken: ____,
+      emailVerificationExpiry: _____,
+      ...profile
+    } = user
     return profile as SafeUser
   }
 
@@ -271,7 +318,14 @@ export class AuthService {
     const refreshToken = await this.createRefreshToken(user.id, ip, userAgent)
     const csrfToken    = generateCsrfToken(user.id)
 
-    const { passwordHash: _, resetPasswordToken: __, resetPasswordExpiry: ___, ...safeUser } = user
+    const {
+      passwordHash: _,
+      resetPasswordToken: __,
+      resetPasswordExpiry: ___,
+      emailVerificationToken: ____,
+      emailVerificationExpiry: _____,
+      ...safeUser
+    } = user
     if (safeUser.preferences) safeUser.preferences = this.exposePreferences(safeUser.preferences)
 
     return { user: safeUser as SafeUser, tokens: { accessToken, refreshToken }, csrfToken }
