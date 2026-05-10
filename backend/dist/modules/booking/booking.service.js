@@ -230,20 +230,26 @@ let BookingService = class BookingService {
             relations: ['psychologist'],
         });
         if (!booking)
-            throw new common_1.NotFoundException('Link de confirmação inválido');
+            throw new common_1.NotFoundException('Link de confirmacao invalido');
         if (new Date() > booking.tokenExpiresAt)
             throw new common_1.BadRequestException('Este link expirou. Solicite um novo agendamento.');
         if (booking.status === 'cancelled')
-            throw new common_1.BadRequestException('Esta sessão foi cancelada');
+            throw new common_1.BadRequestException('Esta sessao foi cancelada');
         if (booking.status === 'confirmed')
-            return { message: 'Sessão já confirmada anteriormente ✓' };
+            return {
+                message: 'Sessao ja confirmada anteriormente.',
+                booking: this.toCalendarBooking(booking),
+            };
         await this.ensureScheduleIsFree(booking, booking.psychologistId);
         booking.status = 'confirmed';
         booking.confirmedAt = new Date();
         await this.bookings.save(booking);
         await this.createSessionResources(booking, booking.psychologistId);
         await this.notifications.sendBookingConfirmation(booking);
-        return { message: 'Sessão confirmada com sucesso! 🎉' };
+        return {
+            message: 'Sessao confirmada com sucesso!',
+            booking: this.toCalendarBooking(booking),
+        };
     }
     async cancelByToken(token, reason) {
         const booking = await this.bookings.findOne({ where: { confirmationToken: token } });
@@ -431,6 +437,18 @@ let BookingService = class BookingService {
     }
     normalizeTime(time) {
         return time.slice(0, 5);
+    }
+    toCalendarBooking(booking) {
+        return {
+            id: booking.id,
+            patientName: booking.patientName,
+            psychologistName: booking.psychologist?.name,
+            psychologistCrp: booking.psychologist?.crp,
+            date: booking.date,
+            time: this.normalizeTime(booking.time),
+            duration: booking.duration || 50,
+            modality: booking.modality ?? 'online',
+        };
     }
     async ensureScheduleIsFree(booking, psychologistId) {
         const [bookingConflict, appointmentConflict] = await Promise.all([

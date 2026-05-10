@@ -271,25 +271,30 @@ export class BookingService {
       where: { confirmationToken: token },
       relations: ['psychologist'],
     })
-    if (!booking) throw new NotFoundException('Link de confirmação inválido')
+    if (!booking) throw new NotFoundException('Link de confirmacao invalido')
     if (new Date() > booking.tokenExpiresAt)
       throw new BadRequestException('Este link expirou. Solicite um novo agendamento.')
     if (booking.status === 'cancelled')
-      throw new BadRequestException('Esta sessão foi cancelada')
+      throw new BadRequestException('Esta sessao foi cancelada')
     if (booking.status === 'confirmed')
-      return { message: 'Sessão já confirmada anteriormente ✓' }
+      return {
+        message: 'Sessao ja confirmada anteriormente.',
+        booking: this.toCalendarBooking(booking),
+      }
 
     await this.ensureScheduleIsFree(booking, booking.psychologistId)
 
-    booking.status    = 'confirmed'
+    booking.status = 'confirmed'
     booking.confirmedAt = new Date()
     await this.bookings.save(booking)
 
-    // Cria Patient + Appointment + FinancialRecord (mesmo fluxo do painel)
     await this.createSessionResources(booking, booking.psychologistId)
 
     await this.notifications.sendBookingConfirmation(booking)
-    return { message: 'Sessão confirmada com sucesso! 🎉' }
+    return {
+      message: 'Sessao confirmada com sucesso!',
+      booking: this.toCalendarBooking(booking),
+    }
   }
 
   async cancelByToken(token: string, reason?: string) {
@@ -535,6 +540,19 @@ export class BookingService {
 
   private normalizeTime(time: string) {
     return time.slice(0, 5)
+  }
+
+  private toCalendarBooking(booking: Booking) {
+    return {
+      id: booking.id,
+      patientName: booking.patientName,
+      psychologistName: booking.psychologist?.name,
+      psychologistCrp: booking.psychologist?.crp,
+      date: booking.date,
+      time: this.normalizeTime(booking.time),
+      duration: booking.duration || 50,
+      modality: booking.modality ?? 'online',
+    }
   }
 
   private async ensureScheduleIsFree(booking: Booking, psychologistId: string) {

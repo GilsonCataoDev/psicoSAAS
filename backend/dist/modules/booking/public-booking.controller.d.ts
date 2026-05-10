@@ -37,6 +37,16 @@ export declare class PublicBookingController {
     }>;
     confirm(token: string): Promise<{
         message: string;
+        booking: {
+            id: string;
+            patientName: string;
+            psychologistName: string;
+            psychologistCrp: string;
+            date: string;
+            time: string;
+            duration: number;
+            modality: "presencial" | "online";
+        };
     }>;
     cancel(token: string, reason?: string): Promise<{
         message: string;

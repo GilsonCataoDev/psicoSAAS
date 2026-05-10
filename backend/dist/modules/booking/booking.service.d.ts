@@ -56,6 +56,16 @@ export declare class BookingService {
     }>;
     confirmByToken(token: string): Promise<{
         message: string;
+        booking: {
+            id: string;
+            patientName: string;
+            psychologistName: string;
+            psychologistCrp: string;
+            date: string;
+            time: string;
+            duration: number;
+            modality: "presencial" | "online";
+        };
     }>;
     cancelByToken(token: string, reason?: string): Promise<{
         message: string;
@@ -78,5 +88,6 @@ export declare class BookingService {
     private createSessionResources;
     private findOne;
     private normalizeTime;
+    private toCalendarBooking;
     private ensureScheduleIsFree;
 }
