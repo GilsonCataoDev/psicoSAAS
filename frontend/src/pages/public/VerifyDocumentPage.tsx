@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { Shield, CheckCircle2, XCircle, Loader2, ExternalLink, FileText } from 'lucide-react'
 import { api } from '@/lib/api'
 import BrandLogo from '@/components/ui/BrandLogo'

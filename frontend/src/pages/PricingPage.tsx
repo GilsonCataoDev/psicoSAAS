@@ -105,15 +105,20 @@ export default function PricingPage() {
   async function tokenizeCard() {
     const [expiryMonth, expiryYear] = cardExpiry.split('/')
     const { data } = await api.post('/billing/tokenize', {
-      holderName: cardName.trim(),
-      number: cardNumber.replace(/\D/g, ''),
-      expiryMonth,
-      expiryYear: expiryYear.length === 2 ? `20${expiryYear}` : expiryYear,
-      ccv: cardCvv,
-      cpfCnpj: cpfCnpj.replace(/\D/g, ''),
-      postalCode: postalCode.replace(/\D/g, ''),
-      addressNumber: addressNumber.trim(),
-      phone: phone.replace(/\D/g, ''),
+      creditCard: {
+        holderName: cardName.trim(),
+        number: cardNumber.replace(/\D/g, ''),
+        expiryMonth,
+        expiryYear: expiryYear.length === 2 ? `20${expiryYear}` : expiryYear,
+        ccv: cardCvv,
+      },
+      creditCardHolderInfo: {
+        name: cardName.trim(),
+        cpfCnpj: cpfCnpj.replace(/\D/g, ''),
+        postalCode: postalCode.replace(/\D/g, ''),
+        addressNumber: addressNumber.trim(),
+        phone: phone.replace(/\D/g, ''),
+      },
     })
 
     const token = data?.creditCardToken
@@ -186,7 +191,7 @@ export default function PricingPage() {
           </div>
         )}
         <p className="text-neutral-500">
-          Comece gratis ou teste um plano pago por 7 dias. O Essencial organiza a rotina; o Pro libera pagamentos, mensagens e automacoes; o Clinica atende equipes.
+          Comece gratis ou teste um plano pago por 7 dias. O Essencial organiza a rotina; o Pro libera pagamentos, mensagens e automacoes.
         </p>
         {subscription.status === 'past_due' && (
           <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">

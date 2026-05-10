@@ -160,7 +160,7 @@ export default function SettingsPage() {
   const [exportingData, setExportingData] = useState(false)
   const currentPlan  = PLANS.find(p => p.id === subscription.planId)
   const currentPlanId = String(subscription.planId ?? subscription.plan ?? '')
-  const hasProAutomation = ['pro', 'premium'].includes(currentPlanId)
+  const hasProAutomation = currentPlanId === 'pro'
   const hasCancelablePlan = subscription.status === 'active' || subscription.status === 'trialing'
   const isTrialing   = subscription.status === 'trialing'
   const daysLeft     = subscription.trialEndsAt

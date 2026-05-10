@@ -18,12 +18,6 @@ type FormData = {
   referralTo?: string
 }
 
-function generateSignCode(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  return 'PS-' + new Date().getFullYear() + '-' +
-    Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
-}
-
 function buildContent(data: FormData, patient: Patient, type: DocType): string {
   const today = new Date().toLocaleDateString('pt-BR')
 

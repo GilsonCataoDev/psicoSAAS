@@ -52,7 +52,6 @@ export default function BookingManagePage() {
   // Sincroniza retroativamente bookings confirmados sem Appointment ao montar
   useEffect(() => {
     syncAppointments.mutate()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const appBasePath = import.meta.env.BASE_URL || '/'

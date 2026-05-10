@@ -27,17 +27,20 @@ let BillingController = BillingController_1 = class BillingController {
         this.logger = new common_1.Logger(BillingController_1.name);
     }
     async tokenize(req, body) {
+        const payload = body;
+        const card = payload.creditCard ?? payload;
+        const holder = payload.creditCardHolderInfo ?? payload;
         const remoteIp = req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim()
             || req.ip
             || req.socket?.remoteAddress
             || '0.0.0.0';
         const creditCardHolderInfo = {
-            name: body.creditCardHolderInfo?.name?.trim(),
-            email: body.creditCardHolderInfo?.email?.trim() || req.user.email,
-            cpfCnpj: body.creditCardHolderInfo?.cpfCnpj?.replace(/\D/g, ''),
-            postalCode: body.creditCardHolderInfo?.postalCode?.replace(/\D/g, ''),
-            addressNumber: body.creditCardHolderInfo?.addressNumber?.trim(),
-            phone: body.creditCardHolderInfo?.phone?.replace(/\D/g, ''),
+            name: holder.name?.trim() || card.holderName?.trim(),
+            email: holder.email?.trim() || req.user.email,
+            cpfCnpj: holder.cpfCnpj?.replace(/\D/g, ''),
+            postalCode: holder.postalCode?.replace(/\D/g, ''),
+            addressNumber: holder.addressNumber?.trim(),
+            phone: holder.phone?.replace(/\D/g, ''),
         };
         const customerId = await this.asaas.createCustomer({
             ...req.user,
@@ -47,11 +50,11 @@ let BillingController = BillingController_1 = class BillingController {
             customerId,
             remoteIp,
             creditCard: {
-                holderName: body.creditCard?.holderName?.trim(),
-                number: body.creditCard?.number?.replace(/\D/g, ''),
-                expiryMonth: body.creditCard?.expiryMonth,
-                expiryYear: body.creditCard?.expiryYear,
-                ccv: body.creditCard?.ccv?.replace(/\D/g, ''),
+                holderName: card.holderName?.trim(),
+                number: card.number?.replace(/\D/g, ''),
+                expiryMonth: card.expiryMonth,
+                expiryYear: card.expiryYear,
+                ccv: card.ccv?.replace(/\D/g, ''),
             },
             creditCardHolderInfo,
         });

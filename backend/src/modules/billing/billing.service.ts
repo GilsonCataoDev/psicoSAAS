@@ -6,7 +6,7 @@ import { AsaasService } from './asaas.service'
 import { Subscription } from './entities/subscription.entity'
 
 const TRIAL_DAYS = 7
-const PLAN_PRICES: Record<string, number> = { essencial: 79, pro: 149, premium: 249 }
+const PLAN_PRICES: Record<string, number> = { essencial: 79, pro: 149 }
 
 @Injectable()
 export class BillingService {

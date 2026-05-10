@@ -17,23 +17,37 @@ export class BillingController {
   @Post('tokenize')
   @UseGuards(JwtAuthGuard)
   async tokenize(@Request() req: any, @Body() body: TokenizeCreditCardInput) {
+    const payload = body as TokenizeCreditCardInput & Record<string, any>
+    const card = payload.creditCard ?? payload
+    const holder = payload.creditCardHolderInfo ?? payload
     const remoteIp = req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim()
       || req.ip
       || req.socket?.remoteAddress
       || '0.0.0.0'
+    const creditCardHolderInfo = {
+      name: holder.name?.trim() || card.holderName?.trim(),
+      email: holder.email?.trim() || req.user.email,
+      cpfCnpj: holder.cpfCnpj?.replace(/\D/g, ''),
+      postalCode: holder.postalCode?.replace(/\D/g, ''),
+      addressNumber: holder.addressNumber?.trim(),
+      phone: holder.phone?.replace(/\D/g, ''),
+    }
+    const customerId = await this.asaas.createCustomer({
+      ...req.user,
+      cpfCnpj: req.user.cpfCnpj || creditCardHolderInfo.cpfCnpj,
+    })
 
-    const creditCardToken = await this.asaas.tokenizeCreditCard(req.user, {
-      holderName: body.holderName,
-      number: body.number,
-      expiryMonth: body.expiryMonth,
-      expiryYear: body.expiryYear,
-      ccv: body.ccv,
-      cpfCnpj: body.cpfCnpj?.replace(/\D/g, ''),
-      postalCode: body.postalCode?.replace(/\D/g, ''),
-      addressNumber: body.addressNumber,
-      phone: body.phone?.replace(/\D/g, ''),
-      email: req.user.email,
+    const creditCardToken = await this.asaas.tokenizeCreditCard({
+      customerId,
       remoteIp,
+      creditCard: {
+        holderName: card.holderName?.trim(),
+        number: card.number?.replace(/\D/g, ''),
+        expiryMonth: card.expiryMonth,
+        expiryYear: card.expiryYear,
+        ccv: card.ccv?.replace(/\D/g, ''),
+      },
+      creditCardHolderInfo,
     })
 
     return { creditCardToken }

@@ -39,7 +39,7 @@ export class NotificationsService {
       order: { createdAt: 'DESC' },
     })
     const plan = (sub?.status === 'active' || sub?.status === 'trialing') ? sub.plan : 'free'
-    return plan === 'pro' || plan === 'premium'
+    return plan === 'pro'
   }
 
   // ─── Envio via WhatsApp (Evolution API) ──────────────────────────────────
