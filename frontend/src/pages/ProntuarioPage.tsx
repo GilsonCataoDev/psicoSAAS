@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Lock, Save, Printer, FileText } from 'lucide-react'
 import { usePatient, useUpdatePatient, useSessions, useCreateSession } from '@/hooks/useApi'
+import { TAG_LABELS } from '@/types'
 import { Prontuario } from '@/types/prontuario'
 import { formatDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
@@ -319,6 +320,35 @@ export default function ProntuarioPage() {
                 ? <p className="text-sm text-neutral-600 leading-relaxed">{s.summary}</p>
                 : <p className="text-sm text-neutral-400 italic">Sem anotações registradas.</p>
               }
+              {s.privateNotes && (
+                <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2">
+                  <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-amber-700">
+                    <Lock className="h-3.5 w-3.5" />
+                    Anotações privadas
+                  </p>
+                  <p className="text-sm leading-relaxed text-amber-800">{s.privateNotes}</p>
+                </div>
+              )}
+              {s.nextSteps && (
+                <div className="mt-3 rounded-xl border border-sage-100 bg-sage-50 px-3 py-2">
+                  <p className="mb-1 text-xs font-semibold text-sage-700">Próximos passos</p>
+                  <p className="text-sm leading-relaxed text-sage-800">{s.nextSteps}</p>
+                </div>
+              )}
+              {((s.tags?.length ?? 0) > 0 || s.mood) && (
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                  {s.mood && (
+                    <span className="rounded-full bg-neutral-100 px-2.5 py-1 font-medium text-neutral-600">
+                      Humor: {s.mood}/5
+                    </span>
+                  )}
+                  {s.tags?.map(tag => (
+                    <span key={tag} className="rounded-full bg-neutral-100 px-2.5 py-1 font-medium text-neutral-600">
+                      {TAG_LABELS[tag]}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
           {sessions.length === 0 && (

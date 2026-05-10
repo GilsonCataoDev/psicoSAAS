@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { FileText, Plus, Trash2 } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
@@ -88,6 +89,13 @@ export default function SessionsPage() {
                       {session.tags.map(t => <TagBadge key={t} tag={t} small />)}
                     </div>
                   )}
+                  <Link
+                    to={`/prontuario/${session.patientId}`}
+                    className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-sage-600 hover:text-sage-700"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    Ver no prontuário
+                  </Link>
                 </div>
 
                 <div className="flex flex-col items-end gap-1.5 shrink-0">

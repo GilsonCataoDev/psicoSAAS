@@ -45,7 +45,7 @@ export default function NewSessionModal({ open, onClose, defaultPatientId }: {
 
   return (
     <Modal open={open} onClose={onClose} title="Como foi a sessão?" size="lg"
-      description="Registre o que achar relevante. Seus dados são criptografados.">
+      description="Registre o que achar relevante. A sessão entra automaticamente na evolução do prontuário e os dados são criptografados.">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <div className="grid grid-cols-2 gap-4">
           <div>

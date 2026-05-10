@@ -113,8 +113,9 @@ export function useCreateSession() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data: Partial<Session>) => api.post('/sessions', data).then(r => r.data),
-    onSuccess: () => {
+    onSuccess: (session) => {
       qc.invalidateQueries({ queryKey: ['sessions'] })
+      if (session?.patientId) qc.invalidateQueries({ queryKey: ['patients', session.patientId] })
       qc.invalidateQueries({ queryKey: ['appointments'] })
     },
   })
