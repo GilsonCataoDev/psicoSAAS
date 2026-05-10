@@ -53,18 +53,18 @@ let EmailService = EmailService_1 = class EmailService {
             to: email,
             subject: 'Bem-vinda ao PsicoSaaS! 🌱',
             html: this.wrap(`
-        <h1 style="color:#4a7c59;font-weight:300;font-size:28px">Olá, ${firstName}! 🌱</h1>
+        <h1 style="color:#5B3EFF;font-weight:300;font-size:28px">Olá, ${firstName}! 🌱</h1>
         <p style="color:#555;font-size:16px;line-height:1.6">
           Sua conta foi criada com sucesso. Você tem <strong>7 dias grátis</strong>
           para explorar todas as funcionalidades do plano Essencial.
         </p>
         <p style="color:#555;font-size:16px;line-height:1.6">Veja o que você pode fazer agora:</p>
         <ul style="color:#555;font-size:15px;line-height:2">
-          <li>📅 Configure sua <a href="${this.frontendUrl}/agenda" style="color:#4a7c59">disponibilidade de horários</a></li>
-          <li>👥 Adicione suas <a href="${this.frontendUrl}/pacientes" style="color:#4a7c59">primeiras pessoas</a></li>
-          <li>🔗 Ative sua <a href="${this.frontendUrl}/agendamentos" style="color:#4a7c59">página de agendamento público</a></li>
+          <li>📅 Configure sua <a href="${this.frontendUrl}/agenda" style="color:#5B3EFF">disponibilidade de horários</a></li>
+          <li>👥 Adicione suas <a href="${this.frontendUrl}/pacientes" style="color:#5B3EFF">primeiras pessoas</a></li>
+          <li>🔗 Ative sua <a href="${this.frontendUrl}/agendamentos" style="color:#5B3EFF">página de agendamento público</a></li>
         </ul>
-        <a href="${this.frontendUrl}" style="display:inline-block;background:#4a7c59;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:16px">
+        <a href="${this.frontendUrl}" style="display:inline-block;background:#5B3EFF;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:16px">
           Acessar minha conta
         </a>
       `),
@@ -76,14 +76,14 @@ let EmailService = EmailService_1 = class EmailService {
             to: email,
             subject: 'Redefinir sua senha — PsicoSaaS',
             html: this.wrap(`
-        <h1 style="color:#4a7c59;font-weight:300;font-size:24px">Redefinir senha</h1>
+        <h1 style="color:#5B3EFF;font-weight:300;font-size:24px">Redefinir senha</h1>
         <p style="color:#555;font-size:16px;line-height:1.6">
           Olá, ${name.split(' ')[0]}! Recebemos uma solicitação para redefinir a senha da sua conta.
         </p>
         <p style="color:#555;font-size:16px;line-height:1.6">
           Este link é válido por <strong>2 horas</strong>.
         </p>
-        <a href="${link}" style="display:inline-block;background:#4a7c59;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:8px;margin-bottom:16px">
+        <a href="${link}" style="display:inline-block;background:#5B3EFF;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:8px;margin-bottom:16px">
           Redefinir minha senha
         </a>
         <p style="color:#999;font-size:13px">
@@ -98,14 +98,14 @@ let EmailService = EmailService_1 = class EmailService {
             to: email,
             subject: 'Confirme seu e-mail — UseCognia',
             html: this.wrap(`
-        <h1 style="color:#4a7c59;font-weight:300;font-size:24px">Confirme seu e-mail</h1>
+        <h1 style="color:#5B3EFF;font-weight:300;font-size:24px">Confirme seu e-mail</h1>
         <p style="color:#555;font-size:16px;line-height:1.6">
           Olá, ${name.split(' ')[0]}! Clique no botão abaixo para confirmar o e-mail da sua conta UseCognia.
         </p>
         <p style="color:#555;font-size:16px;line-height:1.6">
           Este link é válido por <strong>48 horas</strong>.
         </p>
-        <a href="${link}" style="display:inline-block;background:#4a7c59;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:8px;margin-bottom:16px">
+        <a href="${link}" style="display:inline-block;background:#5B3EFF;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:8px;margin-bottom:16px">
           Confirmar e-mail
         </a>
         <p style="color:#999;font-size:13px">
@@ -119,12 +119,12 @@ let EmailService = EmailService_1 = class EmailService {
             to: psychologistEmail,
             subject: `Nova solicitação de sessão — ${patientName}`,
             html: this.wrap(`
-        <h1 style="color:#4a7c59;font-weight:300;font-size:24px">Nova solicitação 📅</h1>
+        <h1 style="color:#5B3EFF;font-weight:300;font-size:24px">Nova solicitação 📅</h1>
         <p style="color:#555;font-size:16px;line-height:1.6">
           <strong>${patientName}</strong> solicitou uma sessão para
           <strong>${date}</strong> às <strong>${time}</strong>.
         </p>
-        <a href="${confirmUrl}" style="display:inline-block;background:#4a7c59;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:8px">
+        <a href="${confirmUrl}" style="display:inline-block;background:#5B3EFF;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:8px">
           Ver e confirmar
         </a>
       `),
@@ -135,13 +135,13 @@ let EmailService = EmailService_1 = class EmailService {
             to: patientEmail,
             subject: 'Sessão confirmada! 🎉',
             html: this.wrap(`
-        <h1 style="color:#4a7c59;font-weight:300;font-size:24px">Sua sessão foi confirmada! 🎉</h1>
+        <h1 style="color:#5B3EFF;font-weight:300;font-size:24px">Sua sessão foi confirmada! 🎉</h1>
         <p style="color:#555;font-size:16px;line-height:1.6">
           Olá, ${patientName.split(' ')[0]}! Sua sessão para
           <strong>${date}</strong> às <strong>${time}</strong> foi confirmada.
         </p>
         <p style="color:#888;font-size:14px">
-          Precisa cancelar? <a href="${cancelUrl}" style="color:#4a7c59">Clique aqui</a> com pelo menos 24h de antecedência.
+          Precisa cancelar? <a href="${cancelUrl}" style="color:#5B3EFF">Clique aqui</a> com pelo menos 24h de antecedência.
         </p>
       `),
         });
@@ -158,7 +158,7 @@ let EmailService = EmailService_1 = class EmailService {
         <p style="color:#555;font-size:16px;line-height:1.6">
           Assine agora e continue com acesso a todos os recursos. Nenhum dado é perdido.
         </p>
-        <a href="${this.frontendUrl}/planos" style="display:inline-block;background:#4a7c59;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:8px">
+        <a href="${this.frontendUrl}/planos" style="display:inline-block;background:#5B3EFF;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:8px">
           Escolher meu plano
         </a>
       `),
@@ -169,12 +169,12 @@ let EmailService = EmailService_1 = class EmailService {
             to: email,
             subject: 'Você ganhou 1 mês grátis! 🎁',
             html: this.wrap(`
-        <h1 style="color:#4a7c59;font-weight:300;font-size:24px">Você ganhou 1 mês grátis! 🎁</h1>
+        <h1 style="color:#5B3EFF;font-weight:300;font-size:24px">Você ganhou 1 mês grátis! 🎁</h1>
         <p style="color:#555;font-size:16px;line-height:1.6">
           Parabéns, ${name.split(' ')[0]}! <strong>${referredName}</strong> se cadastrou usando sua indicação.
           Seu próximo mês de assinatura está por nossa conta!
         </p>
-        <a href="${this.frontendUrl}" style="display:inline-block;background:#4a7c59;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:8px">
+        <a href="${this.frontendUrl}" style="display:inline-block;background:#5B3EFF;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:8px">
           Acessar minha conta
         </a>
       `),
@@ -191,7 +191,7 @@ let EmailService = EmailService_1 = class EmailService {
       <table width="100%" max-width="520" cellpadding="0" cellspacing="0"
              style="max-width:520px;margin:0 auto;background:white;border-radius:24px;overflow:hidden;box-shadow:0 2px 20px rgba(0,0,0,0.06)">
         <!-- Header -->
-        <tr><td style="background:#4a7c59;padding:24px 32px">
+        <tr><td style="background:#5B3EFF;padding:24px 32px">
           <p style="margin:0;color:white;font-size:20px;font-weight:600">
             Psico<span style="opacity:0.8">SaaS</span>
           </p>
