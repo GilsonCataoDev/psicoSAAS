@@ -3,7 +3,7 @@ import {
   Injectable, Logger, NotFoundException, UnauthorizedException,
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { DataSource, Repository } from 'typeorm'
 import { JwtService } from '@nestjs/jwt'
 import * as bcrypt from 'bcryptjs'
 import { randomBytes } from 'crypto'
@@ -55,6 +55,7 @@ export class AuthService {
   constructor(
     @InjectRepository(User)         private users:    Repository<User>,
     @InjectRepository(RefreshToken) private rtRepo:   Repository<RefreshToken>,
+    private dataSource: DataSource,
     private jwt:      JwtService,
     private email:    EmailService,
     private referral: ReferralService,
@@ -254,6 +255,38 @@ export class AuthService {
     await this.users.save(user)
     this.audit('PASSWORD_CHANGED', { userId: id })
     return { message: 'Senha alterada com sucesso' }
+  }
+
+  async deleteAccount(id: string, password: string, ip?: string): Promise<void> {
+    const user = await this.users
+      .createQueryBuilder('user')
+      .addSelect('user.passwordHash')
+      .where('user.id = :id', { id })
+      .getOne()
+
+    if (!user) throw new NotFoundException()
+
+    const valid = await bcrypt.compare(password, user.passwordHash)
+    if (!valid) throw new UnauthorizedException('Senha invalida')
+
+    await this.dataSource.transaction(async (manager) => {
+      await manager.query('DELETE FROM "referrals" WHERE "referrerId" = $1 OR "referredId" = $1', [id])
+      await manager.query('DELETE FROM "documents" WHERE "userId" = $1', [id])
+      await manager.query('DELETE FROM "billing_subscriptions" WHERE "userId" = $1', [id])
+      await manager.query('DELETE FROM "financial_records" WHERE "psychologistId" = $1', [id])
+      await manager.query('DELETE FROM "sessions" WHERE "psychologistId" = $1', [id])
+      await manager.query('DELETE FROM "appointments" WHERE "psychologistId" = $1', [id])
+      await manager.query('DELETE FROM "bookings" WHERE "psychologistId" = $1', [id])
+      await manager.query('DELETE FROM "booking_pages" WHERE "psychologistId" = $1', [id])
+      await manager.query('DELETE FROM "availability_slots" WHERE "psychologistId" = $1', [id])
+      await manager.query('DELETE FROM "blocked_dates" WHERE "psychologistId" = $1', [id])
+      await manager.query('DELETE FROM "patients" WHERE "psychologistId" = $1', [id])
+      await manager.query('DELETE FROM "refresh_tokens" WHERE "userId" = $1', [id])
+      await manager.query('DELETE FROM "users" WHERE "id" = $1', [id])
+    })
+
+    this.clearLoginAttempts(user.email)
+    this.audit('ACCOUNT_DELETED', { userId: id, ip })
   }
 
   // ── Recuperação de senha ───────────────────────────────────────────────────

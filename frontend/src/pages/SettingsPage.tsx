@@ -4,7 +4,7 @@ import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
 import {
   Bell, Lock, User, MessageSquare, Shield,
-  ExternalLink, CheckCircle2, Zap, ArrowRight, X, Eye, EyeOff, Wallet, Download,
+  ExternalLink, CheckCircle2, Zap, ArrowRight, X, Eye, EyeOff, Wallet, Download, Trash2,
 } from 'lucide-react'
 import { isValidCrpFormat, getCrpRegion, openCfpVerification, formatCrpInput } from '@/lib/crp'
 import { useSubscriptionStore, PLANS } from '@/store/subscription'
@@ -62,6 +62,7 @@ const DEFAULT_PREFS = {
 export default function SettingsPage() {
   const user = useAuthStore(s => s.user)
   const updateUser = useAuthStore(s => s.updateUser)
+  const logout = useAuthStore(s => s.logout)
   const [tab, setTab] = useState('profile')
 
   // ── Perfil ─────────────────────────────────────────────────────────────────
@@ -154,10 +155,13 @@ export default function SettingsPage() {
   }
 
   // ── Plano ──────────────────────────────────────────────────────────────────
-  const { subscription, setSubscription } = useSubscriptionStore()
+  const { subscription, setSubscription, resetSubscription } = useSubscriptionStore()
   const navigate = useNavigate()
   const [cancelingPlan, setCancelingPlan] = useState(false)
   const [exportingData, setExportingData] = useState(false)
+  const [deletePassword, setDeletePassword] = useState('')
+  const [deleteConfirm, setDeleteConfirm] = useState('')
+  const [deletingAccount, setDeletingAccount] = useState(false)
   const currentPlan  = PLANS.find(p => p.id === subscription.planId)
   const currentPlanId = String(subscription.planId ?? subscription.plan ?? '')
   const hasProAutomation = currentPlanId === 'pro'
@@ -206,6 +210,37 @@ export default function SettingsPage() {
       toast.error(e?.response?.data?.message ?? 'Nao foi possivel exportar os dados.')
     } finally {
       setExportingData(false)
+    }
+  }
+
+  async function deleteAccount() {
+    if (deleteConfirm !== 'EXCLUIR') {
+      toast.error('Digite EXCLUIR para confirmar.')
+      return
+    }
+    if (deletePassword.length < 8) {
+      toast.error('Informe sua senha atual.')
+      return
+    }
+
+    const ok = window.confirm(
+      'Excluir sua conta definitivamente? Todos os dados vinculados serao removidos do banco de dados. Esta acao nao pode ser desfeita.',
+    )
+    if (!ok) return
+
+    setDeletingAccount(true)
+    try {
+      await api.delete('/auth/account', {
+        data: { password: deletePassword, confirmation: deleteConfirm },
+      })
+      logout()
+      resetSubscription()
+      toast.success('Conta excluida definitivamente.')
+      navigate('/login', { replace: true })
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? 'Nao foi possivel excluir a conta.')
+    } finally {
+      setDeletingAccount(false)
     }
   }
 
@@ -601,6 +636,55 @@ export default function SettingsPage() {
                 <Download className="w-4 h-4" />
                 {exportingData ? 'Exportando...' : 'Exportar meus dados'}
               </button>
+
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5 dark:border-rose-400/20 dark:bg-rose-500/10">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-xl bg-rose-100 p-2 text-rose-600 dark:bg-rose-400/10 dark:text-rose-300">
+                    <Trash2 className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-4">
+                    <div>
+                      <h3 className="text-sm font-semibold text-rose-800 dark:text-rose-200">Excluir conta definitivamente</h3>
+                      <p className="mt-1 text-sm text-rose-700 dark:text-rose-200/80">
+                        Remove sua conta, pacientes, prontuarios, sessoes, agenda, financeiro, documentos, preferencias,
+                        tokens de acesso e assinaturas salvas no banco de dados. Esta acao nao pode ser desfeita.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="label text-rose-700 dark:text-rose-200">Senha atual</label>
+                        <input
+                          type="password"
+                          value={deletePassword}
+                          onChange={e => setDeletePassword(e.target.value)}
+                          className="input-field"
+                          placeholder="Confirme sua senha"
+                        />
+                      </div>
+                      <div>
+                        <label className="label text-rose-700 dark:text-rose-200">Digite EXCLUIR</label>
+                        <input
+                          value={deleteConfirm}
+                          onChange={e => setDeleteConfirm(e.target.value)}
+                          className="input-field"
+                          placeholder="EXCLUIR"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={deleteAccount}
+                      disabled={deletingAccount || deleteConfirm !== 'EXCLUIR' || deletePassword.length < 8}
+                      className="inline-flex h-10 items-center gap-2 rounded-xl bg-rose-600 px-4 text-sm font-medium text-white transition-colors hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      {deletingAccount ? 'Excluindo...' : 'Excluir minha conta'}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

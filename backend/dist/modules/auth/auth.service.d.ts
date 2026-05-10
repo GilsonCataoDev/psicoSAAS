@@ -1,4 +1,4 @@
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { User } from './entities/user.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
@@ -23,6 +23,7 @@ export declare const CURRENT_TERMS_VERSION = "2026-05-02";
 export declare class AuthService {
     private users;
     private rtRepo;
+    private dataSource;
     private jwt;
     private email;
     private referral;
@@ -31,7 +32,7 @@ export declare class AuthService {
     private readonly loginAttempts;
     private readonly MAX_ATTEMPTS;
     private readonly WINDOW_MS;
-    constructor(users: Repository<User>, rtRepo: Repository<RefreshToken>, jwt: JwtService, email: EmailService, referral: ReferralService);
+    constructor(users: Repository<User>, rtRepo: Repository<RefreshToken>, dataSource: DataSource, jwt: JwtService, email: EmailService, referral: ReferralService);
     register(dto: RegisterDto, ip?: string, userAgent?: string): Promise<AuthResult>;
     verifyEmail(token: string): Promise<{
         message: string;
@@ -48,6 +49,7 @@ export declare class AuthService {
     changePassword(id: string, currentPassword: string, newPassword: string): Promise<{
         message: string;
     }>;
+    deleteAccount(id: string, password: string, ip?: string): Promise<void>;
     forgotPassword(email: string): Promise<void>;
     resetPassword(token: string, newPassword: string): Promise<void>;
     generateCsrfToken(userId: string): string;

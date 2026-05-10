@@ -7,6 +7,7 @@ import { UpdatePreferencesDto } from './dto/update-preferences.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { DeleteAccountDto } from './dto/delete-account.dto';
 export declare class AuthController {
     private readonly auth;
     constructor(auth: AuthService);
@@ -30,6 +31,9 @@ export declare class AuthController {
     updatePreferences(req: any, dto: UpdatePreferencesDto): Promise<Record<string, unknown>>;
     changePassword(req: any, dto: ChangePasswordDto): Promise<{
         message: string;
+    }>;
+    deleteAccount(req: any, dto: DeleteAccountDto, res: Res): Promise<{
+        deleted: boolean;
     }>;
     forgotPassword(dto: ForgotPasswordDto): Promise<{
         message: string;

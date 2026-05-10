@@ -27,9 +27,10 @@ const email_service_1 = require("../email/email.service");
 const referral_service_1 = require("../referral/referral.service");
 exports.CURRENT_TERMS_VERSION = '2026-05-02';
 let AuthService = AuthService_1 = class AuthService {
-    constructor(users, rtRepo, jwt, email, referral) {
+    constructor(users, rtRepo, dataSource, jwt, email, referral) {
         this.users = users;
         this.rtRepo = rtRepo;
+        this.dataSource = dataSource;
         this.jwt = jwt;
         this.email = email;
         this.referral = referral;
@@ -182,6 +183,35 @@ let AuthService = AuthService_1 = class AuthService {
         this.audit('PASSWORD_CHANGED', { userId: id });
         return { message: 'Senha alterada com sucesso' };
     }
+    async deleteAccount(id, password, ip) {
+        const user = await this.users
+            .createQueryBuilder('user')
+            .addSelect('user.passwordHash')
+            .where('user.id = :id', { id })
+            .getOne();
+        if (!user)
+            throw new common_1.NotFoundException();
+        const valid = await bcrypt.compare(password, user.passwordHash);
+        if (!valid)
+            throw new common_1.UnauthorizedException('Senha invalida');
+        await this.dataSource.transaction(async (manager) => {
+            await manager.query('DELETE FROM "referrals" WHERE "referrerId" = $1 OR "referredId" = $1', [id]);
+            await manager.query('DELETE FROM "documents" WHERE "userId" = $1', [id]);
+            await manager.query('DELETE FROM "billing_subscriptions" WHERE "userId" = $1', [id]);
+            await manager.query('DELETE FROM "financial_records" WHERE "psychologistId" = $1', [id]);
+            await manager.query('DELETE FROM "sessions" WHERE "psychologistId" = $1', [id]);
+            await manager.query('DELETE FROM "appointments" WHERE "psychologistId" = $1', [id]);
+            await manager.query('DELETE FROM "bookings" WHERE "psychologistId" = $1', [id]);
+            await manager.query('DELETE FROM "booking_pages" WHERE "psychologistId" = $1', [id]);
+            await manager.query('DELETE FROM "availability_slots" WHERE "psychologistId" = $1', [id]);
+            await manager.query('DELETE FROM "blocked_dates" WHERE "psychologistId" = $1', [id]);
+            await manager.query('DELETE FROM "patients" WHERE "psychologistId" = $1', [id]);
+            await manager.query('DELETE FROM "refresh_tokens" WHERE "userId" = $1', [id]);
+            await manager.query('DELETE FROM "users" WHERE "id" = $1', [id]);
+        });
+        this.clearLoginAttempts(user.email);
+        this.audit('ACCOUNT_DELETED', { userId: id, ip });
+    }
     async forgotPassword(email) {
         const user = await this.users.findOneBy({ email: email.toLowerCase().trim() });
         if (!user)
@@ -290,6 +320,7 @@ exports.AuthService = AuthService = AuthService_1 = __decorate([
     __param(1, (0, typeorm_1.InjectRepository)(refresh_token_entity_1.RefreshToken)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
+        typeorm_2.DataSource,
         jwt_1.JwtService,
         email_service_1.EmailService,
         referral_service_1.ReferralService])

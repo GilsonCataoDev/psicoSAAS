@@ -1,5 +1,5 @@
 import {
-  Body, Controller, Get, HttpCode, HttpStatus,
+  Body, Controller, Delete, Get, HttpCode, HttpStatus,
   Patch, Post, Query, Request, Response, UseGuards,
 } from '@nestjs/common'
 import { Throttle, SkipThrottle } from '@nestjs/throttler'
@@ -14,6 +14,7 @@ import { UpdatePreferencesDto } from './dto/update-preferences.dto'
 import { ChangePasswordDto }    from './dto/change-password.dto'
 import { ForgotPasswordDto }    from './dto/forgot-password.dto'
 import { ResetPasswordDto }     from './dto/reset-password.dto'
+import { DeleteAccountDto }     from './dto/delete-account.dto'
 
 // ── Cookie helpers ────────────────────────────────────────────────────────────
 
@@ -160,6 +161,20 @@ export class AuthController {
   @UseGuards(JwtAuthGuard, CsrfGuard)
   changePassword(@Request() req: any, @Body() dto: ChangePasswordDto) {
     return this.auth.changePassword(req.user.id, dto.currentPassword, dto.newPassword)
+  }
+
+  @Delete('account')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, CsrfGuard)
+  async deleteAccount(
+    @Request() req: any,
+    @Body() dto: DeleteAccountDto,
+    @Response({ passthrough: true }) res: Res,
+  ) {
+    await this.auth.deleteAccount(req.user.id, dto.password, getIp(req))
+    res.clearCookie(ACCESS_COOKIE,  clearAccessOpts())
+    res.clearCookie(REFRESH_COOKIE, clearRefreshOpts())
+    return { deleted: true }
   }
 
   // ── Recuperação de senha ────────────────────────────────────────────────────

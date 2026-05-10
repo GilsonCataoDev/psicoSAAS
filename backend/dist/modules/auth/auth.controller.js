@@ -25,6 +25,7 @@ const update_preferences_dto_1 = require("./dto/update-preferences.dto");
 const change_password_dto_1 = require("./dto/change-password.dto");
 const forgot_password_dto_1 = require("./dto/forgot-password.dto");
 const reset_password_dto_1 = require("./dto/reset-password.dto");
+const delete_account_dto_1 = require("./dto/delete-account.dto");
 const ACCESS_COOKIE = 'psicosaas_token';
 const REFRESH_COOKIE = 'psicosaas_refresh';
 function cookieBase() {
@@ -93,6 +94,12 @@ let AuthController = class AuthController {
     }
     changePassword(req, dto) {
         return this.auth.changePassword(req.user.id, dto.currentPassword, dto.newPassword);
+    }
+    async deleteAccount(req, dto, res) {
+        await this.auth.deleteAccount(req.user.id, dto.password, getIp(req));
+        res.clearCookie(ACCESS_COOKIE, clearAccessOpts());
+        res.clearCookie(REFRESH_COOKIE, clearRefreshOpts());
+        return { deleted: true };
     }
     async forgotPassword(dto) {
         await this.auth.forgotPassword(dto.email);
@@ -193,6 +200,17 @@ __decorate([
     __metadata("design:paramtypes", [Object, change_password_dto_1.ChangePasswordDto]),
     __metadata("design:returntype", void 0)
 ], AuthController.prototype, "changePassword", null);
+__decorate([
+    (0, common_1.Delete)('account'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, csrf_guard_1.CsrfGuard),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Response)({ passthrough: true })),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, delete_account_dto_1.DeleteAccountDto, Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "deleteAccount", null);
 __decorate([
     (0, common_1.Post)('forgot-password'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
