@@ -5,8 +5,19 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
 import App from './App'
 import { initAnalytics } from '@/lib/analytics'
+import { applyTheme, ThemeMode } from '@/store/theme'
 import './index.css'
 
+const persistedTheme = (() => {
+  try {
+    const raw = window.localStorage.getItem('psicosaas-theme')
+    return raw ? JSON.parse(raw)?.state?.mode as ThemeMode | undefined : undefined
+  } catch {
+    return undefined
+  }
+})()
+
+applyTheme(persistedTheme ?? 'system')
 initAnalytics()
 
 const queryClient = new QueryClient({

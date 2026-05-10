@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Bell, Search, X, Check, CheckCheck, Trash2, Calendar, CreditCard, Clock, Settings2 } from 'lucide-react'
+import { Bell, Search, X, Check, CheckCheck, Trash2, Calendar, CreditCard, Clock, Settings2, Moon, Sun } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/auth'
 import { useNotificationStore, AppNotification, NotificationType } from '@/store/notifications'
@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import BrandLogo from '@/components/ui/BrandLogo'
 import { usePatients } from '@/hooks/useApi'
 import { patientMatchesSearch } from '@/lib/patientSearch'
+import { useThemeStore } from '@/store/theme'
 
 const TYPE_ICON: Record<NotificationType, React.ReactNode> = {
   booking_request:   <Calendar  className="w-3.5 h-3.5 text-sage-500"    />,
@@ -73,6 +74,9 @@ export default function TopBar() {
   const panelRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
   const { data: patients = [] } = usePatients()
+  const themeMode = useThemeStore(s => s.mode)
+  const toggleTheme = useThemeStore(s => s.toggleMode)
+  const isDark = themeMode === 'dark' || document.documentElement.classList.contains('dark')
 
   const { notifications, markRead, markAllRead, remove } = useNotificationStore()
   const unread = notifications.filter(n => !n.read).length
@@ -197,6 +201,16 @@ export default function TopBar() {
           </div>
         )}
       </div>
+
+      <button
+        type="button"
+        onClick={toggleTheme}
+        className="p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-white/10 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-100 transition-colors"
+        title={isDark ? 'Usar tema claro' : 'Usar tema escuro'}
+        aria-label={isDark ? 'Usar tema claro' : 'Usar tema escuro'}
+      >
+        {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+      </button>
 
       {/* Notificações */}
       <div className="relative" ref={panelRef}>
