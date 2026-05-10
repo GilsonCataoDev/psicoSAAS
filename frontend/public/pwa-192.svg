@@ -1,5 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" fill="none">
-  <rect width="192" height="192" rx="40" fill="#3f8866"/>
-  <path d="M96 44C79 44 64 57 64 76c0 13 7 22 16 29L96 148l16-43c9-7 16-16 16-29 0-19-15-32-32-32z" fill="white" opacity="0.95"/>
-  <circle cx="96" cy="76" r="14" fill="#3f8866"/>
+  <rect width="192" height="192" rx="44" fill="#0F1020"/>
+  <defs>
+    <linearGradient id="cognia-pwa-192" x1="32" y1="24" x2="168" y2="168" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5B3EFF"/>
+      <stop offset="1" stop-color="#4DA8DA"/>
+    </linearGradient>
+  </defs>
+  <path d="M112 30C66.4 30 32 62 32 96s34.4 66 80 66" fill="none" stroke="url(#cognia-pwa-192)" stroke-width="32" stroke-linecap="round"/>
+  <path d="M114 58c18.4 0 34 14.4 35.2 32.8 11.6 3.2 20.4 14 20.4 26.8 0 14.8-11.6 27.2-26.4 28" fill="none" stroke="url(#cognia-pwa-192)" stroke-width="11.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M112 74v64M112 96l32-18M112 96l34 20M112 124l24 16" fill="none" stroke="#CFC4FF" stroke-width="9.6" stroke-linecap="round"/>
+  <circle cx="112" cy="96" r="12.4" fill="#CFC4FF"/>
+  <circle cx="144" cy="78" r="12.4" fill="#CFC4FF"/>
+  <circle cx="146" cy="116" r="12.4" fill="#CFC4FF"/>
+  <circle cx="136" cy="140" r="12.4" fill="#CFC4FF"/>
+  <circle cx="112" cy="124" r="12.4" fill="#CFC4FF"/>
 </svg>
