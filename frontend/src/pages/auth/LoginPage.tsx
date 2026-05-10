@@ -38,7 +38,11 @@ export default function LoginPage() {
     } catch (err: any) {
       logout()
       const msg = err?.response?.data?.message
-      toast.error(msg === 'Unauthorized' ? 'E-mail ou senha incorretos.' : 'Não foi possível entrar. Tente novamente.')
+      toast.error(
+        err?.response?.status === 401 || msg === 'Unauthorized'
+          ? 'E-mail ou senha incorretos.'
+          : 'Não foi possível entrar. Tente novamente.',
+      )
     } finally {
       setLoading(false)
     }

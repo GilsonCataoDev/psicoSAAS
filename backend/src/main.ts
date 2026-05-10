@@ -66,9 +66,9 @@ async function bootstrap() {
 
   app.enableCors({
     origin: (origin, cb) => {
-      // Em produção: exige origem conhecida. Em dev: permite sem origem (Postman, curl)
+      // Requests sem Origin vêm de navegação direta, health checks, curl e Postman.
+      // CORS só protege chamadas de browser com Origin, então não transforme isso em 500.
       if (!origin) {
-        if (isProduction) return cb(new Error('Requisição sem Origin bloqueada em produção'))
         return cb(null, true)
       }
       if (allowedOrigins.includes(origin)) return cb(null, true)

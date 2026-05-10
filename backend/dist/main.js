@@ -53,8 +53,6 @@ async function bootstrap() {
     app.enableCors({
         origin: (origin, cb) => {
             if (!origin) {
-                if (isProduction)
-                    return cb(new Error('Requisição sem Origin bloqueada em produção'));
                 return cb(null, true);
             }
             if (allowedOrigins.includes(origin))
