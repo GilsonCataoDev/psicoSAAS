@@ -180,7 +180,7 @@ export default function PricingPage() {
               <UseCogniaIcon name="plan-professional" size={24} />
               Seu plano foi ativado
             </p>
-            <Link to="/" className="mt-3 inline-flex h-10 items-center rounded-lg bg-emerald-600 px-4 text-white">
+            <Link to="/" className="mt-3 inline-flex h-10 items-center rounded-lg bg-sage-500 px-4 text-white transition-colors hover:bg-sage-600">
               Ir para dashboard
             </Link>
           </div>

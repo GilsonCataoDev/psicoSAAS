@@ -55,10 +55,11 @@
 
   /* ── Botões ───────────────────────────────────────────────────────── */
   .btn-primary {
-    @apply bg-[#22C55E] hover:bg-[#16a34a] active:bg-[#15803d]
+    @apply bg-sage-500 hover:bg-sage-600 active:bg-sage-700
            text-white font-medium px-5 py-2.5 rounded-xl
            transition-all duration-150 active:scale-[.98]
-           shadow-sm hover:shadow-md;
+           shadow-sm hover:shadow-md
+           focus:outline-none focus:ring-2 focus:ring-sage-200 focus:ring-offset-2;
   }
 
   .btn-secondary {
