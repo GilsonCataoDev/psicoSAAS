@@ -1,4 +1,29 @@
 import { cn } from '@/lib/utils'
+import {
+  AlertTriangle,
+  BadgeCheck,
+  CalendarDays,
+  CheckCircle2,
+  CircleDollarSign,
+  ClipboardList,
+  CreditCard,
+  FileCheck2,
+  FileText,
+  LayoutDashboard,
+  Link2,
+  LockKeyhole,
+  LogIn,
+  LucideIcon,
+  MailCheck,
+  MessageCircle,
+  Settings,
+  ShieldCheck,
+  Sparkles,
+  User,
+  UserPlus,
+  Users,
+  XCircle,
+} from 'lucide-react'
 
 export type UseCogniaIconName =
   | 'dashboard'
@@ -32,31 +57,31 @@ interface UseCogniaIconProps {
   ariaLabel?: string
 }
 
-const AVAILABLE_ICONS = new Set<UseCogniaIconName>([
-  'dashboard',
-  'patients',
-  'calendar',
-  'public-link',
-  'sessions',
-  'documents',
-  'financial',
-  'settings',
-  'login',
-  'signup',
-  'email-verification',
-  'password-recovery',
-  'plan-free',
-  'plan-essential',
-  'plan-professional',
-  'automated-messages',
-  'billing',
-  'payment-methods',
-  'security-lgpd',
-  'success',
-  'error',
-  'warning',
-  'profile',
-])
+const ICONS: Record<UseCogniaIconName, LucideIcon> = {
+  dashboard: LayoutDashboard,
+  patients: Users,
+  calendar: CalendarDays,
+  'public-link': Link2,
+  sessions: ClipboardList,
+  documents: FileText,
+  financial: CircleDollarSign,
+  settings: Settings,
+  login: LogIn,
+  signup: UserPlus,
+  'email-verification': MailCheck,
+  'password-recovery': LockKeyhole,
+  'plan-free': BadgeCheck,
+  'plan-essential': FileCheck2,
+  'plan-professional': Sparkles,
+  'automated-messages': MessageCircle,
+  billing: CreditCard,
+  'payment-methods': CreditCard,
+  'security-lgpd': ShieldCheck,
+  success: CheckCircle2,
+  error: XCircle,
+  warning: AlertTriangle,
+  profile: User,
+}
 
 export default function UseCogniaIcon({
   name,
@@ -64,29 +89,16 @@ export default function UseCogniaIcon({
   className,
   ariaLabel,
 }: UseCogniaIconProps) {
-  if (!AVAILABLE_ICONS.has(name)) {
-    // TODO: adicionar asset proprio para este icone ausente.
-    return (
-      <span
-        className={cn('inline-flex shrink-0 rounded-full border border-current opacity-70', className)}
-        style={{ width: size, height: size }}
-        aria-hidden={ariaLabel ? undefined : true}
-        aria-label={ariaLabel}
-        role={ariaLabel ? 'img' : undefined}
-      />
-    )
-  }
+  const Icon = ICONS[name]
 
   return (
-    <img
-      src={`${import.meta.env.BASE_URL}assets/icons/${size}/icon-${name}.svg`}
-      width={size}
-      height={size}
-      className={cn('inline-block shrink-0 object-contain', className)}
-      alt={ariaLabel ?? ''}
+    <Icon
+      size={size}
+      strokeWidth={size >= 64 ? 1.5 : 2}
+      className={cn('inline-block shrink-0', className)}
       aria-hidden={ariaLabel ? undefined : true}
-      loading="lazy"
-      decoding="async"
+      aria-label={ariaLabel}
+      role={ariaLabel ? 'img' : undefined}
     />
   )
 }
