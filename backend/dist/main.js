@@ -46,8 +46,20 @@ async function bootstrap() {
         crossOriginEmbedderPolicy: false,
     }));
     app.use(cookieParser());
-    const allowedOrigins = (process.env.ALLOWED_ORIGINS ??
-        'http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173,https://gilsoncataodev.github.io').split(',').map(o => o.trim());
+    const normalizeOrigin = (origin) => origin.trim().replace(/\/+$/, '');
+    const defaultOrigins = [
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        'https://gilsoncataodev.github.io',
+        'https://usecognia.vercel.app',
+    ];
+    const allowedOrigins = Array.from(new Set([
+        ...defaultOrigins,
+        process.env.FRONTEND_URL,
+        ...(process.env.ALLOWED_ORIGINS ?? '').split(','),
+    ].filter(Boolean).map(origin => normalizeOrigin(origin))));
     const isProduction = process.env.NODE_ENV === 'production';
     const isLocalDevOrigin = (origin) => /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
     app.enableCors({
@@ -55,7 +67,7 @@ async function bootstrap() {
             if (!origin) {
                 return cb(null, true);
             }
-            if (allowedOrigins.includes(origin))
+            if (allowedOrigins.includes(normalizeOrigin(origin)))
                 return cb(null, true);
             if (!isProduction && isLocalDevOrigin(origin))
                 return cb(null, true);
