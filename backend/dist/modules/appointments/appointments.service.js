@@ -20,12 +20,14 @@ const typeorm_3 = require("typeorm");
 const appointment_entity_1 = require("./entities/appointment.entity");
 const notifications_service_1 = require("../notifications/notifications.service");
 const booking_entity_1 = require("../booking/entities/booking.entity");
+const google_calendar_service_1 = require("../google-calendar/google-calendar.service");
 let AppointmentsService = class AppointmentsService {
-    constructor(repo, bookings, dataSource, notifications) {
+    constructor(repo, bookings, dataSource, notifications, googleCalendar) {
         this.repo = repo;
         this.bookings = bookings;
         this.dataSource = dataSource;
         this.notifications = notifications;
+        this.googleCalendar = googleCalendar;
     }
     findAll(psychologistId, dateFrom, dateTo) {
         const where = { psychologistId };
@@ -73,15 +75,24 @@ let AppointmentsService = class AppointmentsService {
             });
         });
         this.notifications.scheduleReminder(saved).catch(console.error);
+        this.googleCalendar.syncAppointment(saved).catch(console.error);
         return saved;
     }
     async updateStatus(id, status, psychologistId) {
         const a = await this.findOne(id, psychologistId);
         a.status = status;
-        return this.repo.save(a);
+        const saved = await this.repo.save(a);
+        if (['cancelled', 'no_show'].includes(status)) {
+            this.googleCalendar.deleteAppointment(saved).catch(console.error);
+        }
+        else {
+            this.googleCalendar.syncAppointment(saved).catch(console.error);
+        }
+        return saved;
     }
     async remove(id, psychologistId) {
         const a = await this.findOne(id, psychologistId);
+        this.googleCalendar.deleteAppointment(a).catch(console.error);
         return this.repo.remove(a);
     }
 };
@@ -93,6 +104,7 @@ exports.AppointmentsService = AppointmentsService = __decorate([
     __metadata("design:paramtypes", [typeorm_3.Repository,
         typeorm_3.Repository,
         typeorm_2.DataSource,
-        notifications_service_1.NotificationsService])
+        notifications_service_1.NotificationsService,
+        google_calendar_service_1.GoogleCalendarService])
 ], AppointmentsService);
 //# sourceMappingURL=appointments.service.js.map

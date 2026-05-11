@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
 import {
-  Bell, Lock, User, MessageSquare, Shield,
+  Bell, CalendarDays, Lock, User, MessageSquare, Shield,
   ExternalLink, CheckCircle2, Zap, ArrowRight, X, Eye, EyeOff, Wallet, Download, Trash2,
 } from 'lucide-react'
 import { isValidCrpFormat, getCrpRegion, openCfpVerification, formatCrpInput } from '@/lib/crp'
@@ -16,6 +16,7 @@ const tabs = [
   { id: 'plan',     icon: Zap,           label: 'Plano'      },
   { id: 'notify',   icon: Bell,          label: 'Lembretes'  },
   { id: 'messages', icon: MessageSquare, label: 'Mensagens'  },
+  { id: 'integrations', icon: CalendarDays, label: 'Integrações' },
   { id: 'payment',  icon: Wallet,        label: 'Pagamentos' },
   { id: 'privacy',  icon: Lock,          label: 'Privacidade'},
   { id: 'security', icon: Shield,        label: 'Segurança'  },
@@ -53,6 +54,8 @@ const DEFAULT_PREFS = {
   chargeTemplate: 'Olá, {{nome}}! 🌿\n\nSegue o valor da nossa sessão:\n💚 *{{valor}}*\n\nPode pagar via PIX: `{{pix}}`\n\nObrigada! 🙏',
   // Asaas — link de pagamento
   asaasApiKey: '',
+  googleCalendarConnected: false,
+  googleCalendarEmail: '',
   // Mensagens
   whatsapp: '',
   confirmationTemplate: 'Olá, {{nome}}! 🌿 Sua sessão está confirmada para {{data}} às {{hora}}. Até lá! 💙',
@@ -63,7 +66,8 @@ export default function SettingsPage() {
   const user = useAuthStore(s => s.user)
   const updateUser = useAuthStore(s => s.updateUser)
   const logout = useAuthStore(s => s.logout)
-  const [tab, setTab] = useState('profile')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [tab, setTab] = useState(searchParams.get('tab') ?? 'profile')
 
   // ── Perfil ─────────────────────────────────────────────────────────────────
   const [name, setName] = useState(user?.name ?? '')
@@ -96,6 +100,7 @@ export default function SettingsPage() {
   const [prefs, setPrefs] = useState({ ...DEFAULT_PREFS })
   const [loadingPrefs, setLoadingPrefs] = useState(true)
   const [savingPrefs, setSavingPrefs] = useState(false)
+  const [calendarBusy, setCalendarBusy] = useState(false)
 
   useEffect(() => {
     api.get('/auth/me').then(r => {
@@ -104,6 +109,13 @@ export default function SettingsPage() {
       setPhone(r.data?.phone ?? '')
     }).catch(() => {}).finally(() => setLoadingPrefs(false))
   }, [])
+
+  useEffect(() => {
+    if (searchParams.get('googleCalendar') === 'connected') {
+      toast.success('Google Agenda conectado')
+      setSearchParams({ tab: 'integrations' }, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   function setPref<K extends keyof typeof DEFAULT_PREFS>(key: K, value: typeof DEFAULT_PREFS[K]) {
     setPrefs(prev => ({ ...prev, [key]: value }))
@@ -133,6 +145,31 @@ export default function SettingsPage() {
   }
 
   // ── Segurança ──────────────────────────────────────────────────────────────
+  async function connectGoogleCalendar() {
+    setCalendarBusy(true)
+    try {
+      const { data } = await api.get('/google-calendar/connect')
+      window.location.href = data.url
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? 'Nao foi possivel iniciar a conexao com o Google.')
+      setCalendarBusy(false)
+    }
+  }
+
+  async function disconnectGoogleCalendar() {
+    if (!window.confirm('Desconectar Google Agenda? Novas sessoes nao serao enviadas automaticamente.')) return
+    setCalendarBusy(true)
+    try {
+      await api.delete('/google-calendar/disconnect')
+      setPrefs(prev => ({ ...prev, googleCalendarConnected: false, googleCalendarEmail: '' }))
+      toast.success('Google Agenda desconectado')
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? 'Nao foi possivel desconectar.')
+    } finally {
+      setCalendarBusy(false)
+    }
+  }
+
   const [currentPw, setCurrentPw] = useState('')
   const [newPw, setNewPw]         = useState('')
   const [confirmPw, setConfirmPw] = useState('')
@@ -414,6 +451,66 @@ export default function SettingsPage() {
           )}
 
           {/* ── Pagamentos ────────────────────────────────────────────── */}
+          {tab === 'integrations' && (
+            <div className="space-y-5">
+              <div className="card space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-sage-50 text-sage-600 flex items-center justify-center">
+                      <CalendarDays className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h2 className="section-title mb-0.5">Google Agenda do psicologo</h2>
+                      <p className="text-sm text-neutral-500">
+                        Quando uma sessao for criada ou confirmada na UseCognia, ela tambem entra na sua agenda Google.
+                      </p>
+                    </div>
+                  </div>
+                  <span className={`badge ${prefs.googleCalendarConnected ? 'bg-sage-50 text-sage-700' : 'bg-neutral-100 text-neutral-500'}`}>
+                    {prefs.googleCalendarConnected ? 'Conectado' : 'Desconectado'}
+                  </span>
+                </div>
+
+                {prefs.googleCalendarConnected ? (
+                  <div className="rounded-xl border border-sage-100 bg-sage-50 p-4 text-sm text-sage-700">
+                    <p className="font-medium">Conta conectada</p>
+                    <p className="mt-1">{prefs.googleCalendarEmail || 'Google Agenda autorizado'}</p>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-600">
+                    <p className="font-medium text-neutral-700">Permissao necessaria</p>
+                    <p className="mt-1">
+                      O Google vai pedir acesso para criar eventos na sua agenda. A UseCognia nao le seus eventos pessoais.
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-3">
+                  {prefs.googleCalendarConnected ? (
+                    <button
+                      type="button"
+                      onClick={disconnectGoogleCalendar}
+                      disabled={calendarBusy}
+                      className="btn-secondary text-sm"
+                    >
+                      {calendarBusy ? 'Desconectando...' : 'Desconectar'}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={connectGoogleCalendar}
+                      disabled={calendarBusy}
+                      className="btn-primary text-sm inline-flex items-center gap-2"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      {calendarBusy ? 'Abrindo Google...' : 'Conectar Google Agenda'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {tab === 'payment' && (
             <div className="space-y-5">
               {!hasProAutomation && (

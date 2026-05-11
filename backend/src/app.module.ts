@@ -17,6 +17,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module'
 import { ReferralModule } from './modules/referral/referral.module'
 import { BillingModule } from './modules/billing/billing.module'
 import { DataExportModule } from './modules/data-export/data-export.module'
+import { GoogleCalendarModule } from './modules/google-calendar/google-calendar.module'
 import { Subscription as BillingSubscription } from './modules/billing/entities/subscription.entity'
 import { PlanGuard } from './common/guards/plan.guard'
 import { SubscriptionGuard } from './common/guards/subscription.guard'
@@ -59,6 +60,7 @@ import { SubscriptionGuard } from './common/guards/subscription.guard'
     ReferralModule,
     BillingModule,
     DataExportModule,
+    GoogleCalendarModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

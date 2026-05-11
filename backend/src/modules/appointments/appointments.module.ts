@@ -5,9 +5,10 @@ import { AppointmentsService } from './appointments.service'
 import { Appointment } from './entities/appointment.entity'
 import { Booking } from '../booking/entities/booking.entity'
 import { NotificationsModule } from '../notifications/notifications.module'
+import { GoogleCalendarModule } from '../google-calendar/google-calendar.module'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Appointment, Booking]), NotificationsModule],
+  imports: [TypeOrmModule.forFeature([Appointment, Booking]), NotificationsModule, GoogleCalendarModule],
   controllers: [AppointmentsController],
   providers: [AppointmentsService],
 })

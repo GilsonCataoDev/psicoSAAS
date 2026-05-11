@@ -18,6 +18,7 @@ import { AvailabilityService } from '../availability/availability.service'
 import { NotificationsService } from '../notifications/notifications.service'
 import { CreateBookingDto } from './dto/create-booking.dto'
 import { SaveBookingPageDto } from './dto/save-booking-page.dto'
+import { GoogleCalendarService } from '../google-calendar/google-calendar.service'
 
 const OCCUPYING_BOOKING_STATUSES: Booking['status'][] = ['pending', 'confirmed']
 const FREE_APPOINTMENT_STATUSES = ['cancelled', 'no_show']
@@ -32,6 +33,7 @@ export class BookingService {
     @InjectRepository(FinancialRecord) private financial:    Repository<FinancialRecord>,
     private availability:  AvailabilityService,
     private notifications: NotificationsService,
+    private googleCalendar: GoogleCalendarService,
     private config:        ConfigService,
     private dataSource:    DataSource,
   ) {}
@@ -288,7 +290,8 @@ export class BookingService {
     booking.confirmedAt = new Date()
     await this.bookings.save(booking)
 
-    await this.createSessionResources(booking, booking.psychologistId)
+    const appointment = await this.createSessionResources(booking, booking.psychologistId)
+    if (appointment) this.googleCalendar.syncAppointment(appointment).catch(console.error)
 
     await this.notifications.sendBookingConfirmation(booking)
     return {
@@ -472,9 +475,9 @@ export class BookingService {
    * Idempotente: se appointmentId já existir, não cria duplicata.
    * Usado tanto pelo fluxo do painel (confirmBooking) quanto pelo link público (confirmByToken).
    */
-  private async createSessionResources(booking: Booking, psychologistId: string): Promise<void> {
+  private async createSessionResources(booking: Booking, psychologistId: string): Promise<Appointment | null> {
     // Idempotência: já foi processado
-    if (booking.appointmentId) return
+    if (booking.appointmentId) return null
 
     // ── 1. Encontra ou cria o Paciente ──────────────────────────────────────
     let patient: Patient | null = null
@@ -512,6 +515,7 @@ export class BookingService {
         notes:          booking.patientNotes || undefined,
       }),
     )
+    appointment.patient = patient
 
     // ── 3. Vincula Appointment ao Booking ───────────────────────────────────
     booking.appointmentId = appointment.id
@@ -530,6 +534,8 @@ export class BookingService {
         sessionId:     appointment.id,   // referência para markPaid encontrar o registro
       }),
     ).catch(() => {})  // não derruba o fluxo se a coluna ainda não existir em prod
+
+    return appointment
   }
 
   private async findOne(id: string, psychologistId: string) {

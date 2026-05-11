@@ -6,6 +6,7 @@ import { Appointment } from './entities/appointment.entity'
 import { CreateAppointmentDto } from './dto/create-appointment.dto'
 import { NotificationsService } from '../notifications/notifications.service'
 import { Booking } from '../booking/entities/booking.entity'
+import { GoogleCalendarService } from '../google-calendar/google-calendar.service'
 
 @Injectable()
 export class AppointmentsService {
@@ -14,6 +15,7 @@ export class AppointmentsService {
     @InjectRepository(Booking) private bookings: Repository<Booking>,
     private dataSource: DataSource,
     private notifications: NotificationsService,
+    private googleCalendar: GoogleCalendarService,
   ) {}
 
   findAll(psychologistId: string, dateFrom?: string, dateTo?: string) {
@@ -68,17 +70,25 @@ export class AppointmentsService {
 
     // Schedule reminder notifications (fire-and-forget)
     this.notifications.scheduleReminder(saved).catch(console.error)
+    this.googleCalendar.syncAppointment(saved).catch(console.error)
     return saved
   }
 
   async updateStatus(id: string, status: string, psychologistId: string) {
     const a = await this.findOne(id, psychologistId)
     a.status = status
-    return this.repo.save(a)
+    const saved = await this.repo.save(a)
+    if (['cancelled', 'no_show'].includes(status)) {
+      this.googleCalendar.deleteAppointment(saved).catch(console.error)
+    } else {
+      this.googleCalendar.syncAppointment(saved).catch(console.error)
+    }
+    return saved
   }
 
   async remove(id: string, psychologistId: string) {
     const a = await this.findOne(id, psychologistId)
+    this.googleCalendar.deleteAppointment(a).catch(console.error)
     return this.repo.remove(a)
   }
 }

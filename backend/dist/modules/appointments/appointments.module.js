@@ -14,12 +14,13 @@ const appointments_service_1 = require("./appointments.service");
 const appointment_entity_1 = require("./entities/appointment.entity");
 const booking_entity_1 = require("../booking/entities/booking.entity");
 const notifications_module_1 = require("../notifications/notifications.module");
+const google_calendar_module_1 = require("../google-calendar/google-calendar.module");
 let AppointmentsModule = class AppointmentsModule {
 };
 exports.AppointmentsModule = AppointmentsModule;
 exports.AppointmentsModule = AppointmentsModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([appointment_entity_1.Appointment, booking_entity_1.Booking]), notifications_module_1.NotificationsModule],
+        imports: [typeorm_1.TypeOrmModule.forFeature([appointment_entity_1.Appointment, booking_entity_1.Booking]), notifications_module_1.NotificationsModule, google_calendar_module_1.GoogleCalendarModule],
         controllers: [appointments_controller_1.AppointmentsController],
         providers: [appointments_service_1.AppointmentsService],
     })

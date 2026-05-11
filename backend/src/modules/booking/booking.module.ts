@@ -10,12 +10,14 @@ import { NotificationsModule } from '../notifications/notifications.module'
 import { Patient } from '../patients/entities/patient.entity'
 import { Appointment } from '../appointments/entities/appointment.entity'
 import { FinancialRecord } from '../financial/entities/financial-record.entity'
+import { GoogleCalendarModule } from '../google-calendar/google-calendar.module'
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Booking, BookingPage, Patient, Appointment, FinancialRecord]),
     AvailabilityModule,
     NotificationsModule,
+    GoogleCalendarModule,
   ],
   controllers: [BookingController, PublicBookingController],
   providers: [BookingService],

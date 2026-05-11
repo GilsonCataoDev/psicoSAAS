@@ -365,10 +365,14 @@ export class AuthService {
   }
 
   private exposePreferences(preferences: Record<string, unknown>): Record<string, unknown> {
-    return {
+    const safe: Record<string, unknown> = {
       ...preferences,
       asaasApiKey: safeDecryptSecret(preferences.asaasApiKey),
     }
+    delete safe.googleCalendarAccessToken
+    delete safe.googleCalendarRefreshToken
+    delete safe.googleCalendarExpiresAt
+    return safe
   }
 
   private async createRefreshToken(userId: string, ip?: string, userAgent?: string): Promise<string> {

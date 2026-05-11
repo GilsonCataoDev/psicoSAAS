@@ -252,10 +252,14 @@ let AuthService = AuthService_1 = class AuthService {
         return { user: safeUser, tokens: { accessToken, refreshToken }, csrfToken };
     }
     exposePreferences(preferences) {
-        return {
+        const safe = {
             ...preferences,
             asaasApiKey: (0, encrypt_util_1.safeDecryptSecret)(preferences.asaasApiKey),
         };
+        delete safe.googleCalendarAccessToken;
+        delete safe.googleCalendarRefreshToken;
+        delete safe.googleCalendarExpiresAt;
+        return safe;
     }
     async createRefreshToken(userId, ip, userAgent) {
         const rawToken = (0, crypto_1.randomBytes)(40).toString('hex');

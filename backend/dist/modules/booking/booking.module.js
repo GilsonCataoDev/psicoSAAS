@@ -19,6 +19,7 @@ const notifications_module_1 = require("../notifications/notifications.module");
 const patient_entity_1 = require("../patients/entities/patient.entity");
 const appointment_entity_1 = require("../appointments/entities/appointment.entity");
 const financial_record_entity_1 = require("../financial/entities/financial-record.entity");
+const google_calendar_module_1 = require("../google-calendar/google-calendar.module");
 let BookingModule = class BookingModule {
 };
 exports.BookingModule = BookingModule;
@@ -28,6 +29,7 @@ exports.BookingModule = BookingModule = __decorate([
             typeorm_1.TypeOrmModule.forFeature([booking_entity_1.Booking, booking_page_entity_1.BookingPage, patient_entity_1.Patient, appointment_entity_1.Appointment, financial_record_entity_1.FinancialRecord]),
             availability_module_1.AvailabilityModule,
             notifications_module_1.NotificationsModule,
+            google_calendar_module_1.GoogleCalendarModule,
         ],
         controllers: [booking_controller_1.BookingController, public_booking_controller_1.PublicBookingController],
         providers: [booking_service_1.BookingService],

@@ -26,10 +26,11 @@ const appointment_entity_1 = require("../appointments/entities/appointment.entit
 const financial_record_entity_1 = require("../financial/entities/financial-record.entity");
 const availability_service_1 = require("../availability/availability.service");
 const notifications_service_1 = require("../notifications/notifications.service");
+const google_calendar_service_1 = require("../google-calendar/google-calendar.service");
 const OCCUPYING_BOOKING_STATUSES = ['pending', 'confirmed'];
 const FREE_APPOINTMENT_STATUSES = ['cancelled', 'no_show'];
 let BookingService = class BookingService {
-    constructor(bookings, pages, patients, appointments, financial, availability, notifications, config, dataSource) {
+    constructor(bookings, pages, patients, appointments, financial, availability, notifications, googleCalendar, config, dataSource) {
         this.bookings = bookings;
         this.pages = pages;
         this.patients = patients;
@@ -37,6 +38,7 @@ let BookingService = class BookingService {
         this.financial = financial;
         this.availability = availability;
         this.notifications = notifications;
+        this.googleCalendar = googleCalendar;
         this.config = config;
         this.dataSource = dataSource;
     }
@@ -244,7 +246,9 @@ let BookingService = class BookingService {
         booking.status = 'confirmed';
         booking.confirmedAt = new Date();
         await this.bookings.save(booking);
-        await this.createSessionResources(booking, booking.psychologistId);
+        const appointment = await this.createSessionResources(booking, booking.psychologistId);
+        if (appointment)
+            this.googleCalendar.syncAppointment(appointment).catch(console.error);
         await this.notifications.sendBookingConfirmation(booking);
         return {
             message: 'Sessao confirmada com sucesso!',
@@ -386,7 +390,7 @@ let BookingService = class BookingService {
     }
     async createSessionResources(booking, psychologistId) {
         if (booking.appointmentId)
-            return;
+            return null;
         let patient = null;
         if (booking.patientEmail) {
             patient = await this.patients.findOne({
@@ -416,6 +420,7 @@ let BookingService = class BookingService {
             status: 'scheduled',
             notes: booking.patientNotes || undefined,
         }));
+        appointment.patient = patient;
         booking.appointmentId = appointment.id;
         await this.bookings.save(booking);
         await this.financial.save(this.financial.create({
@@ -428,6 +433,7 @@ let BookingService = class BookingService {
             psychologistId,
             sessionId: appointment.id,
         })).catch(() => { });
+        return appointment;
     }
     async findOne(id, psychologistId) {
         const b = await this.bookings.findOne({ where: { id, psychologistId } });
@@ -490,6 +496,7 @@ exports.BookingService = BookingService = __decorate([
         typeorm_2.Repository,
         availability_service_1.AvailabilityService,
         notifications_service_1.NotificationsService,
+        google_calendar_service_1.GoogleCalendarService,
         config_1.ConfigService,
         typeorm_2.DataSource])
 ], BookingService);

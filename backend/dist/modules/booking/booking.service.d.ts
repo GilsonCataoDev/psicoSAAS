@@ -9,6 +9,7 @@ import { AvailabilityService } from '../availability/availability.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { SaveBookingPageDto } from './dto/save-booking-page.dto';
+import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
 export declare class BookingService {
     private bookings;
     private pages;
@@ -17,9 +18,10 @@ export declare class BookingService {
     private financial;
     private availability;
     private notifications;
+    private googleCalendar;
     private config;
     private dataSource;
-    constructor(bookings: Repository<Booking>, pages: Repository<BookingPage>, patients: Repository<Patient>, appointments: Repository<Appointment>, financial: Repository<FinancialRecord>, availability: AvailabilityService, notifications: NotificationsService, config: ConfigService, dataSource: DataSource);
+    constructor(bookings: Repository<Booking>, pages: Repository<BookingPage>, patients: Repository<Patient>, appointments: Repository<Appointment>, financial: Repository<FinancialRecord>, availability: AvailabilityService, notifications: NotificationsService, googleCalendar: GoogleCalendarService, config: ConfigService, dataSource: DataSource);
     generateDailyToken(userId: string): string;
     resolveDailyToken(token: string): Promise<BookingPage | null>;
     getPublicPage(slugOrToken: string): Promise<{

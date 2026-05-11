@@ -26,6 +26,7 @@ const analytics_module_1 = require("./modules/analytics/analytics.module");
 const referral_module_1 = require("./modules/referral/referral.module");
 const billing_module_1 = require("./modules/billing/billing.module");
 const data_export_module_1 = require("./modules/data-export/data-export.module");
+const google_calendar_module_1 = require("./modules/google-calendar/google-calendar.module");
 const subscription_entity_1 = require("./modules/billing/entities/subscription.entity");
 const plan_guard_1 = require("./common/guards/plan.guard");
 const subscription_guard_1 = require("./common/guards/subscription.guard");
@@ -65,6 +66,7 @@ exports.AppModule = AppModule = __decorate([
             referral_module_1.ReferralModule,
             billing_module_1.BillingModule,
             data_export_module_1.DataExportModule,
+            google_calendar_module_1.GoogleCalendarModule,
         ],
         providers: [
             { provide: core_1.APP_GUARD, useClass: throttler_1.ThrottlerGuard },
