@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FileText, Plus, Trash2 } from 'lucide-react'
+import { FileText, NotebookPen, Plus, Trash2 } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
@@ -53,7 +53,7 @@ export default function SessionsPage() {
 
       {!isLoading && sessions.length === 0 && (
         <EmptyState
-          image="empty-state-no-appointments.png"
+          icon={<NotebookPen className="h-7 w-7" strokeWidth={1.8} />}
           title="Nenhuma sessão registrada ainda"
           description="Após cada atendimento, registre o que aconteceu. Seus registros ficam seguros e organizados aqui."
           action={
