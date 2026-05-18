@@ -355,13 +355,43 @@ function BookingSettings({ page }: { page: any }) {
     }))
   }
 
+  function minutes(time: string) {
+    const [hours, mins] = time.split(':').map(Number)
+    return hours * 60 + mins
+  }
+
+  function validateSettings() {
+    if (!form.allowPresencial && !form.allowOnline) {
+      toast.error('Ative pelo menos uma modalidade.')
+      return false
+    }
+    if (form.sessionDuration <= 0 || form.slotInterval <= 0) {
+      toast.error('Duração e intervalo precisam ser maiores que zero.')
+      return false
+    }
+
+    const invalidSlot = MODALITIES.flatMap(({ key }) =>
+      WEEKDAYS
+        .filter(({ d }) => schedules[key][d]?.enabled)
+        .map(({ d, label }) => ({ modality: key, label, slot: schedules[key][d] })),
+    ).find(({ slot }) => {
+      const start = minutes(slot.startTime)
+      const end = minutes(slot.endTime)
+      return start >= end || end - start < form.sessionDuration
+    })
+
+    if (invalidSlot) {
+      toast.error(`Revise ${invalidSlot.label} em ${invalidSlot.modality}: horário insuficiente para a duração da sessão.`)
+      return false
+    }
+
+    return true
+  }
+
   async function save() {
     try {
       // Salva configurações gerais
-      if (!form.allowPresencial && !form.allowOnline) {
-        toast.error('Ative pelo menos uma modalidade.')
-        return
-      }
+      if (!validateSettings()) return
       await saveBookingPage.mutateAsync(form)
       // Salva horários de disponibilidade
       const slots = MODALITIES.flatMap(({ key }) =>

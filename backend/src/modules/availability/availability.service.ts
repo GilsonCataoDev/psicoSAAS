@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { BadRequestException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { AvailabilitySlot } from './entities/availability-slot.entity'
@@ -31,10 +31,14 @@ export class AvailabilityService {
   }
 
   async saveSlots(psychologistId: string, slotsData: { weekday: number; startTime: string; endTime: string; modality?: 'presencial' | 'online' }[]) {
-    // Remove os existentes e recria
-    await this.slots.delete({ psychologistId })
-    const newSlots = slotsData.map(s => this.slots.create({ ...s, modality: s.modality ?? 'online', psychologistId }))
-    return this.slots.save(newSlots)
+    this.validateSlots(slotsData)
+
+    return this.slots.manager.transaction(async (manager) => {
+      const slotRepo = manager.getRepository(AvailabilitySlot)
+      await slotRepo.delete({ psychologistId })
+      const newSlots = slotsData.map(s => slotRepo.create({ ...s, modality: s.modality ?? 'online', psychologistId }))
+      return slotRepo.save(newSlots)
+    })
   }
 
   getBlockedDates(psychologistId: string) {
@@ -48,5 +52,33 @@ export class AvailabilityService {
 
   async removeBlockedDate(id: string, psychologistId: string) {
     await this.blocked.delete({ id, psychologistId })
+  }
+
+  private validateSlots(slotsData: { weekday: number; startTime: string; endTime: string; modality?: 'presencial' | 'online' }[]) {
+    slotsData.forEach((slot) => {
+      if (!Number.isInteger(slot.weekday) || slot.weekday < 0 || slot.weekday > 6) {
+        throw new BadRequestException('Dia da semana invalido')
+      }
+      if (!['presencial', 'online', undefined].includes(slot.modality)) {
+        throw new BadRequestException('Modalidade invalida')
+      }
+
+      const start = this.timeToMinutes(slot.startTime)
+      const end = this.timeToMinutes(slot.endTime)
+      if (start >= end) {
+        throw new BadRequestException('O horario inicial deve ser menor que o horario final')
+      }
+    })
+  }
+
+  private timeToMinutes(time: string): number {
+    if (!/^\d{2}:\d{2}$/.test(time)) {
+      throw new BadRequestException('Horario invalido')
+    }
+    const [hours, minutes] = time.split(':').map(Number)
+    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+      throw new BadRequestException('Horario invalido')
+    }
+    return hours * 60 + minutes
   }
 }

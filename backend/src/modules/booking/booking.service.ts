@@ -128,6 +128,7 @@ export class BookingService {
     if (!page) throw new NotFoundException()
     if (modality === 'presencial' && !page.allowPresencial) return []
     if (modality === 'online' && !page.allowOnline) return []
+    if (page.sessionDuration <= 0 || page.slotInterval <= 0) return []
 
     const date = parseISO(dateStr)
     const weekday = getDay(date)

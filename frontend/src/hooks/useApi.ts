@@ -65,7 +65,7 @@ export function useMe() {
 
 // ── Appointments ──────────────────────────────────────────────────────────────
 
-export function useAppointments(params?: { patientId?: string }) {
+export function useAppointments(params?: { patientId?: string; from?: string; to?: string }) {
   return useQuery<Appointment[]>({
     queryKey: ['appointments', params],
     queryFn: () => api.get('/appointments', { params }).then(r => r.data),
@@ -76,7 +76,10 @@ export function useCreateAppointment() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data: Partial<Appointment>) => api.post('/appointments', data).then(r => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['appointments'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['appointments'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+    },
   })
 }
 

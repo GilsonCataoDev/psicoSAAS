@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsBoolean, IsNumber } from 'class-validator'
+import { IsString, IsOptional, IsBoolean, IsNumber, Min } from 'class-validator'
 import { Type, Transform } from 'class-transformer'
 
 export class SaveBookingPageDto {
@@ -9,11 +9,11 @@ export class SaveBookingPageDto {
   @IsString() @IsOptional() title?: string
   @IsString() @IsOptional() description?: string
 
-  @IsNumber() @IsOptional() @Type(() => Number) sessionPrice?: number
-  @IsNumber() @IsOptional() @Type(() => Number) sessionDuration?: number
-  @IsNumber() @IsOptional() @Type(() => Number) slotInterval?: number
-  @IsNumber() @IsOptional() @Type(() => Number) minAdvanceDays?: number
-  @IsNumber() @IsOptional() @Type(() => Number) maxAdvanceDays?: number
+  @IsNumber() @Min(0) @IsOptional() @Type(() => Number) sessionPrice?: number
+  @IsNumber() @Min(1) @IsOptional() @Type(() => Number) sessionDuration?: number
+  @IsNumber() @Min(1) @IsOptional() @Type(() => Number) slotInterval?: number
+  @IsNumber() @Min(0) @IsOptional() @Type(() => Number) minAdvanceDays?: number
+  @IsNumber() @Min(0) @IsOptional() @Type(() => Number) maxAdvanceDays?: number
 
   @IsBoolean() @IsOptional()
   @Transform(({ value }) => value === 'true' || value === true)

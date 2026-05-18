@@ -18,8 +18,18 @@ const HOURS = Array.from({ length: 13 }, (_, i) => i + 7) // 7h–19h
 export default function AgendaPage() {
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }))
   const [showModal, setShowModal] = useState(false)
-  const days = eachDayOfInterval({ start: weekStart, end: addDays(weekStart, 4) })
-  const { data: appointments = [] } = useAppointments()
+  const weekEnd = addDays(weekStart, 4)
+  const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
+  const { data: appointments = [] } = useAppointments({
+    from: format(weekStart, 'yyyy-MM-dd'),
+    to: format(weekEnd, 'yyyy-MM-dd'),
+  })
+  const visibleHours = Array.from(new Set([
+    ...HOURS,
+    ...appointments
+      .map(a => Number(a.time.slice(0, 2)))
+      .filter(hour => Number.isFinite(hour) && hour >= 0 && hour <= 23),
+  ])).sort((a, b) => a - b)
   const deleteAppointment = useDeleteAppointment()
 
   // Mobile: só mostra o dia atual
@@ -112,9 +122,9 @@ export default function AgendaPage() {
                   <p className="text-[10px] text-neutral-400">{appt.duration}min</p>
                 </div>
                 <div className="w-px h-10 bg-neutral-100 shrink-0" />
-                <Avatar name={appt.patient!.name} colorClass={appt.patient!.avatarColor} size="sm" />
+                <Avatar name={appt.patient?.name ?? 'Paciente removido'} colorClass={appt.patient?.avatarColor} size="sm" />
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm text-neutral-800 truncate">{appt.patient!.name}</p>
+                  <p className="font-medium text-sm text-neutral-800 truncate">{appt.patient?.name ?? 'Paciente removido'}</p>
                   <div className="flex items-center gap-1 mt-0.5 text-xs text-neutral-400">
                     {appt.modality === 'online'
                       ? <><Video className="w-3 h-3 text-mist-500" />Online</>
@@ -164,7 +174,7 @@ export default function AgendaPage() {
           ))}
         </div>
         <div className="overflow-y-auto max-h-[480px]">
-          {HOURS.map(hour => (
+          {visibleHours.map(hour => (
             <div key={hour} className="grid grid-cols-[64px_repeat(5,1fr)] border-b border-neutral-50 min-h-[72px]">
               <div className="p-2 text-xs text-neutral-400 text-right pr-3 pt-2">{hour}:00</div>
               {days.map(day => {
@@ -201,7 +211,7 @@ export default function AgendaPage() {
                           </button>
                         </div>
                         <p className="text-xs text-sage-700 truncate mt-0.5">
-                          {appt.patient?.name.split(' ')[0]}
+                          {appt.patient?.name?.split(' ')[0] ?? 'Paciente'}
                         </p>
                       </div>
                     ))}
