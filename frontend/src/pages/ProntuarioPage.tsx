@@ -266,7 +266,10 @@ export default function ProntuarioPage() {
 
           {/* Nova entrada */}
           <div className="card space-y-3">
-            <h2 className="section-title">Nova evolução</h2>
+            <h2 className="section-title">Nova evolução clínica</h2>
+            <p className="text-xs text-neutral-400">
+              Este registro entra no histórico do prontuário e não gera cobrança no financeiro.
+            </p>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="label">Data</label>
@@ -294,7 +297,7 @@ export default function ProntuarioPage() {
                       date: evolDate,
                       summary: evolText,
                       duration: patient?.sessionDuration ?? 50,
-                      paymentStatus: 'pending',
+                      paymentStatus: 'waived',
                     } as any)
                     setEvolText('')
                     toast.success('Evolucao registrada')

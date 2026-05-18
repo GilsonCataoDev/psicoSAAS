@@ -117,6 +117,8 @@ export function useCreateSession() {
       qc.invalidateQueries({ queryKey: ['sessions'] })
       if (session?.patientId) qc.invalidateQueries({ queryKey: ['patients', session.patientId] })
       qc.invalidateQueries({ queryKey: ['appointments'] })
+      qc.invalidateQueries({ queryKey: ['financial'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
     },
   })
 }

@@ -69,11 +69,11 @@ export default function SessionsPage() {
           {sessions.map(session => (
             <div key={session.id} className="card hover:shadow-lifted hover:-translate-y-px transition-all duration-200 p-4 group">
               <div className="flex items-start gap-3">
-                <Avatar name={session.patient!.name} colorClass={session.patient!.avatarColor} />
+                <Avatar name={session.patient?.name ?? 'Paciente removido'} colorClass={session.patient?.avatarColor} />
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <h3 className="font-semibold text-neutral-800 text-sm">{session.patient!.name}</h3>
+                    <h3 className="font-semibold text-neutral-800 text-sm">{session.patient?.name ?? 'Paciente removido'}</h3>
                     <span className="text-neutral-200 text-xs">·</span>
                     <span className="text-xs text-neutral-400 tabular-nums">{formatDateRelative(session.date)}</span>
                     <span className="text-neutral-200 text-xs hidden sm:inline">·</span>
@@ -84,7 +84,7 @@ export default function SessionsPage() {
                       {session.summary}
                     </p>
                   )}
-                  {session.tags.length > 0 && (
+                  {(session.tags?.length ?? 0) > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1.5">
                       {session.tags.map(t => <TagBadge key={t} tag={t} small />)}
                     </div>
@@ -106,8 +106,8 @@ export default function SessionsPage() {
                   )}
                   <StatusBadge status={session.paymentStatus} />
                   <button
-                    onClick={() => handleDelete(session.id, session.patient!.name)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-rose-50 text-neutral-300 hover:text-rose-500"
+                    onClick={() => handleDelete(session.id, session.patient?.name ?? 'paciente removido')}
+                    className="sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-rose-50 text-neutral-300 hover:text-rose-500"
                     title="Excluir sessão"
                   >
                     <Trash2 className="w-3.5 h-3.5" />

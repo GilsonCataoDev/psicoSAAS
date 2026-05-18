@@ -136,6 +136,8 @@ export class SessionsService {
   async remove(id: string, psychologistId: string) {
     // remove() do TypeORM precisa da entidade real, não do plain object decriptado
     const s = await this.findRaw(id, psychologistId)
+    const financialRecord = await this.financial.findBySessionId(s.id, psychologistId)
+    if (financialRecord) await this.financial.remove(financialRecord.id, psychologistId)
     await this.repo.remove(s)
     return { deleted: true }
   }
