@@ -1,0 +1,238 @@
+:root {
+  color: #16201d;
+  background: #f5f7f4;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.page-shell {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 40px 32px;
+  color: #f8fbf8;
+  background: linear-gradient(180deg, #1f5f55 0%, #153b3c 100%);
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  color: #bde8dc;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(2rem, 4vw, 3.8rem);
+  line-height: 1;
+}
+
+.metric-list {
+  display: grid;
+  gap: 14px;
+}
+
+.metric {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.metric svg {
+  width: 22px;
+  height: 22px;
+}
+
+.metric strong {
+  display: block;
+  font-size: 1.4rem;
+}
+
+.metric small {
+  color: #d4ebe5;
+}
+
+.content {
+  padding: 36px;
+}
+
+.toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 22px;
+}
+
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid #dce4dc;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.search-field input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+}
+
+.status-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.status-filter button {
+  min-height: 40px;
+  border: 1px solid #d5dfd7;
+  border-radius: 8px;
+  padding: 0 12px;
+  color: #33423d;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.status-filter .active {
+  color: #ffffff;
+  border-color: #1f5f55;
+  background: #1f5f55;
+}
+
+.schedule {
+  display: grid;
+  gap: 14px;
+}
+
+.appointment-card {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 20px;
+  padding: 20px;
+  border: 1px solid #dce4dc;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 10px 22px rgba(28, 48, 42, 0.06);
+}
+
+.time-block {
+  display: grid;
+  align-content: center;
+  min-height: 92px;
+  border-right: 1px solid #e5ebe5;
+}
+
+.time-block strong {
+  font-size: 1.45rem;
+}
+
+.time-block span,
+.appointment-main p,
+.appointment-details {
+  color: #66756f;
+}
+
+.appointment-main {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.appointment-main h2 {
+  font-size: 1.15rem;
+}
+
+.badge {
+  align-self: start;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.confirmed {
+  color: #17624e;
+  background: #dff5ed;
+}
+
+.waiting {
+  color: #8a5b12;
+  background: #fff0ce;
+}
+
+.follow-up {
+  color: #314f9f;
+  background: #e3ebff;
+}
+
+.appointment-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.appointment-details span {
+  padding-right: 10px;
+  border-right: 1px solid #dce4dc;
+}
+
+.appointment-details span:last-child {
+  border-right: 0;
+}
+
+@media (max-width: 820px) {
+  .page-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    gap: 28px;
+    min-height: auto;
+  }
+
+  .toolbar,
+  .appointment-card {
+    grid-template-columns: 1fr;
+  }
+
+  .time-block {
+    min-height: auto;
+    padding-bottom: 12px;
+    border-right: 0;
+    border-bottom: 1px solid #e5ebe5;
+  }
+}
