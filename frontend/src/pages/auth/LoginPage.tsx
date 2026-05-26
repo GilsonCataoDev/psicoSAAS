@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Eye, EyeOff } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
-import { api } from '@/lib/api'
+import { api, AuthAxiosRequestConfig } from '@/lib/api'
 import toast from 'react-hot-toast'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 
@@ -30,17 +30,22 @@ export default function LoginPage() {
 
   async function onSubmit(data: FormData) {
     setLoading(true)
+    let loginAccepted = false
     try {
       const res = await api.post('/auth/login', { email: data.email, password: data.password })
+      loginAccepted = true
       setAuth(res.data.user)
       if (res.data.csrfToken) setCsrfToken(res.data.csrfToken)
+      await api.get('/auth/me', { skipAuthRedirect: true } as AuthAxiosRequestConfig)
       navigate('/')
     } catch (err: any) {
       logout()
       const msg = err?.response?.data?.message
       toast.error(
         err?.response?.status === 401 || msg === 'Unauthorized'
-          ? 'E-mail ou senha incorretos.'
+          ? loginAccepted
+            ? 'Nao foi possivel manter sua sessao. Verifique se os cookies do navegador estao habilitados.'
+            : 'E-mail ou senha incorretos.'
           : 'Não foi possível entrar. Tente novamente.',
       )
     } finally {

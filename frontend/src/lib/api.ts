@@ -3,6 +3,11 @@ import { useAuthStore } from '@/store/auth'
 
 export const USE_MOCK = false
 
+export type AuthAxiosRequestConfig = AxiosRequestConfig & {
+  _retry?: boolean
+  skipAuthRedirect?: boolean
+}
+
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'https://psicosaas-production-2d6c.up.railway.app/api',
   headers: { 'Content-Type': 'application/json' },
@@ -50,9 +55,13 @@ function isAuthPublicEndpoint(url?: string): boolean {
 api.interceptors.response.use(
   res => res,
   async err => {
-    const original = err.config as AxiosRequestConfig & { _retry?: boolean }
+    const original = err.config as AuthAxiosRequestConfig
 
     if (err.response?.status !== 401) return Promise.reject(err)
+
+    if (original.skipAuthRedirect) {
+      return Promise.reject(err)
+    }
 
     if (isAuthPublicEndpoint(original.url)) {
       return Promise.reject(err)
