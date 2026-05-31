@@ -1,9 +1,10 @@
 import { Body, Controller, Delete, Get, Param, Post, Request, UseGuards } from '@nestjs/common'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
+import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { AvailabilityService } from './availability.service'
 
 @Controller('availability')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, CsrfGuard)
 export class AvailabilityController {
   constructor(private svc: AvailabilityService) {}
 

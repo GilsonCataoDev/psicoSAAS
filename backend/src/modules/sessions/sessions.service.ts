@@ -8,6 +8,7 @@ import { NotificationsService } from '../notifications/notifications.service'
 import { Patient } from '../patients/entities/patient.entity'
 import { User } from '../auth/entities/user.entity'
 import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
+import { Appointment } from '../appointments/entities/appointment.entity'
 
 @Injectable()
 export class SessionsService {
@@ -17,6 +18,7 @@ export class SessionsService {
     @InjectRepository(Session) private repo: Repository<Session>,
     @InjectRepository(Patient) private patients: Repository<Patient>,
     @InjectRepository(User) private users: Repository<User>,
+    @InjectRepository(Appointment) private appointments: Repository<Appointment>,
     private financial: FinancialService,
     private notifications: NotificationsService,
   ) {}
@@ -65,6 +67,11 @@ export class SessionsService {
   }
 
   async create(dto: CreateSessionDto, psychologistId: string): Promise<Session> {
+    await this.assertPatientBelongsToPsychologist(dto.patientId, psychologistId)
+    if (dto.appointmentId) {
+      await this.assertAppointmentBelongsToPsychologist(dto.appointmentId, psychologistId)
+    }
+
     // Criptografa campos clínicos antes de persistir
     const encrypted = this.encryptFields(dto)
     const session   = this.repo.create({ ...encrypted, psychologistId })
@@ -117,6 +124,13 @@ export class SessionsService {
     // Carrega entidade bruta (campos ainda criptografados no banco)
     const s              = await this.findRaw(id, psychologistId)
     const oldPaymentStatus = s.paymentStatus
+
+    if (dto.patientId) {
+      await this.assertPatientBelongsToPsychologist(dto.patientId, psychologistId)
+    }
+    if (dto.appointmentId) {
+      await this.assertAppointmentBelongsToPsychologist(dto.appointmentId, psychologistId)
+    }
 
     // Criptografa os campos que estão sendo atualizados; campos não enviados permanecem intactos
     const encrypted = this.encryptFields(dto)
@@ -197,5 +211,15 @@ export class SessionsService {
       pendingPayments:   allSessions.filter(s => s.paymentStatus === 'pending').length,
       pendingAmount:     0,
     }
+  }
+
+  private async assertPatientBelongsToPsychologist(patientId: string, psychologistId: string): Promise<void> {
+    const patient = await this.patients.findOne({ where: { id: patientId, psychologistId } })
+    if (!patient) throw new NotFoundException('Pessoa não encontrada')
+  }
+
+  private async assertAppointmentBelongsToPsychologist(appointmentId: string, psychologistId: string): Promise<void> {
+    const appointment = await this.appointments.findOne({ where: { id: appointmentId, psychologistId } })
+    if (!appointment) throw new NotFoundException('Agendamento não encontrado')
   }
 }

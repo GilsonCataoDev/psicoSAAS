@@ -7,10 +7,11 @@ import { FinancialModule } from '../financial/financial.module'
 import { NotificationsModule } from '../notifications/notifications.module'
 import { Patient } from '../patients/entities/patient.entity'
 import { User } from '../auth/entities/user.entity'
+import { Appointment } from '../appointments/entities/appointment.entity'
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Session, Patient, User]),
+    TypeOrmModule.forFeature([Session, Patient, User, Appointment]),
     FinancialModule,
     NotificationsModule,
   ],

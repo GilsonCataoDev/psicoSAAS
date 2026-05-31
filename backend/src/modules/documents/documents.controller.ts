@@ -5,6 +5,7 @@ import { SkipThrottle } from '@nestjs/throttler'
 import { IsEnum, IsString, IsNotEmpty } from 'class-validator'
 import { Response } from 'express'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
+import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { RequirePlan } from '../../common/decorators/require-plan.decorator'
 import { DocumentsService, CreateDocumentDto } from './documents.service'
 import { DocType } from './entities/document.entity'
@@ -23,7 +24,7 @@ export class DocumentsController {
 
   /** Gerar e assinar um novo documento (requer plano Essencial ou superior) */
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard)
   @RequirePlan('essencial')
   async create(@Req() req: any, @Body() body: CreateDocumentBodyDto) {
     const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
@@ -56,7 +57,7 @@ export class DocumentsController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard)
   async remove(@Param('id') id: string, @Req() req: any) {
     return this.svc.remove(id, req.user.id)
   }

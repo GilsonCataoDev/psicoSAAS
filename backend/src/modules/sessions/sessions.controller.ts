@@ -1,10 +1,11 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
+import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { SessionsService } from './sessions.service'
 import { CreateSessionDto } from './dto/create-session.dto'
 
 @Controller('sessions')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, CsrfGuard)
 export class SessionsController {
   constructor(private svc: SessionsService) {}
 

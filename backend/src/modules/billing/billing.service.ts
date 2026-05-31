@@ -39,10 +39,10 @@ export class BillingService {
     ) {
       subscription.status = 'canceled'
       subscription.cancelAtPeriodEnd = false
-      return this.repo.save(subscription)
+      return this.toPublicSubscription(await this.repo.save(subscription))
     }
 
-    return subscription
+    return this.toPublicSubscription(subscription)
   }
 
   async subscribe(user: User, plan = 'pro', creditCardToken?: string) {
@@ -105,7 +105,7 @@ export class BillingService {
       currentPeriodEnd: null,
     })
 
-    return this.repo.save(saved)
+    return this.toPublicSubscription(await this.repo.save(saved))
   }
 
   async activateFree(user: Pick<User, 'id' | 'email'>) {
@@ -132,7 +132,7 @@ export class BillingService {
       cancelAtPeriodEnd: false,
     })
 
-    return this.repo.save(subscription)
+    return this.toPublicSubscription(await this.repo.save(subscription))
   }
 
   async updateCard(userId: string, creditCardToken?: string) {
@@ -153,7 +153,7 @@ export class BillingService {
       await this.asaas.retryLatestSubscriptionPayment(subscription.gatewaySubscriptionId, creditCardToken)
     }
 
-    return this.repo.save(subscription)
+    return this.toPublicSubscription(await this.repo.save(subscription))
   }
 
   async cancel(user: Pick<User, 'id' | 'email'>) {
@@ -178,14 +178,14 @@ export class BillingService {
 
     if (subscription.status === 'active' && periodEnd && periodEnd.getTime() > Date.now()) {
       subscription.cancelAtPeriodEnd = true
-      return this.repo.save(subscription)
+      return this.toPublicSubscription(await this.repo.save(subscription))
     }
 
     subscription.status = 'canceled'
     subscription.cancelAtPeriodEnd = false
     subscription.currentPeriodEnd = new Date()
     subscription.trialEndsAt = null
-    return this.repo.save(subscription)
+    return this.toPublicSubscription(await this.repo.save(subscription))
   }
 
   private isCompedProUser(user: Pick<User, 'email'>): boolean {
@@ -214,7 +214,14 @@ export class BillingService {
       hasUsedTrial: true,
     })
 
-    return this.repo.save(subscription)
+    return this.toPublicSubscription(await this.repo.save(subscription))
+  }
+
+  private toPublicSubscription(subscription: Subscription) {
+    const { gatewayCustomerId, gatewaySubscriptionId, ...safeSubscription } = subscription
+    void gatewayCustomerId
+    void gatewaySubscriptionId
+    return safeSubscription
   }
 
   async getMetrics() {

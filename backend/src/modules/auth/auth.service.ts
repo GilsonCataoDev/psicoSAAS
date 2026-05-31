@@ -230,6 +230,7 @@ export class AuthService {
       emailVerificationExpiry: _____,
       ...profile
     } = user
+    if (profile.preferences) profile.preferences = this.exposePreferences(profile.preferences)
     return profile as SafeUser
   }
 

@@ -230,12 +230,21 @@ export class DataExportService {
       passwordHash,
       resetPasswordToken,
       resetPasswordExpiry,
+      emailVerificationToken,
+      emailVerificationExpiry,
+      preferences,
       ...safeUser
     } = user
     void passwordHash
     void resetPasswordToken
     void resetPasswordExpiry
-    return safeUser
+    void emailVerificationToken
+    void emailVerificationExpiry
+    void preferences
+    return {
+      ...safeUser,
+      preferences: this.cleanPreferences(user.preferences),
+    }
   }
 
   private cleanSubscription(subscription: Subscription) {
@@ -267,6 +276,18 @@ export class DataExportService {
     void signHash
     void signerIp
     return safeDocument
+  }
+
+  private cleanPreferences(preferences?: Record<string, unknown>): Record<string, unknown> | undefined {
+    if (!preferences) return undefined
+
+    const safe = { ...preferences }
+    safe.asaasApiKeyConfigured = typeof preferences.asaasApiKey === 'string' && preferences.asaasApiKey.trim().length > 0
+    delete safe.asaasApiKey
+    delete safe.googleCalendarAccessToken
+    delete safe.googleCalendarRefreshToken
+    delete safe.googleCalendarExpiresAt
+    return safe
   }
 
   private decryptProntuario(value?: Record<string, any>): Record<string, any> | undefined {

@@ -1,5 +1,6 @@
-import { Body, Controller, Get, Headers, HttpCode, Logger, Post, Request, UseGuards } from '@nestjs/common'
+import { Body, Controller, ForbiddenException, Get, Headers, HttpCode, Logger, Post, Request, UseGuards } from '@nestjs/common'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
+import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { AsaasService, TokenizeCreditCardInput } from './asaas.service'
 import { BillingWebhookService } from './billing-webhook.service'
 import { BillingService } from './billing.service'
@@ -15,7 +16,7 @@ export class BillingController {
   ) {}
 
   @Post('tokenize')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard)
   async tokenize(@Request() req: any, @Body() body: TokenizeCreditCardInput) {
     const payload = body as TokenizeCreditCardInput & Record<string, any>
     const card = payload.creditCard ?? payload
@@ -54,7 +55,7 @@ export class BillingController {
   }
 
   @Post('subscribe')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard)
   subscribe(
     @Request() req: any,
     @Body('plan') plan?: string,
@@ -64,26 +65,29 @@ export class BillingController {
   }
 
   @Post('free')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard)
   activateFree(@Request() req: any) {
     return this.billing.activateFree(req.user)
   }
 
   @Post('update-card')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard)
   updateCard(@Request() req: any, @Body('creditCardToken') creditCardToken?: string) {
     return this.billing.updateCard(req.user.id, creditCardToken)
   }
 
   @Post('cancel')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard)
   cancel(@Request() req: any) {
     return this.billing.cancel(req.user)
   }
 
   @Get('metrics')
   @UseGuards(JwtAuthGuard)
-  metrics() {
+  metrics(@Request() req: any) {
+    if (!this.isMetricsAdmin(req.user?.email)) {
+      throw new ForbiddenException('Acesso restrito')
+    }
     return this.billing.getMetrics()
   }
 
@@ -91,6 +95,14 @@ export class BillingController {
   @UseGuards(JwtAuthGuard)
   me(@Request() req: any) {
     return this.billing.getMine(req.user)
+  }
+
+  private isMetricsAdmin(email?: string): boolean {
+    const admins = (process.env.ADMIN_EMAILS ?? '')
+      .split(',')
+      .map(value => value.trim().toLowerCase())
+      .filter(Boolean)
+    return !!email && admins.includes(email.toLowerCase())
   }
 
   @Post('webhook')

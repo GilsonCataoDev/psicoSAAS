@@ -23,7 +23,27 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: { sub: string; email: string }) {
     const user = await this.auth.findById(payload.sub)
     if (!user) throw new UnauthorizedException('Sessão inválida')
-    const { passwordHash: _, ...safe } = user as any
+    const {
+      passwordHash: _passwordHash,
+      resetPasswordToken: _resetPasswordToken,
+      resetPasswordExpiry: _resetPasswordExpiry,
+      emailVerificationToken: _emailVerificationToken,
+      emailVerificationExpiry: _emailVerificationExpiry,
+      ...safe
+    } = user as any
+    if (safe.preferences) {
+      safe.preferences = this.cleanPreferences(safe.preferences)
+    }
+    return safe
+  }
+
+  private cleanPreferences(preferences: Record<string, unknown>): Record<string, unknown> {
+    const safe = { ...preferences }
+    safe.asaasApiKeyConfigured = typeof preferences.asaasApiKey === 'string' && preferences.asaasApiKey.trim().length > 0
+    delete safe.asaasApiKey
+    delete safe.googleCalendarAccessToken
+    delete safe.googleCalendarRefreshToken
+    delete safe.googleCalendarExpiresAt
     return safe
   }
 }

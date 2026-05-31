@@ -1,10 +1,12 @@
-import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common'
+import { Injectable, NotFoundException, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { FinancialRecord } from './entities/financial-record.entity'
 import { CreateFinancialDto } from './dto/create-financial.dto'
 import { NotificationsService } from '../notifications/notifications.service'
 import { User } from '../auth/entities/user.entity'
+import { Patient } from '../patients/entities/patient.entity'
+import { Session } from '../sessions/entities/session.entity'
 
 @Injectable()
 export class FinancialService {
@@ -13,6 +15,8 @@ export class FinancialService {
   constructor(
     @InjectRepository(FinancialRecord) private repo: Repository<FinancialRecord>,
     @InjectRepository(User) private users: Repository<User>,
+    @InjectRepository(Patient) private patients: Repository<Patient>,
+    @InjectRepository(Session) private sessions: Repository<Session>,
     private notifications: NotificationsService,
   ) {}
 
@@ -24,9 +28,8 @@ export class FinancialService {
   }
 
   async findOne(id: string, psychologistId: string) {
-    const r = await this.repo.findOne({ where: { id } })
+    const r = await this.repo.findOne({ where: { id, psychologistId }, relations: ['patient'] })
     if (!r) throw new NotFoundException()
-    if (r.psychologistId !== psychologistId) throw new ForbiddenException()
     return r
   }
 
@@ -34,7 +37,14 @@ export class FinancialService {
     return this.repo.findOne({ where: { sessionId, psychologistId } })
   }
 
-  create(dto: CreateFinancialDto & { status?: string; paidAt?: string }, psychologistId: string) {
+  async create(dto: CreateFinancialDto & { status?: string; paidAt?: string }, psychologistId: string) {
+    if (dto.patientId) {
+      await this.assertPatientBelongsToPsychologist(dto.patientId, psychologistId)
+    }
+    if (dto.sessionId) {
+      await this.assertSessionBelongsToPsychologist(dto.sessionId, psychologistId)
+    }
+
     const record = this.repo.create({ ...dto, psychologistId })
     return this.repo.save(record)
   }
@@ -98,5 +108,15 @@ export class FinancialService {
       pending: income.filter(r => r.status === 'pending').reduce((s, r) => s + Number(r.amount), 0),
       overdue: income.filter(r => r.status === 'overdue').reduce((s, r) => s + Number(r.amount), 0),
     }
+  }
+
+  private async assertPatientBelongsToPsychologist(patientId: string, psychologistId: string): Promise<void> {
+    const patient = await this.patients.findOne({ where: { id: patientId, psychologistId } })
+    if (!patient) throw new NotFoundException('Pessoa não encontrada')
+  }
+
+  private async assertSessionBelongsToPsychologist(sessionId: string, psychologistId: string): Promise<void> {
+    const session = await this.sessions.findOne({ where: { id: sessionId, psychologistId } })
+    if (!session) throw new NotFoundException('Sessão não encontrada')
   }
 }

@@ -3,12 +3,13 @@ import {
   Param, Patch, Post, Query, Request, UseGuards,
 } from '@nestjs/common'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
+import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { FinancialService } from './financial.service'
 import { CreateFinancialDto } from './dto/create-financial.dto'
 import { RequirePlan } from '../../common/decorators/require-plan.decorator'
 
 @Controller('financial')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, CsrfGuard)
 export class FinancialController {
   constructor(private svc: FinancialService) {}
 

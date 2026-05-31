@@ -7,12 +7,14 @@ import { CreateAppointmentDto } from './dto/create-appointment.dto'
 import { NotificationsService } from '../notifications/notifications.service'
 import { Booking } from '../booking/entities/booking.entity'
 import { GoogleCalendarService } from '../google-calendar/google-calendar.service'
+import { Patient } from '../patients/entities/patient.entity'
 
 @Injectable()
 export class AppointmentsService {
   constructor(
     @InjectRepository(Appointment) private repo: Repository<Appointment>,
     @InjectRepository(Booking) private bookings: Repository<Booking>,
+    @InjectRepository(Patient) private patients: Repository<Patient>,
     private dataSource: DataSource,
     private notifications: NotificationsService,
     private googleCalendar: GoogleCalendarService,
@@ -32,6 +34,8 @@ export class AppointmentsService {
   }
 
   async create(dto: CreateAppointmentDto, psychologistId: string) {
+    await this.assertPatientBelongsToPsychologist(dto.patientId, psychologistId)
+
     const saved = await this.dataSource.transaction(async (manager) => {
       await manager.query(
         'SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))',
@@ -90,5 +94,10 @@ export class AppointmentsService {
     const a = await this.findOne(id, psychologistId)
     this.googleCalendar.deleteAppointment(a).catch(console.error)
     return this.repo.remove(a)
+  }
+
+  private async assertPatientBelongsToPsychologist(patientId: string, psychologistId: string): Promise<void> {
+    const patient = await this.patients.findOne({ where: { id: patientId, psychologistId } })
+    if (!patient) throw new NotFoundException('Pessoa não encontrada')
   }
 }
