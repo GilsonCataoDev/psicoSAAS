@@ -7,7 +7,7 @@ import { DataSource, Repository } from 'typeorm'
 import { JwtService } from '@nestjs/jwt'
 import * as bcrypt from 'bcryptjs'
 import { randomBytes } from 'crypto'
-import { encryptSecret, generateCsrfToken, hashToken, safeDecryptSecret } from '../../common/crypto/encrypt.util'
+import { encryptSecret, generateCsrfToken, hashToken } from '../../common/crypto/encrypt.util'
 import { User }         from './entities/user.entity'
 import { RefreshToken } from './entities/refresh-token.entity'
 import { RegisterDto }          from './dto/register.dto'
@@ -236,10 +236,21 @@ export class AuthService {
   async updatePreferences(id: string, preferences: UpdatePreferencesDto): Promise<Record<string, unknown>> {
     const user = await this.users.findOneBy({ id })
     if (!user) throw new NotFoundException()
-    const next = { ...(user.preferences ?? {}), ...preferences }
-    if (typeof next.asaasApiKey === 'string' && next.asaasApiKey.trim()) {
-      next.asaasApiKey = encryptSecret(next.asaasApiKey.trim())
+
+    const sanitizedPreferences: Record<string, unknown> = { ...preferences }
+    if ('asaasApiKey' in sanitizedPreferences) {
+      const asaasApiKey = typeof sanitizedPreferences.asaasApiKey === 'string'
+        ? sanitizedPreferences.asaasApiKey.trim()
+        : ''
+
+      if (asaasApiKey) {
+        sanitizedPreferences.asaasApiKey = encryptSecret(asaasApiKey)
+      } else {
+        delete sanitizedPreferences.asaasApiKey
+      }
     }
+
+    const next = { ...(user.preferences ?? {}), ...sanitizedPreferences }
     user.preferences = next
     await this.users.save(user)
     return this.exposePreferences(user.preferences!)
@@ -365,10 +376,9 @@ export class AuthService {
   }
 
   private exposePreferences(preferences: Record<string, unknown>): Record<string, unknown> {
-    const safe: Record<string, unknown> = {
-      ...preferences,
-      asaasApiKey: safeDecryptSecret(preferences.asaasApiKey),
-    }
+    const safe: Record<string, unknown> = { ...preferences }
+    safe.asaasApiKeyConfigured = typeof preferences.asaasApiKey === 'string' && preferences.asaasApiKey.trim().length > 0
+    delete safe.asaasApiKey
     delete safe.googleCalendarAccessToken
     delete safe.googleCalendarRefreshToken
     delete safe.googleCalendarExpiresAt

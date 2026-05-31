@@ -54,6 +54,7 @@ const DEFAULT_PREFS = {
   chargeTemplate: 'Olá, {{nome}}! 🌿\n\nSegue o valor da nossa sessão:\n💚 *{{valor}}*\n\nPode pagar via PIX: `{{pix}}`\n\nObrigada! 🙏',
   // Asaas — link de pagamento
   asaasApiKey: '',
+  asaasApiKeyConfigured: false,
   googleCalendarConnected: false,
   googleCalendarEmail: '',
   // Mensagens
@@ -121,10 +122,22 @@ export default function SettingsPage() {
     setPrefs(prev => ({ ...prev, [key]: value }))
   }
 
+  function buildPrefsPayload() {
+    const { asaasApiKeyConfigured: _configured, ...rest } = prefs
+    const payload: Partial<typeof rest> = { ...rest }
+    if (!payload.asaasApiKey?.trim()) delete payload.asaasApiKey
+    return payload
+  }
+
   async function savePrefs(section?: string) {
     setSavingPrefs(true)
     try {
-      await api.patch('/auth/preferences', prefs)
+      const saved = await api.patch('/auth/preferences', buildPrefsPayload()).then(r => r.data)
+      setPrefs(prev => ({
+        ...prev,
+        ...saved,
+        asaasApiKey: '',
+      }))
       toast.success(section ? `${section} salvo` : 'Preferencias salvas')
     } catch {
       toast.error('Erro ao salvar. Tente novamente.')
@@ -584,11 +597,13 @@ export default function SettingsPage() {
                     onChange={e => setPref('asaasApiKey', e.target.value)}
                     disabled={!hasProAutomation}
                     className="input-field"
-                    placeholder="$aact_…"
+                    placeholder={prefs.asaasApiKeyConfigured ? 'Chave configurada - informe uma nova para trocar' : '$aact_…'}
                     autoComplete="off"
                   />
                   <p className="text-xs text-neutral-400 mt-1.5">
-                    Encontre em: Asaas → Configurações → Integrações → Chave API
+                    {prefs.asaasApiKeyConfigured
+                      ? 'A chave salva fica protegida no servidor e nao e exibida novamente.'
+                      : 'Encontre em: Asaas → Configurações → Integrações → Chave API'}
                   </p>
                 </div>
                 <div className="flex justify-end">

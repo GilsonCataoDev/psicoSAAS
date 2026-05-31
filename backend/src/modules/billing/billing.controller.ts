@@ -66,7 +66,7 @@ export class BillingController {
   @Post('free')
   @UseGuards(JwtAuthGuard)
   activateFree(@Request() req: any) {
-    return this.billing.activateFree(req.user.id)
+    return this.billing.activateFree(req.user)
   }
 
   @Post('update-card')
@@ -78,7 +78,7 @@ export class BillingController {
   @Post('cancel')
   @UseGuards(JwtAuthGuard)
   cancel(@Request() req: any) {
-    return this.billing.cancel(req.user.id)
+    return this.billing.cancel(req.user)
   }
 
   @Get('metrics')
@@ -90,7 +90,7 @@ export class BillingController {
   @Get('me')
   @UseGuards(JwtAuthGuard)
   me(@Request() req: any) {
-    return this.billing.getMine(req.user.id)
+    return this.billing.getMine(req.user)
   }
 
   @Post('webhook')

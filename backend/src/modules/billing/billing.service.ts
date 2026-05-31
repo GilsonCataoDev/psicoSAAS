@@ -7,6 +7,10 @@ import { Subscription } from './entities/subscription.entity'
 
 const TRIAL_DAYS = 7
 const PLAN_PRICES: Record<string, number> = { essencial: 79, pro: 149 }
+const COMPED_PRO_EMAILS = (process.env.COMPED_PRO_EMAILS ?? '')
+  .split(',')
+  .map(email => email.trim().toLowerCase())
+  .filter(Boolean)
 
 @Injectable()
 export class BillingService {
@@ -16,9 +20,13 @@ export class BillingService {
     private readonly asaas: AsaasService,
   ) {}
 
-  async getMine(userId: string) {
+  async getMine(user: Pick<User, 'id' | 'email'>) {
+    if (this.isCompedProUser(user)) {
+      return this.ensureCompedProSubscription(user)
+    }
+
     const subscription = await this.repo.findOne({
-      where: { userId },
+      where: { userId: user.id },
       order: { createdAt: 'DESC' },
     })
 
@@ -38,6 +46,10 @@ export class BillingService {
   }
 
   async subscribe(user: User, plan = 'pro', creditCardToken?: string) {
+    if (this.isCompedProUser(user)) {
+      return this.ensureCompedProSubscription(user)
+    }
+
     if (!PLAN_PRICES[plan]) throw new BadRequestException('Plano invalido')
 
     if (!creditCardToken) {
@@ -96,9 +108,13 @@ export class BillingService {
     return this.repo.save(saved)
   }
 
-  async activateFree(userId: string) {
+  async activateFree(user: Pick<User, 'id' | 'email'>) {
+    if (this.isCompedProUser(user)) {
+      return this.ensureCompedProSubscription(user)
+    }
+
     const existing = await this.repo.findOne({
-      where: { userId },
+      where: { userId: user.id },
       order: { createdAt: 'DESC' },
     })
 
@@ -106,9 +122,9 @@ export class BillingService {
       throw new ConflictException('Cancele a assinatura atual antes de migrar para o plano gratis')
     }
 
-    const subscription = existing ?? this.repo.create({ userId })
+    const subscription = existing ?? this.repo.create({ userId: user.id })
     Object.assign(subscription, {
-      userId,
+      userId: user.id,
       plan: 'free',
       status: 'active',
       currentPeriodEnd: null,
@@ -140,9 +156,13 @@ export class BillingService {
     return this.repo.save(subscription)
   }
 
-  async cancel(userId: string) {
+  async cancel(user: Pick<User, 'id' | 'email'>) {
+    if (this.isCompedProUser(user)) {
+      return this.ensureCompedProSubscription(user)
+    }
+
     const subscription = await this.repo.findOne({
-      where: { userId, status: In(['active', 'trialing', 'past_due']) },
+      where: { userId: user.id, status: In(['active', 'trialing', 'past_due']) },
       order: { createdAt: 'DESC' },
     })
 
@@ -165,6 +185,35 @@ export class BillingService {
     subscription.cancelAtPeriodEnd = false
     subscription.currentPeriodEnd = new Date()
     subscription.trialEndsAt = null
+    return this.repo.save(subscription)
+  }
+
+  private isCompedProUser(user: Pick<User, 'email'>): boolean {
+    return COMPED_PRO_EMAILS.includes(user.email.toLowerCase())
+  }
+
+  private async ensureCompedProSubscription(user: Pick<User, 'id' | 'email'>) {
+    const subscription = await this.repo.findOne({
+      where: { userId: user.id },
+      order: { createdAt: 'DESC' },
+    }) ?? this.repo.create({ userId: user.id })
+
+    if (subscription.gatewaySubscriptionId && subscription.status !== 'canceled') {
+      await this.asaas.cancelSubscription(subscription.gatewaySubscriptionId)
+    }
+
+    Object.assign(subscription, {
+      userId: user.id,
+      plan: 'pro',
+      status: 'active',
+      gatewayCustomerId: null,
+      gatewaySubscriptionId: null,
+      currentPeriodEnd: null,
+      trialEndsAt: null,
+      cancelAtPeriodEnd: false,
+      hasUsedTrial: true,
+    })
+
     return this.repo.save(subscription)
   }
 
