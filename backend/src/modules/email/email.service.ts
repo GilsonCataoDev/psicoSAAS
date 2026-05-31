@@ -75,7 +75,7 @@ export class EmailService {
   }
 
   async sendPasswordReset(name: string, email: string, resetToken: string) {
-    const link = `${this.frontendUrl}/redefinir-senha?token=${resetToken}`
+    const link = `${this.frontendUrl}/#/redefinir-senha?token=${encodeURIComponent(resetToken)}`
     await this.send({
       to: email,
       subject: 'Redefinir sua senha — PsicoSaaS',

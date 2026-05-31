@@ -12,7 +12,8 @@ const schema = z.object({
     .min(8, 'Mínimo 8 caracteres')
     .regex(/[A-Z]/, 'Precisa de ao menos uma letra maiúscula')
     .regex(/[a-z]/, 'Precisa de ao menos uma letra minúscula')
-    .regex(/\d/, 'Precisa de ao menos um número'),
+    .regex(/\d/, 'Precisa de ao menos um número')
+    .regex(/[@$!%*?&\-_#]/, 'Precisa de ao menos um símbolo (@$!%*?&-_#)'),
   confirm: z.string(),
 }).refine(d => d.password === d.confirm, {
   message: 'As senhas não coincidem',
@@ -114,7 +115,7 @@ export default function ResetPasswordPage() {
 
         <div className="bg-sage-50 border border-sage-100 rounded-xl p-3">
           <p className="text-xs text-sage-700">
-            A senha deve ter pelo menos 8 caracteres, uma letra maiúscula, uma minúscula e um número.
+            A senha deve ter pelo menos 8 caracteres, uma letra maiúscula, uma minúscula, um número e um símbolo (@$!%*?&-_#).
           </p>
         </div>
 
