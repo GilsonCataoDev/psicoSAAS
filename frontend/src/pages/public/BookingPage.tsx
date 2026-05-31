@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -23,6 +23,7 @@ const schema = z.object({
   patientPhone: z.string().optional(),
   modality:     z.enum(['presencial', 'online']),
   patientNotes: z.string().optional(),
+  privacyAccepted: z.boolean().refine(Boolean, 'Voce precisa aceitar a Politica de Privacidade'),
 })
 type FormData = z.infer<typeof schema>
 
@@ -39,7 +40,7 @@ export default function BookingPage() {
 
   const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { modality: 'presencial' },
+    defaultValues: { modality: 'presencial', privacyAccepted: false },
   })
   const selectedModality = watch('modality')
   const monthKey = format(month, 'yyyy-MM')
@@ -89,7 +90,8 @@ export default function BookingPage() {
     }
 
     try {
-      await createBooking.mutateAsync({ ...data, date: selectedDate, time: selectedTime })
+      const { privacyAccepted: _privacyAccepted, ...bookingData } = data
+      await createBooking.mutateAsync({ ...bookingData, date: selectedDate, time: selectedTime })
       setStep('success')
     } catch (err: any) {
       toast.error(err?.response?.data?.message ?? 'Erro ao enviar solicitacao. Tente novamente.')
@@ -379,6 +381,27 @@ export default function BookingPage() {
                     <label className="label">Alguma observação? (opcional)</label>
                     <textarea {...register('patientNotes')} rows={2} className="input-field resize-none"
                       placeholder="Conte um pouco sobre o que te traz aqui, se quiser..." />
+                  </div>
+
+                  <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+                    <label className="flex items-start gap-3 text-sm text-neutral-600">
+                      <input
+                        type="checkbox"
+                        {...register('privacyAccepted')}
+                        className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-sage-600 focus:ring-sage-500"
+                      />
+                      <span>
+                        Li e concordo com o uso dos meus dados para agendamento, comunicacao sobre a sessao
+                        e demais finalidades descritas na{' '}
+                        <Link to="/privacidade" target="_blank" className="text-sage-600 underline underline-offset-2">
+                          Politica de Privacidade
+                        </Link>
+                        .
+                      </span>
+                    </label>
+                    {errors.privacyAccepted && (
+                      <p className="mt-2 text-xs text-rose-500">{errors.privacyAccepted.message}</p>
+                    )}
                   </div>
 
                   {/* Resumo */}

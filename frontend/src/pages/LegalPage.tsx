@@ -4,16 +4,17 @@ import BrandLogo from '@/components/ui/BrandLogo'
 const privacySections = [
   ['1. Apresentacao', 'A UseCognia e uma plataforma SaaS para psicologos e clinicas de saude mental. Tratamos dados pessoais para operar a conta, agenda, pacientes, prontuarios, financeiro, documentos, comunicacao e seguranca da plataforma.'],
   ['2. Dados coletados', 'Podemos tratar nome, e-mail, telefone, CRP, especialidade, dados de assinatura, logs tecnicos, preferencias e dados de suporte. Os usuarios podem inserir dados de pacientes, incluindo nome, contato, agenda, historico de sessoes, financeiro, documentos, prontuario e dados sensiveis relacionados a saude mental.'],
-  ['3. Finalidades', 'Usamos dados para executar o contrato, manter a plataforma, autenticar usuarios, prestar suporte, processar assinaturas, melhorar seguranca, cumprir obrigacoes legais e permitir exportacao de dados.'],
+  ['3. Finalidades', 'Usamos dados para executar o contrato, manter a plataforma, autenticar usuarios, prestar suporte, processar assinaturas, enviar comunicacoes operacionais, melhorar seguranca, cumprir obrigacoes legais e permitir exportacao ou exclusao de dados.'],
   ['4. Bases legais', 'As bases legais podem incluir execucao de contrato, cumprimento de obrigacao legal, legitimo interesse, consentimento, exercicio regular de direitos e, para dados sensiveis de saude inseridos pelo profissional, as bases aplicaveis definidas pelo controlador.'],
   ['5. Papel da UseCognia', 'Para dados da conta do profissional, a UseCognia atua como controladora. Para dados de pacientes inseridos pelo profissional ou clinica, em regra a UseCognia atua como operadora, seguindo instrucoes do usuario controlador.'],
-  ['6. Compartilhamento', 'Podemos compartilhar dados com provedores de infraestrutura, hospedagem, banco de dados, e-mail, pagamentos, seguranca, suporte e autoridades quando houver obrigacao legal. A UseCognia nao vende dados pessoais.'],
-  ['7. Seguranca', 'Adotamos medidas tecnicas e administrativas, incluindo controle de acesso, criptografia quando aplicavel, logs, backups e boas praticas de desenvolvimento seguro. Nenhum sistema e absolutamente imune a riscos.'],
-  ['8. Retencao', 'Os dados sao mantidos pelo tempo necessario para operar a plataforma, cumprir obrigacoes legais, atender solicitacoes, preservar seguranca e exercer direitos. Dados podem ser excluidos, anonimizados ou bloqueados ao final da finalidade.'],
-  ['9. Direitos dos titulares', 'Titulares podem solicitar confirmacao de tratamento, acesso, correcao, eliminacao, anonimização, bloqueio, portabilidade, informacoes sobre compartilhamento, revogacao de consentimento e oposicao quando aplicavel.'],
-  ['10. Cookies', 'Usamos cookies essenciais para autenticacao, seguranca e funcionamento. Cookies analiticos ou de terceiros, quando utilizados, seguirao a legislacao aplicavel.'],
-  ['11. Transferencia internacional', 'Servicos de nuvem, seguranca, e-mail ou pagamentos podem envolver transferencia internacional, observadas as salvaguardas da LGPD.'],
-  ['12. Contato do encarregado', 'Solicitacoes de privacidade podem ser enviadas para suporte@usecognia.com. Encarregado/DPO: a definir.'],
+  ['6. Compartilhamento', 'Podemos compartilhar dados com provedores de infraestrutura, hospedagem, banco de dados, e-mail, pagamentos, seguranca, suporte, analytics e autoridades quando houver obrigacao legal. A UseCognia nao vende dados pessoais.'],
+  ['7. Analytics e cookies', 'Usamos cookies essenciais para autenticacao, seguranca e funcionamento. Podemos usar analytics com mascaramento de entradas e sem captura deliberada de dados clinicos para entender uso do produto, melhorar estabilidade e prevenir abuso. Cookies ou recursos nao essenciais podem ser desativados quando houver controle disponivel ou mediante solicitacao.'],
+  ['8. Seguranca', 'Adotamos medidas tecnicas e administrativas proporcionais ao risco, incluindo controle de acesso, cookies HttpOnly, protecao CSRF, validacao de origem, criptografia de campos sensiveis quando aplicavel, logs tecnicos e boas praticas de desenvolvimento seguro. Nenhum sistema e absolutamente imune a riscos.'],
+  ['9. Retencao', 'Os dados sao mantidos pelo tempo necessario para operar a plataforma, cumprir obrigacoes legais, atender solicitacoes, preservar seguranca e exercer direitos. Ao excluir a conta, dados vinculados sao removidos das bases ativas, salvo quando a manutencao for necessaria por obrigacao legal, prevencao a fraude, seguranca, backups temporarios ou exercicio regular de direitos.'],
+  ['10. Direitos dos titulares', 'Titulares podem solicitar confirmacao de tratamento, acesso, correcao, eliminacao, anonimizacao, bloqueio, portabilidade, informacoes sobre compartilhamento, revogacao de consentimento e oposicao quando aplicavel. Quando a solicitacao envolver dados de pacientes, poderemos orientar o titular a contatar o profissional ou clinica controladora, sem prejuizo de apoio tecnico ao controlador.'],
+  ['11. Transferencia internacional', 'Servicos de nuvem, seguranca, e-mail, analytics ou pagamentos podem envolver transferencia internacional, observadas as salvaguardas e contratos aplicaveis da LGPD.'],
+  ['12. Incidentes', 'Em caso de incidente de seguranca com risco ou dano relevante, adotaremos medidas de contencao, avaliacao e comunicacao aos envolvidos e a autoridade competente quando exigido pela LGPD.'],
+  ['13. Contato de privacidade', 'Solicitacoes de privacidade e exercicio de direitos podem ser enviadas para suporte@usecognia.com com o assunto Privacidade/LGPD. Este canal atua como ponto de contato do encarregado ou responsavel por privacidade enquanto a funcao nominal e formalizada.'],
 ]
 
 const termsSections = [
@@ -27,8 +28,9 @@ const termsSections = [
   ['8. Suspensao', 'A UseCognia pode suspender ou encerrar contas em caso de inadimplencia, fraude, risco de seguranca, violacao destes Termos ou ordem de autoridade competente.'],
   ['9. Propriedade intelectual', 'Marca, codigo, layout, fluxos, textos, design e funcionalidades pertencem a UseCognia ou licenciadores. O usuario recebe licenca limitada de uso.'],
   ['10. Limitacao de responsabilidade', 'A UseCognia nao responde por decisoes clinicas, conteudo inserido pelo usuario, falhas de terceiros, uso indevido de credenciais, internet, dispositivos ou danos indiretos, salvo exigencia legal.'],
-  ['11. Dados e exportacao', 'O usuario pode exportar seus dados quando a funcionalidade estiver disponivel e sera responsavel pela guarda segura dos arquivos exportados, especialmente quando contiverem dados sensiveis.'],
-  ['12. Legislacao e foro', 'Estes Termos sao regidos pelas leis do Brasil. Fica eleito o foro da comarca a ser definida pela empresa, salvo regras legais de competencia obrigatoria.'],
+  ['11. Dados, exportacao e exclusao', 'O usuario pode exportar seus dados e solicitar a exclusao da conta pelos meios disponiveis. Arquivos exportados podem conter dados sensiveis e devem ser guardados com seguranca pelo usuario. A exclusao pode preservar registros estritamente necessarios por obrigacao legal, seguranca, prevencao a fraude, backups temporarios ou exercicio regular de direitos.'],
+  ['12. Privacidade de pacientes', 'O profissional ou clinica e responsavel por informar pacientes, definir base legal, respeitar sigilo profissional e responder solicitacoes de titulares quando atuar como controlador dos dados inseridos na plataforma. A UseCognia apoia tecnicamente essas operacoes conforme a Politica de Privacidade.'],
+  ['13. Legislacao e foro', 'Estes Termos sao regidos pelas leis do Brasil. Fica eleito o foro da comarca a ser definida pela empresa, salvo regras legais de competencia obrigatoria.'],
 ]
 
 export default function LegalPage({ type }: { type: 'privacy' | 'terms' }) {
@@ -48,7 +50,7 @@ export default function LegalPage({ type }: { type: 'privacy' | 'terms' }) {
         <h1 className="mt-2 font-display text-3xl font-bold text-neutral-950">
           {isPrivacy ? 'Politica de Privacidade' : 'Termos de Uso'}
         </h1>
-        <p className="mt-2 text-sm text-neutral-500">Versao 1.0 · Brasil · Contato: suporte@usecognia.com</p>
+        <p className="mt-2 text-sm text-neutral-500">Versao 1.1 - Brasil - Contato: suporte@usecognia.com</p>
         <div className="mt-8 space-y-5 rounded-2xl border border-sage-100 bg-white p-6 shadow-card">
           {sections.map(([title, text]) => (
             <section key={title}>

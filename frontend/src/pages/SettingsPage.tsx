@@ -734,7 +734,7 @@ export default function SettingsPage() {
                   { icon: 'security-lgpd' as const, text: 'Todas as anotações clínicas são criptografadas com AES-256.' },
                   { icon: 'documents' as const, text: 'Voce e o unico responsavel pelos dados de seus pacientes; nunca os vendemos ou compartilhamos.' },
                   { icon: 'billing' as const, text: 'Voce pode exportar ou deletar todos os seus dados a qualquer momento.' },
-                  { icon: 'success' as const, text: 'Operamos em conformidade total com a LGPD (Lei Geral de Protecao de Dados).' },
+                  { icon: 'success' as const, text: 'Adotamos praticas alinhadas a LGPD e mantemos controles para exportacao, exclusao, seguranca e transparencia.' },
                 ].map(item => (
                   <div key={item.text} className="flex gap-3 p-3 bg-neutral-50 rounded-xl">
                     <UseCogniaIcon name={item.icon} size={24} />
