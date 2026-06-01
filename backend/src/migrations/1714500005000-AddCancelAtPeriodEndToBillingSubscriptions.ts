@@ -1,19 +1,13 @@
-import { MigrationInterface, QueryRunner, TableColumn } from 'typeorm'
+import { MigrationInterface, QueryRunner } from 'typeorm'
 
 export class AddCancelAtPeriodEndToBillingSubscriptions1714500005000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.addColumn(
-      'billing_subscriptions',
-      new TableColumn({
-        name: 'cancelAtPeriodEnd',
-        type: 'boolean',
-        isNullable: false,
-        default: false,
-      }),
+    await queryRunner.query(
+      'ALTER TABLE "billing_subscriptions" ADD COLUMN IF NOT EXISTS "cancelAtPeriodEnd" boolean NOT NULL DEFAULT false',
     )
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.dropColumn('billing_subscriptions', 'cancelAtPeriodEnd')
+    await queryRunner.query('ALTER TABLE "billing_subscriptions" DROP COLUMN IF EXISTS "cancelAtPeriodEnd"')
   }
 }
