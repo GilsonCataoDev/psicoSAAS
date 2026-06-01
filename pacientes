@@ -2,7 +2,7 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/psicoSAAS/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="UseCognia — Gestão inteligente para profissionais da mente" />
     <meta name="theme-color" content="#5B3EFF" />
@@ -22,9 +22,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
     <title>UseCognia</title>
-    <script type="module" crossorigin src="/assets/index-DD6otXxj.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-BoHCvquO.css">
-  <link rel="manifest" href="/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/registerSW.js"></script></head>
+    <script type="module" crossorigin src="/psicoSAAS/assets/index-E3RNDUTN.js"></script>
+    <link rel="stylesheet" crossorigin href="/psicoSAAS/assets/index-BoHCvquO.css">
+  <link rel="manifest" href="/psicoSAAS/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/psicoSAAS/registerSW.js"></script></head>
   <body>
     <div id="root"></div>
   </body>
