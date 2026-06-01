@@ -120,8 +120,12 @@ export default function BookingPage() {
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-neutral-100 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
-          <div className="w-8 h-8 bg-sage-500 rounded-xl flex items-center justify-center shrink-0">
-            <Heart className="w-4 h-4 text-white" fill="white" />
+          <div className="w-10 h-10 bg-sage-50 rounded-xl flex items-center justify-center shrink-0 overflow-hidden border border-sage-100">
+            {page.avatarUrl ? (
+              <img src={page.avatarUrl} alt={page.psychologistName} className="w-full h-full object-cover" />
+            ) : (
+              <Heart className="w-4 h-4 text-sage-500" fill="currentColor" />
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-medium text-neutral-800 text-sm leading-none">{page.psychologistName}</p>
@@ -150,9 +154,9 @@ export default function BookingPage() {
             <div className="w-20 h-20 bg-sage-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <Check className="w-10 h-10 text-sage-600" />
             </div>
-            <h2 className="font-display text-2xl text-neutral-800 mb-2">Solicitação enviada!</h2>
+            <h2 className="font-display text-2xl text-neutral-800 mb-2">Agendamento confirmado!</h2>
             <p className="text-neutral-500 mb-4 max-w-sm mx-auto">
-              {page.confirmationMessage ?? 'Recebemos sua solicitação. Entraremos em contato para confirmar em breve! 💙'}
+              {page.confirmationMessage ?? 'Seu horario foi reservado com sucesso. Voce recebera os detalhes da sessao em breve.'}
             </p>
             <div className="bg-white rounded-2xl shadow-card p-5 text-left max-w-xs mx-auto mt-6">
               <p className="text-sm font-medium text-neutral-700 mb-3">Resumo</p>
@@ -182,6 +186,15 @@ export default function BookingPage() {
           <>
             {/* Intro */}
             <div className="mb-8">
+              <div className="w-24 h-24 rounded-3xl overflow-hidden bg-sage-50 border border-sage-100 mb-5 shadow-card">
+                {page.avatarUrl ? (
+                  <img src={page.avatarUrl} alt={page.psychologistName} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Heart className="w-9 h-9 text-sage-500" fill="currentColor" />
+                  </div>
+                )}
+              </div>
               <h1 className="font-display text-3xl font-light text-neutral-800 mb-2">
                 {page.title ?? 'Agende sua sessão'}
               </h1>
@@ -416,7 +429,7 @@ export default function BookingPage() {
                     className="btn-primary w-full flex items-center justify-center gap-2">
                     {isSubmitting || createBooking.isPending
                       ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Enviando...</>
-                      : 'Solicitar agendamento 💙'
+                      : 'Confirmar agendamento'
                     }
                   </button>
 

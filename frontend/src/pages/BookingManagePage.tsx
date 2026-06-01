@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Link2, Check, X, Wallet, Settings, Clock, RefreshCw, Trash2, MessageCircle } from 'lucide-react'
+import { Link2, Check, X, Wallet, Settings, Clock, RefreshCw, Trash2, MessageCircle, Image } from 'lucide-react'
 import { formatCurrency, formatDateRelative } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
@@ -301,15 +301,34 @@ function BookingSettings({ page }: { page: any }) {
   const [form, setForm] = useState({
     title:               page?.title ?? 'Agende sua sessão',
     description:         page?.description ?? '',
+    avatarUrl:           page?.avatarUrl ?? '',
     // +() converte string "150.00" do PostgreSQL decimal para número
     sessionPrice:        +(page?.sessionPrice ?? 150),
     sessionDuration:     +(page?.sessionDuration ?? 50),
     slotInterval:        +(page?.slotInterval ?? 60),
+    maxAdvanceDays:      +(page?.maxAdvanceDays ?? 30),
     pixKey:              page?.pixKey ?? '',
     confirmationMessage: page?.confirmationMessage ?? '',
     allowPresencial:     page?.allowPresencial ?? true,
     allowOnline:         page?.allowOnline ?? true,
   })
+
+  useEffect(() => {
+    if (!page) return
+    setForm({
+      title:               page.title ?? 'Agende sua sessão',
+      description:         page.description ?? '',
+      avatarUrl:           page.avatarUrl ?? '',
+      sessionPrice:        +(page.sessionPrice ?? 150),
+      sessionDuration:     +(page.sessionDuration ?? 50),
+      slotInterval:        +(page.slotInterval ?? 60),
+      maxAdvanceDays:      +(page.maxAdvanceDays ?? 30),
+      pixKey:              page.pixKey ?? '',
+      confirmationMessage: page.confirmationMessage ?? '',
+      allowPresencial:     page.allowPresencial ?? true,
+      allowOnline:         page.allowOnline ?? true,
+    })
+  }, [page])
 
   // Horários por dia da semana
   const [scheduleTab, setScheduleTab] = useState<BookingModality>('presencial')
@@ -369,6 +388,20 @@ function BookingSettings({ page }: { page: any }) {
       toast.error('Duração e intervalo precisam ser maiores que zero.')
       return false
     }
+    if (!form.avatarUrl.trim()) {
+      toast.error('Adicione uma foto para aparecer no link publico.')
+      return false
+    }
+    try {
+      new URL(form.avatarUrl)
+    } catch {
+      toast.error('Informe uma URL valida para a foto.')
+      return false
+    }
+    if (form.maxAdvanceDays < 1) {
+      toast.error('O limite de agendamento precisa ser de pelo menos 1 dia.')
+      return false
+    }
 
     const invalidSlot = MODALITIES.flatMap(({ key }) =>
       WEEKDAYS
@@ -392,7 +425,7 @@ function BookingSettings({ page }: { page: any }) {
     try {
       // Salva configurações gerais
       if (!validateSettings()) return
-      await saveBookingPage.mutateAsync(form)
+      await saveBookingPage.mutateAsync({ ...form, avatarUrl: form.avatarUrl.trim() })
       // Salva horários de disponibilidade
       const slots = MODALITIES.flatMap(({ key }) =>
         WEEKDAYS
@@ -520,6 +553,26 @@ function BookingSettings({ page }: { page: any }) {
           <label className="label">Mensagem de boas-vindas</label>
           <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={3} className="input-field resize-none" />
         </div>
+        <div className="grid grid-cols-1 sm:grid-cols-[96px_1fr] gap-4 items-center">
+          <div className="w-24 h-24 rounded-2xl overflow-hidden bg-sage-50 border border-sage-100 flex items-center justify-center">
+            {form.avatarUrl ? (
+              <img src={form.avatarUrl} alt="Foto do psicologo" className="w-full h-full object-cover" />
+            ) : (
+              <Image className="w-8 h-8 text-sage-400" />
+            )}
+          </div>
+          <div>
+            <label className="label">Foto do psicologo no link publico *</label>
+            <input
+              type="url"
+              value={form.avatarUrl}
+              onChange={e => set('avatarUrl', e.target.value)}
+              className="input-field"
+              placeholder="https://exemplo.com/sua-foto.jpg"
+            />
+            <p className="text-xs text-neutral-400 mt-1">Use uma imagem quadrada ou de rosto, hospedada em uma URL publica.</p>
+          </div>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="label">Valor da sessão (R$)</label>
@@ -532,6 +585,11 @@ function BookingSettings({ page }: { page: any }) {
           <div>
             <label className="label">Intervalo entre slots (min)</label>
             <input type="number" value={form.slotInterval} onChange={e => set('slotInterval', +e.target.value)} className="input-field" />
+          </div>
+          <div>
+            <label className="label">Agendar ate quantos dias a frente</label>
+            <input type="number" min={1} value={form.maxAdvanceDays} onChange={e => set('maxAdvanceDays', +e.target.value)} className="input-field" />
+            <p className="text-xs text-neutral-400 mt-1">Ex: 15 impede que alguem marque para daqui dois meses.</p>
           </div>
         </div>
       </div>
