@@ -4,6 +4,7 @@ export interface BookingPage {
   isActive: boolean
   title?: string
   description?: string
+  avatarUrl?: string
   psychologistName: string
   psychologistCrp: string
   specialty?: string

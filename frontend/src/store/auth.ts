@@ -8,6 +8,7 @@ export interface User {
   email: string
   crp: string
   avatar?: string
+  avatarUrl?: string
   specialty?: string
   phone?: string
   cpfCnpj?: string
