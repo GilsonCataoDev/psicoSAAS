@@ -4,7 +4,7 @@ import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
 import {
   Bell, CalendarDays, Lock, User, MessageSquare, Shield,
-  ExternalLink, CheckCircle2, Zap, ArrowRight, X, Eye, EyeOff, Wallet, Download, Trash2,
+  ExternalLink, CheckCircle2, Zap, ArrowRight, X, Eye, EyeOff, Wallet, Download, Trash2, Image,
 } from 'lucide-react'
 import { isValidCrpFormat, getCrpRegion, openCfpVerification, formatCrpInput } from '@/lib/crp'
 import { useSubscriptionStore, PLANS } from '@/store/subscription'
@@ -74,6 +74,7 @@ export default function SettingsPage() {
   const [name, setName] = useState(user?.name ?? '')
   const [crp, setCrp]   = useState(user?.crp ?? '')
   const [specialty, setSpecialty] = useState(user?.specialty ?? '')
+  const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl ?? '')
   const [phone, setPhone] = useState('')
   const [savingProfile, setSavingProfile] = useState(false)
 
@@ -85,10 +86,19 @@ export default function SettingsPage() {
   }
 
   async function saveProfile() {
+    if (avatarUrl.trim()) {
+      try {
+        new URL(avatarUrl.trim())
+      } catch {
+        toast.error('Informe uma URL valida para a foto.')
+        return
+      }
+    }
+
     setSavingProfile(true)
     try {
-      const updated = await api.patch('/auth/profile', { name, crp, specialty, phone }).then(r => r.data)
-      updateUser({ name: updated.name, crp: updated.crp, specialty: updated.specialty })
+      const updated = await api.patch('/auth/profile', { name, crp, specialty, phone, avatarUrl: avatarUrl.trim() || null }).then(r => r.data)
+      updateUser({ name: updated.name, crp: updated.crp, specialty: updated.specialty, phone: updated.phone, avatarUrl: updated.avatarUrl })
       toast.success('Perfil atualizado')
     } catch {
       toast.error('Erro ao salvar perfil.')
@@ -108,6 +118,7 @@ export default function SettingsPage() {
       const p = r.data?.preferences ?? {}
       setPrefs(prev => ({ ...prev, ...p }))
       setPhone(r.data?.phone ?? '')
+      setAvatarUrl(r.data?.avatarUrl ?? '')
     }).catch(() => {}).finally(() => setLoadingPrefs(false))
   }, [])
 
@@ -327,6 +338,26 @@ export default function SettingsPage() {
             <div className="card space-y-4">
               <h2 className="section-title">Seus dados</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="col-span-1 sm:col-span-2 grid grid-cols-1 sm:grid-cols-[96px_1fr] gap-4 items-center">
+                  <div className="w-24 h-24 rounded-2xl overflow-hidden bg-sage-50 border border-sage-100 flex items-center justify-center">
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="Foto do psicologo" className="w-full h-full object-cover" />
+                    ) : (
+                      <Image className="w-8 h-8 text-sage-400" />
+                    )}
+                  </div>
+                  <div>
+                    <label className="label">Foto do perfil publico</label>
+                    <input
+                      type="url"
+                      value={avatarUrl}
+                      onChange={e => setAvatarUrl(e.target.value)}
+                      className="input-field"
+                      placeholder="https://exemplo.com/sua-foto.jpg"
+                    />
+                    <p className="text-xs text-neutral-400 mt-1">Essa foto aparece no link publico de agendamento.</p>
+                  </div>
+                </div>
                 <div className="col-span-1 sm:col-span-2">
                   <label className="label">Nome completo</label>
                   <input value={name} onChange={e => setName(e.target.value)} className="input-field" />
