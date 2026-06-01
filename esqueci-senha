@@ -1,6 +1,19 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
   <head>
+    <script>
+      (() => {
+        const base = "/psicoSAAS/";
+        if (window.location.hash) return;
+        const normalizedBase = base.endsWith('/') ? base : base + '/';
+        const path = window.location.pathname;
+        if (path === normalizedBase || path === normalizedBase.slice(0, -1)) return;
+        if (!path.startsWith(normalizedBase)) return;
+        const route = path.slice(normalizedBase.length).replace(/^\/+/, '');
+        if (!route) return;
+        window.location.replace(normalizedBase + '#/' + route + window.location.search);
+      })();
+    </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/psicoSAAS/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
