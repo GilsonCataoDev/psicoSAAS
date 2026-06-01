@@ -305,11 +305,28 @@ function BookingSettings({ page }: { page: any }) {
     sessionPrice:        +(page?.sessionPrice ?? 150),
     sessionDuration:     +(page?.sessionDuration ?? 50),
     slotInterval:        +(page?.slotInterval ?? 60),
+    maxAdvanceDays:      +(page?.maxAdvanceDays ?? 30),
     pixKey:              page?.pixKey ?? '',
     confirmationMessage: page?.confirmationMessage ?? '',
     allowPresencial:     page?.allowPresencial ?? true,
     allowOnline:         page?.allowOnline ?? true,
   })
+
+  useEffect(() => {
+    if (!page) return
+    setForm({
+      title:               page.title ?? 'Agende sua sessão',
+      description:         page.description ?? '',
+      sessionPrice:        +(page.sessionPrice ?? 150),
+      sessionDuration:     +(page.sessionDuration ?? 50),
+      slotInterval:        +(page.slotInterval ?? 60),
+      maxAdvanceDays:      +(page.maxAdvanceDays ?? 30),
+      pixKey:              page.pixKey ?? '',
+      confirmationMessage: page.confirmationMessage ?? '',
+      allowPresencial:     page.allowPresencial ?? true,
+      allowOnline:         page.allowOnline ?? true,
+    })
+  }, [page])
 
   // Horários por dia da semana
   const [scheduleTab, setScheduleTab] = useState<BookingModality>('presencial')
@@ -367,6 +384,10 @@ function BookingSettings({ page }: { page: any }) {
     }
     if (form.sessionDuration <= 0 || form.slotInterval <= 0) {
       toast.error('Duração e intervalo precisam ser maiores que zero.')
+      return false
+    }
+    if (form.maxAdvanceDays < 1) {
+      toast.error('O limite de agendamento precisa ser de pelo menos 1 dia.')
       return false
     }
 
@@ -532,6 +553,11 @@ function BookingSettings({ page }: { page: any }) {
           <div>
             <label className="label">Intervalo entre slots (min)</label>
             <input type="number" value={form.slotInterval} onChange={e => set('slotInterval', +e.target.value)} className="input-field" />
+          </div>
+          <div>
+            <label className="label">Agendar ate quantos dias a frente</label>
+            <input type="number" min={1} value={form.maxAdvanceDays} onChange={e => set('maxAdvanceDays', +e.target.value)} className="input-field" />
+            <p className="text-xs text-neutral-400 mt-1">Ex: 15 impede que alguem marque para daqui dois meses.</p>
           </div>
         </div>
       </div>

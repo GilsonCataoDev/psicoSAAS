@@ -111,7 +111,7 @@ export class BookingService {
     const { psychologist, ...pageData } = page
     return {
       ...pageData,
-      avatarUrl: page.avatarUrl ?? psychologist.avatarUrl,
+      avatarUrl: psychologist.avatarUrl ?? page.avatarUrl,
       psychologistName: psychologist.name,
       psychologistCrp: psychologist.crp,
       specialty: psychologist.specialty,
@@ -254,19 +254,23 @@ export class BookingService {
         amount: page.sessionPrice,
         confirmationToken,
         tokenExpiresAt,
-        status: 'pending',
+        status: 'confirmed',
+        confirmedAt: new Date(),
         paymentStatus: 'pending',
       })
 
       return manager.save(Booking, booking)
     })
 
-    await this.notifications.sendBookingRequest(saved, page)
+    const appointment = await this.createSessionResources(saved, page.psychologistId)
+    if (appointment) this.googleCalendar.syncAppointment(appointment).catch(console.error)
+
+    await this.notifications.sendBookingConfirmation(saved)
 
     return {
       id: saved.id,
       confirmationToken: saved.confirmationToken,
-      message: 'Solicitação recebida! Aguarde a confirmação do psicólogo.',
+      message: 'Agendamento confirmado com sucesso!',
     }
   }
 
@@ -428,6 +432,16 @@ export class BookingService {
 
   async saveMyPage(psychologistId: string, dto: SaveBookingPageDto) {
     let page = await this.pages.findOne({ where: { psychologistId } })
+    const avatarUrl = dto.avatarUrl?.trim() || page?.avatarUrl
+    if (!avatarUrl) {
+      throw new BadRequestException('Adicione uma foto para aparecer no link publico')
+    }
+    try {
+      new URL(avatarUrl)
+    } catch {
+      throw new BadRequestException('Informe uma URL valida para a foto')
+    }
+    dto.avatarUrl = avatarUrl
     if (page) {
       Object.assign(page, dto)
     } else {

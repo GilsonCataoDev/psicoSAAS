@@ -8,6 +8,7 @@ export class SaveBookingPageDto {
 
   @IsString() @IsOptional() title?: string
   @IsString() @IsOptional() description?: string
+  @IsString() @IsOptional() avatarUrl?: string
 
   @IsNumber() @Min(0) @IsOptional() @Type(() => Number) sessionPrice?: number
   @IsNumber() @Min(1) @IsOptional() @Type(() => Number) sessionDuration?: number
