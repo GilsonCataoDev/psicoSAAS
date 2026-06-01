@@ -1,9 +1,9 @@
-import { copyFileSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const dist = join(process.cwd(), 'dist')
 const basePath = process.env.VITE_BASE_PATH || '/'
-const routes = [
+const legacyRouteFiles = [
   'login',
   'cadastro',
   'esqueci-senha',
@@ -43,8 +43,6 @@ const fallbackHtml = indexHtml.replace(
 
 writeFileSync(join(dist, '404.html'), fallbackHtml)
 
-for (const route of routes) {
-  const routePath = join(dist, route)
-  rmSync(routePath, { recursive: true, force: true })
-  writeFileSync(routePath, fallbackHtml)
+for (const route of legacyRouteFiles) {
+  rmSync(join(dist, route), { recursive: true, force: true })
 }
