@@ -1,7 +1,8 @@
 import {
-  Body, Controller, Delete, Get, HttpCode, HttpStatus,
-  Patch, Post, Query, Request, Response, UseGuards,
+  BadRequestException, Body, Controller, Delete, Get, HttpCode, HttpStatus,
+  Patch, Post, Query, Request, Response, UploadedFile, UseGuards, UseInterceptors,
 } from '@nestjs/common'
+import { FileInterceptor } from '@nestjs/platform-express'
 import { Throttle, SkipThrottle } from '@nestjs/throttler'
 import type { CookieOptions, Request as Req, Response as Res } from 'express'
 import { AuthService } from './auth.service'
@@ -150,6 +151,17 @@ export class AuthController {
   @SkipThrottle()
   updateProfile(@Request() req: any, @Body() dto: UpdateProfileDto) {
     return this.auth.updateProfile(req.user.id, dto)
+  }
+
+  @Post('avatar')
+  @UseGuards(JwtAuthGuard, CsrfGuard)
+  @UseInterceptors(FileInterceptor('avatar', { limits: { fileSize: 1024 * 1024 } }))
+  uploadAvatar(@Request() req: any, @UploadedFile() file: any) {
+    if (!file) throw new BadRequestException('Envie uma imagem JPG')
+    if (!['image/jpeg', 'image/jpg'].includes(file.mimetype)) {
+      throw new BadRequestException('A foto precisa ser um arquivo JPG')
+    }
+    return this.auth.updateAvatar(req.user.id, file.buffer)
   }
 
   @Patch('preferences')

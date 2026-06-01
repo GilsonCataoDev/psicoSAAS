@@ -222,16 +222,15 @@ export class AuthService {
     if (!user) throw new NotFoundException()
     Object.assign(user, data)
     await this.users.save(user)
-    const {
-      passwordHash: _,
-      resetPasswordToken: __,
-      resetPasswordExpiry: ___,
-      emailVerificationToken: ____,
-      emailVerificationExpiry: _____,
-      ...profile
-    } = user
-    if (profile.preferences) profile.preferences = this.exposePreferences(profile.preferences)
-    return profile as SafeUser
+    return this.toSafeUser(user)
+  }
+
+  async updateAvatar(id: string, buffer: Buffer): Promise<SafeUser> {
+    const user = await this.users.findOneBy({ id })
+    if (!user) throw new NotFoundException()
+    user.avatarUrl = `data:image/jpeg;base64,${buffer.toString('base64')}`
+    await this.users.save(user)
+    return this.toSafeUser(user)
   }
 
   async updatePreferences(id: string, preferences: UpdatePreferencesDto): Promise<Record<string, unknown>> {
@@ -363,6 +362,12 @@ export class AuthService {
     const refreshToken = await this.createRefreshToken(user.id, ip, userAgent)
     const csrfToken    = generateCsrfToken(user.id)
 
+    const safeUser = this.toSafeUser(user)
+
+    return { user: safeUser, tokens: { accessToken, refreshToken }, csrfToken }
+  }
+
+  private toSafeUser(user: User): SafeUser {
     const {
       passwordHash: _,
       resetPasswordToken: __,
@@ -372,8 +377,7 @@ export class AuthService {
       ...safeUser
     } = user
     if (safeUser.preferences) safeUser.preferences = this.exposePreferences(safeUser.preferences)
-
-    return { user: safeUser as SafeUser, tokens: { accessToken, refreshToken }, csrfToken }
+    return safeUser as SafeUser
   }
 
   private exposePreferences(preferences: Record<string, unknown>): Record<string, unknown> {

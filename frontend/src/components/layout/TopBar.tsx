@@ -7,6 +7,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import BrandLogo from '@/components/ui/BrandLogo'
+import Avatar from '@/components/ui/Avatar'
 import { usePatients } from '@/hooks/useApi'
 import { patientMatchesSearch } from '@/lib/patientSearch'
 import { useThemeStore } from '@/store/theme'
@@ -213,6 +214,16 @@ export default function TopBar() {
       </button>
 
       {/* Notificações */}
+      <button
+        type="button"
+        onClick={() => navigate('/configuracoes?tab=profile')}
+        className="rounded-full"
+        title="Abrir perfil"
+        aria-label="Abrir perfil"
+      >
+        <Avatar name={user?.name ?? 'Perfil'} src={user?.avatarUrl ?? user?.avatar} size="md" />
+      </button>
+
       <div className="relative" ref={panelRef}>
         <button
           onClick={() => setPanelOpen(v => !v)}

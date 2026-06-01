@@ -4,12 +4,13 @@ import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
 import {
   Bell, CalendarDays, Lock, User, MessageSquare, Shield,
-  ExternalLink, CheckCircle2, Zap, ArrowRight, X, Eye, EyeOff, Wallet, Download, Trash2, Image,
+  ExternalLink, CheckCircle2, Zap, ArrowRight, X, Eye, EyeOff, Wallet, Download, Trash2, Camera,
 } from 'lucide-react'
 import { isValidCrpFormat, getCrpRegion, openCfpVerification, formatCrpInput } from '@/lib/crp'
 import { useSubscriptionStore, PLANS } from '@/store/subscription'
 import toast from 'react-hot-toast'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
+import Avatar from '@/components/ui/Avatar'
 
 const tabs = [
   { id: 'profile',  icon: User,          label: 'Perfil'     },
@@ -74,9 +75,9 @@ export default function SettingsPage() {
   const [name, setName] = useState(user?.name ?? '')
   const [crp, setCrp]   = useState(user?.crp ?? '')
   const [specialty, setSpecialty] = useState(user?.specialty ?? '')
-  const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl ?? '')
   const [phone, setPhone] = useState('')
   const [savingProfile, setSavingProfile] = useState(false)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
 
   const crpValid  = isValidCrpFormat(crp)
   const crpRegion = getCrpRegion(crp)
@@ -86,18 +87,9 @@ export default function SettingsPage() {
   }
 
   async function saveProfile() {
-    if (avatarUrl.trim()) {
-      try {
-        new URL(avatarUrl.trim())
-      } catch {
-        toast.error('Informe uma URL valida para a foto.')
-        return
-      }
-    }
-
     setSavingProfile(true)
     try {
-      const updated = await api.patch('/auth/profile', { name, crp, specialty, phone, avatarUrl: avatarUrl.trim() || null }).then(r => r.data)
+      const updated = await api.patch('/auth/profile', { name, crp, specialty, phone }).then(r => r.data)
       updateUser({ name: updated.name, crp: updated.crp, specialty: updated.specialty, phone: updated.phone, avatarUrl: updated.avatarUrl })
       toast.success('Perfil atualizado')
     } catch {
@@ -118,7 +110,6 @@ export default function SettingsPage() {
       const p = r.data?.preferences ?? {}
       setPrefs(prev => ({ ...prev, ...p }))
       setPhone(r.data?.phone ?? '')
-      setAvatarUrl(r.data?.avatarUrl ?? '')
     }).catch(() => {}).finally(() => setLoadingPrefs(false))
   }, [])
 
@@ -131,6 +122,33 @@ export default function SettingsPage() {
 
   function setPref<K extends keyof typeof DEFAULT_PREFS>(key: K, value: typeof DEFAULT_PREFS[K]) {
     setPrefs(prev => ({ ...prev, [key]: value }))
+  }
+
+  async function uploadAvatar(file?: File) {
+    if (!file) return
+    if (!['image/jpeg', 'image/jpg'].includes(file.type)) {
+      toast.error('Envie uma foto em JPG.')
+      return
+    }
+    if (file.size > 1024 * 1024) {
+      toast.error('A foto deve ter no maximo 1 MB.')
+      return
+    }
+
+    const form = new FormData()
+    form.append('avatar', file)
+    setUploadingAvatar(true)
+    try {
+      const updated = await api.post('/auth/avatar', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }).then(r => r.data)
+      updateUser({ avatarUrl: updated.avatarUrl, avatar: updated.avatarUrl })
+      toast.success('Foto atualizada')
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? 'Nao foi possivel enviar a foto.')
+    } finally {
+      setUploadingAvatar(false)
+    }
   }
 
   function buildPrefsPayload() {
@@ -337,27 +355,30 @@ export default function SettingsPage() {
           {tab === 'profile' && (
             <div className="card space-y-4">
               <h2 className="section-title">Seus dados</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="col-span-1 sm:col-span-2 grid grid-cols-1 sm:grid-cols-[96px_1fr] gap-4 items-center">
-                  <div className="w-24 h-24 rounded-2xl overflow-hidden bg-sage-50 border border-sage-100 flex items-center justify-center">
-                    {avatarUrl ? (
-                      <img src={avatarUrl} alt="Foto do psicologo" className="w-full h-full object-cover" />
-                    ) : (
-                      <Image className="w-8 h-8 text-sage-400" />
-                    )}
-                  </div>
+              <div className="flex flex-col gap-3 rounded-2xl border border-neutral-100 bg-neutral-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <Avatar name={name || user?.name || 'Perfil'} src={user?.avatarUrl ?? user?.avatar} size="lg" />
                   <div>
-                    <label className="label">Foto do perfil publico</label>
-                    <input
-                      type="url"
-                      value={avatarUrl}
-                      onChange={e => setAvatarUrl(e.target.value)}
-                      className="input-field"
-                      placeholder="https://exemplo.com/sua-foto.jpg"
-                    />
-                    <p className="text-xs text-neutral-400 mt-1">Essa foto aparece no link publico de agendamento.</p>
+                    <p className="text-sm font-medium text-neutral-800">Foto do perfil</p>
+                    <p className="text-xs text-neutral-400">Use um arquivo JPG de ate 1 MB.</p>
                   </div>
                 </div>
+                <label className="btn-secondary inline-flex w-fit cursor-pointer items-center gap-2 text-sm">
+                  <Camera className="h-4 w-4" />
+                  {uploadingAvatar ? 'Enviando...' : 'Escolher JPG'}
+                  <input
+                    type="file"
+                    accept="image/jpeg,.jpg,.jpeg"
+                    className="hidden"
+                    disabled={uploadingAvatar}
+                    onChange={event => {
+                      uploadAvatar(event.target.files?.[0])
+                      event.currentTarget.value = ''
+                    }}
+                  />
+                </label>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="col-span-1 sm:col-span-2">
                   <label className="label">Nome completo</label>
                   <input value={name} onChange={e => setName(e.target.value)} className="input-field" />

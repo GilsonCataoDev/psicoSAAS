@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsUrl, Matches, MaxLength, MinLength } from 'class-validator'
+import { IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator'
 import { Transform } from 'class-transformer'
 
 export class UpdateProfileDto {
@@ -26,13 +26,6 @@ export class UpdateProfileDto {
   @MaxLength(20)
   @Transform(({ value }) => value?.trim())
   phone?: string
-
-  @IsOptional()
-  @IsString()
-  @IsUrl({}, { message: 'URL da foto invalida' })
-  @MaxLength(255)
-  @Transform(({ value }) => value?.trim() || null)
-  avatarUrl?: string | null
 
   /** CPF (11 dígitos) ou CNPJ (14 dígitos) — para assinatura via Asaas */
   @IsOptional()
