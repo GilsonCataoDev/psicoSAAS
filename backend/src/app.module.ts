@@ -39,7 +39,12 @@ import { SubscriptionGuard } from './common/guards/subscription.guard'
         url: cfg.get('DATABASE_URL'),
         autoLoadEntities: true,
         synchronize: cfg.get('NODE_ENV') !== 'production' || cfg.get('TYPEORM_SYNC') === 'true',
-        logging: ['error'],   // log de erros SQL sempre visível no Railway
+        logging: ['error'],
+        extra: {
+          max: 10,                    // tamanho do pool de conexões
+          idleTimeoutMillis: 30_000,  // libera conexões ociosas após 30s
+          connectionTimeoutMillis: 5_000,
+        },
       }),
     }),
 

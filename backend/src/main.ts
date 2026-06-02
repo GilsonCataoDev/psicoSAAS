@@ -1,6 +1,13 @@
-// Polyfill crypto for Node 18 compatibility
+// Polyfill crypto para Node 18
 import { webcrypto } from 'crypto'
 if (!globalThis.crypto) (globalThis as any).crypto = webcrypto
+
+// TypeORM 0.3.x + pg ≥ 8.12 disparam um DeprecationWarning sobre client.query()
+// concurrent — é um bug interno do driver do TypeORM, não do nosso código.
+// Suprimimos apenas este aviso específico; outros continuam visíveis.
+process.on('warning', (w) => {
+  if (w.name === 'DeprecationWarning' && w.message.includes('client.query()')) return
+})
 
 import { NestFactory } from '@nestjs/core'
 import { Logger, ValidationPipe } from '@nestjs/common'
