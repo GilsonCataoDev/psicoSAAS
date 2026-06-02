@@ -19,37 +19,38 @@ function daysUntil(date?: string | null) {
   return Math.max(0, Math.ceil((new Date(date).getTime() - Date.now()) / 86400000))
 }
 
-/**
- * Restaura o csrfToken em memória após um page refresh.
- * /auth/me valida o access token (via cookie) e retorna um novo csrfToken.
- * Sem isso, requisições de mutação falhariam com 403 após F5.
- */
 function useCsrfBoot() {
   const setCsrfToken = useAuthStore((s) => s.setCsrfToken)
-  const setAuth      = useAuthStore((s) => s.setAuth)
+  const setAuth = useAuthStore((s) => s.setAuth)
+  const logout = useAuthStore((s) => s.logout)
   const setSubscription = useSubscriptionStore((s) => s.setSubscription)
   const resetSubscription = useSubscriptionStore((s) => s.resetSubscription)
+  const [booting, setBooting] = useState(true)
 
   useEffect(() => {
     if (USE_MOCK) {
       setSubscription({ plan: 'pro', planId: 'pro', status: 'active' })
+      setBooting(false)
       return
     }
+
     api.get('/auth/me')
       .then(res => {
         if (res.data?.csrfToken) setCsrfToken(res.data.csrfToken)
-        if (res.data?.id)        setAuth(res.data)
+        if (res.data?.id) setAuth(res.data)
         return api.get('/billing/me')
       })
       .then(res => {
         setSubscription(res.data?.status ? res.data : { plan: 'free', planId: 'free', status: 'none' })
       })
       .catch((err) => {
+        if (err?.response?.status === 401) logout()
         if (err?.response?.status === 403) resetSubscription()
-        /* 401 → interceptor já redireciona para /login */
       })
+      .finally(() => setBooting(false))
+  }, [logout, resetSubscription, setAuth, setCsrfToken, setSubscription])
 
-  }, [])
+  return booting
 }
 
 function useSubscriptionPolling() {
@@ -80,9 +81,9 @@ function SubscriptionBanner() {
 
     return (
       <div className="mb-4 rounded-xl border border-sage-200 bg-sage-50 px-4 py-3 text-sm text-sage-800">
-        <p className="font-medium">Você está em período de teste</p>
+        <p className="font-medium">Voce esta em periodo de teste</p>
         <p className="mt-1">
-          Cobrança em: {formatDate(subscription.trialEndsAt)}. Faltam {remaining} dia{remaining === 1 ? '' : 's'} para a cobrança.
+          Cobranca em: {formatDate(subscription.trialEndsAt)}. Faltam {remaining} dia{remaining === 1 ? '' : 's'} para a cobranca.
         </p>
       </div>
     )
@@ -112,9 +113,9 @@ function EmailVerificationBanner() {
     setSending(true)
     try {
       const { data } = await api.post('/auth/resend-verification')
-      toast.success(data?.message ?? 'Link de verificação enviado.')
+      toast.success(data?.message ?? 'Link de verificacao enviado.')
     } catch (err: any) {
-      toast.error(err?.response?.data?.message ?? 'Não foi possível reenviar agora.')
+      toast.error(err?.response?.data?.message ?? 'Nao foi possivel reenviar agora.')
     } finally {
       setSending(false)
     }
@@ -123,7 +124,7 @@ function EmailVerificationBanner() {
   return (
     <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
       <p className="font-medium">Confirme seu e-mail para proteger sua conta.</p>
-      <p className="mt-1">Enviamos um link para {user.email}. Confira também spam ou lixo eletrônico.</p>
+      <p className="mt-1">Enviamos um link para {user.email}. Confira tambem spam ou lixo eletronico.</p>
       <button
         type="button"
         onClick={resendVerification}
@@ -137,12 +138,19 @@ function EmailVerificationBanner() {
 }
 
 export default function AppLayout() {
-  useCsrfBoot()
+  const booting = useCsrfBoot()
   useSubscriptionPolling()
+
+  if (booting) {
+    return (
+      <div className="flex h-screen cognia-surface items-center justify-center">
+        <div className="h-7 w-7 animate-spin rounded-full border-2 border-sage-200 border-t-sage-600" />
+      </div>
+    )
+  }
 
   return (
     <div className="flex h-screen cognia-surface overflow-hidden">
-      {/* Sidebar — visível apenas em lg+ */}
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -156,7 +164,6 @@ export default function AppLayout() {
         </main>
       </div>
 
-      {/* Bottom Nav — visível apenas em mobile/tablet */}
       <BottomNav />
       <PWAInstallBanner />
     </div>

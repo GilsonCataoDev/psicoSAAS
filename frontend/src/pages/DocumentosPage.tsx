@@ -304,9 +304,9 @@ export default function DocumentosPage() {
         ) : filtered.length === 0 ? (
           <div className="card">
             <EmptyState
-              image="empty-state-no-documents.png"
+              icon={<FileSignature className="h-7 w-7" strokeWidth={1.8} />}
               title="Nenhum documento encontrado"
-              description="Gere declaracoes, recibos e relatorios com assinatura digital."
+              description="Gere declaracoes, recibos e relatorios em PDF com assinatura digital."
               actionLabel="Gerar primeiro documento"
               onAction={() => { setGenerateType(undefined); setShowGenerate(true) }}
               className="py-12"
@@ -374,7 +374,7 @@ function renderTemplateLine(line: string, idx: number) {
     const label = line.slice(0, colonIdx).trim()
     const value = line.slice(colonIdx + 1).trim()
     return (
-      <div key={idx} className="grid grid-cols-[160px_1fr] gap-3 items-end py-1 border-b border-dashed border-neutral-150">
+      <div key={idx} className="grid grid-cols-[160px_1fr] gap-3 items-end py-1 border-b border-dashed border-neutral-100">
         <span className="text-[11px] font-semibold text-neutral-500 pb-0.5 leading-tight">{label}</span>
         <span className="text-sm text-neutral-700 pb-0.5 min-h-[1.5rem]">
           {value || <span className="text-neutral-200 select-none pointer-events-none">_</span>}
@@ -450,7 +450,10 @@ ${rows}
       <div className="space-y-4">
         {/* Header info */}
         <div className="flex items-start gap-3 rounded-2xl border border-neutral-100 bg-neutral-50 px-4 py-3">
-          <model.icon className="w-5 h-5 text-sage-600 mt-0.5 shrink-0" />
+          {(() => {
+            const Icon = model.icon
+            return <Icon className="w-5 h-5 text-sage-600 mt-0.5 shrink-0" />
+          })()}
           <div>
             <p className="text-sm text-neutral-600 leading-relaxed">{model.description}</p>
             <p className="mt-1 text-xs text-neutral-400">{fieldCount} campos para preenchimento</p>

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { addDays, addMonths, format, isAfter, parseISO } from 'date-fns'
+import { CalendarClock, Repeat2 } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
-import { addDays, addMonths, format, isAfter, parseISO } from 'date-fns'
 import { usePatients, useCreateAppointment, useUpdateAppointment, useUpdateAppointmentGroup } from '@/hooks/useApi'
 import { Appointment, Patient } from '@/types'
 
@@ -39,7 +40,7 @@ function calcSessionPreview(
   let lastDate = start
   while (!isAfter(current, effectiveUntil) && count < 52) {
     lastDate = current
-    count++
+    count += 1
     current = addDays(current, step)
   }
   return count > 0 ? { count, lastDate, effectiveUntil } : null
@@ -94,7 +95,11 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
       : null
 
   useEffect(() => {
-    if (!open) { setEditScope('single'); return }
+    if (!open) {
+      setEditScope('single')
+      return
+    }
+
     if (appointment) {
       reset({
         patientId: appointment.patientId,
@@ -108,6 +113,7 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
       })
       return
     }
+
     reset({
       patientId: '',
       date: '',
@@ -122,7 +128,7 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
 
   function applyFixedSchedule() {
     if (!selectedPatient?.hasFixedSchedule || selectedPatient.fixedScheduleWeekday === undefined || !selectedPatient.fixedScheduleTime) {
-      toast.error('Essa pessoa ainda não tem horário fixo cadastrado.')
+      toast.error('Essa pessoa ainda nao tem horario fixo cadastrado.')
       return
     }
     setValue('date', nextDateForWeekday(selectedPatient.fixedScheduleWeekday))
@@ -142,13 +148,13 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
             fromDate: appointment.date,
             data: { time: data.time, duration, modality: data.modality, notes: data.notes },
           })
-          toast.success(`${result.updated} sessões atualizadas`)
+          toast.success(`${result.updated} sessoes atualizadas`)
         } else {
           await updateAppointment.mutateAsync({
             id: appointment.id,
             data: { ...data, duration, recurrence: 'none' } as any,
           })
-          toast.success('Sessão atualizada')
+          toast.success(appointment.isRecurring ? 'Alteracao pontual salva' : 'Sessao atualizada')
         }
       } else {
         const payload = {
@@ -158,7 +164,7 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
           repeatUntil: data.recurrence === 'none' ? undefined : data.repeatUntil || undefined,
         }
         const created = await createAppointment.mutateAsync(payload as any)
-        toast.success(Array.isArray(created) ? `${created.length} sessões agendadas` : 'Sessão agendada')
+        toast.success(Array.isArray(created) ? `${created.length} sessoes agendadas` : 'Sessao agendada')
       }
       reset()
       onClose()
@@ -171,10 +177,10 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
     <Modal
       open={open}
       onClose={onClose}
-      title={isEditing ? 'Alterar esta ocorrência' : 'Agendar nova sessão'}
+      title={isEditing ? 'Alterar atendimento' : 'Agendar nova sessao'}
       description={isEditing
-        ? 'A mudança vale apenas para este atendimento.'
-        : 'Crie um atendimento único, semanal ou de 15 em 15 dias.'}
+        ? 'Escolha se a mudanca vale so para este atendimento ou para a serie.'
+        : 'Crie um atendimento unico, semanal ou de 15 em 15 dias.'}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
@@ -186,9 +192,15 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
         </div>
 
         {fixedLabel && !isEditing && (
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-sage-100 bg-sage-50 px-3 py-2">
-            <p className="text-xs text-sage-700">Horario fixo: {fixedLabel}</p>
-            <button type="button" onClick={applyFixedSchedule} className="btn-secondary text-xs py-1.5 px-3">
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-sage-100 bg-sage-50 px-3 py-3">
+            <div className="flex items-start gap-2">
+              <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-sage-600" />
+              <div>
+                <p className="text-xs font-medium text-sage-800">Horario fixo cadastrado</p>
+                <p className="text-xs text-sage-700">{fixedLabel}</p>
+              </div>
+            </div>
+            <button type="button" onClick={applyFixedSchedule} className="btn-secondary text-xs py-1.5 px-3 shrink-0">
               Usar
             </button>
           </div>
@@ -224,15 +236,15 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
         {!isEditing && (
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">Recorrência</label>
+              <label className="label">Recorrencia</label>
               <select {...register('recurrence')} className="input-field">
-                <option value="none">Não repetir</option>
+                <option value="none">Nao repetir</option>
                 <option value="weekly">Toda semana</option>
                 <option value="biweekly">De 15 em 15 dias</option>
               </select>
             </div>
             <div>
-              <label className="label">Repetir até</label>
+              <label className="label">Repetir ate</label>
               <input
                 {...register('repeatUntil')}
                 type="date"
@@ -244,66 +256,83 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
         )}
 
         {sessionPreview && (
-          <div className="rounded-xl border border-sage-200 dark:border-sage-700/40 bg-sage-50 dark:bg-sage-900/20 px-4 py-3">
-            <p className="text-sm font-medium text-sage-800 dark:text-sage-200">
-              {sessionPreview.count} {sessionPreview.count === 1 ? 'sessão será criada' : 'sessões serão criadas'}
-            </p>
-            <p className="mt-0.5 text-xs text-sage-600 dark:text-sage-400">
-              de {format(parseISO(date), 'dd/MM/yyyy')} até {format(sessionPreview.lastDate, 'dd/MM/yyyy')}
-              {' · '}{recurrence === 'weekly' ? 'toda semana' : 'de 15 em 15 dias'}
-              {time ? ` · às ${time}` : ''}
-              {!repeatUntil && ' · limite padrão de 3 meses'}
-            </p>
+          <div className="rounded-2xl border border-sage-200 bg-sage-50 px-4 py-3">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-sage-600">
+                <Repeat2 className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-sage-900">Previsao da recorrencia</p>
+                <div className="mt-2 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                  <div className="rounded-xl bg-white px-3 py-2">
+                    <p className="text-sage-500">Criara</p>
+                    <p className="font-semibold text-sage-900">{sessionPreview.count} sessoes</p>
+                  </div>
+                  <div className="rounded-xl bg-white px-3 py-2">
+                    <p className="text-sage-500">Frequencia</p>
+                    <p className="font-semibold text-sage-900">{recurrence === 'weekly' ? 'Semanal' : '15 em 15 dias'}</p>
+                  </div>
+                  <div className="rounded-xl bg-white px-3 py-2">
+                    <p className="text-sage-500">Inicio</p>
+                    <p className="font-semibold text-sage-900">{format(parseISO(date), 'dd/MM/yyyy')}</p>
+                  </div>
+                  <div className="rounded-xl bg-white px-3 py-2">
+                    <p className="text-sage-500">Ultima</p>
+                    <p className="font-semibold text-sage-900">{format(sessionPreview.lastDate, 'dd/MM/yyyy')}</p>
+                  </div>
+                </div>
+                <p className="mt-2 text-xs text-sage-700">
+                  {time ? `Sempre as ${time}. ` : ''}
+                  {!repeatUntil ? 'Como a data final nao foi informada, o sistema usa o limite padrao de 3 meses.' : 'A serie termina na data informada.'}
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
         {isEditing && appointment?.isRecurring && (
-          <div className="overflow-hidden rounded-xl border border-neutral-200 dark:border-white/10">
+          <div className="overflow-hidden rounded-2xl border border-neutral-200">
             <button
               type="button"
               onClick={() => setEditScope('single')}
               className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors ${
-                editScope === 'single'
-                  ? 'bg-sage-50 dark:bg-sage-900/20'
-                  : 'hover:bg-neutral-50 dark:hover:bg-white/5'
+                editScope === 'single' ? 'bg-sage-50' : 'hover:bg-neutral-50'
               }`}
             >
               <span className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${
-                editScope === 'single' ? 'border-sage-500 bg-sage-500' : 'border-neutral-300 dark:border-white/30'
+                editScope === 'single' ? 'border-sage-500 bg-sage-500' : 'border-neutral-300'
               }`}>
                 {editScope === 'single' && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
               </span>
               <div>
-                <p className="text-sm font-medium text-neutral-800 dark:text-neutral-100">Alterar apenas esta sessão</p>
-                <p className="text-xs text-neutral-400">As demais sessões da série não serão afetadas</p>
+                <p className="text-sm font-medium text-neutral-800">Alterar apenas esta sessao</p>
+                <p className="text-xs text-neutral-400">As demais sessoes da serie nao serao afetadas. Esta vira uma alteracao pontual.</p>
               </div>
             </button>
-            <div className="border-t border-neutral-100 dark:border-white/5" />
+            <div className="border-t border-neutral-100" />
             <button
               type="button"
               onClick={() => setEditScope('future')}
               className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors ${
-                editScope === 'future'
-                  ? 'bg-sage-50 dark:bg-sage-900/20'
-                  : 'hover:bg-neutral-50 dark:hover:bg-white/5'
+                editScope === 'future' ? 'bg-sage-50' : 'hover:bg-neutral-50'
               }`}
             >
               <span className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${
-                editScope === 'future' ? 'border-sage-500 bg-sage-500' : 'border-neutral-300 dark:border-white/30'
+                editScope === 'future' ? 'border-sage-500 bg-sage-500' : 'border-neutral-300'
               }`}>
                 {editScope === 'future' && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
               </span>
               <div>
-                <p className="text-sm font-medium text-neutral-800 dark:text-neutral-100">Alterar esta e as próximas</p>
-                <p className="text-xs text-neutral-400">Aplica horário, duração e modalidade a todas as sessões a partir desta data</p>
+                <p className="text-sm font-medium text-neutral-800">Alterar esta e as proximas</p>
+                <p className="text-xs text-neutral-400">Aplica horario, duracao e modalidade a todas as sessoes futuras desta serie.</p>
               </div>
             </button>
           </div>
         )}
 
         <div>
-          <label className="label">Observações (opcional)</label>
-          <textarea {...register('notes')} rows={2} className="input-field resize-none" placeholder="Alguma informação relevante para esta sessão..." />
+          <label className="label">Observacoes (opcional)</label>
+          <textarea {...register('notes')} rows={2} className="input-field resize-none" placeholder="Alguma informacao relevante para esta sessao..." />
         </div>
 
         <div className="flex justify-end gap-3 pt-2">
