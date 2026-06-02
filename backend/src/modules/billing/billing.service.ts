@@ -7,7 +7,8 @@ import { Subscription } from './entities/subscription.entity'
 
 const TRIAL_DAYS = 7
 const PLAN_PRICES: Record<string, number> = { essencial: 79, pro: 149 }
-const COMPED_PRO_EMAILS = (process.env.COMPED_PRO_EMAILS ?? '')
+const DEFAULT_COMPED_PRO_EMAILS = ['gilsonfilho96@outlook.com']
+const COMPED_PRO_EMAILS = (process.env.COMPED_PRO_EMAILS ?? DEFAULT_COMPED_PRO_EMAILS.join(','))
   .split(',')
   .map(email => email.trim().toLowerCase())
   .filter(Boolean)

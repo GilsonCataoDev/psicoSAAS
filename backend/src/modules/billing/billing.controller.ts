@@ -98,7 +98,7 @@ export class BillingController {
   }
 
   private isMetricsAdmin(email?: string): boolean {
-    const admins = (process.env.ADMIN_EMAILS ?? '')
+    const admins = (process.env.ADMIN_EMAILS ?? 'gilsonfilho96@outlook.com')
       .split(',')
       .map(value => value.trim().toLowerCase())
       .filter(Boolean)

@@ -9,6 +9,10 @@ import { Subscription } from '../../modules/billing/entities/subscription.entity
 import { PLAN_LIMITS, normalizePlan } from '../plans'
 
 const PLAN_ORDER: Record<PlanLevel, number> = { free: 0, basic: 1, essencial: 1, pro: 2, premium: 2 }
+const COMPED_PRO_EMAILS = (process.env.COMPED_PRO_EMAILS ?? 'gilsonfilho96@outlook.com')
+  .split(',')
+  .map(email => email.trim().toLowerCase())
+  .filter(Boolean)
 
 export { PLAN_LIMITS }
 
@@ -28,6 +32,7 @@ export class PlanGuard implements CanActivate {
     const req = ctx.switchToHttp().getRequest()
     const userId = req.user?.id
     if (!userId) return false
+    if (req.user?.email && COMPED_PRO_EMAILS.includes(String(req.user.email).toLowerCase())) return true
 
     const sub = await this.subs.findOne({
       where: { userId },
