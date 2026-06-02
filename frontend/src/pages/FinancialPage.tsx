@@ -10,6 +10,7 @@ import { FinancialRecord } from '@/types'
 import NewPaymentModal from '@/components/features/financial/NewPaymentModal'
 import MarkPaidModal from '@/components/features/financial/MarkPaidModal'
 import toast from 'react-hot-toast'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 const METHOD_LABELS: Record<string, string> = {
   pix: 'PIX', credit_card: 'Cartao', debit_card: 'Debito', cash: 'Dinheiro', transfer: 'Transferencia',
@@ -31,6 +32,7 @@ export default function FinancialPage() {
   const [filter, setFilter] = useState<'all' | 'paid' | 'pending' | 'overdue'>('all')
   const [showNew, setShowNew] = useState(false)
   const [markRecord, setMarkRecord] = useState<FinancialRecord | null>(null)
+  const [recordToDelete, setRecordToDelete] = useState<FinancialRecord | null>(null)
 
   const total   = records.reduce((s, r) => s + (r.type === 'income' ? Number(r.amount) : 0), 0)
   const paid    = records.filter(r => r.status === 'paid').reduce((s, r) => s + Number(r.amount), 0)
@@ -61,6 +63,17 @@ export default function FinancialPage() {
       toast.success('Pagamento registrado ok')
     } catch {
       toast.error('Erro ao registrar pagamento.')
+    }
+  }
+
+  async function handleDeleteRecord() {
+    if (!recordToDelete) return
+    try {
+      await deleteRecord.mutateAsync(recordToDelete.id)
+      toast.success('Lancamento excluido')
+      setRecordToDelete(null)
+    } catch {
+      toast.error('Erro ao excluir lancamento')
     }
   }
 
@@ -181,15 +194,7 @@ export default function FinancialPage() {
           ) : filtered.map(record => (
             <FinancialRow key={record.id} record={record}
               onMarkPaid={() => setMarkRecord(record)}
-              onDelete={async () => {
-                if (!confirm(`Excluir lancamento de ${record.patient?.name ?? 'paciente'}? Esta acao nao pode ser desfeita.`)) return
-                try {
-                  await deleteRecord.mutateAsync(record.id)
-                  toast.success('Lancamento excluido')
-                } catch {
-                  toast.error('Erro ao excluir lancamento')
-                }
-              }}
+              onDelete={() => setRecordToDelete(record)}
             />
           ))}
         </div>
@@ -202,6 +207,15 @@ export default function FinancialPage() {
         open={!!markRecord}
         onClose={() => setMarkRecord(null)}
         onConfirm={handleMarkPaid}
+      />
+      <ConfirmDialog
+        open={!!recordToDelete}
+        title="Excluir lancamento"
+        description={`Excluir o lancamento de ${recordToDelete?.patient?.name ?? 'paciente'}? Essa acao remove o registro financeiro definitivamente.`}
+        confirmLabel="Excluir lancamento"
+        loading={deleteRecord.isPending}
+        onClose={() => setRecordToDelete(null)}
+        onConfirm={handleDeleteRecord}
       />
     </div>
   )

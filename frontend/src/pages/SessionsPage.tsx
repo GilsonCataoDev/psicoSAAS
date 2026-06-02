@@ -4,6 +4,7 @@ import { FileText, NotebookPen, Plus, Trash2 } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { formatDateRelative } from '@/lib/utils'
 import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 import { useSessions, useDeleteSession } from '@/hooks/useApi'
@@ -13,16 +14,18 @@ const MOODS = ['', '1', '2', '3', '4', '5']
 
 export default function SessionsPage() {
   const [showModal, setShowModal] = useState(false)
+  const [sessionToDelete, setSessionToDelete] = useState<any | null>(null)
   const { data: sessions = [], isLoading } = useSessions()
   const deleteSession = useDeleteSession()
 
-  async function handleDelete(id: string, patientName: string) {
-    if (!confirm(`Excluir sessão de ${patientName}? Esta ação não pode ser desfeita.`)) return
+  async function handleDelete() {
+    if (!sessionToDelete) return
     try {
-      await deleteSession.mutateAsync(id)
-      toast.success('Sessão excluída')
+      await deleteSession.mutateAsync(sessionToDelete.id)
+      toast.success('Sessao excluida')
+      setSessionToDelete(null)
     } catch {
-      toast.error('Erro ao excluir sessão')
+      toast.error('Erro ao excluir sessao')
     }
   }
 
@@ -30,16 +33,16 @@ export default function SessionsPage() {
     <div className="animate-slide-up space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="page-title">Sessões</h1>
+          <h1 className="page-title">Sessoes</h1>
           <p className="page-subtitle">
             {sessions.length > 0
-              ? `${sessions.length} sessão${sessions.length !== 1 ? 'ões' : ''} registrada${sessions.length !== 1 ? 's' : ''}`
+              ? `${sessions.length} sessao${sessions.length !== 1 ? 'es' : ''} registrada${sessions.length !== 1 ? 's' : ''}`
               : 'Registre como foi cada atendimento'}
           </p>
         </div>
         <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2">
           <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Como foi a sessão?</span>
+          <span className="hidden sm:inline">Como foi a sessao?</span>
         </button>
       </div>
 
@@ -54,11 +57,11 @@ export default function SessionsPage() {
       {!isLoading && sessions.length === 0 && (
         <EmptyState
           icon={<NotebookPen className="h-7 w-7" strokeWidth={1.8} />}
-          title="Nenhuma sessão registrada ainda"
-          description="Após cada atendimento, registre o que aconteceu. Seus registros ficam seguros e organizados aqui."
+          title="Nenhuma sessao registrada ainda"
+          description="Apos cada atendimento, registre o que aconteceu. Seus registros ficam seguros e organizados aqui."
           action={
             <button onClick={() => setShowModal(true)} className="btn-primary">
-              Registrar primeira sessão
+              Registrar primeira sessao
             </button>
           }
         />
@@ -74,9 +77,9 @@ export default function SessionsPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <h3 className="font-semibold text-neutral-800 text-sm">{session.patient?.name ?? 'Paciente removido'}</h3>
-                    <span className="text-neutral-200 text-xs">·</span>
+                    <span className="text-neutral-200 text-xs">-</span>
                     <span className="text-xs text-neutral-400 tabular-nums">{formatDateRelative(session.date)}</span>
-                    <span className="text-neutral-200 text-xs hidden sm:inline">·</span>
+                    <span className="text-neutral-200 text-xs hidden sm:inline">-</span>
                     <span className="text-xs text-neutral-400 hidden sm:inline">{session.duration} min</span>
                   </div>
                   {session.summary && (
@@ -94,21 +97,21 @@ export default function SessionsPage() {
                     className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-sage-600 hover:text-sage-700"
                   >
                     <FileText className="h-3.5 w-3.5" />
-                    Ver no prontuário
+                    Ver no prontuario
                   </Link>
                 </div>
 
                 <div className="flex flex-col items-end gap-1.5 shrink-0">
                   {session.mood && (
-                    <span className="text-xl leading-none" title="Humor na sessão">
+                    <span className="text-xl leading-none" title="Humor na sessao">
                       {MOODS[session.mood]}
                     </span>
                   )}
                   <StatusBadge status={session.paymentStatus} />
                   <button
-                    onClick={() => handleDelete(session.id, session.patient?.name ?? 'paciente removido')}
+                    onClick={() => setSessionToDelete(session)}
                     className="sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-rose-50 text-neutral-300 hover:text-rose-500"
-                    title="Excluir sessão"
+                    title="Excluir sessao"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -120,6 +123,15 @@ export default function SessionsPage() {
       )}
 
       <NewSessionModal open={showModal} onClose={() => setShowModal(false)} />
+      <ConfirmDialog
+        open={!!sessionToDelete}
+        title="Excluir sessao"
+        description={`Excluir a sessao de ${sessionToDelete?.patient?.name ?? 'paciente removido'}? O registro clinico sera removido definitivamente.`}
+        confirmLabel="Excluir sessao"
+        loading={deleteSession.isPending}
+        onClose={() => setSessionToDelete(null)}
+        onConfirm={handleDelete}
+      />
     </div>
   )
 }

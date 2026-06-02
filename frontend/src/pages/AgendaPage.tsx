@@ -12,6 +12,7 @@ import { useAppointments, useDeleteAppointment } from '@/hooks/useApi'
 import NewAppointmentModal from '@/components/features/agenda/NewAppointmentModal'
 import toast from 'react-hot-toast'
 import { openWhatsApp } from '@/lib/whatsapp'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 7) // 7h–19h
 
@@ -19,6 +20,7 @@ export default function AgendaPage() {
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }))
   const [showModal, setShowModal] = useState(false)
   const [editingAppointment, setEditingAppointment] = useState<any | null>(null)
+  const [appointmentToRemove, setAppointmentToRemove] = useState<any | null>(null)
   const weekEnd = addDays(weekStart, 4)
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
   const { data: appointments = [] } = useAppointments({
@@ -37,11 +39,12 @@ export default function AgendaPage() {
   const [mobileDay, setMobileDay] = useState(new Date())
   const mobileDays = eachDayOfInterval({ start: weekStart, end: addDays(weekStart, 4) })
 
-  async function removeAppointment(id: string, patientName?: string) {
-    if (!confirm(`Remover agendamento${patientName ? ` de ${patientName}` : ''}?`)) return
+  async function removeAppointment() {
+    if (!appointmentToRemove) return
     try {
-      await deleteAppointment.mutateAsync(id)
+      await deleteAppointment.mutateAsync(appointmentToRemove.id)
       toast.success('Agendamento removido')
+      setAppointmentToRemove(null)
     } catch (err: any) {
       toast.error(err?.response?.data?.message ?? 'Erro ao remover agendamento.')
     }
@@ -171,7 +174,7 @@ export default function AgendaPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => removeAppointment(appt.id, appt.patient?.name)}
+                  onClick={() => setAppointmentToRemove(appt)}
                   disabled={deleteAppointment.isPending}
                   className="p-2 rounded-lg text-neutral-300 hover:text-rose-500 hover:bg-rose-50 transition-colors disabled:opacity-50"
                   title="Remover agendamento"
@@ -239,7 +242,7 @@ export default function AgendaPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => removeAppointment(appt.id, appt.patient?.name)}
+                            onClick={() => setAppointmentToRemove(appt)}
                             disabled={deleteAppointment.isPending}
                             className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-sage-700 hover:text-rose-600 hover:bg-white/70 transition-all disabled:opacity-50"
                             title="Remover agendamento"
@@ -268,6 +271,15 @@ export default function AgendaPage() {
       </div>
 
       <NewAppointmentModal open={showModal} onClose={closeModal} appointment={editingAppointment} />
+      <ConfirmDialog
+        open={!!appointmentToRemove}
+        title="Remover agendamento"
+        description={`Remover este agendamento${appointmentToRemove?.patient?.name ? ` de ${appointmentToRemove.patient.name}` : ''}? Essa acao nao pode ser desfeita.`}
+        confirmLabel="Remover"
+        loading={deleteAppointment.isPending}
+        onClose={() => setAppointmentToRemove(null)}
+        onConfirm={removeAppointment}
+      />
     </div>
   )
 }

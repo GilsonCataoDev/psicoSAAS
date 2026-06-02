@@ -11,6 +11,7 @@ import { useSubscriptionStore, PLANS } from '@/store/subscription'
 import toast from 'react-hot-toast'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 import Avatar from '@/components/ui/Avatar'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 const tabs = [
   { id: 'profile',  icon: User,          label: 'Perfil'     },
@@ -102,6 +103,7 @@ export default function SettingsPage() {
   const [savingPrefs, setSavingPrefs] = useState(false)
   const [calendarBusy, setCalendarBusy] = useState(false)
   const [googleCalendarAvailable, setGoogleCalendarAvailable] = useState(true)
+  const [confirmDisconnectGoogle, setConfirmDisconnectGoogle] = useState(false)
 
   useEffect(() => {
     Promise.allSettled([
@@ -221,7 +223,7 @@ export default function SettingsPage() {
   }
 
   async function disconnectGoogleCalendar() {
-    if (!window.confirm('Desconectar Google Agenda? Novas sessoes nao serao enviadas automaticamente.')) return
+    setConfirmDisconnectGoogle(false)
     setCalendarBusy(true)
     try {
       await api.delete('/google-calendar/disconnect')
@@ -263,6 +265,8 @@ export default function SettingsPage() {
   const [deletePassword, setDeletePassword] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState('')
   const [deletingAccount, setDeletingAccount] = useState(false)
+  const [confirmCancelPlan, setConfirmCancelPlan] = useState(false)
+  const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false)
   const currentPlan  = PLANS.find(p => p.id === subscription.planId)
   const currentPlanId = String(subscription.planId ?? subscription.plan ?? '')
   const hasProAutomation = currentPlanId === 'pro'
@@ -273,13 +277,7 @@ export default function SettingsPage() {
     : null
 
   async function cancelPlan() {
-    const ok = window.confirm(
-      currentPlanId === 'free'
-        ? 'Sair do plano gratis? Seu acesso sera bloqueado ate escolher outro plano.'
-        : 'Cancelar sua assinatura? Voce nao sera cobrado novamente. Se houver periodo pago ativo, o acesso continua ate o fim dele.',
-    )
-    if (!ok) return
-
+    setConfirmCancelPlan(false)
     setCancelingPlan(true)
     try {
       const { data } = await api.post('/billing/cancel')
@@ -324,11 +322,11 @@ export default function SettingsPage() {
       return
     }
 
-    const ok = window.confirm(
-      'Excluir sua conta definitivamente? Todos os dados vinculados serao removidos do banco de dados. Esta acao nao pode ser desfeita.',
-    )
-    if (!ok) return
+    setConfirmDeleteAccount(true)
+  }
 
+  async function confirmDeleteAccountNow() {
+    setConfirmDeleteAccount(false)
     setDeletingAccount(true)
     try {
       await api.delete('/auth/account', {
@@ -583,7 +581,7 @@ export default function SettingsPage() {
                   {prefs.googleCalendarConnected ? (
                     <button
                       type="button"
-                      onClick={disconnectGoogleCalendar}
+                      onClick={() => setConfirmDisconnectGoogle(true)}
                       disabled={calendarBusy}
                       className="btn-secondary text-sm"
                     >
@@ -753,7 +751,7 @@ export default function SettingsPage() {
                       </p>
                       <button
                         className="mt-3 text-sm text-rose-500 hover:text-rose-600 flex items-center gap-1 transition-colors disabled:opacity-60"
-                        onClick={cancelPlan}
+                        onClick={() => setConfirmCancelPlan(true)}
                         disabled={cancelingPlan}
                       >
                         <X className="w-3.5 h-3.5" />
@@ -897,6 +895,37 @@ export default function SettingsPage() {
 
         </div>
       </div>
+      <ConfirmDialog
+        open={confirmDisconnectGoogle}
+        title="Desconectar Google Agenda"
+        description="Novas sessoes nao serao enviadas automaticamente para o Google Agenda depois da desconexao."
+        confirmLabel="Desconectar"
+        loading={calendarBusy}
+        tone="warning"
+        onClose={() => setConfirmDisconnectGoogle(false)}
+        onConfirm={disconnectGoogleCalendar}
+      />
+      <ConfirmDialog
+        open={confirmCancelPlan}
+        title={currentPlanId === 'free' ? 'Sair do plano gratis' : 'Cancelar assinatura'}
+        description={currentPlanId === 'free'
+          ? 'Seu acesso sera bloqueado ate escolher outro plano. Seus dados continuam protegidos.'
+          : 'Voce nao sera cobrado novamente. Se houver periodo pago ativo, o acesso continua ate o fim dele.'}
+        confirmLabel={currentPlanId === 'free' ? 'Sair do plano' : 'Cancelar assinatura'}
+        loading={cancelingPlan}
+        tone="warning"
+        onClose={() => setConfirmCancelPlan(false)}
+        onConfirm={cancelPlan}
+      />
+      <ConfirmDialog
+        open={confirmDeleteAccount}
+        title="Excluir conta definitivamente"
+        description="Todos os pacientes, prontuarios, sessoes, agenda, financeiro, documentos, preferencias e tokens de acesso serao removidos. Esta acao nao pode ser desfeita."
+        confirmLabel="Excluir definitivamente"
+        loading={deletingAccount}
+        onClose={() => setConfirmDeleteAccount(false)}
+        onConfirm={confirmDeleteAccountNow}
+      />
     </div>
   )
 }

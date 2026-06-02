@@ -15,6 +15,7 @@ import { api } from '@/lib/api'
 import EmptyState from '@/components/ui/EmptyState'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 import Modal from '@/components/ui/Modal'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 const CLINICAL_MODELS = [
   {
@@ -104,6 +105,7 @@ export default function DocumentosPage() {
   const [showGenerate, setShowGenerate] = useState(false)
   const [preview, setPreview] = useState<Documento | null>(null)
   const [clinicalPreview, setClinicalPreview] = useState<typeof CLINICAL_MODELS[number] | null>(null)
+  const [docToDelete, setDocToDelete] = useState<Documento | null>(null)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<DocType | 'all'>('all')
 
@@ -135,6 +137,17 @@ export default function DocumentosPage() {
         ? 'Seu acesso atual nao permite baixar este PDF.'
         : 'Erro ao baixar PDF'
       toast.error(message)
+    }
+  }
+
+  async function handleDeleteDocument() {
+    if (!docToDelete) return
+    try {
+      await deleteDoc.mutateAsync(docToDelete.id)
+      toast.success('Documento excluído')
+      setDocToDelete(null)
+    } catch {
+      toast.error('Erro ao excluir documento')
     }
   }
 
@@ -277,15 +290,7 @@ export default function DocumentosPage() {
           <DocCard key={doc.id} doc={doc}
             onPreview={() => setPreview(doc)}
             onDownload={() => downloadPdf(doc)}
-            onDelete={async () => {
-              if (!confirm(`Excluir "${doc.title}"? Esta ação não pode ser desfeita.`)) return
-              try {
-                await deleteDoc.mutateAsync(doc.id)
-                toast.success('Documento excluído')
-              } catch {
-                toast.error('Erro ao excluir documento')
-              }
-            }}
+            onDelete={() => setDocToDelete(doc)}
           />
         ))}
       </div>
@@ -307,6 +312,15 @@ export default function DocumentosPage() {
       <ClinicalModelModal
         model={clinicalPreview}
         onClose={() => setClinicalPreview(null)}
+      />
+      <ConfirmDialog
+        open={!!docToDelete}
+        title="Excluir documento"
+        description={`Excluir "${docToDelete?.title ?? 'documento'}"? O PDF e o codigo de verificacao deixam de ficar disponiveis.`}
+        confirmLabel="Excluir documento"
+        loading={deleteDoc.isPending}
+        onClose={() => setDocToDelete(null)}
+        onConfirm={handleDeleteDocument}
       />
     </div>
   )
