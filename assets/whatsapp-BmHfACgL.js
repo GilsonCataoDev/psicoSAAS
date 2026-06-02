@@ -1,0 +1,1 @@
+function e(e){let t=e?.replace(/\D/g,``)??``;return t?t.startsWith(`55`)?t:`55${t}`:``}function t(t,n){return`https://wa.me/${e(t)||``}?text=${encodeURIComponent(n)}`}function n(e,n){window.open(t(e,n),`_blank`,`noopener,noreferrer`)}export{n as t};
