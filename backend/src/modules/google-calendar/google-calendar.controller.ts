@@ -32,10 +32,18 @@ export class GoogleCalendarController {
   async callback(
     @Query('code') code: string,
     @Query('state') state: string,
+    @Query('error') error: string,
     @Res() res: Response,
   ) {
-    const { redirectUrl } = await this.googleCalendar.handleCallback(code, state)
-    return res.redirect(redirectUrl)
+    if (error) {
+      return res.redirect(this.googleCalendar.getFailureRedirectUrl('access_denied'))
+    }
+    try {
+      const { redirectUrl } = await this.googleCalendar.handleCallback(code, state)
+      return res.redirect(redirectUrl)
+    } catch {
+      return res.redirect(this.googleCalendar.getFailureRedirectUrl('callback_failed'))
+    }
   }
 
   @Delete('disconnect')

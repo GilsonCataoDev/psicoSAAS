@@ -72,25 +72,39 @@ export class GoogleCalendarService {
     if (!code || !state) throw new BadRequestException('Retorno do Google invalido')
     const userId = this.verifyState(state)
     const tokens = await this.exchangeCode(code)
-    if (!tokens.refresh_token) {
-      throw new BadRequestException('O Google nao retornou permissao offline. Tente conectar novamente.')
-    }
-
-    const email = await this.fetchGoogleEmail(tokens.access_token).catch(() => undefined)
     const user = await this.users.findOneBy({ id: userId })
     if (!user) throw new BadRequestException('Usuario nao encontrado')
 
+    const previousPrefs = (user.preferences ?? {}) as GoogleCalendarPrefs
+    const encryptedRefreshToken = tokens.refresh_token
+      ? encryptSecret(tokens.refresh_token)
+      : previousPrefs.googleCalendarRefreshToken
+
+    if (!encryptedRefreshToken) {
+      throw new BadRequestException('O Google nao retornou permissao offline. Tente conectar novamente.')
+    }
+
+    const email = await this.fetchGoogleEmail(tokens.access_token).catch(() => previousPrefs.googleCalendarEmail)
     user.preferences = {
-      ...(user.preferences ?? {}),
+      ...previousPrefs,
       googleCalendarConnected: true,
       googleCalendarEmail: email,
       googleCalendarAccessToken: encryptSecret(tokens.access_token),
-      googleCalendarRefreshToken: encryptSecret(tokens.refresh_token),
+      googleCalendarRefreshToken: encryptedRefreshToken,
       googleCalendarExpiresAt: this.expiresAt(tokens.expires_in),
     }
     await this.users.save(user)
 
     return { redirectUrl: `${this.getFrontendUrl()}/#/configuracoes?tab=integrations&googleCalendar=connected` }
+  }
+
+  getFailureRedirectUrl(reason = 'error'): string {
+    const params = new URLSearchParams({
+      tab: 'integrations',
+      googleCalendar: 'error',
+      reason,
+    })
+    return `${this.getFrontendUrl()}/#/configuracoes?${params.toString()}`
   }
 
   async disconnect(userId: string): Promise<{ connected: boolean }> {

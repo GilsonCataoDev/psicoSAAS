@@ -122,6 +122,8 @@ export default function SettingsPage() {
           googleCalendarConnected: !!data.connected,
           googleCalendarEmail: data.email ?? '',
         }))
+      } else {
+        setGoogleCalendarAvailable(false)
       }
     }).finally(() => setLoadingPrefs(false))
   }, [])
@@ -129,6 +131,12 @@ export default function SettingsPage() {
   useEffect(() => {
     if (searchParams.get('googleCalendar') === 'connected') {
       toast.success('Google Agenda conectado')
+      setSearchParams({ tab: 'integrations' }, { replace: true })
+    } else if (searchParams.get('googleCalendar') === 'error') {
+      const reason = searchParams.get('reason')
+      toast.error(reason === 'access_denied'
+        ? 'Permissao do Google Agenda nao autorizada.'
+        : 'Nao foi possivel concluir a conexao com o Google Agenda.')
       setSearchParams({ tab: 'integrations' }, { replace: true })
     }
   }, [searchParams, setSearchParams])
