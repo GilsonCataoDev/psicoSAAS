@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { AlertTriangle, ChevronLeft } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
@@ -130,13 +130,14 @@ function numToWords(n: number): string {
 }
 
 export default function GenerateDocModal({
-  open, onClose, onGenerate, patients, user,
+  open, onClose, onGenerate, patients, user, initialType,
 }: {
   open: boolean
   onClose: () => void
   onGenerate: (doc: Documento) => void
   patients: Patient[]
   user: { name: string; crp?: string } | null
+  initialType?: DocType
 }) {
   const [step, setStep] = useState<'type' | 'form'>('type')
   const [selectedType, setSelectedType] = useState<DocType>('declaracao')
@@ -144,6 +145,18 @@ export default function GenerateDocModal({
   const { register, handleSubmit, watch, reset, formState: { isSubmitting } } = useForm<FormData>({
     defaultValues: { type: 'declaracao' },
   })
+
+  useEffect(() => {
+    if (open) {
+      if (initialType) {
+        setSelectedType(initialType)
+        setStep('form')
+      } else {
+        setSelectedType('declaracao')
+        setStep('type')
+      }
+    }
+  }, [open, initialType])
 
   const patientId = watch('patientId')
   const patient = patients.find(p => p.id === patientId)

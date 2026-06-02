@@ -103,6 +103,7 @@ export default function DocumentosPage() {
   const { data: docs = [], isLoading } = useDocuments()
   const deleteDoc = useDeleteDocument()
   const [showGenerate, setShowGenerate] = useState(false)
+  const [generateType, setGenerateType] = useState<DocType | undefined>(undefined)
   const [preview, setPreview] = useState<Documento | null>(null)
   const [clinicalPreview, setClinicalPreview] = useState<typeof CLINICAL_MODELS[number] | null>(null)
   const [docToDelete, setDocToDelete] = useState<Documento | null>(null)
@@ -167,7 +168,7 @@ export default function DocumentosPage() {
           <h1 className="page-title">Documentos</h1>
           <p className="page-subtitle">Certificação digital para seus atendimentos</p>
         </div>
-        <button onClick={() => setShowGenerate(true)}
+        <button onClick={() => { setGenerateType(undefined); setShowGenerate(true) }}
           className="btn-primary flex items-center gap-2">
           <FilePlus className="w-4 h-4" />
           <span className="hidden sm:inline">Novo documento</span>
@@ -205,7 +206,7 @@ export default function DocumentosPage() {
         <p className="text-sm font-medium text-neutral-600 mb-3">Gerar documento rápido</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
           {(Object.entries(DOC_TYPE_LABELS) as [DocType, string][]).map(([type, label]) => (
-            <button key={type} onClick={() => setShowGenerate(true)}
+            <button key={type} onClick={() => { setGenerateType(type); setShowGenerate(true) }}
               className="card p-3 text-center hover:shadow-lifted hover:-translate-y-px transition-all cursor-pointer hover:border-sage-200 group">
               <UseCogniaIcon name={DOC_TYPE_ICONS[type]} size={32} />
               <p className="text-xs font-medium text-neutral-600 mt-1.5 leading-tight group-hover:text-sage-700">
@@ -307,7 +308,7 @@ export default function DocumentosPage() {
               title="Nenhum documento encontrado"
               description="Gere declaracoes, recibos e relatorios com assinatura digital."
               actionLabel="Gerar primeiro documento"
-              onAction={() => setShowGenerate(true)}
+              onAction={() => { setGenerateType(undefined); setShowGenerate(true) }}
               className="py-12"
             />
           </div>
@@ -327,6 +328,7 @@ export default function DocumentosPage() {
         onGenerate={handleGenerate}
         patients={patients}
         user={user}
+        initialType={generateType}
       />
 
       <DocumentPreviewModal
