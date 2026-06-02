@@ -315,18 +315,28 @@ function ClinicalModelModal({ model, onClose }: {
 }) {
   if (!model) return null
 
+  const escapeHtml = (value: string) => value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+
   function printModel() {
     if (!model) return
-    const win = window.open('', '_blank', 'noopener,noreferrer')
+    const win = window.open('', '_blank')
     if (!win) {
       toast.error('Nao foi possivel abrir a janela de impressao.')
       return
     }
+    const title = escapeHtml(model.title)
+    const description = escapeHtml(model.description)
+    const template = escapeHtml(model.template)
     win.document.write(`
       <!doctype html>
       <html>
         <head>
-          <title>${model.title}</title>
+          <title>${title}</title>
           <style>
             body { font-family: Arial, sans-serif; color: #222; margin: 42px; line-height: 1.5; }
             h1 { font-size: 20px; margin: 0 0 6px; }
@@ -335,15 +345,17 @@ function ClinicalModelModal({ model, onClose }: {
           </style>
         </head>
         <body>
-          <h1>${model.title}</h1>
-          <p>${model.description}</p>
-          <pre>${model.template}</pre>
+          <h1>${title}</h1>
+          <p>${description}</p>
+          <pre>${template}</pre>
         </body>
       </html>
     `)
     win.document.close()
-    win.focus()
-    win.print()
+    window.setTimeout(() => {
+      win.focus()
+      win.print()
+    }, 150)
   }
 
   return (

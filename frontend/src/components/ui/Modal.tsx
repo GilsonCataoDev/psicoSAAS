@@ -31,6 +31,7 @@ export default function Modal({ open, onClose, title, description, children, siz
         */}
         <div className="fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center sm:p-4">
           <Dialog.Content
+            {...(!description ? { 'aria-describedby': undefined } : {})}
             className={cn(
               // Base — aplica em qualquer tamanho
               'bg-white w-full max-h-[92dvh] overflow-y-auto shadow-lifted animate-slide-up',
