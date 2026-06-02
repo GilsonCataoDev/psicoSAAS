@@ -62,6 +62,8 @@ async function bootstrap() {
     'http://localhost:5173',
     'http://127.0.0.1:5173',
     'https://gilsoncataodev.github.io',
+    'http://usecognia.com.br',
+    'http://www.usecognia.com.br',
     'https://usecognia.com.br',
     'https://www.usecognia.com.br',
     'https://usecognia.vercel.app',
