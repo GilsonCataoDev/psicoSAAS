@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer'
-import { IsString, IsEmail, IsOptional, IsNumber, IsArray, IsIn, IsObject, Matches } from 'class-validator'
+import { IsString, IsEmail, IsOptional, IsNumber, IsArray, IsIn, IsObject, Matches, IsBoolean, Min, Max } from 'class-validator'
 
 function emptyToUndefined(value: unknown) {
   return typeof value === 'string' && value.trim() === '' ? undefined : value
@@ -31,6 +31,11 @@ export class CreatePatientDto {
   @IsNumber() @IsOptional() sessionPrice?: number
   @IsNumber() @IsOptional() sessionDuration?: number
   @IsString() @IsOptional() startDate?: string
+  @IsBoolean() @IsOptional() hasFixedSchedule?: boolean
+  @IsNumber() @Min(0) @Max(6) @IsOptional() fixedScheduleWeekday?: number
+  @IsString() @IsOptional() @Matches(/^([01]\d|2[0-3]):[0-5]\d$/) fixedScheduleTime?: string
+  @IsIn(['weekly','biweekly']) @IsOptional() fixedScheduleFrequency?: 'weekly' | 'biweekly'
+  @IsIn(['presencial','online']) @IsOptional() fixedScheduleModality?: 'presencial' | 'online'
   @IsArray() @IsOptional() tags?: string[]
   @IsIn(['active','paused','discharged']) @IsOptional() status?: 'active' | 'paused' | 'discharged'
   @IsString() @IsOptional() privateNotes?: string

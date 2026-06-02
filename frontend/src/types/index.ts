@@ -10,6 +10,11 @@ export interface Patient {
   sessionPrice: number
   sessionDuration: number
   startDate: string
+  hasFixedSchedule?: boolean
+  fixedScheduleWeekday?: number
+  fixedScheduleTime?: string
+  fixedScheduleFrequency?: 'weekly' | 'biweekly'
+  fixedScheduleModality?: 'presencial' | 'online'
   notes?: string
   privateNotes?: string
   prontuario?: Record<string, any>
@@ -42,6 +47,12 @@ export interface Appointment {
   status: 'scheduled' | 'completed' | 'cancelled' | 'no_show'
   modality: 'presencial' | 'online'
   notes?: string
+  isRecurring?: boolean
+  recurringFrequency?: 'weekly' | 'biweekly'
+  recurringGroupId?: string
+  isFixedScheduleException?: boolean
+  originalDate?: string
+  originalTime?: string
   sessionId?: string
   createdAt: string
 }

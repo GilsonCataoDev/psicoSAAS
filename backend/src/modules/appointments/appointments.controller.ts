@@ -3,6 +3,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { AppointmentsService } from './appointments.service'
 import { CreateAppointmentDto } from './dto/create-appointment.dto'
+import { UpdateAppointmentDto } from './dto/update-appointment.dto'
 
 @Controller('appointments')
 @UseGuards(JwtAuthGuard, CsrfGuard)
@@ -17,6 +18,11 @@ export class AppointmentsController {
   @Get(':id') findOne(@Param('id') id: string, @Request() req: any) { return this.svc.findOne(id, req.user.id) }
 
   @Post() create(@Body() dto: CreateAppointmentDto, @Request() req: any) { return this.svc.create(dto, req.user.id) }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() dto: UpdateAppointmentDto, @Request() req: any) {
+    return this.svc.update(id, dto, req.user.id)
+  }
 
   @Patch(':id/status')
   updateStatus(@Param('id') id: string, @Body('status') status: string, @Request() req: any) {

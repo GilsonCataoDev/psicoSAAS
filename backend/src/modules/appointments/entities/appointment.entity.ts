@@ -14,6 +14,12 @@ export class Appointment {
   @Column({ type: 'text', default: 'scheduled' }) status: string
   @Column({ type: 'text', default: 'presencial' }) modality: string
   @Column({ nullable: true }) notes?: string
+  @Column({ default: false }) isRecurring: boolean
+  @Column({ nullable: true }) recurringFrequency?: string
+  @Column({ nullable: true }) recurringGroupId?: string
+  @Column({ default: false }) isFixedScheduleException: boolean
+  @Column({ nullable: true }) originalDate?: string
+  @Column({ nullable: true }) originalTime?: string
   @Column() patientId: string
   @ManyToOne(() => Patient, (p) => p.appointments, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'patientId' }) patient: Patient

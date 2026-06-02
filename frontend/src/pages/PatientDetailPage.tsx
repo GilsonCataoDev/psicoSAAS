@@ -2,7 +2,7 @@ import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, Phone, Mail, Calendar, Plus, Lock,
   ClipboardList, MessageCircle, CheckCircle2, Save,
-  CalendarDays, Banknote,
+  CalendarDays, Banknote, Clock,
 } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
@@ -16,6 +16,7 @@ import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 import toast from 'react-hot-toast'
 
 const MOODS = ['', '1', '2', '3', '4', '5']
+const WEEKDAYS = ['Domingo', 'Segunda', 'Terca', 'Quarta', 'Quinta', 'Sexta', 'Sabado']
 
 export default function PatientDetailPage() {
   const { id } = useParams()
@@ -28,10 +29,28 @@ export default function PatientDetailPage() {
   const [note, setNote] = useState('')
   const [tab, setTab] = useState<'timeline' | 'notes' | 'financial'>('timeline')
   const [showSessionModal, setShowSessionModal] = useState(false)
+  const [fixedSchedule, setFixedSchedule] = useState({
+    hasFixedSchedule: false,
+    fixedScheduleWeekday: 1,
+    fixedScheduleTime: '09:00',
+    fixedScheduleFrequency: 'weekly' as 'weekly' | 'biweekly',
+    fixedScheduleModality: 'presencial' as 'presencial' | 'online',
+  })
 
   useEffect(() => {
     if (patient?.privateNotes) setNote(patient.privateNotes)
   }, [patient?.id])
+
+  useEffect(() => {
+    if (!patient) return
+    setFixedSchedule({
+      hasFixedSchedule: Boolean(patient.hasFixedSchedule),
+      fixedScheduleWeekday: patient.fixedScheduleWeekday ?? 1,
+      fixedScheduleTime: patient.fixedScheduleTime ?? '09:00',
+      fixedScheduleFrequency: patient.fixedScheduleFrequency ?? 'weekly',
+      fixedScheduleModality: patient.fixedScheduleModality ?? 'presencial',
+    })
+  }, [patient?.id, patient?.hasFixedSchedule, patient?.fixedScheduleWeekday, patient?.fixedScheduleTime, patient?.fixedScheduleFrequency, patient?.fixedScheduleModality])
 
   async function handleMarkPaid(recordId: string) {
     try {
@@ -45,6 +64,16 @@ export default function PatientDetailPage() {
       await sendCharge.mutateAsync(recordId)
       toast.success('Cobranca enviada via WhatsApp')
     } catch { toast.error('Erro ao enviar cobrança.') }
+  }
+
+  async function saveFixedSchedule() {
+    if (!id) return
+    try {
+      await updatePatient.mutateAsync({ id, data: fixedSchedule })
+      toast.success('Horario fixo salvo')
+    } catch {
+      toast.error('Erro ao salvar horario fixo.')
+    }
   }
 
   if (isLoading) return (
@@ -156,6 +185,74 @@ export default function PatientDetailPage() {
             <p className="font-semibold text-neutral-700 text-sm">{patient.sessionDuration} min</p>
           </div>
         </div>
+      </div>
+
+      <div className="card space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-sage-600" />
+            <h2 className="font-semibold text-neutral-800 text-sm">Horario fixo</h2>
+          </div>
+          <label className="flex items-center gap-2 text-xs text-neutral-500">
+            <input
+              type="checkbox"
+              checked={fixedSchedule.hasFixedSchedule}
+              onChange={e => setFixedSchedule(s => ({ ...s, hasFixedSchedule: e.target.checked }))}
+              className="w-4 h-4 accent-sage-600"
+            />
+            Usar horario fixo
+          </label>
+        </div>
+        {fixedSchedule.hasFixedSchedule && (
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <div>
+              <label className="label">Dia</label>
+              <select
+                value={fixedSchedule.fixedScheduleWeekday}
+                onChange={e => setFixedSchedule(s => ({ ...s, fixedScheduleWeekday: Number(e.target.value) }))}
+                className="input-field"
+              >
+                {WEEKDAYS.map((day, index) => <option key={day} value={index}>{day}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="label">Horario</label>
+              <input
+                type="time"
+                value={fixedSchedule.fixedScheduleTime}
+                onChange={e => setFixedSchedule(s => ({ ...s, fixedScheduleTime: e.target.value }))}
+                className="input-field"
+              />
+            </div>
+            <div>
+              <label className="label">Recorrencia</label>
+              <select
+                value={fixedSchedule.fixedScheduleFrequency}
+                onChange={e => setFixedSchedule(s => ({ ...s, fixedScheduleFrequency: e.target.value as 'weekly' | 'biweekly' }))}
+                className="input-field"
+              >
+                <option value="weekly">Toda semana</option>
+                <option value="biweekly">15 em 15 dias</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Modalidade</label>
+              <select
+                value={fixedSchedule.fixedScheduleModality}
+                onChange={e => setFixedSchedule(s => ({ ...s, fixedScheduleModality: e.target.value as 'presencial' | 'online' }))}
+                className="input-field"
+              >
+                <option value="presencial">Presencial</option>
+                <option value="online">Online</option>
+              </select>
+            </div>
+            <div className="flex items-end">
+              <button onClick={saveFixedSchedule} disabled={updatePatient.isPending} className="btn-primary text-sm w-full">
+                Salvar
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}

@@ -14,6 +14,11 @@ const schema = z.object({
   pronouns: z.string().optional(),
   sessionPrice: z.coerce.number().min(0),
   sessionDuration: z.coerce.number().min(20).max(180),
+  hasFixedSchedule: z.boolean().optional(),
+  fixedScheduleWeekday: z.coerce.number().min(0).max(6).optional(),
+  fixedScheduleTime: z.string().optional(),
+  fixedScheduleFrequency: z.enum(['weekly', 'biweekly']).optional(),
+  fixedScheduleModality: z.enum(['presencial', 'online']).optional(),
   tags: z.array(z.string()).optional(),
   cpfCnpj: z.string()
     .regex(/^\d{11}$|^\d{14}$/, 'CPF (11 dígitos) ou CNPJ (14 dígitos)')
@@ -28,10 +33,20 @@ const ALL_TAGS = Object.entries(TAG_LABELS) as [EmotionalTag, string][]
 export default function NewPatientModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { register, handleSubmit, reset, watch, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { sessionPrice: 150, sessionDuration: 50, tags: [] },
+    defaultValues: {
+      sessionPrice: 150,
+      sessionDuration: 50,
+      hasFixedSchedule: false,
+      fixedScheduleWeekday: 1,
+      fixedScheduleTime: '09:00',
+      fixedScheduleFrequency: 'weekly',
+      fixedScheduleModality: 'presencial',
+      tags: [],
+    },
   })
   const createPatient = useCreatePatient()
   const selectedTags = watch('tags') ?? []
+  const hasFixedSchedule = watch('hasFixedSchedule')
 
   function toggleTag(tag: EmotionalTag) {
     const current = selectedTags
@@ -43,6 +58,12 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
       const payload = Object.fromEntries(
         Object.entries({ ...data, tags: data.tags ?? [] }).filter(([, value]) => value !== ''),
       )
+      if (!data.hasFixedSchedule) {
+        delete (payload as any).fixedScheduleWeekday
+        delete (payload as any).fixedScheduleTime
+        delete (payload as any).fixedScheduleFrequency
+        delete (payload as any).fixedScheduleModality
+      }
       await createPatient.mutateAsync(payload as any)
       toast.success(`${data.name} adicionada com sucesso`)
       reset()
@@ -99,6 +120,47 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
             <label className="label">Duração (minutos)</label>
             <input {...register('sessionDuration')} type="number" className="input-field" />
           </div>
+        </div>
+
+        <div className="border border-neutral-100 rounded-xl p-4 space-y-3">
+          <label className="flex items-center gap-2 text-sm font-medium text-neutral-700">
+            <input {...register('hasFixedSchedule')} type="checkbox" className="w-4 h-4 accent-sage-600" />
+            Atendimento com horario fixo
+          </label>
+          {hasFixedSchedule && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="label">Dia da semana</label>
+                <select {...register('fixedScheduleWeekday')} className="input-field">
+                  <option value={1}>Segunda</option>
+                  <option value={2}>Terca</option>
+                  <option value={3}>Quarta</option>
+                  <option value={4}>Quinta</option>
+                  <option value={5}>Sexta</option>
+                  <option value={6}>Sabado</option>
+                  <option value={0}>Domingo</option>
+                </select>
+              </div>
+              <div>
+                <label className="label">Horario</label>
+                <input {...register('fixedScheduleTime')} type="time" className="input-field" />
+              </div>
+              <div>
+                <label className="label">Recorrencia</label>
+                <select {...register('fixedScheduleFrequency')} className="input-field">
+                  <option value="weekly">Toda semana</option>
+                  <option value="biweekly">De 15 em 15 dias</option>
+                </select>
+              </div>
+              <div>
+                <label className="label">Modalidade</label>
+                <select {...register('fixedScheduleModality')} className="input-field">
+                  <option value="presencial">Presencial</option>
+                  <option value="online">Online</option>
+                </select>
+              </div>
+            </div>
+          )}
         </div>
 
         <div>

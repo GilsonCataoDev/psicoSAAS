@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, Plus, Video, MapPin, Trash2, MessageCircle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Video, MapPin, Trash2, MessageCircle, Pencil } from 'lucide-react'
 import {
   format, addDays, startOfWeek, eachDayOfInterval, addWeeks,
   subWeeks, isSameDay, parseISO, isToday,
@@ -18,6 +18,7 @@ const HOURS = Array.from({ length: 13 }, (_, i) => i + 7) // 7h–19h
 export default function AgendaPage() {
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }))
   const [showModal, setShowModal] = useState(false)
+  const [editingAppointment, setEditingAppointment] = useState<any | null>(null)
   const weekEnd = addDays(weekStart, 4)
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
   const { data: appointments = [] } = useAppointments({
@@ -59,6 +60,16 @@ export default function AgendaPage() {
       phone,
       `Ola, ${first}! Lembrando que temos sessao em ${dateLabel} as ${formatTime(appt.time)}. Ate la!`,
     )
+  }
+
+  function editAppointment(appt: any) {
+    setEditingAppointment(appt)
+    setShowModal(true)
+  }
+
+  function closeModal() {
+    setShowModal(false)
+    setEditingAppointment(null)
   }
 
   return (
@@ -132,6 +143,24 @@ export default function AgendaPage() {
                   </div>
                 </div>
                 <StatusBadge status={appt.status} />
+                {appt.isRecurring && (
+                  <span className="text-[10px] px-2 py-1 rounded-full bg-mist-50 text-mist-700">
+                    {appt.recurringFrequency === 'biweekly' ? '15 em 15' : 'semanal'}
+                  </span>
+                )}
+                {appt.isFixedScheduleException && (
+                  <span className="text-[10px] px-2 py-1 rounded-full bg-amber-50 text-amber-700">
+                    pontual
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => editAppointment(appt)}
+                  className="p-2 rounded-lg text-neutral-300 hover:text-mist-600 hover:bg-mist-50 transition-colors"
+                  title="Alterar esta ocorrencia"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
                 <button
                   type="button"
                   onClick={() => messageAppointment(appt)}
@@ -202,6 +231,14 @@ export default function AgendaPage() {
                           </button>
                           <button
                             type="button"
+                            onClick={() => editAppointment(appt)}
+                            className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-sage-700 hover:text-mist-700 hover:bg-white/70 transition-all"
+                            title="Alterar esta ocorrencia"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => removeAppointment(appt.id, appt.patient?.name)}
                             disabled={deleteAppointment.isPending}
                             className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-sage-700 hover:text-rose-600 hover:bg-white/70 transition-all disabled:opacity-50"
@@ -213,6 +250,13 @@ export default function AgendaPage() {
                         <p className="text-xs text-sage-700 truncate mt-0.5">
                           {appt.patient?.name?.split(' ')[0] ?? 'Paciente'}
                         </p>
+                        {(appt.isRecurring || appt.isFixedScheduleException) && (
+                          <p className="text-[10px] text-sage-700/70 mt-0.5">
+                            {appt.isFixedScheduleException
+                              ? 'alteracao pontual'
+                              : appt.recurringFrequency === 'biweekly' ? '15 em 15 dias' : 'semanal'}
+                          </p>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -223,7 +267,7 @@ export default function AgendaPage() {
         </div>
       </div>
 
-      <NewAppointmentModal open={showModal} onClose={() => setShowModal(false)} />
+      <NewAppointmentModal open={showModal} onClose={closeModal} appointment={editingAppointment} />
     </div>
   )
 }

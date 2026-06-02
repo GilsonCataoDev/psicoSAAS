@@ -27,6 +27,11 @@ export class Patient {
   @Column({ default: 50 }) sessionDuration: number
   @Column({ nullable: true }) startDate?: string
   @Column({ nullable: true }) avatarColor?: string
+  @Column({ default: false }) hasFixedSchedule: boolean
+  @Column({ nullable: true }) fixedScheduleWeekday?: number
+  @Column({ nullable: true }) fixedScheduleTime?: string
+  @Column({ type: 'text', default: 'weekly' }) fixedScheduleFrequency: 'weekly' | 'biweekly'
+  @Column({ type: 'text', default: 'presencial' }) fixedScheduleModality: 'presencial' | 'online'
 
   // Encrypted in application layer before save
   @Column({ type: 'text', nullable: true }) privateNotes?: string

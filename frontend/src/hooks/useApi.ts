@@ -83,6 +83,18 @@ export function useCreateAppointment() {
   })
 }
 
+export function useUpdateAppointment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<Appointment> }) =>
+      api.patch(`/appointments/${id}`, data).then(r => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['appointments'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+}
+
 export function useUpdateAppointmentStatus() {
   const qc = useQueryClient()
   return useMutation({
