@@ -8,6 +8,13 @@ import { initAnalytics } from '@/lib/analytics'
 import { applyTheme, ThemeMode } from '@/store/theme'
 import './index.css'
 
+if (
+  window.location.protocol === 'http:' &&
+  ['usecognia.com.br', 'www.usecognia.com.br'].includes(window.location.hostname)
+) {
+  window.location.replace(`https://${window.location.host}${window.location.pathname}${window.location.search}${window.location.hash}`)
+}
+
 const persistedTheme = (() => {
   try {
     const raw = window.localStorage.getItem('psicosaas-theme')

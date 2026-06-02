@@ -89,6 +89,34 @@ export class DocumentsService {
     })
   }
 
+  private fitTextToHeight(pdf: PDFKit.PDFDocument, text: string, width: number, height: number, fontSize: number, lineGap: number): string {
+    const measure = (value: string) => pdf.heightOfString(value, {
+      width,
+      align: 'justify',
+      lineGap,
+    })
+
+    if (measure(text) <= height) return text
+
+    const suffix = '\n\n[Conteudo resumido para manter este PDF em uma pagina.]'
+    let low = 0
+    let high = text.length
+    let best = ''
+
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2)
+      const candidate = `${text.slice(0, mid).trimEnd()}...${suffix}`
+      if (measure(candidate) <= height) {
+        best = candidate
+        low = mid + 1
+      } else {
+        high = mid - 1
+      }
+    }
+
+    return best || text.slice(0, 600).trimEnd()
+  }
+
   // ─── Criar e assinar documento ────────────────────────────────────────────
 
   async create(user: User, dto: CreateDocumentDto, signerIp?: string): Promise<Document> {
@@ -228,13 +256,15 @@ export class DocumentsService {
       lineGap = Math.max(0.6, lineGap - 0.18)
     }
 
+    const fittedContent = this.fitTextToHeight(pdf, content, contentWidth, maxContentHeight, bodyFontSize, lineGap)
+
     pdf.fillColor(ink).font('Helvetica').fontSize(bodyFontSize)
-    pdf.text(content, left, contentTop, {
+    pdf.text(fittedContent, left, contentTop, {
       width: contentWidth,
       height: maxContentHeight,
       align: 'justify',
       lineGap,
-      ellipsis: true,
+      ellipsis: false,
       paragraphGap: 0,
     })
 

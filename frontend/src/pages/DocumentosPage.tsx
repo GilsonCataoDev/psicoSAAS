@@ -122,7 +122,7 @@ export default function DocumentosPage() {
   async function downloadPdf(doc: Documento) {
     try {
       const response = await api.get(`/documents/${doc.id}/pdf`, { responseType: 'blob' })
-      const url = URL.createObjectURL(response.data)
+      const url = URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }))
       const link = document.createElement('a')
       link.href = url
       link.download = `${doc.signCode}-${doc.type}.pdf`
@@ -341,16 +341,45 @@ function ClinicalModelModal({ model, onClose }: {
         <head>
           <title>${title}</title>
           <style>
-            body { font-family: Arial, sans-serif; color: #222; margin: 42px; line-height: 1.5; }
-            h1 { font-size: 20px; margin: 0 0 6px; }
-            p { color: #555; margin: 0 0 24px; }
-            pre { white-space: pre-wrap; font-family: Arial, sans-serif; font-size: 13px; }
+            @page { size: A4; margin: 12mm; }
+            * { box-sizing: border-box; }
+            html, body { width: 210mm; min-height: 297mm; margin: 0; background: #fff; }
+            body {
+              font-family: Arial, sans-serif;
+              color: #222;
+              line-height: 1.28;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            .sheet {
+              width: 100%;
+              max-height: 273mm;
+              overflow: hidden;
+              padding: 0;
+              page-break-after: avoid;
+              page-break-inside: avoid;
+            }
+            h1 { font-size: 17px; margin: 0 0 4px; letter-spacing: 0; }
+            p { color: #555; margin: 0 0 12px; font-size: 11px; }
+            pre {
+              white-space: pre-wrap;
+              font-family: Arial, sans-serif;
+              font-size: 11px;
+              line-height: 1.32;
+              margin: 0;
+            }
+            @media print {
+              html, body { height: 297mm; overflow: hidden; }
+              .sheet { break-inside: avoid; }
+            }
           </style>
         </head>
         <body>
-          <h1>${title}</h1>
-          <p>${description}</p>
-          <pre>${template}</pre>
+          <main class="sheet">
+            <h1>${title}</h1>
+            <p>${description}</p>
+            <pre>${template}</pre>
+          </main>
         </body>
       </html>
     `)
