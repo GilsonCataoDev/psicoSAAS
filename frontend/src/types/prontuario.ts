@@ -64,3 +64,11 @@ export const DOC_TYPE_ICONS: Record<DocType, 'documents' | 'billing' | 'success'
   atestado:      'success',
   encaminhamento:'public-link',
 }
+
+export const DOC_TYPE_DESCRIPTIONS: Record<DocType, string> = {
+  declaracao:     'Comprova comparecimento ou acompanhamento',
+  recibo:         'Comprovante de pagamento',
+  relatorio:      'Relato tecnico conforme finalidade informada',
+  atestado:       'Certifica condicao psicologica quando aplicavel',
+  encaminhamento: 'Referencia a outro profissional ou servico',
+}

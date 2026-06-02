@@ -173,7 +173,7 @@ export class DocumentsService {
         Title: stored.title,
         Author: stored.psychologistName,
         Subject: DOC_TYPE_LABELS[stored.type] ?? stored.type,
-        Keywords: `PsicoSaaS, ${stored.signCode}, autenticidade`,
+        Keywords: `UseCognia, ${stored.signCode}, autenticidade`,
       },
     })
     const done = this.collectPdf(pdf)
@@ -190,7 +190,9 @@ export class DocumentsService {
 
     const drawHeader = () => {
       pdf.rect(0, 0, pageWidth, 90).fill('#F4F8F5')
-      pdf.fillColor(sage).font('Helvetica-Bold').fontSize(10).text('PsicoSaaS', left, 30)
+      pdf.fillColor(sage).font('Helvetica-Bold').fontSize(10).text('UseCognia', left, 30)
+      pdf.fillColor(muted).font('Helvetica').fontSize(7.5)
+        .text(`${stored.psychologistName} | CRP ${stored.psychologistCrp}`, right - 190, 31, { width: 190, align: 'right' })
       pdf.fillColor(ink).font('Helvetica-Bold').fontSize(18)
         .text(DOC_TYPE_LABELS[stored.type].toUpperCase(), left, 48, { width: contentWidth - 120 })
       pdf.fillColor(muted).font('Helvetica').fontSize(9)

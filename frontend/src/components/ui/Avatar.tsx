@@ -19,7 +19,7 @@ export default function Avatar({ name, colorClass = 'bg-sage-100 text-sage-700',
       <img
         src={src}
         alt={name}
-        className={cn('rounded-full object-cover', sizes[size])}
+        className={cn('rounded-full bg-neutral-100 object-cover object-center', sizes[size])}
       />
     )
   }

@@ -254,7 +254,7 @@ export class GoogleCalendarService {
   private getFrontendUrl(): string {
     return this.config.get<string>('FRONTEND_URL')
       ?? this.config.get<string>('PUBLIC_APP_URL')
-      ?? 'https://gilsoncataodev.github.io/psicoSAAS'
+      ?? 'https://usecognia.com.br'
   }
 
   private getRequiredConfig(key: string): string {

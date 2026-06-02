@@ -1,5 +1,8 @@
 import { useState } from 'react'
-import { FilePlus, Shield, Download, Eye, Search, ExternalLink, Trash2 } from 'lucide-react'
+import {
+  FilePlus, Shield, Download, Eye, Search, ExternalLink, Trash2,
+  ClipboardCheck, ClipboardCopy, ClipboardPen, FileSignature, ListChecks, ShieldAlert,
+} from 'lucide-react'
 import { Documento, DocType, DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '@/types/prontuario'
 import { useAuthStore } from '@/store/auth'
 import { formatDate } from '@/lib/utils'
@@ -11,6 +14,86 @@ import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
 import EmptyState from '@/components/ui/EmptyState'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
+
+const CLINICAL_MODELS = [
+  {
+    title: 'Anamnese psicologica',
+    description: 'Queixa principal, historia, contexto familiar, saude, rotina, rede de apoio e objetivos iniciais.',
+    template: `ANAMNESE PSICOLOGICA
+
+Identificacao:
+Queixa principal:
+Historico da demanda:
+Contexto familiar e social:
+Saude, medicacoes e acompanhamentos:
+Rotina, sono, alimentacao e trabalho/estudo:
+Rede de apoio:
+Objetivos iniciais do acompanhamento:
+Observacoes clinicas relevantes:`,
+    icon: ClipboardCheck,
+  },
+  {
+    title: 'Evolucao de sessao',
+    description: 'Data, demanda trabalhada, intervencoes, resposta observada, combinados e proximos passos.',
+    template: `EVOLUCAO DE SESSAO
+
+Data:
+Pessoa atendida:
+Demanda trabalhada:
+Intervencoes realizadas:
+Resposta observada:
+Combinados/orientacoes:
+Pontos para acompanhamento:
+Proxima sessao:`,
+    icon: ClipboardPen,
+  },
+  {
+    title: 'Plano terapeutico',
+    description: 'Hipoteses iniciais, objetivos, frequencia, estrategias, indicadores de progresso e revisoes.',
+    template: `PLANO TERAPEUTICO
+
+Demanda inicial:
+Hipoteses clinicas iniciais:
+Objetivos terapeuticos:
+Frequencia sugerida:
+Estrategias/intervencoes planejadas:
+Indicadores de progresso:
+Pontos de revisao:
+Cuidados eticos e de sigilo:`,
+    icon: ListChecks,
+  },
+  {
+    title: 'Contrato terapeutico',
+    description: 'Honorarios, faltas, cancelamento, sigilo, comunicacao, emergencias e protecao de dados.',
+    template: `CONTRATO TERAPEUTICO / COMBINADOS
+
+Frequencia e duracao das sessoes:
+Honorarios e forma de pagamento:
+Politica de faltas e cancelamentos:
+Canais e horarios de comunicacao:
+Sigilo profissional e suas excecoes legais/eticas:
+Uso e protecao de dados pessoais:
+Condutas em situacoes de urgencia/emergencia:
+Aceite da pessoa atendida:`,
+    icon: FileSignature,
+  },
+  {
+    title: 'Rastreio de risco',
+    description: 'Sinais de alerta, fatores de protecao, rede acionavel e plano de seguranca quando necessario.',
+    template: `RASTREIO DE RISCO
+
+Data:
+Sinais de alerta relatados/observados:
+Fatores de risco:
+Fatores de protecao:
+Rede de apoio acionavel:
+Orientacoes combinadas:
+Plano de seguranca, quando necessario:
+Encaminhamentos/contatos de emergencia:
+Reavaliacao prevista:`,
+    icon: ShieldAlert,
+  },
+]
 
 export default function DocumentosPage() {
   const user = useAuthStore(s => s.user)
@@ -48,6 +131,11 @@ export default function DocumentosPage() {
     } catch {
       toast.error('Erro ao baixar PDF')
     }
+  }
+
+  async function copyClinicalModel(title: string, template: string) {
+    await navigator.clipboard.writeText(template)
+    toast.success(`${title} copiado`)
   }
 
   return (
@@ -104,6 +192,43 @@ export default function DocumentosPage() {
             </button>
           ))}
         </div>
+      </div>
+
+      <div>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <p className="text-sm font-medium text-neutral-600">Modelos de instrumentos clinicos</p>
+          <a
+            href="https://satepsi.cfp.org.br/"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-sage-600 hover:text-sage-700 hover:underline"
+          >
+            Consultar SATEPSI
+            <ExternalLink className="w-3 h-3" />
+          </a>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-2">
+          {CLINICAL_MODELS.map(({ title, description, template, icon: Icon }) => (
+            <div key={title} className="card flex flex-col p-3">
+              <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-sage-50 text-sage-600">
+                <Icon className="w-4 h-4" />
+              </div>
+              <p className="text-sm font-medium text-neutral-800">{title}</p>
+              <p className="mt-1 flex-1 text-xs leading-snug text-neutral-400">{description}</p>
+              <button
+                type="button"
+                onClick={() => copyClinicalModel(title, template)}
+                className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-sage-600 hover:text-sage-700"
+              >
+                <ClipboardCopy className="w-3.5 h-3.5" />
+                Copiar modelo
+              </button>
+            </div>
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-neutral-400">
+          Testes psicologicos e instrumentos privativos devem ser usados apenas por psicologas(os), conforme avaliacao e orientacao do CFP/SATEPSI.
+        </p>
       </div>
 
       {/* Filtros */}

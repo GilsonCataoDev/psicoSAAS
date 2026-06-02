@@ -432,16 +432,19 @@ export class BookingService {
 
   async saveMyPage(psychologistId: string, dto: SaveBookingPageDto) {
     let page = await this.pages.findOne({ where: { psychologistId } })
-    const avatarUrl = dto.avatarUrl?.trim() || page?.avatarUrl
-    if (!avatarUrl) {
-      throw new BadRequestException('Adicione uma foto para aparecer no link publico')
+    if (dto.avatarUrl !== undefined) {
+      const avatarUrl = dto.avatarUrl.trim()
+      if (avatarUrl) {
+        try {
+          new URL(avatarUrl)
+        } catch {
+          throw new BadRequestException('Informe uma URL valida para a foto')
+        }
+        dto.avatarUrl = avatarUrl
+      } else {
+        dto.avatarUrl = undefined
+      }
     }
-    try {
-      new URL(avatarUrl)
-    } catch {
-      throw new BadRequestException('Informe uma URL valida para a foto')
-    }
-    dto.avatarUrl = avatarUrl
     if (page) {
       Object.assign(page, dto)
     } else {

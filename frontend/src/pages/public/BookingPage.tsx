@@ -122,7 +122,7 @@ export default function BookingPage() {
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
           <div className="w-10 h-10 bg-sage-50 border border-sage-100 rounded-xl overflow-hidden flex items-center justify-center shrink-0">
             {page.avatarUrl ? (
-              <img src={page.avatarUrl} alt={`Foto de ${page.psychologistName}`} className="w-full h-full object-cover" />
+              <img src={page.avatarUrl} alt={`Foto de ${page.psychologistName}`} className="w-full h-full object-cover object-center" />
             ) : (
               <Heart className="w-5 h-5 text-sage-500" fill="currentColor" />
             )}
@@ -188,7 +188,7 @@ export default function BookingPage() {
             <div className="mb-8">
               <div className="w-24 h-24 rounded-3xl overflow-hidden bg-sage-50 border border-sage-100 mb-5 shadow-card">
                 {page.avatarUrl ? (
-                  <img src={page.avatarUrl} alt={page.psychologistName} className="w-full h-full object-cover" />
+                  <img src={page.avatarUrl} alt={page.psychologistName} className="w-full h-full object-cover object-center" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <Heart className="w-9 h-9 text-sage-500" fill="currentColor" />

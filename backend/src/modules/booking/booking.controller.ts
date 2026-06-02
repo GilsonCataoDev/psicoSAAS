@@ -24,7 +24,7 @@ export class BookingController {
   @Get('daily-link')
   async getDailyLink(@Request() req: any) {
     await this.svc.getMyPage(req.user.id)
-    const baseUrl = process.env.FRONTEND_URL ?? 'https://gilsoncataodev.github.io/psicoSAAS'
+    const baseUrl = process.env.FRONTEND_URL ?? 'https://usecognia.com.br'
     return this.svc.getDailyLink(req.user.id, baseUrl)
   }
 
