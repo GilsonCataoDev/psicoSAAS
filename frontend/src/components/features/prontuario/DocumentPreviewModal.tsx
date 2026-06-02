@@ -56,8 +56,11 @@ export default function DocumentPreviewModal({
       link.click()
       link.remove()
       URL.revokeObjectURL(url)
-    } catch {
-      toast.error('Nao foi possivel gerar o PDF agora.')
+    } catch (err: any) {
+      const message = err?.response?.status === 403
+        ? 'Seu acesso atual nao permite baixar este PDF.'
+        : 'Nao foi possivel gerar o PDF agora.'
+      toast.error(message)
     } finally {
       setDownloading(false)
     }

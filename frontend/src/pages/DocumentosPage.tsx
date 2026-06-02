@@ -130,8 +130,11 @@ export default function DocumentosPage() {
       link.click()
       link.remove()
       URL.revokeObjectURL(url)
-    } catch {
-      toast.error('Erro ao baixar PDF')
+    } catch (err: any) {
+      const message = err?.response?.status === 403
+        ? 'Seu acesso atual nao permite baixar este PDF.'
+        : 'Erro ao baixar PDF'
+      toast.error(message)
     }
   }
 
