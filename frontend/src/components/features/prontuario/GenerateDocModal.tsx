@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { ChevronLeft } from 'lucide-react'
+import { AlertTriangle, ChevronLeft } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import { Patient } from '@/types'
 import { Documento, DocType, DOC_TYPE_DESCRIPTIONS, DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '@/types/prontuario'
@@ -12,28 +12,46 @@ import toast from 'react-hot-toast'
 type FormData = {
   patientId: string
   type: DocType
+  requester?: string
+  purpose?: string
+  place?: string
   sessionCount?: number
   sessionValue?: number
   startDate?: string
   endDate?: string
+  attendanceSchedule?: string
+  demand?: string
+  procedure?: string
+  conclusion?: string
   extraText?: string
   referralTo?: string
 }
 
-function buildContent(data: FormData, patient: Patient, type: DocType): string {
+function buildContent(data: FormData, patient: Patient, type: DocType, user: { name: string; crp?: string } | null): string {
   const today = new Date().toLocaleDateString('pt-BR')
   const startDate = data.startDate ? new Date(data.startDate).toLocaleDateString('pt-BR') : '__/__/____'
   const endDate = data.endDate ? new Date(data.endDate).toLocaleDateString('pt-BR') : '__/__/____'
   const sessionCount = data.sessionCount ?? '___'
   const sessionCountWords = data.sessionCount ? numToWords(data.sessionCount) : '___'
+  const requester = data.requester?.trim() || 'Pessoa atendida'
+  const purpose = data.purpose?.trim() || 'Finalidade informada pela pessoa solicitante'
+  const place = data.place?.trim() || '[cidade/UF]'
+  const author = `${user?.name ?? 'Psicologo(a)'} - CRP ${user?.crp ?? '00/000000'}`
 
   switch (type) {
     case 'declaracao':
-      return `DECLARACAO DE COMPARECIMENTO
+      return `DECLARACAO
 
-Declaro, para os devidos fins, que ${patient.name} compareceu a ${sessionCount} (${sessionCountWords}) atendimento(s) psicologico(s) no periodo de ${startDate} a ${endDate}, sob minha responsabilidade profissional.
+Pessoa atendida: ${patient.name}
+Solicitante: ${requester}
+Finalidade: ${purpose}
+Profissional responsavel: ${author}
 
-Este documento e emitido a pedido da pessoa atendida, restringindo-se a finalidade declarada e preservando o sigilo profissional.`
+Declaro, para os devidos fins, que a pessoa acima identificada ${data.attendanceSchedule ? `realiza/realizou acompanhamento psicologico em ${data.attendanceSchedule}` : `compareceu/realizou ${sessionCount} (${sessionCountWords}) atendimento(s) psicologico(s) no periodo de ${startDate} a ${endDate}`}.
+
+Esta declaracao registra apenas informacoes objetivas sobre a prestacao de servico psicologico, sem sintomas, situacoes ou estados psicologicos, conforme Res. CFP n. 06/2019.
+
+${place}, ${today}.`
 
     case 'recibo':
       return `RECIBO DE PAGAMENTO
@@ -45,26 +63,50 @@ Este recibo comprova pagamento e nao substitui documento fiscal quando este for 
     case 'relatorio':
       return `RELATORIO PSICOLOGICO
 
-Identificacao: ${patient.name}
-Finalidade: [descreva a finalidade especifica do documento]
+1. Identificacao
+Pessoa atendida: ${patient.name}
+Solicitante: ${requester}
+Finalidade: ${purpose}
+Profissional responsavel: ${author}
 Periodo de acompanhamento: ${startDate} a ${endDate}
 Numero de atendimentos: ${sessionCount}
 
-Analise:
-${data.extraText ?? '[Descreva somente informacoes pertinentes a finalidade, com fundamentacao tecnico-cientifica e respeito ao sigilo profissional.]'}
+2. Descricao da demanda
+${data.demand?.trim() || '[Descreva a demanda que motivou o processo e a solicitacao do documento.]'}
 
-Conclusao:
-[Registre a conclusao tecnica limitada a demanda apresentada, evitando informacoes desnecessarias.]`
+3. Procedimento
+${data.procedure?.trim() || '[Informe procedimentos utilizados, periodo, fontes consultadas e limites do trabalho.]'}
+
+4. Analise
+${data.extraText?.trim() || '[Descreva apenas informacoes pertinentes a finalidade, com fundamentacao tecnico-cientifica e respeito ao sigilo profissional.]'}
+
+5. Conclusao
+${data.conclusion?.trim() || '[Registre conclusao tecnica limitada a demanda e a finalidade informada.]'}
+
+Este relatorio possui carater sigiloso e nao deve ser utilizado para finalidade diferente da indicada.
+
+${place}, ${today}.`
 
     case 'atestado':
       return `ATESTADO PSICOLOGICO
 
-Atesto, para os devidos fins, que ${patient.name} encontra-se sob acompanhamento psicologico.
+Pessoa atendida: ${patient.name}
+Solicitante: ${requester}
+Finalidade: ${purpose}
+Profissional responsavel: ${author}
 
-Informacoes tecnicas pertinentes:
-${data.extraText ?? '[Informe, quando aplicavel, a condicao psicologica, periodo indicado, recomendacoes e limitacoes do atestado.]'}
+Descricao da demanda:
+${data.demand?.trim() || '[Descreva objetivamente a demanda que fundamenta o atestado.]'}
 
-Este atestado deve ser utilizado exclusivamente para a finalidade informada pela pessoa atendida.`
+Procedimento:
+${data.procedure?.trim() || '[Informe o processo de avaliacao psicologica, procedimentos utilizados e fontes de informacao.]'}
+
+Conclusao:
+${data.conclusion?.trim() || '[Certifique a situacao, estado ou funcionamento psicologico quando houver fundamento em avaliacao psicologica, indicando periodo/recomendacao quando aplicavel.]'}
+
+Este atestado e emitido por requerimento da pessoa atendida e deve ser utilizado exclusivamente para a finalidade informada.
+
+${place}, ${today}.`
 
     case 'encaminhamento':
       return `ENCAMINHAMENTO
@@ -114,7 +156,7 @@ export default function GenerateDocModal({
 
   async function onSubmit(data: FormData) {
     if (!patient) { toast.error('Selecione uma pessoa'); return }
-    const content = buildContent({ ...data, type: selectedType }, patient, selectedType)
+    const content = buildContent({ ...data, type: selectedType }, patient, selectedType, user)
     const title = `${DOC_TYPE_LABELS[selectedType]} — ${patient.name}`
     try {
       const doc = await createDocument.mutateAsync({
@@ -180,6 +222,34 @@ export default function GenerateDocModal({
             </select>
           </div>
 
+          {selectedType !== 'recibo' && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="label">Solicitante</label>
+                <input {...register('requester')} className="input-field" placeholder="Ex: paciente, escola, empresa" />
+              </div>
+              <div>
+                <label className="label">Finalidade</label>
+                <input {...register('purpose')} className="input-field" placeholder="Ex: comprovacao de atendimento" />
+              </div>
+              <div>
+                <label className="label">Local de emissao</label>
+                <input {...register('place')} className="input-field" placeholder="Ex: Sao Paulo/SP" />
+              </div>
+            </div>
+          )}
+
+          {selectedType === 'declaracao' && (
+            <div>
+              <label className="label">Descricao objetiva do comparecimento</label>
+              <input
+                {...register('attendanceSchedule')}
+                className="input-field"
+                placeholder="Ex: toda segunda-feira, das 14h as 14h50, ou atendimento em 02/06/2026"
+              />
+            </div>
+          )}
+
           {(selectedType === 'declaracao' || selectedType === 'relatorio') && (
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -220,16 +290,49 @@ export default function GenerateDocModal({
             </div>
           )}
 
-          {(selectedType === 'relatorio' || selectedType === 'atestado' || selectedType === 'encaminhamento') && (
+          {(selectedType === 'relatorio' || selectedType === 'atestado') && (
+            <div className="space-y-3">
+              <div>
+                <label className="label">Descricao da demanda</label>
+                <textarea {...register('demand')} rows={3}
+                  className="input-field resize-none text-sm"
+                  placeholder="Descreva a demanda e o motivo da solicitacao do documento." />
+              </div>
+              <div>
+                <label className="label">Procedimento</label>
+                <textarea {...register('procedure')} rows={3}
+                  className="input-field resize-none text-sm"
+                  placeholder="Informe procedimentos utilizados, periodo, fontes consultadas e limites." />
+              </div>
+            </div>
+          )}
+
+          {(selectedType === 'relatorio' || selectedType === 'atestado') && (
+            <div>
+              <label className="label">Conclusao</label>
+              <textarea {...register('conclusion')} rows={3}
+                className="input-field resize-none text-sm"
+                placeholder="Registre uma conclusao tecnica limitada a finalidade do documento." />
+            </div>
+          )}
+
+          {(selectedType === 'relatorio' || selectedType === 'encaminhamento') && (
             <div>
               <label className="label">
-                {selectedType === 'relatorio' ? 'Desenvolvimento clínico' :
-                 selectedType === 'atestado' ? 'Observações (opcional)' :
-                 'Justificativa / informações clínicas'}
+                {selectedType === 'relatorio' ? 'Desenvolvimento clínico' : 'Justificativa / informações clínicas'}
               </label>
               <textarea {...register('extraText')} rows={4}
                 className="input-field resize-none text-sm"
                 placeholder="Descreva as informações relevantes para este documento..." />
+            </div>
+          )}
+
+          {(selectedType === 'declaracao' || selectedType === 'atestado' || selectedType === 'relatorio') && (
+            <div className="flex gap-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+              <p>
+                Revise antes de assinar. Declaracao deve conter apenas informacoes objetivas; relatorio e atestado exigem fundamentacao tecnica e finalidade definida.
+              </p>
             </div>
           )}
 

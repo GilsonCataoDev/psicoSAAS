@@ -5,7 +5,7 @@ import {
 } from 'lucide-react'
 import { Documento, DocType, DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '@/types/prontuario'
 import { useAuthStore } from '@/store/auth'
-import { copyText, formatDate } from '@/lib/utils'
+import { formatDate } from '@/lib/utils'
 import { openCfpVerification } from '@/lib/crp'
 import GenerateDocModal from '@/components/features/prontuario/GenerateDocModal'
 import { usePatients, useDocuments, useDeleteDocument } from '@/hooks/useApi'
@@ -14,6 +14,7 @@ import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
 import EmptyState from '@/components/ui/EmptyState'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
+import Modal from '@/components/ui/Modal'
 
 const CLINICAL_MODELS = [
   {
@@ -102,6 +103,7 @@ export default function DocumentosPage() {
   const deleteDoc = useDeleteDocument()
   const [showGenerate, setShowGenerate] = useState(false)
   const [preview, setPreview] = useState<Documento | null>(null)
+  const [clinicalPreview, setClinicalPreview] = useState<typeof CLINICAL_MODELS[number] | null>(null)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<DocType | 'all'>('all')
 
@@ -130,15 +132,6 @@ export default function DocumentosPage() {
       URL.revokeObjectURL(url)
     } catch {
       toast.error('Erro ao baixar PDF')
-    }
-  }
-
-  async function copyClinicalModel(title: string, template: string) {
-    try {
-      await copyText(template)
-      toast.success(`${title} copiado`)
-    } catch {
-      toast.error('Nao foi possivel copiar automaticamente.')
     }
   }
 
@@ -221,11 +214,11 @@ export default function DocumentosPage() {
               <p className="mt-1 flex-1 text-xs leading-snug text-neutral-400">{description}</p>
               <button
                 type="button"
-                onClick={() => copyClinicalModel(title, template)}
+                onClick={() => setClinicalPreview({ title, description, template, icon: Icon })}
                 className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-sage-600 hover:text-sage-700"
               >
                 <ClipboardCopy className="w-3.5 h-3.5" />
-                Copiar modelo
+                Abrir modelo
               </button>
             </div>
           ))}
@@ -307,7 +300,69 @@ export default function DocumentosPage() {
         open={!!preview}
         onClose={() => setPreview(null)}
       />
+
+      <ClinicalModelModal
+        model={clinicalPreview}
+        onClose={() => setClinicalPreview(null)}
+      />
     </div>
+  )
+}
+
+function ClinicalModelModal({ model, onClose }: {
+  model: typeof CLINICAL_MODELS[number] | null
+  onClose: () => void
+}) {
+  if (!model) return null
+
+  function printModel() {
+    if (!model) return
+    const win = window.open('', '_blank', 'noopener,noreferrer')
+    if (!win) {
+      toast.error('Nao foi possivel abrir a janela de impressao.')
+      return
+    }
+    win.document.write(`
+      <!doctype html>
+      <html>
+        <head>
+          <title>${model.title}</title>
+          <style>
+            body { font-family: Arial, sans-serif; color: #222; margin: 42px; line-height: 1.5; }
+            h1 { font-size: 20px; margin: 0 0 6px; }
+            p { color: #555; margin: 0 0 24px; }
+            pre { white-space: pre-wrap; font-family: Arial, sans-serif; font-size: 13px; }
+          </style>
+        </head>
+        <body>
+          <h1>${model.title}</h1>
+          <p>${model.description}</p>
+          <pre>${model.template}</pre>
+        </body>
+      </html>
+    `)
+    win.document.close()
+    win.focus()
+    win.print()
+  }
+
+  return (
+    <Modal open={!!model} onClose={onClose} title={model.title} size="lg">
+      <div className="space-y-4">
+        <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+          <p className="text-sm text-neutral-500 mb-4">{model.description}</p>
+          <pre className="whitespace-pre-wrap rounded-xl bg-neutral-50 p-4 text-sm leading-relaxed text-neutral-700 font-sans">
+            {model.template}
+          </pre>
+        </div>
+        <div className="flex justify-end gap-3">
+          <button type="button" onClick={onClose} className="btn-secondary">Fechar</button>
+          <button type="button" onClick={printModel} className="btn-primary">
+            Imprimir / salvar PDF
+          </button>
+        </div>
+      </div>
+    </Modal>
   )
 }
 
