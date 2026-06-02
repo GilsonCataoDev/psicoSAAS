@@ -245,39 +245,38 @@ export class DocumentsService {
     }
 
     const drawFooter = (pageNumber: number, totalPages: number) => {
-      const footerY = pageHeight - 34
+      const footerY = pageHeight - 112  // dentro da área de conteúdo (< pageHeight - margin)
       pdf.strokeColor(line).lineWidth(1).moveTo(left, footerY).lineTo(right, footerY).stroke()
       pdf.fillColor(muted).font('Helvetica').fontSize(7)
         .text(`UseCognia | Autenticidade verificavel em ${verificationUrl}`, left, footerY + 10, { width: contentWidth - 110, lineBreak: false })
       pdf.text(`Pagina ${pageNumber} de ${totalPages}`, right - 86, footerY + 10, { width: 86, align: 'right', lineBreak: false })
     }
 
-    pdf.on('pageAdded', drawHeader)
     drawHeader()
 
-    const metaTop = 106
-    pdf.roundedRect(left, metaTop, contentWidth, 54, 8).fillAndStroke('#FFFFFF', '#E2E9E4')
+    const metaTop = 96
+    pdf.roundedRect(left, metaTop, contentWidth, 44, 8).fillAndStroke('#FFFFFF', '#E2E9E4')
     pdf.fillColor(muted).font('Helvetica-Bold').fontSize(6.4)
-      .text('PROFISSIONAL', left + 14, metaTop + 12, { width: 110, lineBreak: false })
+      .text('PROFISSIONAL', left + 14, metaTop + 10, { width: 110, lineBreak: false })
     pdf.fillColor(ink).font('Helvetica-Bold').fontSize(8.4)
-      .text(stored.psychologistName, left + 14, metaTop + 24, { width: 185, lineBreak: false })
+      .text(stored.psychologistName, left + 14, metaTop + 22, { width: 185, lineBreak: false })
     pdf.fillColor(muted).font('Helvetica').fontSize(7)
-      .text(`CRP ${stored.psychologistCrp}`, left + 14, metaTop + 37, { width: 185, lineBreak: false })
+      .text(`CRP ${stored.psychologistCrp}`, left + 14, metaTop + 33, { width: 185, lineBreak: false })
 
-    pdf.strokeColor('#EDF1EE').lineWidth(1).moveTo(left + 210, metaTop + 10).lineTo(left + 210, metaTop + 44).stroke()
+    pdf.strokeColor('#EDF1EE').lineWidth(1).moveTo(left + 210, metaTop + 8).lineTo(left + 210, metaTop + 36).stroke()
     pdf.fillColor(muted).font('Helvetica-Bold').fontSize(6.4)
-      .text('PESSOA ATENDIDA', left + 226, metaTop + 12, { width: 110, lineBreak: false })
+      .text('PESSOA ATENDIDA', left + 226, metaTop + 10, { width: 110, lineBreak: false })
     pdf.fillColor(ink).font('Helvetica-Bold').fontSize(8.4)
-      .text(stored.patientName, left + 226, metaTop + 25, { width: 170, lineBreak: false })
+      .text(stored.patientName, left + 226, metaTop + 22, { width: 170, lineBreak: false })
 
-    pdf.strokeColor('#EDF1EE').lineWidth(1).moveTo(right - 118, metaTop + 10).lineTo(right - 118, metaTop + 44).stroke()
+    pdf.strokeColor('#EDF1EE').lineWidth(1).moveTo(right - 118, metaTop + 8).lineTo(right - 118, metaTop + 36).stroke()
     pdf.fillColor(muted).font('Helvetica-Bold').fontSize(6.4)
-      .text('EMISSAO', right - 104, metaTop + 12, { width: 90, align: 'right', lineBreak: false })
+      .text('EMISSAO', right - 104, metaTop + 10, { width: 90, align: 'right', lineBreak: false })
     pdf.fillColor(ink).font('Helvetica-Bold').fontSize(8.4)
-      .text(issuedAt, right - 104, metaTop + 25, { width: 90, align: 'right', lineBreak: false })
+      .text(issuedAt, right - 104, metaTop + 22, { width: 90, align: 'right', lineBreak: false })
 
-    const contentTop = 184
-    const signatureY = 604
+    const contentTop = 152
+    const signatureY = 556
     const textWidth = contentWidth - 32
     const maxContentHeight = signatureY - contentTop - 22
     let bodyFontSize = 9.6
@@ -322,7 +321,8 @@ export class DocumentsService {
     pdf.fillColor(muted).font('Helvetica').fontSize(6)
       .text('Verificar', qrX - 5, signatureY + 73, { width: 78, align: 'center', lineBreak: false })
 
-    const boxY = 698
+    // QR box ends at signatureY - 1 + 86 = 641; boxY = 641 + 11
+    const boxY = 652
     pdf.roundedRect(left, boxY, contentWidth, 46, 8).fillAndStroke(sageSoft, '#CFE5D9')
     pdf.fillColor(sageDark).font('Helvetica-Bold').fontSize(8.2)
       .text('Documento com autenticidade verificavel', left + 14, boxY + 10, { width: 220, lineBreak: false })
@@ -336,7 +336,7 @@ export class DocumentsService {
       .text(
         'A verificacao confirma que o documento registrado na plataforma nao foi alterado desde a emissao.',
         left,
-        758,
+        706,
         { width: contentWidth, align: 'center', lineGap: 0, lineBreak: false },
       )
 
