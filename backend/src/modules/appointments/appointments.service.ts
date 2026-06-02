@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto'
 import { Appointment } from './entities/appointment.entity'
 import { CreateAppointmentDto } from './dto/create-appointment.dto'
 import { UpdateAppointmentDto } from './dto/update-appointment.dto'
+import { UpdateGroupDto } from './dto/update-group.dto'
 import { NotificationsService } from '../notifications/notifications.service'
 import { Booking } from '../booking/entities/booking.entity'
 import { GoogleCalendarService } from '../google-calendar/google-calendar.service'
@@ -85,6 +86,23 @@ export class AppointmentsService {
     const appointment = await this.findOne(id, psychologistId)
     this.googleCalendar.deleteAppointment(appointment).catch(console.error)
     return this.repo.remove(appointment)
+  }
+
+  async updateGroup(recurringGroupId: string, fromDate: string, dto: UpdateGroupDto, psychologistId: string) {
+    const all = await this.repo.find({ where: { recurringGroupId, psychologistId } })
+    if (!all.length) throw new NotFoundException()
+    const toUpdate = all.filter(a => a.date >= fromDate)
+    for (const appt of toUpdate) Object.assign(appt, dto)
+    await this.repo.save(toUpdate)
+    return { updated: toUpdate.length }
+  }
+
+  async removeGroup(recurringGroupId: string, fromDate: string, psychologistId: string) {
+    const all = await this.repo.find({ where: { recurringGroupId, psychologistId } })
+    if (!all.length) throw new NotFoundException()
+    const toRemove = all.filter(a => a.date >= fromDate)
+    await this.repo.remove(toRemove)
+    return { removed: toRemove.length }
   }
 
   private async createOne(dto: CreateAppointmentDto, psychologistId: string, recurringGroupId?: string) {

@@ -4,11 +4,35 @@ import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { AppointmentsService } from './appointments.service'
 import { CreateAppointmentDto } from './dto/create-appointment.dto'
 import { UpdateAppointmentDto } from './dto/update-appointment.dto'
+import { UpdateGroupDto } from './dto/update-group.dto'
 
 @Controller('appointments')
 @UseGuards(JwtAuthGuard, CsrfGuard)
 export class AppointmentsController {
   constructor(private svc: AppointmentsService) {}
+
+  // ── Grupo (devem vir antes das rotas com :id) ───────────────────────────────
+
+  @Patch('group/:groupId/from/:fromDate')
+  updateGroup(
+    @Param('groupId') groupId: string,
+    @Param('fromDate') fromDate: string,
+    @Body() dto: UpdateGroupDto,
+    @Request() req: any,
+  ) {
+    return this.svc.updateGroup(groupId, fromDate, dto, req.user.id)
+  }
+
+  @Delete('group/:groupId/from/:fromDate')
+  removeGroup(
+    @Param('groupId') groupId: string,
+    @Param('fromDate') fromDate: string,
+    @Request() req: any,
+  ) {
+    return this.svc.removeGroup(groupId, fromDate, req.user.id)
+  }
+
+  // ── Individual ─────────────────────────────────────────────────────────────
 
   @Get()
   findAll(@Request() req: any, @Query('from') from?: string, @Query('to') to?: string) {

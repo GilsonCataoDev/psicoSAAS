@@ -18,7 +18,7 @@ export default function VerifyEmailPage() {
     const token = params.get('token')
     if (!token) {
       setState('error')
-      setMessage('Link de verificacao invalido.')
+      setMessage('Link de verificação inválido.')
       return
     }
 
@@ -30,7 +30,7 @@ export default function VerifyEmailPage() {
       })
       .catch((err) => {
         setState('error')
-        setMessage(err?.response?.data?.message ?? 'Link expirado ou invalido. Solicite um novo link.')
+        setMessage(err?.response?.data?.message ?? 'Link expirado ou inválido. Solicite um novo link.')
       })
   }, [isAuthenticated, params, updateUser])
 
@@ -45,7 +45,7 @@ export default function VerifyEmailPage() {
       </div>
 
       <h1 className="font-display text-2xl font-bold text-neutral-900">
-        {state === 'loading' ? 'Verificando e-mail' : success ? 'E-mail confirmado' : 'Nao foi possivel confirmar'}
+        {state === 'loading' ? 'Verificando e-mail' : success ? 'E-mail confirmado' : 'Não foi possível confirmar'}
       </h1>
       <p className="mt-2 text-sm leading-relaxed text-neutral-500">{message}</p>
 

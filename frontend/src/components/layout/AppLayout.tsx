@@ -112,9 +112,9 @@ function EmailVerificationBanner() {
     setSending(true)
     try {
       const { data } = await api.post('/auth/resend-verification')
-      toast.success(data?.message ?? 'Link de verificacao enviado.')
+      toast.success(data?.message ?? 'Link de verificação enviado.')
     } catch (err: any) {
-      toast.error(err?.response?.data?.message ?? 'Nao foi possivel reenviar agora.')
+      toast.error(err?.response?.data?.message ?? 'Não foi possível reenviar agora.')
     } finally {
       setSending(false)
     }
@@ -123,7 +123,7 @@ function EmailVerificationBanner() {
   return (
     <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
       <p className="font-medium">Confirme seu e-mail para proteger sua conta.</p>
-      <p className="mt-1">Enviamos um link para {user.email}. Confira tambem spam ou lixo eletrônico.</p>
+      <p className="mt-1">Enviamos um link para {user.email}. Confira também spam ou lixo eletrônico.</p>
       <button
         type="button"
         onClick={resendVerification}

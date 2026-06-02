@@ -226,32 +226,32 @@ export default function RegisterPage() {
             </div>
             <div className="px-5 py-4 overflow-y-auto max-h-[65vh] text-sm text-neutral-600 space-y-4 leading-relaxed">
               <p>
-                O UseCognia e uma plataforma para gestao de agenda, pacientes, prontuario, documentos e financeiro por profissionais de psicologia.
-                Ao criar a conta, voce declara que usara a plataforma de acordo com a LGPD, o Codigo de Etica Profissional e as normas aplicaveis do CFP.
+                A UseCognia é uma plataforma para gestão de agenda, pacientes, prontuário, documentos e financeiro por profissionais de psicologia.
+                Ao criar a conta, você declara que usará a plataforma de acordo com a LGPD, o Código de Ética Profissional e as normas aplicáveis do CFP.
               </p>
               <p>
-                Tratamos dados de cadastro, dados de uso, dados financeiros e dados clinicos inseridos pelo profissional para executar o servico,
-                manter seguranca, cumprir obrigacoes legais, prevenir abuso e melhorar a plataforma. Dados clinicos pertencem ao profissional/controlador
+                Tratamos dados de cadastro, dados de uso, dados financeiros e dados clínicos inseridos pelo profissional para executar o serviço,
+                manter segurança, cumprir obrigações legais, prevenir abuso e melhorar a plataforma. Dados clínicos pertencem ao profissional/controlador
                 e devem ser cadastrados apenas quando houver base legal adequada.
               </p>
               <p>
-                Dados sensiveis do prontuario, sessoes e documentos sao protegidos com criptografia em repouso. Senhas sao armazenadas com hash,
-                tokens de sessao sao protegidos e cookies de autenticacao usam configuracoes HttpOnly. Nenhuma medida elimina todos os riscos,
-                por isso o usuario deve proteger sua senha e encerrar sessoes em dispositivos compartilhados.
+                Dados sensíveis do prontuário, sessões e documentos são protegidos com criptografia em repouso. Senhas são armazenadas com hash,
+                tokens de sessão são protegidos e cookies de autenticação usam configurações HttpOnly. Nenhuma medida elimina todos os riscos,
+                por isso o usuário deve proteger sua senha e encerrar sessões em dispositivos compartilhados.
               </p>
               <p>
-                Podemos compartilhar dados estritamente necessarios com provedores de infraestrutura, e-mail, analytics com mascaramento e pagamento,
-                como Railway, servicos de envio e Asaas, sempre para operar a plataforma. Dados financeiros enviados ao Asaas seguem as regras e
-                politicas do proprio provedor de pagamento.
+                Podemos compartilhar dados estritamente necessários com provedores de infraestrutura, e-mail, analytics com mascaramento e pagamento,
+                como Railway, serviços de envio e Asaas, sempre para operar a plataforma. Dados financeiros enviados ao Asaas seguem as regras e
+                políticas do próprio provedor de pagamento.
               </p>
               <p>
-                O profissional e responsavel pela veracidade das informacoes, pelo consentimento/base legal dos pacientes, pela configuracao dos
-                links publicos e pela guarda etica dos registros. O titular pode solicitar acesso, correcao ou exclusao quando aplicavel, observadas
-                obrigacoes legais, regulatorias e de preservacao profissional.
+                O profissional é responsável pela veracidade das informações, pelo consentimento/base legal dos pacientes, pela configuração dos
+                links públicos e pela guarda ética dos registros. O titular pode solicitar acesso, correção ou exclusão quando aplicável, observadas
+                obrigações legais, regulatórias e de preservação profissional.
               </p>
               <p>
-                O servico pode ser suspenso em caso de uso indevido, risco de seguranca, inadimplencia ou violacao destes termos. Alteracoes relevantes
-                destes termos serao versionadas e poderao exigir novo aceite.
+                O serviço pode ser suspenso em caso de uso indevido, risco de segurança, inadimplência ou violação destes termos. Alterações relevantes
+                destes termos serão versionadas e poderão exigir novo aceite.
               </p>
             </div>
           </div>

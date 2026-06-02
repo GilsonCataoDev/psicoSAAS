@@ -22,6 +22,8 @@ type GoogleCalendarPrefs = {
   googleCalendarAccessToken?: string
   googleCalendarRefreshToken?: string
   googleCalendarExpiresAt?: string
+  googleCalendarLastSyncedAt?: string
+  googleCalendarLastSyncError?: string
 }
 
 @Injectable()
@@ -40,13 +42,15 @@ export class GoogleCalendarService {
         available: this.isConfigured(),
         connected: !!prefs.googleCalendarConnected && !!prefs.googleCalendarRefreshToken,
         email: prefs.googleCalendarEmail ?? null,
+        lastSyncedAt: prefs.googleCalendarLastSyncedAt ?? null,
+        lastSyncError: prefs.googleCalendarLastSyncError ?? null,
       }
     })
   }
 
   getAuthUrl(userId: string): string {
     if (!this.isConfigured()) {
-      throw new BadRequestException('Google Agenda ainda nao foi configurado na plataforma.')
+      throw new BadRequestException('Google Agenda ainda não foi configurado na plataforma.')
     }
     const clientId = this.getRequiredConfig('GOOGLE_CLIENT_ID')
     const redirectUri = this.getRedirectUri()
@@ -73,7 +77,7 @@ export class GoogleCalendarService {
     const userId = this.verifyState(state)
     const tokens = await this.exchangeCode(code)
     const user = await this.users.findOneBy({ id: userId })
-    if (!user) throw new BadRequestException('Usuario nao encontrado')
+    if (!user) throw new BadRequestException('Usuário não encontrado')
 
     const previousPrefs = (user.preferences ?? {}) as GoogleCalendarPrefs
     const encryptedRefreshToken = tokens.refresh_token
@@ -81,7 +85,7 @@ export class GoogleCalendarService {
       : previousPrefs.googleCalendarRefreshToken
 
     if (!encryptedRefreshToken) {
-      throw new BadRequestException('O Google nao retornou permissao offline. Tente conectar novamente.')
+      throw new BadRequestException('O Google não retornou permissão offline. Tente conectar novamente.')
     }
 
     const email = await this.fetchGoogleEmail(tokens.access_token).catch(() => previousPrefs.googleCalendarEmail)
@@ -116,6 +120,8 @@ export class GoogleCalendarService {
     delete prefs.googleCalendarAccessToken
     delete prefs.googleCalendarRefreshToken
     delete prefs.googleCalendarExpiresAt
+    delete prefs.googleCalendarLastSyncedAt
+    delete prefs.googleCalendarLastSyncError
     user.preferences = prefs
     await this.users.save(user)
     return { connected: false }
@@ -134,8 +140,20 @@ export class GoogleCalendarService {
         this.toGoogleEvent(appointment),
         { headers: { Authorization: `Bearer ${accessToken}` } },
       )
+      user.preferences = {
+        ...(user.preferences ?? {}),
+        googleCalendarLastSyncedAt: new Date().toISOString(),
+        googleCalendarLastSyncError: undefined,
+      }
+      await this.users.save(user)
     } catch (err: any) {
-      this.logger.warn(`Falha ao sincronizar Google Agenda: ${err?.response?.data?.error?.message ?? err?.message ?? err}`)
+      const errMsg = err?.response?.data?.error?.message ?? err?.message ?? String(err)
+      this.logger.warn(`Falha ao sincronizar Google Agenda: ${errMsg}`)
+      user.preferences = {
+        ...(user.preferences ?? {}),
+        googleCalendarLastSyncError: errMsg,
+      }
+      await this.users.save(user).catch(() => {})
     }
   }
 

@@ -36,87 +36,87 @@ function buildContent(data: FormData, patient: Patient, type: DocType, user: { n
   const requester = data.requester?.trim() || 'Pessoa atendida'
   const purpose = data.purpose?.trim() || 'Finalidade informada pela pessoa solicitante'
   const place = data.place?.trim() || '[cidade/UF]'
-  const author = `${user?.name ?? 'Psicologo(a)'} - CRP ${user?.crp ?? '00/000000'}`
+  const author = `${user?.name ?? 'Psicólogo(a)'} - CRP ${user?.crp ?? '00/000000'}`
 
   switch (type) {
     case 'declaracao':
-      return `DECLARACAO
+      return `DECLARAÇÃO
 
 Pessoa atendida: ${patient.name}
 Solicitante: ${requester}
 Finalidade: ${purpose}
-Profissional responsavel: ${author}
+Profissional responsável: ${author}
 
-Declaro, para os devidos fins, que a pessoa acima identificada ${data.attendanceSchedule ? `realiza/realizou acompanhamento psicologico em ${data.attendanceSchedule}` : `compareceu/realizou ${sessionCount} (${sessionCountWords}) atendimento(s) psicologico(s) no periodo de ${startDate} a ${endDate}`}.
+Declaro, para os devidos fins, que a pessoa acima identificada ${data.attendanceSchedule ? `realiza/realizou acompanhamento psicológico em ${data.attendanceSchedule}` : `compareceu/realizou ${sessionCount} (${sessionCountWords}) atendimento(s) psicológico(s) no período de ${startDate} a ${endDate}`}.
 
-Esta declaracao registra apenas informacoes objetivas sobre a prestacao de servico psicologico, sem sintomas, situacoes ou estados psicologicos, conforme Res. CFP n. 06/2019.
+Esta declaração registra apenas informações objetivas sobre a prestação de serviço psicológico, sem sintomas, situações ou estados psicológicos, conforme Res. CFP n. 06/2019.
 
 ${place}, ${today}.`
 
     case 'recibo':
       return `RECIBO DE PAGAMENTO
 
-Recebi de ${patient.name} a quantia de ${data.sessionValue ? formatCurrency(data.sessionValue) : 'R$ ____'} referente a servico psicologico prestado em ${today}.
+Recebi de ${patient.name} a quantia de ${data.sessionValue ? formatCurrency(data.sessionValue) : 'R$ ____'} referente a serviço psicológico prestado em ${today}.
 
-Este recibo comprova pagamento e nao substitui documento fiscal quando este for exigivel pela legislacao aplicavel.`
+Este recibo comprova pagamento e não substitui documento fiscal quando este for exigível pela legislação aplicável.`
 
     case 'relatorio':
-      return `RELATORIO PSICOLOGICO
+      return `RELATÓRIO PSICOLÓGICO
 
-1. Identificacao
+1. Identificação
 Pessoa atendida: ${patient.name}
 Solicitante: ${requester}
 Finalidade: ${purpose}
-Profissional responsavel: ${author}
-Periodo de acompanhamento: ${startDate} a ${endDate}
-Numero de atendimentos: ${sessionCount}
+Profissional responsável: ${author}
+Período de acompanhamento: ${startDate} a ${endDate}
+Número de atendimentos: ${sessionCount}
 
-2. Descricao da demanda
-${data.demand?.trim() || '[Descreva a demanda que motivou o processo e a solicitacao do documento.]'}
+2. Descrição da demanda
+${data.demand?.trim() || '[Descreva a demanda que motivou o processo e a solicitação do documento.]'}
 
 3. Procedimento
-${data.procedure?.trim() || '[Informe procedimentos utilizados, periodo, fontes consultadas e limites do trabalho.]'}
+${data.procedure?.trim() || '[Informe procedimentos utilizados, período, fontes consultadas e limites do trabalho.]'}
 
-4. Analise
-${data.extraText?.trim() || '[Descreva apenas informacoes pertinentes a finalidade, com fundamentacao tecnico-cientifica e respeito ao sigilo profissional.]'}
+4. Análise
+${data.extraText?.trim() || '[Descreva apenas informações pertinentes à finalidade, com fundamentação técnico-científica e respeito ao sigilo profissional.]'}
 
-5. Conclusao
-${data.conclusion?.trim() || '[Registre conclusao tecnica limitada a demanda e a finalidade informada.]'}
+5. Conclusão
+${data.conclusion?.trim() || '[Registre conclusão técnica limitada à demanda e à finalidade informada.]'}
 
-Este relatorio possui carater sigiloso e nao deve ser utilizado para finalidade diferente da indicada.
+Este relatório possui caráter sigiloso e não deve ser utilizado para finalidade diferente da indicada.
 
 ${place}, ${today}.`
 
     case 'atestado':
-      return `ATESTADO PSICOLOGICO
+      return `ATESTADO PSICOLÓGICO
 
 Pessoa atendida: ${patient.name}
 Solicitante: ${requester}
 Finalidade: ${purpose}
-Profissional responsavel: ${author}
+Profissional responsável: ${author}
 
-Descricao da demanda:
+Descrição da demanda:
 ${data.demand?.trim() || '[Descreva objetivamente a demanda que fundamenta o atestado.]'}
 
 Procedimento:
-${data.procedure?.trim() || '[Informe o processo de avaliacao psicologica, procedimentos utilizados e fontes de informacao.]'}
+${data.procedure?.trim() || '[Informe o processo de avaliação psicológica, procedimentos utilizados e fontes de informação.]'}
 
-Conclusao:
-${data.conclusion?.trim() || '[Certifique a situacao, estado ou funcionamento psicologico quando houver fundamento em avaliacao psicologica, indicando periodo/recomendacao quando aplicavel.]'}
+Conclusão:
+${data.conclusion?.trim() || '[Certifique a situação, estado ou funcionamento psicológico quando houver fundamento em avaliação psicológica, indicando período/recomendação quando aplicável.]'}
 
-Este atestado e emitido por requerimento da pessoa atendida e deve ser utilizado exclusivamente para a finalidade informada.
+Este atestado é emitido por requerimento da pessoa atendida e deve ser utilizado exclusivamente para a finalidade informada.
 
 ${place}, ${today}.`
 
     case 'encaminhamento':
       return `ENCAMINHAMENTO
 
-Encaminho ${patient.name} para avaliacao e/ou acompanhamento com ${data.referralTo ?? '[profissional/servico]'}.
+Encaminho ${patient.name} para avaliação e/ou acompanhamento com ${data.referralTo ?? '[profissional/serviço]'}.
 
 Justificativa:
-${data.extraText ?? '[Descreva o motivo do encaminhamento e apenas as informacoes clinicas necessarias para continuidade do cuidado.]'}
+${data.extraText ?? '[Descreva o motivo do encaminhamento e apenas as informações clínicas necessárias para continuidade do cuidado.]'}
 
-Permaneço a disposicao para interlocucao tecnica, observados os limites eticos e o sigilo profissional.`
+Permaneço à disposição para interlocução técnica, observados os limites éticos e o sigilo profissional.`
 
     default:
       return ''

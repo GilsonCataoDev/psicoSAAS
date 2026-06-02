@@ -36,7 +36,7 @@ export default function NewSessionModal({ open, onClose, defaultPatientId }: {
   async function onSubmit(data: any) {
     try {
       await createSession.mutateAsync({ ...data, mood, tags })
-      toast.success('Sessao registrada com cuidado')
+      toast.success('Sessão registrada com cuidado')
       reset(); setMood(null); setTags([]); onClose()
     } catch {
       toast.error('Erro ao salvar sessão. Tente novamente.')

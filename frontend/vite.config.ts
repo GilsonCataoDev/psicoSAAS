@@ -70,6 +70,32 @@ export default defineConfig({
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom') || id.includes('node_modules/react-router')) {
+            return 'react-vendor'
+          }
+          if (id.includes('node_modules/@tanstack')) {
+            return 'query-vendor'
+          }
+          if (id.includes('node_modules/react-hook-form') || id.includes('node_modules/@hookform')) {
+            return 'form-vendor'
+          }
+          if (id.includes('node_modules/date-fns')) {
+            return 'date-vendor'
+          }
+          if (id.includes('node_modules/lucide-react')) {
+            return 'icons-vendor'
+          }
+          if (id.includes('node_modules/pdfkit') || id.includes('node_modules/qrcode')) {
+            return 'pdf-vendor'
+          }
+        },
+      },
+    },
+  },
   server: {
     port: 3000,
     proxy: { '/api': { target: 'http://localhost:3001', changeOrigin: true } },

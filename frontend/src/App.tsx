@@ -1,29 +1,44 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/auth'
 import { useSubscriptionStore } from '@/store/subscription'
 import AppLayout from '@/components/layout/AppLayout'
 import AuthLayout from '@/components/layout/AuthLayout'
+
+// Auth pages — small, loaded eagerly so login is instant
 import LoginPage from '@/pages/auth/LoginPage'
 import RegisterPage from '@/pages/auth/RegisterPage'
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage'
 import ResetPasswordPage from '@/pages/auth/ResetPasswordPage'
 import VerifyEmailPage from '@/pages/auth/VerifyEmailPage'
-import DashboardPage from '@/pages/DashboardPage'
-import PatientsPage from '@/pages/PatientsPage'
-import PatientDetailPage from '@/pages/PatientDetailPage'
-import AgendaPage from '@/pages/AgendaPage'
-import SessionsPage from '@/pages/SessionsPage'
-import FinancialPage from '@/pages/FinancialPage'
-import SettingsPage from '@/pages/SettingsPage'
-import BookingManagePage from '@/pages/BookingManagePage'
-import BookingPage from '@/pages/public/BookingPage'
-import BookingConfirmPage from '@/pages/public/BookingConfirmPage'
-import VerifyDocumentPage from '@/pages/public/VerifyDocumentPage'
-import ProntuarioPage from '@/pages/ProntuarioPage'
-import DocumentosPage from '@/pages/DocumentosPage'
-import PricingPage from '@/pages/PricingPage'
-import LandingPage from '@/pages/LandingPage'
-import LegalPage from '@/pages/LegalPage'
+
+// App pages — lazy loaded
+const DashboardPage       = lazy(() => import('@/pages/DashboardPage'))
+const PatientsPage        = lazy(() => import('@/pages/PatientsPage'))
+const PatientDetailPage   = lazy(() => import('@/pages/PatientDetailPage'))
+const AgendaPage          = lazy(() => import('@/pages/AgendaPage'))
+const SessionsPage        = lazy(() => import('@/pages/SessionsPage'))
+const FinancialPage       = lazy(() => import('@/pages/FinancialPage'))
+const SettingsPage        = lazy(() => import('@/pages/SettingsPage'))
+const BookingManagePage   = lazy(() => import('@/pages/BookingManagePage'))
+const DocumentosPage      = lazy(() => import('@/pages/DocumentosPage'))
+const ProntuarioPage      = lazy(() => import('@/pages/ProntuarioPage'))
+const PricingPage         = lazy(() => import('@/pages/PricingPage'))
+const LandingPage         = lazy(() => import('@/pages/LandingPage'))
+const LegalPage           = lazy(() => import('@/pages/LegalPage'))
+
+// Public pages — lazy loaded
+const BookingPage         = lazy(() => import('@/pages/public/BookingPage'))
+const BookingConfirmPage  = lazy(() => import('@/pages/public/BookingConfirmPage'))
+const VerifyDocumentPage  = lazy(() => import('@/pages/public/VerifyDocumentPage'))
+
+function PageLoader() {
+  return (
+    <div className="flex h-48 items-center justify-center">
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-sage-200 border-t-sage-600" />
+    </div>
+  )
+}
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
@@ -49,49 +64,51 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/venda" element={<LandingPage />} />
-      <Route path="/privacidade" element={<LegalPage type="privacy" />} />
-      <Route path="/termos" element={<LegalPage type="terms" />} />
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        <Route path="/venda" element={<LandingPage />} />
+        <Route path="/privacidade" element={<LegalPage type="privacy" />} />
+        <Route path="/termos" element={<LegalPage type="terms" />} />
 
-      {/* ── Rotas públicas de autenticação ──────────────────────── */}
-      <Route element={<PublicRoute><AuthLayout /></PublicRoute>}>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/cadastro" element={<RegisterPage />} />
-        <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
-      </Route>
+        {/* ── Rotas públicas de autenticação ──────────────────────── */}
+        <Route element={<PublicRoute><AuthLayout /></PublicRoute>}>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/cadastro" element={<RegisterPage />} />
+          <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
+        </Route>
 
-      {/* Reset de senha — acessível mesmo logado (token na URL) */}
-      <Route element={<AuthLayout />}>
-        <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
-        <Route path="/verificar-email" element={<VerifyEmailPage />} />
-      </Route>
+        {/* Reset de senha — acessível mesmo logado (token na URL) */}
+        <Route element={<AuthLayout />}>
+          <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
+          <Route path="/verificar-email" element={<VerifyEmailPage />} />
+        </Route>
 
-      {/* ── Página pública de agendamento (sem auth, sem layout interno) ── */}
-      <Route path="/agendar/:slug" element={<BookingPage />} />
-      <Route path="/agendar/:action/:token" element={<BookingConfirmPage />} />
-      <Route path="/verificar/:code" element={<VerifyDocumentPage />} />
+        {/* ── Páginas públicas (sem auth, sem layout interno) ── */}
+        <Route path="/agendar/:slug" element={<BookingPage />} />
+        <Route path="/agendar/:action/:token" element={<BookingConfirmPage />} />
+        <Route path="/verificar/:code" element={<VerifyDocumentPage />} />
 
-      {/* ── App interno (autenticado) ────────────────────────────── */}
-      <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
-        <Route path="pricing" element={<PricingPage />} />
-      </Route>
+        {/* ── App interno (autenticado) ────────────────────────────── */}
+        <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
+          <Route path="pricing" element={<PricingPage />} />
+        </Route>
 
-      <Route element={<PrivateRoute><SubscriptionRoute><AppLayout /></SubscriptionRoute></PrivateRoute>}>
-        <Route index element={<DashboardPage />} />
-        <Route path="pacientes" element={<PatientsPage />} />
-        <Route path="pacientes/:id" element={<PatientDetailPage />} />
-        <Route path="prontuario/:id" element={<ProntuarioPage />} />
-        <Route path="documentos" element={<DocumentosPage />} />
-        <Route path="agenda" element={<AgendaPage />} />
-        <Route path="agendamentos" element={<BookingManagePage />} />
-        <Route path="sessoes" element={<SessionsPage />} />
-        <Route path="financeiro" element={<FinancialPage />} />
-        <Route path="configuracoes" element={<SettingsPage />} />
-        <Route path="planos" element={<PricingPage />} />
-      </Route>
+        <Route element={<PrivateRoute><SubscriptionRoute><AppLayout /></SubscriptionRoute></PrivateRoute>}>
+          <Route index element={<DashboardPage />} />
+          <Route path="pacientes" element={<PatientsPage />} />
+          <Route path="pacientes/:id" element={<PatientDetailPage />} />
+          <Route path="prontuario/:id" element={<ProntuarioPage />} />
+          <Route path="documentos" element={<DocumentosPage />} />
+          <Route path="agenda" element={<AgendaPage />} />
+          <Route path="agendamentos" element={<BookingManagePage />} />
+          <Route path="sessoes" element={<SessionsPage />} />
+          <Route path="financeiro" element={<FinancialPage />} />
+          <Route path="configuracoes" element={<SettingsPage />} />
+          <Route path="planos" element={<PricingPage />} />
+        </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   )
 }

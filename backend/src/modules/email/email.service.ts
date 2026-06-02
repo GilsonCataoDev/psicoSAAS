@@ -1,10 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 
+interface Attachment {
+  filename: string
+  content: string // base64
+}
+
 interface SendEmailOptions {
   to: string
   subject: string
   html: string
+  attachments?: Attachment[]
 }
 
 @Injectable()
@@ -35,7 +41,13 @@ export class EmailService {
           Authorization: `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ from: this.from, ...opts }),
+        body: JSON.stringify({
+          from: this.from,
+          to: opts.to,
+          subject: opts.subject,
+          html: opts.html,
+          ...(opts.attachments?.length ? { attachments: opts.attachments } : {}),
+        }),
       })
       if (!res.ok) {
         const err = await res.text()
@@ -187,6 +199,44 @@ export class EmailService {
           Acessar minha conta
         </a>
       `),
+    })
+  }
+
+  async sendDocumentEmail(opts: {
+    to: string
+    recipientName: string
+    docTitle: string
+    docTypeLabel: string
+    psychologistName: string
+    psychologistCrp: string
+    signCode: string
+    verificationUrl: string
+    filename: string
+    pdfBase64: string
+  }) {
+    await this.send({
+      to: opts.to,
+      subject: `${opts.docTypeLabel} — ${opts.psychologistName}`,
+      html: this.wrap(`
+        <h1 style="color:#5B3EFF;font-weight:300;font-size:22px">
+          ${opts.docTypeLabel}
+        </h1>
+        <p style="color:#555;font-size:15px;line-height:1.6">
+          Olá, ${opts.recipientName}. Segue em anexo o documento
+          <strong>${opts.docTitle}</strong>, emitido por
+          <strong>${opts.psychologistName}</strong> (CRP ${opts.psychologistCrp}).
+        </p>
+        <p style="color:#555;font-size:15px;line-height:1.6">
+          Você pode verificar a autenticidade do documento a qualquer momento:
+        </p>
+        <a href="${opts.verificationUrl}"
+           style="display:inline-block;background:#3f8866;color:white;padding:12px 24px;
+                  border-radius:10px;text-decoration:none;font-weight:600;margin-top:4px;margin-bottom:16px">
+          Verificar autenticidade
+        </a>
+        <p style="color:#aaa;font-size:12px">Código: ${opts.signCode}</p>
+      `),
+      attachments: [{ filename: opts.filename, content: opts.pdfBase64 }],
     })
   }
 

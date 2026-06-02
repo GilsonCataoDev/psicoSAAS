@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  FilePlus, Shield, Download, Eye, Search, ExternalLink, Trash2,
+  FilePlus, Shield, Download, Eye, Search, ExternalLink, Trash2, Copy,
   ClipboardCheck, ClipboardCopy, ClipboardPen, FileSignature, ListChecks, ShieldAlert,
 } from 'lucide-react'
 import { Documento, DocType, DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '@/types/prontuario'
@@ -19,80 +19,80 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 const CLINICAL_MODELS = [
   {
-    title: 'Anamnese psicologica',
-    description: 'Queixa principal, historia, contexto familiar, saude, rotina, rede de apoio e objetivos iniciais.',
-    template: `ANAMNESE PSICOLOGICA
+    title: 'Anamnese psicológica',
+    description: 'Queixa principal, história, contexto familiar, saúde, rotina, rede de apoio e objetivos iniciais.',
+    template: `ANAMNESE PSICOLÓGICA
 
-Identificacao:
+Identificação:
 Queixa principal:
-Historico da demanda:
+Histórico da demanda:
 Contexto familiar e social:
-Saude, medicacoes e acompanhamentos:
-Rotina, sono, alimentacao e trabalho/estudo:
+Saúde, medicações e acompanhamentos:
+Rotina, sono, alimentação e trabalho/estudo:
 Rede de apoio:
 Objetivos iniciais do acompanhamento:
-Observacoes clinicas relevantes:`,
+Observações clínicas relevantes:`,
     icon: ClipboardCheck,
   },
   {
-    title: 'Evolucao de sessao',
-    description: 'Data, demanda trabalhada, intervencoes, resposta observada, combinados e proximos passos.',
-    template: `EVOLUCAO DE SESSAO
+    title: 'Evolução de sessão',
+    description: 'Data, demanda trabalhada, intervenções, resposta observada, combinados e próximos passos.',
+    template: `EVOLUÇÃO DE SESSÃO
 
 Data:
 Pessoa atendida:
 Demanda trabalhada:
-Intervencoes realizadas:
+Intervenções realizadas:
 Resposta observada:
-Combinados/orientacoes:
+Combinados/orientações:
 Pontos para acompanhamento:
-Proxima sessao:`,
+Próxima sessão:`,
     icon: ClipboardPen,
   },
   {
-    title: 'Plano terapeutico',
-    description: 'Hipoteses iniciais, objetivos, frequencia, estrategias, indicadores de progresso e revisoes.',
-    template: `PLANO TERAPEUTICO
+    title: 'Plano terapêutico',
+    description: 'Hipóteses iniciais, objetivos, frequência, estratégias, indicadores de progresso e revisões.',
+    template: `PLANO TERAPÊUTICO
 
 Demanda inicial:
-Hipoteses clinicas iniciais:
-Objetivos terapeuticos:
-Frequencia sugerida:
-Estrategias/intervencoes planejadas:
+Hipóteses clínicas iniciais:
+Objetivos terapêuticos:
+Frequência sugerida:
+Estratégias/intervenções planejadas:
 Indicadores de progresso:
-Pontos de revisao:
-Cuidados eticos e de sigilo:`,
+Pontos de revisão:
+Cuidados éticos e de sigilo:`,
     icon: ListChecks,
   },
   {
-    title: 'Contrato terapeutico',
-    description: 'Honorarios, faltas, cancelamento, sigilo, comunicacao, emergencias e protecao de dados.',
-    template: `CONTRATO TERAPEUTICO / COMBINADOS
+    title: 'Contrato terapêutico',
+    description: 'Honorários, faltas, cancelamento, sigilo, comunicação, emergências e proteção de dados.',
+    template: `CONTRATO TERAPÊUTICO / COMBINADOS
 
-Frequencia e duracao das sessoes:
-Honorarios e forma de pagamento:
-Politica de faltas e cancelamentos:
-Canais e horarios de comunicacao:
-Sigilo profissional e suas excecoes legais/eticas:
-Uso e protecao de dados pessoais:
-Condutas em situacoes de urgencia/emergencia:
+Frequência e duração das sessões:
+Honorários e forma de pagamento:
+Política de faltas e cancelamentos:
+Canais e horários de comunicação:
+Sigilo profissional e suas exceções legais/éticas:
+Uso e proteção de dados pessoais:
+Condutas em situações de urgência/emergência:
 Aceite da pessoa atendida:`,
     icon: FileSignature,
   },
   {
     title: 'Rastreio de risco',
-    description: 'Sinais de alerta, fatores de protecao, rede acionavel e plano de seguranca quando necessario.',
+    description: 'Sinais de alerta, fatores de proteção, rede acionável e plano de segurança quando necessário.',
     template: `RASTREIO DE RISCO
 
 Data:
 Sinais de alerta relatados/observados:
 Fatores de risco:
-Fatores de protecao:
-Rede de apoio acionavel:
-Orientacoes combinadas:
-Plano de seguranca, quando necessario:
-Encaminhamentos/contatos de emergencia:
-Reavaliacao prevista:`,
+Fatores de proteção:
+Rede de apoio acionável:
+Orientações combinadas:
+Plano de segurança, quando necessário:
+Encaminhamentos/contatos de emergência:
+Reavaliação prevista:`,
     icon: ShieldAlert,
   },
 ]
@@ -134,10 +134,19 @@ export default function DocumentosPage() {
       URL.revokeObjectURL(url)
     } catch (err: any) {
       const message = err?.response?.status === 403
-        ? 'Seu acesso atual nao permite baixar este PDF.'
+        ? 'Seu acesso atual não permite baixar este PDF.'
         : 'Erro ao baixar PDF'
       toast.error(message)
     }
+  }
+
+  function copyDocLink(doc: Documento) {
+    const base = import.meta.env.BASE_URL.replace(/\/$/, '')
+    const url = `${window.location.origin}${base}/#/verificar/${encodeURIComponent(doc.signCode)}`
+    navigator.clipboard.writeText(url).then(
+      () => toast.success('Link copiado!'),
+      () => toast.error('Não foi possível copiar o link.'),
+    )
   }
 
   async function handleDeleteDocument() {
@@ -209,7 +218,7 @@ export default function DocumentosPage() {
 
       <div>
         <div className="mb-3 flex items-center justify-between gap-3">
-          <p className="text-sm font-medium text-neutral-600">Modelos de instrumentos clinicos</p>
+          <p className="text-sm font-medium text-neutral-600">Modelos de instrumentos clínicos</p>
           <a
             href="https://satepsi.cfp.org.br/"
             target="_blank"
@@ -220,27 +229,43 @@ export default function DocumentosPage() {
             <ExternalLink className="w-3 h-3" />
           </a>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-2">
-          {CLINICAL_MODELS.map(({ title, description, template, icon: Icon }) => (
-            <div key={title} className="card flex flex-col p-3">
-              <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-sage-50 text-sage-600">
-                <Icon className="w-4 h-4" />
-              </div>
-              <p className="text-sm font-medium text-neutral-800">{title}</p>
-              <p className="mt-1 flex-1 text-xs leading-snug text-neutral-400">{description}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+          {CLINICAL_MODELS.map(({ title, description, template, icon: Icon }, i) => {
+            const colors = [
+              'bg-sage-50 text-sage-600 ring-sage-100',
+              'bg-violet-50 text-violet-600 ring-violet-100',
+              'bg-sky-50 text-sky-600 ring-sky-100',
+              'bg-amber-50 text-amber-600 ring-amber-100',
+              'bg-rose-50 text-rose-600 ring-rose-100',
+            ]
+            const fieldCount = template.split('\n').filter(l => l.trim().endsWith(':')).length
+            return (
               <button
+                key={title}
                 type="button"
                 onClick={() => setClinicalPreview({ title, description, template, icon: Icon })}
-                className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-sage-600 hover:text-sage-700"
+                className="card group flex flex-col items-start gap-3 p-4 text-left hover:shadow-lifted hover:-translate-y-px transition-all duration-200 hover:border-sage-200 cursor-pointer"
               >
-                <ClipboardCopy className="w-3.5 h-3.5" />
-                Abrir modelo
+                <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ring-1 ${colors[i % colors.length]}`}>
+                  <Icon className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-neutral-800 leading-tight">{title}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-neutral-400 line-clamp-2">{description}</p>
+                </div>
+                <div className="flex w-full items-center justify-between pt-1 border-t border-neutral-100">
+                  <span className="text-[11px] text-neutral-300">{fieldCount} campos</span>
+                  <span className="text-xs font-medium text-sage-600 group-hover:text-sage-700 flex items-center gap-1">
+                    <ClipboardCopy className="w-3 h-3" />
+                    Abrir
+                  </span>
+                </div>
               </button>
-            </div>
-          ))}
+            )
+          })}
         </div>
         <p className="mt-2 text-xs text-neutral-400">
-          Testes psicologicos e instrumentos privativos devem ser usados apenas por psicologas(os), conforme avaliacao e orientacao do CFP/SATEPSI.
+          Testes psicológicos e instrumentos privativos devem ser usados apenas por psicólogas(os), conforme avaliação e orientação do CFP/SATEPSI.
         </p>
       </div>
 
@@ -290,6 +315,7 @@ export default function DocumentosPage() {
           <DocCard key={doc.id} doc={doc}
             onPreview={() => setPreview(doc)}
             onDownload={() => downloadPdf(doc)}
+            onCopyLink={() => copyDocLink(doc)}
             onDelete={() => setDocToDelete(doc)}
           />
         ))}
@@ -326,108 +352,151 @@ export default function DocumentosPage() {
   )
 }
 
+function renderTemplateLine(line: string, idx: number) {
+  if (!line.trim()) return <div key={idx} className="h-3" />
+
+  // ALL CAPS section header (most words uppercase, contains only letters/spaces/accented chars)
+  const isHeader = line === line.toUpperCase() && line.trim().length > 2 && /^[A-ZÁÀÃÂÉÊÍÓÔÕÚÜÇ\s/]+$/.test(line.trim())
+  if (isHeader) {
+    return (
+      <div key={idx} className="flex items-center gap-3 pt-1">
+        <p className="text-[11px] font-bold uppercase tracking-widest text-neutral-500">{line.trim()}</p>
+        <div className="flex-1 h-px bg-neutral-200" />
+      </div>
+    )
+  }
+
+  // "Label: content" or "Label:"
+  const colonIdx = line.indexOf(':')
+  if (colonIdx > 0) {
+    const label = line.slice(0, colonIdx).trim()
+    const value = line.slice(colonIdx + 1).trim()
+    return (
+      <div key={idx} className="grid grid-cols-[160px_1fr] gap-3 items-end py-1 border-b border-dashed border-neutral-150">
+        <span className="text-[11px] font-semibold text-neutral-500 pb-0.5 leading-tight">{label}</span>
+        <span className="text-sm text-neutral-700 pb-0.5 min-h-[1.5rem]">
+          {value || <span className="text-neutral-200 select-none pointer-events-none">_</span>}
+        </span>
+      </div>
+    )
+  }
+
+  return <p key={idx} className="text-xs text-neutral-400 italic">{line}</p>
+}
+
 function ClinicalModelModal({ model, onClose }: {
   model: typeof CLINICAL_MODELS[number] | null
   onClose: () => void
 }) {
   if (!model) return null
 
-  const escapeHtml = (value: string) => value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
+  const lines = model.template.split('\n')
+  const fieldCount = lines.filter(l => l.trim().endsWith(':')).length
+
+  function escHtml(v: string) {
+    return v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  }
 
   function printModel() {
     if (!model) return
     const win = window.open('', '_blank')
-    if (!win) {
-      toast.error('Nao foi possivel abrir a janela de impressao.')
-      return
-    }
-    const title = escapeHtml(model.title)
-    const description = escapeHtml(model.description)
-    const template = escapeHtml(model.template)
-    win.document.write(`
-      <!doctype html>
-      <html>
-        <head>
-          <title>${title}</title>
-          <style>
-            @page { size: A4; margin: 12mm; }
-            * { box-sizing: border-box; }
-            html, body { width: 210mm; min-height: 297mm; margin: 0; background: #fff; }
-            body {
-              font-family: Arial, sans-serif;
-              color: #222;
-              line-height: 1.28;
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
-            }
-            .sheet {
-              width: 100%;
-              max-height: 273mm;
-              overflow: hidden;
-              padding: 0;
-              page-break-after: avoid;
-              page-break-inside: avoid;
-            }
-            h1 { font-size: 17px; margin: 0 0 4px; letter-spacing: 0; }
-            p { color: #555; margin: 0 0 12px; font-size: 11px; }
-            pre {
-              white-space: pre-wrap;
-              font-family: Arial, sans-serif;
-              font-size: 11px;
-              line-height: 1.32;
-              margin: 0;
-            }
-            @media print {
-              html, body { height: 297mm; overflow: hidden; }
-              .sheet { break-inside: avoid; }
-            }
-          </style>
-        </head>
-        <body>
-          <main class="sheet">
-            <h1>${title}</h1>
-            <p>${description}</p>
-            <pre>${template}</pre>
-          </main>
-        </body>
-      </html>
-    `)
+    if (!win) { toast.error('Não foi possível abrir a janela de impressão.'); return }
+
+    const rows = model.template.split('\n').map(line => {
+      if (!line.trim()) return '<div style="height:10px"></div>'
+      const isHeader = line === line.toUpperCase() && line.trim().length > 2 && /^[A-ZÁÀÃÂÉÊÍÓÔÕÚÜÇ\s/]+$/.test(line.trim())
+      if (isHeader) return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0 4px"><span style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#6b7280">${escHtml(line.trim())}</span><div style="flex:1;height:1px;background:#d1d5db"></div></div>`
+      const ci = line.indexOf(':')
+      if (ci > 0) {
+        const label = escHtml(line.slice(0, ci).trim())
+        const value = escHtml(line.slice(ci + 1).trim())
+        return `<div style="display:grid;grid-template-columns:150px 1fr;gap:8px;padding:6px 0;border-bottom:1px dashed #e5e7eb"><span style="font-size:9.5px;font-weight:600;color:#6b7280;padding-top:2px">${label}</span><span style="font-size:11px;color:#374151;padding-bottom:4px">${value || ''}</span></div>`
+      }
+      return `<p style="font-size:9.5px;color:#9ca3af;font-style:italic;margin:2px 0">${escHtml(line)}</p>`
+    }).join('')
+
+    win.document.write(`<!doctype html><html><head><title>${escHtml(model.title)}</title>
+<style>
+@page{size:A4;margin:16mm 14mm}
+*{box-sizing:border-box}
+html,body{width:210mm;min-height:297mm;margin:0;background:#fff;font-family:Arial,sans-serif;color:#111;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.sheet{width:100%;padding:0}
+.header{border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:16px}
+.title{font-size:14px;font-weight:700;margin:0 0 2px}
+.subtitle{font-size:9.5px;color:#6b7280;margin:0}
+.meta{display:flex;gap:16px;margin-top:8px}
+.meta span{font-size:9px;color:#9ca3af;border:1px solid #e5e7eb;border-radius:4px;padding:2px 6px}
+</style>
+</head><body><div class="sheet">
+<div class="header">
+  <p class="title">${escHtml(model.title)}</p>
+  <p class="subtitle">${escHtml(model.description)}</p>
+  <div class="meta">
+    <span>Profissional: _______________________________</span>
+    <span>CRP: __________</span>
+    <span>Data: ____/____/________</span>
+  </div>
+</div>
+${rows}
+</div></body></html>`)
     win.document.close()
-    window.setTimeout(() => {
-      win.focus()
-      win.print()
-    }, 150)
+    setTimeout(() => { win.focus(); win.print() }, 150)
   }
 
   return (
     <Modal open={!!model} onClose={onClose} title={model.title} size="lg">
       <div className="space-y-4">
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5">
-          <p className="text-sm text-neutral-500 mb-4">{model.description}</p>
-          <pre className="whitespace-pre-wrap rounded-xl bg-neutral-50 p-4 text-sm leading-relaxed text-neutral-700 font-sans">
-            {model.template}
-          </pre>
+        {/* Header info */}
+        <div className="flex items-start gap-3 rounded-2xl border border-neutral-100 bg-neutral-50 px-4 py-3">
+          <model.icon className="w-5 h-5 text-sage-600 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-sm text-neutral-600 leading-relaxed">{model.description}</p>
+            <p className="mt-1 text-xs text-neutral-400">{fieldCount} campos para preenchimento</p>
+          </div>
         </div>
-        <div className="flex justify-end gap-3">
-          <button type="button" onClick={onClose} className="btn-secondary">Fechar</button>
-          <button type="button" onClick={printModel} className="btn-primary">
-            Imprimir / salvar PDF
-          </button>
+
+        {/* Document form */}
+        <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden">
+          {/* Document header strip */}
+          <div className="bg-neutral-50 border-b border-neutral-100 px-5 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-sage-400" />
+              <span className="text-xs font-medium text-neutral-500">Formulário para preenchimento</span>
+            </div>
+            <div className="flex items-center gap-3 text-xs text-neutral-400">
+              <span>Profissional: <span className="inline-block w-24 border-b border-neutral-300">&nbsp;</span></span>
+              <span>Data: <span className="inline-block w-16 border-b border-neutral-300">&nbsp;</span></span>
+            </div>
+          </div>
+
+          {/* Fields */}
+          <div className="px-5 py-4 space-y-0.5">
+            {lines.map((line, idx) => renderTemplateLine(line, idx))}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-neutral-400">
+            Instrumento de apoio clínico · não substitui prontuário oficial
+          </p>
+          <div className="flex gap-3">
+            <button type="button" onClick={onClose} className="btn-secondary text-sm">Fechar</button>
+            <button type="button" onClick={printModel} className="btn-primary text-sm flex items-center gap-2">
+              <Download className="w-4 h-4" />
+              Imprimir / PDF
+            </button>
+          </div>
         </div>
       </div>
     </Modal>
   )
 }
 
-function DocCard({ doc, onPreview, onDownload, onDelete }: {
+function DocCard({ doc, onPreview, onDownload, onCopyLink, onDelete }: {
   doc: Documento
   onPreview: () => void
   onDownload: () => void
+  onCopyLink: () => void
   onDelete: () => void
 }) {
   return (
@@ -453,9 +522,14 @@ function DocCard({ doc, onPreview, onDownload, onDelete }: {
           title="Visualizar">
           <Eye className="w-4 h-4" />
         </button>
+        <button onClick={onCopyLink}
+          className="p-2 rounded-lg hover:bg-neutral-100 text-neutral-400 hover:text-sage-600 transition-colors"
+          title="Copiar link de verificação">
+          <Copy className="w-4 h-4" />
+        </button>
         <button
           className="p-2 rounded-lg hover:bg-neutral-100 text-neutral-400 hover:text-sage-600 transition-colors"
-          title="Baixar"
+          title="Baixar PDF"
           onClick={onDownload}>
           <Download className="w-4 h-4" />
         </button>

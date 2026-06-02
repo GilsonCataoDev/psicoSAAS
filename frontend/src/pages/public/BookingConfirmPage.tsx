@@ -28,7 +28,7 @@ function getErrorMessage(error: unknown): string {
     const response = (error as { response?: { data?: { message?: string } } }).response
     if (response?.data?.message) return response.data.message
   }
-  return 'Nao foi possivel processar este link. Tente novamente.'
+  return 'Não foi possível processar este link. Tente novamente.'
 }
 
 function downloadIcs(event: CalendarEvent): void {
@@ -89,12 +89,12 @@ export default function BookingConfirmPage() {
     const modality = booking.modality === 'online' ? 'Online' : 'Presencial'
 
     return {
-      title: `Sessao com ${professional}`,
+      title: `Sessão com ${professional}`,
       startDate: booking.date,
       startTime: booking.time,
       durationMinutes: booking.duration || 50,
       location: modality,
-      details: `Sessao confirmada pela UseCognia.\nProfissional: ${professional}${crp}\nModalidade: ${modality}`,
+      details: `Sessão confirmada pela UseCognia.\nProfissional: ${professional}${crp}\nModalidade: ${modality}`,
     }
   }, [isConfirm, result])
 
@@ -125,10 +125,10 @@ export default function BookingConfirmPage() {
           {loading
             ? 'Processando agendamento'
             : error
-              ? 'Link nao processado'
+              ? 'Link não processado'
               : isConfirm
-                ? 'Sessao confirmada'
-                : 'Sessao cancelada'}
+                ? 'Sessão confirmada'
+                : 'Sessão cancelada'}
         </h1>
 
         <p className="text-neutral-500 dark:text-neutral-300 leading-relaxed">
@@ -138,8 +138,8 @@ export default function BookingConfirmPage() {
               ? error
               : result?.message ?? (
                   isConfirm
-                    ? 'Sua sessao esta confirmada. Voce recebera um lembrete antes do encontro.'
-                    : 'Sua sessao foi cancelada. Quando quiser remarcar, use o link de agendamento novamente.'
+                    ? 'Sua sessão está confirmada. Você receberá um lembrete antes do encontro.'
+                    : 'Sua sessão foi cancelada. Quando quiser remarcar, use o link de agendamento novamente.'
                 )}
         </p>
 

@@ -11,10 +11,10 @@ const features = [
 
 const proItems = [
   'Pacientes e documentos ilimitados',
-  'Cobrancas por link e cartao via Asaas',
+  'Cobranças por link e cartão via Asaas',
   'Modelos de mensagens personalizados',
-  'Lembretes e cobrancas automaticas',
-  'Relatorios para acompanhar desempenho',
+  'Lembretes e cobranças automáticas',
+  'Relatórios para acompanhar desempenho',
 ]
 
 export default function LandingPage() {
@@ -98,9 +98,9 @@ export default function LandingPage() {
         <div className="mx-auto grid max-w-6xl gap-8 px-5 py-16 lg:grid-cols-[0.9fr_1fr]">
           <div>
             <p className="text-sm font-semibold text-sage-700">Plano Pro</p>
-            <h2 className="mt-2 font-display text-3xl font-bold text-neutral-950">Para vender mais tempo, nao mais trabalho.</h2>
+            <h2 className="mt-2 font-display text-3xl font-bold text-neutral-950">Para vender mais tempo, não mais trabalho.</h2>
             <p className="mt-4 text-neutral-600">
-              O Pro e o plano para psicologos que ja atendem com frequencia e querem automatizar cobrancas, mensagens e organizacao financeira.
+              O Pro é o plano para psicólogos que já atendem com frequência e querem automatizar cobranças, mensagens e organização financeira.
             </p>
           </div>
           <div className="rounded-2xl border border-sage-100 bg-white p-6 shadow-card">

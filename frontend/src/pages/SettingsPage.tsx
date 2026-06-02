@@ -104,6 +104,8 @@ export default function SettingsPage() {
   const [calendarBusy, setCalendarBusy] = useState(false)
   const [googleCalendarAvailable, setGoogleCalendarAvailable] = useState(true)
   const [confirmDisconnectGoogle, setConfirmDisconnectGoogle] = useState(false)
+  const [googleLastSyncedAt, setGoogleLastSyncedAt] = useState<string | null>(null)
+  const [googleLastSyncError, setGoogleLastSyncError] = useState<string | null>(null)
 
   useEffect(() => {
     Promise.allSettled([
@@ -119,6 +121,8 @@ export default function SettingsPage() {
       if (calendarResult.status === 'fulfilled') {
         const data = calendarResult.value.data
         setGoogleCalendarAvailable(data.available !== false)
+        setGoogleLastSyncedAt(data.lastSyncedAt ?? null)
+        setGoogleLastSyncError(data.lastSyncError ?? null)
         setPrefs(prev => ({
           ...prev,
           googleCalendarConnected: !!data.connected,
@@ -132,13 +136,13 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (searchParams.get('googleCalendar') === 'connected') {
-      toast.success('Google Agenda conectado')
+      toast.success('Google Agenda conectado com sucesso!')
       setSearchParams({ tab: 'integrations' }, { replace: true })
     } else if (searchParams.get('googleCalendar') === 'error') {
       const reason = searchParams.get('reason')
       toast.error(reason === 'access_denied'
-        ? 'Permissao do Google Agenda nao autorizada.'
-        : 'Nao foi possivel concluir a conexao com o Google Agenda.')
+        ? 'Permissão negada. Autorize o acesso ao Google Agenda para continuar.'
+        : 'Não foi possível concluir a conexão com o Google Agenda. Tente novamente.')
       setSearchParams({ tab: 'integrations' }, { replace: true })
     }
   }, [searchParams, setSearchParams])
@@ -168,7 +172,7 @@ export default function SettingsPage() {
       updateUser({ avatarUrl: updated.avatarUrl, avatar: updated.avatarUrl })
       toast.success('Foto atualizada')
     } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? 'Nao foi possivel enviar a foto.')
+      toast.error(e?.response?.data?.message ?? 'Não foi possível enviar a foto.')
     } finally {
       setUploadingAvatar(false)
     }
@@ -217,7 +221,7 @@ export default function SettingsPage() {
       const { data } = await api.get('/google-calendar/connect')
       window.location.href = data.url
     } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? 'Nao foi possivel iniciar a conexao com o Google.')
+      toast.error(e?.response?.data?.message ?? 'Não foi possível iniciar a conexão com o Google.')
       setCalendarBusy(false)
     }
   }
@@ -230,7 +234,7 @@ export default function SettingsPage() {
       setPrefs(prev => ({ ...prev, googleCalendarConnected: false, googleCalendarEmail: '' }))
       toast.success('Google Agenda desconectado')
     } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? 'Nao foi possivel desconectar.')
+      toast.error(e?.response?.data?.message ?? 'Não foi possível desconectar.')
     } finally {
       setCalendarBusy(false)
     }
@@ -306,7 +310,7 @@ export default function SettingsPage() {
       window.URL.revokeObjectURL(url)
       toast.success('Exportacao baixada.')
     } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? 'Nao foi possivel exportar os dados.')
+      toast.error(e?.response?.data?.message ?? 'Não foi possível exportar os dados.')
     } finally {
       setExportingData(false)
     }
@@ -337,7 +341,7 @@ export default function SettingsPage() {
       toast.success('Conta excluida definitivamente.')
       navigate('/login', { replace: true })
     } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? 'Nao foi possivel excluir a conta.')
+      toast.error(e?.response?.data?.message ?? 'Não foi possível excluir a conta.')
     } finally {
       setDeletingAccount(false)
     }
@@ -535,7 +539,7 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {/* ── Pagamentos ────────────────────────────────────────────── */}
+          {/* ── Integrações ───────────────────────────────────────────── */}
           {tab === 'integrations' && (
             <div className="space-y-5">
               <div className="card space-y-4">
@@ -545,9 +549,9 @@ export default function SettingsPage() {
                       <CalendarDays className="h-5 w-5" />
                     </div>
                     <div>
-                      <h2 className="section-title mb-0.5">Google Agenda do psicologo</h2>
+                      <h2 className="section-title mb-0.5">Google Agenda</h2>
                       <p className="text-sm text-neutral-500">
-                        Quando uma sessao for criada ou confirmada na UseCognia, ela tambem entra na sua agenda Google.
+                        Sessões criadas ou confirmadas na UseCognia são sincronizadas automaticamente com sua agenda Google.
                       </p>
                     </div>
                   </div>
@@ -557,22 +561,35 @@ export default function SettingsPage() {
                 </div>
 
                 {prefs.googleCalendarConnected ? (
-                  <div className="rounded-xl border border-sage-100 bg-sage-50 p-4 text-sm text-sage-700">
-                    <p className="font-medium">Conta conectada</p>
-                    <p className="mt-1">{prefs.googleCalendarEmail || 'Google Agenda autorizado'}</p>
+                  <div className="rounded-xl border border-sage-100 bg-sage-50 p-4 text-sm text-sage-700 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-sage-600 shrink-0" />
+                      <p className="font-medium">{prefs.googleCalendarEmail || 'Google Agenda autorizado'}</p>
+                    </div>
+                    {googleLastSyncError ? (
+                      <p className="text-xs text-rose-600 pl-6">
+                        Última sincronização falhou: {googleLastSyncError}
+                      </p>
+                    ) : googleLastSyncedAt ? (
+                      <p className="text-xs text-sage-500 pl-6">
+                        Última sincronização: {new Date(googleLastSyncedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-sage-500 pl-6">Nenhuma sessão sincronizada ainda</p>
+                    )}
                   </div>
                 ) : !googleCalendarAvailable ? (
                   <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                    <p className="font-medium">Integracao em configuracao</p>
+                    <p className="font-medium">Integração em configuração</p>
                     <p className="mt-1">
                       O Google Agenda ainda precisa das credenciais OAuth da plataforma antes de ser usado.
                     </p>
                   </div>
                 ) : (
                   <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-600">
-                    <p className="font-medium text-neutral-700">Permissao necessaria</p>
+                    <p className="font-medium text-neutral-700">Permissão necessária</p>
                     <p className="mt-1">
-                      O Google vai pedir acesso para criar eventos na sua agenda. A UseCognia nao le seus eventos pessoais.
+                      O Google solicitará acesso para criar eventos na sua agenda. A UseCognia não lê seus eventos pessoais.
                     </p>
                   </div>
                 )}
@@ -595,7 +612,7 @@ export default function SettingsPage() {
                       className="btn-primary text-sm inline-flex items-center gap-2"
                     >
                       <ExternalLink className="h-4 w-4" />
-                      {!googleCalendarAvailable ? 'Aguardando configuracao' : calendarBusy ? 'Abrindo Google...' : 'Conectar Google Agenda'}
+                      {!googleCalendarAvailable ? 'Aguardando configuração' : calendarBusy ? 'Abrindo Google...' : 'Conectar Google Agenda'}
                     </button>
                   )}
                 </div>
@@ -607,7 +624,7 @@ export default function SettingsPage() {
             <div className="space-y-5">
               {!hasProAutomation && (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  <p className="font-medium">Links, cartao e cobrancas automaticas sao recursos Pro.</p>
+                  <p className="font-medium">Links, cartão e cobranças automáticas são recursos Pro.</p>
                   <p className="mt-1">No Essencial, o controle financeiro manual continua liberado.</p>
                 </div>
               )}
@@ -735,7 +752,7 @@ export default function SettingsPage() {
                   </h2>
                   {subscription.cancelAtPeriodEnd ? (
                     <p className="text-sm text-neutral-500 mt-1">
-                      Sua assinatura nao sera renovada. O acesso continua ate{' '}
+                      Sua assinatura não será renovada. O acesso continua até{' '}
                       {subscription.currentPeriodEnd
                         ? new Date(subscription.currentPeriodEnd).toLocaleDateString('pt-BR')
                         : 'o fim do periodo atual'}.
@@ -744,10 +761,10 @@ export default function SettingsPage() {
                     <>
                       <p className="text-sm text-neutral-500 mt-1">
                         {currentPlanId === 'free'
-                          ? 'Ao sair do plano gratis, voce volta para a tela de planos. Seus dados ficam seguros.'
+                          ? 'Ao sair do plano grátis, você volta para a tela de planos. Seus dados ficam seguros.'
                           : isTrialing
-                            ? 'Ao cancelar o teste, a assinatura sera encerrada e voce volta para a tela de planos.'
-                            : 'Ao cancelar, voce continua com acesso ate o fim do periodo pago. Seus dados ficam seguros por 90 dias.'}
+                            ? 'Ao cancelar o teste, a assinatura será encerrada e você volta para a tela de planos.'
+                            : 'Ao cancelar, você continua com acesso até o fim do período pago. Seus dados ficam seguros por 90 dias.'}
                       </p>
                       <button
                         className="mt-3 text-sm text-rose-500 hover:text-rose-600 flex items-center gap-1 transition-colors disabled:opacity-60"
@@ -797,8 +814,8 @@ export default function SettingsPage() {
                     <div>
                       <h3 className="text-sm font-semibold text-rose-800 dark:text-rose-200">Excluir conta definitivamente</h3>
                       <p className="mt-1 text-sm text-rose-700 dark:text-rose-200/80">
-                        Remove sua conta, pacientes, prontuarios, sessoes, agenda, financeiro, documentos, preferencias,
-                        tokens de acesso e assinaturas salvas no banco de dados. Esta acao nao pode ser desfeita.
+                        Remove sua conta, pacientes, prontuários, sessões, agenda, financeiro, documentos, preferências,
+                        tokens de acesso e assinaturas salvas no banco de dados. Esta ação não pode ser desfeita.
                       </p>
                     </div>
 
@@ -898,7 +915,7 @@ export default function SettingsPage() {
       <ConfirmDialog
         open={confirmDisconnectGoogle}
         title="Desconectar Google Agenda"
-        description="Novas sessoes nao serao enviadas automaticamente para o Google Agenda depois da desconexao."
+        description="Novas sessões não serão sincronizadas com o Google Agenda após a desconexão."
         confirmLabel="Desconectar"
         loading={calendarBusy}
         tone="warning"
@@ -907,10 +924,10 @@ export default function SettingsPage() {
       />
       <ConfirmDialog
         open={confirmCancelPlan}
-        title={currentPlanId === 'free' ? 'Sair do plano gratis' : 'Cancelar assinatura'}
+        title={currentPlanId === 'free' ? 'Sair do plano grátis' : 'Cancelar assinatura'}
         description={currentPlanId === 'free'
-          ? 'Seu acesso sera bloqueado ate escolher outro plano. Seus dados continuam protegidos.'
-          : 'Voce nao sera cobrado novamente. Se houver periodo pago ativo, o acesso continua ate o fim dele.'}
+          ? 'Seu acesso será bloqueado até escolher outro plano. Seus dados continuam protegidos.'
+          : 'Você não será cobrado novamente. Se houver período pago ativo, o acesso continua até o fim dele.'}
         confirmLabel={currentPlanId === 'free' ? 'Sair do plano' : 'Cancelar assinatura'}
         loading={cancelingPlan}
         tone="warning"
@@ -920,7 +937,7 @@ export default function SettingsPage() {
       <ConfirmDialog
         open={confirmDeleteAccount}
         title="Excluir conta definitivamente"
-        description="Todos os pacientes, prontuarios, sessoes, agenda, financeiro, documentos, preferencias e tokens de acesso serao removidos. Esta acao nao pode ser desfeita."
+        description="Todos os pacientes, prontuários, sessões, agenda, financeiro, documentos, preferências e tokens de acesso serão removidos. Esta ação não pode ser desfeita."
         confirmLabel="Excluir definitivamente"
         loading={deletingAccount}
         onClose={() => setConfirmDeleteAccount(false)}

@@ -46,7 +46,7 @@ export default function MarkPaidModal({
       await copyText(pixKey)
       toast.success('Chave PIX copiada!')
     } catch {
-      toast.error('Nao foi possivel copiar automaticamente.')
+      toast.error('Não foi possível copiar automaticamente.')
     }
   }
 

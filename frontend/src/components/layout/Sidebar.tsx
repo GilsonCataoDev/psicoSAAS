@@ -10,8 +10,8 @@ const navItems: Array<{ to: string; icon: UseCogniaIconName; label: string }> = 
   { to: '/',              icon: 'dashboard',   label: 'Inicio'       },
   { to: '/pacientes',     icon: 'patients',    label: 'Pacientes'    },
   { to: '/agenda',        icon: 'calendar',    label: 'Agenda'       },
-  { to: '/agendamentos',  icon: 'public-link', label: 'Link publico' },
-  { to: '/sessoes',       icon: 'sessions',    label: 'Sessoes'      },
+  { to: '/agendamentos',  icon: 'public-link', label: 'Link público' },
+  { to: '/sessoes',       icon: 'sessions',    label: 'Sessões'      },
   { to: '/documentos',    icon: 'documents',   label: 'Documentos'   },
   { to: '/financeiro',    icon: 'financial',   label: 'Financeiro'   },
   { to: '/configuracoes', icon: 'settings',    label: 'Ajustes'      },
@@ -94,7 +94,7 @@ export default function Sidebar() {
             {user ? getInitials(user.name) : 'PS'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-neutral-700 truncate leading-tight">{user?.name ?? 'Psicologo(a)'}</p>
+            <p className="text-sm font-semibold text-neutral-700 truncate leading-tight">{user?.name ?? 'Psicólogo(a)'}</p>
             <p className="text-xs text-neutral-400 truncate">{user?.crp ? `CRP ${user.crp}` : 'Minha conta'}</p>
           </div>
           <button onClick={() => { logout(); navigate('/login') }} className="p-1.5 rounded-lg hover:bg-rose-50 text-neutral-300 hover:text-rose-400 transition-colors opacity-0 group-hover:opacity-100" title="Sair">

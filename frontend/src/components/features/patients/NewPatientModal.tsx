@@ -69,7 +69,7 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
       reset()
       onClose()
     } catch (err: any) {
-      toast.error(err?.response?.data?.message ?? 'Nao foi possivel adicionar. Tente novamente.')
+      toast.error(err?.response?.data?.message ?? 'Não foi possível adicionar. Tente novamente.')
     }
   }
 

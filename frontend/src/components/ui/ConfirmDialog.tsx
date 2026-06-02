@@ -12,6 +12,7 @@ interface ConfirmDialogProps {
   tone?: 'danger' | 'warning'
   onConfirm: () => void | Promise<void>
   onClose: () => void
+  children?: React.ReactNode
 }
 
 export default function ConfirmDialog({
@@ -24,6 +25,7 @@ export default function ConfirmDialog({
   tone = 'danger',
   onConfirm,
   onClose,
+  children,
 }: ConfirmDialogProps) {
   const isDanger = tone === 'danger'
 
@@ -42,6 +44,8 @@ export default function ConfirmDialog({
           )} />
           <p className="leading-relaxed">{description}</p>
         </div>
+
+        {children}
 
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <button type="button" onClick={onClose} disabled={loading} className="btn-secondary text-sm">

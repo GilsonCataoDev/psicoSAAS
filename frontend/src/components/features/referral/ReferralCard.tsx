@@ -34,7 +34,7 @@ export default function ReferralCard() {
       toast.success('Link copiado!')
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      toast.error('Nao foi possivel copiar automaticamente.')
+      toast.error('Não foi possível copiar automaticamente.')
     }
   }
 

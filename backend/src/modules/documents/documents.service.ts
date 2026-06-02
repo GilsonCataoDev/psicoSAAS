@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException, Logger } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { createHmac, randomBytes } from 'crypto'
@@ -10,6 +10,7 @@ import { Document, DocType } from './entities/document.entity'
 import { User } from '../auth/entities/user.entity'
 import { Subscription } from '../billing/entities/subscription.entity'
 import { PLAN_LIMITS } from '../../common/guards/plan.guard'
+import { EmailService } from '../email/email.service'
 
 export interface CreateDocumentDto {
   patientId: string
@@ -37,6 +38,7 @@ export class DocumentsService {
     @InjectRepository(Document) private repo: Repository<Document>,
     @InjectRepository(Subscription) private subs: Repository<Subscription>,
     private cfg: ConfigService,
+    private email: EmailService,
   ) {
     // SIGN_SECRET deve ter >= 32 chars — validado no bootstrap
     this.signSecret = cfg.getOrThrow('SIGN_SECRET')
@@ -348,6 +350,34 @@ export class DocumentsService {
     const buffer = await done
     const filename = `${stored.signCode}-${stored.type}.pdf`.replace(/[^a-zA-Z0-9_.-]/g, '_')
     return { filename, buffer }
+  }
+
+  // ─── Enviar documento por email ──────────────────────────────────────────
+
+  async sendDocumentByEmail(id: string, userId: string, to: string): Promise<{ sent: boolean; to: string }> {
+    if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+      throw new BadRequestException('E-mail de destinatário inválido')
+    }
+
+    const doc = await this.repo.findOne({ where: { id, userId } })
+    if (!doc) throw new NotFoundException()
+
+    const { filename, buffer } = await this.generatePdf(id, userId)
+
+    await this.email.sendDocumentEmail({
+      to,
+      recipientName: doc.patientName.split(' ')[0],
+      docTitle: doc.title,
+      docTypeLabel: DOC_TYPE_LABELS[doc.type] ?? doc.type,
+      psychologistName: doc.psychologistName,
+      psychologistCrp: doc.psychologistCrp,
+      signCode: doc.signCode,
+      verificationUrl: this.getVerificationUrl(doc.signCode),
+      filename,
+      pdfBase64: buffer.toString('base64'),
+    })
+
+    return { sent: true, to }
   }
 
   // ─── Excluir documento ───────────────────────────────────────────────────

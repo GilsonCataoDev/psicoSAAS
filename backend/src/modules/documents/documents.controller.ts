@@ -1,5 +1,5 @@
 import {
-  Controller, Post, Get, Delete, Param, Body, Req, Res, UseGuards,
+  Controller, Post, Get, Delete, Param, Body, Req, Res, UseGuards, HttpCode,
 } from '@nestjs/common'
 import { SkipThrottle } from '@nestjs/throttler'
 import { IsEnum, IsString, IsNotEmpty } from 'class-validator'
@@ -53,6 +53,14 @@ export class DocumentsController {
       'Cache-Control': 'private, no-store',
     })
     res.end(buffer)
+  }
+
+  /** Enviar documento por email para o paciente (ou outro destinatário) */
+  @Post(':id/send-email')
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard, CsrfGuard)
+  async sendEmail(@Param('id') id: string, @Body('to') to: string, @Req() req: any) {
+    return this.svc.sendDocumentByEmail(id, req.user.id, to)
   }
 
   @Delete(':id')

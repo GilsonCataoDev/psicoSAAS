@@ -22,10 +22,10 @@ export default function SessionsPage() {
     if (!sessionToDelete) return
     try {
       await deleteSession.mutateAsync(sessionToDelete.id)
-      toast.success('Sessao excluida')
+      toast.success('Sessão excluída')
       setSessionToDelete(null)
     } catch {
-      toast.error('Erro ao excluir sessao')
+      toast.error('Erro ao excluir sessão')
     }
   }
 
@@ -33,16 +33,16 @@ export default function SessionsPage() {
     <div className="animate-slide-up space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="page-title">Sessoes</h1>
+          <h1 className="page-title">Sessões</h1>
           <p className="page-subtitle">
             {sessions.length > 0
-              ? `${sessions.length} sessao${sessions.length !== 1 ? 'es' : ''} registrada${sessions.length !== 1 ? 's' : ''}`
+              ? `${sessions.length} sessão${sessions.length !== 1 ? 'ões' : ''} registrada${sessions.length !== 1 ? 's' : ''}`
               : 'Registre como foi cada atendimento'}
           </p>
         </div>
         <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2">
           <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Como foi a sessao?</span>
+          <span className="hidden sm:inline">Como foi a sessão?</span>
         </button>
       </div>
 
@@ -57,11 +57,11 @@ export default function SessionsPage() {
       {!isLoading && sessions.length === 0 && (
         <EmptyState
           icon={<NotebookPen className="h-7 w-7" strokeWidth={1.8} />}
-          title="Nenhuma sessao registrada ainda"
-          description="Apos cada atendimento, registre o que aconteceu. Seus registros ficam seguros e organizados aqui."
+          title="Nenhuma sessão registrada ainda"
+          description="Após cada atendimento, registre o que aconteceu. Seus registros ficam seguros e organizados aqui."
           action={
             <button onClick={() => setShowModal(true)} className="btn-primary">
-              Registrar primeira sessao
+              Registrar primeira sessão
             </button>
           }
         />
@@ -97,13 +97,13 @@ export default function SessionsPage() {
                     className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-sage-600 hover:text-sage-700"
                   >
                     <FileText className="h-3.5 w-3.5" />
-                    Ver no prontuario
+                    Ver no prontuário
                   </Link>
                 </div>
 
                 <div className="flex flex-col items-end gap-1.5 shrink-0">
                   {session.mood && (
-                    <span className="text-xl leading-none" title="Humor na sessao">
+                    <span className="text-xl leading-none" title="Humor na sessão">
                       {MOODS[session.mood]}
                     </span>
                   )}
@@ -111,7 +111,7 @@ export default function SessionsPage() {
                   <button
                     onClick={() => setSessionToDelete(session)}
                     className="sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-rose-50 text-neutral-300 hover:text-rose-500"
-                    title="Excluir sessao"
+                    title="Excluir sessão"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -125,9 +125,9 @@ export default function SessionsPage() {
       <NewSessionModal open={showModal} onClose={() => setShowModal(false)} />
       <ConfirmDialog
         open={!!sessionToDelete}
-        title="Excluir sessao"
-        description={`Excluir a sessao de ${sessionToDelete?.patient?.name ?? 'paciente removido'}? O registro clinico sera removido definitivamente.`}
-        confirmLabel="Excluir sessao"
+        title="Excluir sessão"
+        description={`Excluir a sessão de ${sessionToDelete?.patient?.name ?? 'paciente removido'}? O registro clínico será removido definitivamente.`}
+        confirmLabel="Excluir sessão"
         loading={deleteSession.isPending}
         onClose={() => setSessionToDelete(null)}
         onConfirm={handleDelete}

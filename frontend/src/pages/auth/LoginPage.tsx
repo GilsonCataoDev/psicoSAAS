@@ -44,7 +44,7 @@ export default function LoginPage() {
       toast.error(
         err?.response?.status === 401 || msg === 'Unauthorized'
           ? loginAccepted
-            ? 'Nao foi possivel manter sua sessao. Verifique se os cookies do navegador estao habilitados.'
+            ? 'Não foi possível manter sua sessão. Verifique se os cookies do navegador estão habilitados.'
             : 'E-mail ou senha incorretos.'
           : 'Não foi possível entrar. Tente novamente.',
       )

@@ -134,7 +134,7 @@ export default function PricingPage() {
         setSubscription(data)
         toast.success('Plano Gratis ativado.')
       } catch (err: any) {
-        toast.error(err?.response?.data?.message ?? 'Nao foi possivel ativar o plano gratis.')
+        toast.error(err?.response?.data?.message ?? 'Não foi possível ativar o plano grátis.')
       } finally {
         setLoadingPlan(null)
       }
@@ -284,8 +284,8 @@ export default function PricingPage() {
           <div className="mb-5">
             <h2 className="font-semibold text-neutral-800">Cartão de crédito</h2>
             <p className="text-sm text-neutral-500">
-              Plano {selectedPlan.name}. Os dados do cartao sao enviados ao Asaas para tokenizacao.
-              Voce nao sera cobrado agora. A cobranca sera feita apos 7 dias.
+              Plano {selectedPlan.name}. Os dados do cartão são enviados ao Asaas para tokenização.
+              Você não será cobrado agora. A cobrança será feita após 7 dias.
             </p>
           </div>
 

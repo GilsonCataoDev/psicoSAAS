@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import * as QRCode from 'qrcode'
-import { Download, Loader2, Shield, CheckCircle, ExternalLink } from 'lucide-react'
+import { Copy, Download, Loader2, Mail, Shield, CheckCircle, ExternalLink, Check } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import { Documento, DOC_TYPE_LABELS } from '@/types/prontuario'
 import { api } from '@/lib/api'
+import { useSendDocumentByEmail } from '@/hooks/useApi'
 import toast from 'react-hot-toast'
 
 function getVerificationUrl(signCode: string) {
@@ -22,6 +23,11 @@ export default function DocumentPreviewModal({
 }) {
   const [qrCode, setQrCode] = useState('')
   const [downloading, setDownloading] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [showEmailInput, setShowEmailInput] = useState(false)
+  const [emailTo, setEmailTo] = useState('')
+
+  const sendEmail = useSendDocumentByEmail()
 
   const verificationUrl = useMemo(
     () => doc ? getVerificationUrl(doc.signCode) : '',
@@ -37,6 +43,14 @@ export default function DocumentPreviewModal({
       color: { dark: '#1c1c1a', light: '#ffffff' },
     }).then(setQrCode).catch(() => setQrCode(''))
   }, [verificationUrl])
+
+  useEffect(() => {
+    if (!open) {
+      setShowEmailInput(false)
+      setEmailTo('')
+      setCopied(false)
+    }
+  }, [open])
 
   if (!doc) return null
 
@@ -58,11 +72,34 @@ export default function DocumentPreviewModal({
       URL.revokeObjectURL(url)
     } catch (err: any) {
       const message = err?.response?.status === 403
-        ? 'Seu acesso atual nao permite baixar este PDF.'
-        : 'Nao foi possivel gerar o PDF agora.'
+        ? 'Seu plano atual não permite baixar este PDF.'
+        : 'Não foi possível gerar o PDF agora.'
       toast.error(message)
     } finally {
       setDownloading(false)
+    }
+  }
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(verificationUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      toast.error('Não foi possível copiar o link.')
+    }
+  }
+
+  async function handleSendEmail() {
+    if (!doc || !emailTo.trim()) return
+    try {
+      await sendEmail.mutateAsync({ id: doc.id, to: emailTo.trim() })
+      toast.success(`Documento enviado para ${emailTo.trim()}`)
+      setShowEmailInput(false)
+      setEmailTo('')
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? 'Não foi possível enviar o e-mail.'
+      toast.error(msg)
     }
   }
 
@@ -91,7 +128,7 @@ export default function DocumentPreviewModal({
               <div>
                 <div className="w-40 h-px border-t-2 border-neutral-400 mb-2" />
                 <p className="font-medium text-sm text-neutral-800">{doc.psychologistName}</p>
-                <p className="text-xs text-neutral-500">Psicologo(a) - CRP {crp}</p>
+                <p className="text-xs text-neutral-500">Psicólogo(a) - CRP {crp}</p>
                 <p className="text-xs text-neutral-400 mt-0.5">{signedDate}</p>
               </div>
 
@@ -104,7 +141,7 @@ export default function DocumentPreviewModal({
                   className="w-16 h-16 border-2 border-neutral-200 rounded-xl flex items-center justify-center bg-white overflow-hidden hover:border-sage-300 transition-colors"
                 >
                   {qrCode ? (
-                    <img src={qrCode} alt={`QR Code de verificacao ${doc.signCode}`} className="w-full h-full" />
+                    <img src={qrCode} alt={`QR Code de verificação ${doc.signCode}`} className="w-full h-full" />
                   ) : (
                     <Shield className="w-6 h-6 text-neutral-300" />
                   )}
@@ -116,8 +153,8 @@ export default function DocumentPreviewModal({
             <div className="bg-sage-50 border border-sage-100 rounded-xl px-4 py-3 flex items-center gap-3">
               <CheckCircle className="w-4 h-4 text-sage-600 shrink-0" />
               <div className="min-w-0 flex-1">
-                <p className="text-xs text-sage-700 font-medium">Documento com autenticidade verificavel</p>
-                <p className="text-xs font-mono text-sage-600 mt-0.5">Codigo: {doc.signCode}</p>
+                <p className="text-xs text-sage-700 font-medium">Documento com autenticidade verificável</p>
+                <p className="text-xs font-mono text-sage-600 mt-0.5">Código: {doc.signCode}</p>
               </div>
               <a
                 href={verificationUrl}
@@ -133,14 +170,52 @@ export default function DocumentPreviewModal({
           </div>
         </div>
 
-        <div className="flex gap-3">
-          <a
-            href={verificationUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-secondary flex-1 flex items-center justify-center gap-2 text-sm">
-            <ExternalLink className="w-4 h-4" />Verificar
-          </a>
+        {/* Email input inline */}
+        {showEmailInput && (
+          <div className="flex gap-2">
+            <input
+              type="email"
+              value={emailTo}
+              onChange={e => setEmailTo(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSendEmail()}
+              placeholder="E-mail do destinatário"
+              className="input flex-1 text-sm"
+              autoFocus
+            />
+            <button
+              onClick={handleSendEmail}
+              disabled={sendEmail.isPending || !emailTo.trim()}
+              className="btn-primary px-4 text-sm flex items-center gap-2 disabled:opacity-70"
+            >
+              {sendEmail.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+              Enviar
+            </button>
+            <button
+              onClick={() => { setShowEmailInput(false); setEmailTo('') }}
+              className="btn-secondary px-3 text-sm"
+            >
+              Cancelar
+            </button>
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          <button
+            onClick={copyLink}
+            title="Copiar link de verificação"
+            className="btn-secondary flex items-center justify-center gap-2 text-sm px-3"
+          >
+            {copied ? <Check className="w-4 h-4 text-sage-600" /> : <Copy className="w-4 h-4" />}
+            {copied ? 'Copiado!' : 'Copiar link'}
+          </button>
+          <button
+            onClick={() => setShowEmailInput(v => !v)}
+            title="Enviar por e-mail"
+            className="btn-secondary flex items-center justify-center gap-2 text-sm px-3"
+          >
+            <Mail className="w-4 h-4" />
+            Enviar por e-mail
+          </button>
           <button
             onClick={downloadPdf}
             disabled={downloading}

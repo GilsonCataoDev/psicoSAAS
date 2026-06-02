@@ -156,7 +156,7 @@ export default function BookingPage() {
             </div>
             <h2 className="font-display text-2xl text-neutral-800 mb-2">Agendamento confirmado!</h2>
             <p className="text-neutral-500 mb-4 max-w-sm mx-auto">
-              {page.confirmationMessage ?? 'Seu horario foi reservado com sucesso. Voce recebera os detalhes da sessao em breve.'}
+              {page.confirmationMessage ?? 'Seu horário foi reservado com sucesso. Você receberá os detalhes da sessão em breve.'}
             </p>
             <div className="bg-white rounded-2xl shadow-card p-5 text-left max-w-xs mx-auto mt-6">
               <p className="text-sm font-medium text-neutral-700 mb-3">Resumo</p>
@@ -404,10 +404,10 @@ export default function BookingPage() {
                         className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-sage-600 focus:ring-sage-500"
                       />
                       <span>
-                        Li e concordo com o uso dos meus dados para agendamento, comunicacao sobre a sessao
+                        Li e concordo com o uso dos meus dados para agendamento, comunicação sobre a sessão
                         e demais finalidades descritas na{' '}
                         <Link to="/privacidade" target="_blank" className="text-sage-600 underline underline-offset-2">
-                          Politica de Privacidade
+                          Política de Privacidade
                         </Link>
                         .
                       </span>

@@ -115,6 +115,30 @@ export function useDeleteAppointment() {
   })
 }
 
+export function useUpdateAppointmentGroup() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ groupId, fromDate, data }: { groupId: string; fromDate: string; data: Partial<Appointment> }) =>
+      api.patch(`/appointments/group/${groupId}/from/${fromDate}`, data).then(r => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['appointments'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+}
+
+export function useDeleteAppointmentGroup() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ groupId, fromDate }: { groupId: string; fromDate: string }) =>
+      api.delete(`/appointments/group/${groupId}/from/${fromDate}`).then(r => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['appointments'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+}
+
 // ── Sessions ──────────────────────────────────────────────────────────────────
 
 export function useSessions(params?: { patientId?: string }) {
@@ -382,5 +406,12 @@ export function useCreateDocument() {
     mutationFn: (data: { patientId: string; patientName: string; type: string; title: string; content: string }) =>
       api.post('/documents', data).then(r => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['documents'] }),
+  })
+}
+
+export function useSendDocumentByEmail() {
+  return useMutation({
+    mutationFn: ({ id, to }: { id: string; to: string }) =>
+      api.post(`/documents/${id}/send-email`, { to }).then(r => r.data),
   })
 }

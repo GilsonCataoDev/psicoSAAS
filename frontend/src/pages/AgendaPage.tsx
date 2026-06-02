@@ -8,7 +8,7 @@ import { ptBR } from 'date-fns/locale'
 import Avatar from '@/components/ui/Avatar'
 import { StatusBadge } from '@/components/ui/Badge'
 import { formatTime } from '@/lib/utils'
-import { useAppointments, useDeleteAppointment } from '@/hooks/useApi'
+import { useAppointments, useDeleteAppointment, useDeleteAppointmentGroup } from '@/hooks/useApi'
 import NewAppointmentModal from '@/components/features/agenda/NewAppointmentModal'
 import toast from 'react-hot-toast'
 import { openWhatsApp } from '@/lib/whatsapp'
@@ -21,6 +21,7 @@ export default function AgendaPage() {
   const [showModal, setShowModal] = useState(false)
   const [editingAppointment, setEditingAppointment] = useState<any | null>(null)
   const [appointmentToRemove, setAppointmentToRemove] = useState<any | null>(null)
+  const [deleteScope, setDeleteScope] = useState<'single' | 'future'>('single')
   const weekEnd = addDays(weekStart, 4)
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
   const { data: appointments = [] } = useAppointments({
@@ -34,6 +35,7 @@ export default function AgendaPage() {
       .filter(hour => Number.isFinite(hour) && hour >= 0 && hour <= 23),
   ])).sort((a, b) => a - b)
   const deleteAppointment = useDeleteAppointment()
+  const deleteGroup = useDeleteAppointmentGroup()
 
   // Mobile: só mostra o dia atual
   const [mobileDay, setMobileDay] = useState(new Date())
@@ -42,9 +44,18 @@ export default function AgendaPage() {
   async function removeAppointment() {
     if (!appointmentToRemove) return
     try {
-      await deleteAppointment.mutateAsync(appointmentToRemove.id)
-      toast.success('Agendamento removido')
+      if (deleteScope === 'future' && appointmentToRemove.recurringGroupId) {
+        const result = await deleteGroup.mutateAsync({
+          groupId: appointmentToRemove.recurringGroupId,
+          fromDate: appointmentToRemove.date,
+        })
+        toast.success(`${result.removed} sessões removidas`)
+      } else {
+        await deleteAppointment.mutateAsync(appointmentToRemove.id)
+        toast.success('Sessão removida')
+      }
       setAppointmentToRemove(null)
+      setDeleteScope('single')
     } catch (err: any) {
       toast.error(err?.response?.data?.message ?? 'Erro ao remover agendamento.')
     }
@@ -53,7 +64,7 @@ export default function AgendaPage() {
   function messageAppointment(appt: any) {
     const phone = appt.patient?.phone
     if (!phone) {
-      toast.error('Essa pessoa nao tem WhatsApp cadastrado.')
+      toast.error('Essa pessoa não tem WhatsApp cadastrado.')
       return
     }
 
@@ -61,7 +72,7 @@ export default function AgendaPage() {
     const dateLabel = format(parseISO(appt.date), "EEEE, dd 'de' MMMM", { locale: ptBR })
     openWhatsApp(
       phone,
-      `Ola, ${first}! Lembrando que temos sessao em ${dateLabel} as ${formatTime(appt.time)}. Ate la!`,
+      `Olá, ${first}! Lembrando que temos sessão em ${dateLabel} às ${formatTime(appt.time)}. Até lá!`,
     )
   }
 
@@ -274,12 +285,52 @@ export default function AgendaPage() {
       <ConfirmDialog
         open={!!appointmentToRemove}
         title="Remover agendamento"
-        description={`Remover este agendamento${appointmentToRemove?.patient?.name ? ` de ${appointmentToRemove.patient.name}` : ''}? Essa acao nao pode ser desfeita.`}
-        confirmLabel="Remover"
-        loading={deleteAppointment.isPending}
-        onClose={() => setAppointmentToRemove(null)}
+        description={`Remover este agendamento${appointmentToRemove?.patient?.name ? ` de ${appointmentToRemove.patient.name}` : ''}? Essa ação não pode ser desfeita.`}
+        confirmLabel={deleteScope === 'future' ? 'Remover estas e as próximas' : 'Remover só esta'}
+        loading={deleteAppointment.isPending || deleteGroup.isPending}
+        onClose={() => { setAppointmentToRemove(null); setDeleteScope('single') }}
         onConfirm={removeAppointment}
-      />
+      >
+        {appointmentToRemove?.isRecurring && (
+          <div className="overflow-hidden rounded-xl border border-neutral-200 dark:border-white/10">
+            <button
+              type="button"
+              onClick={() => setDeleteScope('single')}
+              className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors ${
+                deleteScope === 'single' ? 'bg-rose-50 dark:bg-rose-900/20' : 'hover:bg-neutral-50 dark:hover:bg-white/5'
+              }`}
+            >
+              <span className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${
+                deleteScope === 'single' ? 'border-rose-500 bg-rose-500' : 'border-neutral-300 dark:border-white/30'
+              }`}>
+                {deleteScope === 'single' && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+              </span>
+              <div>
+                <p className="text-sm font-medium text-neutral-800 dark:text-neutral-100">Remover só esta sessão</p>
+                <p className="text-xs text-neutral-400">As demais sessões da série permanecem</p>
+              </div>
+            </button>
+            <div className="border-t border-neutral-100 dark:border-white/5" />
+            <button
+              type="button"
+              onClick={() => setDeleteScope('future')}
+              className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors ${
+                deleteScope === 'future' ? 'bg-rose-50 dark:bg-rose-900/20' : 'hover:bg-neutral-50 dark:hover:bg-white/5'
+              }`}
+            >
+              <span className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${
+                deleteScope === 'future' ? 'border-rose-500 bg-rose-500' : 'border-neutral-300 dark:border-white/30'
+              }`}>
+                {deleteScope === 'future' && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+              </span>
+              <div>
+                <p className="text-sm font-medium text-neutral-800 dark:text-neutral-100">Remover esta e as próximas</p>
+                <p className="text-xs text-neutral-400">Remove todas as sessões desta série a partir desta data</p>
+              </div>
+            </button>
+          </div>
+        )}
+      </ConfirmDialog>
     </div>
   )
 }

@@ -63,13 +63,13 @@ export default function BookingManagePage() {
       await copyText(bookingUrl)
       toast.success('Link copiado!')
     } catch {
-      toast.error('Nao foi possivel copiar automaticamente.')
+      toast.error('Não foi possível copiar automaticamente.')
     }
   }
 
   async function confirm(id: string) {
     await confirmBooking.mutateAsync(id)
-    toast.success('Sessao confirmada')
+    toast.success('Sessão confirmada')
   }
 
   async function reject(id: string) {
@@ -199,14 +199,14 @@ function BookingCard({ booking, onConfirm, onReject, onMarkPaid }: {
 
   function messagePatient() {
     if (!booking.patientPhone) {
-      toast.error('Essa pessoa nao informou WhatsApp.')
+      toast.error('Essa pessoa não informou WhatsApp.')
       return
     }
 
     const first = booking.patientName?.split(' ')[0] ?? ''
     const text = booking.status === 'confirmed'
-      ? `Ola, ${first}! Sua sessao esta confirmada para ${formatDateRelative(booking.date)} as ${booking.time}. Ate la!`
-      : `Ola, ${first}! Recebi sua solicitacao para ${formatDateRelative(booking.date)} as ${booking.time}. Ja retorno para confirmar.`
+      ? `Olá, ${first}! Sua sessão está confirmada para ${formatDateRelative(booking.date)} às ${booking.time}. Até lá!`
+      : `Olá, ${first}! Recebi sua solicitação para ${formatDateRelative(booking.date)} às ${booking.time}. Já retorno para confirmar.`
     openWhatsApp(booking.patientPhone, text)
   }
 
@@ -600,7 +600,7 @@ function BookingSettings({ page }: { page: any }) {
 
       <div className="card space-y-4">
         <h2 className="section-title">Datas bloqueadas</h2>
-        <p className="text-xs text-neutral-400">Ferias, feriados e dias sem atendimento nao aparecem como disponiveis no link publico.</p>
+        <p className="text-xs text-neutral-400">Férias, feriados e dias sem atendimento não aparecem como disponíveis no link público.</p>
         <div className="grid grid-cols-1 sm:grid-cols-[160px_1fr_auto] gap-3">
           <input
             type="date"
