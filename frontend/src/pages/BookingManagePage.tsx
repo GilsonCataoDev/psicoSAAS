@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Link2, Check, X, Wallet, Settings, Clock, RefreshCw, Trash2, MessageCircle } from 'lucide-react'
-import { formatCurrency, formatDateRelative } from '@/lib/utils'
+import { copyText, formatCurrency, formatDateRelative } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { openWhatsApp } from '@/lib/whatsapp'
@@ -58,9 +58,13 @@ export default function BookingManagePage() {
   const publicBaseUrl = new URL(appBasePath, window.location.origin).toString().replace(/\/$/, '')
   const bookingUrl = dailyLink?.token ? `${publicBaseUrl}/#/agendar/${dailyLink.token}` : dailyLink?.url ?? '...'
 
-  function copyLink() {
-    navigator.clipboard.writeText(bookingUrl)
-    toast.success('Link copiado!')
+  async function copyLink() {
+    try {
+      await copyText(bookingUrl)
+      toast.success('Link copiado!')
+    } catch {
+      toast.error('Nao foi possivel copiar automaticamente.')
+    }
   }
 
   async function confirm(id: string) {

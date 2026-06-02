@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Check, Copy } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import { FinancialRecord } from '@/types'
-import { formatCurrency } from '@/lib/utils'
+import { copyText, formatCurrency } from '@/lib/utils'
 import { useMe } from '@/hooks/useApi'
 import toast from 'react-hot-toast'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
@@ -40,10 +40,14 @@ export default function MarkPaidModal({
     onClose()
   }
 
-  function copyPix() {
+  async function copyPix() {
     if (!pixKey) { toast.error('Configure sua chave PIX em Ajustes → Pagamentos'); return }
-    navigator.clipboard.writeText(pixKey)
-    toast.success('Chave PIX copiada!')
+    try {
+      await copyText(pixKey)
+      toast.success('Chave PIX copiada!')
+    } catch {
+      toast.error('Nao foi possivel copiar automaticamente.')
+    }
   }
 
   if (!record) return null

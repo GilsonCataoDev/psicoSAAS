@@ -5,7 +5,7 @@ import {
 } from 'lucide-react'
 import { Documento, DocType, DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '@/types/prontuario'
 import { useAuthStore } from '@/store/auth'
-import { formatDate } from '@/lib/utils'
+import { copyText, formatDate } from '@/lib/utils'
 import { openCfpVerification } from '@/lib/crp'
 import GenerateDocModal from '@/components/features/prontuario/GenerateDocModal'
 import { usePatients, useDocuments, useDeleteDocument } from '@/hooks/useApi'
@@ -134,8 +134,12 @@ export default function DocumentosPage() {
   }
 
   async function copyClinicalModel(title: string, template: string) {
-    await navigator.clipboard.writeText(template)
-    toast.success(`${title} copiado`)
+    try {
+      await copyText(template)
+      toast.success(`${title} copiado`)
+    } catch {
+      toast.error('Nao foi possivel copiar automaticamente.')
+    }
   }
 
   return (

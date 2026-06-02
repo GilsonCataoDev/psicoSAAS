@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Copy, CheckCircle2, Gift } from 'lucide-react'
 import { api, USE_MOCK } from '@/lib/api'
 import { track, EVENTS } from '@/lib/analytics'
+import { copyText } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
 interface ReferralStats {
@@ -25,12 +26,16 @@ export default function ReferralCard() {
 
   const referralUrl = `${window.location.origin}${import.meta.env.BASE_URL}cadastro?ref=${stats.code}`
 
-  function copyCode() {
-    navigator.clipboard.writeText(referralUrl)
-    setCopied(true)
-    track(EVENTS.REFERRAL_COPIED)
-    toast.success('Link copiado!')
-    setTimeout(() => setCopied(false), 2000)
+  async function copyCode() {
+    try {
+      await copyText(referralUrl)
+      setCopied(true)
+      track(EVENTS.REFERRAL_COPIED)
+      toast.success('Link copiado!')
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      toast.error('Nao foi possivel copiar automaticamente.')
+    }
   }
 
   function shareWhatsApp() {
