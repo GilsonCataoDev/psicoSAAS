@@ -37,6 +37,7 @@ export class GoogleCalendarService {
     return this.users.findOneBy({ id: userId }).then(user => {
       const prefs = (user?.preferences ?? {}) as GoogleCalendarPrefs
       return {
+        available: this.isConfigured(),
         connected: !!prefs.googleCalendarConnected && !!prefs.googleCalendarRefreshToken,
         email: prefs.googleCalendarEmail ?? null,
       }
@@ -44,6 +45,9 @@ export class GoogleCalendarService {
   }
 
   getAuthUrl(userId: string): string {
+    if (!this.isConfigured()) {
+      throw new BadRequestException('Google Agenda ainda nao foi configurado na plataforma.')
+    }
     const clientId = this.getRequiredConfig('GOOGLE_CLIENT_ID')
     const redirectUri = this.getRedirectUri()
     const state = this.signState(userId)
@@ -255,6 +259,13 @@ export class GoogleCalendarService {
     return this.config.get<string>('FRONTEND_URL')
       ?? this.config.get<string>('PUBLIC_APP_URL')
       ?? 'https://usecognia.com.br'
+  }
+
+  private isConfigured(): boolean {
+    return !!(
+      this.config.get<string>('GOOGLE_CLIENT_ID') &&
+      this.config.get<string>('GOOGLE_CLIENT_SECRET')
+    )
   }
 
   private getRequiredConfig(key: string): string {

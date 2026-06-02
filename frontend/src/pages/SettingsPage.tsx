@@ -104,13 +104,29 @@ export default function SettingsPage() {
   const [loadingPrefs, setLoadingPrefs] = useState(true)
   const [savingPrefs, setSavingPrefs] = useState(false)
   const [calendarBusy, setCalendarBusy] = useState(false)
+  const [googleCalendarAvailable, setGoogleCalendarAvailable] = useState(true)
 
   useEffect(() => {
-    api.get('/auth/me').then(r => {
-      const p = r.data?.preferences ?? {}
-      setPrefs(prev => ({ ...prev, ...p }))
-      setPhone(r.data?.phone ?? '')
-    }).catch(() => {}).finally(() => setLoadingPrefs(false))
+    Promise.allSettled([
+      api.get('/auth/me'),
+      api.get('/google-calendar/status'),
+    ]).then(([meResult, calendarResult]) => {
+      if (meResult.status === 'fulfilled') {
+        const p = meResult.value.data?.preferences ?? {}
+        setPrefs(prev => ({ ...prev, ...p }))
+        setPhone(meResult.value.data?.phone ?? '')
+      }
+
+      if (calendarResult.status === 'fulfilled') {
+        const data = calendarResult.value.data
+        setGoogleCalendarAvailable(data.available !== false)
+        setPrefs(prev => ({
+          ...prev,
+          googleCalendarConnected: !!data.connected,
+          googleCalendarEmail: data.email ?? '',
+        }))
+      }
+    }).finally(() => setLoadingPrefs(false))
   }, [])
 
   useEffect(() => {
@@ -541,6 +557,13 @@ export default function SettingsPage() {
                     <p className="font-medium">Conta conectada</p>
                     <p className="mt-1">{prefs.googleCalendarEmail || 'Google Agenda autorizado'}</p>
                   </div>
+                ) : !googleCalendarAvailable ? (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                    <p className="font-medium">Integracao em configuracao</p>
+                    <p className="mt-1">
+                      O Google Agenda ainda precisa das credenciais OAuth da plataforma antes de ser usado.
+                    </p>
+                  </div>
                 ) : (
                   <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-600">
                     <p className="font-medium text-neutral-700">Permissao necessaria</p>
@@ -564,11 +587,11 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={connectGoogleCalendar}
-                      disabled={calendarBusy}
+                      disabled={calendarBusy || !googleCalendarAvailable}
                       className="btn-primary text-sm inline-flex items-center gap-2"
                     >
                       <ExternalLink className="h-4 w-4" />
-                      {calendarBusy ? 'Abrindo Google...' : 'Conectar Google Agenda'}
+                      {!googleCalendarAvailable ? 'Aguardando configuracao' : calendarBusy ? 'Abrindo Google...' : 'Conectar Google Agenda'}
                     </button>
                   )}
                 </div>
