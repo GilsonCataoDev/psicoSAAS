@@ -52,10 +52,7 @@ const DEFAULT_PREFS = {
   autoCharge: true,
   lateReminder: true,
   includeReceipt: false,
-  chargeTemplate: 'Olá, {{nome}}! 🌿\n\nSegue o valor da nossa sessão:\n💚 *{{valor}}*\n\nPode pagar via PIX: `{{pix}}`\n\nObrigada! 🙏',
-  // Asaas — link de pagamento
-  asaasApiKey: '',
-  asaasApiKeyConfigured: false,
+  chargeTemplate: 'Olá, {{nome}}! 🌿\n\nSegue o valor da nossa sessão:\n💚 *{{valor}}*\n\nPode pagar via PIX: `{{pix}}`\n\n{{comprovante}}\n\nObrigada! 🙏',
   googleCalendarConnected: false,
   googleCalendarEmail: '',
   // Mensagens
@@ -168,10 +165,12 @@ export default function SettingsPage() {
   }
 
   function buildPrefsPayload() {
-    const { asaasApiKeyConfigured: _configured, ...rest } = prefs
-    const payload: Partial<typeof rest> = { ...rest }
-    if (!payload.asaasApiKey?.trim()) delete payload.asaasApiKey
-    return payload
+    const {
+      googleCalendarConnected: _googleCalendarConnected,
+      googleCalendarEmail: _googleCalendarEmail,
+      ...editablePrefs
+    } = prefs
+    return editablePrefs
   }
 
   async function savePrefs(section?: string) {
@@ -181,7 +180,6 @@ export default function SettingsPage() {
       setPrefs(prev => ({
         ...prev,
         ...saved,
-        asaasApiKey: '',
       }))
       toast.success(section ? `${section} salvo` : 'Preferencias salvas')
     } catch {
@@ -648,46 +646,6 @@ export default function SettingsPage() {
                     <Toggle disabled={!hasProAutomation} on={!!prefs[item.key]} onChange={() => togglePref(item.key)} />
                   </div>
                 ))}
-              </div>
-
-              {/* Asaas — pagamento via link */}
-              <div className="card space-y-4">
-                <div>
-                  <h2 className="section-title mb-0.5">Pagamento por link (Asaas)</h2>
-                  <p className="text-xs text-neutral-400">
-                    Permite gerar links de cobrança que o paciente paga via{' '}
-                    <strong>cartão de crédito, PIX ou boleto</strong>.{' '}
-                    Precisa de uma conta gratuita em{' '}
-                    <a href="https://www.asaas.com" target="_blank" rel="noreferrer"
-                      className="text-sage-600 underline underline-offset-2 hover:no-underline">
-                      asaas.com
-                    </a>.
-                  </p>
-                </div>
-                <div>
-                  <label className="label">Chave API Asaas</label>
-                  <input
-                    type="password"
-                    value={prefs.asaasApiKey ?? ''}
-                    onChange={e => setPref('asaasApiKey', e.target.value)}
-                    disabled={!hasProAutomation}
-                    className="input-field"
-                    placeholder={prefs.asaasApiKeyConfigured ? 'Chave configurada - informe uma nova para trocar' : '$aact_…'}
-                    autoComplete="off"
-                  />
-                  <p className="text-xs text-neutral-400 mt-1.5">
-                    {prefs.asaasApiKeyConfigured
-                      ? 'A chave salva fica protegida no servidor e nao e exibida novamente.'
-                      : 'Encontre em: Asaas → Configurações → Integrações → Chave API'}
-                  </p>
-                </div>
-                <div className="flex justify-end">
-                  <button onClick={() => savePrefs('Pagamentos')} disabled={savingPrefs || !hasProAutomation}
-                    className="btn-primary text-sm flex items-center gap-2">
-                    {savingPrefs && <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                    Salvar chave
-                  </button>
-                </div>
               </div>
 
               <div className="card space-y-4">

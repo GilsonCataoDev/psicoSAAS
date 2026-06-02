@@ -68,8 +68,14 @@ export class FinancialService {
   async sendChargeMessage(id: string, psychologistId: string): Promise<{ message: string }> {
     const record = await this.findOne(id, psychologistId)
     const user = await this.users.findOneBy({ id: psychologistId })
-    const pixKey = (user?.preferences as any)?.pixKey ?? undefined
-    await this.notifications.sendPaymentRequest(record.patient, Number(record.amount), pixKey)
+    const prefs = (user?.preferences ?? {}) as Record<string, any>
+    await this.notifications.sendPaymentRequest(
+      record.patient,
+      Number(record.amount),
+      prefs.pixKey,
+      prefs.chargeTemplate,
+      prefs.includeReceipt,
+    )
     return { message: 'Cobrança enviada via WhatsApp ✓' }
   }
 

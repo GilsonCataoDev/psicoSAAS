@@ -104,14 +104,36 @@ export class NotificationsService {
     await this.sendWhatsApp(patient.phone, msg, appointment.psychologistId)
   }
 
-  async sendPaymentRequest(patient: any, amount: number, pixKey?: string): Promise<void> {
+  async sendPaymentRequest(
+    patient: any,
+    amount: number,
+    pixKey?: string,
+    template?: string,
+    includeReceipt?: boolean,
+  ): Promise<void> {
+    if (!patient?.phone) return
+    const firstName = patient.name.split(' ')[0]
+    const receiptLine = includeReceipt ? 'Depois do pagamento, por favor me envie o comprovante por aqui.\n\n' : ''
+    const defaultMessage =
+      `Ola, ${firstName}!\n\n` +
+      `Segue o valor da nossa sessao: *R$ ${amount.toFixed(2)}*.\n\n` +
+      (pixKey ? `PIX: \`${pixKey}\`\n\n` : '') +
+      receiptLine +
+      `Obrigada!`
+    const msg = template
+      ? this.renderPaymentTemplate(template, patient.name, amount, pixKey, includeReceipt)
+      : defaultMessage
+    await this.sendWhatsApp(patient.phone, msg, patient.psychologistId)
+  }
+
+  async sendLatePaymentReminder(patient: any, amount: number, pixKey?: string): Promise<void> {
     if (!patient?.phone) return
     const firstName = patient.name.split(' ')[0]
     const msg =
-      `Olá, ${firstName}! 💙\n\n` +
-      `O valor da nossa sessão é R$ ${amount.toFixed(2)}.\n\n` +
-      (pixKey ? `PIX: \`${pixKey}\`\n\n` : '') +
-      `Obrigada! 🌿`
+      `Ola, ${firstName}!\n\n` +
+      `Passando para lembrar do pagamento pendente da sessao (*R$ ${amount.toFixed(2)}*).\n\n` +
+      (pixKey ? `Chave PIX: \`${pixKey}\`\n\n` : '') +
+      `Qualquer duvida, e so me chamar.`
     await this.sendWhatsApp(patient.phone, msg, patient.psychologistId)
   }
 
@@ -193,5 +215,25 @@ export class NotificationsService {
       (pixKey ? `Chave PIX: \`${pixKey}\`\n\n` : '') +
       `Qualquer dúvida, é só falar. 🌿`
     await this.sendWhatsApp(booking.patientPhone, msg, booking.psychologistId)
+  }
+
+  private renderPaymentTemplate(
+    template: string,
+    patientName: string,
+    amount: number,
+    pixKey?: string,
+    includeReceipt?: boolean,
+  ): string {
+    const receiptMessage = includeReceipt ? 'Pode me enviar o comprovante por aqui depois do pagamento.' : ''
+    const rendered = template
+      .replaceAll('{{nome}}', patientName.split(' ')[0] || patientName)
+      .replaceAll('{{valor}}', `R$ ${amount.toFixed(2)}`)
+      .replaceAll('{{pix}}', pixKey ?? 'PIX nao configurado')
+      .replaceAll('{{comprovante}}', receiptMessage)
+
+    if (includeReceipt && !template.includes('{{comprovante}}')) {
+      return `${rendered}\n\n${receiptMessage}`
+    }
+    return rendered
   }
 }

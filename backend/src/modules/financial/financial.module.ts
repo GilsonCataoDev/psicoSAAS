@@ -7,6 +7,7 @@ import { NotificationsModule } from '../notifications/notifications.module'
 import { User } from '../auth/entities/user.entity'
 import { Patient } from '../patients/entities/patient.entity'
 import { Session } from '../sessions/entities/session.entity'
+import { PaymentReminderJob } from './payment-reminder.job'
 
 @Module({
   imports: [
@@ -14,7 +15,7 @@ import { Session } from '../sessions/entities/session.entity'
     NotificationsModule,
   ],
   controllers: [FinancialController, AsaasWebhookController],
-  providers: [FinancialService],
+  providers: [FinancialService, PaymentReminderJob],
   exports: [FinancialService],
 })
 export class FinancialModule {}

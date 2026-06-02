@@ -39,7 +39,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   private cleanPreferences(preferences: Record<string, unknown>): Record<string, unknown> {
     const safe = { ...preferences }
-    safe.asaasApiKeyConfigured = typeof preferences.asaasApiKey === 'string' && preferences.asaasApiKey.trim().length > 0
     delete safe.asaasApiKey
     delete safe.googleCalendarAccessToken
     delete safe.googleCalendarRefreshToken

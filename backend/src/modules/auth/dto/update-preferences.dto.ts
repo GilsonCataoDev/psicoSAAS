@@ -28,8 +28,4 @@ export class UpdatePreferencesDto {
   @IsOptional() @IsString() @MaxLength(20)  @Transform(({ value }) => value?.replace(/\D/g, '')) whatsapp?: string
   @IsOptional() @IsString() @MaxLength(500) confirmationTemplate?: string
   @IsOptional() @IsString() @MaxLength(500) reminderTemplate?: string
-
-  // ── Integrações ───────────────────────────────────────────────────────────
-  /** Chave API Asaas do próprio psicólogo — para geração de links de pagamento */
-  @IsOptional() @IsString() @MaxLength(200) @Transform(({ value }) => value?.trim()) asaasApiKey?: string
 }

@@ -108,7 +108,13 @@ export class SessionsService {
             const user  = await this.users.findOneBy({ id: psychologistId })
             const prefs = (user?.preferences ?? {}) as Record<string, any>
             if (prefs.autoCharge !== false) {
-              this.notifications.sendPaymentRequest(patient, amount, prefs.pixKey).catch(() => {})
+              this.notifications.sendPaymentRequest(
+                patient,
+                amount,
+                prefs.pixKey,
+                prefs.chargeTemplate,
+                prefs.includeReceipt,
+              ).catch(() => {})
             }
           }
         }
