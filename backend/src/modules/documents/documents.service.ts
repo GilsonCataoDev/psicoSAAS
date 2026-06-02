@@ -208,38 +208,75 @@ export class DocumentsService {
 
     const pageWidth = pdf.page.width
     const pageHeight = pdf.page.height
-    const left = 42
-    const right = pageWidth - 42
+    const left = 44
+    const right = pageWidth - 44
     const contentWidth = right - left
     const sage = '#2F7657'
-    const ink = '#2B2B29'
-    const muted = '#6F6F68'
-    const line = '#D9DED8'
+    const sageDark = '#245C45'
+    const sageSoft = '#EEF8F3'
+    const ink = '#252725'
+    const muted = '#6A6F69'
+    const line = '#D9E3DC'
+    const paper = '#FBFCFA'
+    const issuedAt = stored.signedAt.toLocaleDateString('pt-BR')
 
     const drawHeader = () => {
-      pdf.rect(0, 0, pageWidth, 68).fill('#F4F8F5')
-      pdf.fillColor(sage).font('Helvetica-Bold').fontSize(9).text('UseCognia', left, 20, { lineBreak: false })
-      pdf.fillColor(muted).font('Helvetica').fontSize(7)
-        .text(`${stored.psychologistName} | CRP ${stored.psychologistCrp}`, right - 210, 21, { width: 210, align: 'right', lineBreak: false })
-      pdf.fillColor(ink).font('Helvetica-Bold').fontSize(15)
-        .text(DOC_TYPE_LABELS[stored.type].toUpperCase(), left, 39, { width: contentWidth - 90, lineBreak: false })
-      pdf.strokeColor('#DCE8DF').lineWidth(1).moveTo(left, 68).lineTo(right, 68).stroke()
-      pdf.y = 88
+      pdf.rect(0, 0, pageWidth, pageHeight).fill(paper)
+      pdf.rect(0, 0, pageWidth, 14).fill(sageDark)
+      pdf.rect(0, 14, pageWidth, 74).fill('#F3F8F5')
+      pdf.fillColor(sageDark).font('Helvetica-Bold').fontSize(10)
+        .text('UseCognia', left, 30, { width: 120, lineBreak: false })
+      pdf.fillColor(muted).font('Helvetica').fontSize(6.8)
+        .text('Documento psicologico com verificacao digital', left, 45, { width: 230, lineBreak: false })
+
+      pdf.fillColor(ink).font('Helvetica-Bold').fontSize(16)
+        .text(DOC_TYPE_LABELS[stored.type].toUpperCase(), left, 62, { width: contentWidth - 160, lineBreak: false })
+
+      pdf.roundedRect(right - 138, 28, 138, 42, 8).fillAndStroke('#FFFFFF', '#DCE8DF')
+      pdf.fillColor(muted).font('Helvetica-Bold').fontSize(6.2)
+        .text('CODIGO DE VERIFICACAO', right - 126, 39, { width: 114, align: 'right', lineBreak: false })
+      pdf.fillColor(sageDark).font('Helvetica-Bold').fontSize(9)
+        .text(stored.signCode, right - 126, 51, { width: 114, align: 'right', lineBreak: false })
+
+      pdf.strokeColor(line).lineWidth(1).moveTo(left, 88).lineTo(right, 88).stroke()
+      pdf.y = 104
     }
 
     const drawFooter = (pageNumber: number, totalPages: number) => {
-      const footerY = pageHeight - 36
+      const footerY = pageHeight - 34
       pdf.strokeColor(line).lineWidth(1).moveTo(left, footerY).lineTo(right, footerY).stroke()
       pdf.fillColor(muted).font('Helvetica').fontSize(7)
-        .text(`Codigo: ${stored.signCode}`, left, footerY + 10, { width: 220, lineBreak: false })
-      pdf.text(`Pagina ${pageNumber} de ${totalPages}`, right - 90, footerY + 10, { width: 90, align: 'right', lineBreak: false })
+        .text(`UseCognia | Autenticidade verificavel em ${verificationUrl}`, left, footerY + 10, { width: contentWidth - 110, lineBreak: false })
+      pdf.text(`Pagina ${pageNumber} de ${totalPages}`, right - 86, footerY + 10, { width: 86, align: 'right', lineBreak: false })
     }
 
     pdf.on('pageAdded', drawHeader)
     drawHeader()
 
-    const contentTop = 88
-    const signatureY = 598
+    const metaTop = 106
+    pdf.roundedRect(left, metaTop, contentWidth, 54, 8).fillAndStroke('#FFFFFF', '#E2E9E4')
+    pdf.fillColor(muted).font('Helvetica-Bold').fontSize(6.4)
+      .text('PROFISSIONAL', left + 14, metaTop + 12, { width: 110, lineBreak: false })
+    pdf.fillColor(ink).font('Helvetica-Bold').fontSize(8.4)
+      .text(stored.psychologistName, left + 14, metaTop + 24, { width: 185, lineBreak: false })
+    pdf.fillColor(muted).font('Helvetica').fontSize(7)
+      .text(`CRP ${stored.psychologistCrp}`, left + 14, metaTop + 37, { width: 185, lineBreak: false })
+
+    pdf.strokeColor('#EDF1EE').lineWidth(1).moveTo(left + 210, metaTop + 10).lineTo(left + 210, metaTop + 44).stroke()
+    pdf.fillColor(muted).font('Helvetica-Bold').fontSize(6.4)
+      .text('PESSOA ATENDIDA', left + 226, metaTop + 12, { width: 110, lineBreak: false })
+    pdf.fillColor(ink).font('Helvetica-Bold').fontSize(8.4)
+      .text(stored.patientName, left + 226, metaTop + 25, { width: 170, lineBreak: false })
+
+    pdf.strokeColor('#EDF1EE').lineWidth(1).moveTo(right - 118, metaTop + 10).lineTo(right - 118, metaTop + 44).stroke()
+    pdf.fillColor(muted).font('Helvetica-Bold').fontSize(6.4)
+      .text('EMISSAO', right - 104, metaTop + 12, { width: 90, align: 'right', lineBreak: false })
+    pdf.fillColor(ink).font('Helvetica-Bold').fontSize(8.4)
+      .text(issuedAt, right - 104, metaTop + 25, { width: 90, align: 'right', lineBreak: false })
+
+    const contentTop = 184
+    const signatureY = 604
+    const textWidth = contentWidth - 32
     const maxContentHeight = signatureY - contentTop - 22
     let bodyFontSize = 9.6
     let lineGap = 2
@@ -247,7 +284,7 @@ export class DocumentsService {
     while (bodyFontSize > 5.8) {
       pdf.font('Helvetica').fontSize(bodyFontSize)
       const height = pdf.heightOfString(content, {
-        width: contentWidth,
+        width: textWidth,
         align: 'justify',
         lineGap,
       })
@@ -256,11 +293,12 @@ export class DocumentsService {
       lineGap = Math.max(0.6, lineGap - 0.18)
     }
 
-    const fittedContent = this.fitTextToHeight(pdf, content, contentWidth, maxContentHeight, bodyFontSize, lineGap)
+    const fittedContent = this.fitTextToHeight(pdf, content, textWidth, maxContentHeight, bodyFontSize, lineGap)
 
+    pdf.roundedRect(left, contentTop - 14, contentWidth, maxContentHeight + 28, 8).fillAndStroke('#FFFFFF', '#E4EAE6')
     pdf.fillColor(ink).font('Helvetica').fontSize(bodyFontSize)
-    pdf.text(fittedContent, left, contentTop, {
-      width: contentWidth,
+    pdf.text(fittedContent, left + 16, contentTop, {
+      width: textWidth,
       height: maxContentHeight,
       align: 'justify',
       lineGap,
@@ -268,32 +306,35 @@ export class DocumentsService {
       paragraphGap: 0,
     })
 
-    pdf.strokeColor('#8D928C').lineWidth(1).moveTo(left, signatureY).lineTo(left + 190, signatureY).stroke()
-    pdf.fillColor(ink).font('Helvetica-Bold').fontSize(8.5).text(stored.psychologistName, left, signatureY + 9, { width: 240, lineBreak: false })
-    pdf.fillColor(muted).font('Helvetica').fontSize(7.4).text(`Psicologo(a) - CRP ${stored.psychologistCrp}`, left, signatureY + 22, { width: 240, lineBreak: false })
-    pdf.text(`Assinado em ${stored.signedAt.toLocaleDateString('pt-BR')}`, left, signatureY + 34, { width: 240, lineBreak: false })
+    pdf.roundedRect(left, signatureY - 10, contentWidth, 76, 8).fillAndStroke('#FFFFFF', '#E2E9E4')
+    pdf.strokeColor('#8D928C').lineWidth(1).moveTo(left + 18, signatureY + 24).lineTo(left + 210, signatureY + 24).stroke()
+    pdf.fillColor(ink).font('Helvetica-Bold').fontSize(8.6)
+      .text(stored.psychologistName, left + 18, signatureY + 32, { width: 240, lineBreak: false })
+    pdf.fillColor(muted).font('Helvetica').fontSize(7.2)
+      .text(`Psicologo(a) - CRP ${stored.psychologistCrp}`, left + 18, signatureY + 45, { width: 240, lineBreak: false })
+      .text(`Assinado digitalmente em ${issuedAt}`, left + 18, signatureY + 57, { width: 240, lineBreak: false })
 
-    const qrX = right - 70
-    pdf.roundedRect(qrX - 6, signatureY - 8, 76, 88, 6).strokeColor('#D6DDD8').stroke()
-    pdf.image(qrBuffer, qrX, signatureY - 2, { width: 62, height: 62 })
-    pdf.fillColor(muted).font('Helvetica').fontSize(6.2)
-      .text('Verificar autenticidade', qrX - 5, signatureY + 62, { width: 72, align: 'center', lineBreak: false })
+    const qrX = right - 80
+    pdf.roundedRect(qrX - 9, signatureY - 1, 86, 86, 7).fillAndStroke('#FFFFFF', '#D6DDD8')
+    pdf.image(qrBuffer, qrX, signatureY + 7, { width: 68, height: 68 })
+    pdf.fillColor(muted).font('Helvetica').fontSize(6)
+      .text('Verificar', qrX - 5, signatureY + 73, { width: 78, align: 'center', lineBreak: false })
 
     const boxY = 698
-    pdf.roundedRect(left, boxY, contentWidth, 44, 8).fillAndStroke('#EEF8F3', '#CFE5D9')
-    pdf.fillColor(sage).font('Helvetica-Bold').fontSize(8)
-      .text('Documento com autenticidade verificavel', left + 12, boxY + 9, { width: 220, lineBreak: false })
+    pdf.roundedRect(left, boxY, contentWidth, 46, 8).fillAndStroke(sageSoft, '#CFE5D9')
+    pdf.fillColor(sageDark).font('Helvetica-Bold').fontSize(8.2)
+      .text('Documento com autenticidade verificavel', left + 14, boxY + 10, { width: 220, lineBreak: false })
     pdf.fillColor(sage).font('Helvetica').fontSize(7)
-      .text(`Codigo: ${stored.signCode}`, left + 12, boxY + 23, { width: 180, lineBreak: false })
-      .text(`Hash: ${stored.signHash.slice(0, 16).toUpperCase()} | HMAC-SHA256`, left + 180, boxY + 23, { width: 220, lineBreak: false })
+      .text(`Codigo: ${stored.signCode}`, left + 14, boxY + 25, { width: 170, lineBreak: false })
+      .text(`Hash: ${stored.signHash.slice(0, 16).toUpperCase()} | HMAC-SHA256`, left + 174, boxY + 25, { width: 225, lineBreak: false })
     pdf.fillColor(muted).font('Helvetica').fontSize(5.8)
-      .text(verificationUrl, right - 160, boxY + 14, { width: 148, align: 'right', lineBreak: false })
+      .text(verificationUrl, right - 166, boxY + 15, { width: 152, align: 'right', lineBreak: false })
 
-    pdf.fillColor('#777B76').font('Helvetica').fontSize(6.8)
+    pdf.fillColor('#777B76').font('Helvetica').fontSize(6.6)
       .text(
         'A verificacao confirma que o documento registrado na plataforma nao foi alterado desde a emissao.',
         left,
-        752,
+        758,
         { width: contentWidth, align: 'center', lineGap: 0, lineBreak: false },
       )
 
