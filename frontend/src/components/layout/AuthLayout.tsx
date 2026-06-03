@@ -10,7 +10,7 @@ export default function AuthLayout() {
 
         <div className="space-y-6">
           <h1 className="text-white font-display text-5xl font-bold leading-tight tracking-tight">
-            Gestao inteligente para profissionais da mente.
+            Gestao inteligente para profissionais da saude mental.
           </h1>
           <p className="text-white/80 text-lg leading-relaxed max-w-lg">
             Tecnologia, organizacao e cuidado em uma experiencia premium para consultorios de saude mental.
