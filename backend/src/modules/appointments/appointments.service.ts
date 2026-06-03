@@ -89,18 +89,24 @@ export class AppointmentsService {
   }
 
   async updateGroup(recurringGroupId: string, fromDate: string, dto: UpdateGroupDto, psychologistId: string) {
-    const all = await this.repo.find({ where: { recurringGroupId, psychologistId } })
+    const all = await this.repo.find({ where: { recurringGroupId, psychologistId }, relations: ['patient'] })
     if (!all.length) throw new NotFoundException()
     const toUpdate = all.filter(a => a.date >= fromDate)
     for (const appt of toUpdate) Object.assign(appt, dto)
-    await this.repo.save(toUpdate)
+    const saved = await this.repo.save(toUpdate)
+    for (const appt of saved) {
+      this.googleCalendar.syncAppointment(appt).catch(console.error)
+    }
     return { updated: toUpdate.length }
   }
 
   async removeGroup(recurringGroupId: string, fromDate: string, psychologistId: string) {
-    const all = await this.repo.find({ where: { recurringGroupId, psychologistId } })
+    const all = await this.repo.find({ where: { recurringGroupId, psychologistId }, relations: ['patient'] })
     if (!all.length) throw new NotFoundException()
     const toRemove = all.filter(a => a.date >= fromDate)
+    for (const appt of toRemove) {
+      this.googleCalendar.deleteAppointment(appt).catch(console.error)
+    }
     await this.repo.remove(toRemove)
     return { removed: toRemove.length }
   }

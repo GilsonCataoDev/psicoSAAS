@@ -319,6 +319,7 @@ export class BookingService {
     booking.cancelledAt = new Date()
     booking.cancellationReason = reason
     await this.bookings.save(booking)
+    await this.cancelLinkedAppointment(booking)
 
     return { message: 'Sessão cancelada. Esperamos te ver em breve 🌿' }
   }
@@ -343,7 +344,8 @@ export class BookingService {
     booking.confirmedAt = new Date()
     await this.bookings.save(booking)
 
-    await this.createSessionResources(booking, psychologistId)
+    const appointment = await this.createSessionResources(booking, psychologistId)
+    if (appointment) this.googleCalendar.syncAppointment(appointment).catch(console.error)
 
     await this.notifications.sendBookingConfirmation(booking)
     return booking
@@ -354,7 +356,9 @@ export class BookingService {
     booking.status = 'cancelled'
     booking.cancelledAt = new Date()
     booking.cancellationReason = reason
-    return this.bookings.save(booking)
+    const saved = await this.bookings.save(booking)
+    await this.cancelLinkedAppointment(saved)
+    return saved
   }
 
   async markPaid(id: string, psychologistId: string, method: string) {
@@ -483,7 +487,8 @@ export class BookingService {
     let created = 0
     for (const booking of confirmed) {
       if (booking.appointmentId) continue   // já processado
-      await this.createSessionResources(booking, psychologistId)
+      const appointment = await this.createSessionResources(booking, psychologistId)
+      if (appointment) this.googleCalendar.syncAppointment(appointment).catch(console.error)
       created++
     }
 
@@ -566,6 +571,19 @@ export class BookingService {
 
   private normalizeTime(time: string) {
     return time.slice(0, 5)
+  }
+
+  private async cancelLinkedAppointment(booking: Booking): Promise<void> {
+    if (!booking.appointmentId) return
+    const appointment = await this.appointments.findOne({
+      where: { id: booking.appointmentId },
+      relations: ['patient'],
+    })
+    if (!appointment) return
+
+    appointment.status = 'cancelled'
+    await this.appointments.save(appointment)
+    this.googleCalendar.deleteAppointment(appointment).catch(console.error)
   }
 
   private toCalendarBooking(booking: Booking) {
