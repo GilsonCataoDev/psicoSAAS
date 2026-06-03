@@ -1572,7 +1572,8 @@ function InstrumentModal({
 }) {
   if (!instrument) return null
 
-  const lines = instrument.template.split('\n')
+  const inst = instrument   // narrowed local — TypeScript carries this into closures
+  const lines = inst.template.split('\n')
   const fieldCount = lines.filter(l => l.trim().endsWith(':')).length
 
   function escHtml(v: string) {
@@ -1605,9 +1606,9 @@ function InstrumentModal({
       return `<p style="font-size:9px;color:#9ca3af;font-style:italic;margin:2px 0">${escHtml(line)}</p>`
     }).join('')
 
-    const catLabel = CAT_LABEL[instrument.category]
+    const catLabel = CAT_LABEL[inst.category]
 
-    win.document.write(`<!doctype html><html><head><title>${escHtml(instrument.title)}</title>
+    win.document.write(`<!doctype html><html><head><title>${escHtml(inst.title)}</title>
 <style>
 @page{size:A4;margin:16mm 14mm}
 *{box-sizing:border-box}
@@ -1617,8 +1618,8 @@ html,body{width:210mm;min-height:297mm;margin:0;background:#fff;font-family:Aria
 </style>
 </head><body><div>
 <div class="header">
-  <p style="font-size:14px;font-weight:700;margin:0 0 2px">${escHtml(instrument.title)}</p>
-  <p style="font-size:9.5px;color:#6b7280;margin:0 0 4px">${escHtml(instrument.description)}</p>
+  <p style="font-size:14px;font-weight:700;margin:0 0 2px">${escHtml(inst.title)}</p>
+  <p style="font-size:9.5px;color:#6b7280;margin:0 0 4px">${escHtml(inst.description)}</p>
   <span class="badge">${escHtml(catLabel)}</span>
   <span class="badge" style="margin-left:4px">${fieldCount} campos</span>
   <span class="badge" style="margin-left:4px">Profissional: ___________________________ | CRP: ____________ | Data: ____/____/____</span>
