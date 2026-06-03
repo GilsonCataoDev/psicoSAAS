@@ -152,32 +152,32 @@
 
   /* Gradiente de hero do dashboard */
   .hero-gradient {
-    background: linear-gradient(135deg, #24166f 0%, #5B3EFF 58%, #4DA8DA 100%);
+    background: linear-gradient(135deg, #1d352d 0%, #2f7657 56%, #4DA8DA 100%);
   }
 
   .cognia-surface {
     background:
-      radial-gradient(circle at 18% 12%, rgba(91, 62, 255, 0.10), transparent 32%),
-      radial-gradient(circle at 82% 0%, rgba(77, 168, 218, 0.14), transparent 30%),
-      #F5F7FA;
+      radial-gradient(circle at 18% 12%, rgba(47, 118, 87, 0.10), transparent 32%),
+      radial-gradient(circle at 82% 0%, rgba(77, 168, 218, 0.10), transparent 30%),
+      #F7F8F5;
   }
 
   .dark .cognia-surface {
     background:
-      radial-gradient(circle at 18% 12%, rgba(91, 62, 255, 0.24), transparent 32%),
-      radial-gradient(circle at 82% 0%, rgba(77, 168, 218, 0.18), transparent 30%),
-      #0F1020;
+      radial-gradient(circle at 18% 12%, rgba(47, 118, 87, 0.22), transparent 32%),
+      radial-gradient(circle at 82% 0%, rgba(77, 168, 218, 0.14), transparent 30%),
+      #0E1324;
   }
 }
 
 @layer utilities {
-  .dark .bg-white { background-color: #17182d; }
-  .dark .bg-white\/90 { background-color: rgb(23 24 45 / 0.9); }
-  .dark .bg-white\/85 { background-color: rgb(23 24 45 / 0.85); }
-  .dark .bg-neutral-50 { background-color: #111225; }
+  .dark .bg-white { background-color: #17211d; }
+  .dark .bg-white\/90 { background-color: rgb(23 33 29 / 0.9); }
+  .dark .bg-white\/85 { background-color: rgb(23 33 29 / 0.85); }
+  .dark .bg-neutral-50 { background-color: #101713; }
   .dark .bg-neutral-100 { background-color: rgb(255 255 255 / 0.08); }
-  .dark .bg-sage-50 { background-color: rgb(91 62 255 / 0.14); }
-  .dark .bg-sage-100 { background-color: rgb(91 62 255 / 0.22); }
+  .dark .bg-sage-50 { background-color: rgb(47 118 87 / 0.14); }
+  .dark .bg-sage-100 { background-color: rgb(47 118 87 / 0.22); }
 
   .dark .border-neutral-50,
   .dark .border-neutral-100,
@@ -205,7 +205,7 @@
 
   .dark .text-sage-700,
   .dark .text-sage-600 {
-    color: #cfc4ff;
+    color: #b7dfcd;
   }
 
   .dark .shadow-card,
