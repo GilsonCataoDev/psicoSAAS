@@ -10,6 +10,7 @@ import {
   FileCheck2,
   FileText,
   LayoutDashboard,
+  Library,
   Link2,
   LockKeyhole,
   LogIn,
@@ -42,6 +43,7 @@ export type UseCogniaIconName =
   | 'plan-essential'
   | 'plan-professional'
   | 'automated-messages'
+  | 'instruments'
   | 'billing'
   | 'payment-methods'
   | 'security-lgpd'
@@ -74,6 +76,7 @@ const ICONS: Record<UseCogniaIconName, LucideIcon> = {
   'plan-essential': FileCheck2,
   'plan-professional': Sparkles,
   'automated-messages': MessageCircle,
+  instruments: Library,
   billing: CreditCard,
   'payment-methods': CreditCard,
   'security-lgpd': ShieldCheck,

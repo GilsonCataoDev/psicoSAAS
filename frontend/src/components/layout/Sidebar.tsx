@@ -12,8 +12,9 @@ const navItems: Array<{ to: string; icon: UseCogniaIconName; label: string }> = 
   { to: '/agenda',        icon: 'calendar',    label: 'Agenda'       },
   { to: '/agendamentos',  icon: 'public-link', label: 'Link público' },
   { to: '/sessoes',       icon: 'sessions',    label: 'Sessões'      },
-  { to: '/documentos',    icon: 'documents',   label: 'Documentos'   },
-  { to: '/financeiro',    icon: 'financial',   label: 'Financeiro'   },
+  { to: '/documentos',    icon: 'documents',    label: 'Documentos'   },
+  { to: '/instrumentos',  icon: 'instruments',  label: 'Instrumentos' },
+  { to: '/financeiro',    icon: 'financial',    label: 'Financeiro'   },
   { to: '/configuracoes', icon: 'settings',    label: 'Ajustes'      },
 ]
 
