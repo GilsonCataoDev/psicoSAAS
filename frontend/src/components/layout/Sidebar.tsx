@@ -6,14 +6,14 @@ import { getInitials, cn } from '@/lib/utils'
 import BrandLogo from '@/components/ui/BrandLogo'
 import UseCogniaIcon, { UseCogniaIconName } from '@/components/ui/UseCogniaIcon'
 
-const navItems: Array<{ to: string; icon: UseCogniaIconName; label: string }> = [
+const navItems: Array<{ to: string; icon: UseCogniaIconName; label: string; proOnly?: boolean }> = [
   { to: '/',              icon: 'dashboard',   label: 'Inicio'       },
   { to: '/pacientes',     icon: 'patients',    label: 'Pacientes'    },
   { to: '/agenda',        icon: 'calendar',    label: 'Agenda'       },
   { to: '/agendamentos',  icon: 'public-link', label: 'Link público' },
   { to: '/sessoes',       icon: 'sessions',    label: 'Sessões'      },
   { to: '/documentos',    icon: 'documents',    label: 'Documentos'   },
-  { to: '/instrumentos',  icon: 'instruments',  label: 'Instrumentos' },
+  { to: '/instrumentos',  icon: 'instruments',  label: 'Instrumentos', proOnly: true },
   { to: '/financeiro',    icon: 'financial',    label: 'Financeiro'   },
   { to: '/configuracoes', icon: 'settings',    label: 'Ajustes'      },
 ]
@@ -27,6 +27,7 @@ export default function Sidebar() {
   const { subscription } = useSubscriptionStore()
 
   const currentPlan = PLANS.find(p => p.id === subscription.planId)
+  const isPro = String(subscription.planId ?? subscription.plan ?? 'free') === 'pro'
   const isTrialing = subscription.status === 'trialing'
   const daysLeft = subscription.trialEndsAt
     ? Math.max(0, Math.ceil((new Date(subscription.trialEndsAt).getTime() - Date.now()) / 86400000))
@@ -39,7 +40,7 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
-        {navItems.map(({ to, icon, label }) => (
+        {navItems.filter(item => !item.proOnly || isPro).map(({ to, icon, label }) => (
           <NavLink key={to} to={to} end={to === '/'}>
             {({ isActive }) => (
               <div className={cn(

@@ -58,6 +58,17 @@ function SubscriptionRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function ProOnlyRoute({ children }: { children: React.ReactNode }) {
+  const subscription = useSubscriptionStore((s) => s.subscription)
+  const isLoaded = useSubscriptionStore((s) => s.isLoaded)
+  const plan = String(subscription.planId ?? subscription.plan ?? 'free')
+
+  if (!isLoaded) return null
+  if (plan !== 'pro') return <Navigate to="/planos" replace />
+
+  return <>{children}</>
+}
+
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   return isAuthenticated ? <Navigate to="/" replace /> : <>{children}</>
@@ -106,7 +117,7 @@ export default function App() {
           <Route path="sessoes" element={<SessionsPage />} />
           <Route path="financeiro" element={<FinancialPage />} />
           <Route path="configuracoes" element={<SettingsPage />} />
-          <Route path="instrumentos" element={<InstrumentosPage />} />
+          <Route path="instrumentos" element={<ProOnlyRoute><InstrumentosPage /></ProOnlyRoute>} />
           <Route path="planos" element={<PricingPage />} />
         </Route>
 

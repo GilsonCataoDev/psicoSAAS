@@ -4,7 +4,7 @@ import {
   ClipboardList, Baby, Target, FileSignature, MessageSquare,
   HeartPulse, Activity, BarChart3, ShieldAlert,
   PenLine, Smile, Moon, Gauge, Compass, Users, Brain,
-  AlertCircle, Globe, Sun, ListChecks, Zap, TrendingUp, Award, Flame, Clock,
+  AlertCircle, Globe, Sun, ListChecks, Zap, TrendingUp, Award, Flame,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import Modal from '@/components/ui/Modal'

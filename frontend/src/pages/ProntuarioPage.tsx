@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Lock, Save, Printer, FileText } from 'lucide-react'
-import { usePatient, useUpdatePatient, useSessions, useCreateSession } from '@/hooks/useApi'
+import { ArrowLeft, Lock, Save, Printer, FileText, Pencil, X } from 'lucide-react'
+import { usePatient, useUpdatePatient, useSessions, useCreateSession, useUpdateSession } from '@/hooks/useApi'
 import { TAG_LABELS } from '@/types'
 import { Prontuario } from '@/types/prontuario'
 import { formatDate } from '@/lib/utils'
@@ -49,9 +49,13 @@ export default function ProntuarioPage() {
   const { data: patient } = usePatient(id ?? '')
   const { data: sessions = [] } = useSessions({ patientId: id })
   const createSession = useCreateSession()
+  const updateSession = useUpdateSession()
   const updatePatient = useUpdatePatient()
   const [evolText, setEvolText] = useState('')
   const [evolDate, setEvolDate] = useState(new Date().toISOString().split('T')[0])
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null)
+  const [editEvolDate, setEditEvolDate] = useState('')
+  const [editEvolText, setEditEvolText] = useState('')
   const [tab, setTab] = useState<Tab>('identificacao')
   const [form, setForm] = useState<Partial<Prontuario>>({})
 
@@ -64,6 +68,39 @@ export default function ProntuarioPage() {
 
   function set(field: keyof Prontuario, value: string) {
     setForm(f => ({ ...f, [field]: value }))
+  }
+
+  function toDateInputValue(date: string) {
+    return date?.slice(0, 10) ?? ''
+  }
+
+  function startEditingSession(sessionId: string, date: string, summary?: string) {
+    setEditingSessionId(sessionId)
+    setEditEvolDate(toDateInputValue(date))
+    setEditEvolText(summary ?? '')
+  }
+
+  function cancelEditingSession() {
+    setEditingSessionId(null)
+    setEditEvolDate('')
+    setEditEvolText('')
+  }
+
+  async function saveEditedSession() {
+    if (!editingSessionId || !editEvolDate || !editEvolText.trim()) return
+    try {
+      await updateSession.mutateAsync({
+        id: editingSessionId,
+        data: {
+          date: editEvolDate,
+          summary: editEvolText.trim(),
+        },
+      })
+      cancelEditingSession()
+      toast.success('Evolucao atualizada')
+    } catch {
+      toast.error('Erro ao atualizar evolucao.')
+    }
   }
 
   async function save() {
@@ -295,7 +332,7 @@ export default function ProntuarioPage() {
                     await createSession.mutateAsync({
                       patientId: id,
                       date: evolDate,
-                      summary: evolText,
+                      summary: evolText.trim(),
                       duration: patient?.sessionDuration ?? 50,
                       paymentStatus: 'waived',
                     } as any)
@@ -317,9 +354,63 @@ export default function ProntuarioPage() {
                 <span className="text-xs font-semibold text-sage-700 bg-sage-50 px-2 py-0.5 rounded-lg">
                   Sessão {sessions.length - i}
                 </span>
-                <span className="text-xs text-neutral-400">{formatDate(s.date)}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-neutral-400">{formatDate(s.date)}</span>
+                  {editingSessionId === s.id ? (
+                    <button
+                      type="button"
+                      onClick={cancelEditingSession}
+                      className="rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
+                      title="Cancelar edicao">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => startEditingSession(s.id, s.date, s.summary)}
+                      className="rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
+                      title="Editar evolucao">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
-              {s.summary
+              {editingSessionId === s.id ? (
+                <div className="space-y-3">
+                  <div>
+                    <label className="label">Data da evolucao</label>
+                    <input
+                      type="date"
+                      value={editEvolDate}
+                      onChange={e => setEditEvolDate(e.target.value)}
+                      className="input-field text-sm" />
+                  </div>
+                  <div>
+                    <label className="label">Descricao da sessao</label>
+                    <textarea
+                      rows={5}
+                      value={editEvolText}
+                      onChange={e => setEditEvolText(e.target.value)}
+                      className="input-field resize-none text-sm"
+                      placeholder="Atualize a evolucao clinica desta sessao..." />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={cancelEditingSession}
+                      className="btn-secondary text-sm">
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={saveEditedSession}
+                      disabled={updateSession.isPending || !editEvolDate || !editEvolText.trim()}
+                      className="btn-primary text-sm flex items-center gap-2">
+                      <Save className="h-3.5 w-3.5" />{updateSession.isPending ? 'Salvando...' : 'Salvar alteracao'}
+                    </button>
+                  </div>
+                </div>
+              ) : s.summary
                 ? <p className="text-sm text-neutral-600 leading-relaxed">{s.summary}</p>
                 : <p className="text-sm text-neutral-400 italic">Sem anotações registradas.</p>
               }

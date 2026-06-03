@@ -64,6 +64,7 @@ const DEFAULT_PREFS = {
 
 export default function SettingsPage() {
   const user = useAuthStore(s => s.user)
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated)
   const updateUser = useAuthStore(s => s.updateUser)
   const logout = useAuthStore(s => s.logout)
   const [searchParams, setSearchParams] = useSearchParams()
@@ -108,18 +109,18 @@ export default function SettingsPage() {
   const [googleLastSyncError, setGoogleLastSyncError] = useState<string | null>(null)
 
   useEffect(() => {
-    Promise.allSettled([
-      api.get('/auth/me'),
-      api.get('/google-calendar/status'),
-    ]).then(([meResult, calendarResult]) => {
-      if (meResult.status === 'fulfilled') {
-        const p = meResult.value.data?.preferences ?? {}
-        setPrefs(prev => ({ ...prev, ...p }))
-        setPhone(meResult.value.data?.phone ?? '')
-      }
+    const userPrefs = (user as any)?.preferences ?? {}
+    setPrefs(prev => ({ ...prev, ...userPrefs }))
+    setPhone(user?.phone ?? '')
 
-      if (calendarResult.status === 'fulfilled') {
-        const data = calendarResult.value.data
+    if (!isAuthenticated) {
+      setLoadingPrefs(false)
+      return
+    }
+
+    api.get('/google-calendar/status')
+      .then((res) => {
+        const data = res.data
         setGoogleCalendarAvailable(data.available !== false)
         setGoogleLastSyncedAt(data.lastSyncedAt ?? null)
         setGoogleLastSyncError(data.lastSyncError ?? null)
@@ -128,11 +129,20 @@ export default function SettingsPage() {
           googleCalendarConnected: !!data.connected,
           googleCalendarEmail: data.email ?? '',
         }))
-      } else {
-        setGoogleCalendarAvailable(false)
-      }
-    }).finally(() => setLoadingPrefs(false))
-  }, [])
+      })
+      .catch((err) => {
+        if (err?.response?.status !== 401) {
+          setGoogleCalendarAvailable(false)
+        }
+      })
+      .finally(() => setLoadingPrefs(false))
+  }, [isAuthenticated, user])
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setGoogleCalendarAvailable(false)
+    }
+  }, [isAuthenticated])
 
   useEffect(() => {
     if (searchParams.get('googleCalendar') === 'connected') {

@@ -162,6 +162,21 @@ export function useCreateSession() {
   })
 }
 
+export function useUpdateSession() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<Session> }) =>
+      api.patch(`/sessions/${id}`, data).then(r => r.data),
+    onSuccess: (session) => {
+      qc.invalidateQueries({ queryKey: ['sessions'] })
+      if (session?.patientId) qc.invalidateQueries({ queryKey: ['patients', session.patientId] })
+      qc.invalidateQueries({ queryKey: ['appointments'] })
+      qc.invalidateQueries({ queryKey: ['financial'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+}
+
 export function useDeleteSession() {
   const qc = useQueryClient()
   return useMutation({
