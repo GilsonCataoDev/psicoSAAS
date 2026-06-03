@@ -9,6 +9,7 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
+import { useCreateInstrumentAssignment, usePatients } from '@/hooks/useApi'
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -1566,9 +1567,11 @@ function renderLine(line: string, idx: number) {
 function InstrumentModal({
   instrument,
   onClose,
+  onSend,
 }: {
   instrument: Instrument | null
   onClose: () => void
+  onSend: (instrument: Instrument) => void
 }) {
   if (!instrument) return null
 
@@ -1676,6 +1679,10 @@ ${rows}
           </p>
           <div className="flex gap-3">
             <button type="button" onClick={onClose} className="btn-secondary text-sm">Fechar</button>
+            <button type="button" onClick={() => onSend(inst)} className="btn-secondary text-sm flex items-center gap-2">
+              <MessageSquare className="w-4 h-4" />
+              Enviar formulario
+            </button>
             <button type="button" onClick={printInstrument} className="btn-primary text-sm flex items-center gap-2">
               <Download className="w-4 h-4" />
               Imprimir / PDF
@@ -1755,11 +1762,102 @@ const ALL_AGES: Array<{ value: AgeGroup | 'all'; label: string }> = [
   { value: 'adulto',      label: 'Adulto' },
 ]
 
+function SendInstrumentModal({
+  instrument,
+  onClose,
+}: {
+  instrument: Instrument | null
+  onClose: () => void
+}) {
+  const { data: patients = [] } = usePatients()
+  const createAssignment = useCreateInstrumentAssignment()
+  const [patientId, setPatientId] = useState('')
+  const [sendWhatsApp, setSendWhatsApp] = useState(true)
+  const selectedPatient = patients.find(p => p.id === patientId)
+  const shouldSendWhatsApp = sendWhatsApp && !!selectedPatient?.phone
+
+  async function send() {
+    if (!instrument || !patientId) return
+    try {
+      const result = await createAssignment.mutateAsync({
+        patientId,
+        instrumentId: instrument.id,
+        title: instrument.title,
+        description: instrument.description,
+        category: instrument.category,
+        template: instrument.template,
+        sendWhatsApp: shouldSendWhatsApp,
+      })
+      if (!shouldSendWhatsApp && result.url) {
+        await navigator.clipboard.writeText(result.url)
+        toast.success('Link copiado')
+      } else {
+        toast.success('Formulario enviado')
+      }
+      onClose()
+    } catch {
+      toast.error('Nao foi possivel enviar o formulario.')
+    }
+  }
+
+  return (
+    <Modal open={!!instrument} onClose={onClose} title="Enviar formulario" size="md">
+      <div className="space-y-4">
+        <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
+          <p className="text-sm font-semibold text-neutral-800">{instrument?.title}</p>
+          <p className="mt-1 text-xs leading-relaxed text-neutral-500">{instrument?.description}</p>
+        </div>
+
+        <label className="block">
+          <span className="label">Paciente</span>
+          <select value={patientId} onChange={e => setPatientId(e.target.value)} className="input-field">
+            <option value="">Selecione um paciente</option>
+            {patients.map(patient => (
+              <option key={patient.id} value={patient.id}>
+                {patient.name}{patient.phone ? ` - ${patient.phone}` : ''}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex items-start gap-3 rounded-2xl border border-neutral-100 bg-white p-4">
+          <input
+            type="checkbox"
+            checked={sendWhatsApp}
+            onChange={e => setSendWhatsApp(e.target.checked)}
+            disabled={!selectedPatient?.phone}
+            className="mt-1"
+          />
+          <span>
+            <span className="block text-sm font-medium text-neutral-700">Enviar direto pelo WhatsApp</span>
+            <span className="mt-0.5 block text-xs text-neutral-400">
+              {selectedPatient?.phone ? 'O paciente recebe o link seguro automaticamente.' : 'Paciente sem telefone cadastrado; o link sera copiado.'}
+            </span>
+          </span>
+        </label>
+
+        <div className="flex justify-end gap-3">
+          <button type="button" onClick={onClose} className="btn-secondary text-sm">Cancelar</button>
+          <button
+            type="button"
+            onClick={send}
+            disabled={!patientId || createAssignment.isPending}
+            className="btn-primary text-sm"
+          >
+            {createAssignment.isPending ? 'Enviando...' : shouldSendWhatsApp ? 'Enviar' : 'Gerar link'}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 export default function InstrumentosPage() {
   const [search, setSearch] = useState('')
   const [catFilter, setCatFilter] = useState<InstrumentCategory | 'all'>('all')
   const [ageFilter, setAgeFilter] = useState<AgeGroup | 'all'>('all')
   const [selected, setSelected] = useState<Instrument | null>(null)
+  const [sendingInstrument, setSendingInstrument] = useState<Instrument | null>(null)
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim()
@@ -1875,7 +1973,15 @@ export default function InstrumentosPage() {
         . As escalas de rastreio aqui listadas são de uso clínico livre e não substituem avaliação psicológica formal.
       </p>
 
-      <InstrumentModal instrument={selected} onClose={() => setSelected(null)} />
+      <InstrumentModal
+        instrument={selected}
+        onClose={() => setSelected(null)}
+        onSend={(instrument) => {
+          setSelected(null)
+          setSendingInstrument(instrument)
+        }}
+      />
+      <SendInstrumentModal instrument={sendingInstrument} onClose={() => setSendingInstrument(null)} />
     </div>
   )
 }

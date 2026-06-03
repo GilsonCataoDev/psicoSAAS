@@ -85,6 +85,10 @@ export class NotificationsService {
 
   // ─── Agendamentos internos ─────────────────────────────────────────────────
 
+  async sendDirectWhatsApp(phone: string, text: string, ownerId?: string | null): Promise<void> {
+    await this.sendWhatsApp(phone, text, ownerId)
+  }
+
   async scheduleReminder(appointment: any): Promise<void> {
     if (!appointment.patient?.phone) return
     const { patient, date, time } = appointment

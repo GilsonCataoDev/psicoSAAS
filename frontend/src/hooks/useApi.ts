@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api } from '@/lib/api'
+import { api, type AuthAxiosRequestConfig } from '@/lib/api'
 import { Patient, Appointment, Session, FinancialRecord } from '@/types'
 import { Documento } from '@/types/prontuario'
 
@@ -384,6 +384,40 @@ export function usePublicBookingDates(slug: string, month: string, modality?: st
 export function useCreateBooking(slug: string) {
   return useMutation({
     mutationFn: (data: any) => api.post(`/public/booking/${slug}`, data).then(r => r.data),
+  })
+}
+
+// ─── Instrument assignments ────────────────────────────────────────────────
+
+export function useCreateInstrumentAssignment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: {
+      patientId: string
+      instrumentId: string
+      title: string
+      description?: string
+      category: string
+      template: string
+      sendWhatsApp?: boolean
+    }) => api.post('/instrument-assignments', data).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['instrument-assignments'] }),
+  })
+}
+
+export function usePublicInstrument(token: string | undefined) {
+  return useQuery<any>({
+    queryKey: ['public-instrument', token],
+    queryFn: () => api.get(`/public/instruments/${token}`, { skipAuthRedirect: true } as AuthAxiosRequestConfig).then(r => r.data),
+    enabled: !!token,
+    retry: false,
+  })
+}
+
+export function useSubmitPublicInstrument(token: string | undefined) {
+  return useMutation({
+    mutationFn: (answers: Record<string, string>) =>
+      api.post(`/public/instruments/${token}`, { answers }, { skipAuthRedirect: true } as AuthAxiosRequestConfig).then(r => r.data),
   })
 }
 

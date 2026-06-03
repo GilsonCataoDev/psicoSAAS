@@ -32,6 +32,7 @@ const InstrumentosPage    = lazy(() => import('@/pages/InstrumentosPage'))
 const BookingPage         = lazy(() => import('@/pages/public/BookingPage'))
 const BookingConfirmPage  = lazy(() => import('@/pages/public/BookingConfirmPage'))
 const VerifyDocumentPage  = lazy(() => import('@/pages/public/VerifyDocumentPage'))
+const InstrumentResponsePage = lazy(() => import('@/pages/public/InstrumentResponsePage'))
 
 function PageLoader() {
   return (
@@ -99,6 +100,7 @@ export default function App() {
         {/* ── Páginas públicas (sem auth, sem layout interno) ── */}
         <Route path="/agendar/:slug" element={<BookingPage />} />
         <Route path="/agendar/:action/:token" element={<BookingConfirmPage />} />
+        <Route path="/instrumentos/responder/:token" element={<InstrumentResponsePage />} />
         <Route path="/verificar/:code" element={<VerifyDocumentPage />} />
 
         {/* ── App interno (autenticado) ────────────────────────────── */}
