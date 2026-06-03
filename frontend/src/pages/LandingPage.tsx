@@ -179,7 +179,7 @@ export default function LandingPage() {
           <nav className="hidden items-center gap-6 text-sm font-medium text-[#5F5A51] md:flex">
             <a href="#produto" className="hover:text-sage-700">Produto</a>
             <a href="#pro" className="hover:text-sage-700">Plano Pro</a>
-            <a href="#faq" className="hover:text-sage-700">Dúvidas</a>
+            <button onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-sage-700">Dúvidas</button>
             <Link to="/privacidade" className="hover:text-sage-700">LGPD</Link>
           </nav>
           <div className="flex items-center gap-2">
