@@ -68,19 +68,43 @@ const proItems = [
 const faqs = [
   {
     question: 'Preciso configurar tudo antes de usar?',
-    answer: 'Não. A ideia é começar pelo básico: agenda, pacientes e documentos. As automações podem ser ativadas aos poucos.',
+    answer: 'Não. Você começa pelo que precisar — agenda, pacientes ou documentos. Cada funcionalidade pode ser ativada no seu próprio tempo, sem obrigar uma configuração completa.',
   },
   {
-    question: 'Os documentos têm verificação?',
-    answer: 'Sim. Cada PDF assinado recebe código único, hash e link público de validação para conferir autenticidade.',
+    question: 'Serve para psicólogo que atende sozinho?',
+    answer: 'Sim, e é exatamente para esse perfil que a plataforma foi pensada. Consultório individual que precisa de organização profissional sem estrutura de clínica grande.',
   },
   {
-    question: 'Serve para psicólogo solo?',
-    answer: 'Sim. A UseCognia foi pensada para consultórios individuais que precisam parecer organizados sem montar uma operação grande.',
+    question: 'Meus dados e os dos meus pacientes ficam seguros?',
+    answer: 'Sim. Os dados trafegam por HTTPS, senhas são armazenadas com criptografia, cada profissional acessa apenas seus próprios registros e o sistema segue as diretrizes da LGPD. Você é o controlador dos dados dos seus pacientes.',
   },
   {
-    question: 'O paciente precisa instalar algo?',
-    answer: 'Não. Links de agendamento, confirmação e verificação abrem direto no navegador.',
+    question: 'Os documentos gerados têm validade?',
+    answer: 'Cada PDF gerado pela plataforma recebe um código único e um QR Code de verificação. Qualquer pessoa pode confirmar a autenticidade do documento pelo link público — útil para declarações de comparecimento e outros registros.',
+  },
+  {
+    question: 'O paciente precisa instalar algum aplicativo?',
+    answer: 'Não. O link de agendamento, as confirmações e as verificações de documentos abrem direto no navegador do celular ou computador do paciente.',
+  },
+  {
+    question: 'Posso usar se atendo online e presencialmente?',
+    answer: 'Sim. A agenda e os agendamentos públicos permitem configurar modalidades separadas — presencial e online — com disponibilidades e horários distintos para cada uma.',
+  },
+  {
+    question: 'O que acontece com meus dados se eu cancelar?',
+    answer: 'Antes de cancelar você pode exportar todos os seus dados — pacientes, prontuários, histórico financeiro e documentos. Após o encerramento, os dados são removidos dos servidores ativos em até 30 dias, conforme nossa Política de Privacidade.',
+  },
+  {
+    question: 'Há período de teste gratuito?',
+    answer: 'Sim. Ao criar conta você tem 7 dias para explorar a plataforma sem precisar cadastrar cartão. Você vê se combina com sua rotina antes de qualquer cobrança.',
+  },
+  {
+    question: 'A plataforma é compatível com as normas do CFP?',
+    answer: 'A UseCognia foi desenvolvida com atenção às resoluções do Conselho Federal de Psicologia sobre prontuários e registros clínicos. O profissional continua sendo o responsável pelo conteúdo inserido e pelo cumprimento das normas éticas.',
+  },
+  {
+    question: 'Consigo emitir declarações e atestados em PDF?',
+    answer: 'Sim. A plataforma gera declarações de comparecimento, atestados e outros documentos em PDF formatado, com dados do profissional, do paciente e código de verificação. O documento pode ser impresso ou enviado digitalmente.',
   },
 ]
 
@@ -317,17 +341,20 @@ export default function LandingPage() {
       </section>
 
       <section id="faq" className="border-y border-[#E7E4DA] bg-[#FFFFFF]">
-        <div className="mx-auto max-w-6xl px-5 py-16">
-          <div className="max-w-2xl">
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Dúvidas comuns</p>
-            <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Menos objeção antes do cadastro.</h2>
+        <div className="mx-auto max-w-3xl px-5 py-16">
+          <div className="text-center mb-10">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Dúvidas frequentes</p>
+            <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Perguntas antes de começar</h2>
           </div>
-          <div className="mt-8 grid gap-4 md:grid-cols-2">
+          <div className="divide-y divide-[#E7E4DA]">
             {faqs.map((item) => (
-              <article key={item.question} className="rounded-lg border border-[#E7E4DA] bg-[#F7F8F5] p-5">
-                <h3 className="font-semibold text-[#211F1C]">{item.question}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-[#7C776B]">{item.answer}</p>
-              </article>
+              <details key={item.question} className="group py-5">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
+                  <span className="font-semibold text-[#211F1C] group-open:text-sage-700">{item.question}</span>
+                  <span className="shrink-0 text-[#7C776B] text-lg leading-none group-open:rotate-45 transition-transform duration-200">+</span>
+                </summary>
+                <p className="mt-3 text-sm leading-relaxed text-[#7C776B]">{item.answer}</p>
+              </details>
             ))}
           </div>
         </div>
