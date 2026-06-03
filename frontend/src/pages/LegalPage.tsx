@@ -8,7 +8,7 @@ const privacySections: Array<{ title: string; content: string | string[] }> = [
     title: '1. Identificação e Apresentação',
     content: [
       'A presente Política de Privacidade ("Política") é disponibilizada por UseCognia ("UseCognia", "nós", "nosso"), plataforma SaaS voltada a psicólogos, psicanalistas, psiquiatras e clínicas de saúde mental.',
-      'Razão Social: a definir conforme registro empresarial.\nCNPJ: a definir.\nEndereço: Brasil.\nContato de privacidade: privacidade@usecognia.com',
+      'Razão Social: a definir conforme registro empresarial.\nCNPJ: a definir.\nEndereço: Brasil.\nContato de privacidade: privacidade@usecognia.com.br',
       'Esta Política descreve como tratamos dados pessoais de profissionais usuários da plataforma, de seus pacientes e de visitantes, em conformidade com a Lei nº 13.709/2018 (Lei Geral de Proteção de Dados — LGPD), o Marco Civil da Internet (Lei nº 12.965/2014), o Código de Defesa do Consumidor (Lei nº 8.078/1990), as resoluções do Conselho Federal de Psicologia (CFP) e demais normas aplicáveis.',
       'Ao criar conta, utilizar a plataforma ou inserir dados de terceiros, o usuário declara ter lido e compreendido esta Política.',
     ],
@@ -83,7 +83,7 @@ const privacySections: Array<{ title: string; content: string | string[] }> = [
     title: '11. Incidentes de Segurança',
     content: [
       'Em caso de incidente de segurança que resulte em acesso não autorizado, destruição, perda, alteração, comunicação ou qualquer forma de tratamento inadequado de dados pessoais, a UseCognia adotará as seguintes medidas:\n\n1. Contenção imediata do incidente e preservação de evidências;\n2. Avaliação do escopo, natureza e impacto do incidente;\n3. Comunicação à ANPD em prazo razoável quando o incidente puder acarretar risco ou dano relevante aos titulares, conforme art. 48 da LGPD;\n4. Comunicação aos titulares afetados quando o incidente puder acarretar risco ou dano relevante;\n5. Adoção de medidas corretivas para evitar reincidência;\n6. Registro interno do incidente e das providências adotadas.',
-      'Para comunicar suspeitas de incidentes de segurança, entre em contato com privacidade@usecognia.com.',
+      'Para comunicar suspeitas de incidentes de segurança, entre em contato com privacidade@usecognia.com.br.',
     ],
   },
   {
@@ -112,7 +112,7 @@ const privacySections: Array<{ title: string; content: string | string[] }> = [
   {
     title: '15. Como Exercer Seus Direitos',
     content: [
-      'Para exercer os direitos previstos na LGPD, o titular pode:\n\n1. Enviar solicitação para privacidade@usecognia.com com o assunto "Direitos LGPD";\n2. Identificar-se com nome completo e e-mail cadastrado;\n3. Descrever o direito que deseja exercer e as informações relevantes.\n\nA UseCognia responderá em até 15 dias úteis, podendo prorrogar por igual período mediante justificativa. Solicitações que dependam de verificação de identidade ou de prazo de retenção legal serão respondidas com informação sobre o procedimento aplicável.',
+      'Para exercer os direitos previstos na LGPD, o titular pode:\n\n1. Enviar solicitação para privacidade@usecognia.com.br com o assunto "Direitos LGPD";\n2. Identificar-se com nome completo e e-mail cadastrado;\n3. Descrever o direito que deseja exercer e as informações relevantes.\n\nA UseCognia responderá em até 15 dias úteis, podendo prorrogar por igual período mediante justificativa. Solicitações que dependam de verificação de identidade ou de prazo de retenção legal serão respondidas com informação sobre o procedimento aplicável.',
       'Caso o titular entenda que seus direitos não foram atendidos, poderá apresentar reclamação à ANPD (www.gov.br/anpd).',
     ],
   },
@@ -142,7 +142,7 @@ const privacySections: Array<{ title: string; content: string | string[] }> = [
     title: '19. Encarregado de Dados (DPO)',
     content: [
       'A UseCognia mantém canal de contato para questões de privacidade e proteção de dados. Enquanto a função formal de Encarregado (DPO) não estiver formalizada, as responsabilidades são exercidas pela equipe responsável pela plataforma.',
-      'Canal de privacidade: privacidade@usecognia.com\nAssunto recomendado: "Privacidade/LGPD"\n\nO canal está disponível para:\n• Titulares que desejam exercer seus direitos;\n• Profissionais com dúvidas sobre o tratamento de dados na plataforma;\n• Autoridades e reguladores com demandas relacionadas à proteção de dados.',
+      'Canal de privacidade: privacidade@usecognia.com.br\nAssunto recomendado: "Privacidade/LGPD"\n\nO canal está disponível para:\n• Titulares que desejam exercer seus direitos;\n• Profissionais com dúvidas sobre o tratamento de dados na plataforma;\n• Autoridades e reguladores com demandas relacionadas à proteção de dados.',
     ],
   },
   {
@@ -244,7 +244,7 @@ export default function LegalPage({ type }: { type: 'privacy' | 'terms' }) {
         </h1>
         <p className="mt-2 text-sm text-neutral-500">
           {isPrivacy
-            ? 'Versão 2.0 · Brasil · Última atualização: junho de 2025 · privacidade@usecognia.com'
+            ? 'Versão 2.0 · Brasil · Última atualização: junho de 2025 · privacidade@usecognia.com.br'
             : 'Versão 2.0 · Brasil · Última atualização: junho de 2025'}
         </p>
 
@@ -277,7 +277,7 @@ export default function LegalPage({ type }: { type: 'privacy' | 'terms' }) {
           <p className="font-semibold mb-1">Canal de Privacidade e Encarregado (DPO)</p>
           <p>Para dúvidas, solicitações de direitos ou comunicações sobre proteção de dados:</p>
           <p className="mt-1">
-            E-mail: <a href="mailto:privacidade@usecognia.com" className="underline underline-offset-2">privacidade@usecognia.com</a>
+            E-mail: <a href="mailto:privacidade@usecognia.com.br" className="underline underline-offset-2">privacidade@usecognia.com.br</a>
             &nbsp;· Assunto: <strong>Privacidade/LGPD</strong>
           </p>
         </div>
