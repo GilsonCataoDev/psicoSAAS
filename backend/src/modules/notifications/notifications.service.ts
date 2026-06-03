@@ -104,6 +104,32 @@ export class NotificationsService {
     await this.sendWhatsApp(patient.phone, msg, appointment.psychologistId)
   }
 
+  async sendAppointmentReminder(appointment: any, lead: '24h' | '2h'): Promise<void> {
+    if (!appointment.patient?.phone) return
+    const { patient, date, time } = appointment
+    const prefs = (appointment.psychologist?.preferences ?? {}) as Record<string, any>
+    const first = patient.name.split(' ')[0]
+    const timeLabel = String(time).slice(0, 5)
+
+    const dateLabel = (() => {
+      try {
+        const [y, m, d] = String(date).split('-').map(Number)
+        return new Date(y, m - 1, d).toLocaleDateString('pt-BR', {
+          weekday: 'long', day: 'numeric', month: 'long',
+        })
+      } catch { return String(date) }
+    })()
+
+    const defaultMsg = lead === '24h'
+      ? `Ola, ${first}!\n\nLembrando que temos nosso encontro em *${dateLabel}* as *${timeLabel}*.\n\nAte la!`
+      : `Ola, ${first}!\n\nPassando para lembrar que nossa sessao e hoje as *${timeLabel}*.\n\nAte daqui a pouco!`
+    const msg = typeof prefs.reminderTemplate === 'string' && prefs.reminderTemplate.trim()
+      ? this.renderReminderTemplate(prefs.reminderTemplate, patient.name, dateLabel, timeLabel, lead)
+      : defaultMsg
+
+    await this.sendWhatsApp(patient.phone, msg, appointment.psychologistId)
+  }
+
   async sendPaymentRequest(
     patient: any,
     amount: number,
@@ -235,5 +261,19 @@ export class NotificationsService {
       return `${rendered}\n\n${receiptMessage}`
     }
     return rendered
+  }
+
+  private renderReminderTemplate(
+    template: string,
+    patientName: string,
+    dateLabel: string,
+    time: string,
+    lead: '24h' | '2h',
+  ): string {
+    return template
+      .replaceAll('{{nome}}', patientName.split(' ')[0] || patientName)
+      .replaceAll('{{data}}', dateLabel)
+      .replaceAll('{{hora}}', time)
+      .replaceAll('{{antecedencia}}', lead)
   }
 }

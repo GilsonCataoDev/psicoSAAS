@@ -139,7 +139,6 @@ export class AppointmentsService {
       })
     })
 
-    this.notifications.scheduleReminder(saved).catch(console.error)
     this.googleCalendar.syncAppointment(saved).catch(console.error)
     return saved
   }
