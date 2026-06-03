@@ -146,7 +146,7 @@ export default function LandingPage() {
     <main className="min-h-screen overflow-x-hidden bg-[#F7F8F5] text-[#211F1C]">
       <header className="sticky top-0 z-20 border-b border-[#E7E4DA] bg-[#F7F8F5]/95 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-5">
-          <Link to="/venda" className="flex min-w-0 items-center gap-2.5">
+          <Link to="/inicio" className="flex min-w-0 items-center gap-2.5">
             <BrandLogo compact className="shrink-0" />
             <span className="text-xl font-bold tracking-tight text-[#211F1C]">
               Use<span className="text-[#5B3EFF]">Cognia</span>

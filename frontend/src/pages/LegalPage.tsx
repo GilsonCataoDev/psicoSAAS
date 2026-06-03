@@ -41,7 +41,7 @@ export default function LegalPage({ type }: { type: 'privacy' | 'terms' }) {
     <main className="min-h-screen bg-neutral-50">
       <header className="border-b border-sage-100 bg-white">
         <div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-5">
-          <Link to="/venda"><BrandLogo className="h-10 w-auto" /></Link>
+          <Link to="/inicio"><BrandLogo className="h-10 w-auto" /></Link>
           <Link to="/cadastro" className="btn-primary text-sm">Começar</Link>
         </div>
       </header>
