@@ -6,6 +6,7 @@ import { z } from 'zod'
 import {
   ChevronLeft, ChevronRight, Check,
   MapPin, Video, Heart, Clock, DollarSign, ShieldCheck, ExternalLink,
+  Calendar,
 } from 'lucide-react'
 import {
   format, addDays, startOfMonth, endOfMonth,
@@ -17,23 +18,43 @@ import { cn, formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { usePublicBookingPage, usePublicBookingSlots, useCreateBooking, usePublicBookingDates } from '@/hooks/useApi'
 
+// WhatsApp SVG icon
+function WhatsAppIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+      <path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.558 4.118 1.532 5.845L.057 23.486a.5.5 0 0 0 .612.612l5.694-1.47A11.932 11.932 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.9a9.884 9.884 0 0 1-5.031-1.373l-.361-.214-3.735.964.991-3.641-.235-.374A9.867 9.867 0 0 1 2.1 12C2.1 6.534 6.534 2.1 12 2.1c5.466 0 9.9 4.434 9.9 9.9 0 5.466-4.434 9.9-9.9 9.9z" />
+    </svg>
+  )
+}
+
 const schema = z.object({
-  patientName:  z.string().min(2, 'Nome obrigatório'),
-  patientEmail: z.string().email('E-mail inválido'),
-  patientPhone: z.string().optional(),
-  modality:     z.enum(['presencial', 'online']),
-  patientNotes: z.string().optional(),
+  patientName:     z.string().min(2, 'Nome obrigatório'),
+  patientEmail:    z.string().email('E-mail inválido'),
+  patientPhone:    z.string().optional(),
+  modality:        z.enum(['presencial', 'online']),
+  patientNotes:    z.string().optional(),
   privacyAccepted: z.boolean().refine(Boolean, 'Voce precisa aceitar a Politica de Privacidade'),
 })
 type FormData = z.infer<typeof schema>
 
-type Step = 'date' | 'time' | 'form' | 'success'
+type Step = 'landing' | 'date' | 'time' | 'form' | 'success'
+
+function formatWhatsApp(raw?: string | null) {
+  if (!raw) return null
+  const digits = raw.replace(/\D/g, '')
+  if (!digits) return null
+  // já tem DDI
+  if (digits.startsWith('55') && digits.length >= 12) return digits
+  // acrescenta DDI Brasil
+  return `55${digits}`
+}
 
 export default function BookingPage() {
   const { slug } = useParams()
   const { data: page, isLoading: pageLoading, isError } = usePublicBookingPage(slug ?? '')
 
-  const [step, setStep] = useState<Step>('date')
+  const [step, setStep] = useState<Step>('landing')
   const [month, setMonth] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedTime, setSelectedTime] = useState<string | null>(null)
@@ -53,6 +74,10 @@ export default function BookingPage() {
     if (page.allowOnline && !page.allowPresencial) setValue('modality', 'online')
     if (page.allowPresencial && !page.allowOnline) setValue('modality', 'presencial')
   }, [page, setValue])
+
+  function startBooking() {
+    setStep('date')
+  }
 
   function chooseModality(modality: 'presencial' | 'online') {
     setValue('modality', modality)
@@ -88,7 +113,6 @@ export default function BookingPage() {
       toast.error('Escolha uma data e um horario.')
       return
     }
-
     try {
       const { privacyAccepted: _privacyAccepted, ...bookingData } = data
       await createBooking.mutateAsync({ ...bookingData, date: selectedDate, time: selectedTime })
@@ -98,6 +122,7 @@ export default function BookingPage() {
     }
   }
 
+  // ─── Loading / Error ─────────────────────────────────────────────────────────
   if (pageLoading) return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-sage-500 border-t-transparent rounded-full animate-spin" />
@@ -114,19 +139,86 @@ export default function BookingPage() {
     </div>
   )
 
-  // ─── Layout externo (sem sidebar) ────────────────────────────────────────────
+  const waNumber = formatWhatsApp((page as any).psychologistPhone)
+
+  // ── LANDING ──────────────────────────────────────────────────────────────────
+  if (step === 'landing') {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6">
+        <div className="w-full max-w-xs flex flex-col items-center">
+
+          {/* Avatar */}
+          <div className="w-28 h-28 rounded-full overflow-hidden bg-neutral-100 mb-5 ring-4 ring-neutral-100 shadow-md shrink-0">
+            {page.avatarUrl ? (
+              <img src={page.avatarUrl} alt={page.psychologistName} className="w-full h-full object-cover object-center" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <Heart className="w-10 h-10 text-sage-400" fill="currentColor" />
+              </div>
+            )}
+          </div>
+
+          {/* Nome */}
+          <h1 className="text-xl font-bold tracking-wide text-[#1a237e] uppercase text-center leading-tight mb-1">
+            {page.psychologistName}
+          </h1>
+
+          {/* Especialidade / título */}
+          {((page as any).specialty || page.title) && (
+            <p className="text-sm text-neutral-400 text-center mb-7">
+              {(page as any).specialty ?? page.title}
+            </p>
+          )}
+
+          {/* Botões */}
+          <div className="w-full space-y-3">
+            <button
+              onClick={startBooking}
+              className="w-full flex items-center justify-center gap-2 border border-neutral-300 rounded-lg py-3 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
+            >
+              <Calendar className="w-4 h-4 text-neutral-500" />
+              Agende agora
+            </button>
+
+            {waNumber && (
+              <a
+                href={`https://wa.me/${waNumber}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-center gap-2 border border-neutral-300 rounded-lg py-3 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
+              >
+                <WhatsAppIcon className="w-4 h-4 text-[#25d366]" />
+                Whatsapp
+              </a>
+            )}
+          </div>
+        </div>
+
+        {/* Powered by */}
+        <p className="absolute bottom-6 text-xs text-neutral-300">
+          Powered by{' '}
+          <span className="font-semibold text-neutral-400">UseCognia</span>
+        </p>
+      </div>
+    )
+  }
+
+  // ─── Layout com sidebar/header para as demais etapas ────────────────────────
   return (
     <div className="min-h-screen bg-gradient-to-br from-sage-50 via-white to-mist-50 flex flex-col">
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-neutral-100 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-sage-50 border border-sage-100 rounded-xl overflow-hidden flex items-center justify-center shrink-0">
+          <button
+            onClick={() => setStep('landing')}
+            className="w-10 h-10 bg-sage-50 border border-sage-100 rounded-xl overflow-hidden flex items-center justify-center shrink-0 hover:bg-sage-100 transition-colors"
+          >
             {page.avatarUrl ? (
-              <img src={page.avatarUrl} alt={`Foto de ${page.psychologistName}`} className="w-full h-full object-cover object-center" />
+              <img src={page.avatarUrl} alt={page.psychologistName} className="w-full h-full object-cover object-center" />
             ) : (
               <Heart className="w-5 h-5 text-sage-500" fill="currentColor" />
             )}
-          </div>
+          </button>
           <div className="flex-1 min-w-0">
             <p className="font-medium text-neutral-800 text-sm leading-none">{page.psychologistName}</p>
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
@@ -135,7 +227,6 @@ export default function BookingPage() {
                 type="button"
                 onClick={() => window.open('https://cadastro.cfp.org.br/', '_blank', 'noopener,noreferrer')}
                 className="flex items-center gap-0.5 text-xs text-sage-600 hover:text-sage-700 hover:underline transition-colors"
-                title="Verificar registro ativo no portal oficial do CFP"
               >
                 <ShieldCheck className="w-3 h-3" />
                 Verificar registro
@@ -167,8 +258,6 @@ export default function BookingPage() {
                 <p>{formatCurrency(page.sessionPrice)}</p>
               </div>
             </div>
-
-            {/* Badge de verificação CFP */}
             <button
               type="button"
               onClick={() => window.open('https://cadastro.cfp.org.br/', '_blank', 'noopener,noreferrer')}
@@ -186,16 +275,7 @@ export default function BookingPage() {
           <>
             {/* Intro */}
             <div className="mb-8">
-              <div className="w-24 h-24 rounded-3xl overflow-hidden bg-sage-50 border border-sage-100 mb-5 shadow-card">
-                {page.avatarUrl ? (
-                  <img src={page.avatarUrl} alt={page.psychologistName} className="w-full h-full object-cover object-center" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Heart className="w-9 h-9 text-sage-500" fill="currentColor" />
-                  </div>
-                )}
-              </div>
-              <h1 className="font-display text-3xl font-light text-neutral-800 mb-2">
+              <h1 className="font-display text-2xl font-light text-neutral-800 mb-2">
                 {page.title ?? 'Agende sua sessão'}
               </h1>
               {page.description && (
@@ -275,14 +355,12 @@ export default function BookingPage() {
                   </div>
                 )}
 
-                {/* Day headers */}
                 <div className="grid grid-cols-7 mb-2">
                   {['D','S','T','Q','Q','S','S'].map((d, i) => (
                     <div key={i} className="text-center text-xs text-neutral-400 py-1">{d}</div>
                   ))}
                 </div>
 
-                {/* Days */}
                 <div className="grid grid-cols-7 gap-1">
                   {Array.from({ length: startPad }).map((_, i) => <div key={`pad-${i}`} />)}
                   {monthDays.map(day => {
@@ -417,7 +495,6 @@ export default function BookingPage() {
                     )}
                   </div>
 
-                  {/* Resumo */}
                   <div className="bg-sage-50 rounded-2xl p-4 text-sm text-sage-700 space-y-1">
                     <p className="font-medium">Resumo da sessão</p>
                     <p>{selectedDate && format(parseISO(selectedDate), "EEEE, dd 'de' MMMM", { locale: ptBR })}</p>

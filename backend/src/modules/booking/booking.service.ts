@@ -115,6 +115,7 @@ export class BookingService {
       psychologistName: psychologist.name,
       psychologistCrp: psychologist.crp,
       specialty: psychologist.specialty,
+      psychologistPhone: psychologist.phone ?? null,
     }
   }
 
