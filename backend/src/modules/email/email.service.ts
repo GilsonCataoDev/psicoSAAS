@@ -66,7 +66,7 @@ export class EmailService {
     const firstName = name.split(' ')[0]
     await this.send({
       to: email,
-      subject: 'Bem-vinda ao PsicoSaaS! 🌱',
+      subject: 'Bem-vindo(a) à UseCognia! 🌱',
       html: this.wrap(`
         <h1 style="color:#5B3EFF;font-weight:300;font-size:28px">Olá, ${firstName}! 🌱</h1>
         <p style="color:#555;font-size:16px;line-height:1.6">
@@ -90,7 +90,7 @@ export class EmailService {
     const link = `${this.frontendUrl}/#/redefinir-senha?token=${encodeURIComponent(resetToken)}`
     await this.send({
       to: email,
-      subject: 'Redefinir sua senha — PsicoSaaS',
+      subject: 'Redefinir sua senha — UseCognia',
       html: this.wrap(`
         <h1 style="color:#5B3EFF;font-weight:300;font-size:24px">Redefinir senha</h1>
         <p style="color:#555;font-size:16px;line-height:1.6">
@@ -169,7 +169,7 @@ export class EmailService {
   async sendTrialEndingReminder(name: string, email: string, daysLeft: number) {
     await this.send({
       to: email,
-      subject: `Seu período grátis acaba em ${daysLeft} dia${daysLeft !== 1 ? 's' : ''} — PsicoSaaS`,
+      subject: `Seu período grátis acaba em ${daysLeft} dia${daysLeft !== 1 ? 's' : ''} — UseCognia`,
       html: this.wrap(`
         <h1 style="color:#e07b39;font-weight:300;font-size:24px">Período de teste terminando ⏰</h1>
         <p style="color:#555;font-size:16px;line-height:1.6">
@@ -255,7 +255,7 @@ export class EmailService {
         <!-- Header -->
         <tr><td style="background:#5B3EFF;padding:24px 32px">
           <p style="margin:0;color:white;font-size:20px;font-weight:600">
-            Psico<span style="opacity:0.8">SaaS</span>
+            Use<span style="opacity:0.8">Cognia</span>
           </p>
         </td></tr>
         <!-- Body -->
@@ -265,7 +265,7 @@ export class EmailService {
         <!-- Footer -->
         <tr><td style="padding:16px 32px 24px;border-top:1px solid #f0f0f0">
           <p style="margin:0;color:#aaa;font-size:12px;line-height:1.6">
-            PsicoSaaS · Gestão clínica com cuidado 🌿<br>
+            UseCognia · Gestão clínica com cuidado 🌿<br>
             <a href="${this.frontendUrl}/configuracoes" style="color:#aaa">Gerenciar preferências de e-mail</a>
           </p>
         </td></tr>
