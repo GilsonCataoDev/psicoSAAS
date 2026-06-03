@@ -79,8 +79,9 @@ export default function App() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        <Route path="/inicio" element={<LandingPage />} />
-        <Route path="/venda" element={<Navigate to="/inicio" replace />} />
+        <Route path="/plataforma" element={<LandingPage />} />
+        <Route path="/inicio" element={<Navigate to="/plataforma" replace />} />
+        <Route path="/venda" element={<Navigate to="/plataforma" replace />} />
         <Route path="/privacidade" element={<LegalPage type="privacy" />} />
         <Route path="/termos" element={<LegalPage type="terms" />} />
 
