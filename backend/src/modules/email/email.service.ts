@@ -166,6 +166,41 @@ export class EmailService {
     })
   }
 
+  async sendBookingCancellation(
+    patientName: string,
+    psychologistEmail: string,
+    date: string,
+    time: string,
+    reason?: string,
+  ) {
+    const safePatientName = this.escapeHtml(patientName)
+    const safeDate = this.escapeHtml(date)
+    const safeTime = this.escapeHtml(time)
+    const safeReason = reason ? this.escapeHtml(reason) : ''
+    await this.send({
+      to: psychologistEmail,
+      subject: `Sessão cancelada — ${patientName.replace(/[\r\n]/g, ' ')}`,
+      html: this.wrap(`
+        <h1 style="color:#5B3EFF;font-weight:300;font-size:24px">Sessão cancelada</h1>
+        <p style="color:#555;font-size:16px;line-height:1.6">
+          <strong>${safePatientName}</strong> cancelou a sessão de
+          <strong>${safeDate}</strong> às <strong>${safeTime}</strong>.
+        </p>
+        ${safeReason ? `<p style="color:#555;font-size:15px;line-height:1.6"><strong>Motivo:</strong> ${safeReason}</p>` : ''}
+      `),
+    })
+  }
+
+  private escapeHtml(value: string): string {
+    return value.replace(/[&<>"']/g, char => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;',
+    })[char]!)
+  }
+
   async sendTrialEndingReminder(name: string, email: string, daysLeft: number) {
     await this.send({
       to: email,

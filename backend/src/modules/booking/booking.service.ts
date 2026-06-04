@@ -245,6 +245,7 @@ export class BookingService {
     }
 
     const confirmationToken = randomBytes(32).toString('hex')
+    const cancellationCode = randomBytes(6).toString('base64url')
     const tokenExpiresAt = addDays(new Date(), 2)
 
     const saved = await this.dataSource.transaction(async (manager) => {
@@ -265,6 +266,7 @@ export class BookingService {
         duration: page.sessionDuration,
         amount: page.sessionPrice,
         confirmationToken,
+        cancellationCode,
         tokenExpiresAt,
         status: 'confirmed',
         confirmedAt: new Date(),
@@ -319,18 +321,23 @@ export class BookingService {
   }
 
   async cancelByToken(token: string, reason?: string) {
-    const booking = await this.bookings.findOne({ where: { confirmationToken: token } })
+    const booking = await this.bookings.findOne({
+      where: [
+        { cancellationCode: token },
+        { confirmationToken: token },
+      ],
+      relations: ['psychologist'],
+    })
     if (!booking) throw new NotFoundException('Link inválido')
-    if (new Date() > booking.tokenExpiresAt)
-      throw new BadRequestException('Este link expirou.')
     if (booking.status === 'cancelled')
       return { message: 'Sessão já cancelada anteriormente.' }
 
     booking.status = 'cancelled'
     booking.cancelledAt = new Date()
-    booking.cancellationReason = reason
+    booking.cancellationReason = reason?.trim().slice(0, 500) || undefined
     await this.bookings.save(booking)
     await this.cancelLinkedAppointment(booking)
+    await this.notifications.sendBookingCancellation(booking)
 
     return { message: 'Sessão cancelada. Esperamos te ver em breve 🌿' }
   }

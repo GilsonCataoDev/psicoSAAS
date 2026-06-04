@@ -245,7 +245,7 @@ export class NotificationsService {
 
   async sendBookingRequest(booking: any, page: any): Promise<void> {
     const confirmUrl = `${this.BASE_URL}/agendar/confirmar/${booking.confirmationToken}`
-    const cancelUrl  = `${this.BASE_URL}/agendar/cancelar/${booking.confirmationToken}`
+    const cancelUrl  = this.getCancellationUrl(booking)
 
     // Para o paciente — WhatsApp
     if (booking.patientPhone) {
@@ -283,7 +283,7 @@ export class NotificationsService {
   }
 
   async sendBookingConfirmation(booking: any): Promise<void> {
-    const cancelUrl = `${this.BASE_URL}/agendar/cancelar/${booking.confirmationToken}`
+    const cancelUrl = this.getCancellationUrl(booking)
     const first = booking.patientName.split(' ')[0]
 
     // WhatsApp para o paciente
@@ -307,6 +307,34 @@ export class NotificationsService {
     }
 
     this.logger.log(`[Booking] Confirmação enviada: ${booking.patientName}`)
+  }
+
+  async sendBookingCancellation(booking: any): Promise<void> {
+    const psychologist = booking.psychologist
+    const prefs = (psychologist?.preferences ?? {}) as Record<string, any>
+    const phone = prefs.whatsapp || psychologist?.phone
+    const reason = booking.cancellationReason?.trim()
+    const reasonLine = reason ? `\nMotivo: ${reason}` : ''
+    const msg =
+      `Sessão cancelada pelo paciente\n\n` +
+      `Pessoa: ${booking.patientName}\n` +
+      `Data: ${booking.date} às ${String(booking.time).slice(0, 5)}` +
+      reasonLine
+
+    if (phone) {
+      await this.sendWhatsApp(phone, msg, booking.psychologistId)
+    }
+    if (psychologist?.email) {
+      await this.email.sendBookingCancellation(
+        booking.patientName,
+        psychologist.email,
+        booking.date,
+        String(booking.time).slice(0, 5),
+        reason,
+      )
+    }
+
+    this.logger.log(`[Booking] Cancelamento enviado ao psicólogo: ${booking.patientName}`)
   }
 
   async sendPaymentReminder(booking: any, pixKey?: string): Promise<void> {
@@ -339,6 +367,12 @@ export class NotificationsService {
       return `${rendered}\n\n${receiptMessage}`
     }
     return rendered
+  }
+
+  private getCancellationUrl(booking: any): string {
+    return booking.cancellationCode
+      ? `${this.BASE_URL}/c/${booking.cancellationCode}`
+      : `${this.BASE_URL}/agendar/cancelar/${booking.confirmationToken}`
   }
 
   private renderReminderTemplate(

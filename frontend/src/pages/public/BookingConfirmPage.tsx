@@ -43,9 +43,10 @@ function downloadIcs(event: CalendarEvent): void {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
-export default function BookingConfirmPage() {
+export default function BookingConfirmPage({ fixedAction }: { fixedAction?: ConfirmAction } = {}) {
   const { token, action } = useParams<{ token: string; action: ConfirmAction }>()
-  const isConfirm = action === 'confirmar'
+  const resolvedAction = fixedAction ?? action
+  const isConfirm = resolvedAction === 'confirmar'
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [result, setResult] = useState<BookingActionResponse | null>(null)
@@ -54,7 +55,7 @@ export default function BookingConfirmPage() {
     let mounted = true
 
     async function submitAction() {
-      if (!token || !action) {
+      if (!token || !resolvedAction) {
         setError('Link invalido.')
         setLoading(false)
         return
@@ -78,7 +79,7 @@ export default function BookingConfirmPage() {
     return () => {
       mounted = false
     }
-  }, [action, isConfirm, token])
+  }, [isConfirm, resolvedAction, token])
 
   const calendarEvent = useMemo<CalendarEvent | null>(() => {
     if (!isConfirm || !result?.booking) return null
