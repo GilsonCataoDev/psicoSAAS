@@ -18,12 +18,12 @@ const tabs = [
   { id: 'plan',     icon: Zap,           label: 'Plano'      },
   { id: 'notify',   icon: Bell,          label: 'Lembretes'  },
   { id: 'messages', icon: MessageSquare, label: 'Mensagens'  },
-  { id: 'integrations', icon: CalendarDays, label: 'Integrações' },
   { id: 'payment',  icon: Wallet,        label: 'Pagamentos' },
   { id: 'privacy',  icon: Lock,          label: 'Privacidade'},
   { id: 'security', icon: Shield,        label: 'Segurança'  },
 ]
 const TRIAL_DAYS = 7
+const GOOGLE_CALENDAR_ENABLED = false
 
 // ─── Toggle component ──────────────────────────────────────────────────────────
 function Toggle({ on, onChange, disabled = false }: { on: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
@@ -68,7 +68,11 @@ export default function SettingsPage() {
   const updateUser = useAuthStore(s => s.updateUser)
   const logout = useAuthStore(s => s.logout)
   const [searchParams, setSearchParams] = useSearchParams()
-  const [tab, setTab] = useState(searchParams.get('tab') ?? 'profile')
+  const [tab, setTab] = useState(
+    searchParams.get('tab') === 'integrations' && !GOOGLE_CALENDAR_ENABLED
+      ? 'profile'
+      : searchParams.get('tab') ?? 'profile',
+  )
 
   // ── Perfil ─────────────────────────────────────────────────────────────────
   const [name, setName] = useState(user?.name ?? '')
@@ -118,6 +122,11 @@ export default function SettingsPage() {
     setPhone(user?.phone ?? '')
 
     if (!isAuthenticated) {
+      setLoadingPrefs(false)
+      return
+    }
+
+    if (!GOOGLE_CALENDAR_ENABLED) {
       setLoadingPrefs(false)
       return
     }
@@ -623,7 +632,7 @@ export default function SettingsPage() {
           )}
 
           {/* ── Integrações ───────────────────────────────────────────── */}
-          {tab === 'integrations' && (
+          {GOOGLE_CALENDAR_ENABLED && tab === 'integrations' && (
             <div className="space-y-5">
               <div className="card space-y-4">
                 <div className="flex items-start justify-between gap-4">
