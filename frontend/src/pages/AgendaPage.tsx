@@ -97,13 +97,13 @@ export default function AgendaPage() {
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setWeekStart(w => subWeeks(w, 1))}
-            className="p-2 rounded-xl hover:bg-neutral-100 text-neutral-500 transition-colors">
+            className="p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-white/10 text-neutral-500 dark:text-neutral-300 transition-colors">
             <ChevronLeft className="w-5 h-5" />
           </button>
           <button onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
             className="btn-secondary text-sm py-2 hidden sm:block">Hoje</button>
           <button onClick={() => setWeekStart(w => addWeeks(w, 1))}
-            className="p-2 rounded-xl hover:bg-neutral-100 text-neutral-500 transition-colors">
+            className="p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-white/10 text-neutral-500 dark:text-neutral-300 transition-colors">
             <ChevronRight className="w-5 h-5" />
           </button>
           <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2">
@@ -203,13 +203,13 @@ export default function AgendaPage() {
       </div>
 
       {/* ── Desktop: grade semanal ─────────────────────────────────── */}
-      <div className="hidden lg:block card overflow-hidden p-0">
-        <div className="grid grid-cols-[64px_repeat(5,1fr)] border-b border-neutral-100">
+      <div className="agenda-grid hidden lg:block card overflow-hidden p-0">
+        <div className="agenda-grid-header agenda-grid-line grid grid-cols-[64px_repeat(5,1fr)] border-b border-neutral-100">
           <div className="p-3" />
           {days.map(day => (
             <div key={day.toISOString()}
-              className={`p-3 text-center border-l border-neutral-100 ${isToday(day) ? 'bg-sage-50' : ''}`}>
-              <p className="text-xs text-neutral-400 capitalize">{format(day, 'EEE', { locale: ptBR })}</p>
+              className={`agenda-grid-line p-3 text-center border-l border-neutral-100 ${isToday(day) ? 'agenda-today bg-sage-50' : ''}`}>
+              <p className="text-xs text-neutral-400 dark:text-neutral-300 capitalize">{format(day, 'EEE', { locale: ptBR })}</p>
               <p className={`text-lg font-semibold mt-0.5 ${isToday(day) ? 'text-sage-600' : 'text-neutral-700'}`}>
                 {format(day, 'd')}
               </p>
@@ -218,23 +218,23 @@ export default function AgendaPage() {
         </div>
         <div className="overflow-y-auto max-h-[480px]">
           {visibleHours.map(hour => (
-            <div key={hour} className="grid grid-cols-[64px_repeat(5,1fr)] border-b border-neutral-50 min-h-[72px]">
-              <div className="p-2 text-xs text-neutral-400 text-right pr-3 pt-2">{hour}:00</div>
+            <div key={hour} className="agenda-grid-line grid grid-cols-[64px_repeat(5,1fr)] border-b border-neutral-50 min-h-[72px]">
+              <div className="p-2 text-xs text-neutral-400 dark:text-neutral-300 text-right pr-3 pt-2">{hour}:00</div>
               {days.map(day => {
                 const dayAppts = appointments.filter(a =>
                   isSameDay(parseISO(a.date), day) && parseInt(a.time) === hour,
                 )
                 return (
                   <div key={day.toISOString()}
-                    className={`border-l border-neutral-100 p-1 ${isToday(day) ? 'bg-sage-50/40' : ''}`}>
+                    className={`agenda-grid-line border-l border-neutral-100 p-1 ${isToday(day) ? 'agenda-today bg-sage-50/40' : ''}`}>
                     {dayAppts.map(appt => (
                       <div key={appt.id}
-                        className="group bg-sage-100 border border-sage-200 rounded-xl p-2 hover:bg-sage-200 transition-colors mb-1">
+                        className="agenda-appointment group bg-sage-100 border border-sage-200 rounded-xl p-2 hover:bg-sage-200 transition-colors mb-1">
                         <div className="flex items-center gap-1.5">
                           {appt.modality === 'online'
                             ? <Video className="w-3 h-3 text-mist-500 shrink-0" />
                             : <MapPin className="w-3 h-3 text-sage-600 shrink-0" />}
-                          <span className="text-xs text-sage-800 font-medium flex-1">{formatTime(appt.time)}</span>
+                          <span className="text-xs text-sage-800 dark:text-sage-100 font-semibold flex-1">{formatTime(appt.time)}</span>
                           <button
                             type="button"
                             onClick={() => messageAppointment(appt)}
@@ -261,11 +261,11 @@ export default function AgendaPage() {
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
-                        <p className="text-xs text-sage-700 truncate mt-0.5">
+                        <p className="text-xs text-sage-700 dark:text-neutral-100 font-medium truncate mt-0.5">
                           {appt.patient?.name?.split(' ')[0] ?? 'Paciente'}
                         </p>
                         {(appt.isRecurring || appt.isFixedScheduleException) && (
-                          <p className="text-[10px] text-sage-700/70 mt-0.5">
+                          <p className="text-[10px] text-sage-700/70 dark:text-sage-100/75 mt-0.5">
                             {appt.isFixedScheduleException
                               ? 'alteracao pontual'
                               : appt.recurringFrequency === 'biweekly' ? '15 em 15 dias' : 'semanal'}
