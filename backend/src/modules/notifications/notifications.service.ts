@@ -12,6 +12,11 @@ export type WhatsAppDeliveryResult = {
   error?: string
 }
 
+const COMPED_PRO_EMAILS = (process.env.COMPED_PRO_EMAILS ?? 'gilsonfilho96@outlook.com')
+  .split(',')
+  .map(email => email.trim().toLowerCase())
+  .filter(Boolean)
+
 /**
  * NotificationsService
  * Mensagens via WhatsApp (Evolution API) + e-mail (Resend).
@@ -42,10 +47,15 @@ export class NotificationsService {
   private async canUseWhatsAppAutomation(userId?: string | null): Promise<boolean> {
     if (!userId) return false
 
-    const sub = await this.subs.findOne({
-      where: { userId },
-      order: { createdAt: 'DESC' },
-    })
+    const [user, sub] = await Promise.all([
+      this.users.findOneBy({ id: userId }),
+      this.subs.findOne({
+        where: { userId },
+        order: { createdAt: 'DESC' },
+      }),
+    ])
+    if (user?.email && COMPED_PRO_EMAILS.includes(user.email.toLowerCase())) return true
+
     const plan = (sub?.status === 'active' || sub?.status === 'trialing') ? sub.plan : 'free'
     return plan === 'pro'
   }
