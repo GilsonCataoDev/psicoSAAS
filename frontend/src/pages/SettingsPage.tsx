@@ -172,6 +172,16 @@ export default function SettingsPage() {
   }, [isAuthenticated, tab])
 
   useEffect(() => {
+    if (!whatsappQr || whatsappConnected) return
+    const timer = window.setInterval(() => {
+      api.post('/notifications/whatsapp/connect')
+        .then(({ data }) => setWhatsappQr(data.base64))
+        .catch(() => {})
+    }, 20000)
+    return () => window.clearInterval(timer)
+  }, [whatsappConnected, whatsappQr])
+
+  useEffect(() => {
     if (searchParams.get('googleCalendar') === 'connected') {
       toast.success('Google Agenda conectado com sucesso!')
       setSearchParams({ tab: 'integrations' }, { replace: true })
@@ -298,6 +308,20 @@ export default function SettingsPage() {
       toast.success('Mensagem teste enviada')
     } catch (e: any) {
       toast.error(e?.response?.data?.message ?? 'Mensagem teste nao enviada.')
+    } finally {
+      setWhatsappBusy(false)
+    }
+  }
+
+  async function resetWhatsApp() {
+    setWhatsappBusy(true)
+    try {
+      const { data } = await api.post('/notifications/whatsapp/reset')
+      setWhatsappConnected(false)
+      setWhatsappQr(data.base64)
+      toast.success('Novo QR Code gerado')
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? 'Nao foi possivel reiniciar a conexao.')
     } finally {
       setWhatsappBusy(false)
     }
@@ -577,8 +601,13 @@ export default function SettingsPage() {
                       {whatsappConfigured ? 'Conecte o WhatsApp para ativar as automacoes' : 'Servidor de WhatsApp nao configurado'}
                     </p>
                     {whatsappQr && (
-                      <div className="mt-3 rounded-xl bg-white p-3 w-fit">
-                        <img src={whatsappQr} alt="QR Code para conectar WhatsApp" className="h-56 w-56" />
+                      <div className="mt-3 space-y-2">
+                        <div className="rounded-xl bg-white p-3 w-fit">
+                          <img src={whatsappQr} alt="QR Code para conectar WhatsApp" className="h-64 w-64" />
+                        </div>
+                        <p className="text-xs">
+                          No celular: WhatsApp &gt; Aparelhos conectados &gt; Conectar aparelho. O QR atualiza automaticamente.
+                        </p>
                       </div>
                     )}
                   </div>
@@ -588,6 +617,11 @@ export default function SettingsPage() {
                     {!whatsappConnected && (
                       <button type="button" onClick={connectWhatsApp} disabled={whatsappBusy} className="btn-primary text-sm">
                         {whatsappQr ? 'Gerar novo QR Code' : 'Conectar WhatsApp'}
+                      </button>
+                    )}
+                    {!whatsappConnected && whatsappQr && (
+                      <button type="button" onClick={resetWhatsApp} disabled={whatsappBusy} className="btn-secondary text-sm">
+                        Reiniciar conexao
                       </button>
                     )}
                     <button type="button" onClick={testWhatsApp} disabled={whatsappBusy || !prefs.whatsapp} className="btn-secondary text-sm">

@@ -23,6 +23,12 @@ export class NotificationsController {
     return this.notifications.getWhatsAppQrCode()
   }
 
+  @Post('reset')
+  @UseGuards(CsrfGuard)
+  reset() {
+    return this.notifications.resetWhatsAppConnection()
+  }
+
   @Post('test')
   @UseGuards(CsrfGuard)
   test(@Request() req: any, @Body('phone') phone?: string) {

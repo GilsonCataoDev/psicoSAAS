@@ -79,6 +79,18 @@ export class NotificationsService {
     return { base64: data.base64 }
   }
 
+  async resetWhatsAppConnection(): Promise<{ base64: string }> {
+    if (!this.waEnabled) throw new BadRequestException('WhatsApp nao configurado')
+
+    await fetch(`${this.WA_URL}/instance/logout/${this.WA_INSTANCE}`, {
+      method: 'DELETE',
+      headers: { apikey: this.WA_KEY },
+    }).catch(() => undefined)
+
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    return this.getWhatsAppQrCode()
+  }
+
   async sendTestWhatsApp(ownerId: string, phone?: string): Promise<WhatsAppDeliveryResult> {
     const user = await this.users.findOneBy({ id: ownerId })
     const prefs = (user?.preferences ?? {}) as Record<string, any>
