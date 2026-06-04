@@ -33,7 +33,7 @@ export class BookingPage {
   @Column({ default: true }) allowOnline: boolean
 
   // Antecedência mínima/máxima para agendar (dias)
-  @Column({ default: 1 }) minAdvanceDays: number
+  @Column({ default: 0 }) minAdvanceDays: number
   @Column({ default: 60 }) maxAdvanceDays: number
 
   // Pagamento

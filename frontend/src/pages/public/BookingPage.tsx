@@ -101,7 +101,7 @@ export default function BookingPage() {
 
   function isDisabled(date: Date) {
     const today = startOfDay(new Date())
-    const min = addDays(today, page?.minAdvanceDays ?? 1)
+    const min = addDays(today, page?.minAdvanceDays ?? 0)
     const max = addDays(today, page?.maxAdvanceDays ?? 60)
     const dateStr = format(date, 'yyyy-MM-dd')
     return isBefore(date, min) || isBefore(max, date) || !availableDates.includes(dateStr)

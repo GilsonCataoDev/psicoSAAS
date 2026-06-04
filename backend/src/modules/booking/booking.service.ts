@@ -141,8 +141,17 @@ export class BookingService {
     const isBlocked = await this.availability.isDateBlocked(page.psychologistId, dateStr)
     if (isBlocked) return []
 
-    const minDate = addDays(new Date(), page.minAdvanceDays)
-    const maxDate = addDays(new Date(), page.maxAdvanceDays)
+    const now = new Date()
+    const timeZone = this.config.get<string>('GOOGLE_CALENDAR_TIMEZONE') ?? 'America/Sao_Paulo'
+    const todayStr = new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(now)
+    const today = parseISO(todayStr)
+    const minDate = addDays(today, page.minAdvanceDays ?? 0)
+    const maxDate = addDays(today, page.maxAdvanceDays)
     if (isBefore(date, minDate) || isAfter(date, maxDate)) return []
 
     const [existingBookings, existingAppointments] = await Promise.all([
@@ -177,7 +186,9 @@ export class BookingService {
       while (isBefore(addMinutes(current, page.sessionDuration), end)
           || +addMinutes(current, page.sessionDuration) === +end) {
         const timeStr = format(current, 'HH:mm')
-        if (!occupiedTimes.has(timeStr)) {
+        const offset = this.config.get<string>('APPOINTMENT_TIMEZONE_OFFSET') ?? '-03:00'
+        const startsAt = new Date(`${dateStr}T${timeStr}:00${offset}`)
+        if (!occupiedTimes.has(timeStr) && isAfter(startsAt, now)) {
           available.push(timeStr)
         }
         current = addMinutes(current, page.slotInterval)
