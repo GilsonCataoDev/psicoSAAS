@@ -1,9 +1,16 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { BadRequestException, Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { EmailService } from '../email/email.service'
 import { Subscription } from '../billing/entities/subscription.entity'
+import { User } from '../auth/entities/user.entity'
+
+export type WhatsAppDeliveryResult = {
+  sent: boolean
+  reason?: 'plan' | 'not_configured' | 'disconnected' | 'api_error'
+  error?: string
+}
 
 /**
  * NotificationsService
@@ -23,6 +30,7 @@ export class NotificationsService {
     private cfg: ConfigService,
     private email: EmailService,
     @InjectRepository(Subscription) private subs: Repository<Subscription>,
+    @InjectRepository(User) private users: Repository<User>,
   ) {
     this.BASE_URL     = cfg.get('FRONTEND_URL') ?? 'http://localhost:3000'
     this.WA_URL       = cfg.get('WHATSAPP_API_URL') ?? ''
@@ -44,15 +52,57 @@ export class NotificationsService {
 
   // ─── Envio via WhatsApp (Evolution API) ──────────────────────────────────
 
-  private async sendWhatsApp(phone: string, text: string, ownerId?: string | null): Promise<void> {
+  async getWhatsAppStatus(): Promise<{ configured: boolean; connected: boolean; state: string }> {
+    if (!this.waEnabled) return { configured: false, connected: false, state: 'not_configured' }
+
+    try {
+      const res = await fetch(`${this.WA_URL}/instance/connectionState/${this.WA_INSTANCE}`, {
+        headers: { apikey: this.WA_KEY },
+      })
+      const data = await res.json() as { instance?: { state?: string } }
+      const state = data.instance?.state ?? 'unknown'
+      return { configured: true, connected: state === 'open', state }
+    } catch {
+      return { configured: true, connected: false, state: 'unavailable' }
+    }
+  }
+
+  async getWhatsAppQrCode(): Promise<{ base64: string }> {
+    if (!this.waEnabled) throw new BadRequestException('WhatsApp nao configurado')
+    const res = await fetch(`${this.WA_URL}/instance/connect/${this.WA_INSTANCE}`, {
+      headers: { apikey: this.WA_KEY },
+    })
+    const data = await res.json() as { base64?: string; message?: string }
+    if (!res.ok || !data.base64) {
+      throw new BadRequestException(data.message ?? 'Nao foi possivel gerar o QR Code')
+    }
+    return { base64: data.base64 }
+  }
+
+  async sendTestWhatsApp(ownerId: string, phone?: string): Promise<WhatsAppDeliveryResult> {
+    const user = await this.users.findOneBy({ id: ownerId })
+    const prefs = (user?.preferences ?? {}) as Record<string, any>
+    const target = phone || prefs.whatsapp || user?.phone
+    if (!target) throw new BadRequestException('Informe um numero de WhatsApp')
+
+    const result = await this.sendWhatsApp(
+      target,
+      'Teste da UseCognia: seu WhatsApp esta conectado e pronto para as automacoes.',
+      ownerId,
+    )
+    if (!result.sent) throw new BadRequestException(result.error ?? 'Mensagem nao enviada')
+    return result
+  }
+
+  private async sendWhatsApp(phone: string, text: string, ownerId?: string | null): Promise<WhatsAppDeliveryResult> {
     if (!await this.canUseWhatsAppAutomation(ownerId)) {
       this.logger.log(`[WhatsApp bloqueado por plano] owner=${ownerId ?? 'unknown'} phone=${phone}`)
-      return
+      return { sent: false, reason: 'plan', error: 'Automacao disponivel apenas no plano Pro' }
     }
 
     if (!this.waEnabled) {
       this.logger.log(`[WhatsApp DEV] ${phone}: ${text.slice(0, 60)}...`)
-      return
+      return { sent: false, reason: 'not_configured', error: 'WhatsApp nao configurado' }
     }
 
     // Normaliza o número: remove tudo que não for dígito, garante DDI 55
@@ -77,16 +127,18 @@ export class NotificationsService {
       if (!res.ok) {
         const err = await res.text()
         this.logger.error(`[WhatsApp] Erro ${res.status}: ${err}`)
+        return { sent: false, reason: 'api_error', error: `WhatsApp respondeu ${res.status}: ${err.slice(0, 120)}` }
       }
-    } catch (err) {
-      this.logger.error('[WhatsApp] Falha de conexão', err)
+      return { sent: true }
+    } catch {
+      return { sent: false, reason: 'disconnected', error: 'WhatsApp desconectado ou indisponivel' }
     }
   }
 
   // ─── Agendamentos internos ─────────────────────────────────────────────────
 
-  async sendDirectWhatsApp(phone: string, text: string, ownerId?: string | null): Promise<void> {
-    await this.sendWhatsApp(phone, text, ownerId)
+  async sendDirectWhatsApp(phone: string, text: string, ownerId?: string | null): Promise<WhatsAppDeliveryResult> {
+    return this.sendWhatsApp(phone, text, ownerId)
   }
 
   async scheduleReminder(appointment: any): Promise<void> {
@@ -108,8 +160,8 @@ export class NotificationsService {
     await this.sendWhatsApp(patient.phone, msg, appointment.psychologistId)
   }
 
-  async sendAppointmentReminder(appointment: any, lead: '24h' | '2h'): Promise<void> {
-    if (!appointment.patient?.phone) return
+  async sendAppointmentReminder(appointment: any, lead: '24h' | '2h'): Promise<WhatsAppDeliveryResult> {
+    if (!appointment.patient?.phone) return { sent: false, error: 'Paciente sem WhatsApp' }
     const { patient, date, time } = appointment
     const prefs = (appointment.psychologist?.preferences ?? {}) as Record<string, any>
     const first = patient.name.split(' ')[0]
@@ -131,7 +183,7 @@ export class NotificationsService {
       ? this.renderReminderTemplate(prefs.reminderTemplate, patient.name, dateLabel, timeLabel, lead)
       : defaultMsg
 
-    await this.sendWhatsApp(patient.phone, msg, appointment.psychologistId)
+    return this.sendWhatsApp(patient.phone, msg, appointment.psychologistId)
   }
 
   async sendPaymentRequest(
@@ -140,8 +192,8 @@ export class NotificationsService {
     pixKey?: string,
     template?: string,
     includeReceipt?: boolean,
-  ): Promise<void> {
-    if (!patient?.phone) return
+  ): Promise<WhatsAppDeliveryResult> {
+    if (!patient?.phone) return { sent: false, error: 'Paciente sem WhatsApp' }
     const firstName = patient.name.split(' ')[0]
     const receiptLine = includeReceipt ? 'Depois do pagamento, por favor me envie o comprovante por aqui.\n\n' : ''
     const defaultMessage =
@@ -153,18 +205,18 @@ export class NotificationsService {
     const msg = template
       ? this.renderPaymentTemplate(template, patient.name, amount, pixKey, includeReceipt)
       : defaultMessage
-    await this.sendWhatsApp(patient.phone, msg, patient.psychologistId)
+    return this.sendWhatsApp(patient.phone, msg, patient.psychologistId)
   }
 
-  async sendLatePaymentReminder(patient: any, amount: number, pixKey?: string): Promise<void> {
-    if (!patient?.phone) return
+  async sendLatePaymentReminder(patient: any, amount: number, pixKey?: string): Promise<WhatsAppDeliveryResult> {
+    if (!patient?.phone) return { sent: false, error: 'Paciente sem WhatsApp' }
     const firstName = patient.name.split(' ')[0]
     const msg =
       `Ola, ${firstName}!\n\n` +
       `Passando para lembrar do pagamento pendente da sessao (*R$ ${amount.toFixed(2)}*).\n\n` +
       (pixKey ? `Chave PIX: \`${pixKey}\`\n\n` : '') +
       `Qualquer duvida, e so me chamar.`
-    await this.sendWhatsApp(patient.phone, msg, patient.psychologistId)
+    return this.sendWhatsApp(patient.phone, msg, patient.psychologistId)
   }
 
   // ─── Booking público ───────────────────────────────────────────────────────

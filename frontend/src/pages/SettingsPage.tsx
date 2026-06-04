@@ -103,6 +103,10 @@ export default function SettingsPage() {
   const [loadingPrefs, setLoadingPrefs] = useState(true)
   const [savingPrefs, setSavingPrefs] = useState(false)
   const [calendarBusy, setCalendarBusy] = useState(false)
+  const [whatsappBusy, setWhatsappBusy] = useState(false)
+  const [whatsappConnected, setWhatsappConnected] = useState(false)
+  const [whatsappConfigured, setWhatsappConfigured] = useState(true)
+  const [whatsappQr, setWhatsappQr] = useState('')
   const [googleCalendarAvailable, setGoogleCalendarAvailable] = useState(true)
   const [confirmDisconnectGoogle, setConfirmDisconnectGoogle] = useState(false)
   const [googleLastSyncedAt, setGoogleLastSyncedAt] = useState<string | null>(null)
@@ -143,6 +147,20 @@ export default function SettingsPage() {
       setGoogleCalendarAvailable(false)
     }
   }, [isAuthenticated])
+
+  useEffect(() => {
+    if (!isAuthenticated || tab !== 'messages') return
+    const loadStatus = () => api.get('/notifications/whatsapp/status')
+      .then(({ data }) => {
+        setWhatsappConfigured(data.configured !== false)
+        setWhatsappConnected(!!data.connected)
+        if (data.connected) setWhatsappQr('')
+      })
+      .catch(() => setWhatsappConfigured(false))
+    loadStatus()
+    const timer = window.setInterval(loadStatus, 5000)
+    return () => window.clearInterval(timer)
+  }, [isAuthenticated, tab])
 
   useEffect(() => {
     if (searchParams.get('googleCalendar') === 'connected') {
@@ -247,6 +265,32 @@ export default function SettingsPage() {
       toast.error(e?.response?.data?.message ?? 'Não foi possível desconectar.')
     } finally {
       setCalendarBusy(false)
+    }
+  }
+
+  async function connectWhatsApp() {
+    setWhatsappBusy(true)
+    try {
+      const { data } = await api.post('/notifications/whatsapp/connect')
+      setWhatsappQr(data.base64)
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? 'Nao foi possivel gerar o QR Code.')
+    } finally {
+      setWhatsappBusy(false)
+    }
+  }
+
+  async function testWhatsApp() {
+    setWhatsappBusy(true)
+    try {
+      await api.post('/notifications/whatsapp/test', { phone: prefs.whatsapp })
+      setWhatsappConnected(true)
+      setWhatsappQr('')
+      toast.success('Mensagem teste enviada')
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? 'Mensagem teste nao enviada.')
+    } finally {
+      setWhatsappBusy(false)
     }
   }
 
@@ -499,7 +543,12 @@ export default function SettingsPage() {
           {tab === 'messages' && (
             <div className="space-y-5">
               <div className="card space-y-4">
-                <h2 className="section-title">WhatsApp</h2>
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="section-title mb-0">WhatsApp</h2>
+                  <span className={`badge ${whatsappConnected ? 'bg-sage-50 text-sage-700' : 'bg-amber-50 text-amber-700'}`}>
+                    {whatsappConnected ? 'Conectado' : 'Desconectado'}
+                  </span>
+                </div>
                 {!hasProAutomation && (
                   <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                     <p className="font-medium">Envio automatico sera recurso Pro.</p>
@@ -513,6 +562,30 @@ export default function SettingsPage() {
                     className="input-field" placeholder="5511999990000 (com DDI e DDD, sem espaços)" />
                   <p className="text-xs text-neutral-400 mt-1">Usado para enviar e receber mensagens automáticas.</p>
                 </div>
+                {hasProAutomation && !whatsappConnected && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                    <p className="font-medium">
+                      {whatsappConfigured ? 'Conecte o WhatsApp para ativar as automacoes' : 'Servidor de WhatsApp nao configurado'}
+                    </p>
+                    {whatsappQr && (
+                      <div className="mt-3 rounded-xl bg-white p-3 w-fit">
+                        <img src={whatsappQr} alt="QR Code para conectar WhatsApp" className="h-56 w-56" />
+                      </div>
+                    )}
+                  </div>
+                )}
+                {hasProAutomation && whatsappConfigured && (
+                  <div className="flex flex-wrap gap-2">
+                    {!whatsappConnected && (
+                      <button type="button" onClick={connectWhatsApp} disabled={whatsappBusy} className="btn-primary text-sm">
+                        {whatsappQr ? 'Gerar novo QR Code' : 'Conectar WhatsApp'}
+                      </button>
+                    )}
+                    <button type="button" onClick={testWhatsApp} disabled={whatsappBusy || !prefs.whatsapp} className="btn-secondary text-sm">
+                      Enviar mensagem teste
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="card space-y-4">

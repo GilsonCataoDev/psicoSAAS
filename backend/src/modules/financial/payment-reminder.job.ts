@@ -47,11 +47,12 @@ export class PaymentReminderJob implements OnModuleInit, OnModuleDestroy {
         const prefs = (record.psychologist?.preferences ?? {}) as Record<string, any>
 
         if (prefs.lateReminder !== false && record.patient?.phone) {
-          await this.notifications.sendLatePaymentReminder(
+          const result = await this.notifications.sendLatePaymentReminder(
             record.patient,
             Number(record.amount),
             prefs.pixKey,
           )
+          if (!result.sent) continue
         }
 
         record.status = 'overdue'

@@ -53,17 +53,21 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
         const diff = startsAt.getTime() - now.getTime()
 
         if (!appointment.reminder24hSentAt && prefs.reminder24h !== false && diff <= DAY_MS && diff > TWO_HOURS_MS) {
-          await this.notifications.sendAppointmentReminder(appointment, '24h')
-          appointment.reminder24hSentAt = new Date()
-          await this.appointments.save(appointment)
-          sent++
+          const result = await this.notifications.sendAppointmentReminder(appointment, '24h')
+          if (result.sent) {
+            appointment.reminder24hSentAt = new Date()
+            await this.appointments.save(appointment)
+            sent++
+          }
         }
 
         if (!appointment.reminder2hSentAt && prefs.reminder2h !== false && diff <= TWO_HOURS_MS && diff > 0) {
-          await this.notifications.sendAppointmentReminder(appointment, '2h')
-          appointment.reminder2hSentAt = new Date()
-          await this.appointments.save(appointment)
-          sent++
+          const result = await this.notifications.sendAppointmentReminder(appointment, '2h')
+          if (result.sent) {
+            appointment.reminder2hSentAt = new Date()
+            await this.appointments.save(appointment)
+            sent++
+          }
         }
       }
 

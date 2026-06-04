@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common'
+import { BadRequestException, Injectable, NotFoundException, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { FinancialRecord } from './entities/financial-record.entity'
@@ -69,13 +69,14 @@ export class FinancialService {
     const record = await this.findOne(id, psychologistId)
     const user = await this.users.findOneBy({ id: psychologistId })
     const prefs = (user?.preferences ?? {}) as Record<string, any>
-    await this.notifications.sendPaymentRequest(
+    const result = await this.notifications.sendPaymentRequest(
       record.patient,
       Number(record.amount),
       prefs.pixKey,
       prefs.chargeTemplate,
       prefs.includeReceipt,
     )
+    if (!result.sent) throw new BadRequestException(result.error ?? 'Cobranca nao enviada')
     return { message: 'Cobrança enviada via WhatsApp ✓' }
   }
 
