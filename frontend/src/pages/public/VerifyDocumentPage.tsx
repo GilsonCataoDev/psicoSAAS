@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Shield, CheckCircle2, XCircle, Loader2, ExternalLink, FileText } from 'lucide-react'
-import { api } from '@/lib/api'
+import { api, type AuthAxiosRequestConfig } from '@/lib/api'
 import BrandLogo from '@/components/ui/BrandLogo'
 
 type DocType = 'declaracao' | 'recibo' | 'relatorio' | 'atestado' | 'encaminhamento'
@@ -41,7 +41,10 @@ export default function VerifyDocumentPage() {
 
     async function verify() {
       try {
-        const { data } = await api.get(`/documents/verify/${code}`)
+        const { data } = await api.get(
+          `/documents/verify/${code}`,
+          { skipAuthRedirect: true } as AuthAxiosRequestConfig,
+        )
         setResult(data)
       } catch {
         setResult({ valid: false })

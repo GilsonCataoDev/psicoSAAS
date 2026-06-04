@@ -7,6 +7,7 @@ import { Response } from 'express'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { RequirePlan } from '../../common/decorators/require-plan.decorator'
+import { PublicRoute } from '../../common/decorators/public-route.decorator'
 import { DocumentsService, CreateDocumentDto } from './documents.service'
 import { DocType } from './entities/document.entity'
 
@@ -76,6 +77,7 @@ export class DocumentsController {
    */
   @Get('verify/:code')
   @SkipThrottle()
+  @PublicRoute()
   async verify(@Param('code') code: string) {
     return this.svc.verifyByCode(code.toUpperCase())
   }
