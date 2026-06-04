@@ -389,6 +389,32 @@ export function useCreateBooking(slug: string) {
 
 // ─── Instrument assignments ────────────────────────────────────────────────
 
+export type InstrumentField = {
+  id: string
+  label: string
+  type: 'text' | 'textarea' | 'date' | 'email' | 'tel' | 'number' | 'select'
+  options?: string[]
+}
+
+export type InstrumentAssignment = {
+  id: string
+  title: string
+  description?: string
+  status: 'pending' | 'completed' | 'expired'
+  completedAt?: string
+  createdAt: string
+  fields: InstrumentField[]
+  answers: Record<string, string> | null
+  responseText?: string | null
+}
+
+export function useInstrumentAssignments(patientId?: string) {
+  return useQuery<InstrumentAssignment[]>({
+    queryKey: ['instrument-assignments', patientId],
+    queryFn: () => api.get('/instrument-assignments', { params: { patientId } }).then(r => r.data),
+  })
+}
+
 export function useCreateInstrumentAssignment() {
   const qc = useQueryClient()
   return useMutation({
@@ -401,6 +427,15 @@ export function useCreateInstrumentAssignment() {
       template: string
       sendWhatsApp?: boolean
     }) => api.post('/instrument-assignments', data).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['instrument-assignments'] }),
+  })
+}
+
+export function useUpdateInstrumentAnswers() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, answers }: { id: string; answers: Record<string, string> }) =>
+      api.patch(`/instrument-assignments/${id}/answers`, { answers }).then(r => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['instrument-assignments'] }),
   })
 }

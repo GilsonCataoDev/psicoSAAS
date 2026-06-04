@@ -40,6 +40,9 @@ export class InstrumentAssignment {
   @Column({ type: 'text', nullable: true })
   responseText?: string
 
+  @Column({ type: 'text', nullable: true })
+  responseData?: string
+
   @Column()
   patientId: string
 

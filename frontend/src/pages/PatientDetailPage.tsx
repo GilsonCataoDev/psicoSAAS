@@ -2,7 +2,7 @@ import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, Phone, Mail, Calendar, Plus, Lock,
   ClipboardList, MessageCircle, CheckCircle2, Save,
-  CalendarDays, Banknote, Clock,
+  CalendarDays, Banknote, Clock, FileText, Pencil,
 } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
@@ -11,8 +11,10 @@ import { useState, useEffect } from 'react'
 import {
   usePatient, useSessions, useFinancial,
   useMarkFinancialPaid, useSendCharge, useUpdatePatient,
+  useInstrumentAssignments, useUpdateInstrumentAnswers, type InstrumentAssignment,
 } from '@/hooks/useApi'
 import NewSessionModal from '@/components/features/sessions/NewSessionModal'
+import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
 
 const MOODS = ['', '1', '2', '3', '4', '5']
@@ -26,9 +28,13 @@ export default function PatientDetailPage() {
   const markPaid = useMarkFinancialPaid()
   const sendCharge = useSendCharge()
   const updatePatient = useUpdatePatient()
+  const { data: instrumentAssignments = [] } = useInstrumentAssignments(id)
+  const updateInstrumentAnswers = useUpdateInstrumentAnswers()
   const [note, setNote] = useState('')
-  const [tab, setTab] = useState<'timeline' | 'notes' | 'financial'>('timeline')
+  const [tab, setTab] = useState<'timeline' | 'responses' | 'notes' | 'financial'>('timeline')
   const [showSessionModal, setShowSessionModal] = useState(false)
+  const [editingResponse, setEditingResponse] = useState<InstrumentAssignment | null>(null)
+  const [editedAnswers, setEditedAnswers] = useState<Record<string, string>>({})
   const [fixedSchedule, setFixedSchedule] = useState({
     hasFixedSchedule: false,
     fixedScheduleWeekday: 1,
@@ -76,6 +82,22 @@ export default function PatientDetailPage() {
     }
   }
 
+  function openResponse(response: InstrumentAssignment) {
+    setEditingResponse(response)
+    setEditedAnswers(response.answers ?? {})
+  }
+
+  async function saveResponse() {
+    if (!editingResponse) return
+    try {
+      await updateInstrumentAnswers.mutateAsync({ id: editingResponse.id, answers: editedAnswers })
+      setEditingResponse(null)
+      toast.success('Respostas atualizadas')
+    } catch {
+      toast.error('Erro ao atualizar respostas.')
+    }
+  }
+
   if (isLoading) return (
     <div className="animate-pulse space-y-4 max-w-4xl">
       <div className="h-5 bg-neutral-100 rounded-lg w-36" />
@@ -93,6 +115,7 @@ export default function PatientDetailPage() {
 
   const totalPaid    = financialRecords.filter(r => r.status === 'paid').reduce((s, r) => s + Number(r.amount), 0)
   const totalPending = financialRecords.filter(r => r.status !== 'paid').reduce((s, r) => s + Number(r.amount), 0)
+  const clinicalSessions = allSessions.filter(session => !session.tags?.some(tag => String(tag) === 'instrumento'))
 
   return (
     <div className="animate-slide-up space-y-5 max-w-4xl">
@@ -259,6 +282,7 @@ export default function PatientDetailPage() {
       <div className="flex gap-1 bg-neutral-100 p-1 rounded-xl">
         {[
           { id: 'timeline',  label: 'Histórico',    icon: CalendarDays  },
+          { id: 'responses', label: 'Respostas',    icon: FileText      },
           { id: 'notes',     label: 'Anotacoes privadas', icon: Lock          },
           { id: 'financial', label: 'Financeiro',   icon: Banknote      },
         ].map(t => (
@@ -276,7 +300,7 @@ export default function PatientDetailPage() {
       {/* ── Timeline ──────────────────────────────────────────────────── */}
       {tab === 'timeline' && (
         <div className="space-y-3">
-          {allSessions.length === 0 ? (
+          {clinicalSessions.length === 0 ? (
             <div className="card py-12 text-center">
               <div className="w-12 h-12 bg-sage-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
                 <CalendarDays className="w-5 h-5 text-sage-400" />
@@ -288,7 +312,7 @@ export default function PatientDetailPage() {
               </button>
             </div>
           ) : (
-            allSessions.map(s => (
+            clinicalSessions.map(s => (
               <div key={s.id} className="card flex gap-4 hover:shadow-lifted transition-shadow duration-200">
                 <div className="w-12 text-center shrink-0 pt-0.5">
                   <p className="text-[11px] text-neutral-400 leading-tight">{formatDateRelative(s.date)}</p>
@@ -313,6 +337,39 @@ export default function PatientDetailPage() {
               </div>
             ))
           )}
+        </div>
+      )}
+
+      {/* ── Respostas de formulários ─────────────────────────────────── */}
+      {tab === 'responses' && (
+        <div className="space-y-3">
+          {instrumentAssignments.filter(item => item.status === 'completed').length === 0 ? (
+            <div className="card py-12 text-center">
+              <FileText className="mx-auto h-9 w-9 text-neutral-300" />
+              <p className="mt-3 font-medium text-neutral-600">Nenhuma resposta recebida</p>
+              <p className="mt-1 text-sm text-neutral-400">Formulários respondidos aparecerão aqui.</p>
+            </div>
+          ) : instrumentAssignments.filter(item => item.status === 'completed').map(response => (
+            <button key={response.id} type="button" onClick={() => openResponse(response)}
+              className="card w-full text-left hover:shadow-lifted transition-shadow">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="font-semibold text-neutral-700">{response.title}</p>
+                  <p className="mt-1 text-xs text-neutral-400">
+                    Respondido em {response.completedAt ? formatDate(response.completedAt) : formatDate(response.createdAt)}
+                  </p>
+                  <p className="mt-3 text-sm text-neutral-500">
+                    {response.answers
+                      ? `${Object.values(response.answers).filter(Boolean).length} respostas preenchidas`
+                      : 'Resposta em formato anterior'}
+                  </p>
+                </div>
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-sage-600">
+                  <Pencil className="h-3.5 w-3.5" /> Ver e editar
+                </span>
+              </div>
+            </button>
+          ))}
         </div>
       )}
 
@@ -430,6 +487,44 @@ export default function PatientDetailPage() {
         onClose={() => setShowSessionModal(false)}
         defaultPatientId={patient.id}
       />
+
+      <Modal open={!!editingResponse} onClose={() => setEditingResponse(null)} title={editingResponse?.title ?? 'Respostas'} size="lg">
+        {editingResponse?.answers ? (
+          <div className="space-y-4">
+            {editingResponse.fields.map(field => (
+              <label key={field.id} className="block">
+                <span className="label">{field.label}</span>
+                {field.type === 'textarea' ? (
+                  <textarea rows={3} value={editedAnswers[field.id] ?? ''}
+                    onChange={e => setEditedAnswers(prev => ({ ...prev, [field.id]: e.target.value }))}
+                    className="input-field resize-y" />
+                ) : field.type === 'select' ? (
+                  <select value={editedAnswers[field.id] ?? ''}
+                    onChange={e => setEditedAnswers(prev => ({ ...prev, [field.id]: e.target.value }))}
+                    className="input-field">
+                    <option value="">Selecione</option>
+                    {field.options?.map(option => <option key={option} value={option}>{option}</option>)}
+                  </select>
+                ) : (
+                  <input type={field.type} value={editedAnswers[field.id] ?? ''}
+                    onChange={e => setEditedAnswers(prev => ({ ...prev, [field.id]: e.target.value }))}
+                    className="input-field" />
+                )}
+              </label>
+            ))}
+            <div className="flex justify-end gap-3 border-t border-neutral-100 pt-4">
+              <button type="button" onClick={() => setEditingResponse(null)} className="btn-secondary">Cancelar</button>
+              <button type="button" onClick={saveResponse} disabled={updateInstrumentAnswers.isPending} className="btn-primary">
+                {updateInstrumentAnswers.isPending ? 'Salvando...' : 'Salvar alterações'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <pre className="whitespace-pre-wrap rounded-xl bg-neutral-50 p-4 text-sm leading-relaxed text-neutral-600">
+            {editingResponse?.responseText}
+          </pre>
+        )}
+      </Modal>
     </div>
   )
 }

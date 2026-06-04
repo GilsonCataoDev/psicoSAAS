@@ -2,13 +2,8 @@ import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { CheckCircle2, ClipboardList } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { usePublicInstrument, useSubmitPublicInstrument } from '@/hooks/useApi'
+import { usePublicInstrument, useSubmitPublicInstrument, type InstrumentField } from '@/hooks/useApi'
 import BrandLogo from '@/components/ui/BrandLogo'
-
-type PublicInstrumentField = {
-  id: string
-  label: string
-}
 
 export default function InstrumentResponsePage() {
   const { token } = useParams()
@@ -17,8 +12,25 @@ export default function InstrumentResponsePage() {
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [done, setDone] = useState(false)
 
-  const fields = useMemo<PublicInstrumentField[]>(() => data?.fields ?? [], [data])
+  const fields = useMemo<InstrumentField[]>(() => data?.fields ?? [], [data])
   const hasAnyAnswer = fields.some(field => answers[field.id]?.trim())
+
+  function setAnswer(field: InstrumentField, value: string) {
+    setAnswers(prev => {
+      const next = { ...prev, [field.id]: value }
+      if (field.type === 'date' && field.label.toLowerCase().includes('nascimento') && value) {
+        const ageField = fields.find(item => item.label.toLowerCase() === 'idade')
+        if (ageField) {
+          const birth = new Date(`${value}T12:00:00`)
+          const now = new Date()
+          let age = now.getFullYear() - birth.getFullYear()
+          if (now < new Date(now.getFullYear(), birth.getMonth(), birth.getDate())) age--
+          next[ageField.id] = String(Math.max(0, age))
+        }
+      }
+      return next
+    })
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -66,18 +78,27 @@ export default function InstrumentResponsePage() {
               </div>
 
               <div className="space-y-4">
-                {fields.map(field => (
-                  <label key={field.id} className="block">
-                    <span className="text-sm font-medium text-neutral-700">{field.label}</span>
-                    <textarea
-                      value={answers[field.id] ?? ''}
-                      onChange={e => setAnswers(prev => ({ ...prev, [field.id]: e.target.value }))}
-                      rows={3}
-                      className="mt-1 input-field resize-y text-sm"
-                      placeholder="Digite sua resposta"
-                    />
-                  </label>
-                ))}
+                {fields.map(field => {
+                  const value = answers[field.id] ?? ''
+                  return (
+                    <label key={field.id} className="block">
+                      <span className="text-sm font-medium text-neutral-700">{field.label}</span>
+                      {field.type === 'textarea' ? (
+                        <textarea value={value} onChange={e => setAnswer(field, e.target.value)} rows={3}
+                          className="mt-1 input-field resize-y text-sm" placeholder="Digite sua resposta" />
+                      ) : field.type === 'select' ? (
+                        <select value={value} onChange={e => setAnswer(field, e.target.value)} className="mt-1 input-field text-sm">
+                          <option value="">Selecione</option>
+                          {field.options?.map(option => <option key={option} value={option}>{option}</option>)}
+                        </select>
+                      ) : (
+                        <input type={field.type} value={value} onChange={e => setAnswer(field, e.target.value)}
+                          className="mt-1 input-field text-sm"
+                          placeholder={field.type === 'date' ? undefined : 'Digite sua resposta'} />
+                      )}
+                    </label>
+                  )
+                })}
               </div>
 
               <div className="flex justify-end border-t border-neutral-100 pt-4">

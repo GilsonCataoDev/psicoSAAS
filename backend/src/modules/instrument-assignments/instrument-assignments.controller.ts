@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common'
 import { IsBoolean, IsOptional, IsString } from 'class-validator'
 import { SkipThrottle } from '@nestjs/throttler'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
@@ -24,8 +24,8 @@ export class InstrumentAssignmentsController {
   @Get('instrument-assignments')
   @UseGuards(JwtAuthGuard)
   @RequirePlan('pro')
-  findMine(@Req() req: any) {
-    return this.svc.findMine(req.user.id)
+  findMine(@Req() req: any, @Query('patientId') patientId?: string) {
+    return this.svc.findMine(req.user.id, patientId)
   }
 
   @Post('instrument-assignments')
@@ -33,6 +33,13 @@ export class InstrumentAssignmentsController {
   @RequirePlan('pro')
   create(@Req() req: any, @Body() body: CreateInstrumentAssignmentDto) {
     return this.svc.create(body, req.user.id)
+  }
+
+  @Patch('instrument-assignments/:id/answers')
+  @UseGuards(JwtAuthGuard, CsrfGuard)
+  @RequirePlan('pro')
+  updateAnswers(@Req() req: any, @Param('id') id: string, @Body('answers') answers: Record<string, string>) {
+    return this.svc.updateAnswers(id, answers ?? {}, req.user.id)
   }
 
   @Get('public/instruments/:token')
