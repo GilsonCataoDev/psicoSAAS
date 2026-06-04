@@ -144,11 +144,13 @@ export default function BookingPage() {
   // ── LANDING ──────────────────────────────────────────────────────────────────
   if (step === 'landing') {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6">
-        <div className="w-full max-w-xs flex flex-col items-center">
+      <div className="min-h-screen bg-gradient-to-br from-sage-50 via-white to-mist-50 dark:from-[#0d1713] dark:via-[#101d18] dark:to-[#12231d] flex flex-col items-center justify-center px-6 py-12 relative overflow-hidden">
+        <div className="absolute -top-32 -right-24 h-80 w-80 rounded-full bg-sage-300/20 dark:bg-sage-500/10 blur-3xl" />
+        <div className="absolute -bottom-32 -left-24 h-80 w-80 rounded-full bg-mist-300/20 dark:bg-mist-500/10 blur-3xl" />
+        <div className="w-full max-w-md flex flex-col items-center bg-white/90 dark:bg-[#17251f]/90 backdrop-blur-xl rounded-3xl border border-white dark:border-sage-200/15 shadow-lifted px-7 py-9 sm:px-10 sm:py-11 relative">
 
           {/* Avatar */}
-          <div className="w-28 h-28 rounded-full overflow-hidden bg-neutral-100 mb-5 ring-4 ring-neutral-100 shadow-md shrink-0">
+          <div className="w-28 h-28 rounded-full overflow-hidden bg-neutral-100 dark:bg-sage-500/15 mb-6 ring-4 ring-white dark:ring-sage-300/20 shadow-md shrink-0">
             {page.avatarUrl ? (
               <img src={page.avatarUrl} alt={page.psychologistName} className="w-full h-full object-cover object-center" />
             ) : (
@@ -159,14 +161,19 @@ export default function BookingPage() {
           </div>
 
           {/* Nome */}
-          <h1 className="text-xl font-bold tracking-wide text-[#1a237e] uppercase text-center leading-tight mb-1">
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-neutral-800 dark:text-neutral-100 text-center leading-tight mb-2">
             {page.psychologistName}
           </h1>
 
           {/* Especialidade / título */}
           {((page as any).specialty || page.title) && (
-            <p className="text-sm text-neutral-400 text-center mb-7">
+            <p className="text-sm text-neutral-500 dark:text-neutral-300 text-center mb-2">
               {(page as any).specialty ?? page.title}
+            </p>
+          )}
+          {page.psychologistCrp && (
+            <p className="text-xs text-neutral-400 dark:text-neutral-400 text-center mb-8">
+              CRP {page.psychologistCrp}
             </p>
           )}
 
@@ -174,9 +181,9 @@ export default function BookingPage() {
           <div className="w-full space-y-3">
             <button
               onClick={startBooking}
-              className="w-full flex items-center justify-center gap-2 border border-neutral-300 rounded-lg py-3 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
+              className="w-full flex items-center justify-center gap-2 bg-sage-500 hover:bg-sage-600 text-white rounded-xl py-3.5 text-sm font-semibold shadow-sm hover:shadow-md transition-all"
             >
-              <Calendar className="w-4 h-4 text-neutral-500" />
+              <Calendar className="w-4 h-4" />
               Agende agora
             </button>
 
@@ -185,7 +192,7 @@ export default function BookingPage() {
                 href={`https://wa.me/${waNumber}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full flex items-center justify-center gap-2 border border-neutral-300 rounded-lg py-3 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
+                className="w-full flex items-center justify-center gap-2 border border-neutral-200 dark:border-white/15 bg-white/70 dark:bg-white/5 rounded-xl py-3.5 text-sm font-medium text-neutral-700 dark:text-neutral-100 hover:bg-neutral-50 dark:hover:bg-white/10 transition-colors"
               >
                 <WhatsAppIcon className="w-4 h-4 text-[#25d366]" />
                 Whatsapp
@@ -195,9 +202,9 @@ export default function BookingPage() {
         </div>
 
         {/* Powered by */}
-        <p className="absolute bottom-6 text-xs text-neutral-300">
+        <p className="absolute bottom-6 text-xs text-neutral-400 dark:text-neutral-500">
           Powered by{' '}
-          <span className="font-semibold text-neutral-400">UseCognia</span>
+          <span className="font-semibold text-sage-600 dark:text-sage-300">UseCognia</span>
         </p>
       </div>
     )
