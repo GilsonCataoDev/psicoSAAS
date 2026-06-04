@@ -1,4 +1,4 @@
-import{r as e}from"./rolldown-runtime-S-ySWqyJ.js";import{r as t}from"./form-vendor-B_wrF4EP.js";import{a as n}from"./react-vendor-38N1LKRe.js";import{a as r}from"./query-vendor-Bvunf-EU.js";import{$ as i,Bt as a,C as o,Dt as s,Ft as c,G as l,N as u,P as d,Q as f,St as p,Vt as m,Wt as h,Z as g,ct as _,d as v,et as y,ft as b,g as x,ht as S,j as C,m as w,n as T,o as E,p as D,rt as O,t as k,y as A}from"./icons-vendor-C-n0jJHP.js";import{B as j,w as M}from"./index-Z7ShIPap.js";import{t as N}from"./Modal-DgXncvVe.js";var P=e(t()),F=r(),I={formulario:`Formulário`,escala:`Escala`,registro:`Registro`,entrevista:`Entrevista`},L={formulario:`bg-sage-100 text-sage-700`,escala:`bg-violet-100 text-violet-700`,registro:`bg-amber-100 text-amber-700`,entrevista:`bg-sky-100 text-sky-700`},R=[`bg-sage-50 text-sage-600 ring-sage-200`,`bg-violet-50 text-violet-600 ring-violet-200`,`bg-sky-50 text-sky-600 ring-sky-200`,`bg-amber-50 text-amber-600 ring-amber-200`,`bg-rose-50 text-rose-600 ring-rose-200`,`bg-teal-50 text-teal-600 ring-teal-200`,`bg-indigo-50 text-indigo-600 ring-indigo-200`,`bg-orange-50 text-orange-600 ring-orange-200`],z=[{id:`anamnese-adulto`,title:`Anamnese Psicológica — Adulto`,description:`Levantamento inicial completo: queixa, história de vida, saúde, vínculos e objetivos terapêuticos.`,category:`formulario`,tags:[`anamnese`,`avaliação inicial`,`adulto`],ageGroups:[`adulto`],Icon:S,template:`ANAMNESE PSICOLÓGICA — ADULTO
+import{r as e}from"./rolldown-runtime-S-ySWqyJ.js";import{r as t}from"./form-vendor-B_wrF4EP.js";import{a as n}from"./react-vendor-38N1LKRe.js";import{a as r}from"./query-vendor-Bvunf-EU.js";import{$ as i,C as a,G as o,Lt as s,Mt as c,N as l,P as u,Q as d,Rt as f,Vt as p,Z as m,ct as h,d as g,et as _,ft as v,g as y,j as b,m as x,mt as S,n as C,o as w,p as T,rt as E,t as D,wt as O,y as k,yt as A}from"./icons-vendor-CS5Zn1_p.js";import{B as j,w as M}from"./index-D390l17U.js";import{t as N}from"./Modal-BA8ylfcf.js";var P=e(t()),F=r(),I={formulario:`Formulário`,escala:`Escala`,registro:`Registro`,entrevista:`Entrevista`},L={formulario:`bg-sage-100 text-sage-700`,escala:`bg-violet-100 text-violet-700`,registro:`bg-amber-100 text-amber-700`,entrevista:`bg-sky-100 text-sky-700`},R=[`bg-sage-50 text-sage-600 ring-sage-200`,`bg-violet-50 text-violet-600 ring-violet-200`,`bg-sky-50 text-sky-600 ring-sky-200`,`bg-amber-50 text-amber-600 ring-amber-200`,`bg-rose-50 text-rose-600 ring-rose-200`,`bg-teal-50 text-teal-600 ring-teal-200`,`bg-indigo-50 text-indigo-600 ring-indigo-200`,`bg-orange-50 text-orange-600 ring-orange-200`],z=[{id:`anamnese-adulto`,title:`Anamnese Psicológica — Adulto`,description:`Levantamento inicial completo: queixa, história de vida, saúde, vínculos e objetivos terapêuticos.`,category:`formulario`,tags:[`anamnese`,`avaliação inicial`,`adulto`],ageGroups:[`adulto`],Icon:S,template:`ANAMNESE PSICOLÓGICA — ADULTO
 
 IDENTIFICAÇÃO
 Nome completo:
@@ -44,7 +44,7 @@ Histórico familiar de transtornos mentais:
 OBJETIVOS
 O que espera do processo terapêutico:
 Objetivos para o acompanhamento:
-Observações iniciais do(a) profissional:`},{id:`anamnese-infantil`,title:`Anamnese Psicológica — Infantil e Adolescente`,description:`Levantamento com responsável: desenvolvimento, contexto familiar, escola e histórico de saúde.`,category:`formulario`,tags:[`anamnese`,`infantil`,`adolescente`,`avaliação inicial`],ageGroups:[`infantil`,`adolescente`],Icon:a,template:`ANAMNESE INFANTIL E ADOLESCENTE
+Observações iniciais do(a) profissional:`},{id:`anamnese-infantil`,title:`Anamnese Psicológica — Infantil e Adolescente`,description:`Levantamento com responsável: desenvolvimento, contexto familiar, escola e histórico de saúde.`,category:`formulario`,tags:[`anamnese`,`infantil`,`adolescente`,`avaliação inicial`],ageGroups:[`infantil`,`adolescente`],Icon:s,template:`ANAMNESE INFANTIL E ADOLESCENTE
 
 IDENTIFICAÇÃO
 Nome da criança/adolescente:
@@ -89,7 +89,7 @@ Outros:
 OBJETIVOS
 Expectativas do responsável:
 Expectativas do paciente (quando aplicável):
-Observações iniciais do(a) profissional:`},{id:`evolucao-sessao`,title:`Evolução de Sessão`,description:`Registro clínico da sessão: demanda trabalhada, intervenções, resposta observada e próximos passos.`,category:`formulario`,tags:[`evolução`,`prontuário`,`registro clínico`],ageGroups:[`all`],Icon:C,template:`EVOLUÇÃO DE SESSÃO
+Observações iniciais do(a) profissional:`},{id:`evolucao-sessao`,title:`Evolução de Sessão`,description:`Registro clínico da sessão: demanda trabalhada, intervenções, resposta observada e próximos passos.`,category:`formulario`,tags:[`evolução`,`prontuário`,`registro clínico`],ageGroups:[`all`],Icon:b,template:`EVOLUÇÃO DE SESSÃO
 
 Data:
 Pessoa atendida:
@@ -115,7 +115,7 @@ PRÓXIMA SESSÃO
 Data prevista:
 Foco para a próxima sessão:
 
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`plano-terapeutico`,title:`Plano Terapêutico Individual`,description:`Hipóteses clínicas, objetivos, frequência, estratégias e indicadores de progresso.`,category:`formulario`,tags:[`planejamento`,`objetivos`,`hipóteses clínicas`],ageGroups:[`all`],Icon:D,template:`PLANO TERAPÊUTICO INDIVIDUAL
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`plano-terapeutico`,title:`Plano Terapêutico Individual`,description:`Hipóteses clínicas, objetivos, frequência, estratégias e indicadores de progresso.`,category:`formulario`,tags:[`planejamento`,`objetivos`,`hipóteses clínicas`],ageGroups:[`all`],Icon:T,template:`PLANO TERAPÊUTICO INDIVIDUAL
 
 Data de elaboração:
 Revisão prevista para:
@@ -148,7 +148,7 @@ Critérios de alta ou revisão:
 CUIDADOS ÉTICOS E DE SIGILO
 Observações éticas específicas do caso:
 
-OBSERVAÇÕES:`},{id:`contrato-terapeutico`,title:`Contrato Terapêutico / Combinados`,description:`Honorários, faltas, cancelamento, sigilo, comunicação, emergências e proteção de dados.`,category:`formulario`,tags:[`contrato`,`ética`,`sigilo`,`LGPD`],ageGroups:[`all`],Icon:O,template:`CONTRATO TERAPÊUTICO / COMBINADOS
+OBSERVAÇÕES:`},{id:`contrato-terapeutico`,title:`Contrato Terapêutico / Combinados`,description:`Honorários, faltas, cancelamento, sigilo, comunicação, emergências e proteção de dados.`,category:`formulario`,tags:[`contrato`,`ética`,`sigilo`,`LGPD`],ageGroups:[`all`],Icon:E,template:`CONTRATO TERAPÊUTICO / COMBINADOS
 
 Data:
 Profissional responsável:
@@ -184,7 +184,7 @@ Direito de acesso e exclusão de dados:
 
 ACEITE
 Concordância da pessoa atendida ou responsável:
-Assinatura/data:`},{id:`triagem-inicial`,title:`Entrevista de Triagem Inicial`,description:`Avaliação breve de demanda, urgência, risco, disponibilidade e adequação ao atendimento.`,category:`entrevista`,tags:[`triagem`,`avaliação inicial`,`risco`],ageGroups:[`all`],Icon:d,template:`ENTREVISTA DE TRIAGEM INICIAL
+Assinatura/data:`},{id:`triagem-inicial`,title:`Entrevista de Triagem Inicial`,description:`Avaliação breve de demanda, urgência, risco, disponibilidade e adequação ao atendimento.`,category:`entrevista`,tags:[`triagem`,`avaliação inicial`,`risco`],ageGroups:[`all`],Icon:u,template:`ENTREVISTA DE TRIAGEM INICIAL
 
 Data da triagem:
 Forma de contato inicial:
@@ -215,7 +215,7 @@ DECISÃO DE TRIAGEM
 Atendimento regular:
 Encaminhamento para:
 Retorno agendado para:
-Observações:`},{id:`entrevista-motivacional`,title:`Entrevista Motivacional`,description:`Exploração da ambivalência, estágio de mudança, importância, confiança e próximos passos.`,category:`entrevista`,tags:[`motivação`,`mudança`,`ambivalência`,`EM`],ageGroups:[`adulto`,`adolescente`],Icon:b,template:`ENTREVISTA MOTIVACIONAL
+Observações:`},{id:`entrevista-motivacional`,title:`Entrevista Motivacional`,description:`Exploração da ambivalência, estágio de mudança, importância, confiança e próximos passos.`,category:`entrevista`,tags:[`motivação`,`mudança`,`ambivalência`,`EM`],ageGroups:[`adulto`,`adolescente`],Icon:v,template:`ENTREVISTA MOTIVACIONAL
 
 ESTÁGIO DE MUDANÇA
 Pré-contemplação (não reconhece o problema):
@@ -268,7 +268,7 @@ INTERPRETAÇÃO:
 DIFICULDADE FUNCIONAL:
 Se marcou algum problema, eles dificultaram seu trabalho, cuidados domésticos ou relacionamentos?
 
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`gad7`,title:`GAD-7 — Transtorno de Ansiedade Generalizada`,description:`Escala de 7 itens para rastreio de ansiedade generalizada. Uso clínico livre.`,category:`escala`,tags:[`ansiedade`,`rastreio`,`GAD-7`],ageGroups:[`adulto`,`adolescente`],Icon:h,template:`GAD-7 — TRANSTORNO DE ANSIEDADE GENERALIZADA
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`gad7`,title:`GAD-7 — Transtorno de Ansiedade Generalizada`,description:`Escala de 7 itens para rastreio de ansiedade generalizada. Uso clínico livre.`,category:`escala`,tags:[`ansiedade`,`rastreio`,`GAD-7`],ageGroups:[`adulto`,`adolescente`],Icon:p,template:`GAD-7 — TRANSTORNO DE ANSIEDADE GENERALIZADA
 
 Nas últimas 2 semanas, com que frequência você foi incomodado(a) pelos seguintes problemas?
 (0 = Nenhuma vez | 1 = Vários dias | 2 = Mais da metade dos dias | 3 = Quase todos os dias)
@@ -288,7 +288,7 @@ INTERPRETAÇÃO:
 DIFICULDADE FUNCIONAL:
 Se marcou algum problema, eles dificultaram suas atividades diárias?
 
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`dass21`,title:`DASS-21 — Depressão, Ansiedade e Estresse`,description:`Versão abreviada da escala DASS para rastreio em três subescalas. Uso clínico livre.`,category:`escala`,tags:[`depressão`,`ansiedade`,`estresse`,`DASS-21`],ageGroups:[`adulto`,`adolescente`],Icon:s,template:`DASS-21 — DEPRESSÃO, ANSIEDADE E ESTRESSE
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`dass21`,title:`DASS-21 — Depressão, Ansiedade e Estresse`,description:`Versão abreviada da escala DASS para rastreio em três subescalas. Uso clínico livre.`,category:`escala`,tags:[`depressão`,`ansiedade`,`estresse`,`DASS-21`],ageGroups:[`adulto`,`adolescente`],Icon:O,template:`DASS-21 — DEPRESSÃO, ANSIEDADE E ESTRESSE
 
 Na semana passada, em que medida cada afirmação se aplicou a você?
 (0 = Não se aplicou | 1 = Às vezes | 2 = Bastante | 3 = Muito/quase sempre)
@@ -322,7 +322,7 @@ Depressão:
 Ansiedade:
 Estresse:
 
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`rastreio-risco`,title:`Rastreio de Risco Suicida`,description:`Avaliação de ideação, histórico, fatores de risco e proteção, e conduta do profissional.`,category:`formulario`,tags:[`risco`,`suicídio`,`segurança`,`urgência`],ageGroups:[`all`],Icon:A,template:`RASTREIO DE RISCO SUICIDA
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`rastreio-risco`,title:`Rastreio de Risco Suicida`,description:`Avaliação de ideação, histórico, fatores de risco e proteção, e conduta do profissional.`,category:`formulario`,tags:[`risco`,`suicídio`,`segurança`,`urgência`],ageGroups:[`all`],Icon:k,template:`RASTREIO DE RISCO SUICIDA
 
 Data da avaliação:
 
@@ -357,7 +357,7 @@ Nível de risco (baixo / médio / alto / iminente):
 Conduta adotada:
 Encaminhamentos realizados:
 Plano de segurança elaborado:
-Próxima avaliação:`},{id:`bai-adaptado`,title:`Inventário de Ansiedade — Adaptado`,description:`Lista de sintomas físicos e cognitivos de ansiedade com escala de intensidade de 4 pontos.`,category:`escala`,tags:[`ansiedade`,`sintomas`,`BAI`],ageGroups:[`adulto`],Icon:g,template:`INVENTÁRIO DE ANSIEDADE — ADAPTADO
+Próxima avaliação:`},{id:`bai-adaptado`,title:`Inventário de Ansiedade — Adaptado`,description:`Lista de sintomas físicos e cognitivos de ansiedade com escala de intensidade de 4 pontos.`,category:`escala`,tags:[`ansiedade`,`sintomas`,`BAI`],ageGroups:[`adulto`],Icon:m,template:`INVENTÁRIO DE ANSIEDADE — ADAPTADO
 
 Na semana passada, com que intensidade você foi incomodado(a) pelos seguintes sintomas?
 (0 = Absolutamente não | 1 = Levemente | 2 = Moderadamente | 3 = Gravemente)
@@ -414,7 +414,7 @@ Quanto você acredita nesse pensamento alternativo? (0 a 100%):
 
 RESULTADO
 Emoções após a reestruturação e intensidades:
-O que você vai fazer como resultado desta análise:`},{id:`diario-humor`,title:`Diário de Humor Semanal`,description:`Autorregistro diário de humor, sono, eventos significativos e padrões semanais.`,category:`registro`,tags:[`humor`,`autorregistro`,`monitoramento`],ageGroups:[`all`],Icon:x,template:`DIÁRIO DE HUMOR SEMANAL
+O que você vai fazer como resultado desta análise:`},{id:`diario-humor`,title:`Diário de Humor Semanal`,description:`Autorregistro diário de humor, sono, eventos significativos e padrões semanais.`,category:`registro`,tags:[`humor`,`autorregistro`,`monitoramento`],ageGroups:[`all`],Icon:y,template:`DIÁRIO DE HUMOR SEMANAL
 
 Semana de:
 
@@ -457,7 +457,7 @@ Observações:
 REFLEXÃO DA SEMANA
 O que foi mais desafiador esta semana:
 O que foi positivo:
-Padrões que percebi:`},{id:`rastreio-sono`,title:`Rastreio de Sono`,description:`Avaliação do padrão de sono, comportamentos associados e impacto funcional.`,category:`registro`,tags:[`sono`,`insônia`,`higiene do sono`],ageGroups:[`adulto`,`adolescente`],Icon:u,template:`RASTREIO DE SONO
+Padrões que percebi:`},{id:`rastreio-sono`,title:`Rastreio de Sono`,description:`Avaliação do padrão de sono, comportamentos associados e impacto funcional.`,category:`registro`,tags:[`sono`,`insônia`,`higiene do sono`],ageGroups:[`adulto`,`adolescente`],Icon:l,template:`RASTREIO DE SONO
 
 Período avaliado:
 
@@ -529,7 +529,7 @@ AVALIAÇÃO GLOBAL DE FUNCIONAMENTO
 Pontuação AGF estimada (0–100):
 Justificativa:
 
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`pcl5`,title:`PCL-5 — Rastreio de TEPT`,description:`Lista de verificação de TEPT para o DSM-5 (20 itens). Domínio público — National Center for PTSD.`,category:`escala`,tags:[`TEPT`,`trauma`,`estresse pós-traumático`,`PCL-5`],ageGroups:[`adulto`],Icon:p,template:`PCL-5 — LISTA DE VERIFICAÇÃO DE TEPT (DSM-5)
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`pcl5`,title:`PCL-5 — Rastreio de TEPT`,description:`Lista de verificação de TEPT para o DSM-5 (20 itens). Domínio público — National Center for PTSD.`,category:`escala`,tags:[`TEPT`,`trauma`,`estresse pós-traumático`,`PCL-5`],ageGroups:[`adulto`],Icon:A,template:`PCL-5 — LISTA DE VERIFICAÇÃO DE TEPT (DSM-5)
 
 Nas últimas 4 semanas, com que intensidade você foi incomodado pelos seguintes problemas
 relacionados a uma experiência estressante ou perturbadora?
@@ -567,7 +567,7 @@ PONTUAÇÃO TOTAL (0–80):
 INTERPRETAÇÃO:
 (0–10: improvável TEPT | 11–20: leve | 21–45: moderado | >45: grave)
 
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`srq20`,title:`SRQ-20 — Rastreio de Transtornos Mentais Comuns`,description:`Questionário de autorrelato da OMS para rastreio de TMC em atenção primária. Domínio público.`,category:`escala`,tags:[`TMC`,`rastreio`,`saúde mental`,`SRQ-20`,`OMS`],ageGroups:[`adulto`,`adolescente`],Icon:l,template:`SRQ-20 — RASTREIO DE TRANSTORNOS MENTAIS COMUNS
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`srq20`,title:`SRQ-20 — Rastreio de Transtornos Mentais Comuns`,description:`Questionário de autorrelato da OMS para rastreio de TMC em atenção primária. Domínio público.`,category:`escala`,tags:[`TMC`,`rastreio`,`saúde mental`,`SRQ-20`,`OMS`],ageGroups:[`adulto`,`adolescente`],Icon:o,template:`SRQ-20 — RASTREIO DE TRANSTORNOS MENTAIS COMUNS
 
 Nos últimos 30 dias: (Sim / Não)
 
@@ -598,7 +598,7 @@ INTERPRETAÇÃO:
 
 ⚠ O item 17 exige avaliação imediata de risco suicida, independentemente da pontuação total.
 
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`isi`,title:`ISI — Índice de Gravidade da Insônia`,description:`Escala de 7 itens para avaliação da gravidade da insônia. Autor: Charles M. Morin. Domínio público.`,category:`escala`,tags:[`insônia`,`sono`,`ISI`,`gravidade`],ageGroups:[`adulto`],Icon:u,template:`ISI — ÍNDICE DE GRAVIDADE DA INSÔNIA
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`isi`,title:`ISI — Índice de Gravidade da Insônia`,description:`Escala de 7 itens para avaliação da gravidade da insônia. Autor: Charles M. Morin. Domínio público.`,category:`escala`,tags:[`insônia`,`sono`,`ISI`,`gravidade`],ageGroups:[`adulto`],Icon:l,template:`ISI — ÍNDICE DE GRAVIDADE DA INSÔNIA
 
 Avalie a GRAVIDADE dos seguintes problemas de sono:
 (0 = Sem problema | 1 = Leve | 2 = Moderado | 3 = Grave | 4 = Muito grave)
@@ -621,7 +621,7 @@ PONTUAÇÃO TOTAL (0–28):
 INTERPRETAÇÃO:
 (0–7: sem insônia clinicamente significativa | 8–14: insônia subclínica | 15–21: insônia moderada | 22–28: insônia grave)
 
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`ess`,title:`ESS — Escala de Sonolência de Epworth`,description:`Escala de 8 itens para avaliar sonolência diurna excessiva. Autor: Murray Johns. Domínio público.`,category:`escala`,tags:[`sonolência`,`sono`,`ESS`,`Epworth`],ageGroups:[`adulto`],Icon:w,template:`ESS — ESCALA DE SONOLÊNCIA DE EPWORTH
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`ess`,title:`ESS — Escala de Sonolência de Epworth`,description:`Escala de 8 itens para avaliar sonolência diurna excessiva. Autor: Murray Johns. Domínio público.`,category:`escala`,tags:[`sonolência`,`sono`,`ESS`,`Epworth`],ageGroups:[`adulto`],Icon:x,template:`ESS — ESCALA DE SONOLÊNCIA DE EPWORTH
 
 Com que frequência você cochilaria ou adormeceria nas seguintes situações?
 (0 = Nunca | 1 = Pequena chance | 2 = Chance moderada | 3 = Alta chance)
@@ -641,7 +641,7 @@ INTERPRETAÇÃO:
 
 Sonolência ≥10 pontos recomenda avaliação de apneia do sono e outros distúrbios.
 
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`audit`,title:`AUDIT — Uso de Álcool`,description:`Teste de identificação de transtornos por uso de álcool (10 itens). OMS. Domínio público.`,category:`escala`,tags:[`álcool`,`AUDIT`,`dependência`,`OMS`],ageGroups:[`adulto`],Icon:y,template:`AUDIT — TESTE DE IDENTIFICAÇÃO DE TRANSTORNOS POR USO DE ÁLCOOL
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`audit`,title:`AUDIT — Uso de Álcool`,description:`Teste de identificação de transtornos por uso de álcool (10 itens). OMS. Domínio público.`,category:`escala`,tags:[`álcool`,`AUDIT`,`dependência`,`OMS`],ageGroups:[`adulto`],Icon:_,template:`AUDIT — TESTE DE IDENTIFICAÇÃO DE TRANSTORNOS POR USO DE ÁLCOOL
 
 PARTE A — Consumo de álcool
 
@@ -689,7 +689,7 @@ PONTUAÇÃO TOTAL (0–40):
 INTERPRETAÇÃO:
 (0–7: uso de baixo risco | 8–15: uso perigoso | 16–19: uso nocivo | ≥20: provável dependência)
 
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`cage`,title:`CAGE — Rastreio de Dependência de Álcool`,description:`Questionário breve de 4 itens para rastreio de dependência alcoólica. Autor: J. Ewing. Domínio público.`,category:`escala`,tags:[`álcool`,`CAGE`,`dependência`,`rastreio rápido`],ageGroups:[`adulto`],Icon:k,template:`CAGE — RASTREIO DE DEPENDÊNCIA DE ÁLCOOL
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`cage`,title:`CAGE — Rastreio de Dependência de Álcool`,description:`Questionário breve de 4 itens para rastreio de dependência alcoólica. Autor: J. Ewing. Domínio público.`,category:`escala`,tags:[`álcool`,`CAGE`,`dependência`,`rastreio rápido`],ageGroups:[`adulto`],Icon:D,template:`CAGE — RASTREIO DE DEPENDÊNCIA DE ÁLCOOL
 
 Responda Sim ou Não às perguntas abaixo:
 
@@ -753,7 +753,7 @@ PONTUAÇÃO TOTAL (0–30):
 PONTO DE CORTE AJUSTADO POR ESCOLARIDADE:
 (Analfabetos: 13 | Fundamental incompleto: 18 | Médio/Superior: 26)
 
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`whodas`,title:`WHODAS 2.0 — Avaliação de Funcionalidade (12 itens)`,description:`Escala da OMS para avaliação de funcionalidade e incapacidade em 6 domínios. Domínio público.`,category:`escala`,tags:[`funcionalidade`,`WHODAS`,`OMS`,`CIF`,`incapacidade`],ageGroups:[`adulto`],Icon:f,template:`WHODAS 2.0 — AVALIAÇÃO DE FUNCIONALIDADE (12 itens)
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`whodas`,title:`WHODAS 2.0 — Avaliação de Funcionalidade (12 itens)`,description:`Escala da OMS para avaliação de funcionalidade e incapacidade em 6 domínios. Domínio público.`,category:`escala`,tags:[`funcionalidade`,`WHODAS`,`OMS`,`CIF`,`incapacidade`],ageGroups:[`adulto`],Icon:d,template:`WHODAS 2.0 — AVALIAÇÃO DE FUNCIONALIDADE (12 itens)
 Organização Mundial da Saúde — Domínio público
 
 Nos últimos 30 dias, avalie o GRAU DE DIFICULDADE para:
@@ -799,7 +799,7 @@ PONTUAÇÃO TOTAL (0–48):
 (Converter para escala 0–100 se necessário: pontuação/48 × 100)
 INTERPRETAÇÃO: quanto maior a pontuação, maior a incapacidade funcional.
 
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`sdq`,title:`SDQ — Capacidades e Dificuldades (4–17 anos)`,description:`Questionário de 25 itens para rastreio comportamental infantojuvenil. Autor: R. Goodman. Domínio público.`,category:`escala`,tags:[`SDQ`,`infantil`,`adolescente`,`comportamento`,`rastreio`],ageGroups:[`infantil`,`adolescente`],Icon:m,template:`SDQ — QUESTIONÁRIO DE CAPACIDADES E DIFICULDADES
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`sdq`,title:`SDQ — Capacidades e Dificuldades (4–17 anos)`,description:`Questionário de 25 itens para rastreio comportamental infantojuvenil. Autor: R. Goodman. Domínio público.`,category:`escala`,tags:[`SDQ`,`infantil`,`adolescente`,`comportamento`,`rastreio`],ageGroups:[`infantil`,`adolescente`],Icon:f,template:`SDQ — QUESTIONÁRIO DE CAPACIDADES E DIFICULDADES
 Versão para pais — Robert Goodman (www.sdqinfo.org) — Domínio público
 
 Para cada item: 0 = Não verdadeiro | 1 = Parcialmente verdadeiro | 2 = Completamente verdadeiro
@@ -848,7 +848,7 @@ TOTAL DE DIFICULDADES (soma subescalas 1–4, máx. 40):
 INTERPRETAÇÃO:
 (0–13: normal | 14–16: limítrofe | 17–40: anormal)
 
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`gaf`,title:`GAF — Avaliação Global do Funcionamento`,description:`Escala de 0–100 do DSM-IV para avaliação do funcionamento psicossocial e ocupacional. Domínio público.`,category:`escala`,tags:[`GAF`,`funcionamento`,`DSM`,`psicossocial`],ageGroups:[`all`],Icon:v,template:`GAF — AVALIAÇÃO GLOBAL DO FUNCIONAMENTO (DSM-IV)
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`gaf`,title:`GAF — Avaliação Global do Funcionamento`,description:`Escala de 0–100 do DSM-IV para avaliação do funcionamento psicossocial e ocupacional. Domínio público.`,category:`escala`,tags:[`GAF`,`funcionamento`,`DSM`,`psicossocial`],ageGroups:[`all`],Icon:g,template:`GAF — AVALIAÇÃO GLOBAL DO FUNCIONAMENTO (DSM-IV)
 
 DATA DA AVALIAÇÃO:
 PERÍODO AVALIADO: □ Atual   □ Melhor nível no último ano
@@ -878,7 +878,7 @@ Funcionamento nos relacionamentos:
 Autocuidado e vida diária:
 
 PONTUAÇÃO GAF MELHOR NÍVEL (último ano):
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`ies-r`,title:`IES-R — Impacto do Evento (Revisado)`,description:`Escala de 22 itens para avaliação de resposta ao trauma (intrusão, evitação, hiperexcitação). Domínio público.`,category:`escala`,tags:[`trauma`,`TEPT`,`IES-R`,`impacto de evento`],ageGroups:[`adulto`],Icon:p,template:`IES-R — ESCALA DE IMPACTO DO EVENTO (REVISADA)
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`ies-r`,title:`IES-R — Impacto do Evento (Revisado)`,description:`Escala de 22 itens para avaliação de resposta ao trauma (intrusão, evitação, hiperexcitação). Domínio público.`,category:`escala`,tags:[`trauma`,`TEPT`,`IES-R`,`impacto de evento`],ageGroups:[`adulto`],Icon:A,template:`IES-R — ESCALA DE IMPACTO DO EVENTO (REVISADA)
 Weiss & Marmar (1997) — Domínio público
 
 A seguir estão reações que as pessoas têm depois de acontecimentos perturbadores na vida.
@@ -922,7 +922,7 @@ INTERPRETAÇÃO:
 (0–8: leve | 9–25: moderado | 26–43: alto | >44: muito alto — sugestivo de TEPT)
 
 EVENTO AVALIADO:
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`cssrs-simplificado`,title:`C-SSRS — Avaliação de Risco Suicida (Columbia)`,description:`Versão simplificada da escala Columbia para avaliação de ideação e comportamento suicida. Domínio público.`,category:`formulario`,tags:[`suicídio`,`risco`,`C-SSRS`,`Columbia`],ageGroups:[`all`],Icon:A,template:`C-SSRS — ESCALA DE COLUMBIA PARA AVALIAÇÃO DO RISCO SUICIDA (Simplificada)
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`cssrs-simplificado`,title:`C-SSRS — Avaliação de Risco Suicida (Columbia)`,description:`Versão simplificada da escala Columbia para avaliação de ideação e comportamento suicida. Domínio público.`,category:`formulario`,tags:[`suicídio`,`risco`,`C-SSRS`,`Columbia`],ageGroups:[`all`],Icon:k,template:`C-SSRS — ESCALA DE COLUMBIA PARA AVALIAÇÃO DO RISCO SUICIDA (Simplificada)
 Columbia University — Domínio público
 
 DATA DA AVALIAÇÃO:
@@ -971,7 +971,7 @@ Plano de segurança:
 Encaminhamentos:
 Próximo contato:
 
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`tdah-adulto`,title:`Avaliação de TDAH — Adulto (ASRS-v1.1)`,description:`Escala de autorrelato de TDAH para adultos da OMS (18 itens). Domínio público.`,category:`escala`,tags:[`TDAH`,`atenção`,`hiperatividade`,`ASRS`,`adulto`],ageGroups:[`adulto`],Icon:h,template:`ASRS-v1.1 — ESCALA DE AUTORRELATO DE TDAH PARA ADULTOS (OMS)
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`tdah-adulto`,title:`Avaliação de TDAH — Adulto (ASRS-v1.1)`,description:`Escala de autorrelato de TDAH para adultos da OMS (18 itens). Domínio público.`,category:`escala`,tags:[`TDAH`,`atenção`,`hiperatividade`,`ASRS`,`adulto`],ageGroups:[`adulto`],Icon:p,template:`ASRS-v1.1 — ESCALA DE AUTORRELATO DE TDAH PARA ADULTOS (OMS)
 Domínio público — Kessler et al. (2005)
 
 Com que frequência você experienciou os seguintes problemas
@@ -1021,7 +1021,7 @@ PARTE B — SINTOMAS ADICIONAIS (12 itens)
 PONTUAÇÃO PARTE A (rastreio positivo se ≥4 itens com escores 3–4):
 PONTUAÇÃO TOTAL (0–72):
 
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`exposicao-gradual`,title:`Registro de Exposição Gradual (TCC)`,description:`Hierarquia de exposição e registro de SUDS antes, durante e após cada exposição. Técnica TCC.`,category:`registro`,tags:[`TCC`,`exposição`,`ansiedade`,`hierarquia`,`fobia`],ageGroups:[`adulto`,`adolescente`],Icon:v,template:`REGISTRO DE EXPOSIÇÃO GRADUAL — TCC
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`exposicao-gradual`,title:`Registro de Exposição Gradual (TCC)`,description:`Hierarquia de exposição e registro de SUDS antes, durante e após cada exposição. Técnica TCC.`,category:`registro`,tags:[`TCC`,`exposição`,`ansiedade`,`hierarquia`,`fobia`],ageGroups:[`adulto`,`adolescente`],Icon:g,template:`REGISTRO DE EXPOSIÇÃO GRADUAL — TCC
 
 Paciente:
 Situação-alvo / Fobia:
@@ -1104,7 +1104,7 @@ METAS TERAPÊUTICAS BASEADAS NA CONCEITUALIZAÇÃO:
 Intervenções planejadas para crenças centrais:
 Técnicas para pensamentos automáticos:
 
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`grupo-familiar`,title:`Genograma / Mapa Familiar`,description:`Registro descritivo da estrutura familiar, vínculos e padrões transgeracionais.`,category:`formulario`,tags:[`família`,`genograma`,`sistêmica`],ageGroups:[`all`],Icon:E,template:`GENOGRAMA / MAPA FAMILIAR
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`grupo-familiar`,title:`Genograma / Mapa Familiar`,description:`Registro descritivo da estrutura familiar, vínculos e padrões transgeracionais.`,category:`formulario`,tags:[`família`,`genograma`,`sistêmica`],ageGroups:[`all`],Icon:w,template:`GENOGRAMA / MAPA FAMILIAR
 
 Data:
 
@@ -1157,5 +1157,5 @@ html,body{width:210mm;min-height:297mm;margin:0;background:#fff;font-family:Aria
 </div>
 ${t}
 <p style="font-size:8px;color:#9ca3af;margin-top:16px;border-top:1px solid #e5e7eb;padding-top:8px">Instrumento de apoio clínico · não substitui prontuário oficial · UseCognia</p>
-</div></body></html>`),e.document.close(),setTimeout(()=>{e.focus(),e.print()},150)}return(0,F.jsx)(N,{open:!!e,onClose:t,title:e.title,size:`lg`,children:(0,F.jsxs)(`div`,{className:`space-y-4`,children:[(0,F.jsxs)(`div`,{className:`flex items-start gap-3 rounded-2xl border border-neutral-100 bg-neutral-50 px-4 py-3`,children:[(0,F.jsx)(e.Icon,{className:`w-5 h-5 text-sage-600 mt-0.5 shrink-0`}),(0,F.jsxs)(`div`,{className:`flex-1 min-w-0`,children:[(0,F.jsx)(`p`,{className:`text-sm text-neutral-600 leading-relaxed`,children:e.description}),(0,F.jsxs)(`div`,{className:`flex flex-wrap gap-1.5 mt-2`,children:[(0,F.jsx)(`span`,{className:`text-[11px] font-semibold px-2 py-0.5 rounded-full ${L[e.category]}`,children:I[e.category]}),e.tags.map(e=>(0,F.jsx)(`span`,{className:`text-[11px] text-neutral-400 bg-neutral-100 px-2 py-0.5 rounded-full`,children:e},e))]})]}),(0,F.jsxs)(`span`,{className:`text-xs text-neutral-400 shrink-0`,children:[o,` campos`]})]}),(0,F.jsxs)(`div`,{className:`rounded-2xl border border-neutral-200 bg-white overflow-hidden`,children:[(0,F.jsxs)(`div`,{className:`bg-neutral-50 border-b border-neutral-100 px-5 py-3 flex items-center justify-between`,children:[(0,F.jsxs)(`div`,{className:`flex items-center gap-2`,children:[(0,F.jsx)(`div`,{className:`h-2 w-2 rounded-full bg-sage-400`}),(0,F.jsx)(`span`,{className:`text-xs font-medium text-neutral-500`,children:`Formulário para preenchimento`})]}),(0,F.jsxs)(`div`,{className:`flex items-center gap-3 text-xs text-neutral-400`,children:[(0,F.jsxs)(`span`,{children:[`Profissional: `,(0,F.jsx)(`span`,{className:`inline-block w-24 border-b border-neutral-300`,children:`\xA0`})]}),(0,F.jsxs)(`span`,{children:[`Data: `,(0,F.jsx)(`span`,{className:`inline-block w-16 border-b border-neutral-300`,children:`\xA0`})]})]})]}),(0,F.jsx)(`div`,{className:`px-5 py-4 space-y-0.5 max-h-[50vh] overflow-y-auto`,children:a.map((e,t)=>B(e,t))})]}),(0,F.jsxs)(`div`,{className:`flex items-center justify-between`,children:[(0,F.jsx)(`p`,{className:`text-xs text-neutral-400`,children:`Instrumento de apoio clínico · não substitui prontuário oficial`}),(0,F.jsxs)(`div`,{className:`flex gap-3`,children:[(0,F.jsx)(`button`,{type:`button`,onClick:t,className:`btn-secondary text-sm`,children:`Fechar`}),(0,F.jsxs)(`button`,{type:`button`,onClick:()=>r(i),className:`btn-secondary text-sm flex items-center gap-2`,children:[(0,F.jsx)(d,{className:`w-4 h-4`}),`Enviar formulario`]}),(0,F.jsxs)(`button`,{type:`button`,onClick:c,className:`btn-primary text-sm flex items-center gap-2`,children:[(0,F.jsx)(_,{className:`w-4 h-4`}),`Imprimir / PDF`]})]})]})]})})}function H({instrument:e,index:t,onClick:n}){let r=R[t%R.length],i=e.template.split(`
-`).filter(e=>e.trim().endsWith(`:`)).length;return(0,F.jsxs)(`button`,{type:`button`,onClick:n,className:`card group flex flex-col items-start gap-3 p-4 text-left hover:shadow-lifted hover:-translate-y-px transition-all duration-200 hover:border-sage-200 cursor-pointer`,children:[(0,F.jsx)(`div`,{className:`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ring-1 ${r}`,children:(0,F.jsx)(e.Icon,{className:`w-5 h-5`})}),(0,F.jsxs)(`div`,{className:`flex-1 min-w-0 w-full`,children:[(0,F.jsxs)(`div`,{className:`flex items-start justify-between gap-2`,children:[(0,F.jsx)(`p`,{className:`text-sm font-semibold text-neutral-800 leading-tight`,children:e.title}),(0,F.jsx)(`span`,{className:`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${L[e.category]}`,children:I[e.category]})]}),(0,F.jsx)(`p`,{className:`mt-1 text-xs leading-relaxed text-neutral-400 line-clamp-2`,children:e.description}),(0,F.jsx)(`div`,{className:`flex flex-wrap gap-1 mt-2`,children:e.tags.slice(0,3).map(e=>(0,F.jsx)(`span`,{className:`text-[10px] text-neutral-400 bg-neutral-50 border border-neutral-100 px-1.5 py-0.5 rounded-full`,children:e},e))})]}),(0,F.jsxs)(`div`,{className:`flex w-full items-center justify-between pt-1 border-t border-neutral-100`,children:[(0,F.jsxs)(`span`,{className:`text-[11px] text-neutral-300`,children:[i,` campos`]}),(0,F.jsx)(`span`,{className:`text-xs font-medium text-sage-600 group-hover:text-sage-700`,children:`Abrir →`})]})]})}var U=[{value:`all`,label:`Todos`},{value:`formulario`,label:`Formulários`},{value:`escala`,label:`Escalas`},{value:`registro`,label:`Registros`},{value:`entrevista`,label:`Entrevistas`}],W=[{value:`all`,label:`Todas as idades`},{value:`infantil`,label:`Infantil`},{value:`adolescente`,label:`Adolescente`},{value:`adulto`,label:`Adulto`}];function G({instrument:e,onClose:t}){let{data:r=[]}=j(),i=M(),[a,o]=(0,P.useState)(``),[s,c]=(0,P.useState)(!0),l=r.find(e=>e.id===a),u=s&&!!l?.phone;async function d(){if(!(!e||!a))try{let r=await i.mutateAsync({patientId:a,instrumentId:e.id,title:e.title,description:e.description,category:e.category,template:e.template,sendWhatsApp:u});!u&&r.url?(await navigator.clipboard.writeText(r.url),n.success(`Link copiado`)):n.success(`Formulario enviado`),t()}catch{n.error(`Nao foi possivel enviar o formulario.`)}}return(0,F.jsx)(N,{open:!!e,onClose:t,title:`Enviar formulario`,size:`md`,children:(0,F.jsxs)(`div`,{className:`space-y-4`,children:[(0,F.jsxs)(`div`,{className:`rounded-2xl border border-neutral-100 bg-neutral-50 p-4`,children:[(0,F.jsx)(`p`,{className:`text-sm font-semibold text-neutral-800`,children:e?.title}),(0,F.jsx)(`p`,{className:`mt-1 text-xs leading-relaxed text-neutral-500`,children:e?.description})]}),(0,F.jsxs)(`label`,{className:`block`,children:[(0,F.jsx)(`span`,{className:`label`,children:`Paciente`}),(0,F.jsxs)(`select`,{value:a,onChange:e=>o(e.target.value),className:`input-field`,children:[(0,F.jsx)(`option`,{value:``,children:`Selecione um paciente`}),r.map(e=>(0,F.jsxs)(`option`,{value:e.id,children:[e.name,e.phone?` - ${e.phone}`:``]},e.id))]})]}),(0,F.jsxs)(`label`,{className:`flex items-start gap-3 rounded-2xl border border-neutral-100 bg-white p-4`,children:[(0,F.jsx)(`input`,{type:`checkbox`,checked:s,onChange:e=>c(e.target.checked),disabled:!l?.phone,className:`mt-1`}),(0,F.jsxs)(`span`,{children:[(0,F.jsx)(`span`,{className:`block text-sm font-medium text-neutral-700`,children:`Enviar direto pelo WhatsApp`}),(0,F.jsx)(`span`,{className:`mt-0.5 block text-xs text-neutral-400`,children:l?.phone?`O paciente recebe o link seguro automaticamente.`:`Paciente sem telefone cadastrado; o link sera copiado.`})]})]}),(0,F.jsxs)(`div`,{className:`flex justify-end gap-3`,children:[(0,F.jsx)(`button`,{type:`button`,onClick:t,className:`btn-secondary text-sm`,children:`Cancelar`}),(0,F.jsx)(`button`,{type:`button`,onClick:d,disabled:!a||i.isPending,className:`btn-primary text-sm`,children:i.isPending?`Enviando...`:u?`Enviar`:`Gerar link`})]})]})})}function K(){let[e,t]=(0,P.useState)(``),[n,r]=(0,P.useState)(`all`),[i,a]=(0,P.useState)(`all`),[s,c]=(0,P.useState)(null),[l,u]=(0,P.useState)(null),d=(0,P.useMemo)(()=>{let t=e.toLowerCase().trim();return z.filter(e=>{let r=n===`all`||e.category===n,a=i===`all`||e.ageGroups.includes(i)||e.ageGroups.includes(`all`),o=!t||e.title.toLowerCase().includes(t)||e.description.toLowerCase().includes(t)||e.tags.some(e=>e.toLowerCase().includes(t));return r&&a&&o})},[e,n,i]);return(0,F.jsxs)(`div`,{className:`animate-slide-up space-y-5`,children:[(0,F.jsxs)(`div`,{children:[(0,F.jsx)(`h1`,{className:`page-title`,children:`Instrumentos Clínicos`}),(0,F.jsx)(`p`,{className:`page-subtitle`,children:`Formulários, escalas e registros para apoio clínico`})]}),(0,F.jsxs)(`div`,{className:`relative`,children:[(0,F.jsx)(o,{className:`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400`}),(0,F.jsx)(`input`,{value:e,onChange:e=>t(e.target.value),placeholder:`Buscar por nome, descrição ou assunto...`,className:`input-field pl-9 py-2.5 text-sm`}),e&&(0,F.jsx)(`button`,{onClick:()=>t(``),className:`absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600`,children:(0,F.jsx)(T,{className:`w-4 h-4`})})]}),(0,F.jsxs)(`div`,{className:`flex flex-col sm:flex-row gap-2`,children:[(0,F.jsx)(`div`,{className:`flex gap-1 bg-neutral-100 p-1 rounded-xl overflow-x-auto scrollbar-none`,children:U.map(({value:e,label:t})=>(0,F.jsx)(`button`,{onClick:()=>r(e),className:`flex-none px-3 py-1.5 rounded-lg text-xs transition-all whitespace-nowrap ${n===e?`bg-white shadow-sm font-medium text-neutral-800`:`text-neutral-500`}`,children:t},e))}),(0,F.jsx)(`div`,{className:`flex gap-1 bg-neutral-100 p-1 rounded-xl overflow-x-auto scrollbar-none`,children:W.map(({value:e,label:t})=>(0,F.jsx)(`button`,{onClick:()=>a(e),className:`flex-none px-3 py-1.5 rounded-lg text-xs transition-all whitespace-nowrap ${i===e?`bg-white shadow-sm font-medium text-neutral-800`:`text-neutral-500`}`,children:t},e))})]}),(0,F.jsxs)(`p`,{className:`text-xs text-neutral-400`,children:[d.length,` instrumento`,d.length===1?``:`s`,` encontrado`,d.length===1?``:`s`]}),d.length===0?(0,F.jsxs)(`div`,{className:`card py-16 text-center`,children:[(0,F.jsx)(`p`,{className:`text-sm text-neutral-400`,children:`Nenhum instrumento encontrado para os filtros selecionados.`}),(0,F.jsx)(`button`,{onClick:()=>{t(``),r(`all`),a(`all`)},className:`mt-3 text-xs text-sage-600 hover:underline`,children:`Limpar filtros`})]}):(0,F.jsx)(`div`,{className:`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3`,children:d.map((e,t)=>(0,F.jsx)(H,{instrument:e,index:t,onClick:()=>c(e)},e.id))}),(0,F.jsxs)(`p`,{className:`text-xs text-neutral-400 border-t border-neutral-100 pt-4`,children:[`Testes psicológicos privativos devem ser utilizados exclusivamente por psicólogas(os) habilitados, conforme orientação do CFP e lista do`,` `,(0,F.jsx)(`a`,{href:`https://satepsi.cfp.org.br/`,target:`_blank`,rel:`noreferrer`,className:`text-sage-600 hover:underline`,children:`SATEPSI`}),`. As escalas de rastreio aqui listadas são de uso clínico livre e não substituem avaliação psicológica formal.`]}),(0,F.jsx)(V,{instrument:s,onClose:()=>c(null),onSend:e=>{c(null),u(e)}}),(0,F.jsx)(G,{instrument:l,onClose:()=>u(null)})]})}export{K as default};
+</div></body></html>`),e.document.close(),setTimeout(()=>{e.focus(),e.print()},150)}return(0,F.jsx)(N,{open:!!e,onClose:t,title:e.title,size:`lg`,children:(0,F.jsxs)(`div`,{className:`space-y-4`,children:[(0,F.jsxs)(`div`,{className:`flex items-start gap-3 rounded-2xl border border-neutral-100 bg-neutral-50 px-4 py-3`,children:[(0,F.jsx)(e.Icon,{className:`w-5 h-5 text-sage-600 mt-0.5 shrink-0`}),(0,F.jsxs)(`div`,{className:`flex-1 min-w-0`,children:[(0,F.jsx)(`p`,{className:`text-sm text-neutral-600 leading-relaxed`,children:e.description}),(0,F.jsxs)(`div`,{className:`flex flex-wrap gap-1.5 mt-2`,children:[(0,F.jsx)(`span`,{className:`text-[11px] font-semibold px-2 py-0.5 rounded-full ${L[e.category]}`,children:I[e.category]}),e.tags.map(e=>(0,F.jsx)(`span`,{className:`text-[11px] text-neutral-400 bg-neutral-100 px-2 py-0.5 rounded-full`,children:e},e))]})]}),(0,F.jsxs)(`span`,{className:`text-xs text-neutral-400 shrink-0`,children:[o,` campos`]})]}),(0,F.jsxs)(`div`,{className:`rounded-2xl border border-neutral-200 bg-white overflow-hidden`,children:[(0,F.jsxs)(`div`,{className:`bg-neutral-50 border-b border-neutral-100 px-5 py-3 flex items-center justify-between`,children:[(0,F.jsxs)(`div`,{className:`flex items-center gap-2`,children:[(0,F.jsx)(`div`,{className:`h-2 w-2 rounded-full bg-sage-400`}),(0,F.jsx)(`span`,{className:`text-xs font-medium text-neutral-500`,children:`Formulário para preenchimento`})]}),(0,F.jsxs)(`div`,{className:`flex items-center gap-3 text-xs text-neutral-400`,children:[(0,F.jsxs)(`span`,{children:[`Profissional: `,(0,F.jsx)(`span`,{className:`inline-block w-24 border-b border-neutral-300`,children:`\xA0`})]}),(0,F.jsxs)(`span`,{children:[`Data: `,(0,F.jsx)(`span`,{className:`inline-block w-16 border-b border-neutral-300`,children:`\xA0`})]})]})]}),(0,F.jsx)(`div`,{className:`px-5 py-4 space-y-0.5 max-h-[50vh] overflow-y-auto`,children:a.map((e,t)=>B(e,t))})]}),(0,F.jsxs)(`div`,{className:`flex items-center justify-between`,children:[(0,F.jsx)(`p`,{className:`text-xs text-neutral-400`,children:`Instrumento de apoio clínico · não substitui prontuário oficial`}),(0,F.jsxs)(`div`,{className:`flex gap-3`,children:[(0,F.jsx)(`button`,{type:`button`,onClick:t,className:`btn-secondary text-sm`,children:`Fechar`}),(0,F.jsxs)(`button`,{type:`button`,onClick:()=>r(i),className:`btn-secondary text-sm flex items-center gap-2`,children:[(0,F.jsx)(u,{className:`w-4 h-4`}),`Enviar formulario`]}),(0,F.jsxs)(`button`,{type:`button`,onClick:c,className:`btn-primary text-sm flex items-center gap-2`,children:[(0,F.jsx)(h,{className:`w-4 h-4`}),`Imprimir / PDF`]})]})]})]})})}function H({instrument:e,index:t,onClick:n}){let r=R[t%R.length],i=e.template.split(`
+`).filter(e=>e.trim().endsWith(`:`)).length;return(0,F.jsxs)(`button`,{type:`button`,onClick:n,className:`card group flex flex-col items-start gap-3 p-4 text-left hover:shadow-lifted hover:-translate-y-px transition-all duration-200 hover:border-sage-200 cursor-pointer`,children:[(0,F.jsx)(`div`,{className:`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ring-1 ${r}`,children:(0,F.jsx)(e.Icon,{className:`w-5 h-5`})}),(0,F.jsxs)(`div`,{className:`flex-1 min-w-0 w-full`,children:[(0,F.jsxs)(`div`,{className:`flex items-start justify-between gap-2`,children:[(0,F.jsx)(`p`,{className:`text-sm font-semibold text-neutral-800 leading-tight`,children:e.title}),(0,F.jsx)(`span`,{className:`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${L[e.category]}`,children:I[e.category]})]}),(0,F.jsx)(`p`,{className:`mt-1 text-xs leading-relaxed text-neutral-400 line-clamp-2`,children:e.description}),(0,F.jsx)(`div`,{className:`flex flex-wrap gap-1 mt-2`,children:e.tags.slice(0,3).map(e=>(0,F.jsx)(`span`,{className:`text-[10px] text-neutral-400 bg-neutral-50 border border-neutral-100 px-1.5 py-0.5 rounded-full`,children:e},e))})]}),(0,F.jsxs)(`div`,{className:`flex w-full items-center justify-between pt-1 border-t border-neutral-100`,children:[(0,F.jsxs)(`span`,{className:`text-[11px] text-neutral-300`,children:[i,` campos`]}),(0,F.jsx)(`span`,{className:`text-xs font-medium text-sage-600 group-hover:text-sage-700`,children:`Abrir →`})]})]})}var U=[{value:`all`,label:`Todos`},{value:`formulario`,label:`Formulários`},{value:`escala`,label:`Escalas`},{value:`registro`,label:`Registros`},{value:`entrevista`,label:`Entrevistas`}],W=[{value:`all`,label:`Todas as idades`},{value:`infantil`,label:`Infantil`},{value:`adolescente`,label:`Adolescente`},{value:`adulto`,label:`Adulto`}];function G({instrument:e,onClose:t}){let{data:r=[]}=j(),i=M(),[a,o]=(0,P.useState)(``),[s,c]=(0,P.useState)(!0),l=r.find(e=>e.id===a),u=s&&!!l?.phone;async function d(){if(!(!e||!a))try{let r=await i.mutateAsync({patientId:a,instrumentId:e.id,title:e.title,description:e.description,category:e.category,template:e.template,sendWhatsApp:u});!u&&r.url?(await navigator.clipboard.writeText(r.url),n.success(`Link copiado`)):n.success(`Formulario enviado`),t()}catch{n.error(`Nao foi possivel enviar o formulario.`)}}return(0,F.jsx)(N,{open:!!e,onClose:t,title:`Enviar formulario`,size:`md`,children:(0,F.jsxs)(`div`,{className:`space-y-4`,children:[(0,F.jsxs)(`div`,{className:`rounded-2xl border border-neutral-100 bg-neutral-50 p-4`,children:[(0,F.jsx)(`p`,{className:`text-sm font-semibold text-neutral-800`,children:e?.title}),(0,F.jsx)(`p`,{className:`mt-1 text-xs leading-relaxed text-neutral-500`,children:e?.description})]}),(0,F.jsxs)(`label`,{className:`block`,children:[(0,F.jsx)(`span`,{className:`label`,children:`Paciente`}),(0,F.jsxs)(`select`,{value:a,onChange:e=>o(e.target.value),className:`input-field`,children:[(0,F.jsx)(`option`,{value:``,children:`Selecione um paciente`}),r.map(e=>(0,F.jsxs)(`option`,{value:e.id,children:[e.name,e.phone?` - ${e.phone}`:``]},e.id))]})]}),(0,F.jsxs)(`label`,{className:`flex items-start gap-3 rounded-2xl border border-neutral-100 bg-white p-4`,children:[(0,F.jsx)(`input`,{type:`checkbox`,checked:s,onChange:e=>c(e.target.checked),disabled:!l?.phone,className:`mt-1`}),(0,F.jsxs)(`span`,{children:[(0,F.jsx)(`span`,{className:`block text-sm font-medium text-neutral-700`,children:`Enviar direto pelo WhatsApp`}),(0,F.jsx)(`span`,{className:`mt-0.5 block text-xs text-neutral-400`,children:l?.phone?`O paciente recebe o link seguro automaticamente.`:`Paciente sem telefone cadastrado; o link sera copiado.`})]})]}),(0,F.jsxs)(`div`,{className:`flex justify-end gap-3`,children:[(0,F.jsx)(`button`,{type:`button`,onClick:t,className:`btn-secondary text-sm`,children:`Cancelar`}),(0,F.jsx)(`button`,{type:`button`,onClick:d,disabled:!a||i.isPending,className:`btn-primary text-sm`,children:i.isPending?`Enviando...`:u?`Enviar`:`Gerar link`})]})]})})}function K(){let[e,t]=(0,P.useState)(``),[n,r]=(0,P.useState)(`all`),[i,o]=(0,P.useState)(`all`),[s,c]=(0,P.useState)(null),[l,u]=(0,P.useState)(null),d=(0,P.useMemo)(()=>{let t=e.toLowerCase().trim();return z.filter(e=>{let r=n===`all`||e.category===n,a=i===`all`||e.ageGroups.includes(i)||e.ageGroups.includes(`all`),o=!t||e.title.toLowerCase().includes(t)||e.description.toLowerCase().includes(t)||e.tags.some(e=>e.toLowerCase().includes(t));return r&&a&&o})},[e,n,i]);return(0,F.jsxs)(`div`,{className:`animate-slide-up space-y-5`,children:[(0,F.jsxs)(`div`,{children:[(0,F.jsx)(`h1`,{className:`page-title`,children:`Instrumentos Clínicos`}),(0,F.jsx)(`p`,{className:`page-subtitle`,children:`Formulários, escalas e registros para apoio clínico`})]}),(0,F.jsxs)(`div`,{className:`relative`,children:[(0,F.jsx)(a,{className:`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400`}),(0,F.jsx)(`input`,{value:e,onChange:e=>t(e.target.value),placeholder:`Buscar por nome, descrição ou assunto...`,className:`input-field pl-9 py-2.5 text-sm`}),e&&(0,F.jsx)(`button`,{onClick:()=>t(``),className:`absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600`,children:(0,F.jsx)(C,{className:`w-4 h-4`})})]}),(0,F.jsxs)(`div`,{className:`flex flex-col sm:flex-row gap-2`,children:[(0,F.jsx)(`div`,{className:`flex gap-1 bg-neutral-100 p-1 rounded-xl overflow-x-auto scrollbar-none`,children:U.map(({value:e,label:t})=>(0,F.jsx)(`button`,{onClick:()=>r(e),className:`flex-none px-3 py-1.5 rounded-lg text-xs transition-all whitespace-nowrap ${n===e?`bg-white shadow-sm font-medium text-neutral-800`:`text-neutral-500`}`,children:t},e))}),(0,F.jsx)(`div`,{className:`flex gap-1 bg-neutral-100 p-1 rounded-xl overflow-x-auto scrollbar-none`,children:W.map(({value:e,label:t})=>(0,F.jsx)(`button`,{onClick:()=>o(e),className:`flex-none px-3 py-1.5 rounded-lg text-xs transition-all whitespace-nowrap ${i===e?`bg-white shadow-sm font-medium text-neutral-800`:`text-neutral-500`}`,children:t},e))})]}),(0,F.jsxs)(`p`,{className:`text-xs text-neutral-400`,children:[d.length,` instrumento`,d.length===1?``:`s`,` encontrado`,d.length===1?``:`s`]}),d.length===0?(0,F.jsxs)(`div`,{className:`card py-16 text-center`,children:[(0,F.jsx)(`p`,{className:`text-sm text-neutral-400`,children:`Nenhum instrumento encontrado para os filtros selecionados.`}),(0,F.jsx)(`button`,{onClick:()=>{t(``),r(`all`),o(`all`)},className:`mt-3 text-xs text-sage-600 hover:underline`,children:`Limpar filtros`})]}):(0,F.jsx)(`div`,{className:`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3`,children:d.map((e,t)=>(0,F.jsx)(H,{instrument:e,index:t,onClick:()=>c(e)},e.id))}),(0,F.jsxs)(`p`,{className:`text-xs text-neutral-400 border-t border-neutral-100 pt-4`,children:[`Testes psicológicos privativos devem ser utilizados exclusivamente por psicólogas(os) habilitados, conforme orientação do CFP e lista do`,` `,(0,F.jsx)(`a`,{href:`https://satepsi.cfp.org.br/`,target:`_blank`,rel:`noreferrer`,className:`text-sage-600 hover:underline`,children:`SATEPSI`}),`. As escalas de rastreio aqui listadas são de uso clínico livre e não substituem avaliação psicológica formal.`]}),(0,F.jsx)(V,{instrument:s,onClose:()=>c(null),onSend:e=>{c(null),u(e)}}),(0,F.jsx)(G,{instrument:l,onClose:()=>u(null)})]})}export{K as default};
