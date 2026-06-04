@@ -103,7 +103,7 @@ export default function BookingManagePage() {
       </div>
 
       {/* Link card */}
-      <div className="card bg-gradient-to-r from-sage-500 to-sage-600 text-white border-0">
+      <div className="card bg-gradient-to-r from-sage-500 to-sage-600 dark:from-sage-700 dark:to-sage-800 text-white border-0">
         <div className="flex items-center gap-2 mb-1 flex-wrap">
           <p className="text-sage-100 text-xs">Seu link de agendamento de hoje</p>
           {expiresLabel && (
@@ -141,7 +141,7 @@ export default function BookingManagePage() {
               { label: 'Confirmados',    value: bookings.filter((b: any) => b.status === 'confirmed').length,      icon: <Check className="w-4 h-4 text-sage-500" />  },
               { label: 'Pag. pendentes', value: bookings.filter((b: any) => b.paymentStatus === 'pending').length, icon: <Wallet className="w-4 h-4 text-amber-500" /> },
             ].map(s => (
-              <div key={s.label} className="card text-center p-3 lg:p-6">
+              <div key={s.label} className="card text-center p-3 lg:p-6 dark:border-sage-200/15">
                 <div className="flex justify-center mb-1">{s.icon}</div>
                 <p className="text-2xl font-bold text-neutral-800">{s.value}</p>
                 <p className="text-xs text-neutral-500 mt-0.5 leading-tight">{s.label}</p>
@@ -150,13 +150,13 @@ export default function BookingManagePage() {
           </div>
 
           {/* Filtros */}
-          <div className="flex gap-1 bg-neutral-100 p-1 rounded-xl overflow-x-auto scrollbar-none">
+          <div className="flex gap-1 bg-neutral-100 dark:bg-black/20 p-1 rounded-xl overflow-x-auto scrollbar-none">
             {BOOKING_FILTERS.map(({ v, l }) => (
               <button key={v} onClick={() => setFilter(v)}
                 className={`flex-none px-3 py-1.5 rounded-lg text-xs transition-all whitespace-nowrap ${
                   filter === v
-                    ? 'bg-white text-neutral-800 shadow-sm font-medium'
-                    : 'text-neutral-500 hover:text-neutral-700'
+                    ? 'bg-white dark:bg-sage-500/25 text-neutral-800 dark:text-sage-100 shadow-sm font-medium'
+                    : 'text-neutral-500 dark:text-neutral-300 hover:text-neutral-700 dark:hover:text-white'
                 }`}>
                 {l}
               </button>
@@ -211,7 +211,7 @@ function BookingCard({ booking, onConfirm, onReject, onMarkPaid }: {
   }
 
   return (
-    <div className="card space-y-3 p-4">
+    <div className="card space-y-3 p-4 dark:border-sage-200/15">
       <div>
         <div className="flex items-center gap-2 flex-wrap">
           <h3 className="font-medium text-neutral-800">{booking.patientName}</h3>
@@ -226,7 +226,7 @@ function BookingCard({ booking, onConfirm, onReject, onMarkPaid }: {
           {formatDateRelative(booking.date)} às {booking.time} · {booking.duration}min · {formatCurrency(booking.amount)}
         </p>
         {booking.patientNotes && (
-          <p className="text-sm text-neutral-500 mt-2 bg-neutral-50 rounded-xl px-3 py-2">
+          <p className="text-sm text-neutral-500 dark:text-neutral-300 mt-2 bg-neutral-50 dark:bg-black/20 rounded-xl px-3 py-2">
             💬 "{booking.patientNotes}"
           </p>
         )}
@@ -473,7 +473,7 @@ function BookingSettings({ page }: { page: any }) {
         </div>
         <p className="text-xs text-neutral-400">Selecione os dias e defina o início/fim do expediente. Os slots são gerados automaticamente pelo intervalo abaixo.</p>
 
-        <div className="flex gap-1 bg-neutral-100 p-1 rounded-xl">
+        <div className="flex gap-1 bg-neutral-100 dark:bg-black/20 p-1 rounded-xl">
           {MODALITIES.map(({ key, label }) => (
             <button
               key={key}
@@ -481,7 +481,9 @@ function BookingSettings({ page }: { page: any }) {
               onClick={() => setScheduleTab(key)}
               className={cn(
                 'flex-1 h-9 rounded-lg text-sm font-medium transition-colors',
-                scheduleTab === key ? 'bg-white text-neutral-800 shadow-sm' : 'text-neutral-500 hover:text-neutral-700',
+                scheduleTab === key
+                  ? 'bg-white dark:bg-sage-500/25 text-neutral-800 dark:text-sage-100 shadow-sm'
+                  : 'text-neutral-500 dark:text-neutral-300 hover:text-neutral-700 dark:hover:text-white',
               )}
             >
               {label}
@@ -495,7 +497,9 @@ function BookingSettings({ page }: { page: any }) {
             return (
               <div key={d} className={cn(
                 'flex items-center gap-3 p-3 rounded-xl border transition-all',
-                slot.enabled ? 'border-sage-200 bg-sage-50' : 'border-neutral-100 bg-neutral-50'
+                slot.enabled
+                  ? 'border-sage-200 dark:border-sage-400/40 bg-sage-50 dark:bg-sage-500/15'
+                  : 'border-neutral-100 dark:border-white/10 bg-neutral-50 dark:bg-black/15'
               )}>
                 {/* Toggle */}
                 <button type="button" onClick={() => toggleDay(d)}
@@ -584,7 +588,9 @@ function BookingSettings({ page }: { page: any }) {
                   onClick={() => set(item.key, !checked)}
                   className={cn(
                     'h-11 rounded-xl border text-sm font-medium transition-colors',
-                    checked ? 'border-sage-300 bg-sage-50 text-sage-700' : 'border-neutral-200 bg-white text-neutral-500',
+                    checked
+                      ? 'border-sage-300 dark:border-sage-400/50 bg-sage-50 dark:bg-sage-500/20 text-sage-700 dark:text-sage-100'
+                      : 'border-neutral-200 dark:border-white/10 bg-white dark:bg-black/15 text-neutral-500 dark:text-neutral-300',
                   )}
                 >
                   {item.label}
@@ -622,7 +628,7 @@ function BookingSettings({ page }: { page: any }) {
           {blockedDates.length === 0 ? (
             <p className="text-sm text-neutral-400 py-2">Nenhuma data bloqueada.</p>
           ) : blockedDates.map((blocked) => (
-            <div key={blocked.id} className="flex items-center justify-between gap-3 rounded-xl border border-neutral-100 px-3 py-2">
+            <div key={blocked.id} className="flex items-center justify-between gap-3 rounded-xl border border-neutral-100 dark:border-white/10 dark:bg-black/15 px-3 py-2">
               <div>
                 <p className="text-sm font-medium text-neutral-700">
                   {new Date(`${blocked.date}T00:00:00`).toLocaleDateString('pt-BR')}

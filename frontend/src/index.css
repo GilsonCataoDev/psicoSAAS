@@ -239,6 +239,13 @@
     color: #b7dfcd;
   }
 
+  .dark .bg-amber-100 { background-color: rgb(245 158 11 / 0.18); }
+  .dark .text-amber-700 { color: #fcd34d; }
+  .dark .bg-rose-100 { background-color: rgb(244 63 94 / 0.18); }
+  .dark .text-rose-700 { color: #fda4af; }
+  .dark .bg-mist-100 { background-color: rgb(77 168 218 / 0.18); }
+  .dark .text-mist-700 { color: #a8d9f2; }
+
   .dark .shadow-card,
   .dark .shadow-lifted,
   .dark .shadow-xl {
