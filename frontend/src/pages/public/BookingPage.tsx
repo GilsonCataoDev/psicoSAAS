@@ -212,9 +212,9 @@ export default function BookingPage() {
 
   // ─── Layout com sidebar/header para as demais etapas ────────────────────────
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sage-50 via-white to-mist-50 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-sage-50 via-white to-mist-50 dark:from-[#0d1713] dark:via-[#101d18] dark:to-[#12231d] flex flex-col">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-neutral-100 sticky top-0 z-10">
+      <header className="bg-white/80 dark:bg-[#17251f]/85 backdrop-blur-sm border-b border-neutral-100 dark:border-white/10 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
           <button
             onClick={() => setStep('landing')}
@@ -227,7 +227,7 @@ export default function BookingPage() {
             )}
           </button>
           <div className="flex-1 min-w-0">
-            <p className="font-medium text-neutral-800 text-sm leading-none">{page.psychologistName}</p>
+            <p className="font-medium text-neutral-800 dark:text-neutral-100 text-sm leading-none">{page.psychologistName}</p>
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
               <p className="text-xs text-neutral-400">CRP {page.psychologistCrp}</p>
               <button
@@ -248,27 +248,39 @@ export default function BookingPage() {
 
         {/* ── Sucesso ─────────────────────────────────────────────────── */}
         {step === 'success' && (
-          <div className="animate-slide-up text-center py-12">
-            <div className="w-20 h-20 bg-sage-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Check className="w-10 h-10 text-sage-600" />
+          <div className="animate-slide-up text-center py-8 sm:py-12">
+            <div className="w-20 h-20 bg-sage-100 dark:bg-sage-500/15 ring-8 ring-sage-50 dark:ring-sage-500/5 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Check className="w-10 h-10 text-sage-600 dark:text-sage-300" />
             </div>
-            <h2 className="font-display text-2xl text-neutral-800 mb-2">Agendamento confirmado!</h2>
-            <p className="text-neutral-500 mb-4 max-w-sm mx-auto">
+            <h2 className="font-display text-2xl font-semibold text-neutral-800 dark:text-neutral-100 mb-2">Agendamento confirmado!</h2>
+            <p className="text-neutral-500 dark:text-neutral-300 mb-6 max-w-sm mx-auto">
               {page.confirmationMessage ?? 'Seu horário foi reservado com sucesso. Você receberá os detalhes da sessão em breve.'}
             </p>
-            <div className="bg-white rounded-2xl shadow-card p-5 text-left max-w-xs mx-auto mt-6">
-              <p className="text-sm font-medium text-neutral-700 mb-3">Resumo</p>
-              <div className="space-y-2 text-sm text-neutral-600">
-                <p>{selectedDate && format(parseISO(selectedDate), "dd 'de' MMMM", { locale: ptBR })}</p>
-                <p>⏰ {selectedTime}</p>
-                <p>⏱ {page.sessionDuration} minutos</p>
-                <p>{formatCurrency(page.sessionPrice)}</p>
+            <div className="bg-white dark:bg-[#17251f] border border-neutral-100 dark:border-sage-200/15 rounded-2xl shadow-card p-5 text-left max-w-sm mx-auto">
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-400 mb-4">Resumo da sessão</p>
+              <div className="space-y-3 text-sm text-neutral-700 dark:text-neutral-200">
+                <p className="flex items-center justify-between gap-4">
+                  <span className="text-neutral-400 dark:text-neutral-400">Data</span>
+                  <strong className="font-medium">{selectedDate && format(parseISO(selectedDate), "dd 'de' MMMM", { locale: ptBR })}</strong>
+                </p>
+                <p className="flex items-center justify-between gap-4">
+                  <span className="text-neutral-400 dark:text-neutral-400">Horário</span>
+                  <strong className="font-medium">{selectedTime}</strong>
+                </p>
+                <p className="flex items-center justify-between gap-4">
+                  <span className="text-neutral-400 dark:text-neutral-400">Duração</span>
+                  <strong className="font-medium">{page.sessionDuration} minutos</strong>
+                </p>
+                <p className="flex items-center justify-between gap-4 border-t border-neutral-100 dark:border-white/10 pt-3">
+                  <span className="text-neutral-400 dark:text-neutral-400">Valor</span>
+                  <strong className="font-semibold text-sage-700 dark:text-sage-300">{formatCurrency(page.sessionPrice)}</strong>
+                </p>
               </div>
             </div>
             <button
               type="button"
               onClick={() => window.open('https://cadastro.cfp.org.br/', '_blank', 'noopener,noreferrer')}
-              className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-sage-50 hover:bg-sage-100 border border-sage-200 rounded-full text-xs text-sage-700 transition-colors"
+              className="mt-6 inline-flex items-center gap-2 px-4 py-2.5 bg-sage-50 dark:bg-sage-500/15 hover:bg-sage-100 dark:hover:bg-sage-500/25 border border-sage-200 dark:border-sage-400/30 rounded-full text-xs font-medium text-sage-700 dark:text-sage-200 transition-colors"
             >
               <ShieldCheck className="w-4 h-4 text-sage-500" />
               Verificar registro do psicólogo no CFP
