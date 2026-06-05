@@ -33,6 +33,25 @@ export class BillingService {
 
     if (!subscription) return { status: 'none' }
 
+    const normalized = await this.normalizeSubscriptionState(subscription)
+    if (normalized) return this.toPublicSubscription(normalized)
+
+    return this.toPublicSubscription(subscription)
+  }
+
+  private async normalizeSubscriptionState(subscription: Subscription): Promise<Subscription | null> {
+    if (
+      subscription.status === 'trialing'
+      && subscription.trialEndsAt
+      && new Date(subscription.trialEndsAt).getTime() <= Date.now()
+    ) {
+      subscription.status = subscription.gatewaySubscriptionId ? 'past_due' : 'canceled'
+      subscription.currentPeriodEnd = subscription.trialEndsAt
+      subscription.trialEndsAt = null
+      subscription.cancelAtPeriodEnd = false
+      return this.repo.save(subscription)
+    }
+
     if (
       subscription.cancelAtPeriodEnd
       && subscription.currentPeriodEnd
@@ -40,10 +59,10 @@ export class BillingService {
     ) {
       subscription.status = 'canceled'
       subscription.cancelAtPeriodEnd = false
-      return this.toPublicSubscription(await this.repo.save(subscription))
+      return this.repo.save(subscription)
     }
 
-    return this.toPublicSubscription(subscription)
+    return null
   }
 
   async subscribe(user: User, plan = 'pro', creditCardToken?: string) {
@@ -64,6 +83,7 @@ export class BillingService {
 
     const canUpgradeFromFree = existing?.status === 'active' && existing.plan === 'free' && !existing.gatewaySubscriptionId
     const canAttachPaymentToLocalTrial = existing?.status === 'trialing' && !existing.gatewaySubscriptionId
+    const previousSubscription = existing ? { ...existing } : null
 
     if (
       (existing?.status === 'active' || existing?.status === 'trialing')
@@ -88,14 +108,36 @@ export class BillingService {
     })
 
     const saved = await this.repo.save(subscription)
-    const gatewayCustomerId = saved.gatewayCustomerId ?? await this.asaas.createCustomer(user)
-    const gatewaySubscriptionId = await this.asaas.createSubscription(
-      gatewayCustomerId,
-      plan,
-      saved.id,
-      creditCardToken,
-      nextDueDate,
-    )
+    let gatewayCustomerId: string
+    let gatewaySubscriptionId: string
+
+    try {
+      gatewayCustomerId = saved.gatewayCustomerId ?? await this.asaas.createCustomer(user)
+      gatewaySubscriptionId = await this.asaas.createSubscription(
+        gatewayCustomerId,
+        plan,
+        saved.id,
+        creditCardToken,
+        nextDueDate,
+      )
+    } catch (err) {
+      if (previousSubscription) {
+        Object.assign(saved, {
+          plan: previousSubscription.plan,
+          status: previousSubscription.status,
+          gatewayCustomerId: previousSubscription.gatewayCustomerId,
+          gatewaySubscriptionId: previousSubscription.gatewaySubscriptionId,
+          currentPeriodEnd: previousSubscription.currentPeriodEnd,
+          trialEndsAt: previousSubscription.trialEndsAt,
+          cancelAtPeriodEnd: previousSubscription.cancelAtPeriodEnd,
+          hasUsedTrial: previousSubscription.hasUsedTrial,
+        })
+        await this.repo.save(saved)
+      } else {
+        await this.repo.remove(saved)
+      }
+      throw err
+    }
 
     Object.assign(saved, {
       gatewayCustomerId,
