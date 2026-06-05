@@ -180,7 +180,7 @@ export default function LandingPage() {
             <a href="#produto" className="hover:text-sage-700">Produto</a>
             <a href="#pro" className="hover:text-sage-700">Plano Pro</a>
             <button onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-sage-700">Dúvidas</button>
-            <Link to="/privacidade" className="hover:text-sage-700">LGPD</Link>
+            <Link to="/seguranca" className="hover:text-sage-700">Seguranca</Link>
           </nav>
           <div className="flex items-center gap-2">
             <Link to="/login" className="hidden px-3 py-2 text-sm font-semibold text-[#49443D] hover:text-sage-700 sm:inline-flex">

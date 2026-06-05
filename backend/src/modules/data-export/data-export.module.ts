@@ -11,6 +11,7 @@ import { BlockedDate } from '../availability/entities/blocked-date.entity'
 import { BookingPage } from '../booking/entities/booking-page.entity'
 import { Booking } from '../booking/entities/booking.entity'
 import { Subscription } from '../billing/entities/subscription.entity'
+import { AuditModule } from '../audit/audit.module'
 import { DataExportController } from './data-export.controller'
 import { DataExportService } from './data-export.service'
 
@@ -29,6 +30,7 @@ import { DataExportService } from './data-export.service'
       Booking,
       Subscription,
     ]),
+    AuditModule,
   ],
   controllers: [DataExportController],
   providers: [DataExportService],

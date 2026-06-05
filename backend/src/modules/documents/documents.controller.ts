@@ -8,6 +8,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { RequirePlan } from '../../common/decorators/require-plan.decorator'
 import { PublicRoute } from '../../common/decorators/public-route.decorator'
+import { AuditService } from '../audit/audit.service'
 import { DocumentsService, CreateDocumentDto } from './documents.service'
 import { DocType } from './entities/document.entity'
 
@@ -21,7 +22,10 @@ class CreateDocumentBodyDto implements CreateDocumentDto {
 
 @Controller('documents')
 export class DocumentsController {
-  constructor(private svc: DocumentsService) {}
+  constructor(
+    private svc: DocumentsService,
+    private audit: AuditService,
+  ) {}
 
   /** Gerar e assinar um novo documento (requer plano Essencial ou superior) */
   @Post()
@@ -30,7 +34,9 @@ export class DocumentsController {
   async create(@Req() req: any, @Body() body: CreateDocumentBodyDto) {
     const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
               ?? req.socket?.remoteAddress
-    return this.svc.create(req.user, body, ip)
+    const doc = await this.svc.create(req.user, body, ip)
+    await this.record(req, 'document.created', 'document', doc.id, { type: doc.type, patientId: doc.patientId })
+    return doc
   }
 
   /** Listar meus documentos */
@@ -47,6 +53,7 @@ export class DocumentsController {
   @UseGuards(JwtAuthGuard)
   async pdf(@Param('id') id: string, @Req() req: any, @Res() res: Response) {
     const { filename, buffer } = await this.svc.generatePdf(id, req.user.id)
+    await this.record(req, 'document.pdf_downloaded', 'document', id, { filename })
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="${filename}"`,
@@ -61,13 +68,17 @@ export class DocumentsController {
   @HttpCode(200)
   @UseGuards(JwtAuthGuard, CsrfGuard)
   async sendEmail(@Param('id') id: string, @Body('to') to: string, @Req() req: any) {
-    return this.svc.sendDocumentByEmail(id, req.user.id, to)
+    const result = await this.svc.sendDocumentByEmail(id, req.user.id, to)
+    await this.record(req, 'document.email_sent', 'document', id, { to })
+    return result
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, CsrfGuard)
   async remove(@Param('id') id: string, @Req() req: any) {
-    return this.svc.remove(id, req.user.id)
+    const result = await this.svc.remove(id, req.user.id)
+    await this.record(req, 'document.deleted', 'document', id)
+    return result
   }
 
   /**
@@ -80,5 +91,17 @@ export class DocumentsController {
   @PublicRoute()
   async verify(@Param('code') code: string) {
     return this.svc.verifyByCode(code.toUpperCase())
+  }
+
+  private record(req: any, action: string, resource: string, resourceId?: string, metadata?: Record<string, unknown>) {
+    return this.audit.record({
+      userId: req.user.id,
+      action,
+      resource,
+      resourceId,
+      metadata,
+      ip: (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ?? req.socket?.remoteAddress,
+      userAgent: req.headers['user-agent'],
+    })
   }
 }
