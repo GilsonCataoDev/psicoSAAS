@@ -6,10 +6,11 @@ import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { PLANS, Plan, useSubscriptionStore } from '@/store/subscription'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
+import { PRICING_COMPARISON, PRICING_FAQ, PRICING_HERO, PRICING_PLANS, PricingPlan } from '@/data/pricingPlans'
 
 function statusMessage(status: string) {
   if (status === 'pending') return 'Aguardando pagamento'
-  if (status === 'trialing') return 'Você está em período de teste'
+  if (status === 'trialing') return 'Voce esta em periodo de teste'
   if (status === 'past_due') return 'Seu teste terminou e o pagamento falhou.'
   if (status === 'active') return 'Acesso normal'
   return 'Escolha um plano para continuar'
@@ -28,6 +29,7 @@ export default function PricingPage() {
   const [addressNumber, setAddressNumber] = useState('')
   const { subscription, setSubscription } = useSubscriptionStore()
   const currentPlanId = String(subscription.planId ?? subscription.plan ?? '')
+  const billingPlans = new Map(PLANS.map((plan) => [plan.id, plan]))
 
   function formatCardNumber(value: string) {
     return value.replace(/\D/g, '').slice(0, 19).replace(/(\d{4})(?=\d)/g, '$1 ')
@@ -91,10 +93,10 @@ export default function PricingPage() {
   }
 
   function validateCard() {
-    if (!isValidCardNumber(cardNumber)) return 'Número do cartão inválido.'
-    if (cardName.trim().length < 3) return 'Informe o nome impresso no cartão.'
-    if (!isValidExpiry(cardExpiry)) return 'Validade inválida.'
-    if (!/^\d{3,4}$/.test(cardCvv)) return 'CVV inválido.'
+    if (!isValidCardNumber(cardNumber)) return 'Numero do cartao invalido.'
+    if (cardName.trim().length < 3) return 'Informe o nome impresso no cartao.'
+    if (!isValidExpiry(cardExpiry)) return 'Validade invalida.'
+    if (!/^\d{3,4}$/.test(cardCvv)) return 'CVV invalido.'
     if (!/^\d{11}$|^\d{14}$/.test(cpfCnpj.replace(/\D/g, ''))) return 'CPF/CNPJ invalido.'
     if (!/^\d{10,11}$/.test(phone.replace(/\D/g, ''))) return 'Telefone invalido.'
     if (!/^\d{8}$/.test(postalCode.replace(/\D/g, ''))) return 'CEP invalido.'
@@ -122,7 +124,7 @@ export default function PricingPage() {
     })
 
     const token = data?.creditCardToken
-    if (!token) throw new Error('Não foi possível tokenizar o cartão.')
+    if (!token) throw new Error('Nao foi possivel tokenizar o cartao.')
     return token
   }
 
@@ -134,7 +136,7 @@ export default function PricingPage() {
         setSubscription(data)
         toast.success('Plano Gratis ativado.')
       } catch (err: any) {
-        toast.error(err?.response?.data?.message ?? 'Não foi possível ativar o plano grátis.')
+        toast.error(err?.response?.data?.message ?? 'Nao foi possivel ativar o plano gratis.')
       } finally {
         setLoadingPlan(null)
       }
@@ -157,253 +159,337 @@ export default function PricingPage() {
 
       const { data } = await api.post(endpoint, body)
       setSubscription(data)
-      toast.success(
-        subscription.status === 'past_due'
-          ? 'Cartão atualizado. Tentaremos cobrar novamente.'
-          : 'Teste iniciado! Você tem 7 dias grátis.',
-      )
+      toast.success(subscription.status === 'past_due' ? 'Cartao atualizado. Tentaremos cobrar novamente.' : 'Teste iniciado! Voce tem 7 dias gratis.')
     } catch (err: any) {
       toast.error(
         err?.response?.data?.errors?.[0]?.description ??
         err?.response?.data?.message ??
         err?.message ??
-        'Cartão inválido ou pagamento recusado.',
+        'Cartao invalido ou pagamento recusado.',
       )
     } finally {
       setLoadingPlan(null)
     }
   }
 
+  function handlePlanClick(plan: PricingPlan) {
+    const billingPlan = billingPlans.get(plan.id)
+    if (!billingPlan) return
+    if (plan.id === 'free') subscribe(billingPlan)
+    else setSelectedPlan(billingPlan)
+  }
+
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
-      <div className="space-y-2">
-        <p className="text-sm font-medium text-sage-600">{statusMessage(subscription.status)}</p>
-        <h1 className="font-display text-3xl font-light text-neutral-800">Planos</h1>
-        {subscription.status === 'active' && (
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
-            <p className="flex items-center gap-2 font-semibold">
-              <UseCogniaIcon name="plan-professional" size={24} />
-              Seu plano foi ativado
-            </p>
-            <Link to="/" className="mt-3 inline-flex h-10 items-center rounded-lg bg-sage-500 px-4 text-white transition-colors hover:bg-sage-600">
-              Ir para dashboard
-            </Link>
-          </div>
-        )}
-        <p className="text-neutral-500">
-          Comece gratis ou teste um plano pago por 7 dias. O Essencial organiza a rotina; o Pro libera pagamentos, mensagens e automacoes.
-        </p>
-        {subscription.status === 'past_due' && (
-          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            <p className="font-medium">Seu teste terminou e o pagamento falhou.</p>
-            <p className="mt-1">Clique em Pagar agora e informe um novo cartão.</p>
-          </div>
-        )}
-      </div>
+    <div className="mx-auto max-w-7xl space-y-12 pb-12">
+      <PricingHero subscriptionStatus={subscription.status} />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        {PLANS.map((plan) => {
-          const isCurrentPlan = currentPlanId === plan.id
-          const isActivePaidPlan = subscription.status === 'active' && currentPlanId !== 'free'
-          const isDisabled = loadingPlan !== null || isActivePaidPlan
-          return (
-          <section
+      {subscription.status === 'active' && (
+        <div className="mx-auto max-w-3xl rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
+          <p className="flex items-center gap-2 font-semibold">
+            <UseCogniaIcon name="plan-professional" size={24} />
+            Seu plano foi ativado
+          </p>
+          <Link to="/" className="mt-3 inline-flex h-10 items-center rounded-lg bg-sage-500 px-4 text-white transition-colors hover:bg-sage-600">
+            Ir para dashboard
+          </Link>
+        </div>
+      )}
+
+      {subscription.status === 'past_due' && (
+        <div className="mx-auto max-w-3xl rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <p className="font-medium">Seu teste terminou e o pagamento falhou.</p>
+          <p className="mt-1">Clique em Pagar agora e informe um novo cartao.</p>
+        </div>
+      )}
+
+      <section className="grid grid-cols-1 gap-6 px-1 md:grid-cols-3">
+        {PRICING_PLANS.map((plan) => (
+          <PricingCard
             key={plan.id}
-            className={cn(
-              'relative bg-white border rounded-2xl p-6 flex flex-col gap-5 shadow-card',
-              plan.highlight ? 'border-sage-300 ring-1 ring-sage-100' : 'border-neutral-100',
-            )}
-          >
-            {plan.highlight && (
-              <span className="absolute right-4 top-4 rounded-full bg-sage-100 px-2.5 py-1 text-xs font-medium text-sage-700">
-                Recomendado para vender
-              </span>
-            )}
-            <div>
-              <h2 className="text-lg font-semibold text-neutral-800">{plan.name}</h2>
-              <p className="mt-1 min-h-10 text-sm text-neutral-500">{plan.audience}</p>
-              <div className="mt-3 flex items-end gap-1">
-                {plan.price === 0 ? (
-                  <span className="text-3xl font-bold text-neutral-900">Gratis</span>
-                ) : (
-                  <>
-                    <span className="text-sm text-neutral-400 mb-1">R$</span>
-                    <span className="text-3xl font-bold text-neutral-900">{plan.price}</span>
-                    <span className="text-sm text-neutral-400 mb-1">/mes</span>
-                  </>
-                )}
-              </div>
-              {plan.price > 0 ? (
-                <p className="mt-1 text-xs text-neutral-400">
-                  Anual: R$ {plan.priceYearly}/mes, cobrado por ano
-                </p>
-              ) : (
-                <p className="mt-1 text-xs text-neutral-400">Sem cartao e sem prazo para expirar</p>
-              )}
-            </div>
-
-            <ul className="space-y-2 flex-1">
-              {plan.features.map((feature) => (
-                <li key={feature} className="flex items-start gap-2 text-sm text-neutral-600">
-                  <UseCogniaIcon name="success" size={24} />
-                  <span>{feature}</span>
-                </li>
-              ))}
-            </ul>
-
-            <button
-              type="button"
-              onClick={() => plan.id === 'free' ? subscribe(plan) : setSelectedPlan(plan)}
-              disabled={isDisabled}
-              className={cn(
-                'h-11 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-colors',
-                plan.highlight
-                  ? 'bg-sage-600 text-white hover:bg-sage-700'
-                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200',
-                isDisabled && 'opacity-60 cursor-not-allowed',
-              )}
-            >
-              {loadingPlan === plan.id && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isActivePaidPlan && isCurrentPlan
-                ? 'Plano atual'
-                : isActivePaidPlan
-                  ? 'Troca pelo suporte'
-                  : subscription.status === 'past_due'
-                  ? 'Pagar agora'
-                  : plan.id === 'free'
-                    ? 'Comecar gratis'
-                    : 'Testar 7 dias gratis'}
-            </button>
-          </section>
-          )
-        })}
-      </div>
+            plan={plan}
+            currentPlanId={currentPlanId}
+            loadingPlan={loadingPlan}
+            isActivePaidPlan={subscription.status === 'active' && currentPlanId !== 'free'}
+            isPastDue={subscription.status === 'past_due'}
+            onClick={() => handlePlanClick(plan)}
+          />
+        ))}
+      </section>
 
       {selectedPlan && (
-        <section className="bg-white border border-neutral-100 rounded-2xl p-6 shadow-card max-w-xl">
-          <div className="mb-5">
-            <h2 className="font-semibold text-neutral-800">Cartão de crédito</h2>
-            <p className="text-sm text-neutral-500">
-              Plano {selectedPlan.name}. Os dados do cartão são enviados ao Asaas para tokenização.
-              Você não será cobrado agora. A cobrança será feita após 7 dias.
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="label">Número do cartão</label>
-              <input
-                className="input-field font-mono"
-                inputMode="numeric"
-                autoComplete="cc-number"
-                placeholder="0000 0000 0000 0000"
-                value={cardNumber}
-                onChange={(event) => setCardNumber(formatCardNumber(event.target.value))}
-              />
-            </div>
-
-            <div>
-              <label className="label">Nome no cartão</label>
-              <input
-                className="input-field"
-                autoComplete="cc-name"
-                placeholder="NOME COMO NO CARTÃO"
-                value={cardName}
-                onChange={(event) => setCardName(event.target.value.toUpperCase())}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="label">Validade</label>
-                <input
-                  className="input-field"
-                  inputMode="numeric"
-                  autoComplete="cc-exp"
-                  placeholder="MM/AA"
-                  value={cardExpiry}
-                  onChange={(event) => setCardExpiry(formatExpiry(event.target.value))}
-                />
-              </div>
-
-              <div>
-                <label className="label">CVV</label>
-                <input
-                  className="input-field"
-                  inputMode="numeric"
-                  autoComplete="cc-csc"
-                  placeholder="123"
-                  type="password"
-                  value={cardCvv}
-                  onChange={(event) => setCardCvv(event.target.value.replace(/\D/g, '').slice(0, 4))}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="label">CPF/CNPJ do titular</label>
-                <input
-                  className="input-field"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  placeholder="000.000.000-00"
-                  value={cpfCnpj}
-                  onChange={(event) => setCpfCnpj(formatCpfCnpj(event.target.value))}
-                />
-              </div>
-
-              <div>
-                <label className="label">Telefone</label>
-                <input
-                  className="input-field"
-                  inputMode="numeric"
-                  autoComplete="tel"
-                  placeholder="(11) 99999-9999"
-                  value={phone}
-                  onChange={(event) => setPhone(formatPhone(event.target.value))}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="label">CEP</label>
-                <input
-                  className="input-field"
-                  inputMode="numeric"
-                  autoComplete="postal-code"
-                  placeholder="00000-000"
-                  value={postalCode}
-                  onChange={(event) => setPostalCode(formatPostalCode(event.target.value))}
-                />
-              </div>
-
-              <div>
-                <label className="label">Numero</label>
-                <input
-                  className="input-field"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  placeholder="123"
-                  value={addressNumber}
-                  onChange={(event) => setAddressNumber(event.target.value.replace(/\D/g, '').slice(0, 8))}
-                />
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => subscribe(selectedPlan)}
-              disabled={loadingPlan !== null}
-              className="h-11 rounded-xl bg-sage-600 text-white hover:bg-sage-700 text-sm font-medium flex items-center justify-center gap-2 transition-colors w-full disabled:opacity-60"
-            >
-              {loadingPlan === selectedPlan.id && <Loader2 className="w-4 h-4 animate-spin" />}
-              {subscription.status === 'past_due' ? 'Pagar agora' : 'Iniciar teste grátis'}
-            </button>
-          </div>
-        </section>
+        <CheckoutForm
+          selectedPlan={selectedPlan}
+          subscriptionStatus={subscription.status}
+          loadingPlan={loadingPlan}
+          cardNumber={cardNumber}
+          cardName={cardName}
+          cardExpiry={cardExpiry}
+          cardCvv={cardCvv}
+          cpfCnpj={cpfCnpj}
+          phone={phone}
+          postalCode={postalCode}
+          addressNumber={addressNumber}
+          setCardNumber={(value) => setCardNumber(formatCardNumber(value))}
+          setCardName={(value) => setCardName(value.toUpperCase())}
+          setCardExpiry={(value) => setCardExpiry(formatExpiry(value))}
+          setCardCvv={(value) => setCardCvv(value.replace(/\D/g, '').slice(0, 4))}
+          setCpfCnpj={(value) => setCpfCnpj(formatCpfCnpj(value))}
+          setPhone={(value) => setPhone(formatPhone(value))}
+          setPostalCode={(value) => setPostalCode(formatPostalCode(value))}
+          setAddressNumber={(value) => setAddressNumber(value.replace(/\D/g, '').slice(0, 8))}
+          onSubmit={() => subscribe(selectedPlan)}
+        />
       )}
+
+      <PricingComparison />
+      <PricingFAQ />
     </div>
+  )
+}
+
+function PricingHero({ subscriptionStatus }: { subscriptionStatus: string }) {
+  return (
+    <section className="rounded-[2rem] border border-sage-100 bg-white px-5 py-12 text-center shadow-card dark:border-white/10 dark:bg-cognia-panel sm:px-8 lg:py-16">
+      <p className="text-sm font-medium text-sage-600 dark:text-sage-300">{statusMessage(subscriptionStatus)}</p>
+      <h1 className="mx-auto mt-3 max-w-4xl font-display text-3xl font-semibold leading-tight text-neutral-900 dark:text-white sm:text-5xl">
+        {PRICING_HERO.title}
+      </h1>
+      <p className="mx-auto mt-5 max-w-3xl text-lg text-neutral-600 dark:text-neutral-300">
+        {PRICING_HERO.subtitle}
+      </p>
+      <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-neutral-500 dark:text-neutral-400">
+        {PRICING_HERO.context}
+      </p>
+      <div className="mt-8 inline-block rounded-2xl border border-sage-200 bg-sage-50 px-5 py-4 text-left dark:border-sage-400/30 dark:bg-sage-500/10">
+        <p className="font-semibold text-sage-900 dark:text-sage-100">{PRICING_HERO.trialCta}</p>
+        <p className="mt-1 text-sm text-sage-700 dark:text-sage-200">{PRICING_HERO.trialSubtext}</p>
+      </div>
+    </section>
+  )
+}
+
+function PricingCard({
+  plan,
+  currentPlanId,
+  loadingPlan,
+  isActivePaidPlan,
+  isPastDue,
+  onClick,
+}: {
+  plan: PricingPlan
+  currentPlanId: string
+  loadingPlan: string | null
+  isActivePaidPlan: boolean
+  isPastDue: boolean
+  onClick: () => void
+}) {
+  const isCurrentPlan = currentPlanId === plan.id
+  const isDisabled = loadingPlan !== null || isActivePaidPlan
+
+  return (
+    <section
+      className={cn(
+        'relative flex flex-col rounded-3xl border bg-white p-6 shadow-card transition dark:bg-cognia-panel',
+        plan.featured
+          ? 'border-purple-500 ring-4 ring-purple-100 md:-mt-4 md:pb-8'
+          : 'border-neutral-100 dark:border-white/10',
+      )}
+    >
+      {plan.badge && (
+        <span className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-purple-700 px-4 py-1 text-xs font-bold text-white shadow-soft">
+          {plan.badge}
+        </span>
+      )}
+
+      <div>
+        <h2 className="text-2xl font-bold text-neutral-900 dark:text-white">{plan.name}</h2>
+        <p className="mt-2 min-h-12 text-sm font-semibold text-neutral-600 dark:text-neutral-300">{plan.description}</p>
+        <div className="mt-5">
+          {plan.price === 'Gratis' ? (
+            <span className="text-4xl font-bold text-neutral-900 dark:text-white">{plan.price}</span>
+          ) : (
+            <>
+              <span className="text-sm text-neutral-400">R$ </span>
+              <span className="text-4xl font-bold text-neutral-900 dark:text-white">{plan.price}</span>
+              <span className="ml-1 text-sm text-neutral-500 dark:text-neutral-400">{plan.pricePeriod}</span>
+            </>
+          )}
+        </div>
+        <p className="mt-2 text-xs text-neutral-400">{plan.priceAnnual ?? plan.pricePeriod}</p>
+      </div>
+
+      {plan.roi && (
+        <div className="mt-5 rounded-2xl border-l-4 border-purple-600 bg-purple-50 p-4 dark:bg-purple-500/10">
+          {plan.roi.items.map((item) => (
+            <p key={item} className="mb-2 text-sm font-semibold text-neutral-800 dark:text-neutral-100">{item}</p>
+          ))}
+          <p className="text-xs italic text-neutral-600 dark:text-neutral-300">{plan.roi.note}</p>
+        </div>
+      )}
+
+      <div className="mt-6 flex-1 space-y-3">
+        {plan.features.map((feature) => (
+          <div key={`${feature.title}-${feature.subtitle}`} className="flex items-start gap-3">
+            <span className="text-lg leading-none">{feature.icon}</span>
+            <div>
+              <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">{feature.title}</p>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400">{feature.subtitle}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={isDisabled}
+        className={cn(
+          'mt-8 flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60',
+          plan.featured ? 'bg-purple-700 text-white hover:bg-purple-800' : 'bg-neutral-100 text-neutral-800 hover:bg-neutral-200',
+        )}
+      >
+        {loadingPlan === plan.id && <Loader2 className="h-4 w-4 animate-spin" />}
+        {isActivePaidPlan && isCurrentPlan ? 'Plano atual' : isActivePaidPlan ? 'Troca pelo suporte' : isPastDue ? 'Pagar agora' : plan.cta}
+      </button>
+      <p className="mt-2 whitespace-pre-line text-center text-xs text-neutral-500 dark:text-neutral-400">{plan.ctaSubtext}</p>
+    </section>
+  )
+}
+
+function PricingComparison() {
+  return (
+    <section className="mx-auto max-w-4xl px-1">
+      <h2 className="mb-8 text-center text-3xl font-bold text-neutral-900 dark:text-white">{PRICING_COMPARISON.title}</h2>
+      <div className="space-y-4">
+        {PRICING_COMPARISON.sections.map((row) => (
+          <div key={row.title} className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-card dark:border-white/10 dark:bg-cognia-panel">
+            <h3 className="mb-4 text-lg font-bold text-neutral-900 dark:text-white">{row.title}</h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-xl bg-sage-50 p-4 dark:bg-sage-500/10">
+                <p className="mb-1 font-semibold text-sage-700 dark:text-sage-200">Essencial</p>
+                <p className="text-sm text-neutral-700 dark:text-neutral-300">{row.essencial}</p>
+              </div>
+              <div className="rounded-xl bg-purple-50 p-4 dark:bg-purple-500/10">
+                <p className="mb-1 font-semibold text-purple-700 dark:text-purple-200">Pro</p>
+                <p className="text-sm text-neutral-700 dark:text-neutral-300">{row.pro}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function PricingFAQ() {
+  return (
+    <section className="mx-auto max-w-3xl px-1">
+      <h2 className="mb-8 text-center text-3xl font-bold text-neutral-900 dark:text-white">Duvidas frequentes</h2>
+      <div className="space-y-3">
+        {PRICING_FAQ.map((item) => <PricingFAQItem key={item.question} item={item} />)}
+      </div>
+    </section>
+  )
+}
+
+function PricingFAQItem({ item }: { item: typeof PRICING_FAQ[number] }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-card dark:border-white/10 dark:bg-cognia-panel">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left font-semibold text-neutral-900 hover:bg-neutral-50 dark:text-white dark:hover:bg-white/5"
+      >
+        {item.question}
+        <span className="text-lg text-sage-600">{open ? '−' : '+'}</span>
+      </button>
+      {open && <div className="border-t border-neutral-100 px-5 py-4 text-sm leading-6 text-neutral-600 dark:border-white/10 dark:text-neutral-300">{item.answer}</div>}
+    </div>
+  )
+}
+
+function CheckoutForm(props: {
+  selectedPlan: Plan
+  subscriptionStatus: string
+  loadingPlan: string | null
+  cardNumber: string
+  cardName: string
+  cardExpiry: string
+  cardCvv: string
+  cpfCnpj: string
+  phone: string
+  postalCode: string
+  addressNumber: string
+  setCardNumber: (value: string) => void
+  setCardName: (value: string) => void
+  setCardExpiry: (value: string) => void
+  setCardCvv: (value: string) => void
+  setCpfCnpj: (value: string) => void
+  setPhone: (value: string) => void
+  setPostalCode: (value: string) => void
+  setAddressNumber: (value: string) => void
+  onSubmit: () => void
+}) {
+  return (
+    <section className="mx-auto max-w-xl rounded-2xl border border-neutral-100 bg-white p-6 shadow-card dark:border-white/10 dark:bg-cognia-panel">
+      <div className="mb-5">
+        <h2 className="font-semibold text-neutral-800 dark:text-white">Cartao de credito</h2>
+        <p className="text-sm text-neutral-500 dark:text-neutral-300">
+          Plano {props.selectedPlan.name}. Os dados do cartao sao enviados ao Asaas para tokenizacao. Voce nao sera cobrado agora.
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <label className="label">Numero do cartao</label>
+          <input className="input-field font-mono" inputMode="numeric" autoComplete="cc-number" placeholder="0000 0000 0000 0000" value={props.cardNumber} onChange={(event) => props.setCardNumber(event.target.value)} />
+        </div>
+
+        <div>
+          <label className="label">Nome no cartao</label>
+          <input className="input-field" autoComplete="cc-name" placeholder="NOME COMO NO CARTAO" value={props.cardName} onChange={(event) => props.setCardName(event.target.value)} />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label">Validade</label>
+            <input className="input-field" inputMode="numeric" autoComplete="cc-exp" placeholder="MM/AA" value={props.cardExpiry} onChange={(event) => props.setCardExpiry(event.target.value)} />
+          </div>
+          <div>
+            <label className="label">CVV</label>
+            <input className="input-field" inputMode="numeric" autoComplete="cc-csc" placeholder="123" type="password" value={props.cardCvv} onChange={(event) => props.setCardCvv(event.target.value)} />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label">CPF/CNPJ do titular</label>
+            <input className="input-field" inputMode="numeric" autoComplete="off" placeholder="000.000.000-00" value={props.cpfCnpj} onChange={(event) => props.setCpfCnpj(event.target.value)} />
+          </div>
+          <div>
+            <label className="label">Telefone</label>
+            <input className="input-field" inputMode="numeric" autoComplete="tel" placeholder="(11) 99999-9999" value={props.phone} onChange={(event) => props.setPhone(event.target.value)} />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label">CEP</label>
+            <input className="input-field" inputMode="numeric" autoComplete="postal-code" placeholder="00000-000" value={props.postalCode} onChange={(event) => props.setPostalCode(event.target.value)} />
+          </div>
+          <div>
+            <label className="label">Numero</label>
+            <input className="input-field" inputMode="numeric" autoComplete="off" placeholder="123" value={props.addressNumber} onChange={(event) => props.setAddressNumber(event.target.value)} />
+          </div>
+        </div>
+
+        <button type="button" onClick={props.onSubmit} disabled={props.loadingPlan !== null} className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-sage-600 text-sm font-medium text-white transition-colors hover:bg-sage-700 disabled:opacity-60">
+          {props.loadingPlan === props.selectedPlan.id && <Loader2 className="h-4 w-4 animate-spin" />}
+          {props.subscriptionStatus === 'past_due' ? 'Pagar agora' : 'Iniciar teste gratis'}
+        </button>
+      </div>
+    </section>
   )
 }
