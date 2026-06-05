@@ -298,6 +298,24 @@ export function useWhatsAppStatus() {
   })
 }
 
+export type TemplateType = 'patient_form' | 'document' | 'whatsapp_message' | 'receipt'
+
+export type Template = {
+  id: string
+  type: TemplateType
+  name: string
+  content: string
+  tags: string[]
+  isDefault: boolean
+}
+
+export function useTemplates(type?: TemplateType) {
+  return useQuery<Template[]>({
+    queryKey: ['templates', type],
+    queryFn: () => api.get('/templates', { params: type ? { type } : undefined }).then(r => r.data),
+  })
+}
+
 export function useDailyBookingLink() {
   return useQuery<{ token: string; url: string; expiresAt: string }>({
     queryKey: ['booking-daily-link'],

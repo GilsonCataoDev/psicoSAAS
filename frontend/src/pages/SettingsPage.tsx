@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
+import { useTemplates } from '@/hooks/useApi'
 import {
   Bell, CalendarDays, Lock, User, MessageSquare, Shield,
   ExternalLink, CheckCircle2, Zap, ArrowRight, X, Eye, EyeOff, Wallet, Download, Trash2, Camera,
@@ -137,6 +138,8 @@ export default function SettingsPage() {
   const [googleLastSyncError, setGoogleLastSyncError] = useState<string | null>(null)
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
   const [loadingAudit, setLoadingAudit] = useState(false)
+  const { data: messageTemplates = [] } = useTemplates('whatsapp_message')
+  const { data: receiptTemplates = [] } = useTemplates('receipt')
 
   useEffect(() => {
     const userPrefs = (user as any)?.preferences ?? {}
@@ -666,6 +669,20 @@ export default function SettingsPage() {
 
               <div className="card space-y-4">
                 <h2 className="section-title">Modelo de confirmação</h2>
+                {messageTemplates.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {messageTemplates.map(template => (
+                      <button
+                        key={template.id}
+                        type="button"
+                        className="rounded-full border border-sage-100 bg-sage-50 px-3 py-1 text-xs font-medium text-sage-700 hover:bg-sage-100"
+                        onClick={() => setPref('confirmationTemplate', template.content)}
+                      >
+                        Usar {template.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <p className="text-xs text-neutral-400">
                   Variáveis: <code className="bg-neutral-100 px-1 rounded">{'{{nome}}'}</code>{' '}
                   <code className="bg-neutral-100 px-1 rounded">{'{{data}}'}</code>{' '}
@@ -682,6 +699,20 @@ export default function SettingsPage() {
 
               <div className="card space-y-4">
                 <h2 className="section-title">Modelo de lembrete</h2>
+                {messageTemplates.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {messageTemplates.map(template => (
+                      <button
+                        key={template.id}
+                        type="button"
+                        className="rounded-full border border-sage-100 bg-sage-50 px-3 py-1 text-xs font-medium text-sage-700 hover:bg-sage-100"
+                        onClick={() => setPref('reminderTemplate', template.content)}
+                      >
+                        Usar {template.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <p className="text-xs text-neutral-400">
                   Variáveis: <code className="bg-neutral-100 px-1 rounded">{'{{nome}}'}</code>{' '}
                   <code className="bg-neutral-100 px-1 rounded">{'{{data}}'}</code>{' '}
@@ -836,6 +867,20 @@ export default function SettingsPage() {
 
               <div className="card space-y-4">
                 <h2 className="section-title">Modelo de mensagem de cobrança</h2>
+                {receiptTemplates.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {receiptTemplates.map(template => (
+                      <button
+                        key={template.id}
+                        type="button"
+                        className="rounded-full border border-sage-100 bg-sage-50 px-3 py-1 text-xs font-medium text-sage-700 hover:bg-sage-100"
+                        onClick={() => setPref('chargeTemplate', template.content)}
+                      >
+                        Usar {template.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <p className="text-xs text-neutral-400">
                   Variáveis:{' '}
                   <code className="bg-neutral-100 px-1 rounded">{'{{nome}}'}</code>{' '}
