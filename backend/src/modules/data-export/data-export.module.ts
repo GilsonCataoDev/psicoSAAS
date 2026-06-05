@@ -12,6 +12,7 @@ import { BookingPage } from '../booking/entities/booking-page.entity'
 import { Booking } from '../booking/entities/booking.entity'
 import { Subscription } from '../billing/entities/subscription.entity'
 import { AuditModule } from '../audit/audit.module'
+import { AuditLog } from '../audit/entities/audit-log.entity'
 import { DataExportController } from './data-export.controller'
 import { DataExportService } from './data-export.service'
 
@@ -29,6 +30,7 @@ import { DataExportService } from './data-export.service'
       BookingPage,
       Booking,
       Subscription,
+      AuditLog,
     ]),
     AuditModule,
   ],

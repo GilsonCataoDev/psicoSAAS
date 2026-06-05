@@ -14,6 +14,7 @@ import { BlockedDate } from '../availability/entities/blocked-date.entity'
 import { BookingPage } from '../booking/entities/booking-page.entity'
 import { Booking } from '../booking/entities/booking.entity'
 import { Subscription } from '../billing/entities/subscription.entity'
+import { AuditLog } from '../audit/entities/audit-log.entity'
 
 type EncryptedProntuario = {
   __encrypted: 'psicosaas.prontuario.v1'
@@ -34,6 +35,7 @@ export class DataExportService {
     @InjectRepository(BookingPage) private readonly bookingPages: Repository<BookingPage>,
     @InjectRepository(Booking) private readonly bookings: Repository<Booking>,
     @InjectRepository(Subscription) private readonly subscriptions: Repository<Subscription>,
+    @InjectRepository(AuditLog) private readonly auditLogs: Repository<AuditLog>,
   ) {}
 
   async buildExport(userId: string) {
@@ -51,6 +53,7 @@ export class DataExportService {
       bookingPage,
       bookings,
       subscriptions,
+      auditLogs,
     ] = await Promise.all([
       this.patients.find({ where: { psychologistId: userId }, order: { name: 'ASC' } }),
       this.appointments.find({ where: { psychologistId: userId }, order: { date: 'ASC', time: 'ASC' } }),
@@ -62,6 +65,7 @@ export class DataExportService {
       this.bookingPages.findOne({ where: { psychologistId: userId } }),
       this.bookings.find({ where: { psychologistId: userId }, order: { date: 'DESC', time: 'DESC' } }),
       this.subscriptions.find({ where: { userId }, order: { createdAt: 'DESC' } }),
+      this.auditLogs.find({ where: { userId }, order: { createdAt: 'DESC' }, take: 500 }),
     ])
 
     return {
@@ -82,6 +86,7 @@ export class DataExportService {
         page: bookingPage,
         requests: bookings,
       },
+      auditLogs,
     }
   }
 
@@ -161,6 +166,7 @@ export class DataExportService {
     row('Solicitacoes pelo link publico', payload.publicBooking.requests.length)
     row('Datas bloqueadas', payload.availability.blockedDates.length)
     row('Horarios semanais', payload.availability.weeklySlots.length)
+    row('Eventos de auditoria', payload.auditLogs.length)
 
     sectionTitle('Pacientes')
     if (payload.patients.length === 0) {
