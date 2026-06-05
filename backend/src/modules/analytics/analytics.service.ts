@@ -6,6 +6,7 @@ import { Patient } from '../patients/entities/patient.entity'
 import { Appointment } from '../appointments/entities/appointment.entity'
 import { FinancialRecord } from '../financial/entities/financial-record.entity'
 import { Booking } from '../booking/entities/booking.entity'
+import { Session } from '../sessions/entities/session.entity'
 
 const PT_MONTHS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
 
@@ -28,6 +29,7 @@ export class AnalyticsService {
     @InjectRepository(Appointment)     private appointments: Repository<Appointment>,
     @InjectRepository(FinancialRecord) private financial: Repository<FinancialRecord>,
     @InjectRepository(Booking)         private bookings: Repository<Booking>,
+    @InjectRepository(Session)         private sessions: Repository<Session>,
   ) {}
 
   async getDashboardStats(userId: string) {
@@ -53,6 +55,7 @@ export class AnalyticsService {
       inactivePatients,
       remindersSent,
       earlyCancellations,
+      registeredSessions,
     ] = await Promise.all([
 
       // ── Pacientes ativos ────────────────────────────────────────────────────
@@ -183,6 +186,14 @@ export class AnalyticsService {
           .getRawOne(),
         { count: 0, amount: 0 },
       ),
+
+      safe('registeredSessions', log, () =>
+        this.sessions
+          .createQueryBuilder('s')
+          .where('s.psychologistId = :userId', { userId })
+          .getCount(),
+        0,
+      ),
     ])
 
     const reminderCount = Number(remindersSent ?? 0)
@@ -197,6 +208,7 @@ export class AnalyticsService {
       activePatients,
       sessionsThisMonth,
       sessionsThisWeek,
+      registeredSessions,
       monthRevenue: Number((monthRevenue as any)?.total ?? 0),
       pendingPayments: (pendingPayments as any[]).length,
       pendingAmount: (pendingPayments as any[]).reduce((s: number, p: any) => s + Number(p.amount), 0),

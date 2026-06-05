@@ -173,6 +173,9 @@ export function useUpdateSession() {
       qc.invalidateQueries({ queryKey: ['appointments'] })
       qc.invalidateQueries({ queryKey: ['financial'] })
       qc.invalidateQueries({ queryKey: ['dashboard'] })
+      if (session?.firstSession) {
+        window.dispatchEvent(new CustomEvent('usecognia:first-session-created'))
+      }
     },
   })
 }

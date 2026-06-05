@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Users, CalendarCheck, Wallet, Clock, ArrowRight, Video, MapPin, AlertTriangle, Sparkles, MessageSquareText, Ban, TimerReset } from 'lucide-react'
+import { Users, CalendarCheck, Wallet, Clock, ArrowRight, Video, MapPin, AlertTriangle, Sparkles, MessageSquareText, Ban, TimerReset, CheckCircle2, ShieldCheck } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -42,6 +42,8 @@ export default function DashboardPage() {
 
   const s = stats ?? {} as any
   const sessionsToday = s?.todayAppointments?.length ?? 0
+  const registeredSessions = Number(s?.registeredSessions ?? 0)
+  const estimatedSavedMinutes = Math.max(registeredSessions * 30, s?.roi?.estimatedMinutesSaved ?? 0)
 
   if (loading) {
     return (
@@ -162,6 +164,69 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Agenda + Receita ─────────────────────────────────────────── */}
+      {registeredSessions > 0 && (
+        <div className="rounded-2xl border border-sage-100 bg-white p-4 shadow-card dark:border-white/10 dark:bg-cognia-panel">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-sage-700 dark:text-sage-300">
+                {registeredSessions >= 5 ? 'Status: em crescimento' : 'Primeira prova de valor'}
+              </p>
+              <h2 className="mt-1 text-lg font-semibold text-neutral-800 dark:text-white">
+                Seu fluxo clinico ja esta registrado no UseCognia.
+              </h2>
+              <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-300">
+                Proximo ganho: ativar lembretes automaticos para reduzir faltas.
+              </p>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-4 lg:min-w-[620px]">
+              <div className="rounded-xl bg-sage-50 px-3 py-3 dark:bg-white/5">
+                <CheckCircle2 className="mb-1 h-4 w-4 text-sage-700 dark:text-sage-200" />
+                <p className="text-base font-semibold text-neutral-800 dark:text-white">{registeredSessions}</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-300">sessoes registradas</p>
+              </div>
+              <div className="rounded-xl bg-mist-50 px-3 py-3 dark:bg-white/5">
+                <Ban className="mb-1 h-4 w-4 text-mist-700 dark:text-mist-200" />
+                <p className="text-base font-semibold text-neutral-800 dark:text-white">{s?.roi?.earlyCancellations ?? 0}</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-300">faltas evitadas</p>
+              </div>
+              <div className="rounded-xl bg-amber-50 px-3 py-3 dark:bg-white/5">
+                <TimerReset className="mb-1 h-4 w-4 text-amber-700 dark:text-amber-200" />
+                <p className="text-base font-semibold text-neutral-800 dark:text-white">
+                  {estimatedSavedMinutes >= 60 ? `${Math.round((estimatedSavedMinutes / 60) * 10) / 10}h` : `${estimatedSavedMinutes}min`}
+                </p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-300">tempo economizado</p>
+              </div>
+              <div className="rounded-xl bg-neutral-50 px-3 py-3 dark:bg-white/5">
+                <ShieldCheck className="mb-1 h-4 w-4 text-neutral-700 dark:text-neutral-200" />
+                <p className="text-base font-semibold text-neutral-800 dark:text-white">OK</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-300">auditoria ativa</p>
+              </div>
+            </div>
+          </div>
+
+          {registeredSessions >= 5 && (
+            <div className="mt-4 grid gap-2 border-t border-neutral-100 pt-4 text-sm text-neutral-600 dark:border-white/10 dark:text-neutral-300 sm:grid-cols-3">
+              <span>Ultima semana: {s?.sessionsThisWeek ?? 0} sessoes</span>
+              <span>Proxima semana: tendencia de crescimento</span>
+              <span>Pacientes em inadimplencia: {s?.pendingPayments ?? 0}</span>
+            </div>
+          )}
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link to="/settings" className="rounded-full bg-sage-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sage-700">
+              Conectar WhatsApp
+            </Link>
+            <Link to="/documents" className="rounded-full border border-sage-200 px-3 py-1.5 text-xs font-semibold text-sage-700 hover:bg-sage-50 dark:border-white/10 dark:text-sage-200">
+              Gerar recibo
+            </Link>
+            <Link to="/agenda" className="rounded-full border border-sage-200 px-3 py-1.5 text-xs font-semibold text-sage-700 hover:bg-sage-50 dark:border-white/10 dark:text-sage-200">
+              Configurar lembretes
+            </Link>
+          </div>
+        </div>
+      )}
+
       {(s?.roi?.remindersSent ?? 0) + (s?.roi?.earlyCancellations ?? 0) > 0 && (
         <div className="grid gap-3 rounded-2xl border border-sage-100 bg-white p-4 shadow-card md:grid-cols-4">
           <div>

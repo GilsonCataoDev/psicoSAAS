@@ -6,6 +6,7 @@ import BottomNav from './BottomNav'
 import TopBar from './TopBar'
 import PWAInstallBanner from '@/components/ui/PWAInstallBanner'
 import OnboardingTour from '@/components/onboarding/OnboardingTour'
+import FirstSessionCelebration from '@/components/onboarding/FirstSessionCelebration'
 import { api, USE_MOCK } from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 import { useSubscriptionStore } from '@/store/subscription'
@@ -168,6 +169,7 @@ export default function AppLayout() {
       <BottomNav />
       <PWAInstallBanner />
       <OnboardingTour />
+      <FirstSessionCelebration />
     </div>
   )
 }

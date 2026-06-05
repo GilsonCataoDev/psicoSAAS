@@ -66,11 +66,13 @@ export class SessionsService {
     return this.dec(await this.findRaw(id, psychologistId))
   }
 
-  async create(dto: CreateSessionDto, psychologistId: string): Promise<Session> {
+  async create(dto: CreateSessionDto, psychologistId: string): Promise<Session & { firstSession: boolean }> {
     await this.assertPatientBelongsToPsychologist(dto.patientId, psychologistId)
     if (dto.appointmentId) {
       await this.assertAppointmentBelongsToPsychologist(dto.appointmentId, psychologistId)
     }
+
+    const previousSessions = await this.repo.count({ where: { psychologistId } })
 
     // Criptografa campos clínicos antes de persistir
     const encrypted = this.encryptFields(dto)
@@ -123,7 +125,7 @@ export class SessionsService {
       }
     }
 
-    return this.dec(saved)
+    return { ...this.dec(saved), firstSession: previousSessions === 0 }
   }
 
   async update(id: string, dto: Partial<CreateSessionDto>, psychologistId: string): Promise<Session> {
