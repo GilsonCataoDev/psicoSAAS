@@ -153,6 +153,23 @@ export class AsaasService {
     }
   }
 
+  async updateSubscriptionPlan(subscriptionId: string, plan: string): Promise<void> {
+    const value = PLAN_PRICES[plan]
+    if (!value) throw new BadRequestException('Plano invalido')
+
+    try {
+      await this.api.put(`/subscriptions/${subscriptionId}`, {
+        value,
+        description: `PsicoSaaS - Plano ${plan}`,
+      })
+    } catch (err: any) {
+      this.logger.warn('[Asaas] Falha ao atualizar plano da assinatura', err?.response?.data ?? err)
+      throw new BadRequestException(
+        err?.response?.data?.errors?.[0]?.description ?? 'Nao foi possivel trocar o plano',
+      )
+    }
+  }
+
   async cancelSubscription(subscriptionId: string): Promise<void> {
     try {
       await this.api.delete(`/subscriptions/${subscriptionId}`)

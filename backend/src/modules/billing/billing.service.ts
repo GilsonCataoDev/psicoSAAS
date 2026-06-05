@@ -199,6 +199,36 @@ export class BillingService {
     return this.toPublicSubscription(await this.repo.save(subscription))
   }
 
+  async changePlan(user: Pick<User, 'id' | 'email'>, plan?: string) {
+    if (this.isCompedProUser(user)) {
+      return this.ensureCompedProSubscription(user)
+    }
+
+    if (!plan || !PLAN_PRICES[plan]) throw new BadRequestException('Plano invalido')
+
+    const subscription = await this.repo.findOne({
+      where: { userId: user.id, status: In(['active', 'trialing', 'past_due']) },
+      order: { createdAt: 'DESC' },
+    })
+
+    if (!subscription) throw new NotFoundException('Assinatura ativa nao encontrada')
+    if (subscription.plan === plan) return this.toPublicSubscription(subscription)
+
+    if (!subscription.gatewaySubscriptionId) {
+      subscription.plan = plan
+      subscription.cancelAtPeriodEnd = false
+      return this.toPublicSubscription(await this.repo.save(subscription))
+    }
+
+    await this.asaas.updateSubscriptionPlan(subscription.gatewaySubscriptionId, plan)
+
+    subscription.plan = plan
+    subscription.cancelAtPeriodEnd = false
+    if (subscription.status === 'past_due') subscription.status = 'active'
+
+    return this.toPublicSubscription(await this.repo.save(subscription))
+  }
+
   async cancel(user: Pick<User, 'id' | 'email'>) {
     if (this.isCompedProUser(user)) {
       return this.ensureCompedProSubscription(user)
@@ -224,7 +254,10 @@ export class BillingService {
       return this.toPublicSubscription(await this.repo.save(subscription))
     }
 
-    subscription.status = 'canceled'
+    subscription.plan = 'free'
+    subscription.status = 'active'
+    subscription.gatewayCustomerId = null
+    subscription.gatewaySubscriptionId = null
     subscription.cancelAtPeriodEnd = false
     subscription.currentPeriodEnd = new Date()
     subscription.trialEndsAt = null

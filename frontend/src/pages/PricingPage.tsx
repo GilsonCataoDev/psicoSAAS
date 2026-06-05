@@ -172,11 +172,53 @@ export default function PricingPage() {
     }
   }
 
+  async function changePlan(plan: Plan) {
+    if (!confirm(`Trocar para o plano ${plan.name}?`)) return
+    setLoadingPlan(plan.id)
+    try {
+      const { data } = await api.post('/billing/change-plan', { plan: plan.id })
+      setSubscription(data)
+      setSelectedPlan(null)
+      toast.success(`Plano alterado para ${plan.name}.`)
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'Nao foi possivel trocar o plano.')
+    } finally {
+      setLoadingPlan(null)
+    }
+  }
+
+  async function cancelSubscription() {
+    if (!confirm('Cancelar o plano pago e voltar para o Gratis?')) return
+    setLoadingPlan('free')
+    try {
+      const { data } = await api.post('/billing/cancel')
+      setSubscription(data)
+      setSelectedPlan(null)
+      toast.success(data.cancelAtPeriodEnd ? 'Cancelamento agendado para o fim do periodo.' : 'Plano cancelado.')
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'Nao foi possivel cancelar o plano.')
+    } finally {
+      setLoadingPlan(null)
+    }
+  }
+
   function handlePlanClick(plan: PricingPlan) {
     const billingPlan = billingPlans.get(plan.id)
     if (!billingPlan) return
-    if (plan.id === 'free') subscribe(billingPlan)
-    else setSelectedPlan(billingPlan)
+    const isCurrentPlan = currentPlanId === plan.id
+    const hasPaidPlan = ['active', 'trialing'].includes(subscription.status) && currentPlanId !== 'free'
+
+    if (isCurrentPlan) return
+    if (plan.id === 'free') {
+      if (hasPaidPlan) cancelSubscription()
+      else subscribe(billingPlan)
+      return
+    }
+    if (hasPaidPlan) {
+      changePlan(billingPlan)
+      return
+    }
+    setSelectedPlan(billingPlan)
   }
 
   return (
@@ -209,7 +251,7 @@ export default function PricingPage() {
             plan={plan}
             currentPlanId={currentPlanId}
             loadingPlan={loadingPlan}
-            isActivePaidPlan={subscription.status === 'active' && currentPlanId !== 'free'}
+            hasPaidPlan={['active', 'trialing'].includes(subscription.status) && currentPlanId !== 'free'}
             isPastDue={subscription.status === 'past_due'}
             onClick={() => handlePlanClick(plan)}
           />
@@ -272,19 +314,28 @@ function PricingCard({
   plan,
   currentPlanId,
   loadingPlan,
-  isActivePaidPlan,
+  hasPaidPlan,
   isPastDue,
   onClick,
 }: {
   plan: PricingPlan
   currentPlanId: string
   loadingPlan: string | null
-  isActivePaidPlan: boolean
+  hasPaidPlan: boolean
   isPastDue: boolean
   onClick: () => void
 }) {
   const isCurrentPlan = currentPlanId === plan.id
-  const isDisabled = loadingPlan !== null || isActivePaidPlan
+  const isDisabled = loadingPlan !== null || isCurrentPlan
+  const ctaLabel = isCurrentPlan
+    ? 'Plano atual'
+    : hasPaidPlan && plan.id === 'free'
+      ? 'Cancelar e ir para Gratis'
+      : hasPaidPlan
+        ? `Trocar para ${plan.name}`
+        : isPastDue
+          ? 'Pagar agora'
+          : plan.cta
 
   return (
     <section
@@ -349,7 +400,7 @@ function PricingCard({
         )}
       >
         {loadingPlan === plan.id && <Loader2 className="h-4 w-4 animate-spin" />}
-        {isActivePaidPlan && isCurrentPlan ? 'Plano atual' : isActivePaidPlan ? 'Troca pelo suporte' : isPastDue ? 'Pagar agora' : plan.cta}
+        {ctaLabel}
       </button>
       <p className="mt-2 whitespace-pre-line text-center text-xs text-neutral-500 dark:text-neutral-400">{plan.ctaSubtext}</p>
     </section>
