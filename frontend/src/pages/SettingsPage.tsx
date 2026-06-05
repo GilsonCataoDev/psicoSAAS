@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
-import { useTemplates } from '@/hooks/useApi'
+import { useCreateTemplate, useTemplates } from '@/hooks/useApi'
 import {
   Bell, CalendarDays, Lock, User, MessageSquare, Shield,
   ExternalLink, CheckCircle2, Zap, ArrowRight, X, Eye, EyeOff, Wallet, Download, Trash2, Camera,
@@ -140,6 +140,7 @@ export default function SettingsPage() {
   const [loadingAudit, setLoadingAudit] = useState(false)
   const { data: messageTemplates = [] } = useTemplates('whatsapp_message')
   const { data: receiptTemplates = [] } = useTemplates('receipt')
+  const createTemplate = useCreateTemplate()
 
   useEffect(() => {
     const userPrefs = (user as any)?.preferences ?? {}
@@ -437,6 +438,15 @@ export default function SettingsPage() {
     }
   }
 
+  async function saveTemplate(type: 'whatsapp_message' | 'receipt', name: string, content: string) {
+    try {
+      await createTemplate.mutateAsync({ type, name, content, tags: ['custom'] })
+      toast.success('Template salvo')
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'Nao foi possivel salvar o template.')
+    }
+  }
+
   async function deleteAccount() {
     if (deleteConfirm !== 'EXCLUIR') {
       toast.error('Digite EXCLUIR para confirmar.')
@@ -695,6 +705,11 @@ export default function SettingsPage() {
                   disabled={!hasProAutomation}
                   value={prefs.confirmationTemplate}
                   onChange={e => setPref('confirmationTemplate', e.target.value)} />
+                <button type="button" className="btn-secondary text-xs w-fit"
+                  disabled={!hasProAutomation || createTemplate.isPending}
+                  onClick={() => saveTemplate('whatsapp_message', 'Confirmacao personalizada', prefs.confirmationTemplate)}>
+                  Salvar como template
+                </button>
               </div>
 
               <div className="card space-y-4">
@@ -722,6 +737,11 @@ export default function SettingsPage() {
                   disabled={!hasProAutomation}
                   value={prefs.reminderTemplate}
                   onChange={e => setPref('reminderTemplate', e.target.value)} />
+                <button type="button" className="btn-secondary text-xs w-fit"
+                  disabled={!hasProAutomation || createTemplate.isPending}
+                  onClick={() => saveTemplate('whatsapp_message', 'Lembrete personalizado', prefs.reminderTemplate)}>
+                  Salvar como template
+                </button>
               </div>
 
               <div className="flex justify-end">
@@ -891,6 +911,11 @@ export default function SettingsPage() {
                   disabled={!hasProAutomation}
                   value={prefs.chargeTemplate}
                   onChange={e => setPref('chargeTemplate', e.target.value)} />
+                <button type="button" className="btn-secondary text-xs w-fit"
+                  disabled={!hasProAutomation || createTemplate.isPending}
+                  onClick={() => saveTemplate('receipt', 'Cobranca personalizada', prefs.chargeTemplate)}>
+                  Salvar como template
+                </button>
                 <div className="flex justify-end">
                   <button onClick={() => savePrefs('Pagamentos')} disabled={savingPrefs || !hasProAutomation} className="btn-primary text-sm flex items-center gap-2">
                     {savingPrefs && <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}

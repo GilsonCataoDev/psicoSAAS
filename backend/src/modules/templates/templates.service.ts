@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { Template, TemplateType } from './entities/template.entity'
 import { DEFAULT_TEMPLATES } from './templates.seed'
+import { CreateTemplateDto } from './dto/create-template.dto'
 
 @Injectable()
 export class TemplatesService implements OnModuleInit {
@@ -17,6 +18,21 @@ export class TemplatesService implements OnModuleInit {
       where: type ? { type } : {},
       order: { type: 'ASC', name: 'ASC' },
     })
+  }
+
+  async findByType(type: TemplateType): Promise<Template | null> {
+    return this.repo.findOne({
+      where: { type, isDefault: true },
+      order: { createdAt: 'ASC' },
+    })
+  }
+
+  create(dto: CreateTemplateDto): Promise<Template> {
+    return this.repo.save(this.repo.create({
+      ...dto,
+      tags: dto.tags ?? [],
+      isDefault: dto.isDefault ?? false,
+    }))
   }
 
   async seedDefaults(): Promise<void> {

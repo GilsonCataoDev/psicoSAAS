@@ -5,7 +5,7 @@ import Modal from '@/components/ui/Modal'
 import { Patient } from '@/types'
 import { Documento, DocType, DOC_TYPE_DESCRIPTIONS, DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '@/types/prontuario'
 import { formatCurrency } from '@/lib/utils'
-import { useCreateDocument } from '@/hooks/useApi'
+import { useCreateDocument, useDefaultTemplate } from '@/hooks/useApi'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 import toast from 'react-hot-toast'
 
@@ -142,7 +142,8 @@ export default function GenerateDocModal({
   const [step, setStep] = useState<'type' | 'form'>('type')
   const [selectedType, setSelectedType] = useState<DocType>('declaracao')
   const createDocument = useCreateDocument()
-  const { register, handleSubmit, watch, reset, formState: { isSubmitting } } = useForm<FormData>({
+  const { data: receiptTemplate } = useDefaultTemplate('receipt')
+  const { register, handleSubmit, watch, reset, setValue, formState: { isSubmitting } } = useForm<FormData>({
     defaultValues: { type: 'declaracao' },
   })
 
@@ -191,6 +192,13 @@ export default function GenerateDocModal({
     }
   }
 
+  function applyReceiptTemplate() {
+    if (!receiptTemplate) return
+    setSelectedType('recibo')
+    setValue('sessionValue', patient?.sessionPrice ?? 150)
+    toast.success('Template de recibo aplicado')
+  }
+
   return (
     <Modal open={open} onClose={handleClose} title="Gerar documento" size="lg"
       description="Documentos com assinatura digital · CFP Res. 006/2019">
@@ -226,6 +234,13 @@ export default function GenerateDocModal({
             <UseCogniaIcon name={DOC_TYPE_ICONS[selectedType]} size={24} className="text-sage-600" />
             <span className="font-medium text-sm text-neutral-700">{DOC_TYPE_LABELS[selectedType]}</span>
           </div>
+
+          {receiptTemplate && (
+            <button type="button" onClick={applyReceiptTemplate}
+              className="rounded-full border border-sage-100 bg-sage-50 px-3 py-1 text-xs font-medium text-sage-700 hover:bg-sage-100">
+              Usar template de recibo
+            </button>
+          )}
 
           <div>
             <label className="label">Pessoa</label>

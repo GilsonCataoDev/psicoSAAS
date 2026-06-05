@@ -4,7 +4,7 @@ import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
 import { EmotionalTag, TAG_LABELS } from '@/types'
 import { cn } from '@/lib/utils'
-import { usePatients, useCreateSession } from '@/hooks/useApi'
+import { usePatients, useCreateSession, useDefaultTemplate } from '@/hooks/useApi'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 
 const MOODS = [
@@ -23,14 +23,24 @@ export default function NewSessionModal({ open, onClose, defaultPatientId }: {
   const [mood, setMood] = useState<number | null>(null)
   const [tags, setTags] = useState<EmotionalTag[]>([])
   const { data: patients = [] } = usePatients()
+  const { data: sessionTemplate } = useDefaultTemplate('session_note')
   const createSession = useCreateSession()
 
-  const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm({
+  const { register, handleSubmit, reset, setValue, formState: { isSubmitting } } = useForm({
     defaultValues: { patientId: defaultPatientId ?? '', date: new Date().toISOString().split('T')[0], duration: 50, summary: '', privateNotes: '', nextSteps: '', paymentStatus: 'pending' },
   })
 
   function toggleTag(tag: EmotionalTag) {
     setTags(t => t.includes(tag) ? t.filter(x => x !== tag) : [...t, tag])
+  }
+
+  function applyDefaultTemplate() {
+    if (!sessionTemplate) return
+    setValue('date', new Date().toISOString().split('T')[0])
+    setValue('duration', 45)
+    setValue('summary', 'Presenca: presenca\nModalidade: presencial\nTemas abordados: ')
+    setValue('nextSteps', 'Proxima sessao: ')
+    toast.success('Template de sessao aplicado')
   }
 
   async function onSubmit(data: any) {
@@ -47,6 +57,12 @@ export default function NewSessionModal({ open, onClose, defaultPatientId }: {
     <Modal open={open} onClose={onClose} title="Como foi a sessão?" size="lg"
       description="Registre o que achar relevante. A sessão entra automaticamente na evolução do prontuário e os dados são criptografados.">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        {sessionTemplate && (
+          <button type="button" onClick={applyDefaultTemplate}
+            className="rounded-full border border-sage-100 bg-sage-50 px-3 py-1 text-xs font-medium text-sage-700 hover:bg-sage-100">
+            Usar template padrão
+          </button>
+        )}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="label">Pessoa</label>

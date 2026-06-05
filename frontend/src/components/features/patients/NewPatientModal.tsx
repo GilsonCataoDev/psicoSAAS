@@ -4,7 +4,7 @@ import { z } from 'zod'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
 import { EmotionalTag, TAG_LABELS } from '@/types'
-import { useCreatePatient } from '@/hooks/useApi'
+import { useCreatePatient, useDefaultTemplate } from '@/hooks/useApi'
 
 const schema = z.object({
   name: z.string().min(2, 'Nome obrigatório'),
@@ -45,12 +45,21 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
     },
   })
   const createPatient = useCreatePatient()
+  const { data: patientTemplate } = useDefaultTemplate('patient_form')
   const selectedTags = watch('tags') ?? []
   const hasFixedSchedule = watch('hasFixedSchedule')
 
   function toggleTag(tag: EmotionalTag) {
     const current = selectedTags
     setValue('tags', current.includes(tag) ? current.filter(t => t !== tag) : [...current, tag])
+  }
+
+  function applyDefaultTemplate() {
+    if (!patientTemplate) return
+    setValue('sessionPrice', 150)
+    setValue('sessionDuration', 50)
+    setValue('hasFixedSchedule', false)
+    toast.success('Template simples aplicado')
   }
 
   async function onSubmit(data: FormData) {
@@ -77,6 +86,12 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
     <Modal open={open} onClose={onClose} title="Adicionar nova pessoa" size="lg"
       description="Preencha apenas o que você tiver. O resto pode ser adicionado depois.">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {patientTemplate && (
+          <button type="button" onClick={applyDefaultTemplate}
+            className="rounded-full border border-sage-100 bg-sage-50 px-3 py-1 text-xs font-medium text-sage-700 hover:bg-sage-100">
+            Usar template padrão
+          </button>
+        )}
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2">
             <label className="label">Nome *</label>
