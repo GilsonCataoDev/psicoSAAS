@@ -19,6 +19,14 @@ export class AuditService {
 
   constructor(@InjectRepository(AuditLog) private readonly repo: Repository<AuditLog>) {}
 
+  async findForUser(userId: string): Promise<AuditLog[]> {
+    return this.repo.find({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+      take: 50,
+    })
+  }
+
   async record(input: AuditInput): Promise<void> {
     try {
       await this.repo.save(this.repo.create(input))

@@ -23,6 +23,26 @@ const tabs = [
   { id: 'security', icon: Shield,        label: 'Segurança'  },
 ]
 const TRIAL_DAYS = 7
+
+type AuditLog = {
+  id: string
+  action: string
+  resource: string
+  resourceId?: string
+  createdAt: string
+}
+
+const AUDIT_LABELS: Record<string, string> = {
+  'patient.viewed': 'Paciente visualizado',
+  'patient.created': 'Paciente criado',
+  'patient.updated': 'Paciente atualizado',
+  'patient.deleted': 'Paciente excluido',
+  'document.created': 'Documento criado',
+  'document.pdf_downloaded': 'PDF baixado',
+  'document.email_sent': 'Documento enviado por email',
+  'document.deleted': 'Documento excluido',
+  'data_export.downloaded': 'Exportacao de dados baixada',
+}
 const GOOGLE_CALENDAR_ENABLED = false
 
 // ─── Toggle component ──────────────────────────────────────────────────────────
@@ -115,6 +135,8 @@ export default function SettingsPage() {
   const [confirmDisconnectGoogle, setConfirmDisconnectGoogle] = useState(false)
   const [googleLastSyncedAt, setGoogleLastSyncedAt] = useState<string | null>(null)
   const [googleLastSyncError, setGoogleLastSyncError] = useState<string | null>(null)
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
+  const [loadingAudit, setLoadingAudit] = useState(false)
 
   useEffect(() => {
     const userPrefs = (user as any)?.preferences ?? {}
@@ -169,6 +191,15 @@ export default function SettingsPage() {
     loadStatus()
     const timer = window.setInterval(loadStatus, 5000)
     return () => window.clearInterval(timer)
+  }, [isAuthenticated, tab])
+
+  useEffect(() => {
+    if (!isAuthenticated || tab !== 'privacy') return
+    setLoadingAudit(true)
+    api.get('/audit-logs')
+      .then(({ data }) => setAuditLogs(Array.isArray(data) ? data : []))
+      .catch(() => setAuditLogs([]))
+      .finally(() => setLoadingAudit(false))
   }, [isAuthenticated, tab])
 
   useEffect(() => {
@@ -936,6 +967,29 @@ export default function SettingsPage() {
                 <Download className="w-4 h-4" />
                 {exportingData ? 'Exportando...' : 'Exportar meus dados'}
               </button>
+
+              <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="font-semibold text-neutral-800">Auditoria recente</h3>
+                    <p className="text-xs text-neutral-400">Ultimas acoes sensiveis registradas na sua conta.</p>
+                  </div>
+                  {loadingAudit && <span className="text-xs text-neutral-400">Carregando...</span>}
+                </div>
+
+                <div className="mt-4 space-y-2">
+                  {auditLogs.length === 0 && !loadingAudit ? (
+                    <p className="text-sm text-neutral-500">Nenhum evento registrado ainda.</p>
+                  ) : auditLogs.slice(0, 8).map((log) => (
+                    <div key={log.id} className="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2 text-sm">
+                      <span className="font-medium text-neutral-700">{AUDIT_LABELS[log.action] ?? log.action}</span>
+                      <span className="shrink-0 text-xs text-neutral-400">
+                        {new Date(log.createdAt).toLocaleString('pt-BR')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
               <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5 dark:border-rose-400/20 dark:bg-rose-500/10">
                 <div className="flex items-start gap-3">
