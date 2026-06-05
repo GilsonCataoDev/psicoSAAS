@@ -15,53 +15,53 @@ import BrandLogo from '@/components/ui/BrandLogo'
 
 const trustSignals = [
   'Teste grátis por 7 dias',
+  'Lembretes para reduzir faltas',
   'Documentos com verificação digital',
-  'Privacidade e LGPD no centro',
 ]
 
 const pains = [
   {
-    title: 'Agenda espalhada',
-    text: 'Horários fixos, recorrências e pedidos de agendamento deixam de depender de mensagens soltas.',
+    title: 'Falta que vira prejuízo',
+    text: 'Confirmações, lembretes e cancelamento antecipado ajudam a proteger horários e receita.',
   },
   {
-    title: 'Documento com cara de rascunho',
-    text: 'PDFs ganham assinatura, código de verificação e apresentação profissional.',
+    title: 'Prontuário fragmentado',
+    text: 'Pacientes, sessões, instrumentos, documentos e financeiro ficam reunidos na mesma rotina.',
   },
   {
-    title: 'Cobrança manual demais',
-    text: 'Pendências, links de pagamento e lembretes ficam visíveis antes de virar esquecimento.',
+    title: 'Operação manual demais',
+    text: 'Templates, link público e automações tiram tarefas repetitivas do WhatsApp pessoal.',
   },
 ]
 
 const features = [
   {
     icon: CalendarCheck2,
-    title: 'Agenda clínica',
-    text: 'Sessões únicas ou recorrentes, bloqueios, modalidade e link público de agendamento.',
+    title: 'Agenda anti-falta',
+    text: 'Sessões, recorrências, link público, cancelamento curto e lembretes automáticos.',
   },
   {
     icon: FileSignature,
     title: 'Documentos e prontuário',
-    text: 'Declarações, recibos, relatórios e registros clínicos com aparência oficial.',
+    text: 'Declarações, recibos, relatórios, registros e verificação pública sem expor conteúdo clínico.',
   },
   {
     icon: WalletCards,
     title: 'Financeiro do consultório',
-    text: 'Recebidos, pendentes, atrasados e links de pagamento organizados por pessoa.',
+    text: 'Recebidos, pendentes, atrasados e ROI operacional para enxergar valor economizado.',
   },
   {
     icon: MessageSquareText,
-    title: 'Mensagens inteligentes',
-    text: 'Modelos e automações para reduzir tarefas repetitivas sem perder o tom humano.',
+    title: 'WhatsApp do psicólogo',
+    text: 'Mensagens saem do número conectado pelo profissional, com modelos editáveis.',
   },
 ]
 
 const proItems = [
   'Pacientes e documentos ilimitados',
   'Links de pagamento e cartão via Asaas',
-  'Mensagens e lembretes automáticos',
-  'Relatórios para acompanhar crescimento',
+  'Mensagens, lembretes e cancelamento curto',
+  'Dashboard de faltas, tempo e valor preservado',
   'Recursos para rotina profissional completa',
 ]
 
@@ -199,15 +199,15 @@ export default function LandingPage() {
           <div className="w-full min-w-0 max-w-full sm:max-w-2xl">
             <p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-3 py-1 text-sm font-semibold text-[#B8F2D0]">
               <Sparkles className="h-4 w-4" />
-              SaaS para psicólogos brasileiros
+              Menos faltas. Menos caos. Mais rotina clínica.
             </p>
 
             <h1 className="mt-6 max-w-[21rem] text-[2.1rem] font-bold leading-[1.06] tracking-normal text-white sm:max-w-2xl sm:text-5xl lg:text-6xl">
-              O consultório organizado antes da próxima sessão.
+              Reduza faltas e organize o consultório sem virar refém do WhatsApp.
             </h1>
 
             <p className="mt-6 max-w-[22rem] text-base leading-relaxed text-white/76 sm:max-w-xl sm:text-lg">
-              Agenda, pacientes, documentos, financeiro e lembretes em uma experiência feita para psicólogos que querem profissionalizar a rotina sem complicar.
+              Agenda, prontuário, documentos verificáveis, financeiro e confirmações automáticas para psicólogos solo que querem crescer sem perder controle.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
