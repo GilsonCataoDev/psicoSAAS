@@ -53,13 +53,13 @@ const DEFAULT_PREFS = {
   autoCharge: true,
   lateReminder: true,
   includeReceipt: false,
-  chargeTemplate: 'Olá, {{nome}}! 🌿\n\nSegue o valor da nossa sessão:\n💚 *{{valor}}*\n\nPode pagar via PIX: `{{pix}}`\n\n{{comprovante}}\n\nObrigada! 🙏',
+  chargeTemplate: 'Ola, {{nome}}!\n\nSegue o valor da sessao: *{{valor}}*.\n\nPIX: `{{pix}}`\n\n{{comprovante}}\n\nObrigado(a).',
   googleCalendarConnected: false,
   googleCalendarEmail: '',
   // Mensagens
   whatsapp: '',
-  confirmationTemplate: 'Olá, {{nome}}! 🌿 Sua sessão está confirmada para {{data}} às {{hora}}. Até lá! 💙',
-  reminderTemplate: 'Olá, {{nome}}! Lembrando que temos sessão amanhã às {{hora}}. Qualquer dúvida, me avise! 🌿',
+  confirmationTemplate: 'Ola, {{nome}}! Sua sessao esta confirmada para {{data}} as {{hora}}. Se precisar cancelar ou remarcar, me avise com antecedencia.',
+  reminderTemplate: 'Ola, {{nome}}! Passando para lembrar da nossa sessao em {{data}} as {{hora}}. Qualquer imprevisto, me avise.',
 }
 
 export default function SettingsPage() {
@@ -640,6 +640,9 @@ export default function SettingsPage() {
                   <code className="bg-neutral-100 px-1 rounded">{'{{data}}'}</code>{' '}
                   <code className="bg-neutral-100 px-1 rounded">{'{{hora}}'}</code>
                 </p>
+                <p className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                  Evite informacoes clinicas, diagnosticos ou detalhes sensiveis. Use apenas dados operacionais.
+                </p>
                 <textarea rows={3} className="input-field resize-none text-sm"
                   disabled={!hasProAutomation}
                   value={prefs.confirmationTemplate}
@@ -650,6 +653,7 @@ export default function SettingsPage() {
                 <h2 className="section-title">Modelo de lembrete</h2>
                 <p className="text-xs text-neutral-400">
                   Variáveis: <code className="bg-neutral-100 px-1 rounded">{'{{nome}}'}</code>{' '}
+                  <code className="bg-neutral-100 px-1 rounded">{'{{data}}'}</code>{' '}
                   <code className="bg-neutral-100 px-1 rounded">{'{{hora}}'}</code>
                 </p>
                 <textarea rows={3} className="input-field resize-none text-sm"

@@ -214,7 +214,7 @@ export class NotificationsService {
       } catch { return String(date) }
     })()
 
-    const msg = `Olá, ${first}! 🌿\n\nLembrando que temos nosso encontro em *${dateLabel}* às *${time}*.\n\nAté lá! 💙`
+    const msg = `Ola, ${first}!\n\nLembrando que temos nosso encontro em *${dateLabel}* as *${String(time).slice(0, 5)}*.\n\nAte la!`
     await this.sendWhatsApp(patient.phone, msg, appointment.psychologistId)
   }
 
@@ -259,7 +259,7 @@ export class NotificationsService {
       `Segue o valor da nossa sessao: *R$ ${amount.toFixed(2)}*.\n\n` +
       (pixKey ? `PIX: \`${pixKey}\`\n\n` : '') +
       receiptLine +
-      `Obrigada!`
+      `Obrigado(a).`
     const msg = template
       ? this.renderPaymentTemplate(template, patient.name, amount, pixKey, includeReceipt)
       : defaultMessage
@@ -286,20 +286,19 @@ export class NotificationsService {
     // Para o paciente — WhatsApp
     if (booking.patientPhone) {
       const patientMsg =
-        `Olá, ${booking.patientName.split(' ')[0]}! 🌿\n\n` +
-        `Recebemos sua solicitação para *${booking.date}* às *${booking.time}*.\n\n` +
-        `Assim que confirmarmos, você receberá uma mensagem.\n` +
-        `Precisando cancelar: ${cancelUrl}\n\nAté breve! 💙`
+        `Ola, ${booking.patientName.split(' ')[0]}!\n\n` +
+        `Recebemos sua solicitacao para *${booking.date}* as *${String(booking.time).slice(0, 5)}*.\n\n` +
+        `Assim que confirmarmos, voce recebera uma mensagem.\n` +
+        `Precisando cancelar: ${cancelUrl}\n\nAte breve.`
       await this.sendWhatsApp(booking.patientPhone, patientMsg, page.psychologistId)
     }
 
     // Para o psicólogo — WhatsApp + e-mail
     if (page.psychologist?.phone) {
       const psychMsg =
-        `📅 *Nova solicitação de sessão*\n\n` +
+        `*Nova solicitacao de sessao*\n\n` +
         `Pessoa: ${booking.patientName}\n` +
-        `Data: ${booking.date} às ${booking.time}\n` +
-        (booking.patientNotes ? `Obs: ${booking.patientNotes}\n` : '') +
+        `Data: ${booking.date} as ${String(booking.time).slice(0, 5)}\n` +
         `\nConfirmar: ${confirmUrl}`
       await this.sendWhatsApp(page.psychologist.phone, psychMsg, page.psychologistId)
     }
@@ -325,9 +324,9 @@ export class NotificationsService {
     // WhatsApp para o paciente
     if (booking.patientPhone) {
       const msg =
-        `Ótima notícia, ${first}! 🎉\n\n` +
-        `Sua sessão foi confirmada para *${booking.date}* às *${booking.time}*.\n\n` +
-        `Precisando cancelar: ${cancelUrl}\n\nNos vemos lá! 💙`
+        `Ola, ${first}!\n\n` +
+        `Sua sessao foi confirmada para *${booking.date}* as *${String(booking.time).slice(0, 5)}*.\n\n` +
+        `Precisando cancelar: ${cancelUrl}\n\nNos vemos la.`
       await this.sendWhatsApp(booking.patientPhone, msg, booking.psychologistId)
     }
 
@@ -352,9 +351,9 @@ export class NotificationsService {
     const reason = booking.cancellationReason?.trim()
     const reasonLine = reason ? `\nMotivo: ${reason}` : ''
     const msg =
-      `Sessão cancelada pelo paciente\n\n` +
+      `Sessao cancelada pelo paciente\n\n` +
       `Pessoa: ${booking.patientName}\n` +
-      `Data: ${booking.date} às ${String(booking.time).slice(0, 5)}` +
+      `Data: ${booking.date} as ${String(booking.time).slice(0, 5)}` +
       reasonLine
 
     if (phone) {
@@ -377,11 +376,11 @@ export class NotificationsService {
     if (!booking.patientPhone) return
     const firstName = booking.patientName.split(' ')[0]
     const msg =
-      `Olá, ${firstName}! 💙\n\n` +
-      `Passando para lembrar sobre o pagamento da nossa sessão ` +
+      `Ola, ${firstName}!\n\n` +
+      `Passando para lembrar sobre o pagamento da nossa sessao ` +
       `(*R$ ${Number(booking.amount).toFixed(2)}*).\n\n` +
       (pixKey ? `Chave PIX: \`${pixKey}\`\n\n` : '') +
-      `Qualquer dúvida, é só falar. 🌿`
+      `Qualquer duvida, e so falar.`
     await this.sendWhatsApp(booking.patientPhone, msg, booking.psychologistId)
   }
 
