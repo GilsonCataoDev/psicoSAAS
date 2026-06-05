@@ -61,6 +61,9 @@ export default function SecurityPage() {
             <Link to="/privacidade" className="inline-flex h-12 items-center justify-center rounded-md bg-sage-800 px-5 text-sm font-bold text-white hover:bg-sage-900">
               Ler Politica de Privacidade
             </Link>
+            <Link to="/dpa" className="inline-flex h-12 items-center justify-center rounded-md border border-sage-200 bg-white px-5 text-sm font-bold text-sage-800 hover:bg-sage-50">
+              Ver DPA
+            </Link>
             <a href="mailto:privacidade@usecognia.com.br" className="inline-flex h-12 items-center justify-center rounded-md border border-sage-200 bg-white px-5 text-sm font-bold text-sage-800 hover:bg-sage-50">
               Falar com privacidade
             </a>

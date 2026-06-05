@@ -27,6 +27,7 @@ const PricingPage         = lazy(() => import('@/pages/PricingPage'))
 const LandingPage         = lazy(() => import('@/pages/LandingPage'))
 const LegalPage           = lazy(() => import('@/pages/LegalPage'))
 const SecurityPage        = lazy(() => import('@/pages/SecurityPage'))
+const DpaPage             = lazy(() => import('@/pages/DpaPage'))
 const InstrumentosPage    = lazy(() => import('@/pages/InstrumentosPage'))
 
 // Public pages — lazy loaded
@@ -86,6 +87,7 @@ export default function App() {
         <Route path="/privacidade" element={<LegalPage type="privacy" />} />
         <Route path="/termos" element={<LegalPage type="terms" />} />
         <Route path="/seguranca" element={<SecurityPage />} />
+        <Route path="/dpa" element={<DpaPage />} />
 
         {/* ── Rotas públicas de autenticação ──────────────────────── */}
         <Route element={<PublicRoute><AuthLayout /></PublicRoute>}>
