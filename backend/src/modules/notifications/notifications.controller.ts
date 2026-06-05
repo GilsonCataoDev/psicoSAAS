@@ -13,20 +13,20 @@ export class NotificationsController {
 
   @Get('status')
   @SkipThrottle()
-  status() {
-    return this.notifications.getWhatsAppStatus()
+  status(@Request() req: any) {
+    return this.notifications.getWhatsAppStatus(req.user.id)
   }
 
   @Post('connect')
   @UseGuards(CsrfGuard)
-  connect() {
-    return this.notifications.getWhatsAppQrCode()
+  connect(@Request() req: any) {
+    return this.notifications.getWhatsAppQrCode(req.user.id)
   }
 
   @Post('reset')
   @UseGuards(CsrfGuard)
-  reset() {
-    return this.notifications.resetWhatsAppConnection()
+  reset(@Request() req: any) {
+    return this.notifications.resetWhatsAppConnection(req.user.id)
   }
 
   @Post('test')

@@ -593,7 +593,9 @@ export default function SettingsPage() {
                   <input value={prefs.whatsapp} onChange={e => setPref('whatsapp', e.target.value)}
                     disabled={!hasProAutomation}
                     className="input-field" placeholder="5511999990000 (com DDI e DDD, sem espaços)" />
-                  <p className="text-xs text-neutral-400 mt-1">Usado para enviar e receber mensagens automáticas.</p>
+                  <p className="text-xs text-neutral-400 mt-1">
+                    As mensagens saem do aparelho conectado pelo QR Code deste psicólogo.
+                  </p>
                 </div>
                 {hasProAutomation && !whatsappConnected && (
                   <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">

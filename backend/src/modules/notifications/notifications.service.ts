@@ -28,7 +28,7 @@ export class NotificationsService {
   private readonly BASE_URL: string
   private readonly WA_URL: string
   private readonly WA_KEY: string
-  private readonly WA_INSTANCE: string
+  private readonly WA_INSTANCE_PREFIX: string
   private readonly waEnabled: boolean
 
   constructor(
@@ -40,7 +40,7 @@ export class NotificationsService {
     this.BASE_URL     = cfg.get('FRONTEND_URL') ?? 'http://localhost:3000'
     this.WA_URL       = cfg.get('WHATSAPP_API_URL') ?? ''
     this.WA_KEY       = cfg.get('WHATSAPP_API_KEY') ?? ''
-    this.WA_INSTANCE  = cfg.get('WHATSAPP_INSTANCE') ?? 'default'
+    this.WA_INSTANCE_PREFIX = cfg.get('WHATSAPP_INSTANCE_PREFIX') ?? 'usecognia'
     this.waEnabled    = !!(this.WA_URL && this.WA_KEY && cfg.get('NODE_ENV') === 'production')
   }
 
@@ -62,43 +62,48 @@ export class NotificationsService {
 
   // ─── Envio via WhatsApp (Evolution API) ──────────────────────────────────
 
-  async getWhatsAppStatus(): Promise<{ configured: boolean; connected: boolean; state: string }> {
-    if (!this.waEnabled) return { configured: false, connected: false, state: 'not_configured' }
+  async getWhatsAppStatus(ownerId: string): Promise<{ configured: boolean; connected: boolean; state: string; instance: string }> {
+    const instance = this.getWhatsAppInstance(ownerId)
+    if (!this.waEnabled) return { configured: false, connected: false, state: 'not_configured', instance }
 
     try {
-      const res = await fetch(`${this.WA_URL}/instance/connectionState/${this.WA_INSTANCE}`, {
+      const res = await fetch(`${this.WA_URL}/instance/connectionState/${instance}`, {
         headers: { apikey: this.WA_KEY },
       })
+      if (res.status === 404) return { configured: true, connected: false, state: 'not_created', instance }
       const data = await res.json() as { instance?: { state?: string } }
       const state = data.instance?.state ?? 'unknown'
-      return { configured: true, connected: state === 'open', state }
+      return { configured: true, connected: state === 'open', state, instance }
     } catch {
-      return { configured: true, connected: false, state: 'unavailable' }
+      return { configured: true, connected: false, state: 'unavailable', instance }
     }
   }
 
-  async getWhatsAppQrCode(): Promise<{ base64: string }> {
+  async getWhatsAppQrCode(ownerId: string): Promise<{ base64: string; instance: string }> {
     if (!this.waEnabled) throw new BadRequestException('WhatsApp nao configurado')
-    const res = await fetch(`${this.WA_URL}/instance/connect/${this.WA_INSTANCE}`, {
+    const instance = this.getWhatsAppInstance(ownerId)
+    await this.ensureWhatsAppInstance(instance)
+    const res = await fetch(`${this.WA_URL}/instance/connect/${instance}`, {
       headers: { apikey: this.WA_KEY },
     })
     const data = await res.json() as { base64?: string; message?: string }
     if (!res.ok || !data.base64) {
       throw new BadRequestException(data.message ?? 'Nao foi possivel gerar o QR Code')
     }
-    return { base64: data.base64 }
+    return { base64: data.base64, instance }
   }
 
-  async resetWhatsAppConnection(): Promise<{ base64: string }> {
+  async resetWhatsAppConnection(ownerId: string): Promise<{ base64: string; instance: string }> {
     if (!this.waEnabled) throw new BadRequestException('WhatsApp nao configurado')
+    const instance = this.getWhatsAppInstance(ownerId)
 
-    await fetch(`${this.WA_URL}/instance/logout/${this.WA_INSTANCE}`, {
+    await fetch(`${this.WA_URL}/instance/logout/${instance}`, {
       method: 'DELETE',
       headers: { apikey: this.WA_KEY },
     }).catch(() => undefined)
 
     await new Promise(resolve => setTimeout(resolve, 1500))
-    return this.getWhatsAppQrCode()
+    return this.getWhatsAppQrCode(ownerId)
   }
 
   async sendTestWhatsApp(ownerId: string, phone?: string): Promise<WhatsAppDeliveryResult> {
@@ -132,8 +137,9 @@ export class NotificationsService {
     const withDdi = normalized.startsWith('55') ? normalized : `55${normalized}`
 
     try {
+      const instance = this.getWhatsAppInstance(ownerId)
       const res = await fetch(
-        `${this.WA_URL}/message/sendText/${this.WA_INSTANCE}`,
+        `${this.WA_URL}/message/sendText/${instance}`,
         {
           method: 'POST',
           headers: {
@@ -148,7 +154,7 @@ export class NotificationsService {
       )
       if (!res.ok) {
         const err = await res.text()
-        this.logger.error(`[WhatsApp] Erro ${res.status}: ${err}`)
+        this.logger.error(`[WhatsApp] Erro ${res.status} instance=${instance}: ${err}`)
         return { sent: false, reason: 'api_error', error: `WhatsApp respondeu ${res.status}: ${err.slice(0, 120)}` }
       }
       return { sent: true }
@@ -161,6 +167,36 @@ export class NotificationsService {
 
   async sendDirectWhatsApp(phone: string, text: string, ownerId?: string | null): Promise<WhatsAppDeliveryResult> {
     return this.sendWhatsApp(phone, text, ownerId)
+  }
+
+  private getWhatsAppInstance(ownerId?: string | null): string {
+    if (!ownerId) return `${this.WA_INSTANCE_PREFIX}-unknown`
+    const safeId = ownerId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 24).toLowerCase()
+    return `${this.WA_INSTANCE_PREFIX}-${safeId}`
+  }
+
+  private async ensureWhatsAppInstance(instance: string): Promise<void> {
+    const status = await fetch(`${this.WA_URL}/instance/connectionState/${instance}`, {
+      headers: { apikey: this.WA_KEY },
+    }).catch(() => null)
+    if (status && status.status !== 404) return
+
+    const res = await fetch(`${this.WA_URL}/instance/create`, {
+      method: 'POST',
+      headers: {
+        apikey: this.WA_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        instanceName: instance,
+        qrcode: false,
+        integration: 'WHATSAPP-BAILEYS',
+      }),
+    })
+    if (res.ok || res.status === 409 || res.status === 403) return
+
+    const err = await res.text()
+    throw new BadRequestException(`Nao foi possivel criar a conexao WhatsApp: ${err.slice(0, 120)}`)
   }
 
   async scheduleReminder(appointment: any): Promise<void> {
