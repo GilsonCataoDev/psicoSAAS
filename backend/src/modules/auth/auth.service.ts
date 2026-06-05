@@ -14,6 +14,7 @@ import { RegisterDto }          from './dto/register.dto'
 import { LoginDto }             from './dto/login.dto'
 import { UpdateProfileDto }     from './dto/update-profile.dto'
 import { UpdatePreferencesDto } from './dto/update-preferences.dto'
+import { UpdateOnboardingDto }  from './dto/update-onboarding.dto'
 import { EmailService }   from '../email/email.service'
 import { ReferralService } from '../referral/referral.service'
 
@@ -245,6 +246,15 @@ export class AuthService {
     user.preferences = next
     await this.users.save(user)
     return this.exposePreferences(user.preferences!)
+  }
+
+  async updateOnboarding(id: string, data: UpdateOnboardingDto): Promise<SafeUser> {
+    const user = await this.users.findOneBy({ id })
+    if (!user) throw new NotFoundException()
+    if (typeof data.firstLogin === 'boolean') user.firstLogin = data.firstLogin
+    if (typeof data.onboardingStep === 'number') user.onboardingStep = data.onboardingStep
+    await this.users.save(user)
+    return this.toSafeUser(user)
   }
 
   async changePassword(id: string, currentPassword: string, newPassword: string): Promise<{ message: string }> {

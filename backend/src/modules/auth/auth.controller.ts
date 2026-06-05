@@ -12,6 +12,7 @@ import { RegisterDto }          from './dto/register.dto'
 import { LoginDto }             from './dto/login.dto'
 import { UpdateProfileDto }     from './dto/update-profile.dto'
 import { UpdatePreferencesDto } from './dto/update-preferences.dto'
+import { UpdateOnboardingDto }  from './dto/update-onboarding.dto'
 import { ChangePasswordDto }    from './dto/change-password.dto'
 import { ForgotPasswordDto }    from './dto/forgot-password.dto'
 import { ResetPasswordDto }     from './dto/reset-password.dto'
@@ -169,6 +170,13 @@ export class AuthController {
   @SkipThrottle()
   updatePreferences(@Request() req: any, @Body() dto: UpdatePreferencesDto) {
     return this.auth.updatePreferences(req.user.id, dto)
+  }
+
+  @Patch('onboarding')
+  @UseGuards(JwtAuthGuard, CsrfGuard)
+  @SkipThrottle()
+  updateOnboarding(@Request() req: any, @Body() dto: UpdateOnboardingDto) {
+    return this.auth.updateOnboarding(req.user.id, dto)
   }
 
   @Patch('password')

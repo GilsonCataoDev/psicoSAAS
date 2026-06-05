@@ -33,6 +33,12 @@ export class User {
   @Column({ default: false })
   onboardingCompleted: boolean
 
+  @Column({ default: true })
+  firstLogin: boolean
+
+  @Column({ default: 0 })
+  onboardingStep: number
+
   @Column({ nullable: true })
   phone?: string
 

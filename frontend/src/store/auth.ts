@@ -13,6 +13,8 @@ export interface User {
   phone?: string
   cpfCnpj?: string
   emailVerified?: boolean
+  firstLogin?: boolean
+  onboardingStep?: number
 }
 
 interface AuthState {
