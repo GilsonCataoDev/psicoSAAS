@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Users, CalendarCheck, Wallet, Clock, ArrowRight, Video, MapPin, AlertTriangle, Sparkles } from 'lucide-react'
+import { Users, CalendarCheck, Wallet, Clock, ArrowRight, Video, MapPin, AlertTriangle, Sparkles, MessageSquareText, Ban, TimerReset } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -162,6 +162,36 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Agenda + Receita ─────────────────────────────────────────── */}
+      {(s?.roi?.remindersSent ?? 0) + (s?.roi?.earlyCancellations ?? 0) > 0 && (
+        <div className="grid gap-3 rounded-2xl border border-sage-100 bg-white p-4 shadow-card md:grid-cols-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-sage-700">ROI do mes</p>
+            <p className="mt-1 text-sm text-neutral-500">Automacoes que viraram economia operacional.</p>
+          </div>
+          <div className="flex items-center gap-3 rounded-xl bg-sage-50 px-4 py-3">
+            <MessageSquareText className="h-4 w-4 text-sage-700" />
+            <div>
+              <p className="text-lg font-semibold text-neutral-800">{s.roi.remindersSent}</p>
+              <p className="text-xs text-neutral-500">lembretes enviados</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 rounded-xl bg-amber-50 px-4 py-3">
+            <Ban className="h-4 w-4 text-amber-700" />
+            <div>
+              <p className="text-lg font-semibold text-neutral-800">{s.roi.earlyCancellations}</p>
+              <p className="text-xs text-neutral-500">{formatCurrency(s.roi.preservedAmount)} preservados</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 rounded-xl bg-mist-50 px-4 py-3">
+            <TimerReset className="h-4 w-4 text-mist-700" />
+            <div>
+              <p className="text-lg font-semibold text-neutral-800">{Math.round(((s.roi.estimatedMinutesSaved ?? 0) / 60) * 10) / 10}h</p>
+              <p className="text-xs text-neutral-500">tempo estimado salvo</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
         {/* Agenda de hoje */}

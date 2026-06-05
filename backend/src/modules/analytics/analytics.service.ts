@@ -5,6 +5,7 @@ import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, subMonths, format } f
 import { Patient } from '../patients/entities/patient.entity'
 import { Appointment } from '../appointments/entities/appointment.entity'
 import { FinancialRecord } from '../financial/entities/financial-record.entity'
+import { Booking } from '../booking/entities/booking.entity'
 
 const PT_MONTHS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
 
@@ -26,6 +27,7 @@ export class AnalyticsService {
     @InjectRepository(Patient)         private patients: Repository<Patient>,
     @InjectRepository(Appointment)     private appointments: Repository<Appointment>,
     @InjectRepository(FinancialRecord) private financial: Repository<FinancialRecord>,
+    @InjectRepository(Booking)         private bookings: Repository<Booking>,
   ) {}
 
   async getDashboardStats(userId: string) {
@@ -49,6 +51,8 @@ export class AnalyticsService {
       monthRevenue,
       revenueChart,
       inactivePatients,
+      remindersSent,
+      earlyCancellations,
     ] = await Promise.all([
 
       // ── Pacientes ativos ────────────────────────────────────────────────────
@@ -155,7 +159,35 @@ export class AnalyticsService {
           .getCount(),
         0,
       ),
+
+      safe('remindersSent', log, () =>
+        this.appointments
+          .createQueryBuilder('a')
+          .where('a.psychologistId = :userId', { userId })
+          .andWhere(`(
+            a."reminder24hSentAt" BETWEEN :start AND :end
+            OR a."reminder2hSentAt" BETWEEN :start AND :end
+          )`, { start: monthStart, end: monthEnd })
+          .getCount(),
+        0,
+      ),
+
+      safe('earlyCancellations', log, () =>
+        this.bookings
+          .createQueryBuilder('b')
+          .select('COUNT(*)', 'count')
+          .addSelect('COALESCE(SUM(b.amount), 0)', 'amount')
+          .where('b.psychologistId = :userId', { userId })
+          .andWhere('b.status = :status', { status: 'cancelled' })
+          .andWhere('b.cancelledAt BETWEEN :start AND :end', { start: monthStart, end: monthEnd })
+          .getRawOne(),
+        { count: 0, amount: 0 },
+      ),
     ])
+
+    const reminderCount = Number(remindersSent ?? 0)
+    const cancellationCount = Number((earlyCancellations as any)?.count ?? 0)
+    const preservedAmount = Number((earlyCancellations as any)?.amount ?? 0)
 
     this.logger.log(
       `dashboard OK: active=${activePatients} sessMonth=${sessionsThisMonth} pending=${(pendingPayments as any[]).length}`,
@@ -171,6 +203,12 @@ export class AnalyticsService {
       inactivePatients,
       todayAppointments,
       revenueChart,
+      roi: {
+        remindersSent: reminderCount,
+        earlyCancellations: cancellationCount,
+        preservedAmount,
+        estimatedMinutesSaved: (reminderCount * 2) + (cancellationCount * 10),
+      },
     }
   }
 }
