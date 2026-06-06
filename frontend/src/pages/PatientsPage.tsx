@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { Plus, Search, UsersRound } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
@@ -14,6 +14,7 @@ import { patientMatchesSearch } from '@/lib/patientSearch'
 
 export default function PatientsPage() {
   const location = useLocation()
+  const [searchParams] = useSearchParams()
   const initialSearch = typeof location.state === 'object'
     && location.state
     && 'search' in location.state
@@ -35,6 +36,12 @@ export default function PatientsPage() {
   const currentPlan = PLANS.find(p => p.id === (subscription.planId ?? subscription.plan)) ?? PLANS[0]
   const patientLimit = currentPlan.maxPatients
   const reachedPatientLimit = patientLimit !== -1 && activeCount >= patientLimit
+
+  useEffect(() => {
+    if (searchParams.get('new') === '1' && !reachedPatientLimit) {
+      setShowModal(true)
+    }
+  }, [reachedPatientLimit, searchParams])
 
   function openCreatePatientModal() {
     if (reachedPatientLimit) {

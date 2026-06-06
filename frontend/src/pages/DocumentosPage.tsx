@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   FilePlus, Shield, Download, Eye, Search, ExternalLink, Trash2, Copy,
   FileSignature,
@@ -17,6 +18,7 @@ import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 export default function DocumentosPage() {
+  const [searchParams] = useSearchParams()
   const user = useAuthStore(s => s.user)
   const { data: patients = [] } = usePatients()
   const { data: docs = [], isLoading } = useDocuments()
@@ -27,6 +29,13 @@ export default function DocumentosPage() {
   const [docToDelete, setDocToDelete] = useState<Documento | null>(null)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<DocType | 'all'>('all')
+
+  useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      setGenerateType(undefined)
+      setShowGenerate(true)
+    }
+  }, [searchParams])
 
   const filtered = docs.filter(d => {
     const matchSearch = d.patientName.toLowerCase().includes(search.toLowerCase()) ||

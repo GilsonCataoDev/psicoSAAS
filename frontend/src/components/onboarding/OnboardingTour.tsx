@@ -17,29 +17,29 @@ const steps = [
     icon: Users,
     title: 'Crie seu primeiro paciente',
     text: 'Use apenas nome e WhatsApp para sair do zero rapido. O resto pode completar depois.',
-    cta: 'Ir para pacientes',
-    path: '/patients',
+    cta: 'Criar paciente agora',
+    path: '/pacientes?new=1',
   },
   {
     icon: CalendarDays,
     title: 'Agende a primeira sessao',
     text: 'Depois de criar o paciente, marque uma sessao na agenda visual.',
-    cta: 'Ir para agenda',
-    path: '/agenda',
+    cta: 'Agendar agora',
+    path: '/agenda?new=1',
   },
   {
     icon: FileText,
     title: 'Registre o prontuario',
     text: 'Durante ou apos a sessao, salve uma nota breve. Esse e o momento que mostra valor.',
     cta: 'Entendi',
-    path: '/patients',
+    path: '/pacientes',
   },
   {
     icon: FileText,
     title: 'Gere documentos quando precisar',
     text: 'Recibos, declaracoes e registros ficam organizados sem retrabalho.',
-    cta: 'Ver documentos',
-    path: '/documents',
+    cta: 'Gerar documento',
+    path: '/documentos?new=1',
   },
   {
     icon: CheckCircle2,
@@ -90,10 +90,8 @@ export default function OnboardingTour() {
   }
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-slate-950/55 p-4 backdrop-blur-sm sm:items-center">
-      <div className="absolute left-1/2 top-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full border border-sage-300/60 bg-sage-300/10 shadow-[0_0_0_9999px_rgba(2,6,23,0.28)] animate-pulse" />
-
-      <div className="relative w-full max-w-md rounded-3xl border border-white/15 bg-white p-5 shadow-2xl dark:bg-cognia-panel dark:text-white">
+    <div className="pointer-events-none fixed inset-x-3 bottom-20 z-[70] flex justify-end sm:bottom-5 sm:right-5 sm:left-auto">
+      <div className="pointer-events-auto w-full max-w-md rounded-3xl border border-sage-100 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-cognia-panel dark:text-white">
         <div className="flex items-start gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sage-100 text-sage-700 dark:bg-sage-500/20 dark:text-sage-200">
             <Icon size={24} />
@@ -122,7 +120,7 @@ export default function OnboardingTour() {
             disabled={saving}
             className="h-11 rounded-xl px-4 text-sm font-medium text-gray-500 hover:text-gray-800 disabled:opacity-60 dark:text-gray-300"
           >
-            Pular
+            Fechar
           </button>
           <button
             type="button"

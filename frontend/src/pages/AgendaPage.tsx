@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Plus, Video, MapPin, Trash2, MessageCircle, Pencil } from 'lucide-react'
 import {
   format, addDays, startOfWeek, eachDayOfInterval, addWeeks,
@@ -17,6 +18,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog'
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 7) // 7h–19h
 
 export default function AgendaPage() {
+  const [searchParams] = useSearchParams()
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }))
   const [showModal, setShowModal] = useState(false)
   const [editingAppointment, setEditingAppointment] = useState<any | null>(null)
@@ -40,6 +42,12 @@ export default function AgendaPage() {
   // Mobile: só mostra o dia atual
   const [mobileDay, setMobileDay] = useState(new Date())
   const mobileDays = eachDayOfInterval({ start: weekStart, end: addDays(weekStart, 4) })
+
+  useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      setShowModal(true)
+    }
+  }, [searchParams])
 
   async function removeAppointment() {
     if (!appointmentToRemove) return
