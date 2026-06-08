@@ -21,7 +21,7 @@ export default function PatientsPage() {
     ? String(location.state.search ?? '')
     : ''
   const [search, setSearch] = useState(initialSearch)
-  const [filter, setFilter] = useState<'all' | 'active' | 'paused'>('all')
+  const [filter, setFilter] = useState<'all' | 'active' | 'paused' | 'discharged'>('all')
   const [showModal, setShowModal] = useState(false)
   const { data: patients = [], isLoading } = usePatients()
   const subscription = useSubscriptionStore((s) => s.subscription)
@@ -98,14 +98,14 @@ export default function PatientsPage() {
           />
         </div>
         <div className="flex gap-1 bg-neutral-100 p-1 rounded-xl">
-          {(['all', 'active', 'paused'] as const).map((f) => (
+          {(['all', 'active', 'paused', 'discharged'] as const).map((f) => (
             <button key={f} onClick={() => setFilter(f)}
               className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-sm transition-all ${
                 filter === f
                   ? 'bg-white text-neutral-800 shadow-sm font-semibold'
                   : 'text-neutral-500 hover:text-neutral-700'
               }`}>
-              {f === 'all' ? 'Todas' : f === 'active' ? 'Ativas' : 'Em pausa'}
+              {f === 'all' ? 'Todas' : f === 'active' ? 'Ativas' : f === 'paused' ? 'Inativas' : 'Alta'}
             </button>
           ))}
         </div>

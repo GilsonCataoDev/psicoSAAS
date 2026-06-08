@@ -20,6 +20,11 @@ import toast from 'react-hot-toast'
 
 const MOODS = ['', '1', '2', '3', '4', '5']
 const WEEKDAYS = ['Domingo', 'Segunda', 'Terca', 'Quarta', 'Quinta', 'Sexta', 'Sabado']
+const PATIENT_STATUS_OPTIONS = [
+  { value: 'active', label: 'Ativo' },
+  { value: 'paused', label: 'Inativo' },
+  { value: 'discharged', label: 'Alta' },
+] as const
 
 const PRONTUARIO_FIELDS = [
   { key: 'queixaPrincipal', label: 'Queixa principal' },
@@ -53,6 +58,11 @@ export default function PatientDetailPage() {
     fixedScheduleFrequency: 'weekly' as 'weekly' | 'biweekly',
     fixedScheduleModality: 'presencial' as 'presencial' | 'online',
   })
+  const [careSettings, setCareSettings] = useState({
+    status: 'active' as 'active' | 'paused' | 'discharged',
+    sessionPrice: 0,
+    sessionDuration: 50,
+  })
 
   useEffect(() => {
     if (patient?.privateNotes) setNote(patient.privateNotes)
@@ -67,7 +77,22 @@ export default function PatientDetailPage() {
       fixedScheduleFrequency: patient.fixedScheduleFrequency ?? 'weekly',
       fixedScheduleModality: patient.fixedScheduleModality ?? 'presencial',
     })
-  }, [patient?.id, patient?.hasFixedSchedule, patient?.fixedScheduleWeekday, patient?.fixedScheduleTime, patient?.fixedScheduleFrequency, patient?.fixedScheduleModality])
+    setCareSettings({
+      status: patient.status,
+      sessionPrice: Number(patient.sessionPrice ?? 0),
+      sessionDuration: patient.sessionDuration ?? 50,
+    })
+  }, [
+    patient?.id,
+    patient?.status,
+    patient?.sessionPrice,
+    patient?.sessionDuration,
+    patient?.hasFixedSchedule,
+    patient?.fixedScheduleWeekday,
+    patient?.fixedScheduleTime,
+    patient?.fixedScheduleFrequency,
+    patient?.fixedScheduleModality,
+  ])
 
   async function handleMarkPaid(recordId: string) {
     try {
@@ -90,6 +115,23 @@ export default function PatientDetailPage() {
       toast.success('Horario fixo salvo')
     } catch {
       toast.error('Erro ao salvar horario fixo.')
+    }
+  }
+
+  async function saveCareSettings() {
+    if (!id) return
+    try {
+      await updatePatient.mutateAsync({
+        id,
+        data: {
+          status: careSettings.status,
+          sessionPrice: careSettings.sessionPrice,
+          sessionDuration: careSettings.sessionDuration,
+        },
+      })
+      toast.success('Dados do atendimento salvos')
+    } catch {
+      toast.error('Erro ao salvar dados do atendimento.')
     }
   }
 
@@ -222,6 +264,57 @@ export default function PatientDetailPage() {
           <div>
             <p className="text-xs text-neutral-400 mb-0.5">Duração</p>
             <p className="font-semibold text-neutral-700 text-sm">{patient.sessionDuration} min</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="card space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Banknote className="w-4 h-4 text-sage-600" />
+            <h2 className="font-semibold text-neutral-800 text-sm">Situação e cobrança</h2>
+          </div>
+          <StatusBadge status={careSettings.status} />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div>
+            <label className="label">Situação</label>
+            <select
+              value={careSettings.status}
+              onChange={e => setCareSettings(s => ({ ...s, status: e.target.value as typeof careSettings.status }))}
+              className="input-field"
+            >
+              {PATIENT_STATUS_OPTIONS.map(option => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label">Valor da sessão (R$)</label>
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              value={careSettings.sessionPrice}
+              onChange={e => setCareSettings(s => ({ ...s, sessionPrice: Number(e.target.value) }))}
+              className="input-field"
+            />
+          </div>
+          <div>
+            <label className="label">Duração (min)</label>
+            <input
+              type="number"
+              min={20}
+              max={180}
+              value={careSettings.sessionDuration}
+              onChange={e => setCareSettings(s => ({ ...s, sessionDuration: Number(e.target.value) }))}
+              className="input-field"
+            />
+          </div>
+          <div className="flex items-end">
+            <button onClick={saveCareSettings} disabled={updatePatient.isPending} className="btn-primary text-sm w-full">
+              {updatePatient.isPending ? 'Salvando...' : 'Salvar'}
+            </button>
           </div>
         </div>
       </div>
