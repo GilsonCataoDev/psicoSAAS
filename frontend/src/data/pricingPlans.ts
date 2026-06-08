@@ -1,7 +1,12 @@
 export type PricingFeature = {
-  icon: string
+  type: 'included' | 'excluded'
   title: string
   subtitle: string
+}
+
+export type PricingRoiItem = {
+  type: 'time' | 'attendance' | 'revenue' | 'collection'
+  text: string
 }
 
 export type PricingPlan = {
@@ -15,7 +20,7 @@ export type PricingPlan = {
   featured?: boolean
   features: PricingFeature[]
   roi: {
-    items: string[]
+    items: PricingRoiItem[]
     note: string
   } | null
   cta: string
@@ -27,7 +32,7 @@ export const PRICING_HERO = {
   subtitle: 'Cada plano e um nivel de automacao. Quanto mais faltas voce quer evitar, mais o sistema trabalha para voce.',
   context: 'Psicologos solo perdem em media 10 horas por semana com agenda, confirmacao e cobranca. Escolha quanto disso voce quer automatizar.',
   trialCta: 'Teste 7 dias gratis no Essencial ou Pro',
-  trialSubtext: 'Sem cartao de credito • Cancele a qualquer hora',
+  trialSubtext: 'Sem cartao de credito. Cancele a qualquer hora.',
 }
 
 export const PRICING_PLANS: PricingPlan[] = [
@@ -39,16 +44,16 @@ export const PRICING_PLANS: PricingPlan[] = [
     description: 'Experimente como voce esta perdendo horas por semana',
     badge: null,
     features: [
-      { icon: '✅', title: 'Veja todos os seus atendimentos de uma vez', subtitle: 'Agenda basica' },
-      { icon: '✅', title: 'Comece com ate 10 pacientes simultaneos', subtitle: 'Ate 10 pacientes' },
-      { icon: '✅', title: 'Pacientes marcam diretamente sem voce digitar', subtitle: 'Link publico simples' },
-      { icon: '✅', title: 'Acompanhe quanto ganhou este mes', subtitle: 'Financeiro basico' },
-      { icon: '❌', title: 'Sem documentos e PDF', subtitle: 'Limitacao' },
-      { icon: '❌', title: 'Sem instrumentos clinicos', subtitle: 'Limitacao' },
-      { icon: '❌', title: 'Sem WhatsApp automatico', subtitle: 'Limitacao' },
+      { type: 'included', title: 'Veja todos os seus atendimentos de uma vez', subtitle: 'Agenda basica' },
+      { type: 'included', title: 'Comece com ate 10 pacientes simultaneos', subtitle: 'Ate 10 pacientes' },
+      { type: 'included', title: 'Pacientes marcam diretamente sem voce digitar', subtitle: 'Link publico simples' },
+      { type: 'included', title: 'Acompanhe quanto ganhou este mes', subtitle: 'Financeiro basico' },
+      { type: 'excluded', title: 'Sem documentos e PDF', subtitle: 'Limitacao' },
+      { type: 'excluded', title: 'Sem instrumentos clinicos', subtitle: 'Limitacao' },
+      { type: 'excluded', title: 'Sem WhatsApp automatico', subtitle: 'Limitacao' },
     ],
     cta: 'Comece gratis agora',
-    ctaSubtext: 'Sem cartao • Sem compromisso • 10 min de setup',
+    ctaSubtext: 'Sem cartao. Sem compromisso. 10 min de setup.',
     roi: null,
   },
   {
@@ -60,17 +65,17 @@ export const PRICING_PLANS: PricingPlan[] = [
     description: 'Reduza faltas com lembretes automaticos e organize sua rotina',
     badge: null,
     features: [
-      { icon: '✅', title: 'Gerencie ate 50 pacientes sem perder ninguem', subtitle: 'Ate 50 pacientes' },
-      { icon: '✅', title: 'Pacientes confirmam presenca em 1 clique', subtitle: 'Link publico de agendamento' },
-      { icon: '✅', title: 'Documentos que o CFP reconhece sem gasto extra', subtitle: 'Documentos e PDF com verificacao' },
-      { icon: '✅', title: 'Saiba quanto faturou e quanto falta receber', subtitle: 'Financeiro basico' },
-      { icon: '✅', title: 'Mensagem pronta no WhatsApp em 1 clique', subtitle: 'WhatsApp com template' },
+      { type: 'included', title: 'Gerencie ate 50 pacientes sem perder ninguem', subtitle: 'Ate 50 pacientes' },
+      { type: 'included', title: 'Pacientes confirmam presenca em 1 clique', subtitle: 'Link publico de agendamento' },
+      { type: 'included', title: 'Documentos que o CFP reconhece sem gasto extra', subtitle: 'Documentos e PDF com verificacao' },
+      { type: 'included', title: 'Saiba quanto faturou e quanto falta receber', subtitle: 'Financeiro basico' },
+      { type: 'included', title: 'Mensagem pronta no WhatsApp em 1 clique', subtitle: 'WhatsApp com template' },
     ],
     roi: {
       items: [
-        '⏱️ Economize 5+ horas por semana',
-        '🎯 Evite 2-3 faltas por mes',
-        '💰 Proteja R$ 500-750/mes em receita',
+        { type: 'time', text: 'Economize 5+ horas por semana' },
+        { type: 'attendance', text: 'Evite 2-3 faltas por mes' },
+        { type: 'revenue', text: 'Proteja R$ 500-750/mes em receita' },
       ],
       note: 'Seu investimento se paga em 1 dia',
     },
@@ -84,26 +89,26 @@ export const PRICING_PLANS: PricingPlan[] = [
     pricePeriod: '/mes',
     priceAnnual: 'R$ 119/mes, cobrado por ano',
     description: 'Reduza 40% de faltas e cresca sem deixar paciente cair',
-    badge: '🌟 MAIS POPULAR',
+    badge: 'Mais escolhido',
     featured: true,
     features: [
-      { icon: '✅', title: 'Sem limite de pacientes, cresca o quanto quiser', subtitle: 'Pacientes ilimitados' },
-      { icon: '✅', title: 'Gere documentos ilimitados, recibos, relatorios e contratos', subtitle: 'Documentos ilimitados' },
-      { icon: '✅', title: 'Instrumentos do CFP integrados, PHQ-9, GAD-7 e outros', subtitle: 'Instrumentos clinicos' },
-      { icon: '✅', title: 'WhatsApp automatico sem voce digitar nada', subtitle: 'WhatsApp automatico 100%' },
-      { icon: '✅', title: 'Mensagens podem soar como voce', subtitle: 'Modelos WhatsApp personalizados' },
-      { icon: '✅', title: 'Envie link de cobranca para o paciente pagar em 1 clique', subtitle: 'Financeiro Pro com links' },
-      { icon: '✅', title: 'Lembretes automaticos 24h e 1h antes', subtitle: 'Lembretes automaticos' },
-      { icon: '✅', title: 'Dashboard mostrando faltas evitadas e receita protegida', subtitle: 'Relatorios avancados' },
+      { type: 'included', title: 'Sem limite de pacientes, cresca o quanto quiser', subtitle: 'Pacientes ilimitados' },
+      { type: 'included', title: 'Gere documentos ilimitados, recibos, relatorios e contratos', subtitle: 'Documentos ilimitados' },
+      { type: 'included', title: 'Instrumentos do CFP integrados, PHQ-9, GAD-7 e outros', subtitle: 'Instrumentos clinicos' },
+      { type: 'included', title: 'WhatsApp automatico sem voce digitar nada', subtitle: 'WhatsApp automatico 100%' },
+      { type: 'included', title: 'Mensagens podem soar como voce', subtitle: 'Modelos WhatsApp personalizados' },
+      { type: 'included', title: 'Envie link de cobranca para o paciente pagar em 1 clique', subtitle: 'Financeiro Pro com links' },
+      { type: 'included', title: 'Lembretes automaticos 24h e 1h antes', subtitle: 'Lembretes automaticos' },
+      { type: 'included', title: 'Dashboard mostrando faltas evitadas e receita protegida', subtitle: 'Relatorios avancados' },
     ],
     roi: {
       items: [
-        '⏱️ Economize 10+ horas por semana',
-        '🎯 Evite 5-8 faltas por mes',
-        '💰 Proteja R$ 1.250-2.000/mes em receita',
-        '📊 Reduza inadimplencia em 30%',
+        { type: 'time', text: 'Economize 10+ horas por semana' },
+        { type: 'attendance', text: 'Evite 5-8 faltas por mes' },
+        { type: 'revenue', text: 'Proteja R$ 1.250-2.000/mes em receita' },
+        { type: 'collection', text: 'Reduza inadimplencia em 30%' },
       ],
-      note: '🔥 Seu investimento se paga em 3 atendimentos',
+      note: 'Seu investimento se paga em 3 atendimentos',
     },
     cta: 'Teste 7 dias gratis',
     ctaSubtext: 'Depois R$ 149/mes\nPaga a si mesma em 3 atendimentos\nCancele a qualquer hora',

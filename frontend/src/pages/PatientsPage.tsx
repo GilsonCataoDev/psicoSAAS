@@ -30,6 +30,20 @@ export default function PatientsPage() {
     const matchSearch = patientMatchesSearch(p, search)
     const matchFilter = filter === 'all' || p.status === filter
     return matchSearch && matchFilter
+  }).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }))
+
+  const groupedPatients = filtered.reduce<Record<string, Patient[]>>((groups, patient) => {
+    const firstLetter = patient.name.trim().charAt(0).toLocaleUpperCase('pt-BR') || '#'
+    const key = /^[A-ZÀ-Ý]$/i.test(firstLetter) ? firstLetter : '#'
+    groups[key] = groups[key] ?? []
+    groups[key].push(patient)
+    return groups
+  }, {})
+
+  const groupLetters = Object.keys(groupedPatients).sort((a, b) => {
+    if (a === '#') return 1
+    if (b === '#') return -1
+    return a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
   })
 
   const activeCount = patients.filter(p => p.status === 'active').length
@@ -121,8 +135,23 @@ export default function PatientsPage() {
           }
         />
       ) : (
-        <div className="grid gap-3">
-          {filtered.map((patient) => <PatientCard key={patient.id} patient={patient} />)}
+        <div className="space-y-5">
+          {groupLetters.map(letter => (
+            <section key={letter} className="space-y-2" aria-labelledby={`patients-letter-${letter}`}>
+              <div className="sticky top-0 z-10 flex items-center gap-3 bg-neutral-50/95 py-1 backdrop-blur dark:bg-neutral-950/90">
+                <h2 id={`patients-letter-${letter}`} className="w-8 text-sm font-bold text-sage-700">
+                  {letter}
+                </h2>
+                <div className="h-px flex-1 bg-neutral-100" />
+                <span className="text-xs font-medium text-neutral-400">
+                  {groupedPatients[letter].length} {groupedPatients[letter].length === 1 ? 'paciente' : 'pacientes'}
+                </span>
+              </div>
+              <div className="grid gap-3">
+                {groupedPatients[letter].map((patient) => <PatientCard key={patient.id} patient={patient} />)}
+              </div>
+            </section>
+          ))}
         </div>
       )}
 

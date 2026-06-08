@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { BadgeDollarSign, CheckCircle2, Clock3, Loader2, Target, TrendingUp, XCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { PLANS, Plan, useSubscriptionStore } from '@/store/subscription'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
-import { PRICING_COMPARISON, PRICING_FAQ, PRICING_HERO, PRICING_PLANS, PricingPlan } from '@/data/pricingPlans'
+import { PRICING_COMPARISON, PRICING_FAQ, PRICING_HERO, PRICING_PLANS, PricingPlan, PricingRoiItem } from '@/data/pricingPlans'
 
 function statusMessage(status: string) {
   if (status === 'pending') return 'Aguardando pagamento'
@@ -372,7 +372,10 @@ function PricingCard({
       {plan.roi && (
         <div className="mt-5 rounded-2xl border-l-4 border-purple-600 bg-purple-50 p-4 dark:bg-purple-500/10">
           {plan.roi.items.map((item) => (
-            <p key={item} className="mb-2 text-sm font-semibold text-neutral-800 dark:text-neutral-100">{item}</p>
+            <p key={item.text} className="mb-2 flex items-center gap-2 text-sm font-semibold text-neutral-800 dark:text-neutral-100">
+              <RoiIcon type={item.type} />
+              <span>{item.text}</span>
+            </p>
           ))}
           <p className="text-xs italic text-neutral-600 dark:text-neutral-300">{plan.roi.note}</p>
         </div>
@@ -381,7 +384,11 @@ function PricingCard({
       <div className="mt-6 flex-1 space-y-3">
         {plan.features.map((feature) => (
           <div key={`${feature.title}-${feature.subtitle}`} className="flex items-start gap-3">
-            <span className="text-lg leading-none">{feature.icon}</span>
+            {feature.type === 'included' ? (
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-sage-600" />
+            ) : (
+              <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-neutral-300" />
+            )}
             <div>
               <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">{feature.title}</p>
               <p className="text-xs text-neutral-500 dark:text-neutral-400">{feature.subtitle}</p>
@@ -405,6 +412,14 @@ function PricingCard({
       <p className="mt-2 whitespace-pre-line text-center text-xs text-neutral-500 dark:text-neutral-400">{plan.ctaSubtext}</p>
     </section>
   )
+}
+
+function RoiIcon({ type }: { type: PricingRoiItem['type'] }) {
+  const className = 'h-4 w-4 shrink-0 text-purple-700 dark:text-purple-200'
+  if (type === 'time') return <Clock3 className={className} />
+  if (type === 'attendance') return <Target className={className} />
+  if (type === 'revenue') return <BadgeDollarSign className={className} />
+  return <TrendingUp className={className} />
 }
 
 function PricingComparison() {

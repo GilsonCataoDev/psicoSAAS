@@ -285,7 +285,7 @@ export default function ProntuarioPage() {
             onChange={v => set('objetivos', v)}
             placeholder="Metas acordadas com a pessoa em atendimento..." />
           <div className="bg-sage-50 border border-sage-100 rounded-2xl p-4">
-            <p className="text-xs text-sage-700 font-medium mb-1">📌 Início do acompanhamento</p>
+            <p className="text-xs text-sage-700 font-medium mb-1">Início do acompanhamento</p>
             <p className="text-sm text-sage-800">{formatDate(patient.startDate)}</p>
           </div>
         </div>

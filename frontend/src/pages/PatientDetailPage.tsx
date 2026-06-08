@@ -3,6 +3,7 @@ import {
   ArrowLeft, Phone, Mail, Calendar, Plus, Lock,
   ClipboardList, MessageCircle, CheckCircle2, Save,
   CalendarDays, Banknote, Clock, FileText, Pencil,
+  BookOpenText,
 } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
@@ -20,6 +21,16 @@ import toast from 'react-hot-toast'
 const MOODS = ['', '1', '2', '3', '4', '5']
 const WEEKDAYS = ['Domingo', 'Segunda', 'Terca', 'Quarta', 'Quinta', 'Sexta', 'Sabado']
 
+const PRONTUARIO_FIELDS = [
+  { key: 'queixaPrincipal', label: 'Queixa principal' },
+  { key: 'historicoDoenca', label: 'História da situação atual' },
+  { key: 'antecedentesPessoais', label: 'Antecedentes pessoais' },
+  { key: 'historicoFamiliar', label: 'Histórico familiar' },
+  { key: 'abordagem', label: 'Abordagem' },
+  { key: 'objetivos', label: 'Objetivos terapêuticos' },
+  { key: 'frequencia', label: 'Frequência' },
+] as const
+
 export default function PatientDetailPage() {
   const { id } = useParams()
   const { data: patient, isLoading } = usePatient(id ?? '')
@@ -31,7 +42,7 @@ export default function PatientDetailPage() {
   const { data: instrumentAssignments = [] } = useInstrumentAssignments(id)
   const updateInstrumentAnswers = useUpdateInstrumentAnswers()
   const [note, setNote] = useState('')
-  const [tab, setTab] = useState<'timeline' | 'responses' | 'notes' | 'financial'>('timeline')
+  const [tab, setTab] = useState<'record' | 'timeline' | 'responses' | 'notes' | 'financial'>('record')
   const [showSessionModal, setShowSessionModal] = useState(false)
   const [editingResponse, setEditingResponse] = useState<InstrumentAssignment | null>(null)
   const [editedAnswers, setEditedAnswers] = useState<Record<string, string>>({})
@@ -116,6 +127,11 @@ export default function PatientDetailPage() {
   const totalPaid    = financialRecords.filter(r => r.status === 'paid').reduce((s, r) => s + Number(r.amount), 0)
   const totalPending = financialRecords.filter(r => r.status !== 'paid').reduce((s, r) => s + Number(r.amount), 0)
   const clinicalSessions = allSessions.filter(session => !session.tags?.some(tag => String(tag) === 'instrumento'))
+  const prontuario = patient.prontuario ?? {}
+  const filledProntuarioFields = PRONTUARIO_FIELDS.filter(field => {
+    const value = prontuario[field.key]
+    return typeof value === 'string' && value.trim().length > 0
+  })
 
   return (
     <div className="animate-slide-up space-y-5 max-w-4xl">
@@ -281,6 +297,7 @@ export default function PatientDetailPage() {
       {/* Tabs */}
       <div className="flex gap-1 bg-neutral-100 p-1 rounded-xl">
         {[
+          { id: 'record',    label: 'Prontuário',  icon: BookOpenText  },
           { id: 'timeline',  label: 'Histórico',    icon: CalendarDays  },
           { id: 'responses', label: 'Respostas',    icon: FileText      },
           { id: 'notes',     label: 'Anotacoes privadas', icon: Lock          },
@@ -296,6 +313,89 @@ export default function PatientDetailPage() {
           </button>
         ))}
       </div>
+
+      {/* ── Prontuario e evolucoes ───────────────────────────────────── */}
+      {tab === 'record' && (
+        <div className="space-y-4">
+          <div className="card">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <BookOpenText className="h-4 w-4 text-sage-600" />
+                  <h2 className="section-title mb-0">Prontuário clínico</h2>
+                </div>
+                <p className="mt-1 text-sm text-neutral-400">
+                  Identificação, anamnese, plano terapêutico e evoluções ficam reunidos nesta pessoa.
+                </p>
+              </div>
+              <Link to={`/prontuario/${patient.id}`} className="btn-secondary shrink-0 text-sm">
+                Abrir completo
+              </Link>
+            </div>
+
+            {filledProntuarioFields.length === 0 ? (
+              <div className="mt-5 rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-8 text-center">
+                <ClipboardList className="mx-auto h-8 w-8 text-neutral-300" />
+                <p className="mt-3 font-medium text-neutral-600">Prontuário ainda sem dados clínicos</p>
+                <p className="mt-1 text-sm text-neutral-400">Abra o prontuário completo para preencher a anamnese e o plano terapêutico.</p>
+              </div>
+            ) : (
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {filledProntuarioFields.map(field => (
+                  <div key={field.key} className="rounded-2xl border border-neutral-100 bg-neutral-50 px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">{field.label}</p>
+                    <p className="mt-1 line-clamp-4 text-sm leading-relaxed text-neutral-600">
+                      {String(prontuario[field.key])}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="card">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <CalendarDays className="h-4 w-4 text-sage-600" />
+                <h2 className="section-title mb-0">Evoluções</h2>
+              </div>
+              <button onClick={() => setShowSessionModal(true)} className="btn-primary text-sm">
+                Nova evolução
+              </button>
+            </div>
+
+            {clinicalSessions.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-8 text-center">
+                <p className="font-medium text-neutral-600">Nenhuma evolução registrada</p>
+                <p className="mt-1 text-sm text-neutral-400">As evoluções aparecem aqui assim que uma sessão for registrada.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-neutral-100">
+                {clinicalSessions.map((session, index) => (
+                  <div key={session.id} className="py-4 first:pt-0 last:pb-0">
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <span className="rounded-full bg-sage-50 px-2.5 py-1 text-xs font-semibold text-sage-700">
+                        Evolução {clinicalSessions.length - index}
+                      </span>
+                      <span className="text-xs text-neutral-400">{formatDate(session.date)}</span>
+                    </div>
+                    {session.summary ? (
+                      <p className="text-sm leading-relaxed text-neutral-600">{session.summary}</p>
+                    ) : (
+                      <p className="text-sm italic text-neutral-400">Sem descrição registrada.</p>
+                    )}
+                    {session.nextSteps && (
+                      <p className="mt-2 rounded-xl bg-sage-50 px-3 py-2 text-sm leading-relaxed text-sage-800">
+                        {session.nextSteps}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Timeline ──────────────────────────────────────────────────── */}
       {tab === 'timeline' && (

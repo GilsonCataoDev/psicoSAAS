@@ -22,16 +22,17 @@ export class BillingService {
   ) {}
 
   async getMine(user: Pick<User, 'id' | 'email'>) {
-    if (this.isCompedProUser(user)) {
-      return this.ensureCompedProSubscription(user)
-    }
-
     const subscription = await this.repo.findOne({
       where: { userId: user.id },
       order: { createdAt: 'DESC' },
     })
 
-    if (!subscription) return { status: 'none' }
+    if (!subscription) {
+      if (this.isCompedProUser(user)) {
+        return this.ensureCompedProSubscription(user)
+      }
+      return { status: 'none' }
+    }
 
     const normalized = await this.normalizeSubscriptionState(subscription)
     if (normalized) return this.toPublicSubscription(normalized)
@@ -66,10 +67,6 @@ export class BillingService {
   }
 
   async subscribe(user: User, plan = 'pro', creditCardToken?: string) {
-    if (this.isCompedProUser(user)) {
-      return this.ensureCompedProSubscription(user)
-    }
-
     if (!PLAN_PRICES[plan]) throw new BadRequestException('Plano invalido')
 
     if (!creditCardToken) {
@@ -152,10 +149,6 @@ export class BillingService {
   }
 
   async activateFree(user: Pick<User, 'id' | 'email'>) {
-    if (this.isCompedProUser(user)) {
-      return this.ensureCompedProSubscription(user)
-    }
-
     const existing = await this.repo.findOne({
       where: { userId: user.id },
       order: { createdAt: 'DESC' },
@@ -200,10 +193,6 @@ export class BillingService {
   }
 
   async changePlan(user: Pick<User, 'id' | 'email'>, plan?: string) {
-    if (this.isCompedProUser(user)) {
-      return this.ensureCompedProSubscription(user)
-    }
-
     if (!plan || !PLAN_PRICES[plan]) throw new BadRequestException('Plano invalido')
 
     const subscription = await this.repo.findOne({
@@ -230,10 +219,6 @@ export class BillingService {
   }
 
   async cancel(user: Pick<User, 'id' | 'email'>) {
-    if (this.isCompedProUser(user)) {
-      return this.ensureCompedProSubscription(user)
-    }
-
     const subscription = await this.repo.findOne({
       where: { userId: user.id, status: In(['active', 'trialing', 'past_due']) },
       order: { createdAt: 'DESC' },
