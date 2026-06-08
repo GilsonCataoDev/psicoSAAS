@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { useAuthStore } from '@/store/auth'
 import { useSubscriptionStore } from '@/store/subscription'
 import AppLayout from '@/components/layout/AppLayout'
@@ -38,8 +38,11 @@ const InstrumentResponsePage = lazy(() => import('@/pages/public/InstrumentRespo
 
 function PageLoader() {
   return (
-    <div className="flex h-48 items-center justify-center">
-      <div className="h-6 w-6 animate-spin rounded-full border-2 border-sage-200 border-t-sage-600" />
+    <div className="flex min-h-[240px] items-center justify-center">
+      <div className="rounded-2xl border border-sage-100 bg-white px-5 py-4 shadow-card">
+        <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-sage-200 border-t-sage-600" />
+        <p className="mt-3 text-sm font-medium text-neutral-500">Carregando...</p>
+      </div>
     </div>
   )
 }
@@ -49,16 +52,16 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />
 }
 
-function SubscriptionRoute({ children }: { children: React.ReactNode }) {
+function SubscriptionRoute() {
   const subscription = useSubscriptionStore((s) => s.subscription)
   const isLoaded = useSubscriptionStore((s) => s.isLoaded)
 
-  if (!isLoaded) return null
+  if (!isLoaded) return <PageLoader />
   if (subscription.status !== 'active' && subscription.status !== 'trialing') {
-    return <Navigate to="/pricing" replace />
+    return <Navigate to="/planos" replace />
   }
 
-  return <>{children}</>
+  return <Outlet />
 }
 
 function ProOnlyRoute({ children }: { children: React.ReactNode }) {
@@ -66,7 +69,7 @@ function ProOnlyRoute({ children }: { children: React.ReactNode }) {
   const isLoaded = useSubscriptionStore((s) => s.isLoaded)
   const plan = String(subscription.planId ?? subscription.plan ?? 'free')
 
-  if (!isLoaded) return null
+  if (!isLoaded) return <PageLoader />
   if (plan !== 'pro') return <Navigate to="/planos" replace />
 
   return <>{children}</>
@@ -111,22 +114,21 @@ export default function App() {
 
         {/* ── App interno (autenticado) ────────────────────────────── */}
         <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
-          <Route path="pricing" element={<PricingPage />} />
-        </Route>
-
-        <Route element={<PrivateRoute><SubscriptionRoute><AppLayout /></SubscriptionRoute></PrivateRoute>}>
-          <Route index element={<DashboardPage />} />
-          <Route path="pacientes" element={<PatientsPage />} />
-          <Route path="pacientes/:id" element={<PatientDetailPage />} />
-          <Route path="prontuario/:id" element={<ProntuarioPage />} />
-          <Route path="documentos" element={<DocumentosPage />} />
-          <Route path="agenda" element={<AgendaPage />} />
-          <Route path="agendamentos" element={<BookingManagePage />} />
-          <Route path="sessoes" element={<SessionsPage />} />
-          <Route path="financeiro" element={<FinancialPage />} />
-          <Route path="configuracoes" element={<SettingsPage />} />
-          <Route path="instrumentos" element={<ProOnlyRoute><InstrumentosPage /></ProOnlyRoute>} />
+          <Route path="pricing" element={<Navigate to="/planos" replace />} />
           <Route path="planos" element={<PricingPage />} />
+          <Route element={<SubscriptionRoute />}>
+            <Route index element={<DashboardPage />} />
+            <Route path="pacientes" element={<PatientsPage />} />
+            <Route path="pacientes/:id" element={<PatientDetailPage />} />
+            <Route path="prontuario/:id" element={<ProntuarioPage />} />
+            <Route path="documentos" element={<DocumentosPage />} />
+            <Route path="agenda" element={<AgendaPage />} />
+            <Route path="agendamentos" element={<BookingManagePage />} />
+            <Route path="sessoes" element={<SessionsPage />} />
+            <Route path="financeiro" element={<FinancialPage />} />
+            <Route path="configuracoes" element={<SettingsPage />} />
+            <Route path="instrumentos" element={<ProOnlyRoute><InstrumentosPage /></ProOnlyRoute>} />
+          </Route>
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

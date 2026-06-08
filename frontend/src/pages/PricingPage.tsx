@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { BadgeDollarSign, CheckCircle2, Clock3, Loader2, Target, TrendingUp, XCircle } from 'lucide-react'
+import { BadgeDollarSign, CheckCircle2, Clock3, CreditCard, Loader2, Target, TrendingUp, XCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { PLANS, Plan, useSubscriptionStore } from '@/store/subscription'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
+import Modal from '@/components/ui/Modal'
 import { PRICING_COMPARISON, PRICING_FAQ, PRICING_HERO, PRICING_PLANS, PricingPlan, PricingRoiItem } from '@/data/pricingPlans'
 
 function statusMessage(status: string) {
@@ -27,9 +28,12 @@ export default function PricingPage() {
   const [phone, setPhone] = useState('')
   const [postalCode, setPostalCode] = useState('')
   const [addressNumber, setAddressNumber] = useState('')
+  const [planChangeTarget, setPlanChangeTarget] = useState<Plan | null>(null)
+  const [confirmCancelToFree, setConfirmCancelToFree] = useState(false)
   const { subscription, setSubscription } = useSubscriptionStore()
   const currentPlanId = String(subscription.planId ?? subscription.plan ?? '')
   const billingPlans = new Map(PLANS.map((plan) => [plan.id, plan]))
+  const currentPlan = billingPlans.get(currentPlanId)
 
   function formatCardNumber(value: string) {
     return value.replace(/\D/g, '').slice(0, 19).replace(/(\d{4})(?=\d)/g, '$1 ')
@@ -173,12 +177,12 @@ export default function PricingPage() {
   }
 
   async function changePlan(plan: Plan) {
-    if (!confirm(`Trocar para o plano ${plan.name}?`)) return
     setLoadingPlan(plan.id)
     try {
       const { data } = await api.post('/billing/change-plan', { plan: plan.id })
       setSubscription(data)
       setSelectedPlan(null)
+      setPlanChangeTarget(null)
       toast.success(`Plano alterado para ${plan.name}.`)
     } catch (err: any) {
       toast.error(err?.response?.data?.message ?? 'Nao foi possivel trocar o plano.')
@@ -188,12 +192,12 @@ export default function PricingPage() {
   }
 
   async function cancelSubscription() {
-    if (!confirm('Cancelar o plano pago e voltar para o Gratis?')) return
     setLoadingPlan('free')
     try {
       const { data } = await api.post('/billing/cancel')
       setSubscription(data)
       setSelectedPlan(null)
+      setConfirmCancelToFree(false)
       toast.success(data.cancelAtPeriodEnd ? 'Cancelamento agendado para o fim do periodo.' : 'Plano cancelado.')
     } catch (err: any) {
       toast.error(err?.response?.data?.message ?? 'Nao foi possivel cancelar o plano.')
@@ -210,12 +214,12 @@ export default function PricingPage() {
 
     if (isCurrentPlan) return
     if (plan.id === 'free') {
-      if (hasPaidPlan) cancelSubscription()
+      if (hasPaidPlan) setConfirmCancelToFree(true)
       else subscribe(billingPlan)
       return
     }
     if (hasPaidPlan) {
-      changePlan(billingPlan)
+      setPlanChangeTarget(billingPlan)
       return
     }
     setSelectedPlan(billingPlan)
@@ -282,6 +286,23 @@ export default function PricingPage() {
           onSubmit={() => subscribe(selectedPlan)}
         />
       )}
+
+      <PlanChangeDialog
+        open={!!planChangeTarget}
+        currentPlan={currentPlan}
+        targetPlan={planChangeTarget}
+        loading={!!planChangeTarget && loadingPlan === planChangeTarget.id}
+        onClose={() => setPlanChangeTarget(null)}
+        onConfirm={() => planChangeTarget && changePlan(planChangeTarget)}
+      />
+
+      <PlanCancelDialog
+        open={confirmCancelToFree}
+        currentPlan={currentPlan}
+        loading={loadingPlan === 'free'}
+        onClose={() => setConfirmCancelToFree(false)}
+        onConfirm={cancelSubscription}
+      />
 
       <PricingComparison />
       <PricingFAQ />
@@ -411,6 +432,128 @@ function PricingCard({
       </button>
       <p className="mt-2 whitespace-pre-line text-center text-xs text-neutral-500 dark:text-neutral-400">{plan.ctaSubtext}</p>
     </section>
+  )
+}
+
+function PlanChangeDialog({
+  open,
+  currentPlan,
+  targetPlan,
+  loading,
+  onClose,
+  onConfirm,
+}: {
+  open: boolean
+  currentPlan?: Plan
+  targetPlan: Plan | null
+  loading: boolean
+  onClose: () => void
+  onConfirm: () => void
+}) {
+  if (!targetPlan) return null
+
+  return (
+    <Modal open={open} onClose={onClose} title="Confirmar troca de plano" size="sm">
+      <div className="space-y-5">
+        <div className="rounded-2xl border border-sage-100 bg-sage-50 p-4">
+          <div className="flex items-start gap-3">
+            <CreditCard className="mt-0.5 h-5 w-5 shrink-0 text-sage-600" />
+            <div>
+              <p className="text-sm font-semibold text-neutral-800">
+                {currentPlan ? `Plano ${currentPlan.name}` : 'Plano atual'} para {targetPlan.name}
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-neutral-600">
+                A mudança será aplicada à sua assinatura e os recursos disponíveis passam a seguir o plano {targetPlan.name}.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <PlanMiniCard label="Atual" plan={currentPlan} muted />
+          <PlanMiniCard label="Novo plano" plan={targetPlan} />
+        </div>
+
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button type="button" onClick={onClose} disabled={loading} className="btn-secondary text-sm">
+            Manter plano atual
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={loading}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-sage-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-sage-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+            Confirmar troca
+          </button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
+function PlanCancelDialog({
+  open,
+  currentPlan,
+  loading,
+  onClose,
+  onConfirm,
+}: {
+  open: boolean
+  currentPlan?: Plan
+  loading: boolean
+  onClose: () => void
+  onConfirm: () => void
+}) {
+  return (
+    <Modal open={open} onClose={onClose} title="Ir para o plano Gratis" size="sm">
+      <div className="space-y-5">
+        <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+          <p className="text-sm font-semibold text-neutral-800">
+            Cancelar {currentPlan ? `o plano ${currentPlan.name}` : 'o plano pago'}
+          </p>
+          <p className="mt-1 text-sm leading-relaxed text-neutral-600">
+            Você volta para os limites do plano Gratis. Seus dados continuam salvos, mas recursos pagos deixam de ficar disponíveis.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <PlanMiniCard label="Atual" plan={currentPlan} muted />
+          <PlanMiniCard label="Destino" plan={PLANS.find(plan => plan.id === 'free')} />
+        </div>
+
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button type="button" onClick={onClose} disabled={loading} className="btn-secondary text-sm">
+            Manter assinatura
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={loading}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-amber-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+            Confirmar mudança
+          </button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
+function PlanMiniCard({ label, plan, muted = false }: { label: string; plan?: Plan; muted?: boolean }) {
+  return (
+    <div className={cn(
+      'rounded-2xl border p-3',
+      muted ? 'border-neutral-100 bg-neutral-50' : 'border-sage-200 bg-white',
+    )}>
+      <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-neutral-800">{plan?.name ?? 'Sem plano'}</p>
+      <p className="mt-1 text-xs text-neutral-500">
+        {plan ? (plan.price === 0 ? 'Gratis' : `R$ ${plan.price}/mes`) : 'Sem cobrança ativa'}
+      </p>
+    </div>
   )
 }
 

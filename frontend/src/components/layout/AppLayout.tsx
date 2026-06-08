@@ -95,7 +95,7 @@ function SubscriptionBanner() {
     return (
       <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
         <p className="font-medium">Seu teste terminou e o pagamento falhou.</p>
-        <Link to="/pricing" className="mt-2 inline-flex h-9 items-center rounded-lg bg-amber-600 px-3 text-white">
+        <Link to="/planos" className="mt-2 inline-flex h-9 items-center rounded-lg bg-amber-600 px-3 text-white">
           Pagar agora
         </Link>
       </div>
