@@ -1,4 +1,4 @@
-import{r as e}from"./rolldown-runtime-S-ySWqyJ.js";import{r as t}from"./form-vendor-B_wrF4EP.js";import{a as n}from"./react-vendor-38N1LKRe.js";import{a as r}from"./query-vendor-Bvunf-EU.js";import{$ as i,Bt as a,F as o,K as s,M as c,Nt as l,P as u,Q as d,Tt as f,Ut as p,_ as m,b as h,bt as g,d as _,et as v,h as y,ht as b,it as x,lt as S,m as C,n as w,o as T,pt as E,t as D,tt as O,w as k,zt as A}from"./icons-vendor-CR8vGaS9.js";import{H as j,w as M}from"./index-6UGp2FED.js";import{t as N}from"./Modal-Fs1xNtoc.js";var P=e(t()),F=r(),I={formulario:`Formulário`,escala:`Escala`,registro:`Registro`,entrevista:`Entrevista`},L={formulario:`bg-sage-100 text-sage-700`,escala:`bg-violet-100 text-violet-700`,registro:`bg-amber-100 text-amber-700`,entrevista:`bg-sky-100 text-sky-700`},R=[`bg-sage-50 text-sage-600 ring-sage-200`,`bg-violet-50 text-violet-600 ring-violet-200`,`bg-sky-50 text-sky-600 ring-sky-200`,`bg-amber-50 text-amber-600 ring-amber-200`,`bg-rose-50 text-rose-600 ring-rose-200`,`bg-teal-50 text-teal-600 ring-teal-200`,`bg-indigo-50 text-indigo-600 ring-indigo-200`,`bg-orange-50 text-orange-600 ring-orange-200`],z=[{id:`anamnese-adulto`,title:`Anamnese Psicológica — Adulto`,description:`Levantamento inicial completo: queixa, história de vida, saúde, vínculos e objetivos terapêuticos.`,category:`formulario`,tags:[`anamnese`,`avaliação inicial`,`adulto`],ageGroups:[`adulto`],Icon:b,template:`ANAMNESE PSICOLÓGICA — ADULTO
+import{r as e}from"./rolldown-runtime-S-ySWqyJ.js";import{r as t}from"./form-vendor-B_wrF4EP.js";import{a as n}from"./react-vendor-38N1LKRe.js";import{a as r}from"./query-vendor-Bvunf-EU.js";import{$ as i,Et as a,F as o,Ht as s,K as c,Kt as l,M as u,P as d,Pt as f,Q as p,Ut as m,_ as h,b as g,d as _,et as v,gt as y,h as b,it as x,lt as S,m as C,n as w,o as T,pt as E,t as D,tt as O,w as k,xt as A}from"./icons-vendor-DWNXNkI_.js";import{H as j,w as M}from"./index-Kg9s-Niu.js";import{t as N}from"./Modal-Bg87UpZY.js";var P=e(t()),F=r(),I={formulario:`Formulário`,escala:`Escala`,registro:`Registro`,entrevista:`Entrevista`},L={formulario:`bg-sage-100 text-sage-700`,escala:`bg-violet-100 text-violet-700`,registro:`bg-amber-100 text-amber-700`,entrevista:`bg-sky-100 text-sky-700`},R=[`bg-sage-50 text-sage-600 ring-sage-200`,`bg-violet-50 text-violet-600 ring-violet-200`,`bg-sky-50 text-sky-600 ring-sky-200`,`bg-amber-50 text-amber-600 ring-amber-200`,`bg-rose-50 text-rose-600 ring-rose-200`,`bg-teal-50 text-teal-600 ring-teal-200`,`bg-indigo-50 text-indigo-600 ring-indigo-200`,`bg-orange-50 text-orange-600 ring-orange-200`],z=[{id:`anamnese-adulto`,title:`Anamnese Psicológica — Adulto`,description:`Levantamento inicial completo: queixa, história de vida, saúde, vínculos e objetivos terapêuticos.`,category:`formulario`,tags:[`anamnese`,`avaliação inicial`,`adulto`],ageGroups:[`adulto`],Icon:y,template:`ANAMNESE PSICOLÓGICA — ADULTO
 
 IDENTIFICAÇÃO
 Nome completo:
@@ -44,7 +44,7 @@ Histórico familiar de transtornos mentais:
 OBJETIVOS
 O que espera do processo terapêutico:
 Objetivos para o acompanhamento:
-Observações iniciais do(a) profissional:`},{id:`anamnese-infantil`,title:`Anamnese Psicológica — Infantil e Adolescente`,description:`Levantamento com responsável: desenvolvimento, contexto familiar, escola e histórico de saúde.`,category:`formulario`,tags:[`anamnese`,`infantil`,`adolescente`,`avaliação inicial`],ageGroups:[`infantil`,`adolescente`],Icon:A,template:`ANAMNESE INFANTIL E ADOLESCENTE
+Observações iniciais do(a) profissional:`},{id:`anamnese-infantil`,title:`Anamnese Psicológica — Infantil e Adolescente`,description:`Levantamento com responsável: desenvolvimento, contexto familiar, escola e histórico de saúde.`,category:`formulario`,tags:[`anamnese`,`infantil`,`adolescente`,`avaliação inicial`],ageGroups:[`infantil`,`adolescente`],Icon:s,template:`ANAMNESE INFANTIL E ADOLESCENTE
 
 IDENTIFICAÇÃO
 Nome da criança/adolescente:
@@ -89,7 +89,7 @@ Outros:
 OBJETIVOS
 Expectativas do responsável:
 Expectativas do paciente (quando aplicável):
-Observações iniciais do(a) profissional:`},{id:`evolucao-sessao`,title:`Evolução de Sessão`,description:`Registro clínico da sessão: demanda trabalhada, intervenções, resposta observada e próximos passos.`,category:`formulario`,tags:[`evolução`,`prontuário`,`registro clínico`],ageGroups:[`all`],Icon:c,template:`EVOLUÇÃO DE SESSÃO
+Observações iniciais do(a) profissional:`},{id:`evolucao-sessao`,title:`Evolução de Sessão`,description:`Registro clínico da sessão: demanda trabalhada, intervenções, resposta observada e próximos passos.`,category:`formulario`,tags:[`evolução`,`prontuário`,`registro clínico`],ageGroups:[`all`],Icon:u,template:`EVOLUÇÃO DE SESSÃO
 
 Data:
 Pessoa atendida:
@@ -246,7 +246,7 @@ Próximos passos concretos:
 Possíveis obstáculos:
 Estratégias para superar obstáculos:
 
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`phq9`,title:`PHQ-9 — Rastreio de Depressão`,description:`Escala de 9 itens para rastreio de depressão. Uso clínico livre — não substitui diagnóstico.`,category:`escala`,tags:[`depressão`,`rastreio`,`PHQ-9`],ageGroups:[`adulto`,`adolescente`],Icon:l,template:`PHQ-9 — RASTREIO DE DEPRESSÃO
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`phq9`,title:`PHQ-9 — Rastreio de Depressão`,description:`Escala de 9 itens para rastreio de depressão. Uso clínico livre — não substitui diagnóstico.`,category:`escala`,tags:[`depressão`,`rastreio`,`PHQ-9`],ageGroups:[`adulto`,`adolescente`],Icon:f,template:`PHQ-9 — RASTREIO DE DEPRESSÃO
 
 Nas últimas 2 semanas, com que frequência você foi incomodado(a) pelos seguintes problemas?
 (0 = Nenhuma vez | 1 = Vários dias | 2 = Mais da metade dos dias | 3 = Quase todos os dias)
@@ -268,7 +268,7 @@ INTERPRETAÇÃO:
 DIFICULDADE FUNCIONAL:
 Se marcou algum problema, eles dificultaram seu trabalho, cuidados domésticos ou relacionamentos?
 
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`gad7`,title:`GAD-7 — Transtorno de Ansiedade Generalizada`,description:`Escala de 7 itens para rastreio de ansiedade generalizada. Uso clínico livre.`,category:`escala`,tags:[`ansiedade`,`rastreio`,`GAD-7`],ageGroups:[`adulto`,`adolescente`],Icon:p,template:`GAD-7 — TRANSTORNO DE ANSIEDADE GENERALIZADA
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`gad7`,title:`GAD-7 — Transtorno de Ansiedade Generalizada`,description:`Escala de 7 itens para rastreio de ansiedade generalizada. Uso clínico livre.`,category:`escala`,tags:[`ansiedade`,`rastreio`,`GAD-7`],ageGroups:[`adulto`,`adolescente`],Icon:l,template:`GAD-7 — TRANSTORNO DE ANSIEDADE GENERALIZADA
 
 Nas últimas 2 semanas, com que frequência você foi incomodado(a) pelos seguintes problemas?
 (0 = Nenhuma vez | 1 = Vários dias | 2 = Mais da metade dos dias | 3 = Quase todos os dias)
@@ -288,7 +288,7 @@ INTERPRETAÇÃO:
 DIFICULDADE FUNCIONAL:
 Se marcou algum problema, eles dificultaram suas atividades diárias?
 
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`dass21`,title:`DASS-21 — Depressão, Ansiedade e Estresse`,description:`Versão abreviada da escala DASS para rastreio em três subescalas. Uso clínico livre.`,category:`escala`,tags:[`depressão`,`ansiedade`,`estresse`,`DASS-21`],ageGroups:[`adulto`,`adolescente`],Icon:f,template:`DASS-21 — DEPRESSÃO, ANSIEDADE E ESTRESSE
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`dass21`,title:`DASS-21 — Depressão, Ansiedade e Estresse`,description:`Versão abreviada da escala DASS para rastreio em três subescalas. Uso clínico livre.`,category:`escala`,tags:[`depressão`,`ansiedade`,`estresse`,`DASS-21`],ageGroups:[`adulto`,`adolescente`],Icon:a,template:`DASS-21 — DEPRESSÃO, ANSIEDADE E ESTRESSE
 
 Na semana passada, em que medida cada afirmação se aplicou a você?
 (0 = Não se aplicou | 1 = Às vezes | 2 = Bastante | 3 = Muito/quase sempre)
@@ -322,7 +322,7 @@ Depressão:
 Ansiedade:
 Estresse:
 
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`rastreio-risco`,title:`Rastreio de Risco Suicida`,description:`Avaliação de ideação, histórico, fatores de risco e proteção, e conduta do profissional.`,category:`formulario`,tags:[`risco`,`suicídio`,`segurança`,`urgência`],ageGroups:[`all`],Icon:h,template:`RASTREIO DE RISCO SUICIDA
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`rastreio-risco`,title:`Rastreio de Risco Suicida`,description:`Avaliação de ideação, histórico, fatores de risco e proteção, e conduta do profissional.`,category:`formulario`,tags:[`risco`,`suicídio`,`segurança`,`urgência`],ageGroups:[`all`],Icon:g,template:`RASTREIO DE RISCO SUICIDA
 
 Data da avaliação:
 
@@ -357,7 +357,7 @@ Nível de risco (baixo / médio / alto / iminente):
 Conduta adotada:
 Encaminhamentos realizados:
 Plano de segurança elaborado:
-Próxima avaliação:`},{id:`bai-adaptado`,title:`Inventário de Ansiedade — Adaptado`,description:`Lista de sintomas físicos e cognitivos de ansiedade com escala de intensidade de 4 pontos.`,category:`escala`,tags:[`ansiedade`,`sintomas`,`BAI`],ageGroups:[`adulto`],Icon:d,template:`INVENTÁRIO DE ANSIEDADE — ADAPTADO
+Próxima avaliação:`},{id:`bai-adaptado`,title:`Inventário de Ansiedade — Adaptado`,description:`Lista de sintomas físicos e cognitivos de ansiedade com escala de intensidade de 4 pontos.`,category:`escala`,tags:[`ansiedade`,`sintomas`,`BAI`],ageGroups:[`adulto`],Icon:p,template:`INVENTÁRIO DE ANSIEDADE — ADAPTADO
 
 Na semana passada, com que intensidade você foi incomodado(a) pelos seguintes sintomas?
 (0 = Absolutamente não | 1 = Levemente | 2 = Moderadamente | 3 = Gravemente)
@@ -387,7 +387,7 @@ PONTUAÇÃO TOTAL:
 INTERPRETAÇÃO:
 (0–7: Mínimo | 8–15: Leve | 16–25: Moderado | 26–63: Grave)
 
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`registro-pensamentos`,title:`Registro de Pensamentos Automáticos`,description:`Técnica de TCC para identificar situação, emoção, pensamento automático e alternativas.`,category:`registro`,tags:[`TCC`,`pensamentos automáticos`,`cognição`],ageGroups:[`adulto`,`adolescente`],Icon:l,template:`REGISTRO DE PENSAMENTOS AUTOMÁTICOS
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`registro-pensamentos`,title:`Registro de Pensamentos Automáticos`,description:`Técnica de TCC para identificar situação, emoção, pensamento automático e alternativas.`,category:`registro`,tags:[`TCC`,`pensamentos automáticos`,`cognição`],ageGroups:[`adulto`,`adolescente`],Icon:f,template:`REGISTRO DE PENSAMENTOS AUTOMÁTICOS
 
 Data:
 
@@ -414,7 +414,7 @@ Quanto você acredita nesse pensamento alternativo? (0 a 100%):
 
 RESULTADO
 Emoções após a reestruturação e intensidades:
-O que você vai fazer como resultado desta análise:`},{id:`diario-humor`,title:`Diário de Humor Semanal`,description:`Autorregistro diário de humor, sono, eventos significativos e padrões semanais.`,category:`registro`,tags:[`humor`,`autorregistro`,`monitoramento`],ageGroups:[`all`],Icon:m,template:`DIÁRIO DE HUMOR SEMANAL
+O que você vai fazer como resultado desta análise:`},{id:`diario-humor`,title:`Diário de Humor Semanal`,description:`Autorregistro diário de humor, sono, eventos significativos e padrões semanais.`,category:`registro`,tags:[`humor`,`autorregistro`,`monitoramento`],ageGroups:[`all`],Icon:h,template:`DIÁRIO DE HUMOR SEMANAL
 
 Semana de:
 
@@ -457,7 +457,7 @@ Observações:
 REFLEXÃO DA SEMANA
 O que foi mais desafiador esta semana:
 O que foi positivo:
-Padrões que percebi:`},{id:`rastreio-sono`,title:`Rastreio de Sono`,description:`Avaliação do padrão de sono, comportamentos associados e impacto funcional.`,category:`registro`,tags:[`sono`,`insônia`,`higiene do sono`],ageGroups:[`adulto`,`adolescente`],Icon:u,template:`RASTREIO DE SONO
+Padrões que percebi:`},{id:`rastreio-sono`,title:`Rastreio de Sono`,description:`Avaliação do padrão de sono, comportamentos associados e impacto funcional.`,category:`registro`,tags:[`sono`,`insônia`,`higiene do sono`],ageGroups:[`adulto`,`adolescente`],Icon:d,template:`RASTREIO DE SONO
 
 Período avaliado:
 
@@ -529,7 +529,7 @@ AVALIAÇÃO GLOBAL DE FUNCIONAMENTO
 Pontuação AGF estimada (0–100):
 Justificativa:
 
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`pcl5`,title:`PCL-5 — Rastreio de TEPT`,description:`Lista de verificação de TEPT para o DSM-5 (20 itens). Domínio público — National Center for PTSD.`,category:`escala`,tags:[`TEPT`,`trauma`,`estresse pós-traumático`,`PCL-5`],ageGroups:[`adulto`],Icon:g,template:`PCL-5 — LISTA DE VERIFICAÇÃO DE TEPT (DSM-5)
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`pcl5`,title:`PCL-5 — Rastreio de TEPT`,description:`Lista de verificação de TEPT para o DSM-5 (20 itens). Domínio público — National Center for PTSD.`,category:`escala`,tags:[`TEPT`,`trauma`,`estresse pós-traumático`,`PCL-5`],ageGroups:[`adulto`],Icon:A,template:`PCL-5 — LISTA DE VERIFICAÇÃO DE TEPT (DSM-5)
 
 Nas últimas 4 semanas, com que intensidade você foi incomodado pelos seguintes problemas
 relacionados a uma experiência estressante ou perturbadora?
@@ -567,7 +567,7 @@ PONTUAÇÃO TOTAL (0–80):
 INTERPRETAÇÃO:
 (0–10: improvável TEPT | 11–20: leve | 21–45: moderado | >45: grave)
 
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`srq20`,title:`SRQ-20 — Rastreio de Transtornos Mentais Comuns`,description:`Questionário de autorrelato da OMS para rastreio de TMC em atenção primária. Domínio público.`,category:`escala`,tags:[`TMC`,`rastreio`,`saúde mental`,`SRQ-20`,`OMS`],ageGroups:[`adulto`,`adolescente`],Icon:s,template:`SRQ-20 — RASTREIO DE TRANSTORNOS MENTAIS COMUNS
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`srq20`,title:`SRQ-20 — Rastreio de Transtornos Mentais Comuns`,description:`Questionário de autorrelato da OMS para rastreio de TMC em atenção primária. Domínio público.`,category:`escala`,tags:[`TMC`,`rastreio`,`saúde mental`,`SRQ-20`,`OMS`],ageGroups:[`adulto`,`adolescente`],Icon:c,template:`SRQ-20 — RASTREIO DE TRANSTORNOS MENTAIS COMUNS
 
 Nos últimos 30 dias: (Sim / Não)
 
@@ -598,7 +598,7 @@ INTERPRETAÇÃO:
 
 ⚠ O item 17 exige avaliação imediata de risco suicida, independentemente da pontuação total.
 
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`isi`,title:`ISI — Índice de Gravidade da Insônia`,description:`Escala de 7 itens para avaliação da gravidade da insônia. Autor: Charles M. Morin. Domínio público.`,category:`escala`,tags:[`insônia`,`sono`,`ISI`,`gravidade`],ageGroups:[`adulto`],Icon:u,template:`ISI — ÍNDICE DE GRAVIDADE DA INSÔNIA
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`isi`,title:`ISI — Índice de Gravidade da Insônia`,description:`Escala de 7 itens para avaliação da gravidade da insônia. Autor: Charles M. Morin. Domínio público.`,category:`escala`,tags:[`insônia`,`sono`,`ISI`,`gravidade`],ageGroups:[`adulto`],Icon:d,template:`ISI — ÍNDICE DE GRAVIDADE DA INSÔNIA
 
 Avalie a GRAVIDADE dos seguintes problemas de sono:
 (0 = Sem problema | 1 = Leve | 2 = Moderado | 3 = Grave | 4 = Muito grave)
@@ -621,7 +621,7 @@ PONTUAÇÃO TOTAL (0–28):
 INTERPRETAÇÃO:
 (0–7: sem insônia clinicamente significativa | 8–14: insônia subclínica | 15–21: insônia moderada | 22–28: insônia grave)
 
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`ess`,title:`ESS — Escala de Sonolência de Epworth`,description:`Escala de 8 itens para avaliar sonolência diurna excessiva. Autor: Murray Johns. Domínio público.`,category:`escala`,tags:[`sonolência`,`sono`,`ESS`,`Epworth`],ageGroups:[`adulto`],Icon:y,template:`ESS — ESCALA DE SONOLÊNCIA DE EPWORTH
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`ess`,title:`ESS — Escala de Sonolência de Epworth`,description:`Escala de 8 itens para avaliar sonolência diurna excessiva. Autor: Murray Johns. Domínio público.`,category:`escala`,tags:[`sonolência`,`sono`,`ESS`,`Epworth`],ageGroups:[`adulto`],Icon:b,template:`ESS — ESCALA DE SONOLÊNCIA DE EPWORTH
 
 Com que frequência você cochilaria ou adormeceria nas seguintes situações?
 (0 = Nunca | 1 = Pequena chance | 2 = Chance moderada | 3 = Alta chance)
@@ -711,7 +711,7 @@ INTERPRETAÇÃO:
 
 Sensibilidade ~88%, Especificidade ~83% para dependência alcoólica.
 
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`meem`,title:`MEEM — Mini-Exame do Estado Mental`,description:`Rastreio cognitivo global (30 pontos). Adaptação brasileira: Brucki et al. (2003). Domínio público.`,category:`escala`,tags:[`cognitivo`,`MEEM`,`MMSE`,`demência`,`idosos`],ageGroups:[`adulto`],Icon:l,template:`MEEM — MINI-EXAME DO ESTADO MENTAL
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`meem`,title:`MEEM — Mini-Exame do Estado Mental`,description:`Rastreio cognitivo global (30 pontos). Adaptação brasileira: Brucki et al. (2003). Domínio público.`,category:`escala`,tags:[`cognitivo`,`MEEM`,`MMSE`,`demência`,`idosos`],ageGroups:[`adulto`],Icon:f,template:`MEEM — MINI-EXAME DO ESTADO MENTAL
 Adaptação brasileira (Brucki et al., 2003)
 
 ORIENTAÇÃO TEMPORAL (máx. 5 pontos)
@@ -799,7 +799,7 @@ PONTUAÇÃO TOTAL (0–48):
 (Converter para escala 0–100 se necessário: pontuação/48 × 100)
 INTERPRETAÇÃO: quanto maior a pontuação, maior a incapacidade funcional.
 
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`sdq`,title:`SDQ — Capacidades e Dificuldades (4–17 anos)`,description:`Questionário de 25 itens para rastreio comportamental infantojuvenil. Autor: R. Goodman. Domínio público.`,category:`escala`,tags:[`SDQ`,`infantil`,`adolescente`,`comportamento`,`rastreio`],ageGroups:[`infantil`,`adolescente`],Icon:a,template:`SDQ — QUESTIONÁRIO DE CAPACIDADES E DIFICULDADES
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`sdq`,title:`SDQ — Capacidades e Dificuldades (4–17 anos)`,description:`Questionário de 25 itens para rastreio comportamental infantojuvenil. Autor: R. Goodman. Domínio público.`,category:`escala`,tags:[`SDQ`,`infantil`,`adolescente`,`comportamento`,`rastreio`],ageGroups:[`infantil`,`adolescente`],Icon:m,template:`SDQ — QUESTIONÁRIO DE CAPACIDADES E DIFICULDADES
 Versão para pais — Robert Goodman (www.sdqinfo.org) — Domínio público
 
 Para cada item: 0 = Não verdadeiro | 1 = Parcialmente verdadeiro | 2 = Completamente verdadeiro
@@ -878,7 +878,7 @@ Funcionamento nos relacionamentos:
 Autocuidado e vida diária:
 
 PONTUAÇÃO GAF MELHOR NÍVEL (último ano):
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`ies-r`,title:`IES-R — Impacto do Evento (Revisado)`,description:`Escala de 22 itens para avaliação de resposta ao trauma (intrusão, evitação, hiperexcitação). Domínio público.`,category:`escala`,tags:[`trauma`,`TEPT`,`IES-R`,`impacto de evento`],ageGroups:[`adulto`],Icon:g,template:`IES-R — ESCALA DE IMPACTO DO EVENTO (REVISADA)
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`ies-r`,title:`IES-R — Impacto do Evento (Revisado)`,description:`Escala de 22 itens para avaliação de resposta ao trauma (intrusão, evitação, hiperexcitação). Domínio público.`,category:`escala`,tags:[`trauma`,`TEPT`,`IES-R`,`impacto de evento`],ageGroups:[`adulto`],Icon:A,template:`IES-R — ESCALA DE IMPACTO DO EVENTO (REVISADA)
 Weiss & Marmar (1997) — Domínio público
 
 A seguir estão reações que as pessoas têm depois de acontecimentos perturbadores na vida.
@@ -922,7 +922,7 @@ INTERPRETAÇÃO:
 (0–8: leve | 9–25: moderado | 26–43: alto | >44: muito alto — sugestivo de TEPT)
 
 EVENTO AVALIADO:
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`cssrs-simplificado`,title:`C-SSRS — Avaliação de Risco Suicida (Columbia)`,description:`Versão simplificada da escala Columbia para avaliação de ideação e comportamento suicida. Domínio público.`,category:`formulario`,tags:[`suicídio`,`risco`,`C-SSRS`,`Columbia`],ageGroups:[`all`],Icon:h,template:`C-SSRS — ESCALA DE COLUMBIA PARA AVALIAÇÃO DO RISCO SUICIDA (Simplificada)
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`cssrs-simplificado`,title:`C-SSRS — Avaliação de Risco Suicida (Columbia)`,description:`Versão simplificada da escala Columbia para avaliação de ideação e comportamento suicida. Domínio público.`,category:`formulario`,tags:[`suicídio`,`risco`,`C-SSRS`,`Columbia`],ageGroups:[`all`],Icon:g,template:`C-SSRS — ESCALA DE COLUMBIA PARA AVALIAÇÃO DO RISCO SUICIDA (Simplificada)
 Columbia University — Domínio público
 
 DATA DA AVALIAÇÃO:
@@ -971,7 +971,7 @@ Plano de segurança:
 Encaminhamentos:
 Próximo contato:
 
-OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`tdah-adulto`,title:`Avaliação de TDAH — Adulto (ASRS-v1.1)`,description:`Escala de autorrelato de TDAH para adultos da OMS (18 itens). Domínio público.`,category:`escala`,tags:[`TDAH`,`atenção`,`hiperatividade`,`ASRS`,`adulto`],ageGroups:[`adulto`],Icon:p,template:`ASRS-v1.1 — ESCALA DE AUTORRELATO DE TDAH PARA ADULTOS (OMS)
+OBSERVAÇÕES DO(A) PROFISSIONAL:`},{id:`tdah-adulto`,title:`Avaliação de TDAH — Adulto (ASRS-v1.1)`,description:`Escala de autorrelato de TDAH para adultos da OMS (18 itens). Domínio público.`,category:`escala`,tags:[`TDAH`,`atenção`,`hiperatividade`,`ASRS`,`adulto`],ageGroups:[`adulto`],Icon:l,template:`ASRS-v1.1 — ESCALA DE AUTORRELATO DE TDAH PARA ADULTOS (OMS)
 Domínio público — Kessler et al. (2005)
 
 Com que frequência você experienciou os seguintes problemas
@@ -1059,7 +1059,7 @@ SUDS ao final da exposição:
 Duração da exposição:
 Observações:
 
-CONCLUSÕES E PRÓXIMOS PASSOS:`},{id:`conceptualizacao-cognitiva`,title:`Conceitualização Cognitiva (TCC)`,description:`Formulação do caso no modelo cognitivo: dados relevantes, crenças centrais, estratégias e situações-problema.`,category:`formulario`,tags:[`TCC`,`conceitualização`,`crenças centrais`,`formulação de caso`],ageGroups:[`adulto`,`adolescente`],Icon:l,template:`CONCEITUALIZAÇÃO COGNITIVA — FORMULAÇÃO DE CASO (TCC)
+CONCLUSÕES E PRÓXIMOS PASSOS:`},{id:`conceptualizacao-cognitiva`,title:`Conceitualização Cognitiva (TCC)`,description:`Formulação do caso no modelo cognitivo: dados relevantes, crenças centrais, estratégias e situações-problema.`,category:`formulario`,tags:[`TCC`,`conceitualização`,`crenças centrais`,`formulação de caso`],ageGroups:[`adulto`,`adolescente`],Icon:f,template:`CONCEITUALIZAÇÃO COGNITIVA — FORMULAÇÃO DE CASO (TCC)
 Baseado em Beck (1995)
 
 DADOS RELEVANTES DE INFÂNCIA/HISTÓRICO
