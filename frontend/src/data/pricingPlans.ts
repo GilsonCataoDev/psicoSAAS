@@ -38,8 +38,8 @@ export const PRICING_HERO = {
 export const PRICING_PLANS: PricingPlan[] = [
   {
     id: 'free',
-    name: 'Gratis',
-    price: 'Gratis',
+    name: 'Grátis',
+    price: 'Grátis',
     pricePeriod: 'Sem prazo para expirar',
     description: 'Experimente como voce esta perdendo horas por semana',
     badge: null,

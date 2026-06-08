@@ -135,6 +135,18 @@ export default function PatientDetailPage() {
     }
   }
 
+  async function changeCareStatus(status: typeof careSettings.status) {
+    if (!id) return
+    try {
+      setCareSettings(current => ({ ...current, status }))
+      await updatePatient.mutateAsync({ id, data: { status } })
+      toast.success('Situação atualizada')
+    } catch {
+      setCareSettings(current => ({ ...current, status: patient?.status ?? current.status }))
+      toast.error('Erro ao atualizar situação.')
+    }
+  }
+
   function openResponse(response: InstrumentAssignment) {
     setEditingResponse(response)
     setEditedAnswers(response.answers ?? {})
@@ -316,6 +328,38 @@ export default function PatientDetailPage() {
               {updatePatient.isPending ? 'Salvando...' : 'Salvar'}
             </button>
           </div>
+        </div>
+        <div className="flex flex-wrap gap-2 border-t border-neutral-100 pt-3">
+          {careSettings.status !== 'active' && (
+            <button
+              type="button"
+              onClick={() => changeCareStatus('active')}
+              disabled={updatePatient.isPending}
+              className="btn-secondary text-xs"
+            >
+              Reativar
+            </button>
+          )}
+          {careSettings.status !== 'paused' && (
+            <button
+              type="button"
+              onClick={() => changeCareStatus('paused')}
+              disabled={updatePatient.isPending}
+              className="btn-secondary text-xs"
+            >
+              Marcar inativo
+            </button>
+          )}
+          {careSettings.status !== 'discharged' && (
+            <button
+              type="button"
+              onClick={() => changeCareStatus('discharged')}
+              disabled={updatePatient.isPending}
+              className="btn-secondary text-xs"
+            >
+              Registrar alta
+            </button>
+          )}
         </div>
       </div>
 

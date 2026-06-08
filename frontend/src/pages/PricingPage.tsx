@@ -138,7 +138,7 @@ export default function PricingPage() {
       try {
         const { data } = await api.post('/billing/free')
         setSubscription(data)
-        toast.success('Plano Gratis ativado.')
+        toast.success('Plano Grátis ativado.')
       } catch (err: any) {
         toast.error(err?.response?.data?.message ?? 'Nao foi possivel ativar o plano gratis.')
       } finally {
@@ -198,7 +198,7 @@ export default function PricingPage() {
       setSubscription(data)
       setSelectedPlan(null)
       setConfirmCancelToFree(false)
-      toast.success(data.cancelAtPeriodEnd ? 'Cancelamento agendado para o fim do periodo.' : 'Plano cancelado.')
+      toast.success(data.cancelAtPeriodEnd ? 'Cancelamento agendado para o fim do período.' : 'Plano cancelado.')
     } catch (err: any) {
       toast.error(err?.response?.data?.message ?? 'Nao foi possivel cancelar o plano.')
     } finally {
@@ -351,7 +351,7 @@ function PricingCard({
   const ctaLabel = isCurrentPlan
     ? 'Plano atual'
     : hasPaidPlan && plan.id === 'free'
-      ? 'Cancelar e ir para Gratis'
+      ? 'Cancelar e ir para Grátis'
       : hasPaidPlan
         ? `Trocar para ${plan.name}`
         : isPastDue
@@ -377,7 +377,7 @@ function PricingCard({
         <h2 className="text-2xl font-bold text-neutral-900 dark:text-white">{plan.name}</h2>
         <p className="mt-2 min-h-12 text-sm font-semibold text-neutral-600 dark:text-neutral-300">{plan.description}</p>
         <div className="mt-5">
-          {plan.price === 'Gratis' ? (
+          {plan.id === 'free' ? (
             <span className="text-4xl font-bold text-neutral-900 dark:text-white">{plan.price}</span>
           ) : (
             <>
@@ -463,7 +463,7 @@ function PlanChangeDialog({
                 {currentPlan ? `Plano ${currentPlan.name}` : 'Plano atual'} para {targetPlan.name}
               </p>
               <p className="mt-1 text-sm leading-relaxed text-neutral-600">
-                A mudança será aplicada à sua assinatura e os recursos disponíveis passam a seguir o plano {targetPlan.name}.
+                Os recursos passam a seguir o plano {targetPlan.name} agora. A diferença de valor entra na próxima fatura.
               </p>
             </div>
           </div>
@@ -507,14 +507,14 @@ function PlanCancelDialog({
   onConfirm: () => void
 }) {
   return (
-    <Modal open={open} onClose={onClose} title="Ir para o plano Gratis" size="sm">
+    <Modal open={open} onClose={onClose} title="Ir para o plano Grátis" size="sm">
       <div className="space-y-5">
         <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
           <p className="text-sm font-semibold text-neutral-800">
             Cancelar {currentPlan ? `o plano ${currentPlan.name}` : 'o plano pago'}
           </p>
           <p className="mt-1 text-sm leading-relaxed text-neutral-600">
-            Você volta para os limites do plano Gratis. Seus dados continuam salvos, mas recursos pagos deixam de ficar disponíveis.
+            Você volta para os limites do plano Grátis. Seus dados continuam salvos, mas recursos pagos deixam de ficar disponíveis.
           </p>
         </div>
 
@@ -551,7 +551,7 @@ function PlanMiniCard({ label, plan, muted = false }: { label: string; plan?: Pl
       <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">{label}</p>
       <p className="mt-1 text-sm font-semibold text-neutral-800">{plan?.name ?? 'Sem plano'}</p>
       <p className="mt-1 text-xs text-neutral-500">
-        {plan ? (plan.price === 0 ? 'Gratis' : `R$ ${plan.price}/mes`) : 'Sem cobrança ativa'}
+        {plan ? (plan.price === 0 ? 'Grátis' : `R$ ${plan.price}/mês`) : 'Sem cobrança ativa'}
       </p>
     </div>
   )

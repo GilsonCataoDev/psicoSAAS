@@ -114,6 +114,6 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 3001
   await app.listen(port)
-  new Logger('Bootstrap').log(`PsicoSaaS API rodando na porta ${port}`)
+  new Logger('Bootstrap').log(`UseCognia API rodando na porta ${port}`)
 }
 bootstrap()

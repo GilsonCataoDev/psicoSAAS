@@ -46,7 +46,7 @@ export class BillingTrialEmailJob implements OnModuleInit, OnModuleDestroy {
       if (daysLeft === 0) {
         await this.email.send({
           to: subscription.user.email,
-          subject: 'Vamos cobrar hoje — PsicoSaaS',
+          subject: 'Vamos cobrar hoje — UseCognia',
           html: `
             <p>Olá, ${subscription.user.name.split(' ')[0]}.</p>
             <p>Seu teste gratuito termina hoje. A cobrança do seu plano será feita no cartão cadastrado.</p>

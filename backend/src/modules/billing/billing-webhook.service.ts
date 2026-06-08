@@ -158,10 +158,10 @@ export class BillingWebhookService {
 
     await this.email.send({
       to: user.email,
-      subject: 'Pagamento recusado — PsicoSaaS',
+      subject: 'Pagamento recusado — UseCognia',
       html: `
         <p>Olá, ${user.name.split(' ')[0]}.</p>
-        <p>Não conseguimos cobrar seu cartão. Atualize o pagamento para continuar usando o PsicoSaaS.</p>
+        <p>Não conseguimos cobrar seu cartão. Atualize o pagamento para continuar usando o UseCognia.</p>
       `,
     })
   }

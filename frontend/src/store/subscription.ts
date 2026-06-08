@@ -26,7 +26,7 @@ export interface Plan {
 export const PLANS: Plan[] = [
   {
     id: 'free',
-    name: 'Gratis',
+    name: 'Grátis',
     price: 0,
     priceYearly: 0,
     maxPatients: 10,

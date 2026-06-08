@@ -1,8 +1,8 @@
-# PsicoSaaS
+# UseCognia
 
 > Plataforma humanizada para psicólogos — menos burocracia, mais presença.
 
-PsicoSaaS é um SaaS completo para psicólogos brasileiros que reduz a carga operacional do consultório — gestão de pacientes, agenda, sessões clínicas, financeiro e agendamento online — para que o profissional foque no que importa: o cuidado humano.
+UseCognia é um SaaS completo para psicólogos brasileiros que reduz a carga operacional do consultório — gestão de pacientes, agenda, sessões clínicas, financeiro e agendamento online — para que o profissional foque no que importa: o cuidado humano.
 
 **Demo:** [gilsoncataodev.github.io/psicoSAAS](https://gilsoncataodev.github.io/psicoSAAS)
 
@@ -37,7 +37,7 @@ PsicoSaaS é um SaaS completo para psicólogos brasileiros que reduz a carga ope
 - **Billing desacoplado do dominio clinico** — modulo `billing` com subscription propria, migrations e `SubscriptionGuard`
 - **Asaas** — criacao de customer, subscription com `CREDIT_CARD`, webhook idempotente e atualizacao de cartao
 - **Controle de acesso global** — usuarios `active` e `trialing` acessam; `past_due` usa grace period; `canceled` e `none` bloqueiam
-- **Frontend de monetizacao** — `/pricing`, banner de trial, countdown, polling de status e fluxo de pagamento atrasado
+- **Frontend de monetizacao** — `/planos`, banner de trial, countdown, polling de status e fluxo de pagamento atrasado
 - **Metricas SaaS** — endpoint de contagem por status e MRR basico por plano
 
 ---
@@ -261,7 +261,7 @@ cd frontend && npm run dev
 ## Billing, trial e monetizacao
 
 ### Fluxo principal
-1. Usuario autenticado acessa `/pricing`.
+1. Usuario autenticado acessa `/planos`.
 2. Frontend coleta dados do cartao e chama `POST /billing/tokenize`.
 3. Backend tokeniza no Asaas e retorna apenas `{ creditCardToken }`.
 4. Frontend chama `POST /billing/subscribe` com `{ plan, creditCardToken }`.
@@ -299,7 +299,7 @@ cd frontend && npm run dev
 - Falha de pagamento via webhook: envia "Pagamento recusado".
 
 ### Frontend
-- `/pricing` mostra planos `basic`, `pro`, `premium`.
+- `/planos` mostra planos `free`, `essencial`, `pro`.
 - Botao padrao: "Testar 7 dias gratis".
 - `past_due`: mostra "Seu teste terminou e o pagamento falhou." e botao "Pagar agora".
 - Banner global mostra countdown do trial.

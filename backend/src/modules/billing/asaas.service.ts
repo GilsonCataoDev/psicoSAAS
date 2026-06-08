@@ -43,7 +43,7 @@ export class AsaasService {
       headers: {
         access_token: this.cfg.getOrThrow<string>('ASAAS_API_KEY'),
         'Content-Type': 'application/json',
-        'User-Agent': 'PsicoSaaS/1.0',
+        'User-Agent': 'UseCognia/1.0',
       },
     })
   }
@@ -125,7 +125,7 @@ export class AsaasService {
         value,
         nextDueDate,
         cycle: 'MONTHLY',
-        description: `PsicoSaaS - Plano ${plan}`,
+        description: `UseCognia - Plano ${plan}`,
         externalReference,
         creditCardToken,
       })
@@ -160,7 +160,7 @@ export class AsaasService {
     try {
       await this.api.put(`/subscriptions/${subscriptionId}`, {
         value,
-        description: `PsicoSaaS - Plano ${plan}`,
+        description: `UseCognia - Plano ${plan}`,
       })
     } catch (err: any) {
       this.logger.warn('[Asaas] Falha ao atualizar plano da assinatura', err?.response?.data ?? err)
