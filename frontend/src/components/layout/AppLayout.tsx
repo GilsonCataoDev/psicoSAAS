@@ -108,16 +108,20 @@ function SubscriptionBanner() {
 function EmailVerificationBanner() {
   const user = useAuthStore((s) => s.user)
   const [sending, setSending] = useState(false)
+  const [sendError, setSendError] = useState<string | null>(null)
 
   if (!user || user.emailVerified) return null
 
   async function resendVerification() {
     setSending(true)
+    setSendError(null)
     try {
       const { data } = await api.post('/auth/resend-verification')
       toast.success(data?.message ?? 'Link de verificacao enviado.')
     } catch (err: any) {
-      toast.error(err?.response?.data?.message ?? 'Nao foi possivel reenviar agora.')
+      const message = err?.response?.data?.message ?? 'Nao foi possivel reenviar agora.'
+      setSendError(message)
+      toast.error(message)
     } finally {
       setSending(false)
     }
@@ -135,6 +139,11 @@ function EmailVerificationBanner() {
       >
         {sending ? 'Enviando...' : 'Reenviar link'}
       </button>
+      {sendError && (
+        <p className="mt-2 text-xs text-amber-900">
+          {sendError}
+        </p>
+      )}
     </div>
   )
 }

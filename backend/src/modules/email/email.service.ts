@@ -52,6 +52,13 @@ export class EmailService {
       if (!res.ok) {
         const err = await res.text()
         this.logger.error(`[Resend] Erro ao enviar email: ${err}`)
+
+        if (err.includes('domain is not verified')) {
+          throw new ServiceUnavailableException(
+            'Envio de e-mail indisponivel: dominio ainda nao verificado no provedor.',
+          )
+        }
+
         throw new BadGatewayException('Nao foi possivel enviar o e-mail')
       }
       this.logger.log(`[Resend] Email enviado para ${opts.to}: ${opts.subject}`)
