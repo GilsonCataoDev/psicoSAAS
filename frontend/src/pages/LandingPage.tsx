@@ -96,7 +96,7 @@ const faqs = [
   },
   {
     question: 'Há período de teste gratuito?',
-    answer: 'Sim. Ao criar conta você tem 7 dias para explorar a plataforma sem precisar cadastrar cartão. Você vê se combina com sua rotina antes de qualquer cobrança.',
+    answer: 'Sim. Você escolhe um plano, cadastra o cartão e tem 7 dias grátis. Nada é cobrado hoje e você pode cancelar antes do fim do teste.',
   },
   {
     question: 'A plataforma é compatível com as normas do CFP?',

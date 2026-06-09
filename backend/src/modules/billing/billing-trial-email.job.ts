@@ -49,7 +49,8 @@ export class BillingTrialEmailJob implements OnModuleInit, OnModuleDestroy {
           subject: 'Vamos cobrar hoje — UseCognia',
           html: `
             <p>Olá, ${subscription.user.name.split(' ')[0]}.</p>
-            <p>Seu teste gratuito termina hoje. A cobrança do seu plano será feita no cartão cadastrado.</p>
+            <p>Seu teste gratuito termina hoje. A cobrança do plano ${subscription.plan} será feita no cartão cadastrado.</p>
+            <p>Se precisar trocar de plano ou cancelar, acesse a área de planos antes da cobrança.</p>
           `,
         })
       }

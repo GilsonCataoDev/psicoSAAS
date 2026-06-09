@@ -32,7 +32,7 @@ export const PRICING_HERO = {
   subtitle: 'Cada plano e um nivel de automacao. Quanto mais faltas voce quer evitar, mais o sistema trabalha para voce.',
   context: 'Psicologos solo perdem em media 10 horas por semana com agenda, confirmacao e cobranca. Escolha quanto disso voce quer automatizar.',
   trialCta: 'Teste 7 dias gratis no Essencial ou Pro',
-  trialSubtext: 'Sem cartao de credito. Cancele a qualquer hora.',
+  trialSubtext: 'Cartao no inicio. Nada e cobrado hoje. Cancele antes do fim do teste.',
 }
 
 export const PRICING_PLANS: PricingPlan[] = [
@@ -128,13 +128,13 @@ export const PRICING_COMPARISON = {
 
 export const PRICING_FAQ = [
   { question: 'Posso cancelar a qualquer hora?', answer: 'Sim. Sem multa, sem aviso previo. Basta cancelar em 1 clique.' },
-  { question: 'Preciso de cartao para testar?', answer: 'Nao. Os 7 dias de trial sao gratis. So pedimos cartao quando voce decide continuar.' },
+  { question: 'Preciso de cartao para testar?', answer: 'Sim. O cartao confirma o plano escolhido, mas a primeira cobranca so acontece depois dos 7 dias gratis.' },
   { question: 'Meus dados estao seguros?', answer: 'Sim. Dados criptografados, backup automatico, auditoria LGPD e exportacao em 1 clique.' },
   { question: 'Posso mudar de plano depois?', answer: 'Sim. Voce pode fazer upgrade ou downgrade a qualquer momento.' },
   { question: 'Qual e a diferenca entre Essencial e Pro?', answer: 'Essencial ajuda voce a operar com templates. Pro automatiza lembretes, mensagens, cobrancas e relatorios.' },
   { question: 'E se eu tiver 50+ pacientes?', answer: 'Ate 50 pacientes, Essencial funciona bem. Acima disso, Pro e o plano indicado.' },
   { question: 'Voces oferecem suporte?', answer: 'Free tem suporte por email. Essencial tem prioridade maior. Pro tem atendimento mais rapido e suporte por WhatsApp.' },
   { question: 'Posso usar em mais de um dispositivo?', answer: 'Sim. Celular, tablet e computador sincronizados.' },
-  { question: 'E se eu cancelar durante o trial?', answer: 'Nada sera cobrado. Seus dados ficam salvos por 30 dias caso mude de ideia.' },
+  { question: 'E se eu cancelar durante o trial?', answer: 'Nada sera cobrado se voce cancelar antes do fim dos 7 dias gratis. Seus dados ficam salvos por 30 dias caso mude de ideia.' },
   { question: 'Voces tem plano anual com desconto?', answer: 'Sim. Essencial e Pro exibem o valor mensal equivalente no anual.' },
 ]
