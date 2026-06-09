@@ -36,7 +36,14 @@ function useCsrfBoot() {
       return
     }
 
-    api.get('/auth/me', { skipAuthRedirect: true } as AuthAxiosRequestConfig)
+    const loadSession = () => api.get('/auth/me', { skipAuthRedirect: true } as AuthAxiosRequestConfig)
+      .catch((err) => {
+        if (err?.response?.status !== 401) throw err
+        return api.post('/auth/refresh', undefined, { skipAuthRedirect: true } as AuthAxiosRequestConfig)
+          .then(() => api.get('/auth/me', { skipAuthRedirect: true } as AuthAxiosRequestConfig))
+      })
+
+    loadSession()
       .then(res => {
         if (res.data?.csrfToken) setCsrfToken(res.data.csrfToken)
         if (res.data?.id) setAuth(res.data)
@@ -53,6 +60,35 @@ function useCsrfBoot() {
   }, [logout, resetSubscription, setAuth, setCsrfToken, setSubscription])
 
   return booting
+}
+
+function useSessionKeepAlive() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const setCsrfToken = useAuthStore((s) => s.setCsrfToken)
+  const setAuth = useAuthStore((s) => s.setAuth)
+  const logout = useAuthStore((s) => s.logout)
+
+  useEffect(() => {
+    if (USE_MOCK || !isAuthenticated) return
+
+    const refresh = () => {
+      api.post('/auth/refresh', undefined, { skipAuthRedirect: true } as AuthAxiosRequestConfig)
+        .then(({ data }) => {
+          if (data?.csrfToken) setCsrfToken(data.csrfToken)
+          if (data?.user) setAuth(data.user)
+        })
+        .catch((err) => {
+          if (err?.response?.status === 401) logout()
+        })
+    }
+
+    const timer = window.setInterval(refresh, 10 * 60 * 1000)
+    window.addEventListener('online', refresh)
+    return () => {
+      window.clearInterval(timer)
+      window.removeEventListener('online', refresh)
+    }
+  }, [isAuthenticated, logout, setAuth, setCsrfToken])
 }
 
 function useSubscriptionPolling() {
@@ -150,6 +186,7 @@ function EmailVerificationBanner() {
 
 export default function AppLayout() {
   const booting = useCsrfBoot()
+  useSessionKeepAlive()
   useSubscriptionPolling()
 
   if (booting) {
