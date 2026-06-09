@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="160" viewBox="0 0 480 160" role="img" aria-label="UseCognia">
+  <defs>
+    <linearGradient id="usecognia-gradient" x1="44" y1="40" x2="128" y2="124" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2F7657"/>
+      <stop offset="1" stop-color="#4DA8DA"/>
+    </linearGradient>
+  </defs>
+  <rect width="480" height="160" rx="28" fill="#1D352D"/>
+  <g transform="translate(44 40)">
+    <path d="M56 4C29.5 4 9.5 22.6 9.5 42.4S29.5 80.8 56 80.8" fill="none" stroke="url(#usecognia-gradient)" stroke-width="17" stroke-linecap="round"/>
+    <path d="M57.2 20.2c10.7 0 19.8 8.4 20.5 19.1 6.8 1.9 11.9 8.1 11.9 15.6 0 8.6-6.8 15.9-15.4 16.3" fill="none" stroke="url(#usecognia-gradient)" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M56 29.5v37.2M56 42.3l18.6-10.5M56 42.3l19.8 11.6M56 58.6l14 9.3" fill="none" stroke="#244D3D" stroke-width="5.5" stroke-linecap="round"/>
+    <circle cx="56" cy="42.3" r="7.2" fill="#244D3D"/>
+    <circle cx="74.6" cy="31.8" r="7.2" fill="#244D3D"/>
+    <circle cx="75.8" cy="53.9" r="7.2" fill="#244D3D"/>
+    <circle cx="70" cy="67.9" r="7.2" fill="#244D3D"/>
+    <circle cx="56" cy="58.6" r="7.2" fill="#244D3D"/>
+  </g>
+  <text x="152" y="96" text-anchor="start" font-family="Inter, Arial, sans-serif" font-size="44" font-weight="750" letter-spacing="-1" fill="#FFFFFF">Use<tspan fill="#B7DFCD">Cognia</tspan></text>
+</svg>

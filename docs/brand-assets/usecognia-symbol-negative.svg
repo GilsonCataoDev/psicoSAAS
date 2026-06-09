@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="Símbolo UseCognia">
+  <defs>
+    <linearGradient id="g" x1="22" y1="18" x2="108" y2="108" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2F7657"/>
+      <stop offset="1" stop-color="#4DA8DA"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="30" fill="#1D352D"/>
+  <path d="M70 18C42 18 21 37.2 21 64s21 46 49 46" fill="none" stroke="url(#g)" stroke-width="19" stroke-linecap="round"/>
+  <path d="M71.5 35c12.6 0 23.3 9.9 24.1 22.5 8 2.2 14 9.5 14 18.3 0 10.1-8 18.7-18.1 19.1" fill="none" stroke="url(#g)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M70 46v44M70 61l22-12.5M70 61l23.5 13.7M70 80l16.5 11" fill="none" stroke="#B7DFCD" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="70" cy="61" r="7.8" fill="#B7DFCD"/>
+  <circle cx="92" cy="48.5" r="7.8" fill="#B7DFCD"/>
+  <circle cx="93.5" cy="74.7" r="7.8" fill="#B7DFCD"/>
+  <circle cx="86.5" cy="91" r="7.8" fill="#B7DFCD"/>
+  <circle cx="70" cy="80" r="7.8" fill="#B7DFCD"/>
+</svg>

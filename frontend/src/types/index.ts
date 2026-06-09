@@ -135,7 +135,7 @@ export const TAG_COLORS: Record<EmotionalTag, string> = {
   autoestima:    'bg-orange-100 text-orange-700',
   familia:       'bg-cyan-100 text-cyan-700',
   trabalho:      'bg-indigo-100 text-indigo-700',
-  identidade:    'bg-violet-100 text-violet-700',
+  identidade:    'bg-mist-100 text-mist-700',
   progresso:     'bg-sage-100 text-sage-700',
   crise:         'bg-red-100 text-red-700',
   outro:         'bg-neutral-100 text-neutral-600',

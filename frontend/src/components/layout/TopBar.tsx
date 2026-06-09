@@ -15,7 +15,7 @@ import { useThemeStore } from '@/store/theme'
 const TYPE_ICON: Record<NotificationType, React.ReactNode> = {
   booking_request:   <Calendar  className="w-3.5 h-3.5 text-sage-500"    />,
   booking_confirmed: <Check     className="w-3.5 h-3.5 text-emerald-500" />,
-  payment:           <CreditCard className="w-3.5 h-3.5 text-violet-500" />,
+  payment:           <CreditCard className="w-3.5 h-3.5 text-mist-600" />,
   reminder:          <Clock     className="w-3.5 h-3.5 text-amber-500"   />,
   system:            <Settings2 className="w-3.5 h-3.5 text-neutral-400" />,
 }
@@ -23,7 +23,7 @@ const TYPE_ICON: Record<NotificationType, React.ReactNode> = {
 const TYPE_BG: Record<NotificationType, string> = {
   booking_request:   'bg-sage-50',
   booking_confirmed: 'bg-emerald-50',
-  payment:           'bg-violet-50',
+  payment:           'bg-mist-50',
   reminder:          'bg-amber-50',
   system:            'bg-neutral-100',
 }
@@ -261,7 +261,7 @@ export default function TopBar() {
                   <div className="w-10 h-10 bg-neutral-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
                     <Bell className="w-5 h-5 text-neutral-300" />
                   </div>
-                  <p className="text-sm text-neutral-400">Tudo em dia por aqui 🌿</p>
+                  <p className="text-sm text-neutral-400">Tudo em dia por aqui</p>
                 </div>
               ) : (
                 notifications.map(n => (

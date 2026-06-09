@@ -1,17 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
-  <rect width="48" height="48" rx="12" fill="#0F1020"/>
+  <rect width="48" height="48" rx="12" fill="#1D352D"/>
   <defs>
     <linearGradient id="cognia-favicon" x1="8" y1="6" x2="42" y2="42" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#5B3EFF"/>
+      <stop stop-color="#2F7657"/>
       <stop offset="1" stop-color="#4DA8DA"/>
     </linearGradient>
   </defs>
   <path d="M28 7.5C16.6 7.5 8 15.5 8 24s8.6 16.5 20 16.5" fill="none" stroke="url(#cognia-favicon)" stroke-width="8" stroke-linecap="round"/>
   <path d="M28.5 14.5c4.6 0 8.5 3.6 8.8 8.2 2.9.8 5.1 3.5 5.1 6.7 0 3.7-2.9 6.8-6.6 7" fill="none" stroke="url(#cognia-favicon)" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M28 18.5v16M28 24l8-4.5M28 24l8.5 5M28 31l6 4" fill="none" stroke="#CFC4FF" stroke-width="2.4" stroke-linecap="round"/>
-  <circle cx="28" cy="24" r="3.1" fill="#CFC4FF"/>
-  <circle cx="36" cy="19.5" r="3.1" fill="#CFC4FF"/>
-  <circle cx="36.5" cy="29" r="3.1" fill="#CFC4FF"/>
-  <circle cx="34" cy="35" r="3.1" fill="#CFC4FF"/>
-  <circle cx="28" cy="31" r="3.1" fill="#CFC4FF"/>
+  <path d="M28 18.5v16M28 24l8-4.5M28 24l8.5 5M28 31l6 4" fill="none" stroke="#B7DFCD" stroke-width="2.4" stroke-linecap="round"/>
+  <circle cx="28" cy="24" r="3.1" fill="#B7DFCD"/>
+  <circle cx="36" cy="19.5" r="3.1" fill="#B7DFCD"/>
+  <circle cx="36.5" cy="29" r="3.1" fill="#B7DFCD"/>
+  <circle cx="34" cy="35" r="3.1" fill="#B7DFCD"/>
+  <circle cx="28" cy="31" r="3.1" fill="#B7DFCD"/>
 </svg>

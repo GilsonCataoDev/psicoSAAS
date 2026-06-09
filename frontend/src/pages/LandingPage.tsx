@@ -110,13 +110,13 @@ const faqs = [
 
 function ProductPreview() {
   return (
-    <div className="relative mx-auto w-full min-w-0 max-w-[calc(100vw-40px)] overflow-hidden rounded-lg border border-white/15 bg-[#111827] shadow-2xl sm:max-w-[560px]">
+    <div className="relative mx-auto w-full min-w-0 max-w-[calc(100vw-40px)] overflow-hidden rounded-lg border border-white/15 bg-[#17211D] shadow-2xl sm:max-w-[560px]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-white/5 px-4 py-3">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9BE7C1]">Painel UseCognia</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sage-200">Painel UseCognia</p>
           <p className="mt-1 text-sm text-white/70">Hoje, 02 de junho</p>
         </div>
-        <span className="shrink-0 rounded-full bg-[#9BE7C1] px-3 py-1 text-xs font-semibold text-[#102019]">Pro ativo</span>
+        <span className="shrink-0 rounded-full bg-sage-200 px-3 py-1 text-xs font-semibold text-sage-900">Pro ativo</span>
       </div>
 
       <div className="grid gap-0 md:grid-cols-[180px_1fr]">
@@ -149,14 +149,14 @@ function ProductPreview() {
               <span className="text-xs text-white/45">recorrência ativa</span>
             </div>
             {['09:00 - Ana Paula', '10:00 - Pedro Lima', '14:00 - Marina Costa'].map((item) => (
-              <div key={item} className="mb-2 rounded-md bg-[#0B1020] px-3 py-3 text-sm font-medium text-white">
+              <div key={item} className="mb-2 rounded-md bg-[#0D1512] px-3 py-3 text-sm font-medium text-white">
                 {item}
               </div>
             ))}
           </div>
 
-          <div className="rounded-md border border-[#9BE7C1]/25 bg-[#9BE7C1]/10 p-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#9BE7C1]">Documento pronto</p>
+          <div className="rounded-md border border-sage-200/25 bg-sage-200/10 p-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sage-200">Documento pronto</p>
             <p className="mt-1 text-sm text-white">Declaração com QR de autenticidade gerada em uma página.</p>
           </div>
         </div>
@@ -173,7 +173,7 @@ export default function LandingPage() {
           <Link to="/inicio" className="flex min-w-0 items-center gap-2.5">
             <BrandLogo compact className="shrink-0" />
             <span className="text-xl font-bold tracking-tight text-[#211F1C]">
-              Use<span className="text-[#5B3EFF]">Cognia</span>
+              Use<span className="text-[#2F7657]">Cognia</span>
             </span>
           </Link>
           <nav className="hidden items-center gap-6 text-sm font-medium text-[#5F5A51] md:flex">
@@ -193,11 +193,11 @@ export default function LandingPage() {
         </div>
       </header>
 
-      <section className="relative overflow-hidden bg-[#0E1324] text-white">
+      <section className="relative overflow-hidden bg-[#1D352D] text-white">
         <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
         <div className="mx-auto grid w-full max-w-6xl min-w-0 grid-cols-[minmax(0,1fr)] items-center gap-10 px-5 py-16 sm:py-20 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:py-24">
           <div className="w-full min-w-0 max-w-full sm:max-w-2xl">
-            <p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-3 py-1 text-sm font-semibold text-[#B8F2D0]">
+            <p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-3 py-1 text-sm font-semibold text-sage-200">
               <Sparkles className="h-4 w-4" />
               Menos faltas. Menos caos. Mais rotina clínica.
             </p>
@@ -213,7 +213,7 @@ export default function LandingPage() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
                 to="/cadastro"
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[#9BE7C1] px-5 text-sm font-bold text-[#102019] shadow-lg shadow-[#9BE7C1]/15 hover:bg-[#B8F2D0]"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-sage-200 px-5 text-sm font-bold text-sage-900 shadow-lg shadow-sage-200/15 hover:bg-sage-100"
               >
                 Testar 7 dias grátis <ArrowRight className="h-4 w-4" />
               </Link>
@@ -228,7 +228,7 @@ export default function LandingPage() {
             <div className="mt-8 flex flex-col gap-2 text-sm text-white/70 sm:flex-row sm:flex-wrap">
               {trustSignals.map((item) => (
                 <span key={item} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
-                  <CheckCircle2 className="h-4 w-4 text-[#9BE7C1]" />
+                  <CheckCircle2 className="h-4 w-4 text-sage-200" />
                   {item}
                 </span>
               ))}
@@ -360,7 +360,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="bg-[#0E1324] px-5 py-16 text-white">
+      <section className="bg-[#1D352D] px-5 py-16 text-white">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-3xl font-bold">Pronto para deixar o consultório com cara de operação profissional?</h2>
           <p className="mx-auto mt-4 max-w-2xl text-white/70">
@@ -368,7 +368,7 @@ export default function LandingPage() {
           </p>
           <Link
             to="/cadastro"
-            className="mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[#9BE7C1] px-6 text-sm font-bold text-[#102019] hover:bg-[#B8F2D0]"
+            className="mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-md bg-sage-200 px-6 text-sm font-bold text-sage-900 hover:bg-sage-100"
           >
             Testar 7 dias grátis <ArrowRight className="h-4 w-4" />
           </Link>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="pacientes">
+  <rect x="4" y="4" width="56" height="56" rx="16" fill="#EEF8F3"/>
+  <g fill="none" stroke="#244D3D" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M22 31a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/><path d="M6 54c2.5-10 9-16 16-16s13.5 6 16 16"/><path d="M43 31a8 8 0 1 0 0-16"/><path d="M43 39c6 1 11 6 13 14"/>
+  </g>
+</svg>

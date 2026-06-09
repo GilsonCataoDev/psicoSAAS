@@ -38,14 +38,14 @@ const CAT_LABEL: Record<InstrumentCategory, string> = {
 
 const CAT_COLOR: Record<InstrumentCategory, string> = {
   formulario:  'bg-sage-100 text-sage-700',
-  escala:      'bg-violet-100 text-violet-700',
+  escala:      'bg-mist-100 text-mist-700',
   registro:    'bg-amber-100 text-amber-700',
   entrevista:  'bg-sky-100 text-sky-700',
 }
 
 const CARD_ACCENTS = [
   'bg-sage-50 text-sage-600 ring-sage-200',
-  'bg-violet-50 text-violet-600 ring-violet-200',
+  'bg-mist-50 text-mist-600 ring-mist-200',
   'bg-sky-50 text-sky-600 ring-sky-200',
   'bg-amber-50 text-amber-600 ring-amber-200',
   'bg-rose-50 text-rose-600 ring-rose-200',

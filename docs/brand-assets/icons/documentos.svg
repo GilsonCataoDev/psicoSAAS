@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="documentos">
+  <rect x="4" y="4" width="56" height="56" rx="16" fill="#EEF8F3"/>
+  <g fill="none" stroke="#244D3D" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 7h21l9 9v41H18z"/><path d="M39 7v11h10"/><path d="M25 28h16M25 38h16M25 48h10"/>
+  </g>
+</svg>

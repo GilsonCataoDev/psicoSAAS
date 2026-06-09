@@ -1,0 +1,30 @@
+{
+  "brand": "UseCognia",
+  "positioning": "Software clínico para psicólogos que querem menos burocracia e mais clareza sobre cada paciente.",
+  "colors": {
+    "primary": "#2F7657",
+    "primary_dark": "#244D3D",
+    "accent": "#4DA8DA",
+    "accent_dark": "#205D82",
+    "background": "#FBFBF8",
+    "surface": "#FFFFFF",
+    "text": "#37332E",
+    "muted": "#7C776B",
+    "success_soft": "#D9EFE4",
+    "info_soft": "#D9EFFA",
+    "warning_soft": "#FAEEDD",
+    "warm_accent": "#CC7C66"
+  },
+  "typography": {
+    "product_ui": "Inter",
+    "display": "Inter ou Poppins",
+    "documents": "Aptos/Calibri",
+    "weights": "Regular 400, Medium 500, Semibold 600, Bold 700"
+  },
+  "shape": {
+    "small_radius": "8px",
+    "input_radius": "12px",
+    "card_radius": "16px no produto; 8px em materiais comerciais densos",
+    "icon_stroke": "2px em interface, 1.5px em ícones grandes"
+  }
+}

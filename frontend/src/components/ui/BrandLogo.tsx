@@ -17,7 +17,7 @@ export default function BrandLogo({ compact = false, light = false, className }:
       >
         <defs>
           <linearGradient id="cognia-mark" x1="8" y1="6" x2="42" y2="42" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#5B3EFF" />
+            <stop stopColor="#2F7657" />
             <stop offset="1" stopColor="#4DA8DA" />
           </linearGradient>
         </defs>
@@ -39,17 +39,17 @@ export default function BrandLogo({ compact = false, light = false, className }:
         <path
           d="M28 18.5v16M28 24l8-4.5M28 24l8.5 5M28 31l6 4"
           fill="none"
-          stroke="#5B3EFF"
+          stroke={light ? '#B7DFCD' : '#244D3D'}
           strokeWidth="2.4"
           strokeLinecap="round"
         />
         {[['28', '24'], ['36', '19.5'], ['36.5', '29'], ['34', '35'], ['28', '31']].map(([cx, cy]) => (
-          <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="3.1" fill="#5B3EFF" />
+          <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="3.1" fill={light ? '#B7DFCD' : '#244D3D'} />
         ))}
       </svg>
       {!compact && (
         <span className={cn('font-display text-xl font-bold tracking-tight', light ? 'text-white' : 'text-neutral-900')}>
-          Use<span className={light ? 'text-white' : 'text-[#5B3EFF]'}>Cognia</span>
+          Use<span className={light ? 'text-[#B7DFCD]' : 'text-[#2F7657]'}>Cognia</span>
         </span>
       )}
     </div>
