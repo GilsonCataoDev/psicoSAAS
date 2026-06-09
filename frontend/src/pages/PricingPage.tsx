@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { BadgeDollarSign, CheckCircle2, Clock3, CreditCard, Loader2, Target, TrendingUp, XCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
@@ -18,6 +18,7 @@ function statusMessage(status: string) {
 }
 
 export default function PricingPage() {
+  const checkoutRef = useRef<HTMLElement | null>(null)
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
   const [cardNumber, setCardNumber] = useState('')
@@ -34,6 +35,13 @@ export default function PricingPage() {
   const currentPlanId = String(subscription.planId ?? subscription.plan ?? '')
   const billingPlans = new Map(PLANS.map((plan) => [plan.id, plan]))
   const currentPlan = billingPlans.get(currentPlanId)
+
+  useEffect(() => {
+    if (!selectedPlan) return
+    window.setTimeout(() => {
+      checkoutRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 80)
+  }, [selectedPlan])
 
   function formatCardNumber(value: string) {
     return value.replace(/\D/g, '').slice(0, 19).replace(/(\d{4})(?=\d)/g, '$1 ')
@@ -264,6 +272,7 @@ export default function PricingPage() {
 
       {selectedPlan && (
         <CheckoutForm
+          checkoutRef={checkoutRef}
           selectedPlan={selectedPlan}
           subscriptionStatus={subscription.status}
           loadingPlan={loadingPlan}
@@ -283,6 +292,7 @@ export default function PricingPage() {
           setPhone={(value) => setPhone(formatPhone(value))}
           setPostalCode={(value) => setPostalCode(formatPostalCode(value))}
           setAddressNumber={(value) => setAddressNumber(value.replace(/\D/g, '').slice(0, 8))}
+          onCancel={() => setSelectedPlan(null)}
           onSubmit={() => subscribe(selectedPlan)}
         />
       )}
@@ -620,6 +630,7 @@ function PricingFAQItem({ item }: { item: typeof PRICING_FAQ[number] }) {
 }
 
 function CheckoutForm(props: {
+  checkoutRef?: React.Ref<HTMLElement>
   selectedPlan: Plan
   subscriptionStatus: string
   loadingPlan: string | null
@@ -639,10 +650,11 @@ function CheckoutForm(props: {
   setPhone: (value: string) => void
   setPostalCode: (value: string) => void
   setAddressNumber: (value: string) => void
+  onCancel: () => void
   onSubmit: () => void
 }) {
   return (
-    <section className="mx-auto max-w-xl rounded-2xl border border-neutral-100 bg-white p-6 shadow-card dark:border-white/10 dark:bg-cognia-panel">
+    <section ref={props.checkoutRef} className="scroll-mt-4 mx-auto max-w-xl rounded-2xl border border-neutral-100 bg-white p-5 shadow-card dark:border-white/10 dark:bg-cognia-panel sm:p-6">
       <div className="mb-5">
         <h2 className="font-semibold text-neutral-800 dark:text-white">Cartao de credito</h2>
         <p className="text-sm text-neutral-500 dark:text-neutral-300">
@@ -661,7 +673,7 @@ function CheckoutForm(props: {
           <input className="input-field" autoComplete="cc-name" placeholder="NOME COMO NO CARTAO" value={props.cardName} onChange={(event) => props.setCardName(event.target.value)} />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label className="label">Validade</label>
             <input className="input-field" inputMode="numeric" autoComplete="cc-exp" placeholder="MM/AA" value={props.cardExpiry} onChange={(event) => props.setCardExpiry(event.target.value)} />
@@ -672,7 +684,7 @@ function CheckoutForm(props: {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label className="label">CPF/CNPJ do titular</label>
             <input className="input-field" inputMode="numeric" autoComplete="off" placeholder="000.000.000-00" value={props.cpfCnpj} onChange={(event) => props.setCpfCnpj(event.target.value)} />
@@ -683,7 +695,7 @@ function CheckoutForm(props: {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label className="label">CEP</label>
             <input className="input-field" inputMode="numeric" autoComplete="postal-code" placeholder="00000-000" value={props.postalCode} onChange={(event) => props.setPostalCode(event.target.value)} />
@@ -697,6 +709,14 @@ function CheckoutForm(props: {
         <button type="button" onClick={props.onSubmit} disabled={props.loadingPlan !== null} className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-sage-600 text-sm font-medium text-white transition-colors hover:bg-sage-700 disabled:opacity-60">
           {props.loadingPlan === props.selectedPlan.id && <Loader2 className="h-4 w-4 animate-spin" />}
           {props.subscriptionStatus === 'past_due' ? 'Pagar agora' : 'Iniciar teste gratis'}
+        </button>
+        <button
+          type="button"
+          onClick={props.onCancel}
+          disabled={props.loadingPlan !== null}
+          className="flex h-10 w-full items-center justify-center rounded-xl border border-neutral-200 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-50 disabled:opacity-60 dark:border-white/10 dark:text-neutral-300 dark:hover:bg-white/5"
+        >
+          Escolher outro plano
         </button>
       </div>
     </section>

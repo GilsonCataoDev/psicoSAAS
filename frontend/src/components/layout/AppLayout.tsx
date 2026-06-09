@@ -191,19 +191,19 @@ export default function AppLayout() {
 
   if (booting) {
     return (
-      <div className="flex h-screen cognia-surface items-center justify-center">
+      <div className="flex h-dvh cognia-surface items-center justify-center">
         <div className="h-7 w-7 animate-spin rounded-full border-2 border-sage-200 border-t-sage-600" />
       </div>
     )
   }
 
   return (
-    <div className="flex h-screen cognia-surface overflow-hidden">
+    <div className="flex h-dvh cognia-surface overflow-hidden">
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <TopBar />
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6 pb-24 lg:pb-6 animate-fade-in">
+        <main className="flex-1 overflow-y-auto overscroll-contain p-4 lg:p-6 pb-28 lg:pb-6 animate-fade-in">
           <div className="max-w-7xl mx-auto">
             <EmailVerificationBanner />
             <SubscriptionBanner />
