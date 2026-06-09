@@ -12,6 +12,9 @@ const schema = z.object({
   phone: z.string().optional(),
   birthDate: z.string().optional(),
   pronouns: z.string().optional(),
+  race: z.string().optional(),
+  gender: z.string().optional(),
+  sexualOrientation: z.string().optional(),
   sessionPrice: z.coerce.number().min(0),
   sessionDuration: z.coerce.number().min(20).max(180),
   hasFixedSchedule: z.boolean().optional(),
@@ -113,6 +116,18 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
           <div>
             <label className="label">Pronomes</label>
             <input {...register('pronouns')} className="input-field" placeholder="ela/dele, ele/dele..." />
+          </div>
+          <div>
+            <label className="label">Raça/cor</label>
+            <input {...register('race')} className="input-field" placeholder="Autodeclarada" />
+          </div>
+          <div>
+            <label className="label">Gênero</label>
+            <input {...register('gender')} className="input-field" placeholder="Autodeclarado" />
+          </div>
+          <div>
+            <label className="label">Orientação sexual</label>
+            <input {...register('sexualOrientation')} className="input-field" placeholder="Autodeclarada" />
           </div>
           <div>
             <label className="label">CPF / CNPJ <span className="text-neutral-400 font-normal">(para cobrança)</span></label>

@@ -63,6 +63,11 @@ export default function PatientDetailPage() {
     sessionPrice: 0,
     sessionDuration: 50,
   })
+  const [demographicSettings, setDemographicSettings] = useState({
+    race: '',
+    gender: '',
+    sexualOrientation: '',
+  })
 
   useEffect(() => {
     if (patient?.privateNotes) setNote(patient.privateNotes)
@@ -82,11 +87,19 @@ export default function PatientDetailPage() {
       sessionPrice: Number(patient.sessionPrice ?? 0),
       sessionDuration: patient.sessionDuration ?? 50,
     })
+    setDemographicSettings({
+      race: patient.race ?? '',
+      gender: patient.gender ?? '',
+      sexualOrientation: patient.sexualOrientation ?? '',
+    })
   }, [
     patient?.id,
     patient?.status,
     patient?.sessionPrice,
     patient?.sessionDuration,
+    patient?.race,
+    patient?.gender,
+    patient?.sexualOrientation,
     patient?.hasFixedSchedule,
     patient?.fixedScheduleWeekday,
     patient?.fixedScheduleTime,
@@ -144,6 +157,23 @@ export default function PatientDetailPage() {
     } catch {
       setCareSettings(current => ({ ...current, status: patient?.status ?? current.status }))
       toast.error('Erro ao atualizar situação.')
+    }
+  }
+
+  async function saveDemographicSettings() {
+    if (!id) return
+    try {
+      await updatePatient.mutateAsync({
+        id,
+        data: {
+          race: demographicSettings.race,
+          gender: demographicSettings.gender,
+          sexualOrientation: demographicSettings.sexualOrientation,
+        },
+      })
+      toast.success('Informações do paciente salvas')
+    } catch {
+      toast.error('Erro ao salvar informações do paciente.')
     }
   }
 
@@ -276,6 +306,49 @@ export default function PatientDetailPage() {
           <div>
             <p className="text-xs text-neutral-400 mb-0.5">Duração</p>
             <p className="font-semibold text-neutral-700 text-sm">{patient.sessionDuration} min</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="card space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <ClipboardList className="w-4 h-4 text-sage-600" />
+            <h2 className="font-semibold text-neutral-800 text-sm">Informações do paciente</h2>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div>
+            <label className="label">Raça/cor</label>
+            <input
+              value={demographicSettings.race}
+              onChange={e => setDemographicSettings(s => ({ ...s, race: e.target.value }))}
+              className="input-field"
+              placeholder="Autodeclarada"
+            />
+          </div>
+          <div>
+            <label className="label">Gênero</label>
+            <input
+              value={demographicSettings.gender}
+              onChange={e => setDemographicSettings(s => ({ ...s, gender: e.target.value }))}
+              className="input-field"
+              placeholder="Autodeclarado"
+            />
+          </div>
+          <div>
+            <label className="label">Orientação sexual</label>
+            <input
+              value={demographicSettings.sexualOrientation}
+              onChange={e => setDemographicSettings(s => ({ ...s, sexualOrientation: e.target.value }))}
+              className="input-field"
+              placeholder="Autodeclarada"
+            />
+          </div>
+          <div className="flex items-end">
+            <button onClick={saveDemographicSettings} disabled={updatePatient.isPending} className="btn-primary text-sm w-full">
+              {updatePatient.isPending ? 'Salvando...' : 'Salvar'}
+            </button>
           </div>
         </div>
       </div>

@@ -100,7 +100,10 @@ export function useUpdateAppointmentStatus() {
   return useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       api.patch(`/appointments/${id}/status`, { status }).then(r => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['appointments'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['appointments'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+    },
   })
 }
 

@@ -79,6 +79,10 @@ export class SessionsService {
     const session   = this.repo.create({ ...encrypted, psychologistId })
     const saved     = await this.repo.save(session)
 
+    if (dto.appointmentId) {
+      await this.appointments.update({ id: dto.appointmentId, psychologistId }, { status: 'completed' })
+    }
+
     // Auto-cria FinancialRecord para sessões pagas ou pendentes
     // Usa dto original (não criptografado) para paymentStatus, date, patientId
     if (dto.paymentStatus !== 'waived' && dto.patientId) {

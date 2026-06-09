@@ -17,6 +17,9 @@ export class Patient {
   @Column({ nullable: true }) phone?: string
   @Column({ nullable: true }) birthDate?: string
   @Column({ nullable: true }) pronouns?: string
+  @Column({ nullable: true }) race?: string
+  @Column({ nullable: true }) gender?: string
+  @Column({ nullable: true }) sexualOrientation?: string
 
   @Column({ type: 'text', default: 'active' })
   status: PatientStatus

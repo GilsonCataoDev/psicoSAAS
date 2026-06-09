@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Plus, Video, MapPin, Trash2, MessageCircle, Pencil } from 'lucide-react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { ChevronLeft, ChevronRight, Plus, Video, MapPin, Trash2, MessageCircle, Pencil, CheckCircle2, XCircle, FileText } from 'lucide-react'
 import {
   format, addDays, startOfWeek, eachDayOfInterval, addWeeks,
   subWeeks, isSameDay, parseISO, isToday,
@@ -9,8 +9,9 @@ import { ptBR } from 'date-fns/locale'
 import Avatar from '@/components/ui/Avatar'
 import { StatusBadge } from '@/components/ui/Badge'
 import { formatTime } from '@/lib/utils'
-import { useAppointments, useDeleteAppointment, useDeleteAppointmentGroup } from '@/hooks/useApi'
+import { useAppointments, useDeleteAppointment, useDeleteAppointmentGroup, useUpdateAppointmentStatus } from '@/hooks/useApi'
 import NewAppointmentModal from '@/components/features/agenda/NewAppointmentModal'
+import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 import toast from 'react-hot-toast'
 import { openWhatsApp } from '@/lib/whatsapp'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
@@ -23,6 +24,7 @@ export default function AgendaPage() {
   const [showModal, setShowModal] = useState(false)
   const [editingAppointment, setEditingAppointment] = useState<any | null>(null)
   const [appointmentToRemove, setAppointmentToRemove] = useState<any | null>(null)
+  const [appointmentToEvolve, setAppointmentToEvolve] = useState<any | null>(null)
   const [deleteScope, setDeleteScope] = useState<'single' | 'future'>('single')
   const weekEnd = addDays(weekStart, 4)
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
@@ -38,6 +40,7 @@ export default function AgendaPage() {
   ])).sort((a, b) => a - b)
   const deleteAppointment = useDeleteAppointment()
   const deleteGroup = useDeleteAppointmentGroup()
+  const updateStatus = useUpdateAppointmentStatus()
 
   // Mobile: só mostra o dia atual
   const [mobileDay, setMobileDay] = useState(new Date())
@@ -87,6 +90,23 @@ export default function AgendaPage() {
   function editAppointment(appt: any) {
     setEditingAppointment(appt)
     setShowModal(true)
+  }
+
+  function evolveAppointment(appt: any) {
+    if (!appt.patientId) {
+      toast.error('Este agendamento não tem paciente vinculado.')
+      return
+    }
+    setAppointmentToEvolve(appt)
+  }
+
+  async function changeAppointmentStatus(appt: any, status: 'completed' | 'no_show') {
+    try {
+      await updateStatus.mutateAsync({ id: appt.id, status })
+      toast.success(status === 'completed' ? 'Sessão marcada como finalizada' : 'Falta registrada')
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'Erro ao atualizar status.')
+    }
   }
 
   function closeModal() {
@@ -149,57 +169,96 @@ export default function AgendaPage() {
             .sort((a, b) => a.time.localeCompare(b.time))
             .map(appt => (
               <div key={appt.id}
-                className="card flex items-center gap-3 py-3 px-4">
-                <div className="text-center min-w-12 shrink-0">
-                  <p className="text-base font-bold text-neutral-700">{formatTime(appt.time)}</p>
-                  <p className="text-[10px] text-neutral-400">{appt.duration}min</p>
-                </div>
-                <div className="w-px h-10 bg-neutral-100 shrink-0" />
-                <Avatar name={appt.patient?.name ?? 'Paciente removido'} colorClass={appt.patient?.avatarColor} size="sm" />
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm text-neutral-800 truncate">{appt.patient?.name ?? 'Paciente removido'}</p>
-                  <div className="flex items-center gap-1 mt-0.5 text-xs text-neutral-400">
-                    {appt.modality === 'online'
-                      ? <><Video className="w-3 h-3 text-mist-500" />Online</>
-                      : <><MapPin className="w-3 h-3 text-sage-500" />Presencial</>}
+                className="card space-y-3 py-3 px-4">
+                <div className="flex items-center gap-3">
+                  <div className="text-center min-w-12 shrink-0">
+                    <p className="text-base font-bold text-neutral-700">{formatTime(appt.time)}</p>
+                    <p className="text-[10px] text-neutral-400">{appt.duration}min</p>
                   </div>
+                  <div className="w-px h-10 bg-neutral-100 shrink-0" />
+                  <Avatar name={appt.patient?.name ?? 'Paciente removido'} colorClass={appt.patient?.avatarColor} size="sm" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm text-neutral-800 truncate">{appt.patient?.name ?? 'Paciente removido'}</p>
+                    <div className="flex items-center gap-1 mt-0.5 text-xs text-neutral-400">
+                      {appt.modality === 'online'
+                        ? <><Video className="w-3 h-3 text-mist-500" />Online</>
+                        : <><MapPin className="w-3 h-3 text-sage-500" />Presencial</>}
+                    </div>
+                  </div>
+                  <StatusBadge status={appt.status} />
                 </div>
-                <StatusBadge status={appt.status} />
-                {appt.isRecurring && (
-                  <span className="text-[10px] px-2 py-1 rounded-full bg-mist-50 text-mist-700">
-                    {appt.recurringFrequency === 'biweekly' ? '15 em 15' : 'semanal'}
-                  </span>
+                {(appt.isRecurring || appt.isFixedScheduleException) && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {appt.isRecurring && (
+                      <span className="text-[10px] px-2 py-1 rounded-full bg-mist-50 text-mist-700">
+                        {appt.recurringFrequency === 'biweekly' ? '15 em 15' : 'semanal'}
+                      </span>
+                    )}
+                    {appt.isFixedScheduleException && (
+                      <span className="text-[10px] px-2 py-1 rounded-full bg-amber-50 text-amber-700">
+                        pontual
+                      </span>
+                    )}
+                  </div>
                 )}
-                {appt.isFixedScheduleException && (
-                  <span className="text-[10px] px-2 py-1 rounded-full bg-amber-50 text-amber-700">
-                    pontual
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => editAppointment(appt)}
-                  className="p-2 rounded-lg text-neutral-300 hover:text-mist-600 hover:bg-mist-50 transition-colors"
-                  title="Alterar esta ocorrencia"
-                >
-                  <Pencil className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => messageAppointment(appt)}
-                  className="p-2 rounded-lg text-neutral-300 hover:text-sage-600 hover:bg-sage-50 transition-colors"
-                  title="Enviar WhatsApp"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAppointmentToRemove(appt)}
-                  disabled={deleteAppointment.isPending}
-                  className="p-2 rounded-lg text-neutral-300 hover:text-rose-500 hover:bg-rose-50 transition-colors disabled:opacity-50"
-                  title="Remover agendamento"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="grid grid-cols-3 gap-2 border-t border-neutral-100 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => evolveAppointment(appt)}
+                    className="btn-secondary text-xs justify-center"
+                    title="Evoluir sessão"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    Evoluir
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => changeAppointmentStatus(appt, 'completed')}
+                    disabled={updateStatus.isPending || appt.status === 'completed'}
+                    className="btn-secondary text-xs justify-center disabled:opacity-40"
+                    title="Marcar como finalizada"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Finalizada
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => changeAppointmentStatus(appt, 'no_show')}
+                    disabled={updateStatus.isPending || appt.status === 'no_show'}
+                    className="btn-secondary text-xs justify-center disabled:opacity-40"
+                    title="Registrar falta"
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                    Falta
+                  </button>
+                </div>
+                <div className="flex justify-end gap-1">
+                  <button
+                    type="button"
+                    onClick={() => editAppointment(appt)}
+                    className="p-2 rounded-lg text-neutral-300 hover:text-mist-600 hover:bg-mist-50 transition-colors"
+                    title="Alterar esta ocorrência"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => messageAppointment(appt)}
+                    className="p-2 rounded-lg text-neutral-300 hover:text-sage-600 hover:bg-sage-50 transition-colors"
+                    title="Enviar WhatsApp"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAppointmentToRemove(appt)}
+                    disabled={deleteAppointment.isPending}
+                    className="p-2 rounded-lg text-neutral-300 hover:text-rose-500 hover:bg-rose-50 transition-colors disabled:opacity-50"
+                    title="Remover agendamento"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             ))}
           {appointments.filter(a => isSameDay(parseISO(a.date), mobileDay)).length === 0 && (
@@ -245,6 +304,32 @@ export default function AgendaPage() {
                           <span className="text-xs text-sage-800 dark:text-sage-100 font-semibold flex-1">{formatTime(appt.time)}</span>
                           <button
                             type="button"
+                            onClick={() => evolveAppointment(appt)}
+                            className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-sage-700 hover:text-sage-800 hover:bg-white/70 transition-all"
+                            title="Evoluir sessão"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => changeAppointmentStatus(appt, 'completed')}
+                            disabled={updateStatus.isPending || appt.status === 'completed'}
+                            className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-sage-700 hover:text-sage-800 hover:bg-white/70 transition-all disabled:opacity-40"
+                            title="Marcar como finalizada"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => changeAppointmentStatus(appt, 'no_show')}
+                            disabled={updateStatus.isPending || appt.status === 'no_show'}
+                            className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-sage-700 hover:text-rose-600 hover:bg-white/70 transition-all disabled:opacity-40"
+                            title="Registrar falta"
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => messageAppointment(appt)}
                             className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-sage-700 hover:text-sage-800 hover:bg-white/70 transition-all"
                             title="Enviar WhatsApp"
@@ -272,6 +357,17 @@ export default function AgendaPage() {
                         <p className="text-xs text-sage-700 dark:text-neutral-100 font-medium truncate mt-0.5">
                           {appt.patient?.name?.split(' ')[0] ?? 'Paciente'}
                         </p>
+                        <div className="mt-1 flex items-center justify-between gap-2">
+                          <StatusBadge status={appt.status} />
+                          {appt.patientId && (
+                            <Link
+                              to={`/prontuario/${appt.patientId}`}
+                              className="text-[10px] font-medium text-sage-700/80 hover:text-sage-900"
+                            >
+                              Prontuário
+                            </Link>
+                          )}
+                        </div>
                         {(appt.isRecurring || appt.isFixedScheduleException) && (
                           <p className="text-[10px] text-sage-700/70 dark:text-sage-100/75 mt-0.5">
                             {appt.isFixedScheduleException
@@ -290,6 +386,16 @@ export default function AgendaPage() {
       </div>
 
       <NewAppointmentModal open={showModal} onClose={closeModal} appointment={editingAppointment} />
+      <NewSessionModal
+        open={!!appointmentToEvolve}
+        onClose={() => setAppointmentToEvolve(null)}
+        defaults={appointmentToEvolve ? {
+          patientId: appointmentToEvolve.patientId,
+          date: appointmentToEvolve.date,
+          duration: appointmentToEvolve.duration,
+          appointmentId: appointmentToEvolve.id,
+        } : undefined}
+      />
       <ConfirmDialog
         open={!!appointmentToRemove}
         title="Remover agendamento"

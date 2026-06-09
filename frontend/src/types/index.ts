@@ -5,6 +5,9 @@ export interface Patient {
   phone?: string
   birthDate?: string
   pronouns?: string
+  race?: string
+  gender?: string
+  sexualOrientation?: string
   tags: EmotionalTag[]
   status: 'active' | 'paused' | 'discharged'
   sessionPrice: number

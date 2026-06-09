@@ -28,6 +28,21 @@ export class CreatePatientDto {
   @IsOptional()
   pronouns?: string
 
+  @Transform(({ value }) => emptyToUndefined(value))
+  @IsString()
+  @IsOptional()
+  race?: string
+
+  @Transform(({ value }) => emptyToUndefined(value))
+  @IsString()
+  @IsOptional()
+  gender?: string
+
+  @Transform(({ value }) => emptyToUndefined(value))
+  @IsString()
+  @IsOptional()
+  sexualOrientation?: string
+
   @IsNumber() @IsOptional() sessionPrice?: number
   @IsNumber() @IsOptional() sessionDuration?: number
   @IsString() @IsOptional() startDate?: string

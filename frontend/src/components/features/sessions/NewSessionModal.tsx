@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
@@ -15,10 +15,18 @@ const MOODS = [
   { value: 5, label: 'Muito positivo' },
 ]
 
-export default function NewSessionModal({ open, onClose, defaultPatientId }: {
+type NewSessionDefaults = {
+  patientId?: string
+  date?: string
+  duration?: number
+  appointmentId?: string
+}
+
+export default function NewSessionModal({ open, onClose, defaultPatientId, defaults }: {
   open: boolean
   onClose: () => void
   defaultPatientId?: string
+  defaults?: NewSessionDefaults
 }) {
   const [mood, setMood] = useState<number | null>(null)
   const [tags, setTags] = useState<EmotionalTag[]>([])
@@ -26,9 +34,34 @@ export default function NewSessionModal({ open, onClose, defaultPatientId }: {
   const { data: sessionTemplate } = useDefaultTemplate('session_note')
   const createSession = useCreateSession()
 
-  const { register, handleSubmit, reset, setValue, formState: { isSubmitting } } = useForm({
-    defaultValues: { patientId: defaultPatientId ?? '', date: new Date().toISOString().split('T')[0], duration: 50, summary: '', privateNotes: '', nextSteps: '', paymentStatus: 'pending' },
-  })
+  const defaultValues = {
+    patientId: defaults?.patientId ?? defaultPatientId ?? '',
+    date: defaults?.date ?? new Date().toISOString().split('T')[0],
+    duration: defaults?.duration ?? 50,
+    appointmentId: defaults?.appointmentId ?? '',
+    summary: '',
+    privateNotes: '',
+    nextSteps: '',
+    paymentStatus: 'pending',
+  }
+
+  const { register, handleSubmit, reset, setValue, formState: { isSubmitting } } = useForm({ defaultValues })
+
+  useEffect(() => {
+    if (!open) return
+    reset({
+      patientId: defaults?.patientId ?? defaultPatientId ?? '',
+      date: defaults?.date ?? new Date().toISOString().split('T')[0],
+      duration: defaults?.duration ?? 50,
+      appointmentId: defaults?.appointmentId ?? '',
+      summary: '',
+      privateNotes: '',
+      nextSteps: '',
+      paymentStatus: 'pending',
+    })
+    setMood(null)
+    setTags([])
+  }, [defaultPatientId, defaults?.appointmentId, defaults?.date, defaults?.duration, defaults?.patientId, open, reset])
 
   function toggleTag(tag: EmotionalTag) {
     setTags(t => t.includes(tag) ? t.filter(x => x !== tag) : [...t, tag])
@@ -36,8 +69,8 @@ export default function NewSessionModal({ open, onClose, defaultPatientId }: {
 
   function applyDefaultTemplate() {
     if (!sessionTemplate) return
-    setValue('date', new Date().toISOString().split('T')[0])
-    setValue('duration', 45)
+    setValue('date', defaults?.date ?? new Date().toISOString().split('T')[0])
+    setValue('duration', defaults?.duration ?? 45)
     setValue('summary', 'Presenca: presenca\nModalidade: presencial\nTemas abordados: ')
     setValue('nextSteps', 'Proxima sessao: ')
     toast.success('Template de sessao aplicado')
@@ -45,7 +78,8 @@ export default function NewSessionModal({ open, onClose, defaultPatientId }: {
 
   async function onSubmit(data: any) {
     try {
-      await createSession.mutateAsync({ ...data, mood, tags })
+      const payload = { ...data, appointmentId: data.appointmentId || undefined, mood, tags }
+      await createSession.mutateAsync(payload)
       toast.success('Sessão registrada com cuidado')
       reset(); setMood(null); setTags([]); onClose()
     } catch {
