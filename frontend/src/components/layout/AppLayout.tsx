@@ -7,7 +7,7 @@ import TopBar from './TopBar'
 import PWAInstallBanner from '@/components/ui/PWAInstallBanner'
 import OnboardingTour from '@/components/onboarding/OnboardingTour'
 import FirstSessionCelebration from '@/components/onboarding/FirstSessionCelebration'
-import { api, USE_MOCK } from '@/lib/api'
+import { api, USE_MOCK, type AuthAxiosRequestConfig } from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 import { useSubscriptionStore } from '@/store/subscription'
 
@@ -36,7 +36,7 @@ function useCsrfBoot() {
       return
     }
 
-    api.get('/auth/me')
+    api.get('/auth/me', { skipAuthRedirect: true } as AuthAxiosRequestConfig)
       .then(res => {
         if (res.data?.csrfToken) setCsrfToken(res.data.csrfToken)
         if (res.data?.id) setAuth(res.data)
