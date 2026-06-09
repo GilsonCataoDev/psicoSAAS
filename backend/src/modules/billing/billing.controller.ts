@@ -72,8 +72,12 @@ export class BillingController {
 
   @Post('update-card')
   @UseGuards(JwtAuthGuard, CsrfGuard)
-  updateCard(@Request() req: any, @Body('creditCardToken') creditCardToken?: string) {
-    return this.billing.updateCard(req.user.id, creditCardToken)
+  updateCard(
+    @Request() req: any,
+    @Body('creditCardToken') creditCardToken?: string,
+    @Body('plan') plan?: string,
+  ) {
+    return this.billing.updateCard(req.user.id, creditCardToken, plan)
   }
 
   @Post('change-plan')

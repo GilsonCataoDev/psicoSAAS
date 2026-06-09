@@ -6,6 +6,7 @@ import { EmotionalTag, TAG_LABELS } from '@/types'
 import { cn } from '@/lib/utils'
 import { usePatients, useCreateSession, useDefaultTemplate } from '@/hooks/useApi'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
+import DictationButton from '@/components/ui/DictationButton'
 
 const MOODS = [
   { value: 1, label: 'Muito dificil' },
@@ -45,7 +46,7 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
     paymentStatus: 'pending',
   }
 
-  const { register, handleSubmit, reset, setValue, formState: { isSubmitting } } = useForm({ defaultValues })
+  const { register, handleSubmit, reset, setValue, watch, formState: { isSubmitting } } = useForm({ defaultValues })
 
   useEffect(() => {
     if (!open) return
@@ -130,22 +131,31 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
         </div>
 
         <div>
-          <label className="label">Resumo da sessão</label>
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <label className="label mb-0">Resumo da sessão</label>
+            <DictationButton value={watch('summary') ?? ''} onChange={value => setValue('summary', value)} />
+          </div>
           <textarea {...register('summary')} rows={3} className="input-field resize-none"
             placeholder="O que foi trabalhado, pontos de atenção, avanços observados..." />
         </div>
 
         <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 space-y-3">
-          <p className="text-xs font-medium text-amber-700 flex items-center gap-1.5">
-            <UseCogniaIcon name="security-lgpd" size={24} />
-            Anotacoes privadas - apenas voce ve
-          </p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-medium text-amber-700 flex items-center gap-1.5">
+              <UseCogniaIcon name="security-lgpd" size={24} />
+              Anotacoes privadas - apenas voce ve
+            </p>
+            <DictationButton value={watch('privateNotes') ?? ''} onChange={value => setValue('privateNotes', value)} />
+          </div>
           <textarea {...register('privateNotes')} rows={2} className="input-field resize-none text-sm"
             placeholder="Percepções, hipóteses de trabalho, reflexões clínicas..." />
         </div>
 
         <div>
-          <label className="label">Próximos passos (opcional)</label>
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <label className="label mb-0">Próximos passos (opcional)</label>
+            <DictationButton value={watch('nextSteps') ?? ''} onChange={value => setValue('nextSteps', value)} />
+          </div>
           <input {...register('nextSteps')} className="input-field"
             placeholder="Tarefas, temas para a próxima sessão..." />
         </div>

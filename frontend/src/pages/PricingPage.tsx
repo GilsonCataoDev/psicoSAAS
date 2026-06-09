@@ -158,12 +158,12 @@ export default function PricingPage() {
       const creditCardToken = await tokenizeCard()
       const endpoint = subscription.status === 'past_due' ? '/billing/update-card' : '/billing/subscribe'
       const body = subscription.status === 'past_due'
-        ? { creditCardToken }
+        ? { plan: plan.id, creditCardToken }
         : { plan: plan.id, creditCardToken }
 
       const { data } = await api.post(endpoint, body)
       setSubscription(data)
-      toast.success(subscription.status === 'past_due' ? 'Cartao atualizado. Tentaremos cobrar novamente.' : 'Teste iniciado! Voce tem 7 dias gratis.')
+      toast.success(subscription.status === 'past_due' ? `Cartao atualizado. Tentaremos cobrar no plano ${plan.name}.` : 'Teste iniciado! Voce tem 7 dias gratis.')
     } catch (err: any) {
       toast.error(
         err?.response?.data?.errors?.[0]?.description ??

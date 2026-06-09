@@ -161,6 +161,7 @@ export class AsaasService {
       await this.api.put(`/subscriptions/${subscriptionId}`, {
         value,
         description: `UseCognia - Plano ${plan}`,
+        updatePendingPayments: true,
       })
     } catch (err: any) {
       this.logger.warn('[Asaas] Falha ao atualizar plano da assinatura', err?.response?.data ?? err)

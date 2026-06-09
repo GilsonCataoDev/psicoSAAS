@@ -171,8 +171,9 @@ export class BillingService {
     return this.toPublicSubscription(await this.repo.save(subscription))
   }
 
-  async updateCard(userId: string, creditCardToken?: string) {
+  async updateCard(userId: string, creditCardToken?: string, plan?: string) {
     if (!creditCardToken) throw new BadRequestException('creditCardToken é obrigatório')
+    if (plan && !PLAN_PRICES[plan]) throw new BadRequestException('Plano invalido')
 
     const subscription = await this.repo.findOne({
       where: { userId, status: In(['active', 'past_due']) },
@@ -184,6 +185,12 @@ export class BillingService {
     }
 
     await this.asaas.updateSubscriptionCreditCard(subscription.gatewaySubscriptionId, creditCardToken)
+
+    if (plan && subscription.plan !== plan) {
+      await this.asaas.updateSubscriptionPlan(subscription.gatewaySubscriptionId, plan)
+      subscription.plan = plan
+      subscription.cancelAtPeriodEnd = false
+    }
 
     if (subscription.status === 'past_due') {
       await this.asaas.retryLatestSubscriptionPayment(subscription.gatewaySubscriptionId, creditCardToken)

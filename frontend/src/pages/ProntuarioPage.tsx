@@ -6,6 +6,7 @@ import { TAG_LABELS } from '@/types'
 import { Prontuario } from '@/types/prontuario'
 import { formatDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import DictationButton from '@/components/ui/DictationButton'
 
 const TABS = [
   { id: 'identificacao', label: 'Identificação' },
@@ -17,7 +18,7 @@ const TABS = [
 type Tab = typeof TABS[number]['id']
 
 const FIELD = ({
-  label, value, onChange, rows, placeholder, readOnly,
+  label, value, onChange, rows, placeholder, readOnly, dictation,
 }: {
   label: string
   value: string
@@ -25,9 +26,15 @@ const FIELD = ({
   rows?: number
   placeholder?: string
   readOnly?: boolean
+  dictation?: boolean
 }) => (
   <div>
-    <label className="label">{label}</label>
+    <div className="mb-1 flex items-center justify-between gap-2">
+      <label className="label mb-0">{label}</label>
+      {rows && dictation && onChange && !readOnly && (
+        <DictationButton value={value} onChange={onChange} />
+      )}
+    </div>
     {rows ? (
       <textarea rows={rows} value={value}
         onChange={e => onChange?.(e.target.value)}
@@ -226,10 +233,12 @@ export default function ProntuarioPage() {
             <FIELD label="Queixa principal" rows={3}
               value={form.queixaPrincipal ?? ''}
               onChange={v => set('queixaPrincipal', v)}
+              dictation
               placeholder="Motivo que trouxe a pessoa ao atendimento..." />
             <FIELD label="História da doença / situação atual" rows={4}
               value={form.historicoDoenca ?? ''}
               onChange={v => set('historicoDoenca', v)}
+              dictation
               placeholder="Evolução dos sintomas, contexto de surgimento..." />
           </div>
 
@@ -238,10 +247,12 @@ export default function ProntuarioPage() {
             <FIELD label="Antecedentes pessoais (saúde mental)" rows={3}
               value={form.antecedentesPessoais ?? ''}
               onChange={v => set('antecedentesPessoais', v)}
+              dictation
               placeholder="Histórico de tratamentos anteriores, hospitalizações..." />
             <FIELD label="Histórico familiar" rows={3}
               value={form.historicoFamiliar ?? ''}
               onChange={v => set('historicoFamiliar', v)}
+              dictation
               placeholder="Doenças mentais na família, dinâmicas relevantes..." />
           </div>
 
@@ -253,10 +264,12 @@ export default function ProntuarioPage() {
             <FIELD label="Medicamentos em uso" rows={2}
               value={form.medicamentos ?? ''}
               onChange={v => set('medicamentos', v)}
+              dictation
               placeholder="Nome, dosagem, prescritor..." />
             <FIELD label="Condições médicas / diagnósticos" rows={2}
               value={form.condicoesMedicas ?? ''}
               onChange={v => set('condicoesMedicas', v)}
+              dictation
               placeholder="Doenças crónicas, cirurgias relevantes..." />
           </div>
         </div>
@@ -283,6 +296,7 @@ export default function ProntuarioPage() {
           <FIELD label="Objetivos terapêuticos" rows={4}
             value={form.objetivos ?? ''}
             onChange={v => set('objetivos', v)}
+            dictation
             placeholder="Metas acordadas com a pessoa em atendimento..." />
           <div className="bg-sage-50 border border-sage-100 rounded-2xl p-4">
             <p className="text-xs text-sage-700 font-medium mb-1">Início do acompanhamento</p>
@@ -320,6 +334,10 @@ export default function ProntuarioPage() {
             </div>
             <div>
               <label className="label">Descrição da sessão</label>
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <label className="label mb-0">Descrição da sessão</label>
+                <DictationButton value={evolText} onChange={setEvolText} />
+              </div>
               <textarea rows={5} value={evolText} onChange={e => setEvolText(e.target.value)}
                 className="input-field resize-none text-sm"
                 placeholder="Descreva o conteúdo trabalhado, observações clínicas, intercorrências, resposta da pessoa ao processo terapêutico..." />
@@ -386,7 +404,10 @@ export default function ProntuarioPage() {
                       className="input-field text-sm" />
                   </div>
                   <div>
-                    <label className="label">Descricao da sessao</label>
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <label className="label mb-0">Descricao da sessao</label>
+                      <DictationButton value={editEvolText} onChange={setEditEvolText} />
+                    </div>
                     <textarea
                       rows={5}
                       value={editEvolText}
