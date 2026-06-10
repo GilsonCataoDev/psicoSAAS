@@ -13,6 +13,6 @@ import { User } from '../auth/entities/user.entity'
   imports: [TypeOrmModule.forFeature([Subscription, WebhookEvent, User])],
   controllers: [BillingController],
   providers: [AsaasService, BillingService, BillingWebhookService, BillingTrialEmailJob],
-  exports: [BillingService],
+  exports: [BillingService, AsaasService],
 })
 export class BillingModule {}

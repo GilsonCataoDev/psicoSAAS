@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { User } from '../auth/entities/user.entity'
 import { Subscription, BillingSubscriptionStatus } from '../billing/entities/subscription.entity'
+import { AsaasService } from '../billing/asaas.service'
 import { OverrideSubscriptionDto } from './dto/override-subscription.dto'
 
 @Injectable()
@@ -10,6 +11,7 @@ export class AdminService {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
     @InjectRepository(Subscription) private readonly subs: Repository<Subscription>,
+    private readonly asaas: AsaasService,
   ) {}
 
   async listUsers(page: number, limit: number) {
@@ -66,6 +68,14 @@ export class AdminService {
       sub = this.subs.create({ userId, plan: 'free', status: 'none' as BillingSubscriptionStatus })
     }
 
+    if (sub.gatewaySubscriptionId) {
+      if (dto.status === 'canceled' || dto.plan === 'free') {
+        await this.asaas.cancelSubscription(sub.gatewaySubscriptionId)
+      } else if (dto.plan && dto.plan !== sub.plan) {
+        await this.asaas.updateSubscriptionPlan(sub.gatewaySubscriptionId, dto.plan)
+      }
+    }
+
     if (dto.plan) sub.plan = dto.plan
     if (dto.status) {
       sub.status = dto.status as BillingSubscriptionStatus
@@ -74,6 +84,14 @@ export class AdminService {
         sub.gatewaySubscriptionId = null
         sub.trialEndsAt = null
       }
+    }
+    if (dto.plan === 'free') {
+      sub.status = dto.status ? sub.status : 'active'
+      sub.cancelAtPeriodEnd = false
+      sub.gatewayCustomerId = null
+      sub.gatewaySubscriptionId = null
+      sub.trialEndsAt = null
+      sub.currentPeriodEnd = new Date()
     }
 
     return this.subs.save(sub)
