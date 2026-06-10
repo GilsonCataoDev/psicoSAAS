@@ -12,13 +12,19 @@ UseCognia é um SaaS completo para psicólogos brasileiros que reduz a carga ope
 
 ### Gestão clínica
 - **Pessoas** — cadastro de pacientes com tags emocionais, pronomes, preço/duração da sessão e linha do tempo
-- **Prontuário** — anamnese, plano terapêutico e anotações clínicas criptografadas
+- **Prontuário** — anamnese, plano terapêutico e anotações clínicas criptografadas, com **exportação completa em PDF** (dados, anamnese, plano e todas as sessões)
 - **Sessões** — registro de cada encontro com humor, resumo, próximos passos e anotações privadas
-- **Documentos** — geração de declarações, encaminhamentos e atestados com QR code de verificação
+- **Ditado por voz** — campos clínicos preenchíveis por voz (Web Speech API, pt-BR)
+- **Documentos** — geração de declarações, encaminhamentos e atestados com QR code de verificação e envio por e-mail
+- **Instrumentos clínicos** — biblioteca com 16 formulários + 13 escalas validadas (PHQ-9, GAD-7, DASS-21, PCL-5, SRQ-20, AUDIT, ISI, ESS, MEEM, WHODAS 2.0, SDQ, GAF, IES-R, C-SSRS, ASRS-v1.1), com link público para o paciente responder
+- **Templates** — modelos reutilizáveis de documentos
 
 ### Agenda e agendamento
 - **Agenda semanal** — grade visual com sessões presenciais e online
+- **Agendamentos recorrentes** — séries semanais com edição/exclusão "deste em diante" (`recurringGroupId`)
 - **Agendamento online** — link público com disponibilidade em tempo real, confirmação por e-mail e link diário rotativo (token HMAC que muda à meia-noite)
+- **Página pública de perfil** — landing com avatar, especialidade e botões "Agende agora" / WhatsApp
+- **Google Calendar** — sincronização bidirecional via OAuth 2.0 (tokens criptografados)
 - **Confirmação automática** — ao confirmar um agendamento, cria paciente, appointment e lançamento financeiro pendente automaticamente
 
 ### Financeiro
@@ -39,6 +45,14 @@ UseCognia é um SaaS completo para psicólogos brasileiros que reduz a carga ope
 - **Controle de acesso global** — usuarios `active` e `trialing` acessam; `past_due` usa grace period; `canceled` e `none` bloqueiam
 - **Frontend de monetizacao** — `/planos`, banner de trial, countdown, polling de status e fluxo de pagamento atrasado
 - **Metricas SaaS** — endpoint de contagem por status e MRR basico por plano
+
+### Administração e conformidade
+- **Painel admin** (`/admin`) — stats (usuários, MRR, trials), listagem paginada de usuários e override de plano/assinatura, restrito a e-mails em `ADMIN_EMAILS`
+- **Audit log** — ações sensíveis registradas (login, visualização de paciente, export de prontuário, etc.)
+- **Exportação LGPD** — `GET /data-export` gera PDF com todos os dados do usuário
+- **Política de Privacidade v2.0** — 20 seções em conformidade com a LGPD
+
+> Referência completa de endpoints em [docs/API.md](docs/API.md).
 
 ---
 
@@ -142,22 +156,27 @@ psicosaas/
     └── src/
         ├── modules/
         │   ├── auth/            # JWT, refresh token, CSRF, estratégias Passport
-        │   ├── patients/        # CRUD + limite de plano + criptografia
-        │   ├── appointments/    # Agendamentos internos
+        │   ├── patients/        # CRUD + limite de plano + criptografia + export PDF do prontuário
+        │   ├── appointments/    # Agendamentos internos + recorrência
         │   ├── sessions/        # Registros clínicos
         │   ├── financial/       # Lançamentos + integração Asaas
         │   ├── booking/         # Agendamento online público + token diário
         │   ├── availability/    # Horários disponíveis por dia da semana
-        │   ├── documents/       # Geração e verificação de documentos
+        │   ├── documents/       # Geração, verificação e envio de documentos
+        │   ├── templates/       # Modelos de documentos
+        │   ├── instrument-assignments/ # Instrumentos clínicos + rota pública de resposta
+        │   ├── google-calendar/ # OAuth 2.0 + sync de eventos
         │   ├── analytics/       # Dashboard stats resilientes
-        │   ├── notifications/   # E-mails transacionais
-        │   ├── subscriptions/   # Planos e limites legados
+        │   ├── notifications/   # WhatsApp / notificações
         │   ├── billing/         # Asaas, trial, subscriptions, webhook e metricas SaaS
+        │   ├── admin/           # Painel administrativo (stats, usuários, override)
+        │   ├── audit/           # Log de auditoria
+        │   ├── data-export/     # Exportação LGPD em PDF
         │   ├── referral/        # Programa de indicação
-        │   └── email/           # Templates e envio
+        │   └── email/           # Templates e envio (Resend)
         └── common/
             ├── crypto/          # encrypt.util.ts (AES-256-GCM + CSRF HMAC)
-            ├── guards/          # PlanGuard global
+            ├── guards/          # PlanGuard, SubscriptionGuard, AdminGuard
             └── decorators/      # @RequirePlan()
 ```
 
@@ -238,6 +257,16 @@ cd backend && npm run start:dev
 cd frontend && npm run dev
 ```
 
+### 5. Testes
+
+```bash
+cd backend
+npm test          # 17 testes unitários (Jest + ts-jest)
+npm run test:cov  # com cobertura
+```
+
+Cobertura atual: brute-force de login, rotação/replay de refresh token, expiração de verificação de e-mail, anti user-enumeration no forgot-password, normalização de trial expirado, `cancelAtPeriodEnd` e guarda de `hasUsedTrial` no billing.
+
 ---
 
 ## Variáveis de ambiente em produção (Railway)
@@ -254,6 +283,12 @@ cd frontend && npm run dev
 | `ASAAS_BASE_URL` | `https://sandbox.asaas.com/api/v3` em sandbox ou URL de producao |
 | `ASAAS_WEBHOOK_TOKEN` | Token usado para validar origem dos webhooks Asaas |
 | `RESEND_API_KEY` | Chave Resend para emails transacionais |
+| `RESEND_FROM` | Remetente dos e-mails (domínio verificado no Resend) |
+| `ADMIN_EMAILS` | E-mails com acesso ao painel `/admin` (separados por vírgula) |
+| `COMPED_PRO_EMAILS` | E-mails com plano Pro cortesia (separados por vírgula) |
+| `ALLOWED_ORIGINS` | Origens extras permitidas no CORS |
+| `SENTRY_DSN` | Monitoramento de erros (opcional) |
+| `WHATSAPP_API_URL` / `WHATSAPP_API_KEY` / `WHATSAPP_INSTANCE_PREFIX` | Integração WhatsApp (opcional) |
 | `TYPEORM_SYNC` | Manter ausente/false em producao; use migrations |
 
 ---
@@ -341,18 +376,24 @@ Tipografia:
 - [x] Integração Asaas (link de pagamento por cartão/PIX/boleto)
 - [x] Sistema de planos com limites por tier
 - [x] Programa de indicação (referral)
-- [x] Onboarding guiado
+- [x] Onboarding guiado (checklist de 5 etapas com progresso)
 - [x] PWA (instalável no celular)
 - [x] Analytics de dashboard resiliente
+- [x] Biblioteca de instrumentos clínicos (16 formulários + 13 escalas)
+- [x] Google Calendar (OAuth 2.0 + sync)
+- [x] Exportação do prontuário completo em PDF
+- [x] Ditado por voz nos campos clínicos
+- [x] Painel administrativo (stats, usuários, override de assinatura)
+- [x] Testes unitários de auth e billing (Jest)
+- [x] Exportação LGPD de dados
+- [x] Agendamentos recorrentes
 
 ### Em progresso
-- [ ] E-mails transacionais completos (templates HTML)
 - [ ] Lembretes de sessão por WhatsApp
 - [ ] Notificações push (Web Push API)
 
 ### Próximas versões
 - [ ] App mobile (React Native)
-- [ ] Relatórios exportáveis em PDF
 - [ ] Multi-profissional (clínica com vários psicólogos)
 - [ ] Transcrição de áudio com consentimento explícito
 - [ ] Resumo sugestivo de sessão por IA (sem diagnóstico)
