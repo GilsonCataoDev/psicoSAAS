@@ -168,7 +168,7 @@ export class PatientsService {
       Subject: 'Prontuário Clínico',
       Keywords: 'UseCognia, prontuário, psicologia',
     } })
-    const buffer = await this.collectPdf(pdf)
+    const done = this.collectPdf(pdf)
 
     const W = pdf.page.width
     const H = pdf.page.height
@@ -390,7 +390,7 @@ export class PatientsService {
     const safeName = p.name.replace(/[^a-zA-Z0-9À-ɏ\s]/g, '').trim().replace(/\s+/g, '_')
     const filename = `Prontuario_${safeName}_${new Date().toISOString().slice(0, 10)}.pdf`
 
-    return { filename, buffer: await buffer }
+    return { filename, buffer: await done }
   }
 
   private collectPdf(pdf: PDFKit.PDFDocument): Promise<Buffer> {

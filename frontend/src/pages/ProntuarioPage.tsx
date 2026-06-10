@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Download, Lock, Save, Printer, FileText, Pencil, X } from 'lucide-react'
+import { ArrowLeft, Download, Lock, Save, FileText, Pencil, X } from 'lucide-react'
 import { usePatient, useUpdatePatient, useSessions, useCreateSession, useUpdateSession, useExportProntuario } from '@/hooks/useApi'
 import { TAG_LABELS } from '@/types'
 import { Prontuario } from '@/types/prontuario'
@@ -149,10 +149,7 @@ export default function ProntuarioPage() {
             <Download className="w-4 h-4" />
             {exportProntuario.isPending ? 'Gerando…' : 'Exportar PDF'}
           </button>
-          <button onClick={() => window.print()}
-            className="btn-secondary flex items-center gap-2 text-sm hidden sm:flex">
-            <Printer className="w-4 h-4" />Imprimir
-          </button>
+
           <Link to={`/documentos?patient=${id}`}
             className="btn-secondary flex items-center gap-2 text-sm hidden sm:flex">
             <FileText className="w-4 h-4" />Documentos
@@ -485,8 +482,8 @@ export default function ProntuarioPage() {
 
       {/* Save button mobile */}
       <div className="sm:hidden flex gap-2">
-        <button onClick={() => window.print()} className="btn-secondary flex-1 flex items-center justify-center gap-2 text-sm">
-          <Printer className="w-4 h-4" />Imprimir
+        <button onClick={() => exportProntuario.mutate()} disabled={exportProntuario.isPending} className="btn-secondary flex-1 flex items-center justify-center gap-2 text-sm disabled:opacity-50">
+          <Download className="w-4 h-4" />{exportProntuario.isPending ? 'Gerando…' : 'PDF'}
         </button>
         <button onClick={save} className="btn-primary flex-1 flex items-center justify-center gap-2 text-sm">
           <Save className="w-4 h-4" />Salvar
