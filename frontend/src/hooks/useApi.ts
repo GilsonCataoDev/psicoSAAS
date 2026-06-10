@@ -525,6 +525,22 @@ export function useAdminUsers(page = 1) {
   })
 }
 
+export function useExportProntuario(patientId: string) {
+  return useMutation({
+    mutationFn: async () => {
+      const res = await api.get(`/patients/${patientId}/prontuario/export`, { responseType: 'blob' })
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+      const a = document.createElement('a')
+      const cd = res.headers['content-disposition'] as string | undefined
+      const match = cd?.match(/filename="([^"]+)"/)
+      a.href = url
+      a.download = match?.[1] ?? `Prontuario_${patientId}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    },
+  })
+}
+
 export function useAdminOverrideSubscription() {
   const qc = useQueryClient()
   return useMutation({

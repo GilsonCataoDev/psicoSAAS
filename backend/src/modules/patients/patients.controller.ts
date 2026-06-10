@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Request, UseGuards } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, Patch, Post, Request, Res, UseGuards } from '@nestjs/common'
+import { Response } from 'express'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { PatientsService } from './patients.service'
@@ -15,6 +16,25 @@ export class PatientsController {
   ) {}
 
   @Get() findAll(@Request() req: any) { return this.svc.findAll(req.user.id) }
+
+  @Get(':id/prontuario/export')
+  @UseGuards(JwtAuthGuard)
+  async exportProntuario(@Param('id') id: string, @Request() req: any, @Res() res: Response) {
+    const { filename, buffer } = await this.svc.exportProntuario(
+      id,
+      req.user.id,
+      req.user.name,
+      req.user.crp ?? '',
+    )
+    await this.record(req, 'patient.prontuario_exported', 'patient', id)
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': buffer.length,
+      'Cache-Control': 'private, no-store',
+    })
+    res.end(buffer)
+  }
 
   @Get(':id')
   async findOne(@Param('id') id: string, @Request() req: any) {

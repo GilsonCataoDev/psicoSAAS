@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Lock, Save, Printer, FileText, Pencil, X } from 'lucide-react'
-import { usePatient, useUpdatePatient, useSessions, useCreateSession, useUpdateSession } from '@/hooks/useApi'
+import { ArrowLeft, Download, Lock, Save, Printer, FileText, Pencil, X } from 'lucide-react'
+import { usePatient, useUpdatePatient, useSessions, useCreateSession, useUpdateSession, useExportProntuario } from '@/hooks/useApi'
 import { TAG_LABELS } from '@/types'
 import { Prontuario } from '@/types/prontuario'
 import { formatDate } from '@/lib/utils'
@@ -58,6 +58,7 @@ export default function ProntuarioPage() {
   const createSession = useCreateSession()
   const updateSession = useUpdateSession()
   const updatePatient = useUpdatePatient()
+  const exportProntuario = useExportProntuario(id ?? '')
   const [evolText, setEvolText] = useState('')
   const [evolDate, setEvolDate] = useState(new Date().toISOString().split('T')[0])
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null)
@@ -140,6 +141,14 @@ export default function ProntuarioPage() {
           <p className="page-subtitle truncate">{patient.name}</p>
         </div>
         <div className="flex gap-2 shrink-0">
+          <button
+            onClick={() => exportProntuario.mutate()}
+            disabled={exportProntuario.isPending}
+            className="btn-secondary flex items-center gap-2 text-sm hidden sm:flex disabled:opacity-50"
+          >
+            <Download className="w-4 h-4" />
+            {exportProntuario.isPending ? 'Gerando…' : 'Exportar PDF'}
+          </button>
           <button onClick={() => window.print()}
             className="btn-secondary flex items-center gap-2 text-sm hidden sm:flex">
             <Printer className="w-4 h-4" />Imprimir
