@@ -4,6 +4,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt'
 import { ConfigService } from '@nestjs/config'
 import { Request } from 'express'
 import { AuthService } from '../auth.service'
+import { getAdminEmails } from '../../../common/guards/admin.guard'
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -34,6 +35,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (safe.preferences) {
       safe.preferences = this.cleanPreferences(safe.preferences)
     }
+    safe.isAdmin = getAdminEmails().includes((safe.email ?? '').toLowerCase())
     return safe
   }
 
