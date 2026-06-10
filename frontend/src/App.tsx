@@ -29,6 +29,7 @@ const LegalPage           = lazy(() => import('@/pages/LegalPage'))
 const SecurityPage        = lazy(() => import('@/pages/SecurityPage'))
 const DpaPage             = lazy(() => import('@/pages/DpaPage'))
 const InstrumentosPage    = lazy(() => import('@/pages/InstrumentosPage'))
+const AdminPage           = lazy(() => import('@/pages/AdminPage'))
 
 // Public pages — lazy loaded
 const BookingPage         = lazy(() => import('@/pages/public/BookingPage'))
@@ -116,6 +117,7 @@ export default function App() {
         <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
           <Route path="pricing" element={<Navigate to="/planos" replace />} />
           <Route path="planos" element={<PricingPage />} />
+          <Route path="admin" element={<AdminPage />} />
           <Route element={<SubscriptionRoute />}>
             <Route index element={<DashboardPage />} />
             <Route path="pacientes" element={<PatientsPage />} />

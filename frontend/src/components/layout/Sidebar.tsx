@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LogOut, Zap } from 'lucide-react'
+import { LogOut, ShieldCheck, Zap } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { useSubscriptionStore, PLANS } from '@/store/subscription'
 import { getInitials, cn } from '@/lib/utils'
@@ -61,6 +61,27 @@ export default function Sidebar() {
             )}
           </NavLink>
         ))}
+        {user?.isAdmin && (
+          <NavLink to="/admin">
+            {({ isActive }) => (
+              <div className={cn(
+                'relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 cursor-pointer select-none',
+                isActive
+                  ? 'bg-sage-50 text-sage-700 shadow-sm'
+                  : 'text-neutral-500 hover:bg-sage-50/70 hover:text-sage-700',
+              )}>
+                {isActive && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-sage-500 rounded-r-full" />}
+                <div className={cn(
+                  'w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-150 shrink-0',
+                  isActive ? 'bg-white shadow-sm' : '',
+                )}>
+                  <ShieldCheck className="h-4 w-4" />
+                </div>
+                <span className={cn('text-sm', isActive && 'font-semibold')}>Admin</span>
+              </div>
+            )}
+          </NavLink>
+        )}
       </nav>
 
       <div className="px-3 pb-2">

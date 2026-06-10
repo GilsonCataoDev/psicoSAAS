@@ -21,6 +21,7 @@ import { GoogleCalendarModule } from './modules/google-calendar/google-calendar.
 import { InstrumentAssignmentsModule } from './modules/instrument-assignments/instrument-assignments.module'
 import { AuditModule } from './modules/audit/audit.module'
 import { TemplatesModule } from './modules/templates/templates.module'
+import { AdminModule } from './modules/admin/admin.module'
 import { Subscription as BillingSubscription } from './modules/billing/entities/subscription.entity'
 import { PlanGuard } from './common/guards/plan.guard'
 import { SubscriptionGuard } from './common/guards/subscription.guard'
@@ -72,6 +73,7 @@ import { SubscriptionGuard } from './common/guards/subscription.guard'
     InstrumentAssignmentsModule,
     AuditModule,
     TemplatesModule,
+    AdminModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

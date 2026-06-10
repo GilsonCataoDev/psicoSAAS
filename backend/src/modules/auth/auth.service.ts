@@ -8,6 +8,7 @@ import { JwtService } from '@nestjs/jwt'
 import * as bcrypt from 'bcryptjs'
 import { randomBytes } from 'crypto'
 import { generateCsrfToken, hashToken } from '../../common/crypto/encrypt.util'
+import { getAdminEmails } from '../../common/guards/admin.guard'
 import { User }         from './entities/user.entity'
 import { RefreshToken } from './entities/refresh-token.entity'
 import { RegisterDto }          from './dto/register.dto'
@@ -27,7 +28,9 @@ export interface AuthTokens {
 export interface SafeUser extends Omit<
   User,
   'passwordHash' | 'resetPasswordToken' | 'resetPasswordExpiry' | 'emailVerificationToken' | 'emailVerificationExpiry'
-> {}
+> {
+  isAdmin?: boolean
+}
 
 export interface AuthResult {
   user:      SafeUser
@@ -378,7 +381,9 @@ export class AuthService {
       ...safeUser
     } = user
     if (safeUser.preferences) safeUser.preferences = this.exposePreferences(safeUser.preferences)
-    return safeUser as SafeUser
+    const result: SafeUser = safeUser as SafeUser
+    result.isAdmin = getAdminEmails().includes(user.email.toLowerCase())
+    return result
   }
 
   private exposePreferences(preferences: Record<string, unknown>): Record<string, unknown> {

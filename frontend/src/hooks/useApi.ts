@@ -483,6 +483,57 @@ export function useCreateInstrumentAssignment() {
   })
 }
 
+// ── Admin ─────────────────────────────────────────────────────────────────────
+
+export interface AdminUser {
+  id: string
+  name: string
+  email: string
+  crp: string
+  specialty: string
+  isActive: boolean
+  emailVerified: boolean
+  createdAt: string
+  subscription: {
+    id: string
+    plan: string
+    status: string
+    trialEndsAt: string | null
+    cancelAtPeriodEnd: boolean
+    hasUsedTrial: boolean
+  } | null
+}
+
+export interface AdminStats {
+  totalUsers: number
+  activeUsers: number
+  mrr: number
+  byPlanStatus: { plan: string; status: string; count: string }[]
+}
+
+export function useAdminStats() {
+  return useQuery<AdminStats>({
+    queryKey: ['admin', 'stats'],
+    queryFn: () => api.get('/admin/stats').then(r => r.data),
+  })
+}
+
+export function useAdminUsers(page = 1) {
+  return useQuery<{ data: AdminUser[]; total: number; page: number; limit: number }>({
+    queryKey: ['admin', 'users', page],
+    queryFn: () => api.get('/admin/users', { params: { page } }).then(r => r.data),
+  })
+}
+
+export function useAdminOverrideSubscription() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ userId, status, plan }: { userId: string; status?: string; plan?: string }) =>
+      api.patch(`/admin/users/${userId}/subscription`, { status, plan }).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin'] }),
+  })
+}
+
 export function useUpdateInstrumentAnswers() {
   const qc = useQueryClient()
   return useMutation({

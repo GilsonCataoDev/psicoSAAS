@@ -15,6 +15,7 @@ export interface User {
   emailVerified?: boolean
   firstLogin?: boolean
   onboardingStep?: number
+  isAdmin?: boolean
 }
 
 interface AuthState {

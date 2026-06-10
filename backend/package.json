@@ -8,7 +8,9 @@
     "build": "nest build",
     "migration:run": "typeorm migration:run -d dist/data-source.js",
     "migration:show": "typeorm migration:show -d dist/data-source.js",
-    "lint": "eslint src --ext ts"
+    "lint": "eslint src --ext ts",
+    "test": "jest",
+    "test:cov": "jest --coverage"
   },
   "dependencies": {
     "@nestjs/cli": "^11.0.21",
@@ -46,7 +48,9 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@nestjs/testing": "^11.1.26",
     "@types/bcryptjs": "^2.4.6",
+    "@types/jest": "^30.0.0",
     "@types/node": "^22.5.4",
     "@types/passport-jwt": "^4.0.1",
     "@types/passport-local": "^1.0.38",
@@ -54,6 +58,8 @@
     "@types/qrcode": "^1.5.6",
     "eslint": "^10.3.0",
     "globals": "^17.6.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.11",
     "typescript-eslint": "^8.59.2"
   }
 }
