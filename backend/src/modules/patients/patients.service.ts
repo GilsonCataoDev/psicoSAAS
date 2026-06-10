@@ -192,7 +192,7 @@ export class PatientsService {
       pdf.strokeColor(line).lineWidth(0.8).moveTo(L, fy).lineTo(R, fy).stroke()
       pdf.fillColor(muted).font('Helvetica').fontSize(7)
         .text(`UseCognia  |  Prontuário Clínico — ${p.name}`, L, fy + 8, { width: CW - 80, lineBreak: false })
-        .text(`Página ${page} de ${total}`, R - 60, fy + 8, { width: 60, align: 'right', lineBreak: false })
+      pdf.text(`Página ${page} de ${total}`, R - 60, fy + 8, { width: 60, align: 'right', lineBreak: false })
     }
 
     const sectionTitle = (title: string, y?: number) => {
@@ -229,7 +229,11 @@ export class PatientsService {
     }
 
     const checkPageBreak = (needed = 60) => {
-      if (pdf.y > H - 80 - needed) pdf.addPage()
+      if (pdf.y > H - 80 - needed) {
+        pdf.addPage()
+        drawPageBase()
+        pdf.y = 24
+      }
     }
 
     // ── Capa ──────────────────────────────────────────────────────────────────
