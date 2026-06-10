@@ -52,10 +52,15 @@ export default function DictationButton({ value, onChange, className }: Dictatio
       onChangeRef.current(next)
     }
     recognition.onerror = (event: any) => {
-      if (event.error === 'not-allowed') {
+      console.error('[Dictation] error:', event.error, event.message)
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
         toast.error('Permita o uso do microfone no navegador para usar o ditado.')
-      } else {
-        toast.error('Não foi possível usar o ditado agora.')
+      } else if (event.error === 'network') {
+        toast.error('Ditado indisponível: o reconhecimento de voz deste navegador requer conexão com o serviço do Google. Tente o Chrome.')
+      } else if (event.error === 'audio-capture') {
+        toast.error('Nenhum microfone encontrado. Verifique o dispositivo de áudio.')
+      } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
+        toast.error(`Não foi possível usar o ditado agora (${event.error}).`)
       }
       setListening(false)
     }
