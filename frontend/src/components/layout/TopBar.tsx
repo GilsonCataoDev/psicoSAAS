@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Bell, Search, X, Check, CheckCheck, Trash2, Calendar, CreditCard, Clock, Settings2, Moon, Sun } from 'lucide-react'
+import { Bell, Search, X, Check, CheckCheck, Trash2, Calendar, CreditCard, Clock, Settings2, Moon, Sun, ShieldCheck } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/auth'
 import { useNotificationStore, AppNotification, NotificationType } from '@/store/notifications'
@@ -212,6 +212,18 @@ export default function TopBar() {
       >
         {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
       </button>
+
+      {user?.isAdmin && (
+        <button
+          type="button"
+          onClick={() => navigate('/admin')}
+          className="lg:hidden p-2 rounded-xl hover:bg-sage-50 text-neutral-400 hover:text-sage-700 transition-colors"
+          title="Abrir painel admin"
+          aria-label="Abrir painel admin"
+        >
+          <ShieldCheck className="w-4 h-4" />
+        </button>
+      )}
 
       {/* Notificações */}
       <button
