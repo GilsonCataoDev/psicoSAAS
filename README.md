@@ -221,6 +221,9 @@ ASAAS_BASE_URL=https://sandbox.asaas.com/api/v3
 ASAAS_WEBHOOK_TOKEN=token-configurado-no-webhook
 FRONTEND_URL=http://localhost:5173
 RESEND_API_KEY=opcional-para-emails
+WEB_PUSH_PUBLIC_KEY=chave-publica-vapid
+WEB_PUSH_PRIVATE_KEY=chave-privada-vapid
+WEB_PUSH_SUBJECT=mailto:suporte@usecognia.com.br
 ```
 
 ```bash
@@ -284,6 +287,9 @@ Cobertura atual: brute-force de login, rotação/replay de refresh token, expira
 | `ASAAS_WEBHOOK_TOKEN` | Token usado para validar origem dos webhooks Asaas |
 | `RESEND_API_KEY` | Chave Resend para emails transacionais |
 | `RESEND_FROM` | Remetente dos e-mails (domínio verificado no Resend) |
+| `WEB_PUSH_PUBLIC_KEY` | Chave publica VAPID para notificacoes push |
+| `WEB_PUSH_PRIVATE_KEY` | Chave privada VAPID para notificacoes push |
+| `WEB_PUSH_SUBJECT` | Contato VAPID, ex: `mailto:suporte@usecognia.com.br` |
 | `ADMIN_EMAILS` | E-mails com acesso ao painel `/admin` (separados por vírgula) |
 | `COMPED_PRO_EMAILS` | E-mails com plano Pro cortesia (separados por vírgula) |
 | `ALLOWED_ORIGINS` | Origens extras permitidas no CORS |
@@ -389,8 +395,8 @@ Tipografia:
 - [x] Agendamentos recorrentes
 
 ### Em progresso
-- [ ] Lembretes de sessão por WhatsApp
-- [ ] Notificações push (Web Push API)
+- [x] Lembretes de sessão por WhatsApp
+- [x] Notificações push (Web Push API)
 
 ### Próximas versões
 - [ ] App mobile (React Native)

@@ -2,13 +2,22 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
+import webpush from 'web-push'
 import { EmailService } from '../email/email.service'
 import { Subscription } from '../billing/entities/subscription.entity'
 import { User } from '../auth/entities/user.entity'
+import { PushSubscriptionEntity } from './entities/push-subscription.entity'
 
 export type WhatsAppDeliveryResult = {
   sent: boolean
   reason?: 'plan' | 'not_configured' | 'disconnected' | 'api_error'
+  error?: string
+}
+
+export type PushDeliveryResult = {
+  sent: number
+  removed: number
+  reason?: 'not_configured' | 'no_subscription' | 'api_error'
   error?: string
 }
 
@@ -30,18 +39,33 @@ export class NotificationsService {
   private readonly WA_KEY: string
   private readonly WA_INSTANCE_PREFIX: string
   private readonly waEnabled: boolean
+  private readonly pushEnabled: boolean
+  private readonly VAPID_PUBLIC_KEY: string
+  private readonly VAPID_PRIVATE_KEY: string
 
   constructor(
     private cfg: ConfigService,
     private email: EmailService,
     @InjectRepository(Subscription) private subs: Repository<Subscription>,
     @InjectRepository(User) private users: Repository<User>,
+    @InjectRepository(PushSubscriptionEntity) private pushSubscriptions: Repository<PushSubscriptionEntity>,
   ) {
     this.BASE_URL     = cfg.get('FRONTEND_URL') ?? 'http://localhost:3000'
     this.WA_URL       = cfg.get('WHATSAPP_API_URL') ?? ''
     this.WA_KEY       = cfg.get('WHATSAPP_API_KEY') ?? ''
     this.WA_INSTANCE_PREFIX = cfg.get('WHATSAPP_INSTANCE_PREFIX') ?? 'usecognia'
     this.waEnabled    = !!(this.WA_URL && this.WA_KEY && cfg.get('NODE_ENV') === 'production')
+    this.VAPID_PUBLIC_KEY = cfg.get('WEB_PUSH_PUBLIC_KEY') ?? ''
+    this.VAPID_PRIVATE_KEY = cfg.get('WEB_PUSH_PRIVATE_KEY') ?? ''
+    this.pushEnabled = !!(this.VAPID_PUBLIC_KEY && this.VAPID_PRIVATE_KEY)
+
+    if (this.pushEnabled) {
+      webpush.setVapidDetails(
+        cfg.get('WEB_PUSH_SUBJECT') ?? 'mailto:suporte@usecognia.com.br',
+        this.VAPID_PUBLIC_KEY,
+        this.VAPID_PRIVATE_KEY,
+      )
+    }
   }
 
   private async canUseWhatsAppAutomation(userId?: string | null): Promise<boolean> {
@@ -119,6 +143,96 @@ export class NotificationsService {
     )
     if (!result.sent) throw new BadRequestException(result.error ?? 'Mensagem nao enviada')
     return result
+  }
+
+  // ─── Web Push ─────────────────────────────────────────────────────────────
+
+  async getPushStatus(userId: string): Promise<{ configured: boolean; subscribed: boolean; publicKey: string | null; subscriptions: number }> {
+    const count = await this.pushSubscriptions.countBy({ userId })
+    return {
+      configured: this.pushEnabled,
+      subscribed: count > 0,
+      publicKey: this.pushEnabled ? this.VAPID_PUBLIC_KEY : null,
+      subscriptions: count,
+    }
+  }
+
+  async savePushSubscription(userId: string, subscription: any, userAgent?: string): Promise<{ subscribed: boolean }> {
+    if (!this.pushEnabled) throw new BadRequestException('Notificacoes push nao configuradas')
+    const endpoint = subscription?.endpoint
+    const p256dh = subscription?.keys?.p256dh
+    const auth = subscription?.keys?.auth
+    if (!endpoint || !p256dh || !auth) throw new BadRequestException('Inscricao push invalida')
+
+    const existing = await this.pushSubscriptions.findOneBy({ userId, endpoint })
+    const entity = existing ?? this.pushSubscriptions.create({ userId, endpoint })
+    entity.p256dh = p256dh
+    entity.auth = auth
+    entity.userAgent = userAgent?.slice(0, 500)
+    await this.pushSubscriptions.save(entity)
+    return { subscribed: true }
+  }
+
+  async removePushSubscription(userId: string, endpoint?: string): Promise<{ subscribed: boolean }> {
+    if (endpoint) {
+      await this.pushSubscriptions.delete({ userId, endpoint })
+    } else {
+      await this.pushSubscriptions.delete({ userId })
+    }
+    const count = await this.pushSubscriptions.countBy({ userId })
+    return { subscribed: count > 0 }
+  }
+
+  async sendTestPush(userId: string): Promise<PushDeliveryResult> {
+    return this.sendPushToUser(userId, {
+      title: 'UseCognia',
+      body: 'Notificacoes ativadas neste navegador.',
+      url: `${this.BASE_URL}/#/configuracoes?tab=notify`,
+      tag: 'usecognia-push-test',
+    })
+  }
+
+  async sendAppointmentPushReminder(appointment: any, lead: '24h' | '2h'): Promise<PushDeliveryResult> {
+    if (!appointment.psychologistId) return { sent: 0, removed: 0, reason: 'no_subscription' }
+    const timeLabel = String(appointment.time).slice(0, 5)
+    const title = lead === '24h' ? 'Sessao amanha' : 'Sessao em breve'
+    const body = lead === '24h'
+      ? `Voce tem uma sessao agendada amanha as ${timeLabel}.`
+      : `Voce tem uma sessao agendada hoje as ${timeLabel}.`
+
+    return this.sendPushToUser(appointment.psychologistId, {
+      title,
+      body,
+      url: `${this.BASE_URL}/#/agenda`,
+      tag: `appointment-${appointment.id}-${lead}`,
+    })
+  }
+
+  private async sendPushToUser(userId: string, payload: Record<string, string>): Promise<PushDeliveryResult> {
+    if (!this.pushEnabled) return { sent: 0, removed: 0, reason: 'not_configured' }
+    const subscriptions = await this.pushSubscriptions.findBy({ userId })
+    if (subscriptions.length === 0) return { sent: 0, removed: 0, reason: 'no_subscription' }
+
+    let sent = 0
+    let removed = 0
+    for (const sub of subscriptions) {
+      try {
+        await webpush.sendNotification({
+          endpoint: sub.endpoint,
+          keys: { p256dh: sub.p256dh, auth: sub.auth },
+        }, JSON.stringify(payload))
+        sent++
+      } catch (err: any) {
+        if (err?.statusCode === 404 || err?.statusCode === 410) {
+          await this.pushSubscriptions.delete({ id: sub.id })
+          removed++
+        } else {
+          this.logger.error(`[WebPush] Falha user=${userId}: ${err?.message ?? err}`)
+        }
+      }
+    }
+
+    return sent > 0 ? { sent, removed } : { sent, removed, reason: 'api_error' }
   }
 
   private async sendWhatsApp(phone: string, text: string, ownerId?: string | null): Promise<WhatsAppDeliveryResult> {
@@ -219,9 +333,16 @@ export class NotificationsService {
   }
 
   async sendAppointmentReminder(appointment: any, lead: '24h' | '2h'): Promise<WhatsAppDeliveryResult> {
-    if (!appointment.patient?.phone) return { sent: false, error: 'Paciente sem WhatsApp' }
     const { patient, date, time } = appointment
     const prefs = (appointment.psychologist?.preferences ?? {}) as Record<string, any>
+    const pushResult = await this.sendAppointmentPushReminder(appointment, lead)
+
+    if (!patient?.phone) {
+      return pushResult.sent > 0
+        ? { sent: true }
+        : { sent: false, error: 'Paciente sem WhatsApp e push nao enviado' }
+    }
+
     const first = patient.name.split(' ')[0]
     const timeLabel = String(time).slice(0, 5)
 
@@ -241,7 +362,9 @@ export class NotificationsService {
       ? this.renderReminderTemplate(prefs.reminderTemplate, patient.name, dateLabel, timeLabel, lead)
       : defaultMsg
 
-    return this.sendWhatsApp(patient.phone, msg, appointment.psychologistId)
+    const whatsAppResult = await this.sendWhatsApp(patient.phone, msg, appointment.psychologistId)
+    if (whatsAppResult.sent || pushResult.sent > 0) return { sent: true }
+    return whatsAppResult
   }
 
   async sendPaymentRequest(

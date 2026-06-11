@@ -13,6 +13,7 @@ import toast from 'react-hot-toast'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 import Avatar from '@/components/ui/Avatar'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import { disableWebPush, enableWebPush, getPushStatus, isPushSupported, sendTestWebPush } from '@/lib/pushNotifications'
 
 const tabs = [
   { id: 'profile',  icon: User,          label: 'Perfil'     },
@@ -132,6 +133,9 @@ export default function SettingsPage() {
   const [whatsappConnected, setWhatsappConnected] = useState(false)
   const [whatsappConfigured, setWhatsappConfigured] = useState(true)
   const [whatsappQr, setWhatsappQr] = useState('')
+  const [pushConfigured, setPushConfigured] = useState(false)
+  const [pushSubscribed, setPushSubscribed] = useState(false)
+  const [pushBusy, setPushBusy] = useState(false)
   const [googleCalendarAvailable, setGoogleCalendarAvailable] = useState(true)
   const [confirmDisconnectGoogle, setConfirmDisconnectGoogle] = useState(false)
   const [googleLastSyncedAt, setGoogleLastSyncedAt] = useState<string | null>(null)
@@ -195,6 +199,19 @@ export default function SettingsPage() {
     loadStatus()
     const timer = window.setInterval(loadStatus, 5000)
     return () => window.clearInterval(timer)
+  }, [isAuthenticated, tab])
+
+  useEffect(() => {
+    if (!isAuthenticated || tab !== 'notify') return
+    getPushStatus()
+      .then((data) => {
+        setPushConfigured(data.configured)
+        setPushSubscribed(data.subscribed)
+      })
+      .catch(() => {
+        setPushConfigured(false)
+        setPushSubscribed(false)
+      })
   }, [isAuthenticated, tab])
 
   useEffect(() => {
@@ -359,6 +376,46 @@ export default function SettingsPage() {
       toast.error(e?.response?.data?.message ?? 'Nao foi possivel reiniciar a conexao.')
     } finally {
       setWhatsappBusy(false)
+    }
+  }
+
+  async function activateWebPush() {
+    setPushBusy(true)
+    try {
+      const status = await enableWebPush()
+      setPushConfigured(status.configured)
+      setPushSubscribed(status.subscribed)
+      toast.success('Notificacoes push ativadas')
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Nao foi possivel ativar notificacoes push.')
+    } finally {
+      setPushBusy(false)
+    }
+  }
+
+  async function deactivateWebPush() {
+    setPushBusy(true)
+    try {
+      const status = await disableWebPush()
+      setPushConfigured(status.configured)
+      setPushSubscribed(status.subscribed)
+      toast.success('Notificacoes push desativadas neste navegador')
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Nao foi possivel desativar notificacoes push.')
+    } finally {
+      setPushBusy(false)
+    }
+  }
+
+  async function testWebPush() {
+    setPushBusy(true)
+    try {
+      await sendTestWebPush()
+      toast.success('Notificacao teste enviada')
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? 'Nao foi possivel enviar o teste.')
+    } finally {
+      setPushBusy(false)
     }
   }
 
@@ -581,8 +638,9 @@ export default function SettingsPage() {
 
           {/* ── Lembretes ─────────────────────────────────────────────── */}
           {tab === 'notify' && (
-            <div className="card space-y-5">
-              <h2 className="section-title">Lembretes automáticos</h2>
+            <div className="space-y-5">
+              <div className="card space-y-5">
+                <h2 className="section-title">Lembretes automáticos</h2>
               {!hasProAutomation && (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                   <p className="font-medium">Automacoes de WhatsApp ficam no plano Pro.</p>
@@ -609,10 +667,71 @@ export default function SettingsPage() {
                     </div>
                   ))}
                   <p className="text-xs text-neutral-400 pt-1">
-                    Os lembretes são enviados via WhatsApp. Configure seu número na aba <strong>Mensagens</strong>.
+                    Os lembretes podem sair por WhatsApp e por notificacao push do navegador. Configure o WhatsApp na aba <strong>Mensagens</strong>.
                   </p>
                 </>
               )}
+              </div>
+
+              <div className="card space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h2 className="section-title mb-1">Notificações push</h2>
+                    <p className="text-sm text-neutral-500">
+                      Receba avisos no navegador quando houver lembrete de sessão.
+                    </p>
+                  </div>
+                  <span className={`badge ${pushSubscribed ? 'bg-sage-50 text-sage-700' : 'bg-neutral-100 text-neutral-500'}`}>
+                    {pushSubscribed ? 'Ativas' : 'Inativas'}
+                  </span>
+                </div>
+
+                {!isPushSupported() && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    Este navegador nao suporta notificacoes push. Tente pelo Chrome, Edge ou pelo app instalado.
+                  </div>
+                )}
+
+                {isPushSupported() && !pushConfigured && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    Notificacoes push ainda nao estao configuradas no servidor.
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-2">
+                  {!pushSubscribed ? (
+                    <button
+                      type="button"
+                      onClick={activateWebPush}
+                      disabled={pushBusy || !isPushSupported() || !pushConfigured}
+                      className="btn-primary text-sm"
+                    >
+                      {pushBusy ? 'Ativando...' : 'Ativar neste navegador'}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={deactivateWebPush}
+                      disabled={pushBusy}
+                      className="btn-secondary text-sm"
+                    >
+                      {pushBusy ? 'Desativando...' : 'Desativar neste navegador'}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={testWebPush}
+                    disabled={pushBusy || !pushSubscribed}
+                    className="btn-secondary text-sm"
+                  >
+                    Enviar teste
+                  </button>
+                </div>
+
+                <p className="text-xs text-neutral-400">
+                  O aviso mostra apenas informacoes operacionais da sessao, sem conteudo clinico.
+                </p>
+              </div>
             </div>
           )}
 
