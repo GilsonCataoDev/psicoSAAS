@@ -214,13 +214,13 @@ export default function DashboardPage() {
           )}
 
           <div className="mt-4 flex flex-wrap gap-2">
-            <Link to="/settings" className="rounded-full bg-sage-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sage-700">
+            <Link to="/configuracoes?tab=messages" className="rounded-full bg-sage-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sage-700">
               Conectar WhatsApp
             </Link>
-            <Link to="/documents" className="rounded-full border border-sage-200 px-3 py-1.5 text-xs font-semibold text-sage-700 hover:bg-sage-50 dark:border-white/10 dark:text-sage-200">
+            <Link to="/documentos" className="rounded-full border border-sage-200 px-3 py-1.5 text-xs font-semibold text-sage-700 hover:bg-sage-50 dark:border-white/10 dark:text-sage-200">
               Gerar recibo
             </Link>
-            <Link to="/agenda" className="rounded-full border border-sage-200 px-3 py-1.5 text-xs font-semibold text-sage-700 hover:bg-sage-50 dark:border-white/10 dark:text-sage-200">
+            <Link to="/configuracoes?tab=notify" className="rounded-full border border-sage-200 px-3 py-1.5 text-xs font-semibold text-sage-700 hover:bg-sage-50 dark:border-white/10 dark:text-sage-200">
               Configurar lembretes
             </Link>
           </div>

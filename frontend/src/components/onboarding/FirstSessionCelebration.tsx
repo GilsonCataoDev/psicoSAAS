@@ -69,13 +69,13 @@ export default function FirstSessionCelebration() {
         <div className="mt-6 rounded-2xl border border-sage-100 p-4 dark:border-white/10">
           <p className="text-sm font-semibold">Proximos passos</p>
           <div className="mt-3 grid gap-2 text-sm text-gray-600 dark:text-gray-300">
-            <button type="button" onClick={() => navigate('/patients')} className="flex items-center gap-2 text-left hover:text-sage-700">
+            <button type="button" onClick={() => navigate('/pacientes')} className="flex items-center gap-2 text-left hover:text-sage-700">
               <CalendarPlus size={16} /> Importar mais 4 pacientes
             </button>
-            <button type="button" onClick={() => navigate('/settings')} className="flex items-center gap-2 text-left hover:text-sage-700">
+            <button type="button" onClick={() => navigate('/configuracoes?tab=messages')} className="flex items-center gap-2 text-left hover:text-sage-700">
               <MessageSquareText size={16} /> Ativar WhatsApp automatico
             </button>
-            <button type="button" onClick={() => navigate('/documents')} className="flex items-center gap-2 text-left hover:text-sage-700">
+            <button type="button" onClick={() => navigate('/documentos')} className="flex items-center gap-2 text-left hover:text-sage-700">
               <FileText size={16} /> Gerar seu primeiro recibo
             </button>
           </div>

@@ -24,6 +24,7 @@ const tabs = [
   { id: 'privacy',  icon: Lock,          label: 'Privacidade'},
   { id: 'security', icon: Shield,        label: 'Segurança'  },
 ]
+const TAB_IDS = new Set(tabs.map(tab => tab.id))
 const TRIAL_DAYS = 7
 
 type AuditLog = {
@@ -95,6 +96,15 @@ export default function SettingsPage() {
       ? 'profile'
       : searchParams.get('tab') ?? 'profile',
   )
+
+  useEffect(() => {
+    const requestedTab = searchParams.get('tab')
+    if (!requestedTab) return
+    const nextTab = requestedTab === 'integrations' && !GOOGLE_CALENDAR_ENABLED
+      ? 'profile'
+      : requestedTab
+    if (TAB_IDS.has(nextTab) && nextTab !== tab) setTab(nextTab)
+  }, [searchParams, tab])
 
   // ── Perfil ─────────────────────────────────────────────────────────────────
   const [name, setName] = useState(user?.name ?? '')
@@ -253,6 +263,11 @@ export default function SettingsPage() {
 
   function setPref<K extends keyof typeof DEFAULT_PREFS>(key: K, value: typeof DEFAULT_PREFS[K]) {
     setPrefs(prev => ({ ...prev, [key]: value }))
+  }
+
+  function selectTab(id: string) {
+    setTab(id)
+    setSearchParams({ tab: id }, { replace: true })
   }
 
   async function uploadAvatar(file?: File) {
@@ -553,7 +568,7 @@ export default function SettingsPage() {
         <nav className="lg:w-48 lg:shrink-0">
           <div className="flex lg:flex-col gap-1 overflow-x-auto pb-1 -mx-4 px-4 lg:mx-0 lg:px-0 scrollbar-none">
             {tabs.map(({ id, icon: Icon, label }) => (
-              <button key={id} onClick={() => setTab(id)}
+              <button key={id} onClick={() => selectTab(id)}
                 className={`flex-none lg:w-full flex items-center gap-2 lg:gap-3 px-3 py-2 lg:py-2.5 rounded-xl text-sm transition-all whitespace-nowrap ${
                   tab === id ? 'bg-sage-50 text-sage-700 font-medium' : 'text-neutral-500 hover:bg-neutral-100'
                 }`}>
