@@ -15,7 +15,7 @@ const schema = z.object({
   email: z.string().email('E-mail inválido'),
   crp: z
     .string()
-    .regex(/^\d{2}\/\d{4,6}$/, 'Formato inválido. Use: 00/000000'),
+    .refine(isValidCrpFormat, 'CRP inválido. Use uma região entre 01 e 24.'),
   password: z.string()
     .min(8, 'Mínimo 8 caracteres')
     .regex(/[A-Z]/, 'Precisa de ao menos uma letra maiúscula')

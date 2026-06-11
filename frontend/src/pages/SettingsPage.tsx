@@ -112,6 +112,11 @@ export default function SettingsPage() {
   }
 
   async function saveProfile() {
+    if (!crpValid) {
+      toast.error('CRP inválido. Use uma região entre 01 e 24.')
+      return
+    }
+
     setSavingProfile(true)
     try {
       const updated = await api.patch('/auth/profile', { name, crp, specialty, phone }).then(r => r.data)

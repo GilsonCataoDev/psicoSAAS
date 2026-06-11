@@ -14,7 +14,7 @@ export class RegisterDto {
   email: string
 
   @IsString()
-  @Matches(/^\d{2}\/\d{4,6}$/, { message: 'CRP inválido. Formato: 00/000000' })
+  @Matches(/^(0[1-9]|1[0-9]|2[0-4])\/\d{4,6}$/, { message: 'CRP inválido. Use uma região entre 01 e 24' })
   @Transform(({ value }) => value?.trim())
   crp: string
 

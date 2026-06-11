@@ -4,38 +4,43 @@
  * O CFP (Conselho Federal de Psicologia) NÃO oferece API pública.
  * A verificação é feita pelo portal oficial: https://cadastro.cfp.org.br/
  *
- * Formato CRP: XX/XXXXXX  (region/number)
- * Ex: 06/123456 (SP), 01/12345 (DF), 08/12345 (RS)
+ * Formato CRP: XX/XXXXXX  (regiao/numero)
+ * Ex: 06/123456 (SP), 01/12345 (DF), 08/12345 (PR)
  */
 
 /** Regiões CRP válidas no Brasil */
 export const CRP_REGIONS: Record<string, string> = {
-  '01': 'Distrito Federal e Tocantins',
-  '02': 'Minas Gerais',
-  '03': 'São Paulo — Interior',
-  '04': 'Minas Gerais — Sul/Sudoeste',
+  '01': 'Distrito Federal',
+  '02': 'Pernambuco',
+  '03': 'Bahia',
+  '04': 'Minas Gerais',
   '05': 'Rio de Janeiro',
-  '06': 'São Paulo — Capital',
+  '06': 'São Paulo',
   '07': 'Rio Grande do Sul',
   '08': 'Paraná',
-  '09': 'Mato Grosso e Mato Grosso do Sul',
+  '09': 'Goiás',
   '10': 'Pará e Amapá',
   '11': 'Ceará',
-  '12': 'Pernambuco',
-  '13': 'Bahia',
-  '14': 'Maranhão e Piauí',
-  '15': 'Rio Grande do Norte',
-  '16': 'Amazonas, Acre, Rondônia e Roraima',
-  '17': 'Espírito Santo',
-  '18': 'Goiás',
-  '19': 'Sergipe e Alagoas',
-  '20': 'Santa Catarina',
-  '21': 'Paraíba',
+  '12': 'Santa Catarina',
+  '13': 'Paraíba',
+  '14': 'Mato Grosso do Sul',
+  '15': 'Alagoas',
+  '16': 'Espírito Santo',
+  '17': 'Rio Grande do Norte',
+  '18': 'Mato Grosso',
+  '19': 'Sergipe',
+  '20': 'Amazonas e Roraima',
+  '21': 'Piauí',
+  '22': 'Maranhão',
+  '23': 'Tocantins',
+  '24': 'Acre e Rondônia',
 }
 
 /** Valida formato do CRP (XX/XXXXXX) */
 export function isValidCrpFormat(crp: string): boolean {
-  return /^\d{2}\/\d{4,6}$/.test(crp.trim())
+  const normalized = crp.trim()
+  if (!/^\d{2}\/\d{4,6}$/.test(normalized)) return false
+  return !!getCrpRegion(normalized)
 }
 
 /** Retorna a região do CRP, ou null se inválido */
