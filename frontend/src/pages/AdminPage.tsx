@@ -122,8 +122,8 @@ export default function AdminPage() {
       )}
 
       {/* Users table */}
-      <div className="overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-sm">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-2xl border border-neutral-100 bg-white shadow-sm">
+        <table className="min-w-[620px] w-full text-sm">
           <thead>
             <tr className="border-b border-neutral-100 bg-neutral-50 text-left text-xs font-semibold uppercase tracking-wide text-neutral-400">
               <th className="px-4 py-3">Nome</th>
@@ -166,7 +166,7 @@ export default function AdminPage() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-neutral-100 px-4 py-3">
+          <div className="flex min-w-[620px] items-center justify-between border-t border-neutral-100 px-4 py-3">
             <span className="text-xs text-neutral-400">
               Página {page} de {totalPages}
             </span>

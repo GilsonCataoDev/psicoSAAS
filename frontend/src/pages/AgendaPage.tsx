@@ -263,7 +263,7 @@ export default function AgendaPage() {
             ))}
           {appointments.filter(a => isSameDay(parseISO(a.date), mobileDay)).length === 0 && (
             <div className="card text-center py-10 text-neutral-400 text-sm">
-              Nenhuma sessão neste dia 🌿
+              Nenhuma sessão neste dia
             </div>
           )}
         </div>

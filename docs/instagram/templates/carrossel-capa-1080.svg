@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080" role="img" aria-label="Template de capa de carrossel UseCognia">
+  <rect width="1080" height="1080" fill="#FBFBF8"/>
+  <rect x="80" y="80" width="920" height="920" rx="30" fill="#244D3D"/>
+  <text x="130" y="158" font-family="Inter, Arial, sans-serif" font-size="32" font-weight="760" fill="#FFFFFF">Use<tspan fill="#D9EFE4">Cognia</tspan></text>
+  <text x="130" y="334" font-family="Inter, Arial, sans-serif" font-size="78" font-weight="770" fill="#FFFFFF">
+    <tspan x="130" dy="0">Checklist para</tspan>
+    <tspan x="130" dy="92">reduzir faltas</tspan>
+    <tspan x="130" dy="92">na agenda</tspan>
+  </text>
+  <rect x="130" y="668" width="820" height="164" rx="24" fill="#FFFFFF"/>
+  <text x="174" y="734" font-family="Inter, Arial, sans-serif" font-size="32" font-weight="700" fill="#244D3D">Para psicologas</text>
+  <text x="174" y="790" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="450" fill="#37332E">3 ajustes simples para deixar a semana mais previsivel.</text>
+  <text x="130" y="922" font-family="Inter, Arial, sans-serif" font-size="26" font-weight="650" fill="#D9EFE4">Arraste para ver</text>
+</svg>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080" role="img" aria-label="Capa de destaque lembretes UseCognia">
+  <rect width="1080" height="1080" rx="540" fill="#FBFBF8"/>
+  <circle cx="540" cy="440" r="168" fill="#D9EFE4"/>
+  <path d="M454 446c0-52 34-92 86-92s86 40 86 92v54l34 46H420l34-46v-54Z" fill="none" stroke="#244D3D" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M502 596c10 24 66 24 76 0" fill="none" stroke="#244D3D" stroke-width="28" stroke-linecap="round"/>
+  <text x="540" y="780" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="54" font-weight="760" fill="#244D3D">Lembretes</text>
+</svg>

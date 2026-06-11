@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080" role="img" aria-label="Capa de destaque agenda UseCognia">
+  <rect width="1080" height="1080" rx="540" fill="#FBFBF8"/>
+  <rect x="346" y="314" width="388" height="320" rx="36" fill="#FFFFFF" stroke="#244D3D" stroke-width="30"/>
+  <path d="M346 414h388M442 270v88M638 270v88" fill="none" stroke="#2F7657" stroke-width="30" stroke-linecap="round"/>
+  <circle cx="464" cy="506" r="24" fill="#4DA8DA"/>
+  <circle cx="540" cy="506" r="24" fill="#4DA8DA"/>
+  <circle cx="616" cy="506" r="24" fill="#4DA8DA"/>
+  <circle cx="464" cy="582" r="24" fill="#4DA8DA"/>
+  <text x="540" y="790" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="54" font-weight="760" fill="#244D3D">Agenda</text>
+</svg>
