@@ -10,9 +10,12 @@ import { PLAN_LIMITS, normalizePlan } from '../../common/plans'
 import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
 
 type EncryptedProntuario = {
-  __encrypted: 'psicosaas.prontuario.v1'
+  __encrypted: 'usecognia.prontuario.v1' | 'psicosaas.prontuario.v1'
   data: string
 }
+
+const PRONTUARIO_ENCRYPTED_MARKER = 'usecognia.prontuario.v1'
+const LEGACY_PRONTUARIO_ENCRYPTED_MARKER = 'psicosaas.prontuario.v1'
 
 @Injectable()
 export class PatientsService {
@@ -59,7 +62,7 @@ export class PatientsService {
 
   private encryptProntuario(value: Record<string, any>): EncryptedProntuario {
     return {
-      __encrypted: 'psicosaas.prontuario.v1',
+      __encrypted: PRONTUARIO_ENCRYPTED_MARKER,
       data: encrypt(JSON.stringify(value)),
     }
   }
@@ -67,7 +70,7 @@ export class PatientsService {
   private decryptProntuario(value: Record<string, any>): Record<string, any> {
     if (
       value
-      && value.__encrypted === 'psicosaas.prontuario.v1'
+      && [PRONTUARIO_ENCRYPTED_MARKER, LEGACY_PRONTUARIO_ENCRYPTED_MARKER].includes(value.__encrypted)
       && typeof value.data === 'string'
     ) {
       try {

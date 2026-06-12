@@ -1,5 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { migratePersistedStorage } from '@/lib/storageMigration'
+
+migratePersistedStorage('usecognia-theme', 'psicosaas-theme')
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 
@@ -36,7 +39,7 @@ export const useThemeStore = create<ThemeState>()(
       },
     }),
     {
-      name: 'psicosaas-theme',
+      name: 'usecognia-theme',
       onRehydrateStorage: () => (state) => {
         applyTheme(state?.mode ?? 'system')
       },

@@ -17,9 +17,11 @@ import { Subscription } from '../billing/entities/subscription.entity'
 import { AuditLog } from '../audit/entities/audit-log.entity'
 
 type EncryptedProntuario = {
-  __encrypted: 'psicosaas.prontuario.v1'
+  __encrypted: 'usecognia.prontuario.v1' | 'psicosaas.prontuario.v1'
   data: string
 }
+
+const PRONTUARIO_ENCRYPTED_MARKERS = ['usecognia.prontuario.v1', 'psicosaas.prontuario.v1']
 
 @Injectable()
 export class DataExportService {
@@ -300,7 +302,7 @@ export class DataExportService {
     const encrypted = value as EncryptedProntuario | undefined
     if (
       encrypted
-      && encrypted.__encrypted === 'psicosaas.prontuario.v1'
+      && PRONTUARIO_ENCRYPTED_MARKERS.includes(encrypted.__encrypted)
       && typeof encrypted.data === 'string'
     ) {
       try {

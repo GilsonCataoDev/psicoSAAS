@@ -284,7 +284,7 @@ export class GoogleCalendarService {
 
   private getRedirectUri(): string {
     return this.config.get<string>('GOOGLE_CALENDAR_REDIRECT_URI')
-      ?? `${this.config.get<string>('API_URL') ?? 'https://psicosaas-production-2d6c.up.railway.app/api'}/google-calendar/callback`
+      ?? `${this.config.get<string>('API_URL') ?? 'https://usecognia.com.br/api'}/google-calendar/callback`
   }
 
   private getFrontendUrl(): string {

@@ -20,8 +20,10 @@ import { DeleteAccountDto }     from './dto/delete-account.dto'
 
 // ── Cookie helpers ────────────────────────────────────────────────────────────
 
-const ACCESS_COOKIE  = 'psicosaas_token'
-const REFRESH_COOKIE = 'psicosaas_refresh'
+const ACCESS_COOKIE  = 'usecognia_token'
+const REFRESH_COOKIE = 'usecognia_refresh'
+const LEGACY_ACCESS_COOKIE  = 'psicosaas_token'
+const LEGACY_REFRESH_COOKIE = 'psicosaas_refresh'
 
 /** Flags de cookie variam por ambiente para suportar dev (HTTP) e prod (HTTPS cross-origin) */
 function cookieBase(): Pick<CookieOptions, 'httpOnly' | 'secure' | 'sameSite' | 'path' | 'priority' | 'partitioned'> {
@@ -97,7 +99,7 @@ export class AuthController {
 
   /**
    * Rotaciona o refresh token:
-   * - Valida o cookie psicosaas_refresh
+   * - Valida o cookie usecognia_refresh
    * - Revoga o token antigo
    * - Emite novo par (access + refresh) + novo csrfToken
    *
@@ -110,7 +112,7 @@ export class AuthController {
     @Request() req: Req,
     @Response({ passthrough: true }) res: Res,
   ) {
-    const rawToken = req.cookies?.[REFRESH_COOKIE]
+    const rawToken = req.cookies?.[REFRESH_COOKIE] ?? req.cookies?.[LEGACY_REFRESH_COOKIE]
     const result   = await this.auth.refresh(rawToken, getIp(req), req.headers['user-agent'])
     this.setAuthCookies(res, result.tokens)
     return { user: result.user, csrfToken: result.csrfToken }
@@ -126,8 +128,7 @@ export class AuthController {
     @Response({ passthrough: true }) res: Res,
   ) {
     await this.auth.revokeAllTokens(req.user.id, getIp(req))
-    res.clearCookie(ACCESS_COOKIE,  clearAccessOpts())
-    res.clearCookie(REFRESH_COOKIE, clearRefreshOpts())
+    this.clearAuthCookies(res)
     return { message: 'Sessão encerrada com segurança 🔒' }
   }
 
@@ -194,8 +195,7 @@ export class AuthController {
     @Response({ passthrough: true }) res: Res,
   ) {
     await this.auth.deleteAccount(req.user.id, dto.password, getIp(req))
-    res.clearCookie(ACCESS_COOKIE,  clearAccessOpts())
-    res.clearCookie(REFRESH_COOKIE, clearRefreshOpts())
+    this.clearAuthCookies(res)
     return { deleted: true }
   }
 
@@ -234,7 +234,19 @@ export class AuthController {
   }
 
   private setAuthCookies(res: Res, tokens: { accessToken: string; refreshToken: string }): void {
+    this.clearLegacyAuthCookies(res)
     res.cookie(ACCESS_COOKIE,  tokens.accessToken,  accessCookieOpts())
     res.cookie(REFRESH_COOKIE, tokens.refreshToken, refreshCookieOpts())
+  }
+
+  private clearAuthCookies(res: Res): void {
+    res.clearCookie(ACCESS_COOKIE, clearAccessOpts())
+    res.clearCookie(REFRESH_COOKIE, clearRefreshOpts())
+    this.clearLegacyAuthCookies(res)
+  }
+
+  private clearLegacyAuthCookies(res: Res): void {
+    res.clearCookie(LEGACY_ACCESS_COOKIE, clearAccessOpts())
+    res.clearCookie(LEGACY_REFRESH_COOKIE, clearRefreshOpts())
   }
 }

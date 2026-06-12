@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { identifyUser, resetAnalytics } from '@/lib/analytics'
+import { migratePersistedStorage } from '@/lib/storageMigration'
+
+migratePersistedStorage('usecognia-auth', 'psicosaas-auth')
 
 export interface User {
   id: string
@@ -55,7 +58,7 @@ export const useAuthStore = create<AuthState>()(
         })),
     }),
     {
-      name: 'psicosaas-auth',
+      name: 'usecognia-auth',
       // Persiste SOMENTE o perfil — NUNCA o token JWT nem o csrfToken
       partialize: (state) => ({
         user: state.user,

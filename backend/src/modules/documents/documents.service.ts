@@ -32,7 +32,8 @@ const DOC_TYPE_LABELS: Record<DocType, string> = {
 export class DocumentsService {
   private readonly logger = new Logger(DocumentsService.name)
   private readonly signSecret: string
-  private readonly encryptedPrefix = 'psicosaas.document.v1:'
+  private readonly encryptedPrefix = 'usecognia.document.v1:'
+  private readonly legacyEncryptedPrefix = 'psicosaas.document.v1:'
 
   constructor(
     @InjectRepository(Document) private repo: Repository<Document>,
@@ -68,6 +69,9 @@ export class DocumentsService {
   }
 
   private decryptContent(content: string): string {
+    if (content.startsWith(this.legacyEncryptedPrefix)) {
+      return safeDecrypt(content.slice(this.legacyEncryptedPrefix.length)) ?? ''
+    }
     if (!content.startsWith(this.encryptedPrefix)) return safeDecrypt(content) ?? ''
     return safeDecrypt(content.slice(this.encryptedPrefix.length)) ?? ''
   }

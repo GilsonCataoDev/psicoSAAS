@@ -13,7 +13,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       // Autenticação exclusiva via HttpOnly cookie — Bearer desabilitado
       // (elimina vetor de ataque por token vazado em header/log)
       jwtFromRequest: ExtractJwt.fromExtractors([
-        (req: Request) => req?.cookies?.['psicosaas_token'] ?? null,
+        (req: Request) => req?.cookies?.['usecognia_token'] ?? req?.cookies?.['psicosaas_token'] ?? null,
       ]),
       ignoreExpiration: false,
       secretOrKey: cfg.get<string>('JWT_SECRET'),

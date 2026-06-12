@@ -1,5 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { migratePersistedStorage } from '@/lib/storageMigration'
+
+migratePersistedStorage('usecognia-onboarding', 'psicosaas-onboarding')
 
 export type OnboardingStep = 'availability' | 'first_patient' | 'booking_page' | 'done'
 
@@ -34,7 +37,7 @@ export const useOnboardingStore = create<OnboardingState>()(
       skip: () => set({ completed: true }),
     }),
     {
-      name: 'psicosaas-onboarding',
+      name: 'usecognia-onboarding',
       version: 3,
       migrate: () => ({ completed: false, currentStep: 'availability', stepsCompleted: [] }),
     },

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
 import App from './App'
 import { initAnalytics } from '@/lib/analytics'
+import { readPersistedStorage } from '@/lib/storageMigration'
 import { applyTheme, ThemeMode } from '@/store/theme'
 import './index.css'
 
@@ -24,7 +25,7 @@ window.addEventListener('unhandledrejection', (e) => {
 
 const persistedTheme = (() => {
   try {
-    const raw = window.localStorage.getItem('psicosaas-theme')
+    const raw = readPersistedStorage('usecognia-theme', 'psicosaas-theme')
     return raw ? JSON.parse(raw)?.state?.mode as ThemeMode | undefined : undefined
   } catch {
     return undefined

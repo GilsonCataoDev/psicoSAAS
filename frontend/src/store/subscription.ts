@@ -1,5 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { migratePersistedStorage } from '@/lib/storageMigration'
+
+migratePersistedStorage('usecognia-subscription', 'psicosaas-subscription')
 
 export type PlanId = string
 export type SubscriptionStatus =
@@ -129,7 +132,7 @@ export const useSubscriptionStore = create<SubscriptionState>()(
       resetSubscription: () => set({ subscription: emptySubscription, isLoaded: true }),
     }),
     {
-      name: 'psicosaas-subscription',
+      name: 'usecognia-subscription',
       partialize: (state) => ({ subscription: state.subscription }),
       onRehydrateStorage: () => (state) => {
         if (state) state.isLoaded = true

@@ -9,7 +9,7 @@ export type AuthAxiosRequestConfig = AxiosRequestConfig & {
 }
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://psicosaas-production-2d6c.up.railway.app/api',
+  baseURL: import.meta.env.VITE_API_URL || 'https://usecognia.com.br/api',
   headers: { 'Content-Type': 'application/json' },
   withCredentials: true,
 })

@@ -1,5 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { migratePersistedStorage } from '@/lib/storageMigration'
+
+migratePersistedStorage('usecognia-notifications', 'psicosaas-notifications')
 
 export type NotificationType =
   | 'booking_request'
@@ -65,7 +68,7 @@ export const useNotificationStore = create<NotificationState>()(
       clearAll: () => set({ notifications: [] }),
     }),
     {
-      name: 'psicosaas-notifications',
+      name: 'usecognia-notifications',
       version: 2,
       migrate: () => ({ notifications: [] }),
     },
