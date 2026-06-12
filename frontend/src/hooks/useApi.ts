@@ -411,7 +411,7 @@ export function useSyncBookingAppointments() {
 export function usePublicBookingPage(slug: string) {
   return useQuery<any>({
     queryKey: ['public-booking', slug],
-    queryFn: () => api.get(`/public/booking/${slug}`).then(r => r.data),
+    queryFn: () => api.get(`/public/booking/${slug}`, { skipAuthRedirect: true } as AuthAxiosRequestConfig).then(r => r.data),
     enabled: !!slug,
     retry: false,
   })
@@ -420,7 +420,10 @@ export function usePublicBookingPage(slug: string) {
 export function usePublicBookingSlots(slug: string, date: string | null, modality?: string | null) {
   return useQuery<string[]>({
     queryKey: ['public-booking-slots', slug, date, modality],
-    queryFn: () => api.get(`/public/booking/${slug}/slots`, { params: { date, modality } }).then(r => r.data),
+    queryFn: () => api.get(`/public/booking/${slug}/slots`, {
+      params: { date, modality },
+      skipAuthRedirect: true,
+    } as AuthAxiosRequestConfig).then(r => r.data),
     enabled: !!slug && !!date && !!modality,
   })
 }
@@ -428,14 +431,17 @@ export function usePublicBookingSlots(slug: string, date: string | null, modalit
 export function usePublicBookingDates(slug: string, month: string, modality?: string | null) {
   return useQuery<string[]>({
     queryKey: ['public-booking-dates', slug, month, modality],
-    queryFn: () => api.get(`/public/booking/${slug}/dates`, { params: { month, modality } }).then(r => r.data),
+    queryFn: () => api.get(`/public/booking/${slug}/dates`, {
+      params: { month, modality },
+      skipAuthRedirect: true,
+    } as AuthAxiosRequestConfig).then(r => r.data),
     enabled: !!slug && !!month && !!modality,
   })
 }
 
 export function useCreateBooking(slug: string) {
   return useMutation({
-    mutationFn: (data: any) => api.post(`/public/booking/${slug}`, data).then(r => r.data),
+    mutationFn: (data: any) => api.post(`/public/booking/${slug}`, data, { skipAuthRedirect: true } as AuthAxiosRequestConfig).then(r => r.data),
   })
 }
 

@@ -56,7 +56,7 @@ export default function BookingManagePage() {
 
   const appBasePath = import.meta.env.BASE_URL || '/'
   const publicBaseUrl = new URL(appBasePath, window.location.origin).toString().replace(/\/$/, '')
-  const bookingUrl = dailyLink?.token ? `${publicBaseUrl}/#/agendar/${dailyLink.token}` : dailyLink?.url ?? '...'
+  const bookingUrl = dailyLink?.token ? `${publicBaseUrl}/agendar/${dailyLink.token}` : dailyLink?.url ?? '...'
 
   async function copyLink() {
     try {

@@ -457,7 +457,7 @@ export default function BookingPage() {
                     <input {...register('patientName')} className="input-field" placeholder="Como você se chama?" />
                     {errors.patientName && <p className="text-rose-500 text-xs mt-1">{errors.patientName.message}</p>}
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div>
                       <label className="label">E-mail *</label>
                       <input {...register('patientEmail')} type="email" className="input-field" />

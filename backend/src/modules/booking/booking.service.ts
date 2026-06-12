@@ -22,6 +22,23 @@ import { GoogleCalendarService } from '../google-calendar/google-calendar.servic
 
 const OCCUPYING_BOOKING_STATUSES: Booking['status'][] = ['pending', 'confirmed']
 const FREE_APPOINTMENT_STATUSES = ['cancelled', 'no_show']
+const BOOKING_TIME_ZONE = 'America/Sao_Paulo'
+
+function saoPauloDateKey(date = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: BOOKING_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date)
+  const value = (type: string) => parts.find(part => part.type === type)?.value
+  return `${value('year')}-${value('month')}-${value('day')}`
+}
+
+function nextSaoPauloMidnight(date = new Date()): Date {
+  const [year, month, day] = saoPauloDateKey(date).split('-').map(Number)
+  return new Date(Date.UTC(year, month - 1, day + 1, 3, 0, 0))
+}
 
 @Injectable()
 export class BookingService {
@@ -43,11 +60,11 @@ export class BookingService {
   /**
    * Gera o token diário de 16 chars para o link público.
    * Formato: {userId sem dashes, primeiros 8 chars}{HMAC(secret, userId:YYYY-MM-DD), primeiros 8 chars hex}
-   * Rotaciona à meia-noite UTC.
+   * Rotaciona à meia-noite de Sao Paulo.
    */
   generateDailyToken(userId: string): string {
     const secret = this.config.get<string>('SIGN_SECRET') ?? 'fallback-secret'
-    const today = new Date().toISOString().split('T')[0]           // YYYY-MM-DD UTC
+    const today = saoPauloDateKey()
     const userPrefix = userId.replace(/-/g, '').slice(0, 8)        // 8 hex chars
     const hmac = createHmac('sha256', secret)
     hmac.update(`${userId}:${today}`)
@@ -64,7 +81,7 @@ export class BookingService {
 
     const userPrefix = token.slice(0, 8)
     const secret = this.config.get<string>('SIGN_SECRET') ?? 'fallback-secret'
-    const today = new Date().toISOString().split('T')[0]
+    const today = saoPauloDateKey()
 
     // Carrega apenas páginas ativas com relations — sem SQL raw
     const pages = await this.pages.find({
@@ -479,12 +496,11 @@ export class BookingService {
   }
 
   /**
-   * Retorna o link diário do psicólogo + horário de expiração (meia-noite UTC).
+   * Retorna o link diário do psicólogo + horário de expiração (meia-noite de Sao Paulo).
    */
   getDailyLink(psychologistId: string, baseUrl: string) {
     const token = this.generateDailyToken(psychologistId)
-    const now = new Date()
-    const tomorrow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1))
+    const tomorrow = nextSaoPauloMidnight()
 
     return {
       token,
