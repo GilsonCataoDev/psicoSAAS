@@ -121,7 +121,7 @@ export default function LoginPage() {
       <div className="mt-8 p-4 bg-sage-50 rounded-2xl border border-sage-100">
         <p className="text-xs text-sage-700 text-center">
           <UseCogniaIcon name="security-lgpd" size={24} className="mr-1 inline-block align-middle" />
-          Seus dados sensiveis sao protegidos com criptografia em repouso, controles de acesso e praticas alinhadas a LGPD.
+          Seus dados sensiveis sao protegidos com criptografia em repouso e controles de acesso.
         </p>
       </div>
     </div>

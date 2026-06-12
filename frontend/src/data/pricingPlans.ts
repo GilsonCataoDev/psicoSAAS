@@ -129,7 +129,7 @@ export const PRICING_COMPARISON = {
 export const PRICING_FAQ = [
   { question: 'Posso cancelar a qualquer hora?', answer: 'Sim. Sem multa, sem aviso previo. Basta cancelar em 1 clique.' },
   { question: 'Preciso de cartao para testar?', answer: 'Sim. O cartao confirma o plano escolhido, mas a primeira cobranca so acontece depois dos 7 dias gratis.' },
-  { question: 'Meus dados estao seguros?', answer: 'Sim. Dados criptografados, backup automatico, auditoria LGPD e exportacao em 1 clique.' },
+  { question: 'Meus dados estao seguros?', answer: 'Sim. Dados criptografados, backup automatico e exportacao em 1 clique.' },
   { question: 'Posso mudar de plano depois?', answer: 'Sim. Voce pode fazer upgrade ou downgrade a qualquer momento.' },
   { question: 'Qual e a diferenca entre Essencial e Pro?', answer: 'Essencial ajuda voce a operar com templates. Pro automatiza lembretes, mensagens, cobrancas e relatorios.' },
   { question: 'E se eu tiver 50+ pacientes?', answer: 'Ate 50 pacientes, Essencial funciona bem. Acima disso, Pro e o plano indicado.' },

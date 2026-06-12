@@ -100,7 +100,7 @@ export class DataExportService {
         Title: 'Exportacao de dados UseCognia',
         Author: payload.owner?.name ?? 'UseCognia',
         Subject: 'Exportacao completa de dados da conta',
-        Keywords: 'UseCognia, exportacao, dados, LGPD',
+        Keywords: 'UseCognia, exportacao, dados',
       },
     })
     const done = this.collectPdf(pdf)

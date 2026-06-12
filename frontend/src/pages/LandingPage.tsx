@@ -76,7 +76,7 @@ const faqs = [
   },
   {
     question: 'Meus dados e os dos meus pacientes ficam seguros?',
-    answer: 'Sim. Os dados trafegam por HTTPS, senhas são armazenadas com criptografia, cada profissional acessa apenas seus próprios registros e o sistema segue as diretrizes da LGPD. Você é o controlador dos dados dos seus pacientes.',
+    answer: 'Sim. Os dados trafegam por HTTPS, senhas são armazenadas com hash seguro e cada profissional acessa apenas seus próprios registros.',
   },
   {
     question: 'Os documentos gerados têm validade?',
@@ -92,7 +92,7 @@ const faqs = [
   },
   {
     question: 'O que acontece com meus dados se eu cancelar?',
-    answer: 'Antes de cancelar você pode exportar todos os seus dados — pacientes, prontuários, histórico financeiro e documentos. Após o encerramento, os dados são removidos dos servidores ativos em até 30 dias, conforme nossa Política de Privacidade.',
+    answer: 'Antes de cancelar você pode exportar seus dados — pacientes, prontuários, histórico financeiro e documentos.',
   },
   {
     question: 'Há período de teste gratuito?',

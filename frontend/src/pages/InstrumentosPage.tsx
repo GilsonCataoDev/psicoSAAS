@@ -250,9 +250,9 @@ OBSERVAÇÕES:`,
   {
     id: 'contrato-terapeutico',
     title: 'Contrato Terapêutico / Combinados',
-    description: 'Honorários, faltas, cancelamento, sigilo, comunicação, emergências e proteção de dados.',
+    description: 'Honorários, faltas, cancelamento, sigilo, comunicação e emergências.',
     category: 'formulario',
-    tags: ['contrato', 'ética', 'sigilo', 'LGPD'],
+    tags: ['contrato', 'ética', 'sigilo'],
     ageGroups: ['all'],
     Icon: FileSignature,
     template: `CONTRATO TERAPÊUTICO / COMBINADOS
@@ -284,10 +284,6 @@ Urgências e emergências:
 SIGILO PROFISSIONAL
 Limites do sigilo (exceções legais/éticas):
 Situações de risco iminente:
-
-PROTEÇÃO DE DADOS (LGPD)
-Uso e armazenamento de dados pessoais:
-Direito de acesso e exclusão de dados:
 
 ACEITE
 Concordância da pessoa atendida ou responsável:

@@ -227,12 +227,11 @@ export default function RegisterPage() {
             <div className="px-5 py-4 overflow-y-auto max-h-[65vh] text-sm text-neutral-600 space-y-4 leading-relaxed">
               <p>
                 A UseCognia é uma plataforma para gestão de agenda, pacientes, prontuário, documentos e financeiro por profissionais de psicologia.
-                Ao criar a conta, você declara que usará a plataforma de acordo com a LGPD, o Código de Ética Profissional e as normas aplicáveis do CFP.
+                Ao criar a conta, você declara que usará a plataforma de acordo com o Código de Ética Profissional e as normas aplicáveis do CFP.
               </p>
               <p>
-                Tratamos dados de cadastro, dados de uso, dados financeiros e dados clínicos inseridos pelo profissional para executar o serviço,
-                manter segurança, cumprir obrigações legais, prevenir abuso e melhorar a plataforma. Dados clínicos pertencem ao profissional/controlador
-                e devem ser cadastrados apenas quando houver base legal adequada.
+                A plataforma usa dados de cadastro, dados de uso, dados financeiros e dados clínicos inseridos pelo profissional para executar o serviço,
+                manter segurança, prevenir abuso e melhorar a experiência.
               </p>
               <p>
                 Dados sensíveis do prontuário, sessões e documentos são protegidos com criptografia em repouso. Senhas são armazenadas com hash,
@@ -245,9 +244,7 @@ export default function RegisterPage() {
                 políticas do próprio provedor de pagamento.
               </p>
               <p>
-                O profissional é responsável pela veracidade das informações, pelo consentimento/base legal dos pacientes, pela configuração dos
-                links públicos e pela guarda ética dos registros. O titular pode solicitar acesso, correção ou exclusão quando aplicável, observadas
-                obrigações legais, regulatórias e de preservação profissional.
+                O profissional é responsável pela veracidade das informações, pela configuração dos links públicos e pela guarda ética dos registros.
               </p>
               <p>
                 O serviço pode ser suspenso em caso de uso indevido, risco de segurança, inadimplência ou violação destes termos. Alterações relevantes

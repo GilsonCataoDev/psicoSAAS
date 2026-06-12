@@ -21,7 +21,7 @@ export function initAnalytics() {
     capture_pageleave: true,
     autocapture: false,           // evitar captura acidental de dados clínicos
     session_recording: {
-      maskAllInputs: true,        // LGPD: mascara todos os inputs
+      maskAllInputs: true,
     },
     loaded: (ph) => {
       if (import.meta.env.DEV) ph.opt_out_capturing()

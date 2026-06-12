@@ -161,7 +161,7 @@ export default function ProntuarioPage() {
         </div>
       </div>
 
-      {/* LGPD banner */}
+      {/* Security banner */}
       <div className="flex items-center gap-2.5 bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3 text-sm text-amber-700">
         <Lock className="w-4 h-4 shrink-0" />
         <span>Prontuário protegido por criptografia AES-256 · Acesso exclusivo do profissional responsável · CFP Res. 001/2009</span>

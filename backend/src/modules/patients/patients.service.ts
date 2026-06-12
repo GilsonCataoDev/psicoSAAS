@@ -381,7 +381,7 @@ export class PatientsService {
     pdf.fillColor(sageDark).font('Helvetica-Bold').fontSize(7.5)
       .text('DOCUMENTO CONFIDENCIAL', L + 14, pdf.y + 8, { width: CW - 28, lineBreak: false })
     pdf.fillColor(muted).font('Helvetica').fontSize(7)
-      .text('Este prontuário contém informações sigilosas protegidas pelo sigilo profissional (CFP) e pela LGPD. Uso restrito ao profissional responsável.', L + 14, pdf.y + 10, { width: CW - 28, lineGap: 1.2 })
+      .text('Este prontuário contém informações sigilosas protegidas pelo sigilo profissional (CFP). Uso restrito ao profissional responsável.', L + 14, pdf.y + 10, { width: CW - 28, lineGap: 1.2 })
 
     const range = pdf.bufferedPageRange()
     for (let i = range.start; i < range.start + range.count; i++) {

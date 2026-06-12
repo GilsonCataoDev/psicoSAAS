@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { CheckCircle2, Download, FileCheck2, LockKeyhole, ShieldCheck } from 'lucide-react'
+import { CheckCircle2, Download, FileCheck2, LockKeyhole } from 'lucide-react'
 import BrandLogo from '@/components/ui/BrandLogo'
 
 const controls = [
@@ -12,11 +12,6 @@ const controls = [
 ]
 
 const commitments = [
-  {
-    icon: ShieldCheck,
-    title: 'LGPD sem burocracia',
-    text: 'A UseCognia atua como operadora dos dados de pacientes e como controladora dos dados da conta do profissional.',
-  },
   {
     icon: LockKeyhole,
     title: 'Sigilo profissional preservado',
@@ -41,7 +36,6 @@ export default function SecurityPage() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
           <Link to="/plataforma"><BrandLogo className="h-10 w-auto" /></Link>
           <nav className="flex items-center gap-4 text-sm font-semibold">
-            <Link to="/privacidade" className="text-[#5F5A51] hover:text-sage-700">Privacidade</Link>
             <Link to="/cadastro" className="rounded-md bg-sage-800 px-4 py-2 text-white hover:bg-sage-900">Comecar</Link>
           </nav>
         </div>
@@ -49,24 +43,18 @@ export default function SecurityPage() {
 
       <section className="mx-auto grid max-w-6xl gap-10 px-5 py-16 lg:grid-cols-[0.95fr_1.05fr] lg:py-20">
         <div>
-          <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Seguranca e conformidade</p>
+          <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Seguranca</p>
           <h1 className="mt-4 text-4xl font-bold tracking-tight text-[#211F1C] sm:text-5xl">
             Protecao clara para dados clinicos sensiveis.
           </h1>
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-[#5F5A51]">
             O UseCognia foi desenhado para psicologos que precisam organizar a rotina sem abrir mao de sigilo,
-            portabilidade e controles alinhados a LGPD e boas praticas do CFP.
+            portabilidade e controles tecnicos de seguranca.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link to="/privacidade" className="inline-flex h-12 items-center justify-center rounded-md bg-sage-800 px-5 text-sm font-bold text-white hover:bg-sage-900">
-              Ler Politica de Privacidade
+            <Link to="/cadastro" className="inline-flex h-12 items-center justify-center rounded-md bg-sage-800 px-5 text-sm font-bold text-white hover:bg-sage-900">
+              Comecar
             </Link>
-            <Link to="/dpa" className="inline-flex h-12 items-center justify-center rounded-md border border-sage-200 bg-white px-5 text-sm font-bold text-sage-800 hover:bg-sage-50">
-              Ver DPA
-            </Link>
-            <a href="mailto:privacidade@usecognia.com.br" className="inline-flex h-12 items-center justify-center rounded-md border border-sage-200 bg-white px-5 text-sm font-bold text-sage-800 hover:bg-sage-50">
-              Falar com privacidade
-            </a>
           </div>
         </div>
 
@@ -84,7 +72,7 @@ export default function SecurityPage() {
       </section>
 
       <section className="border-y border-[#E7E4DA] bg-white">
-        <div className="mx-auto grid max-w-6xl gap-4 px-5 py-14 md:grid-cols-4">
+        <div className="mx-auto grid max-w-6xl gap-4 px-5 py-14 md:grid-cols-3">
           {commitments.map(({ icon: Icon, title, text }) => (
             <article key={title} className="rounded-xl border border-[#E7E4DA] bg-[#F7F8F5] p-5">
               <Icon className="h-5 w-5 text-sage-700" />
@@ -99,7 +87,6 @@ export default function SecurityPage() {
         <div className="rounded-2xl border border-sage-200 bg-sage-50 p-6">
           <h2 className="text-xl font-bold text-sage-950">O que isso significa na pratica</h2>
           <div className="mt-4 space-y-3 text-sm leading-relaxed text-sage-900">
-            <p>O psicologo continua responsavel pelo conteudo clinico e pela base legal do atendimento.</p>
             <p>A UseCognia fornece os controles tecnicos para armazenar, exportar e proteger esses dados.</p>
             <p>Mensagens automaticas devem evitar conteudo clinico detalhado. O ideal e enviar apenas lembretes operacionais.</p>
           </div>

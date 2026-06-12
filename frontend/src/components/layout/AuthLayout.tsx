@@ -18,7 +18,7 @@ export default function AuthLayout() {
 
           <div className="flex flex-col gap-4 pt-4">
             {[
-              { icon: ShieldCheck, text: 'Privacidade e controles alinhados a LGPD' },
+              { icon: ShieldCheck, text: 'Controles de acesso e dados isolados por conta' },
               { icon: Sparkles, text: 'Fluxos simples para agenda, pacientes e financeiro' },
               { icon: BrainCircuit, text: 'Marca preparada para automacoes inteligentes' },
             ].map(({ icon: Icon, text }) => (
