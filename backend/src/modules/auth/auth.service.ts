@@ -71,7 +71,7 @@ export class AuthService {
     const exists = await this.users.findOneBy({ email: dto.email.toLowerCase() })
     if (exists) throw new ConflictException('E-mail já cadastrado')
     if (!dto.termsAccepted) {
-      throw new BadRequestException('E necessario aceitar os Termos de Uso e a Politica de Privacidade')
+      throw new BadRequestException('E necessario aceitar os Termos de Uso')
     }
 
     const { referralCode, password, termsAccepted: _termsAccepted, termsVersion, ...userData } = dto

@@ -65,12 +65,8 @@ export default function DashboardPage() {
       {!onboardingCompleted && <OnboardingWizard />}
 
       {/* ── Hero: saudação ──────────────────────────────────────────── */}
-      <div className="hero-gradient rounded-2xl p-7 text-white relative overflow-hidden shadow-soft">
-        {/* Círculos decorativos */}
-        <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/5 rounded-full" />
-        <div className="absolute -bottom-10 -right-2 w-28 h-28 bg-white/5 rounded-full" />
-
-        <div className="relative flex items-start justify-between gap-4">
+      <div className="hero-gradient rounded-2xl p-7 text-white shadow-soft">
+        <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <p className="text-sage-200 text-xs font-medium uppercase tracking-widest mb-1.5">
               {greeting()}
@@ -99,7 +95,7 @@ export default function DashboardPage() {
 
         {/* Indicadores rápidos inline */}
         {sessionsToday > 0 && (
-          <div className="relative mt-5 flex items-center gap-3 pt-4 border-t border-white/10">
+          <div className="mt-5 flex items-center gap-3 pt-4 border-t border-white/10">
             <div className="flex items-center gap-1.5 text-xs text-sage-100">
               <CalendarCheck className="w-3.5 h-3.5 text-sage-300" />
               <span>{sessionsToday} sessão{sessionsToday !== 1 ? 'ões' : ''} hoje</span>
@@ -280,7 +276,7 @@ export default function DashboardPage() {
                 <Sparkles className="w-5 h-5 text-sage-400" />
               </div>
               <p className="text-sm font-medium text-neutral-600 mb-1">Nenhuma sessão hoje</p>
-              <p className="text-xs text-neutral-400 mb-4">Um bom dia para organizar seus registros. 🌿</p>
+              <p className="text-xs text-neutral-400 mb-4">Um bom dia para organizar seus registros.</p>
               <Link to="/agenda" className="btn-secondary text-xs px-4 py-2">
                 Agendar sessão
               </Link>

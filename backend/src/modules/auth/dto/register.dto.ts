@@ -44,7 +44,7 @@ export class RegisterDto {
   referralCode?: string
 
   @IsBoolean()
-  @Equals(true, { message: 'E necessario aceitar os Termos de Uso e a Politica de Privacidade' })
+  @Equals(true, { message: 'E necessario aceitar os Termos de Uso' })
   termsAccepted: boolean
 
   @IsOptional()

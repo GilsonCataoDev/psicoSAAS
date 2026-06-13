@@ -20,7 +20,7 @@ export default function PWAInstallBanner() {
     <div className="lg:hidden fixed bottom-20 inset-x-3 z-50 bg-white rounded-2xl shadow-lifted
                     border border-sage-100 p-4 flex items-center gap-3 animate-slide-up">
       <div className="w-10 h-10 bg-sage-500 rounded-xl flex items-center justify-center shrink-0">
-        <span className="text-white text-xl">🌿</span>
+        <Download className="h-5 w-5 text-white" />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-neutral-800">Instalar UseCognia</p>

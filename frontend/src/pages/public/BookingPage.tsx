@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -34,7 +34,7 @@ const schema = z.object({
   patientPhone:    z.string().optional(),
   modality:        z.enum(['presencial', 'online']),
   patientNotes:    z.string().optional(),
-  privacyAccepted: z.boolean().refine(Boolean, 'Voce precisa aceitar a Politica de Privacidade'),
+  privacyAccepted: z.boolean().refine(Boolean, 'Voce precisa autorizar o uso dos dados para agendamento.'),
 })
 type FormData = z.infer<typeof schema>
 
@@ -132,7 +132,6 @@ export default function BookingPage() {
   if (isError || !page) return (
     <div className="min-h-screen flex items-center justify-center text-center px-4">
       <div>
-        <p className="text-2xl mb-2">🌿</p>
         <p className="font-medium text-neutral-700">Página de agendamento não encontrada.</p>
         <p className="text-sm text-neutral-400 mt-1">Verifique o link com o seu psicólogo.</p>
       </div>
@@ -144,10 +143,8 @@ export default function BookingPage() {
   // ── LANDING ──────────────────────────────────────────────────────────────────
   if (step === 'landing') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-sage-50 via-white to-mist-50 dark:from-[#0d1713] dark:via-[#101d18] dark:to-[#12231d] flex flex-col items-center justify-center px-6 py-12 relative overflow-hidden">
-        <div className="absolute -top-32 -right-24 h-80 w-80 rounded-full bg-sage-300/20 dark:bg-sage-500/10 blur-3xl" />
-        <div className="absolute -bottom-32 -left-24 h-80 w-80 rounded-full bg-mist-300/20 dark:bg-mist-500/10 blur-3xl" />
-        <div className="w-full max-w-md flex flex-col items-center bg-white/90 dark:bg-[#17251f]/90 backdrop-blur-xl rounded-3xl border border-white dark:border-sage-200/15 shadow-lifted px-7 py-9 sm:px-10 sm:py-11 relative">
+      <div className="min-h-screen bg-gradient-to-br from-sage-50 via-white to-mist-50 dark:from-[#0d1713] dark:via-[#101d18] dark:to-[#12231d] flex flex-col items-center justify-center px-6 py-12 relative">
+        <div className="w-full max-w-md flex flex-col items-center bg-white/90 dark:bg-[#17251f]/90 backdrop-blur-xl rounded-3xl border border-white dark:border-sage-200/15 shadow-lifted px-7 py-9 sm:px-10 sm:py-11">
 
           {/* Avatar */}
           <div className="w-28 h-28 rounded-full overflow-hidden bg-neutral-100 dark:bg-sage-500/15 mb-6 ring-4 ring-white dark:ring-sage-300/20 shadow-md shrink-0">
@@ -501,12 +498,7 @@ export default function BookingPage() {
                         className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-sage-600 focus:ring-sage-500"
                       />
                       <span>
-                        Li e concordo com o uso dos meus dados para agendamento, comunicação sobre a sessão
-                        e demais finalidades descritas na{' '}
-                        <Link to="/privacidade" target="_blank" className="text-sage-600 underline underline-offset-2">
-                          Política de Privacidade
-                        </Link>
-                        .
+                        Autorizo o uso dos dados informados para agendamento e comunicação sobre esta sessão.
                       </span>
                     </label>
                     {errors.privacyAccepted && (
@@ -517,7 +509,7 @@ export default function BookingPage() {
                   <div className="bg-sage-50 rounded-2xl p-4 text-sm text-sage-700 space-y-1">
                     <p className="font-medium">Resumo da sessão</p>
                     <p>{selectedDate && format(parseISO(selectedDate), "EEEE, dd 'de' MMMM", { locale: ptBR })}</p>
-                    <p>⏰ {selectedTime} · {page.sessionDuration} minutos</p>
+                    <p>{selectedTime} · {page.sessionDuration} minutos</p>
                     <p>{formatCurrency(page.sessionPrice)}</p>
                   </div>
 

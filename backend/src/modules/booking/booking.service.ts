@@ -356,7 +356,7 @@ export class BookingService {
     await this.cancelLinkedAppointment(booking)
     await this.notifications.sendBookingCancellation(booking)
 
-    return { message: 'Sessão cancelada. Esperamos te ver em breve 🌿' }
+    return { message: 'Sessão cancelada. Esperamos te ver em breve.' }
   }
 
   // ─── Psicólogo (autenticado) ────────────────────────────────────────────────

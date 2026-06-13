@@ -10,7 +10,7 @@ const privacySections: Array<{ title: string; content: string | string[] }> = []
 const termsSections: Array<{ title: string; content: string | string[] }> = [
   {
     title: '1. Aceite e Vinculação',
-    content: 'Ao criar conta, acessar ou utilizar a plataforma UseCognia, o usuário declara expressamente que leu, compreendeu e concorda com estes Termos de Uso ("Termos") e com a Política de Privacidade. Caso não concorde, deve cessar o uso da plataforma imediatamente.',
+    content: 'Ao criar conta, acessar ou utilizar a plataforma UseCognia, o usuário declara expressamente que leu, compreendeu e concorda com estes Termos de Uso ("Termos"). Caso não concorde, deve cessar o uso da plataforma imediatamente.',
   },
   {
     title: '2. Objeto',
@@ -44,7 +44,7 @@ const termsSections: Array<{ title: string; content: string | string[] }> = [
   },
   {
     title: '9. Suspensão e Encerramento',
-    content: 'A UseCognia pode suspender ou encerrar contas em caso de: inadimplência; fraude ou suspeita fundamentada de fraude; violação destes Termos ou da Política de Privacidade; risco à segurança de outros usuários ou da infraestrutura; ou por determinação de autoridade competente. Em situações de risco grave, a suspensão pode ser imediata; nos demais casos, o usuário será notificado com antecedência razoável.',
+    content: 'A UseCognia pode suspender ou encerrar contas em caso de: inadimplência; fraude ou suspeita fundamentada de fraude; violação destes Termos; risco à segurança de outros usuários ou da infraestrutura; ou por determinação de autoridade competente. Em situações de risco grave, a suspensão pode ser imediata; nos demais casos, o usuário será notificado com antecedência razoável.',
   },
   {
     title: '10. Propriedade Intelectual',
@@ -55,19 +55,15 @@ const termsSections: Array<{ title: string; content: string | string[] }> = [
     content: 'O usuário pode exportar seus dados e os dados de pacientes por meio da funcionalidade de exportação da plataforma. Arquivos exportados podem conter dados sensíveis e devem ser protegidos com os cuidados exigidos para prontuários.',
   },
   {
-    title: '12. Privacidade dos Pacientes e Responsabilidade do Profissional',
-    content: '',
-  },
-  {
-    title: '13. Limitação de Responsabilidade',
+    title: '12. Limitação de Responsabilidade',
     content: 'Na extensão permitida pela legislação brasileira, a UseCognia não responde por: decisões clínicas do profissional; conteúdo inserido na plataforma; danos decorrentes de falhas de dispositivos ou redes do usuário; uso indevido de credenciais; danos indiretos, lucros cessantes ou danos morais não decorrentes de conduta culposa ou dolosa da UseCognia. A responsabilidade total da UseCognia em qualquer evento está limitada ao valor pago pelo usuário nos últimos 12 meses, salvo disposição legal em contrário.',
   },
   {
-    title: '14. Modificação dos Termos',
+    title: '13. Modificação dos Termos',
     content: 'A UseCognia pode atualizar estes Termos periodicamente. Alterações relevantes serão comunicadas com antecedência mínima de 15 dias por e-mail ou aviso na plataforma. O uso continuado após a data de vigência implica aceitação dos novos Termos.',
   },
   {
-    title: '15. Legislação e Foro',
+    title: '14. Legislação e Foro',
     content: 'Estes Termos são regidos pelas leis da República Federativa do Brasil. Fica eleito o foro da comarca da sede da UseCognia para resolução de conflitos, salvo disposição legal que estabeleça foro obrigatório diferente, como o domicílio do consumidor nos termos do CDC.',
   },
 ]

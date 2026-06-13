@@ -185,8 +185,6 @@ export default function RegisterPage() {
           <label htmlFor="terms" className="text-sm text-neutral-500 cursor-pointer">
             Concordo com os{' '}
             <Link to="/termos" target="_blank" className="text-sage-600 hover:underline">Termos de Uso</Link>
-            {' '}e{' '}
-            <Link to="/privacidade" target="_blank" className="text-sage-600 hover:underline">Politica de Privacidade</Link>
           </label>
         </div>
         {errors.terms && <p className="text-rose-500 text-xs">{errors.terms.message}</p>}
@@ -217,7 +215,7 @@ export default function RegisterPage() {
           <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[85vh] overflow-hidden">
             <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between gap-4">
               <div>
-                <h3 className="font-semibold text-neutral-800">Termos de Uso e Politica de Privacidade</h3>
+                <h3 className="font-semibold text-neutral-800">Termos de Uso</h3>
                 <p className="text-xs text-neutral-400">Versao {TERMS_VERSION}</p>
               </div>
               <button type="button" onClick={() => setShowTerms(false)} className="text-neutral-400 hover:text-neutral-700 text-sm">
