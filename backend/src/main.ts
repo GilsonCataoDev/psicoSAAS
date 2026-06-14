@@ -77,6 +77,7 @@ async function bootstrap() {
     'capacitor://localhost',
     'ionic://localhost',
     'http://localhost',
+    'https://localhost',
   ]
   const allowedOrigins = Array.from(new Set([
     ...defaultOrigins,

@@ -6,7 +6,9 @@
 - Atalhos do app apontando para rotas hash corretas: agenda e pacientes.
 - Registro central do service worker com aviso de atualizacao.
 - Configuracao inicial do Capacitor em `frontend/capacitor.config.ts`.
+- Projeto Android criado em `frontend/android` e sincronizado com o build web.
 - Backend preparado para aceitar origens de WebView nativo (`capacitor://localhost` e `ionic://localhost`).
+- Tentativa de `./gradlew assembleDebug` chegou ao Gradle e parou apenas por ausencia de Android SDK local.
 
 ## Rota 1: PWA
 
@@ -28,6 +30,7 @@
 
 ## Pontos de atencao antes da loja
 
+- Instalar Android Studio/SDK e configurar `ANDROID_HOME` ou `frontend/android/local.properties`.
 - Confirmar persistencia de login dentro do WebView nativo.
 - Confirmar notificacoes push nativas; Web Push pode nao cobrir todos os cenarios de loja.
 - Substituir icones PNG simples pelo logo final exportado em todos os tamanhos nativos.
