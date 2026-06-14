@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#2F7657" />
+    <title>UseCognia offline</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #f6f8f5;
+        color: #1f2a24;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+
+      main {
+        width: min(100%, 420px);
+        border: 1px solid #dbe7df;
+        border-radius: 20px;
+        background: #fff;
+        padding: 28px;
+        box-shadow: 0 16px 50px rgba(27, 48, 39, 0.08);
+      }
+
+      .mark {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        background: #2f7657;
+        color: #fff;
+        font-weight: 800;
+        margin-bottom: 18px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 22px;
+        line-height: 1.2;
+      }
+
+      p {
+        margin: 10px 0 0;
+        color: #5f6b63;
+        font-size: 15px;
+        line-height: 1.55;
+      }
+
+      button {
+        margin-top: 22px;
+        width: 100%;
+        height: 44px;
+        border: 0;
+        border-radius: 12px;
+        background: #2f7657;
+        color: #fff;
+        font-weight: 700;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="mark">UC</div>
+      <h1>Sem conexao no momento</h1>
+      <p>Algumas telas do UseCognia precisam de internet para proteger e sincronizar os dados clinicos. Verifique a conexao e tente novamente.</p>
+      <button type="button" onclick="window.location.reload()">Tentar novamente</button>
+    </main>
+  </body>
+</html>
