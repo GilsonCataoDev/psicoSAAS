@@ -74,6 +74,9 @@ async function bootstrap() {
     'https://usecognia.com.br',
     'https://www.usecognia.com.br',
     'https://usecognia.vercel.app',
+    'capacitor://localhost',
+    'ionic://localhost',
+    'http://localhost',
   ]
   const allowedOrigins = Array.from(new Set([
     ...defaultOrigins,
