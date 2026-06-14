@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { identifyUser, resetAnalytics } from '@/lib/analytics'
 import { migratePersistedStorage } from '@/lib/storageMigration'
+import { clearNativeTokens } from '@/lib/nativeAuth'
 
 migratePersistedStorage('usecognia-auth', 'psicosaas-auth')
 
@@ -49,6 +50,7 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => {
         resetAnalytics()
+        clearNativeTokens()
         set({ user: null, isAuthenticated: false, csrfToken: null })
       },
 

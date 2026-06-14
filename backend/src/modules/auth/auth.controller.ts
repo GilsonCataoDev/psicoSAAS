@@ -61,6 +61,18 @@ function getIp(req: Req): string {
     ?? 'unknown'
 }
 
+function isNativeClient(req: Req): boolean {
+  return req.headers['x-usecognia-client'] === 'native'
+}
+
+function authResponse(req: Req, result: { user: unknown; csrfToken: string; tokens: { accessToken: string; refreshToken: string } }) {
+  return {
+    user: result.user,
+    csrfToken: result.csrfToken,
+    ...(isNativeClient(req) ? { tokens: result.tokens } : {}),
+  }
+}
+
 // ── Controller ────────────────────────────────────────────────────────────────
 
 @Controller('auth')
@@ -78,7 +90,7 @@ export class AuthController {
   ) {
     const result = await this.auth.register(dto, getIp(req), req.headers['user-agent'])
     this.setAuthCookies(res, result.tokens)
-    return { user: result.user, csrfToken: result.csrfToken }
+    return authResponse(req, result)
   }
 
   // ── Login ───────────────────────────────────────────────────────────────────
@@ -93,7 +105,7 @@ export class AuthController {
   ) {
     const result = await this.auth.login(dto, getIp(req), req.headers['user-agent'])
     this.setAuthCookies(res, result.tokens)
-    return { user: result.user, csrfToken: result.csrfToken }
+    return authResponse(req, result)
   }
 
   // ── Refresh Token ───────────────────────────────────────────────────────────
@@ -110,13 +122,17 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Throttle({ short: { limit: 10, ttl: 60000 } })
   async refresh(
+    @Body() body: { refreshToken?: string },
     @Request() req: Req,
     @Response({ passthrough: true }) res: Res,
   ) {
-    const rawToken = req.cookies?.[REFRESH_COOKIE] ?? req.cookies?.[LEGACY_REFRESH_COOKIE]
+    const rawToken = req.cookies?.[REFRESH_COOKIE]
+      ?? req.cookies?.[LEGACY_REFRESH_COOKIE]
+      ?? (isNativeClient(req) ? req.headers['x-refresh-token'] as string | undefined : undefined)
+      ?? (isNativeClient(req) ? body?.refreshToken : undefined)
     const result   = await this.auth.refresh(rawToken, getIp(req), req.headers['user-agent'])
     this.setAuthCookies(res, result.tokens)
-    return { user: result.user, csrfToken: result.csrfToken }
+    return authResponse(req, result)
   }
 
   // ── Logout ─────────────────────────────────────────────────────────────────

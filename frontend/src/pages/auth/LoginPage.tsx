@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { Eye, EyeOff } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { api, AuthAxiosRequestConfig } from '@/lib/api'
+import { setNativeTokens } from '@/lib/nativeAuth'
 import toast from 'react-hot-toast'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 
@@ -34,6 +35,7 @@ export default function LoginPage() {
     try {
       const res = await api.post('/auth/login', { email: data.email, password: data.password })
       loginAccepted = true
+      setNativeTokens(res.data.tokens)
       setAuth(res.data.user)
       if (res.data.csrfToken) setCsrfToken(res.data.csrfToken)
       await api.get('/auth/me', { skipAuthRedirect: true } as AuthAxiosRequestConfig)

@@ -10,10 +10,9 @@ import { getAdminEmails } from '../../../common/guards/admin.guard'
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(cfg: ConfigService, private auth: AuthService) {
     super({
-      // Autenticação exclusiva via HttpOnly cookie — Bearer desabilitado
-      // (elimina vetor de ataque por token vazado em header/log)
       jwtFromRequest: ExtractJwt.fromExtractors([
         (req: Request) => req?.cookies?.['usecognia_token'] ?? req?.cookies?.['psicosaas_token'] ?? null,
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
       ]),
       ignoreExpiration: false,
       secretOrKey: cfg.get<string>('JWT_SECRET'),

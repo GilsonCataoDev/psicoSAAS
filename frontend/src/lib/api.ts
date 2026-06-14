@@ -1,5 +1,12 @@
 import axios, { AxiosRequestConfig } from 'axios'
 import { useAuthStore } from '@/store/auth'
+import {
+  clearNativeTokens,
+  getNativeAccessToken,
+  getNativeRefreshToken,
+  isNativeApp,
+  setNativeTokens,
+} from '@/lib/nativeAuth'
 
 export const USE_MOCK = false
 
@@ -16,6 +23,20 @@ export const api = axios.create({
 
 api.interceptors.request.use(config => {
   const csrfToken = useAuthStore.getState().csrfToken
+  if (isNativeApp()) {
+    config.headers['X-UseCognia-Client'] = 'native'
+
+    const accessToken = getNativeAccessToken()
+    if (accessToken && !config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${accessToken}`
+    }
+
+    const refreshToken = getNativeRefreshToken()
+    if (refreshToken && config.url?.includes('/auth/refresh')) {
+      config.headers['X-Refresh-Token'] = refreshToken
+    }
+  }
+
   if (
     csrfToken &&
     config.method &&
@@ -39,6 +60,7 @@ function processQueue(error: unknown): void {
 
 function redirectToLogin(): void {
   useAuthStore.getState().logout()
+  clearNativeTokens()
   window.location.href = `${import.meta.env.BASE_URL}#/login`
 }
 
@@ -92,6 +114,9 @@ api.interceptors.response.use(
 
       if (data.csrfToken) {
         useAuthStore.getState().setCsrfToken(data.csrfToken)
+      }
+      if (data.tokens) {
+        setNativeTokens(data.tokens)
       }
       if (data.user) {
         useAuthStore.getState().setAuth(data.user)
