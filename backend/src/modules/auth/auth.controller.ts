@@ -28,13 +28,14 @@ const LEGACY_REFRESH_COOKIE = 'psicosaas_refresh'
 /** Flags de cookie variam por ambiente para suportar dev (HTTP) e prod (HTTPS cross-origin) */
 function cookieBase(): Pick<CookieOptions, 'httpOnly' | 'secure' | 'sameSite' | 'path' | 'priority' | 'partitioned'> {
   const isProd = process.env.NODE_ENV === 'production'
+  const usePartitionedCookie = process.env.COOKIE_PARTITIONED === 'true'
   return {
     httpOnly: true,
     secure:   isProd,
     sameSite: isProd ? 'none' : 'lax',
     path:     '/',
     priority: 'high',
-    partitioned: isProd,
+    ...(isProd && usePartitionedCookie ? { partitioned: true } : {}),
   }
 }
 
