@@ -102,8 +102,8 @@ async function bootstrap() {
     },
     credentials: true, // necessário para HttpOnly cookies cross-origin
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    // X-CSRF-Token: cabeçalho customizado enviado em toda mutação pelo frontend
-    allowedHeaders: ['Content-Type', 'X-CSRF-Token'],
+    // Headers customizados usados por CSRF web e autenticação do app nativo.
+    allowedHeaders: ['Content-Type', 'X-CSRF-Token', 'Authorization', 'X-UseCognia-Client', 'X-Refresh-Token'],
   })
 
   // ── Validação e sanitização global de DTOs ─────────────────────────────────
