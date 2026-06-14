@@ -9,6 +9,7 @@
 - Projeto Android criado em `frontend/android` e sincronizado com o build web.
 - Backend preparado para aceitar origens de WebView nativo (`capacitor://localhost` e `ionic://localhost`).
 - Android SDK command-line instalado localmente e APK debug gerado com sucesso.
+- APK instalado e aberto no emulador `UseCognia_Test`; tela de login carregou corretamente.
 
 ## Rota 1: PWA
 
@@ -24,11 +25,12 @@
 3. Sincronizar build: `npm run cap:sync`.
 4. Gerar APK debug: `npm run cap:build:android`.
 5. APK gerado em `frontend/android/app/build/outputs/apk/debug/app-debug.apk`.
-6. Abrir Android Studio: `npm run cap:open:android`.
-7. Validar login, cookies, push, microfone, agenda e link publico.
-8. Gerar iOS em um Mac: `npm run cap:add:ios`, `npm run cap:sync`, `npm run cap:open:ios`.
-9. Criar contas Google Play e Apple Developer.
-10. Preparar politica, screenshots, descricao e revisao das permissoes.
+6. Instalar e abrir no emulador/dispositivo conectado: `npm run cap:install:android`.
+7. Abrir Android Studio: `npm run cap:open:android`.
+8. Validar login, cookies, push, microfone, agenda e link publico.
+9. Gerar iOS em um Mac: `npm run cap:add:ios`, `npm run cap:sync`, `npm run cap:open:ios`.
+10. Criar contas Google Play e Apple Developer.
+11. Preparar politica, screenshots, descricao e revisao das permissoes.
 
 ## Pontos de atencao antes da loja
 

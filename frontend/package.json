@@ -12,6 +12,7 @@
     "cap:add:android": "cap add android",
     "cap:add:ios": "cap add ios",
     "cap:build:android": "npm run cap:sync && node scripts/build-android-debug.mjs",
+    "cap:install:android": "node scripts/install-android-debug.mjs",
     "cap:open:android": "cap open android",
     "cap:open:ios": "cap open ios"
   },
