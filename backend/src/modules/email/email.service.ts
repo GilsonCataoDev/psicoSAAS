@@ -30,7 +30,7 @@ export class EmailService {
 
   async send(opts: SendEmailOptions): Promise<void> {
     if (!this.enabled) {
-      this.logger.warn(`[Email desativado] RESEND_API_KEY ausente. Para: ${opts.to} | Assunto: ${opts.subject}`)
+      this.logger.warn(`[Email desativado] RESEND_API_KEY ausente. subjectChars=${opts.subject.length}`)
       throw new ServiceUnavailableException('Envio de e-mail nao configurado')
     }
 
@@ -50,8 +50,8 @@ export class EmailService {
         }),
       })
       if (!res.ok) {
-        const err = await res.text()
-        this.logger.error(`[Resend] Erro ao enviar email: ${err}`)
+        const err = await res.text().catch(() => '')
+        this.logger.error(`[Resend] Erro ao enviar email status=${res.status}`)
 
         if (err.includes('domain is not verified')) {
           throw new ServiceUnavailableException(
@@ -61,7 +61,7 @@ export class EmailService {
 
         throw new BadGatewayException('Nao foi possivel enviar o e-mail')
       }
-      this.logger.log(`[Resend] Email enviado para ${opts.to}: ${opts.subject}`)
+      this.logger.log(`[Resend] Email enviado subjectChars=${opts.subject.length}`)
     } catch (err) {
       if (err instanceof BadGatewayException || err instanceof ServiceUnavailableException) throw err
       this.logger.error('[Resend] Falha de conexão', err)

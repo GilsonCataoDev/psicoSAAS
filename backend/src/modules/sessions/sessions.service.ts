@@ -124,8 +124,8 @@ export class SessionsService {
             }
           }
         }
-      } catch (err) {
-        this.logger.warn(`Falha ao criar registro financeiro para sessão ${saved.id}: ${err}`)
+      } catch (err: any) {
+        this.logger.warn(`Falha ao criar registro financeiro para sessão ${saved.id}: ${err?.message ?? 'erro desconhecido'}`)
       }
     }
 
@@ -152,7 +152,7 @@ export class SessionsService {
     // Sincroniza o registro financeiro quando o status de pagamento muda
     if (dto.paymentStatus && dto.paymentStatus !== oldPaymentStatus) {
       this.syncFinancialRecord(updated, psychologistId).catch(err =>
-        this.logger.warn(`Falha ao sincronizar financeiro da sessão ${id}: ${err}`)
+        this.logger.warn(`Falha ao sincronizar financeiro da sessão ${id}: ${err?.message ?? 'erro desconhecido'}`)
       )
     }
 

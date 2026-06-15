@@ -89,9 +89,9 @@ export class AuthService {
     }
 
     this.email.sendEmailVerification(user.name, user.email, verificationToken)
-      .catch(err => this.logger.error(`[Register] Falha ao enviar verificação para ${user.email}: ${err?.message}`))
+      .catch(err => this.logger.error(`[Register] Falha ao enviar verificação user=${user.id}: ${err?.message}`))
     this.email.sendWelcome(user.name, user.email)
-      .catch(err => this.logger.error(`[Register] Falha ao enviar boas-vindas para ${user.email}: ${err?.message}`))
+      .catch(err => this.logger.error(`[Register] Falha ao enviar boas-vindas user=${user.id}: ${err?.message}`))
     this.audit('REGISTER', { userId: user.id, ip })
 
     return this.buildResult(user, ip, userAgent)

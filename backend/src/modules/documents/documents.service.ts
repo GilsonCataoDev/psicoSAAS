@@ -150,7 +150,7 @@ export class DocumentsService {
     })
 
     const saved = await this.repo.save(doc)
-    this.logger.log(`[Documento] Assinado: ${saved.signCode} por ${user.name} (CRP ${user.crp})`)
+    this.logger.log(`[Documento] Assinado signCode=${saved.signCode} user=${user.id}`)
     return this.exposeDocument(saved)
   }
 

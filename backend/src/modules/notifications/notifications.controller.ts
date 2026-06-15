@@ -4,6 +4,7 @@ import { RequirePlan } from '../../common/decorators/require-plan.decorator'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { NotificationsService } from './notifications.service'
+import { RemovePushSubscriptionDto, SavePushSubscriptionDto } from './dto/push-subscription.dto'
 
 @Controller('notifications/whatsapp')
 @UseGuards(JwtAuthGuard)
@@ -49,14 +50,14 @@ export class PushNotificationsController {
 
   @Post('subscribe')
   @UseGuards(CsrfGuard)
-  subscribe(@Request() req: any, @Body() body: any) {
-    return this.notifications.savePushSubscription(req.user.id, body, req.headers['user-agent'])
+  subscribe(@Request() req: any, @Body() dto: SavePushSubscriptionDto) {
+    return this.notifications.savePushSubscription(req.user.id, dto, req.headers['user-agent'])
   }
 
   @Delete('unsubscribe')
   @UseGuards(CsrfGuard)
-  unsubscribe(@Request() req: any, @Body('endpoint') endpoint?: string) {
-    return this.notifications.removePushSubscription(req.user.id, endpoint)
+  unsubscribe(@Request() req: any, @Body() dto: RemovePushSubscriptionDto) {
+    return this.notifications.removePushSubscription(req.user.id, dto.endpoint)
   }
 
   @Post('test')

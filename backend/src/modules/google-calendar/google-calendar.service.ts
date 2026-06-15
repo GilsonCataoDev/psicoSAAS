@@ -26,6 +26,14 @@ type GoogleCalendarPrefs = {
   googleCalendarLastSyncError?: string
 }
 
+function safeGoogleCalendarError(err: any): string {
+  const status = err?.response?.status
+  if (status === 401) return 'Google Agenda precisa ser reconectado.'
+  if (status === 403) return 'Permissao insuficiente para sincronizar o Google Agenda.'
+  if (status === 429) return 'Limite temporario do Google Agenda atingido.'
+  return 'Nao foi possivel sincronizar com o Google Agenda.'
+}
+
 @Injectable()
 export class GoogleCalendarService {
   private readonly logger = new Logger(GoogleCalendarService.name)
@@ -147,8 +155,8 @@ export class GoogleCalendarService {
       }
       await this.users.save(user)
     } catch (err: any) {
-      const errMsg = err?.response?.data?.error?.message ?? err?.message ?? String(err)
-      this.logger.warn(`Falha ao sincronizar Google Agenda: ${errMsg}`)
+      const errMsg = safeGoogleCalendarError(err)
+      this.logger.warn(`Falha ao sincronizar Google Agenda status=${err?.response?.status ?? 'unknown'}`)
       user.preferences = {
         ...(user.preferences ?? {}),
         googleCalendarLastSyncError: errMsg,
@@ -166,7 +174,7 @@ export class GoogleCalendarService {
       const accessToken = await this.getValidAccessToken(user, prefs)
       await this.deleteExistingEvent(accessToken, appointment.id)
     } catch (err: any) {
-      this.logger.warn(`Falha ao remover evento do Google Agenda: ${err?.response?.data?.error?.message ?? err?.message ?? err}`)
+      this.logger.warn(`Falha ao remover evento do Google Agenda status=${err?.response?.status ?? 'unknown'}`)
     }
   }
 

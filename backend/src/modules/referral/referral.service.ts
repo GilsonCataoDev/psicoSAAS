@@ -63,7 +63,7 @@ export class ReferralService {
     })
     await this.refs.save(use)
 
-    this.logger.log(`[Referral] ${master.referrer.name} indicou ${newUser.name}`)
+    this.logger.log(`[Referral] indicacao registrada referrer=${master.referrerId} referred=${newUser.id}`)
   }
 
   /**
@@ -94,7 +94,7 @@ export class ReferralService {
       newUserId,
     ).catch(() => {})
 
-    this.logger.log(`[Referral] Recompensa concedida a ${use.referrer.name}`)
+    this.logger.log(`[Referral] recompensa concedida referrer=${use.referrerId}`)
   }
 
   async getStats(userId: string) {

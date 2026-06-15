@@ -7,6 +7,7 @@ import { EmailService } from '../email/email.service'
 import { Subscription } from '../billing/entities/subscription.entity'
 import { User } from '../auth/entities/user.entity'
 import { PushSubscriptionEntity } from './entities/push-subscription.entity'
+import { SavePushSubscriptionDto } from './dto/push-subscription.dto'
 
 export type WhatsAppDeliveryResult = {
   sent: boolean
@@ -157,7 +158,7 @@ export class NotificationsService {
     }
   }
 
-  async savePushSubscription(userId: string, subscription: any, userAgent?: string): Promise<{ subscribed: boolean }> {
+  async savePushSubscription(userId: string, subscription: SavePushSubscriptionDto, userAgent?: string): Promise<{ subscribed: boolean }> {
     if (!this.pushEnabled) throw new BadRequestException('Notificacoes push nao configuradas')
     const endpoint = subscription?.endpoint
     const p256dh = subscription?.keys?.p256dh
@@ -227,7 +228,7 @@ export class NotificationsService {
           await this.pushSubscriptions.delete({ id: sub.id })
           removed++
         } else {
-          this.logger.error(`[WebPush] Falha user=${userId}: ${err?.message ?? err}`)
+          this.logger.error(`[WebPush] Falha user=${userId} status=${err?.statusCode ?? 'unknown'}`)
         }
       }
     }
@@ -237,12 +238,12 @@ export class NotificationsService {
 
   private async sendWhatsApp(phone: string, text: string, ownerId?: string | null): Promise<WhatsAppDeliveryResult> {
     if (!await this.canUseWhatsAppAutomation(ownerId)) {
-      this.logger.log(`[WhatsApp bloqueado por plano] owner=${ownerId ?? 'unknown'} phone=${phone}`)
+      this.logger.log(`[WhatsApp bloqueado por plano] owner=${ownerId ?? 'unknown'}`)
       return { sent: false, reason: 'plan', error: 'Automacao disponivel apenas no plano Pro' }
     }
 
     if (!this.waEnabled) {
-      this.logger.log(`[WhatsApp DEV] ${phone}: ${text.slice(0, 60)}...`)
+      this.logger.log(`[WhatsApp DEV] envio simulado owner=${ownerId ?? 'unknown'} chars=${text.length}`)
       return { sent: false, reason: 'not_configured', error: 'WhatsApp nao configurado' }
     }
 
@@ -267,9 +268,9 @@ export class NotificationsService {
         },
       )
       if (!res.ok) {
-        const err = await res.text()
-        this.logger.error(`[WhatsApp] Erro ${res.status} instance=${instance}: ${err}`)
-        return { sent: false, reason: 'api_error', error: `WhatsApp respondeu ${res.status}: ${err.slice(0, 120)}` }
+        await res.text().catch(() => '')
+        this.logger.error(`[WhatsApp] Erro ${res.status} instance=${instance}`)
+        return { sent: false, reason: 'api_error', error: `WhatsApp respondeu ${res.status}` }
       }
       return { sent: true }
     } catch {
@@ -309,8 +310,8 @@ export class NotificationsService {
     })
     if (res.ok || res.status === 409 || res.status === 403) return
 
-    const err = await res.text()
-    throw new BadRequestException(`Nao foi possivel criar a conexao WhatsApp: ${err.slice(0, 120)}`)
+    await res.text().catch(() => '')
+    throw new BadRequestException(`Nao foi possivel criar a conexao WhatsApp: erro ${res.status}`)
   }
 
   async scheduleReminder(appointment: any): Promise<void> {
