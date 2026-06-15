@@ -1,0 +1,1 @@
+var e=new Set([400,401,403,404,409,422,429]);function t(e){if(Array.isArray(e))return t(e.find(e=>typeof e==`string`));if(typeof e!=`string`)return null;let n=e.replace(/\s+/g,` `).trim();return!n||n.length>180?null:n}function n(n,r){let i=n?.response,a=t(i?.data?.message);return i?.status&&e.has(i.status)&&a?a:r}export{n as t};
