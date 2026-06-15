@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "lint": "eslint src --ext ts,tsx",
     "cap:sync": "npm run build && cap sync",
+    "cap:sync:ios": "npm run build && cap sync ios && node scripts/fix-ios-package-paths.mjs",
     "cap:add:android": "cap add android",
     "cap:add:ios": "cap add ios",
     "cap:build:android": "npm run cap:sync && node scripts/build-android-debug.mjs",
