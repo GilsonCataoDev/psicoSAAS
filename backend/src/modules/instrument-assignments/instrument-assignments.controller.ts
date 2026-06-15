@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common'
 import { IsBoolean, IsOptional, IsString } from 'class-validator'
-import { SkipThrottle } from '@nestjs/throttler'
+import { Throttle } from '@nestjs/throttler'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { PublicRoute } from '../../common/decorators/public-route.decorator'
@@ -44,14 +44,14 @@ export class InstrumentAssignmentsController {
 
   @Get('public/instruments/:token')
   @PublicRoute()
-  @SkipThrottle()
+  @Throttle({ long: { limit: 30, ttl: 60 * 1000 } }) // Link público: leitura limitada por IP.
   getPublic(@Param('token') token: string) {
     return this.svc.getPublic(token)
   }
 
   @Post('public/instruments/:token')
   @PublicRoute()
-  @SkipThrottle()
+  @Throttle({ long: { limit: 5, ttl: 60 * 1000 } }) // Envio limitado para reduzir flood e abuso de token vazado.
   submit(@Param('token') token: string, @Body('answers') answers: Record<string, string>) {
     return this.svc.submit(token, answers ?? {})
   }

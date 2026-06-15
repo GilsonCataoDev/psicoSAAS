@@ -8,6 +8,7 @@ import { PLANS, Plan, useSubscriptionStore } from '@/store/subscription'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 import Modal from '@/components/ui/Modal'
 import { PRICING_COMPARISON, PRICING_FAQ, PRICING_HERO, PRICING_PLANS, PricingPlan, PricingRoiItem } from '@/data/pricingPlans'
+import { userSafeError } from '@/lib/userSafeError'
 
 function statusMessage(status: string) {
   if (status === 'pending') return 'Aguardando pagamento'
@@ -148,7 +149,7 @@ export default function PricingPage() {
         setSubscription(data)
         toast.success('Plano Grátis ativado.')
       } catch (err: any) {
-        toast.error(err?.response?.data?.message ?? 'Nao foi possivel ativar o plano gratis.')
+        toast.error(userSafeError(err, 'Nao foi possivel ativar o plano gratis.'))
       } finally {
         setLoadingPlan(null)
       }
@@ -173,12 +174,7 @@ export default function PricingPage() {
       setSubscription(data)
       toast.success(subscription.status === 'past_due' ? `Cartao atualizado. Tentaremos cobrar no plano ${plan.name}.` : 'Teste iniciado! Voce tem 7 dias gratis.')
     } catch (err: any) {
-      toast.error(
-        err?.response?.data?.errors?.[0]?.description ??
-        err?.response?.data?.message ??
-        err?.message ??
-        'Cartao invalido ou pagamento recusado.',
-      )
+      toast.error(userSafeError(err, 'Cartao invalido ou pagamento recusado.'))
     } finally {
       setLoadingPlan(null)
     }
@@ -193,7 +189,7 @@ export default function PricingPage() {
       setPlanChangeTarget(null)
       toast.success(`Plano alterado para ${plan.name}.`)
     } catch (err: any) {
-      toast.error(err?.response?.data?.message ?? 'Nao foi possivel trocar o plano.')
+      toast.error(userSafeError(err, 'Nao foi possivel trocar o plano.'))
     } finally {
       setLoadingPlan(null)
     }
@@ -208,7 +204,7 @@ export default function PricingPage() {
       setConfirmCancelToFree(false)
       toast.success(data.cancelAtPeriodEnd ? 'Cancelamento agendado para o fim do período.' : 'Plano cancelado.')
     } catch (err: any) {
-      toast.error(err?.response?.data?.message ?? 'Nao foi possivel cancelar o plano.')
+      toast.error(userSafeError(err, 'Nao foi possivel cancelar o plano.'))
     } finally {
       setLoadingPlan(null)
     }

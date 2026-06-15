@@ -8,11 +8,12 @@ import { AuthService }     from './auth.service'
 import { JwtStrategy }     from './strategies/jwt.strategy'
 import { User }            from './entities/user.entity'
 import { RefreshToken }    from './entities/refresh-token.entity'
+import { LoginAttempt }    from './entities/login-attempt.entity'
 import { ReferralModule }  from '../referral/referral.module'
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, RefreshToken]),
+    TypeOrmModule.forFeature([User, RefreshToken, LoginAttempt]),
     PassportModule,
     JwtModule.registerAsync({
       inject: [ConfigService],

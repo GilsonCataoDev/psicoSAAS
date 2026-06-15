@@ -84,7 +84,7 @@ export default function SessionsPage() {
                   </div>
                   {session.summary && (
                     <p className="text-sm text-neutral-500 mt-1 line-clamp-2 leading-relaxed">
-                      {session.summary}
+                      Evolução registrada
                     </p>
                   )}
                   {(session.tags?.length ?? 0) > 0 && (

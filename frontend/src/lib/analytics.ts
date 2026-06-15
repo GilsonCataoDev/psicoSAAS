@@ -17,12 +17,10 @@ export function initAnalytics() {
 
   posthog.init(KEY, {
     api_host: HOST,
-    capture_pageview: true,
-    capture_pageleave: true,
-    autocapture: false,           // evitar captura acidental de dados clínicos
-    session_recording: {
-      maskAllInputs: true,
-    },
+    capture_pageview: false,
+    capture_pageleave: false,
+    autocapture: false,           // captura automatica pode incluir dados clinicos do DOM
+    disable_session_recording: true, // LGPD: manter somente eventos manuais explicitos
     loaded: (ph) => {
       if (import.meta.env.DEV) ph.opt_out_capturing()
     },

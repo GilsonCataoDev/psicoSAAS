@@ -64,7 +64,7 @@ export class AsaasService {
 
       return data.id
     } catch (err: any) {
-      this.logger.error('[Asaas] Erro ao criar customer', err?.response?.data ?? err)
+      this.logger.error('[Asaas] Erro ao criar customer', this.safeAsaasError(err))
       throw new BadRequestException(
         err?.response?.data?.errors?.[0]?.description ?? 'Erro ao criar cliente no Asaas',
       )
@@ -101,7 +101,7 @@ export class AsaasService {
       return token
     } catch (err: any) {
       if (err instanceof BadRequestException) throw err
-      this.logger.warn('[Asaas] Falha ao tokenizar cartao', err?.response?.data ?? err)
+      this.logger.warn('[Asaas] Falha ao tokenizar cartao', this.safeAsaasError(err))
       throw new BadRequestException(
         err?.response?.data?.errors?.[0]?.description ?? 'Cartao invalido',
       )
@@ -132,7 +132,7 @@ export class AsaasService {
 
       return data.id
     } catch (err: any) {
-      this.logger.error('[Asaas] Erro ao criar subscription', err?.response?.data ?? err)
+      this.logger.error('[Asaas] Erro ao criar subscription', this.safeAsaasError(err))
       throw new BadRequestException(
         err?.response?.data?.errors?.[0]?.description ?? 'Erro ao criar assinatura no Asaas',
       )
@@ -164,7 +164,7 @@ export class AsaasService {
         updatePendingPayments: true,
       })
     } catch (err: any) {
-      this.logger.warn('[Asaas] Falha ao atualizar plano da assinatura', err?.response?.data ?? err)
+      this.logger.warn('[Asaas] Falha ao atualizar plano da assinatura', this.safeAsaasError(err))
       throw new BadRequestException(
         err?.response?.data?.errors?.[0]?.description ?? 'Nao foi possivel trocar o plano',
       )
@@ -176,7 +176,7 @@ export class AsaasService {
       await this.api.delete(`/subscriptions/${subscriptionId}`)
       this.logger.log(`[Asaas] Assinatura cancelada: ${subscriptionId}`)
     } catch (err: any) {
-      this.logger.warn('[Asaas] Falha ao cancelar assinatura', err?.response?.data ?? err)
+      this.logger.warn('[Asaas] Falha ao cancelar assinatura', this.safeAsaasError(err))
       throw new BadRequestException(
         err?.response?.data?.errors?.[0]?.description ?? 'Nao foi possivel cancelar a assinatura',
       )
@@ -249,6 +249,23 @@ export class AsaasService {
     if (!phone || phone.length < 10 || phone.length > 11) {
       throw new BadRequestException('Telefone invalido')
     }
+  }
+
+  private safeAsaasError(err: any): Record<string, unknown> {
+    const data = err?.response?.data
+    const firstError = Array.isArray(data?.errors) ? data.errors[0] : undefined
+    return {
+      status: err?.response?.status ?? null,
+      code: firstError?.code ?? data?.code ?? err?.code ?? null,
+      message: this.sanitizeMessage(firstError?.description ?? data?.message ?? err?.message),
+    }
+  }
+
+  private sanitizeMessage(value: unknown): string {
+    return String(value ?? 'Erro desconhecido')
+      .replace(/\b\d{11,19}\b/g, '[redacted-number]') // Remove CPF/CNPJ/cartão/ids numéricos longos.
+      .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[redacted-email]')
+      .slice(0, 240)
   }
 
 }

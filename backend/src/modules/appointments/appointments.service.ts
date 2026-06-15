@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common'
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { DataSource, Repository, Between, In, Not } from 'typeorm'
 import { randomUUID } from 'crypto'
@@ -29,9 +29,11 @@ export class AppointmentsService {
   }
 
   async findOne(id: string, psychologistId: string) {
-    const appointment = await this.repo.findOne({ where: { id }, relations: ['patient'] })
+    const appointment = await this.repo.findOne({
+      where: { id, psychologistId }, // Retorna 404 também para registros de outro psicólogo.
+      relations: ['patient'],
+    })
     if (!appointment) throw new NotFoundException()
-    if (appointment.psychologistId !== psychologistId) throw new ForbiddenException()
     return appointment
   }
 

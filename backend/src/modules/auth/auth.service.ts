@@ -11,6 +11,7 @@ import { generateCsrfToken, hashToken } from '../../common/crypto/encrypt.util'
 import { getAdminEmails } from '../../common/guards/admin.guard'
 import { User }         from './entities/user.entity'
 import { RefreshToken } from './entities/refresh-token.entity'
+import { LoginAttempt } from './entities/login-attempt.entity'
 import { RegisterDto }          from './dto/register.dto'
 import { LoginDto }             from './dto/login.dto'
 import { UpdateProfileDto }     from './dto/update-profile.dto'
@@ -40,25 +41,19 @@ export interface AuthResult {
 
 export const CURRENT_TERMS_VERSION = '2026-05-02'
 
-// ── Rate limiting por email (brute-force por usuário) ─────────────────────────
-interface LoginAttemptEntry {
-  count:    number
-  resetAt:  number
-}
-
 @Injectable()
 export class AuthService {
   private readonly logger     = new Logger(AuthService.name)
   private readonly auditLogger = new Logger('AuditLog')
 
   /** Brute-force protection: max 10 falhas por email em 15 minutos */
-  private readonly loginAttempts = new Map<string, LoginAttemptEntry>()
   private readonly MAX_ATTEMPTS  = 10
   private readonly WINDOW_MS     = 15 * 60 * 1000
 
   constructor(
     @InjectRepository(User)         private users:    Repository<User>,
     @InjectRepository(RefreshToken) private rtRepo:   Repository<RefreshToken>,
+    @InjectRepository(LoginAttempt) private loginAttempts: Repository<LoginAttempt>,
     private dataSource: DataSource,
     private jwt:      JwtService,
     private email:    EmailService,
@@ -140,7 +135,7 @@ export class AuthService {
     const email = dto.email.toLowerCase()
 
     // Rate limit por email antes de qualquer operação
-    this.checkLoginRateLimit(email, ip)
+    await this.checkLoginRateLimit(email, ip)
 
     const user = await this.users.findOneBy({ email })
 
@@ -150,12 +145,12 @@ export class AuthService {
     const valid = await bcrypt.compare(dto.password, hash)
 
     if (!user || !valid) {
-      this.recordLoginFailure(email)
+      await this.recordLoginFailure(email)
       this.audit('LOGIN_FAILED', { email: this.maskEmail(email), ip })
       throw new UnauthorizedException('Credenciais inválidas')
     }
 
-    this.clearLoginAttempts(email)
+    await this.clearLoginAttempts(email)
     this.audit('LOGIN_SUCCESS', { userId: user.id, ip })
 
     return this.buildResult(user, ip, userAgent)
@@ -300,7 +295,7 @@ export class AuthService {
       await manager.query('DELETE FROM "users" WHERE "id" = $1', [id])
     })
 
-    this.clearLoginAttempts(user.email)
+    await this.clearLoginAttempts(user.email)
     this.audit('ACCOUNT_DELETED', { userId: id, ip })
   }
 
@@ -417,13 +412,16 @@ export class AuthService {
 
   // ── Rate limiting por email ────────────────────────────────────────────────
 
-  private checkLoginRateLimit(email: string, ip?: string): void {
-    const now   = Date.now()
-    const entry = this.loginAttempts.get(email)
+  private async checkLoginRateLimit(email: string, ip?: string): Promise<void> {
+    const now = new Date()
+    const entry = await this.loginAttempts.findOneBy({ email })
     if (!entry) return
-    if (now > entry.resetAt) { this.loginAttempts.delete(email); return }
+    if (now > entry.resetAt) {
+      await this.loginAttempts.delete({ email })
+      return
+    }
     if (entry.count >= this.MAX_ATTEMPTS) {
-      const retryAfter = Math.ceil((entry.resetAt - now) / 1000)
+      const retryAfter = Math.ceil((entry.resetAt.getTime() - now.getTime()) / 1000)
       this.audit('LOGIN_RATE_LIMITED', { email: this.maskEmail(email), ip, retryAfter: String(retryAfter) })
       throw new HttpException(
         { message: 'Muitas tentativas. Tente novamente em alguns minutos.', retryAfter },
@@ -432,18 +430,25 @@ export class AuthService {
     }
   }
 
-  private recordLoginFailure(email: string): void {
-    const now   = Date.now()
-    const entry = this.loginAttempts.get(email)
-    if (!entry || now > entry.resetAt) {
-      this.loginAttempts.set(email, { count: 1, resetAt: now + this.WINDOW_MS })
-    } else {
-      entry.count++
-    }
+  private async recordLoginFailure(email: string): Promise<void> {
+    const now = new Date()
+    const resetAt = new Date(now.getTime() + this.WINDOW_MS)
+
+    await this.dataSource.transaction(async (manager) => {
+      const repo = manager.getRepository(LoginAttempt)
+      const entry = await repo.findOne({ where: { email } })
+      if (!entry || now > entry.resetAt) {
+        await repo.save(repo.create({ email, count: 1, resetAt }))
+        return
+      }
+
+      entry.count += 1 // Contador persistente evita reset por restart ou múltiplas instâncias.
+      await repo.save(entry)
+    })
   }
 
-  private clearLoginAttempts(email: string): void {
-    this.loginAttempts.delete(email)
+  private async clearLoginAttempts(email: string): Promise<void> {
+    await this.loginAttempts.delete({ email }) // Sucesso de login limpa a janela distribuída.
   }
 
   // ── Audit log ─────────────────────────────────────────────────────────────

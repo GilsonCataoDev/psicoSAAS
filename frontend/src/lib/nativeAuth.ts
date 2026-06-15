@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core'
-import { Preferences } from '@capacitor/preferences'
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 
 const ACCESS_TOKEN_KEY = 'usecognia.native.accessToken'
 const REFRESH_TOKEN_KEY = 'usecognia.native.refreshToken'
@@ -10,21 +10,29 @@ export function isNativeApp(): boolean {
 
 export async function getNativeAccessToken(): Promise<string | null> {
   if (!isNativeApp()) return null
-  const { value } = await Preferences.get({ key: ACCESS_TOKEN_KEY })
-  return value
+  try {
+    const { value } = await SecureStoragePlugin.get({ key: ACCESS_TOKEN_KEY })
+    return value
+  } catch {
+    return null
+  }
 }
 
 export async function getNativeRefreshToken(): Promise<string | null> {
   if (!isNativeApp()) return null
-  const { value } = await Preferences.get({ key: REFRESH_TOKEN_KEY })
-  return value
+  try {
+    const { value } = await SecureStoragePlugin.get({ key: REFRESH_TOKEN_KEY })
+    return value
+  } catch {
+    return null
+  }
 }
 
 export async function setNativeTokens(tokens?: { accessToken?: string; refreshToken?: string } | null): Promise<void> {
   if (!isNativeApp() || !tokens?.accessToken || !tokens?.refreshToken) return
   await Promise.all([
-    Preferences.set({ key: ACCESS_TOKEN_KEY, value: tokens.accessToken }),
-    Preferences.set({ key: REFRESH_TOKEN_KEY, value: tokens.refreshToken }),
+    SecureStoragePlugin.set({ key: ACCESS_TOKEN_KEY, value: tokens.accessToken }),
+    SecureStoragePlugin.set({ key: REFRESH_TOKEN_KEY, value: tokens.refreshToken }), // Keychain/Keystore, nao Preferences
   ])
   window.localStorage.removeItem(ACCESS_TOKEN_KEY)
   window.localStorage.removeItem(REFRESH_TOKEN_KEY)
@@ -33,8 +41,8 @@ export async function setNativeTokens(tokens?: { accessToken?: string; refreshTo
 export async function clearNativeTokens(): Promise<void> {
   if (!isNativeApp()) return
   await Promise.all([
-    Preferences.remove({ key: ACCESS_TOKEN_KEY }),
-    Preferences.remove({ key: REFRESH_TOKEN_KEY }),
+    SecureStoragePlugin.remove({ key: ACCESS_TOKEN_KEY }).catch(() => undefined),
+    SecureStoragePlugin.remove({ key: REFRESH_TOKEN_KEY }).catch(() => undefined),
   ])
   window.localStorage.removeItem(ACCESS_TOKEN_KEY)
   window.localStorage.removeItem(REFRESH_TOKEN_KEY)

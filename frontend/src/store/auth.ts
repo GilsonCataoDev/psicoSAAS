@@ -34,6 +34,13 @@ interface AuthState {
   updateUser: (user: Partial<User>) => void
 }
 
+function toPersistedUser(user: User | null): User | null {
+  if (!user) return null
+  const { id, name, email, crp, emailVerified, isAdmin } = user
+  // Persistencia minima: evita CPF/CNPJ, telefone e outros dados pessoais no localStorage.
+  return { id, name, email, crp, emailVerified, isAdmin }
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
@@ -63,7 +70,7 @@ export const useAuthStore = create<AuthState>()(
       name: 'usecognia-auth',
       // Persiste SOMENTE o perfil — NUNCA o token JWT nem o csrfToken
       partialize: (state) => ({
-        user: state.user,
+        user: toPersistedUser(state.user),
         isAuthenticated: state.isAuthenticated,
       }),
     },

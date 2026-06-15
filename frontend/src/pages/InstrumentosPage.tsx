@@ -1580,7 +1580,7 @@ function InstrumentModal({
   }
 
   function printInstrument() {
-    const win = window.open('', '_blank')
+    const win = window.open('', '_blank', 'noopener,noreferrer')
     if (!win) { toast.error('Não foi possível abrir a janela de impressão.'); return }
 
     const rows = lines.map(line => {

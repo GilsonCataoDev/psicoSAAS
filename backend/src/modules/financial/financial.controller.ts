@@ -63,7 +63,7 @@ export class AsaasWebhookController {
     @Body() body: { event: string; payment: any },
   ) {
     const expected = process.env.ASAAS_WEBHOOK_TOKEN
-    if (expected && token !== expected) return { ok: false }
+    if (!expected || token !== expected) return { ok: false } // Sem segredo configurado, o webhook não é processado.
 
     await this.svc.handleAsaasWebhook(body.event, body.payment)
     return { ok: true }

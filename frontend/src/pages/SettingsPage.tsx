@@ -15,6 +15,7 @@ import Avatar from '@/components/ui/Avatar'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { disableWebPush, enableWebPush, getPushStatus, isPushSupported, sendTestWebPush } from '@/lib/pushNotifications'
 import { isNativeApp } from '@/lib/nativeAuth'
+import { userSafeError } from '@/lib/userSafeError'
 
 const tabs = [
   { id: 'profile',  icon: User,          label: 'Perfil'     },
@@ -298,7 +299,7 @@ export default function SettingsPage() {
       updateUser({ avatarUrl: updated.avatarUrl, avatar: updated.avatarUrl })
       toast.success('Foto atualizada')
     } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? 'Não foi possível enviar a foto.')
+      toast.error(userSafeError(e, 'Não foi possível enviar a foto.'))
     } finally {
       setUploadingAvatar(false)
     }
@@ -347,7 +348,7 @@ export default function SettingsPage() {
       const { data } = await api.get('/google-calendar/connect')
       window.location.href = data.url
     } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? 'Não foi possível iniciar a conexão com o Google.')
+      toast.error(userSafeError(e, 'Não foi possível iniciar a conexão com o Google.'))
       setCalendarBusy(false)
     }
   }
@@ -360,7 +361,7 @@ export default function SettingsPage() {
       setPrefs(prev => ({ ...prev, googleCalendarConnected: false, googleCalendarEmail: '' }))
       toast.success('Google Agenda desconectado')
     } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? 'Não foi possível desconectar.')
+      toast.error(userSafeError(e, 'Não foi possível desconectar.'))
     } finally {
       setCalendarBusy(false)
     }
@@ -372,7 +373,7 @@ export default function SettingsPage() {
       const { data } = await api.post('/notifications/whatsapp/connect')
       setWhatsappQr(data.base64)
     } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? 'Nao foi possivel gerar o QR Code.')
+      toast.error(userSafeError(e, 'Nao foi possivel gerar o QR Code.'))
     } finally {
       setWhatsappBusy(false)
     }
@@ -386,7 +387,7 @@ export default function SettingsPage() {
       setWhatsappQr('')
       toast.success('Mensagem teste enviada')
     } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? 'Mensagem teste nao enviada.')
+      toast.error(userSafeError(e, 'Mensagem teste nao enviada.'))
     } finally {
       setWhatsappBusy(false)
     }
@@ -400,7 +401,7 @@ export default function SettingsPage() {
       setWhatsappQr(data.base64)
       toast.success('Novo QR Code gerado')
     } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? 'Nao foi possivel reiniciar a conexao.')
+      toast.error(userSafeError(e, 'Nao foi possivel reiniciar a conexao.'))
     } finally {
       setWhatsappBusy(false)
     }
@@ -440,7 +441,7 @@ export default function SettingsPage() {
       await sendTestWebPush()
       toast.success('Notificacao teste enviada')
     } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? 'Nao foi possivel enviar o teste.')
+      toast.error(userSafeError(e, 'Nao foi possivel enviar o teste.'))
     } finally {
       setPushBusy(false)
     }
@@ -461,7 +462,7 @@ export default function SettingsPage() {
       toast.success('Senha alterada com sucesso')
       setCurrentPw(''); setNewPw(''); setConfirmPw('')
     } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? 'Erro ao alterar senha.')
+      toast.error(userSafeError(e, 'Erro ao alterar senha.'))
     } finally {
       setSavingPw(false)
     }
@@ -494,7 +495,7 @@ export default function SettingsPage() {
       setSubscription(data)
       toast.success(data.cancelAtPeriodEnd ? 'Plano cancelado. Acesso mantido ate o fim do periodo.' : 'Plano cancelado.')
     } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? 'Erro ao cancelar assinatura.')
+      toast.error(userSafeError(e, 'Erro ao cancelar assinatura.'))
     } finally {
       setCancelingPlan(false)
     }
@@ -516,7 +517,7 @@ export default function SettingsPage() {
       window.URL.revokeObjectURL(url)
       toast.success('Exportacao baixada.')
     } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? 'Não foi possível exportar os dados.')
+      toast.error(userSafeError(e, 'Não foi possível exportar os dados.'))
     } finally {
       setExportingData(false)
     }
@@ -527,7 +528,7 @@ export default function SettingsPage() {
       await createTemplate.mutateAsync({ type, name, content, tags: ['custom'] })
       toast.success('Template salvo')
     } catch (err: any) {
-      toast.error(err?.response?.data?.message ?? 'Nao foi possivel salvar o template.')
+      toast.error(userSafeError(err, 'Nao foi possivel salvar o template.'))
     }
   }
 
@@ -556,7 +557,7 @@ export default function SettingsPage() {
       toast.success('Conta excluida definitivamente.')
       navigate('/login', { replace: true })
     } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? 'Não foi possível excluir a conta.')
+      toast.error(userSafeError(e, 'Não foi possível excluir a conta.'))
     } finally {
       setDeletingAccount(false)
     }

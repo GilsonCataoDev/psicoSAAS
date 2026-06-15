@@ -24,7 +24,7 @@ export class BillingWebhookService {
 
   isValidOrigin(headers: Record<string, any>, payload: any): boolean {
     const expected = this.cfg.get<string>('ASAAS_WEBHOOK_TOKEN')
-    if (!expected) return true
+    if (!expected) return false // Falha fechado: sem segredo configurado, nenhum webhook é confiável.
 
     const received =
       headers['asaas-access-token'] ??
@@ -94,7 +94,11 @@ export class BillingWebhookService {
 
   private async logOnce(eventId: string, eventType: string, payload: any): Promise<boolean> {
     try {
-      await this.events.save(this.events.create({ eventId, eventType, payload }))
+      await this.events.save(this.events.create({
+        eventId,
+        eventType,
+        payload: this.sanitizeWebhookPayload(payload), // Mantém auditoria sem persistir payload financeiro bruto.
+      }))
       return true
     } catch (err: any) {
       if (err?.code === '23505' || err?.driverError?.code === '23505') return false
@@ -150,6 +154,25 @@ export class BillingWebhookService {
 
     if (!eventType || !objectId) return null
     return `${eventType}:${objectId}`
+  }
+
+  private sanitizeWebhookPayload(payload: any): Record<string, unknown> {
+    const payment = payload?.payment ?? {}
+    const subscription = payload?.subscription ?? {}
+    return {
+      event: payload?.event ?? null,
+      id: payload?.id ?? null,
+      status: payment?.status ?? subscription?.status ?? null,
+      paymentId: payment?.id ?? null,
+      subscriptionId: subscription?.id ?? payment?.subscription ?? null,
+      externalReference: subscription?.externalReference ?? payment?.externalReference ?? null,
+      dueDate: payment?.dueDate ?? null,
+      paymentDate: payment?.paymentDate ?? payment?.clientPaymentDate ?? null,
+      nextDueDate: subscription?.nextDueDate ?? payment?.nextDueDate ?? null,
+      value: payment?.value ?? subscription?.value ?? null,
+      netValue: payment?.netValue ?? null,
+      billingType: payment?.billingType ?? null,
+    }
   }
 
   private async sendPaymentFailedEmail(userId: string): Promise<void> {

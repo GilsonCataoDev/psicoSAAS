@@ -395,7 +395,7 @@ export default function DashboardPage() {
                     </span>
                   </div>
                   {session.summary && (
-                    <p className="text-xs text-neutral-400 mt-0.5 line-clamp-1">{session.summary}</p>
+                    <p className="text-xs text-neutral-400 mt-0.5 line-clamp-1">Evolução registrada</p>
                   )}
                 </div>
                 {session.mood && (

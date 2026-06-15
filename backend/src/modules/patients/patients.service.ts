@@ -14,6 +14,32 @@ type EncryptedProntuario = {
   data: string
 }
 
+export type PatientListItemDto = Pick<
+  Patient,
+  | 'id'
+  | 'name'
+  | 'email'
+  | 'phone'
+  | 'birthDate'
+  | 'pronouns'
+  | 'race'
+  | 'gender'
+  | 'sexualOrientation'
+  | 'sessionPrice'
+  | 'sessionDuration'
+  | 'startDate'
+  | 'hasFixedSchedule'
+  | 'fixedScheduleWeekday'
+  | 'fixedScheduleTime'
+  | 'fixedScheduleFrequency'
+  | 'fixedScheduleModality'
+  | 'tags'
+  | 'status'
+  | 'cpfCnpj'
+  | 'createdAt'
+  | 'updatedAt'
+>
+
 const PRONTUARIO_ENCRYPTED_MARKER = 'usecognia.prontuario.v1'
 const LEGACY_PRONTUARIO_ENCRYPTED_MARKER = 'psicosaas.prontuario.v1'
 
@@ -30,10 +56,10 @@ export class PatientsService {
    * Retorna uma cópia do DTO com privateNotes criptografadas.
    * Campos ausentes não são modificados.
    */
-  private encryptFields<T extends { privateNotes?: string; prontuario?: Record<string, any> }>(dto: T): T {
+  private encryptFields<T extends { privateNotes?: string; prontuario?: object }>(dto: T): T {
     const encrypted: any = { ...dto }
     if (dto.privateNotes) encrypted.privateNotes = encrypt(dto.privateNotes)
-    if (dto.prontuario) encrypted.prontuario = this.encryptProntuario(dto.prontuario)
+    if (dto.prontuario) encrypted.prontuario = this.encryptProntuario(dto.prontuario as Record<string, any>)
     return encrypted
   }
 
@@ -87,11 +113,10 @@ export class PatientsService {
 
   private async findRaw(id: string, psychologistId: string, relations?: string[]): Promise<Patient> {
     const patient = await this.repo.findOne({
-      where: { id },
+      where: { id, psychologistId }, // Evita revelar que um registro de outro psicólogo existe.
       ...(relations ? { relations } : {}),
     })
     if (!patient) throw new NotFoundException('Pessoa não encontrada')
-    if (patient.psychologistId !== psychologistId) throw new ForbiddenException()
     return patient
   }
 
@@ -116,12 +141,20 @@ export class PatientsService {
 
   // ─── API pública ─────────────────────────────────────────────────────────────
 
-  async findAll(psychologistId: string): Promise<Patient[]> {
+  async findAll(psychologistId: string): Promise<PatientListItemDto[]> {
     const patients = await this.repo.find({
       where: { psychologistId },
       order: { name: 'ASC' },
+      // Listagem nunca deve carregar prontuário, privateNotes nem ids internos de gateway.
+      select: [
+        'id', 'name', 'email', 'phone', 'birthDate', 'pronouns', 'race', 'gender',
+        'sexualOrientation', 'sessionPrice', 'sessionDuration', 'startDate',
+        'hasFixedSchedule', 'fixedScheduleWeekday', 'fixedScheduleTime',
+        'fixedScheduleFrequency', 'fixedScheduleModality', 'tags', 'status',
+        'cpfCnpj', 'createdAt', 'updatedAt',
+      ],
     })
-    return patients.map(p => this.dec(p))
+    return patients
   }
 
   async findOne(id: string, psychologistId: string): Promise<Patient> {

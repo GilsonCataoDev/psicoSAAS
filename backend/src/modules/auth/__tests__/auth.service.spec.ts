@@ -7,6 +7,7 @@ import * as bcrypt from 'bcryptjs'
 import { AuthService } from '../auth.service'
 import { User } from '../entities/user.entity'
 import { RefreshToken } from '../entities/refresh-token.entity'
+import { LoginAttempt } from '../entities/login-attempt.entity'
 import { EmailService } from '../../email/email.service'
 import { ReferralService } from '../../referral/referral.service'
 
@@ -67,20 +68,44 @@ describe('AuthService', () => {
   let service: AuthService
   let usersRepo: ReturnType<typeof makeRepo>
   let rtRepo: ReturnType<typeof makeRepo>
+  let loginAttemptsRepo: ReturnType<typeof makeRepo>
+  let loginAttemptStore: Map<string, LoginAttempt>
 
   beforeEach(async () => {
     usersRepo = makeRepo()
     rtRepo    = makeRepo()
+    loginAttemptStore = new Map()
+    loginAttemptsRepo = makeRepo({
+      findOneBy: jest.fn(({ email }: { email: string }) => Promise.resolve(loginAttemptStore.get(email) ?? null)),
+      delete: jest.fn(({ email }: { email: string }) => {
+        loginAttemptStore.delete(email)
+        return Promise.resolve({})
+      }),
+    } as any)
+    const loginAttemptManagerRepo = {
+      findOne: jest.fn(({ where }: { where: { email: string } }) => Promise.resolve(loginAttemptStore.get(where.email) ?? null)),
+      create: jest.fn((value: Partial<LoginAttempt>) => value as LoginAttempt),
+      save: jest.fn((entry: LoginAttempt) => {
+        loginAttemptStore.set(entry.email, entry)
+        return Promise.resolve(entry)
+      }),
+    }
 
     const module = await Test.createTestingModule({
       providers: [
         AuthService,
         { provide: getRepositoryToken(User),         useValue: usersRepo },
         { provide: getRepositoryToken(RefreshToken), useValue: rtRepo },
+        { provide: getRepositoryToken(LoginAttempt), useValue: loginAttemptsRepo },
         { provide: JwtService,     useValue: { sign: jest.fn().mockReturnValue('access-token') } },
         { provide: EmailService,   useValue: { sendEmailVerification: jest.fn().mockResolvedValue(undefined), sendWelcome: jest.fn().mockResolvedValue(undefined), sendPasswordReset: jest.fn().mockResolvedValue(undefined) } },
         { provide: ReferralService, useValue: { applyReferral: jest.fn() } },
-        { provide: DataSource, useValue: {} },
+        {
+          provide: DataSource,
+          useValue: {
+            transaction: jest.fn((fn: any) => fn({ getRepository: jest.fn(() => loginAttemptManagerRepo) })),
+          },
+        },
       ],
     }).compile()
 
@@ -113,8 +138,8 @@ describe('AuthService', () => {
         await service.login({ email, password: 'wrong' }).catch(() => {})
       }
 
-      // Reset internal counter by patching private map (white-box)
-      ;(service as any).loginAttempts.delete(email)
+      // Simula janela expirada na tabela persistente.
+      loginAttemptStore.set(email, { email, count: 9, resetAt: new Date(Date.now() - 1000), updatedAt: new Date() } as LoginAttempt)
 
       usersRepo.findOneBy.mockResolvedValue(user)
       rtRepo.create.mockReturnValue(makeRefreshToken())

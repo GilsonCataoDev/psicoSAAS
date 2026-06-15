@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { MoreThan, Repository } from 'typeorm'
 import { AuditLog } from './entities/audit-log.entity'
 
 type AuditInput = {
@@ -33,5 +33,15 @@ export class AuditService {
     } catch (error) {
       this.logger.warn(`Falha ao registrar auditoria: ${error instanceof Error ? error.message : error}`)
     }
+  }
+
+  countForUserSince(userId: string, action: string, since: Date): Promise<number> {
+    return this.repo.count({
+      where: {
+        userId,
+        action,
+        createdAt: MoreThan(since),
+      },
+    })
   }
 }

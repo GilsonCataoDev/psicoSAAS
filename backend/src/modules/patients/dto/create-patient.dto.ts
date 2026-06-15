@@ -1,8 +1,48 @@
-import { Transform } from 'class-transformer'
-import { IsString, IsEmail, IsOptional, IsNumber, IsArray, IsIn, IsObject, Matches, IsBoolean, Min, Max } from 'class-validator'
+import { Transform, Type } from 'class-transformer'
+import {
+  ArrayMaxSize, IsString, IsEmail, IsOptional, IsNumber, IsArray, IsIn,
+  IsObject, Matches, IsBoolean, Min, Max, MaxLength, Validate,
+  ValidateNested, ValidatorConstraint, ValidatorConstraintInterface,
+} from 'class-validator'
 
 function emptyToUndefined(value: unknown) {
   return typeof value === 'string' && value.trim() === '' ? undefined : value
+}
+
+@ValidatorConstraint({ name: 'prontuarioSize', async: false })
+class ProntuarioSizeConstraint implements ValidatorConstraintInterface {
+  validate(value: unknown): boolean {
+    if (value === undefined || value === null) return true
+    try {
+      return JSON.stringify(value).length <= 20_000
+    } catch {
+      return false
+    }
+  }
+
+  defaultMessage(): string {
+    return 'prontuario excede o limite de 20KB'
+  }
+}
+
+class PatientProntuarioDto {
+  @IsString() @MaxLength(3000) @IsOptional() queixaPrincipal?: string
+  @IsString() @MaxLength(3000) @IsOptional() historicoDoenca?: string
+  @IsString() @MaxLength(3000) @IsOptional() antecedentesPessoais?: string
+  @IsString() @MaxLength(3000) @IsOptional() historicoFamiliar?: string
+  @IsString() @MaxLength(1500) @IsOptional() medicamentos?: string
+  @IsString() @MaxLength(1500) @IsOptional() condicoesMedicas?: string
+  @IsString() @MaxLength(1500) @IsOptional() abordagem?: string
+  @IsString() @MaxLength(3000) @IsOptional() objetivos?: string
+  @IsString() @MaxLength(120) @IsOptional() frequencia?: string
+  @IsString() @MaxLength(120) @IsOptional() duracaoPrevista?: string
+  @IsString() @MaxLength(120) @IsOptional() contatoEmergenciaNome?: string
+  @IsString() @MaxLength(30) @IsOptional() contatoEmergenciaPhone?: string
+  @IsString() @MaxLength(80) @IsOptional() contatoEmergenciaRelacao?: string
+  @IsString() @MaxLength(120) @IsOptional() escolaridade?: string
+  @IsString() @MaxLength(120) @IsOptional() profissao?: string
+  @IsString() @MaxLength(80) @IsOptional() estadoCivil?: string
+  @IsString() @MaxLength(120) @IsOptional() religiao?: string
 }
 
 export class CreatePatientDto {
@@ -51,10 +91,11 @@ export class CreatePatientDto {
   @IsString() @IsOptional() @Matches(/^([01]\d|2[0-3]):[0-5]\d$/) fixedScheduleTime?: string
   @IsIn(['weekly','biweekly']) @IsOptional() fixedScheduleFrequency?: 'weekly' | 'biweekly'
   @IsIn(['presencial','online']) @IsOptional() fixedScheduleModality?: 'presencial' | 'online'
-  @IsArray() @IsOptional() tags?: string[]
+  @IsArray() @ArrayMaxSize(20) @IsString({ each: true }) @MaxLength(40, { each: true }) @IsOptional() tags?: string[]
   @IsIn(['active','paused','discharged']) @IsOptional() status?: 'active' | 'paused' | 'discharged'
-  @IsString() @IsOptional() privateNotes?: string
-  @IsObject() @IsOptional() prontuario?: Record<string, any>
+  @IsString() @MaxLength(5000) @IsOptional() privateNotes?: string
+  @IsObject() @ValidateNested() @Type(() => PatientProntuarioDto) @Validate(ProntuarioSizeConstraint) @IsOptional()
+  prontuario?: PatientProntuarioDto // Schema mínimo: só campos clínicos conhecidos, com limite total e por campo.
 
   @Transform(({ value }) => typeof value === 'string' ? emptyToUndefined(value.replace(/\D/g, '')) : value)
   @IsOptional()

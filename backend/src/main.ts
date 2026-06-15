@@ -31,6 +31,9 @@ async function bootstrap() {
   if ((process.env.ENCRYPTION_KEY ?? '').length < 32) {
     throw new Error('ENCRYPTION_KEY deve ter ao menos 32 caracteres')
   }
+  if (process.env.NODE_ENV === 'production' && !process.env.ASAAS_WEBHOOK_TOKEN) {
+    throw new Error('ASAAS_WEBHOOK_TOKEN obrigatório em produção para validar webhooks do Asaas')
+  }
 
   // ── Sentry (erros em produção) ─────────────────────────────────────────────
   if (process.env.SENTRY_DSN) {
