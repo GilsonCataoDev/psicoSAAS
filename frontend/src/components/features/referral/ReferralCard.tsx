@@ -43,7 +43,7 @@ export default function ReferralCard() {
       `Estou usando o UseCognia para gerenciar meu consultorio e adorando!\n\n` +
       `Experimente 7 dias gratis com meu link: ${referralUrl}`,
     )
-    window.open(`https://wa.me/?text=${msg}`, '_blank', 'noopener')
+    window.open(`https://wa.me/?text=${msg}`, '_blank', 'noopener,noreferrer')
     track(EVENTS.REFERRAL_SHARED)
   }
 

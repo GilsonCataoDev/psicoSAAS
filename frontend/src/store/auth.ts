@@ -4,8 +4,6 @@ import { identifyUser, resetAnalytics } from '@/lib/analytics'
 import { migratePersistedStorage } from '@/lib/storageMigration'
 import { clearNativeTokens } from '@/lib/nativeAuth'
 
-migratePersistedStorage('usecognia-auth', 'psicosaas-auth')
-
 export interface User {
   id: string
   name: string
@@ -22,6 +20,21 @@ export interface User {
   isAdmin?: boolean
 }
 
+function toPersistedUser(user: User | null): User | null {
+  if (!user) return null
+  const { id, name, email, crp, emailVerified, isAdmin } = user
+  // Persistencia minima: evita CPF/CNPJ, telefone e outros dados pessoais no localStorage.
+  return { id, name, email, crp, emailVerified, isAdmin }
+}
+
+function sanitizePersistedAuth(value: string): string {
+  const parsed = JSON.parse(value)
+  if (parsed?.state?.user) parsed.state.user = toPersistedUser(parsed.state.user)
+  return JSON.stringify(parsed)
+}
+
+migratePersistedStorage('usecognia-auth', 'psicosaas-auth', sanitizePersistedAuth)
+
 interface AuthState {
   user: User | null
   isAuthenticated: boolean
@@ -32,13 +45,6 @@ interface AuthState {
   setCsrfToken: (token: string) => void
   logout: () => void
   updateUser: (user: Partial<User>) => void
-}
-
-function toPersistedUser(user: User | null): User | null {
-  if (!user) return null
-  const { id, name, email, crp, emailVerified, isAdmin } = user
-  // Persistencia minima: evita CPF/CNPJ, telefone e outros dados pessoais no localStorage.
-  return { id, name, email, crp, emailVerified, isAdmin }
 }
 
 export const useAuthStore = create<AuthState>()(

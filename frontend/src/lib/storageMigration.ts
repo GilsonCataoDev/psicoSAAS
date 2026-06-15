@@ -1,8 +1,16 @@
-export function migratePersistedStorage(currentKey: string, legacyKey: string): void {
+export function migratePersistedStorage(
+  currentKey: string,
+  legacyKey: string,
+  sanitize?: (value: string) => string,
+): void {
   try {
-    if (window.localStorage.getItem(currentKey)) return
+    const currentValue = window.localStorage.getItem(currentKey)
+    if (currentValue) {
+      if (sanitize) window.localStorage.setItem(currentKey, sanitize(currentValue))
+      return
+    }
     const legacyValue = window.localStorage.getItem(legacyKey)
-    if (legacyValue) window.localStorage.setItem(currentKey, legacyValue)
+    if (legacyValue) window.localStorage.setItem(currentKey, sanitize ? sanitize(legacyValue) : legacyValue)
   } catch {
     // Storage can be unavailable in private or restricted contexts.
   }
