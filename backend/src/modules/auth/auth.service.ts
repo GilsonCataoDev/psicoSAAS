@@ -282,6 +282,8 @@ export class AuthService {
     await this.dataSource.transaction(async (manager) => {
       await manager.query('DELETE FROM "referrals" WHERE "referrerId" = $1 OR "referredId" = $1', [id])
       await manager.query('DELETE FROM "documents" WHERE "userId" = $1', [id])
+      await manager.query('DELETE FROM "instrument_assignments" WHERE "psychologistId" = $1', [id])
+      await manager.query('DELETE FROM "push_subscriptions" WHERE "userId" = $1', [id])
       await manager.query('DELETE FROM "billing_subscriptions" WHERE "userId" = $1', [id])
       await manager.query('DELETE FROM "financial_records" WHERE "psychologistId" = $1', [id])
       await manager.query('DELETE FROM "sessions" WHERE "psychologistId" = $1', [id])
@@ -292,10 +294,11 @@ export class AuthService {
       await manager.query('DELETE FROM "blocked_dates" WHERE "psychologistId" = $1', [id])
       await manager.query('DELETE FROM "patients" WHERE "psychologistId" = $1', [id])
       await manager.query('DELETE FROM "refresh_tokens" WHERE "userId" = $1', [id])
+      await manager.query('DELETE FROM "audit_logs" WHERE "userId" = $1', [id])
+      await manager.query('DELETE FROM "login_attempts" WHERE "email" = $1', [user.email])
       await manager.query('DELETE FROM "users" WHERE "id" = $1', [id])
     })
 
-    await this.clearLoginAttempts(user.email)
     this.audit('ACCOUNT_DELETED', { userId: id, ip })
   }
 
