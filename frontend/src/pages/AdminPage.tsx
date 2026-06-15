@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ShieldCheck, TrendingUp, Users } from 'lucide-react'
+import { Search, ShieldCheck, TrendingUp, Users, X } from 'lucide-react'
 import { useAdminStats, useAdminUsers, useAdminOverrideSubscription, AdminUser } from '@/hooks/useApi'
 
 const STATUS_LABEL: Record<string, string> = {
@@ -90,11 +90,22 @@ function OverrideModal({ user, onClose }: { user: AdminUser; onClose: () => void
 
 export default function AdminPage() {
   const [page, setPage] = useState(1)
+  const [search, setSearch] = useState('')
+  const [plan, setPlan] = useState('')
+  const [status, setStatus] = useState('')
   const [selected, setSelected] = useState<AdminUser | null>(null)
   const { data: stats } = useAdminStats()
-  const { data: users, isLoading } = useAdminUsers(page)
+  const { data: users, isLoading } = useAdminUsers({ page, search: search.trim() || undefined, plan: plan || undefined, status: status || undefined })
 
   const totalPages = users ? Math.ceil(users.total / users.limit) : 1
+  const hasFilters = !!search.trim() || !!plan || !!status
+
+  function resetFilters() {
+    setSearch('')
+    setPlan('')
+    setStatus('')
+    setPage(1)
+  }
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 px-4 py-6">
@@ -121,6 +132,50 @@ export default function AdminPage() {
         </div>
       )}
 
+      {/* Filters */}
+      <div className="rounded-2xl border border-neutral-100 bg-white p-3 shadow-sm">
+        <div className="grid gap-2 md:grid-cols-[1fr_160px_160px_auto]">
+          <label className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+            <input
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1) }}
+              placeholder="Buscar por nome, e-mail ou CRP"
+              className="h-10 w-full rounded-xl border border-neutral-200 pl-9 pr-3 text-sm outline-none focus:border-sage-400"
+            />
+          </label>
+          <select
+            value={plan}
+            onChange={e => { setPlan(e.target.value); setPage(1) }}
+            className="h-10 rounded-xl border border-neutral-200 px-3 text-sm text-neutral-600 outline-none focus:border-sage-400"
+          >
+            <option value="">Todos os planos</option>
+            <option value="free">Free</option>
+            <option value="essencial">Essencial</option>
+            <option value="pro">Pro</option>
+          </select>
+          <select
+            value={status}
+            onChange={e => { setStatus(e.target.value); setPage(1) }}
+            className="h-10 rounded-xl border border-neutral-200 px-3 text-sm text-neutral-600 outline-none focus:border-sage-400"
+          >
+            <option value="">Todos os status</option>
+            {['active', 'trialing', 'past_due', 'canceled', 'pending', 'none'].map(s => (
+              <option key={s} value={s}>{STATUS_LABEL[s]}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={resetFilters}
+            disabled={!hasFilters}
+            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-neutral-200 px-3 text-sm text-neutral-500 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <X className="h-4 w-4" />
+            Limpar
+          </button>
+        </div>
+      </div>
+
       {/* Users table */}
       <div className="overflow-x-auto rounded-2xl border border-neutral-100 bg-white shadow-sm">
         <table className="min-w-[620px] w-full text-sm">
@@ -138,6 +193,13 @@ export default function AdminPage() {
               <tr>
                 <td colSpan={5} className="py-10 text-center text-xs text-neutral-400">
                   Carregando…
+                </td>
+              </tr>
+            )}
+            {!isLoading && users?.data.length === 0 && (
+              <tr>
+                <td colSpan={5} className="py-10 text-center text-xs text-neutral-400">
+                  Nenhum usuário encontrado.
                 </td>
               </tr>
             )}
@@ -168,7 +230,7 @@ export default function AdminPage() {
         {totalPages > 1 && (
           <div className="flex min-w-[620px] items-center justify-between border-t border-neutral-100 px-4 py-3">
             <span className="text-xs text-neutral-400">
-              Página {page} de {totalPages}
+              Página {page} de {totalPages} · {users?.total ?? 0} resultado(s)
             </span>
             <div className="flex gap-2">
               <button

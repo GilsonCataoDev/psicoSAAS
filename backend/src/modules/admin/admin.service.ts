@@ -5,6 +5,7 @@ import { User } from '../auth/entities/user.entity'
 import { Subscription, BillingSubscriptionStatus } from '../billing/entities/subscription.entity'
 import { AsaasService } from '../billing/asaas.service'
 import { OverrideSubscriptionDto } from './dto/override-subscription.dto'
+import { ListAdminUsersDto } from './dto/list-admin-users.dto'
 
 @Injectable()
 export class AdminService {
@@ -14,29 +15,42 @@ export class AdminService {
     private readonly asaas: AsaasService,
   ) {}
 
-  async listUsers(page: number, limit: number) {
-    const [users, total] = await this.users.findAndCount({
-      order: { createdAt: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
-      select: ['id', 'name', 'email', 'crp', 'specialty', 'isActive', 'emailVerified', 'createdAt'],
-    })
+  async listUsers(filters: ListAdminUsersDto) {
+    const page = filters.page ?? 1
+    const limit = filters.limit ?? 20
+    const latestSubscriptionId = this.subs
+      .createQueryBuilder('latest')
+      .select('latest.id')
+      .where('latest.userId = u.id')
+      .orderBy('latest.createdAt', 'DESC')
+      .limit(1)
+      .getQuery()
 
-    const ids = users.map(u => u.id)
-    const subscriptions = ids.length
-      ? await this.subs.createQueryBuilder('s')
-          .where('s.userId IN (:...ids)', { ids })
-          .orderBy('s.createdAt', 'DESC')
-          .getMany()
-      : []
+    const qb = this.users
+      .createQueryBuilder('u')
+      .select(['u.id', 'u.name', 'u.email', 'u.crp', 'u.specialty', 'u.isActive', 'u.emailVerified', 'u.createdAt'])
+      .leftJoinAndMapOne('u.subscription', Subscription, 'subscription', `subscription.id = (${latestSubscriptionId})`)
+      .orderBy('u.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
 
-    const subByUser = new Map<string, Subscription>()
-    for (const s of subscriptions) {
-      if (!subByUser.has(s.userId)) subByUser.set(s.userId, s)
+    const search = filters.search?.trim().toLowerCase()
+    if (search) {
+      qb.andWhere('(LOWER(u.name) LIKE :search OR LOWER(u.email) LIKE :search OR LOWER(u.crp) LIKE :search)', {
+        search: `%${search}%`,
+      })
+    }
+    if (filters.plan) qb.andWhere('subscription.plan = :plan', { plan: filters.plan })
+    if (filters.status === 'none') {
+      qb.andWhere('subscription.id IS NULL')
+    } else if (filters.status) {
+      qb.andWhere('subscription.status = :status', { status: filters.status })
     }
 
+    const [users, total] = await qb.getManyAndCount()
+
     return {
-      data: users.map(u => ({ ...u, subscription: subByUser.get(u.id) ?? null })),
+      data: users.map(u => ({ ...u, subscription: (u as User & { subscription?: Subscription }).subscription ?? null })),
       total,
       page,
       limit,

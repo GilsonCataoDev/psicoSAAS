@@ -524,10 +524,10 @@ export function useAdminStats() {
   })
 }
 
-export function useAdminUsers(page = 1) {
+export function useAdminUsers(params: { page?: number; search?: string; plan?: string; status?: string } = {}) {
   return useQuery<{ data: AdminUser[]; total: number; page: number; limit: number }>({
-    queryKey: ['admin', 'users', page],
-    queryFn: () => api.get('/admin/users', { params: { page } }).then(r => r.data),
+    queryKey: ['admin', 'users', params],
+    queryFn: () => api.get('/admin/users', { params }).then(r => r.data),
   })
 }
 

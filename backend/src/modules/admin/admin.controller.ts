@@ -1,9 +1,10 @@
-import { Body, Controller, DefaultValuePipe, Get, Param, ParseIntPipe, ParseUUIDPipe, Patch, Query, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Query, UseGuards } from '@nestjs/common'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { AdminGuard } from '../../common/guards/admin.guard'
 import { AdminService } from './admin.service'
 import { OverrideSubscriptionDto } from './dto/override-subscription.dto'
+import { ListAdminUsersDto } from './dto/list-admin-users.dto'
 
 @UseGuards(JwtAuthGuard, CsrfGuard, AdminGuard)
 @Controller('admin')
@@ -16,11 +17,8 @@ export class AdminController {
   }
 
   @Get('users')
-  listUsers(
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
-  ) {
-    return this.admin.listUsers(page, Math.min(limit, 100))
+  listUsers(@Query() query: ListAdminUsersDto) {
+    return this.admin.listUsers(query)
   }
 
   @Get('users/:id')
