@@ -80,6 +80,7 @@ export default function PatientsPage() {
           onClick={openCreatePatientModal}
           className="btn-primary flex items-center gap-2"
           aria-disabled={reachedPatientLimit}
+          aria-label="Novo paciente"
         >
           <Plus className="w-4 h-4" />
           <span className="hidden sm:inline">Novo paciente</span>

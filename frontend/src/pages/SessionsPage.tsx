@@ -40,7 +40,7 @@ export default function SessionsPage() {
               : 'Registre como foi cada atendimento'}
           </p>
         </div>
-        <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2">
+        <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2" aria-label="Como foi a sessão?">
           <Plus className="w-4 h-4" />
           <span className="hidden sm:inline">Como foi a sessão?</span>
         </button>
