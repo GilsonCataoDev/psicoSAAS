@@ -14,6 +14,7 @@ import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 import Avatar from '@/components/ui/Avatar'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { disableWebPush, enableWebPush, getPushStatus, isPushSupported, sendTestWebPush } from '@/lib/pushNotifications'
+import { isNativeApp } from '@/lib/nativeAuth'
 
 const tabs = [
   { id: 'profile',  icon: User,          label: 'Perfil'     },
@@ -151,6 +152,7 @@ export default function SettingsPage() {
   const [pushConfigured, setPushConfigured] = useState(false)
   const [pushSubscribed, setPushSubscribed] = useState(false)
   const [pushBusy, setPushBusy] = useState(false)
+  const nativeApp = isNativeApp()
   const [googleCalendarAvailable, setGoogleCalendarAvailable] = useState(true)
   const [confirmDisconnectGoogle, setConfirmDisconnectGoogle] = useState(false)
   const [googleLastSyncedAt, setGoogleLastSyncedAt] = useState<string | null>(null)
@@ -218,6 +220,11 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!isAuthenticated || tab !== 'notify') return
+    if (nativeApp) {
+      setPushConfigured(false)
+      setPushSubscribed(false)
+      return
+    }
     getPushStatus()
       .then((data) => {
         setPushConfigured(data.configured)
@@ -227,7 +234,7 @@ export default function SettingsPage() {
         setPushConfigured(false)
         setPushSubscribed(false)
       })
-  }, [isAuthenticated, tab])
+  }, [isAuthenticated, nativeApp, tab])
 
   useEffect(() => {
     if (!isAuthenticated || tab !== 'privacy') return
@@ -698,7 +705,9 @@ export default function SettingsPage() {
                   <div>
                     <h2 className="section-title mb-1">Notificações push</h2>
                     <p className="text-sm text-neutral-500">
-                      Receba avisos no navegador quando houver lembrete de sessão.
+                      {nativeApp
+                        ? 'No app Android, os lembretes continuam por WhatsApp. Push nativo entra na etapa de loja.'
+                        : 'Receba avisos no navegador quando houver lembrete de sessão.'}
                     </p>
                   </div>
                   <span className={`badge ${pushSubscribed ? 'bg-sage-50 text-sage-700' : 'bg-neutral-100 text-neutral-500'}`}>
@@ -706,13 +715,19 @@ export default function SettingsPage() {
                   </span>
                 </div>
 
-                {!isPushSupported() && (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                    Este navegador nao suporta notificacoes push. Tente pelo Chrome, Edge ou pelo app instalado.
+                {nativeApp && (
+                  <div className="rounded-xl border border-sage-200 bg-sage-50 px-4 py-3 text-sm text-sage-800">
+                    Para Android de loja, a proxima etapa e trocar Web Push por push nativo. Esta tela ainda controla notificacoes do navegador/PWA.
                   </div>
                 )}
 
-                {isPushSupported() && !pushConfigured && (
+                {!nativeApp && !isPushSupported() && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    Este navegador nao suporta notificacoes push. Tente pelo Chrome, Edge ou instale como PWA.
+                  </div>
+                )}
+
+                {!nativeApp && isPushSupported() && !pushConfigured && (
                   <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                     Notificacoes push ainda nao estao configuradas no servidor.
                   </div>
@@ -723,16 +738,16 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={activateWebPush}
-                      disabled={pushBusy || !isPushSupported() || !pushConfigured}
+                      disabled={pushBusy || nativeApp || !isPushSupported() || !pushConfigured}
                       className="btn-primary text-sm"
                     >
-                      {pushBusy ? 'Ativando...' : 'Ativar neste navegador'}
+                      {pushBusy ? 'Ativando...' : nativeApp ? 'Push nativo em breve' : 'Ativar neste navegador'}
                     </button>
                   ) : (
                     <button
                       type="button"
                       onClick={deactivateWebPush}
-                      disabled={pushBusy}
+                      disabled={pushBusy || nativeApp}
                       className="btn-secondary text-sm"
                     >
                       {pushBusy ? 'Desativando...' : 'Desativar neste navegador'}
@@ -741,7 +756,7 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={testWebPush}
-                    disabled={pushBusy || !pushSubscribed}
+                    disabled={pushBusy || nativeApp || !pushSubscribed}
                     className="btn-secondary text-sm"
                   >
                     Enviar teste

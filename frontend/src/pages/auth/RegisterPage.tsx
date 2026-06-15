@@ -63,7 +63,7 @@ export default function RegisterPage() {
         termsAccepted: data.terms,
         termsVersion: TERMS_VERSION,
       })
-      setNativeTokens(res.data.tokens)
+      await setNativeTokens(res.data.tokens)
       setAuth(res.data.user)
       if (res.data.csrfToken) setCsrfToken(res.data.csrfToken)
       toast.success('Conta criada com sucesso! Seja bem-vinda')

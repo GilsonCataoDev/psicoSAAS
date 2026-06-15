@@ -41,9 +41,9 @@ function useCsrfBoot() {
       .catch((err) => {
         if (err?.response?.status !== 401) throw err
         return api.post('/auth/refresh', undefined, { skipAuthRedirect: true } as AuthAxiosRequestConfig)
-          .then(({ data }) => {
+          .then(async ({ data }) => {
             if (data?.csrfToken) setCsrfToken(data.csrfToken)
-            if (data?.tokens) setNativeTokens(data.tokens)
+            if (data?.tokens) await setNativeTokens(data.tokens)
             if (data?.user) setAuth(data.user)
           })
           .then(() => api.get('/auth/me', { skipAuthRedirect: true } as AuthAxiosRequestConfig))
@@ -79,9 +79,9 @@ function useSessionKeepAlive() {
 
     const refresh = () => {
       api.post('/auth/refresh', undefined, { skipAuthRedirect: true } as AuthAxiosRequestConfig)
-        .then(({ data }) => {
+        .then(async ({ data }) => {
           if (data?.csrfToken) setCsrfToken(data.csrfToken)
-          if (data?.tokens) setNativeTokens(data.tokens)
+          if (data?.tokens) await setNativeTokens(data.tokens)
           if (data?.user) setAuth(data.user)
         })
         .catch((err) => {

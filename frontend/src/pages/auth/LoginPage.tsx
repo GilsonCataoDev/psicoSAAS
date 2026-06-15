@@ -35,7 +35,7 @@ export default function LoginPage() {
     try {
       const res = await api.post('/auth/login', { email: data.email, password: data.password })
       loginAccepted = true
-      setNativeTokens(res.data.tokens)
+      await setNativeTokens(res.data.tokens)
       setAuth(res.data.user)
       if (res.data.csrfToken) setCsrfToken(res.data.csrfToken)
       await api.get('/auth/me', { skipAuthRedirect: true } as AuthAxiosRequestConfig)

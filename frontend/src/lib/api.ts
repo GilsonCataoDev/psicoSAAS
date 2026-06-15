@@ -21,17 +21,17 @@ export const api = axios.create({
   withCredentials: true,
 })
 
-api.interceptors.request.use(config => {
+api.interceptors.request.use(async config => {
   const csrfToken = useAuthStore.getState().csrfToken
   if (isNativeApp()) {
     config.headers['X-UseCognia-Client'] = 'native'
 
-    const accessToken = getNativeAccessToken()
+    const accessToken = await getNativeAccessToken()
     if (accessToken && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${accessToken}`
     }
 
-    const refreshToken = getNativeRefreshToken()
+    const refreshToken = await getNativeRefreshToken()
     if (refreshToken && config.url?.includes('/auth/refresh')) {
       config.headers['X-Refresh-Token'] = refreshToken
     }
@@ -60,7 +60,7 @@ function processQueue(error: unknown): void {
 
 function redirectToLogin(): void {
   useAuthStore.getState().logout()
-  clearNativeTokens()
+  void clearNativeTokens()
   window.location.href = `${import.meta.env.BASE_URL}#/login`
 }
 
@@ -116,7 +116,7 @@ api.interceptors.response.use(
         useAuthStore.getState().setCsrfToken(data.csrfToken)
       }
       if (data.tokens) {
-        setNativeTokens(data.tokens)
+        await setNativeTokens(data.tokens)
       }
       if (data.user) {
         useAuthStore.getState().setAuth(data.user)

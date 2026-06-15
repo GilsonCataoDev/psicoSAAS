@@ -50,7 +50,7 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => {
         resetAnalytics()
-        clearNativeTokens()
+        void clearNativeTokens()
         set({ user: null, isAuthenticated: false, csrfToken: null })
       },
 
