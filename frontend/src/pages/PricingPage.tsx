@@ -213,8 +213,9 @@ export default function PricingPage() {
   function handlePlanClick(plan: PricingPlan) {
     const billingPlan = billingPlans.get(plan.id)
     if (!billingPlan) return
-    const isCurrentPlan = currentPlanId === plan.id
-    const hasPaidPlan = ['active', 'trialing'].includes(subscription.status) && currentPlanId !== 'free'
+    const hasActivePlan = ['active', 'trialing'].includes(subscription.status)
+    const isCurrentPlan = hasActivePlan && currentPlanId === plan.id
+    const hasPaidPlan = hasActivePlan && currentPlanId !== 'free'
 
     if (isCurrentPlan) return
     if (plan.id === 'free') {
@@ -259,6 +260,7 @@ export default function PricingPage() {
             plan={plan}
             currentPlanId={currentPlanId}
             loadingPlan={loadingPlan}
+            hasActivePlan={['active', 'trialing'].includes(subscription.status)}
             hasPaidPlan={['active', 'trialing'].includes(subscription.status) && currentPlanId !== 'free'}
             isPastDue={subscription.status === 'past_due'}
             onClick={() => handlePlanClick(plan)}
@@ -341,6 +343,7 @@ function PricingCard({
   plan,
   currentPlanId,
   loadingPlan,
+  hasActivePlan,
   hasPaidPlan,
   isPastDue,
   onClick,
@@ -348,11 +351,12 @@ function PricingCard({
   plan: PricingPlan
   currentPlanId: string
   loadingPlan: string | null
+  hasActivePlan: boolean
   hasPaidPlan: boolean
   isPastDue: boolean
   onClick: () => void
 }) {
-  const isCurrentPlan = currentPlanId === plan.id
+  const isCurrentPlan = hasActivePlan && currentPlanId === plan.id
   const isDisabled = loadingPlan !== null || isCurrentPlan
   const ctaLabel = isCurrentPlan
     ? 'Plano atual'
