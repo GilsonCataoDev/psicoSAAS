@@ -142,9 +142,10 @@ export class NotificationsService {
         headers: { apikey: this.WA_KEY },
       })
       const raw = await res.text()
-      let data: { base64?: string; message?: string; code?: string } = {}
+      let data: { base64?: string; qrcode?: { base64?: string }; message?: string; code?: string; pairingCode?: string } = {}
       try { data = JSON.parse(raw) } catch { /* not json */ }
-      this.logger.log(`[WA connect] attempt=${attempt} instance=${instance} status=${res.status} base64=${!!data.base64}`)
+      const qrCode = this.extractWhatsAppQrCode(data)
+      this.logger.log(`[WA connect] attempt=${attempt} instance=${instance} status=${res.status} qr=${!!qrCode}`)
 
       if (res.status === 502 && attempt < maxAttempts) {
         this.logger.warn(`[WA connect] 502 — aguardando Baileys (tentativa ${attempt}/${maxAttempts})`)
@@ -155,13 +156,17 @@ export class NotificationsService {
         this.logger.error(`[WA connect] erro ${res.status}: ${raw.slice(0, 300)}`)
         throw new BadRequestException(data.message ?? `Evolution API retornou ${res.status}`)
       }
-      if (!data.base64) {
+      if (!qrCode) {
         this.logger.error(`[WA connect] sem base64 na resposta: ${raw.slice(0, 300)}`)
         throw new BadRequestException('QR Code nao disponivel — tente novamente em alguns segundos')
       }
-      return { base64: data.base64, instance }
+      return { base64: qrCode, instance }
     }
     throw new BadRequestException('Nao foi possivel gerar o QR Code. Tente novamente.')
+  }
+
+  private extractWhatsAppQrCode(data: { base64?: string; qrcode?: { base64?: string }; code?: string; pairingCode?: string }): string | null {
+    return data.base64 ?? data.qrcode?.base64 ?? data.code ?? data.pairingCode ?? null
   }
 
   async debugWhatsApp(ownerId: string) {
