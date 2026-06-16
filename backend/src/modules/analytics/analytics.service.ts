@@ -212,6 +212,7 @@ export class AnalyticsService {
       monthRevenue: Number((monthRevenue as any)?.total ?? 0),
       pendingPayments: (pendingPayments as any[]).length,
       pendingAmount: (pendingPayments as any[]).reduce((s: number, p: any) => s + Number(p.amount), 0),
+      pendingPaymentsDetail: pendingPayments,
       inactivePatients,
       todayAppointments,
       revenueChart,

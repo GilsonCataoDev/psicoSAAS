@@ -1,0 +1,146 @@
+import { ForbiddenException, NotFoundException } from '@nestjs/common'
+import { getRepositoryToken } from '@nestjs/typeorm'
+import { Test } from '@nestjs/testing'
+import { Session } from '../entities/session.entity'
+import { SessionsService } from '../sessions.service'
+import { FinancialService } from '../../financial/financial.service'
+import { NotificationsService } from '../../notifications/notifications.service'
+import { Patient } from '../../patients/entities/patient.entity'
+import { User } from '../../auth/entities/user.entity'
+import { Appointment } from '../../appointments/entities/appointment.entity'
+
+const PSY_ID = 'psy-1'
+const PAT_ID = 'pat-1'
+
+const makeSession = (overrides: Partial<Session> = {}): Session => ({
+  id: 'sess-1',
+  date: '2026-01-15',
+  duration: 50,
+  patientId: PAT_ID,
+  psychologistId: PSY_ID,
+  mood: 3,
+  tags: [],
+  paymentStatus: 'pending',
+  summary: undefined,
+  privateNotes: undefined,
+  nextSteps: undefined,
+  appointmentId: undefined,
+  paymentId: undefined,
+  patient: { id: PAT_ID, name: 'Joana' } as Patient,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  ...overrides,
+} as Session)
+
+function makeQb(results: any[]) {
+  const qb: any = {
+    leftJoinAndSelect: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
+    getMany: jest.fn().mockResolvedValue(results),
+  }
+  return qb
+}
+
+function makeRepo(overrides: Partial<Record<string, jest.Mock>> = {}) {
+  return {
+    find: jest.fn(),
+    findOne: jest.fn(),
+    create: jest.fn(),
+    save: jest.fn(),
+    count: jest.fn().mockResolvedValue(0),
+    update: jest.fn(),
+    remove: jest.fn(),
+    createQueryBuilder: jest.fn(),
+    ...overrides,
+  }
+}
+
+describe('SessionsService', () => {
+  let service: SessionsService
+  let sessionRepo: ReturnType<typeof makeRepo>
+  let patientRepo: ReturnType<typeof makeRepo>
+
+  beforeEach(async () => {
+    sessionRepo = makeRepo()
+    patientRepo = makeRepo()
+
+    const module = await Test.createTestingModule({
+      providers: [
+        SessionsService,
+        { provide: getRepositoryToken(Session),     useValue: sessionRepo },
+        { provide: getRepositoryToken(Patient),     useValue: patientRepo },
+        { provide: getRepositoryToken(User),        useValue: makeRepo() },
+        { provide: getRepositoryToken(Appointment), useValue: makeRepo() },
+        { provide: FinancialService,       useValue: { create: jest.fn() } },
+        { provide: NotificationsService,   useValue: { sendPaymentRequest: jest.fn() } },
+      ],
+    }).compile()
+
+    service = module.get(SessionsService)
+  })
+
+  describe('findAll', () => {
+    it('retorna sessões descriptografadas sem filtros', async () => {
+      const raw = makeSession()
+      const qb = makeQb([raw])
+      sessionRepo.createQueryBuilder.mockReturnValue(qb)
+
+      const result = await service.findAll(PSY_ID)
+
+      expect(sessionRepo.createQueryBuilder).toHaveBeenCalledWith('s')
+      expect(qb.where).toHaveBeenCalledWith('s.psychologistId = :psychologistId', { psychologistId: PSY_ID })
+      expect(result).toHaveLength(1)
+      expect(result[0].id).toBe('sess-1')
+    })
+
+    it('aplica filtro por patientId', async () => {
+      const qb = makeQb([makeSession()])
+      sessionRepo.createQueryBuilder.mockReturnValue(qb)
+
+      await service.findAll(PSY_ID, PAT_ID)
+
+      expect(qb.andWhere).toHaveBeenCalledWith('s.patientId = :patientId', { patientId: PAT_ID })
+    })
+
+    it('aplica filtro por dateFrom e dateTo', async () => {
+      const qb = makeQb([])
+      sessionRepo.createQueryBuilder.mockReturnValue(qb)
+
+      await service.findAll(PSY_ID, undefined, '2026-01-01', '2026-01-31')
+
+      expect(qb.andWhere).toHaveBeenCalledWith('s.date >= :dateFrom', { dateFrom: '2026-01-01' })
+      expect(qb.andWhere).toHaveBeenCalledWith('s.date <= :dateTo', { dateTo: '2026-01-31' })
+    })
+
+    it('não aplica filtros opcionais quando ausentes', async () => {
+      const qb = makeQb([])
+      sessionRepo.createQueryBuilder.mockReturnValue(qb)
+
+      await service.findAll(PSY_ID)
+
+      const andWhereCalls = qb.andWhere.mock.calls.map((c: any) => c[0])
+      expect(andWhereCalls).not.toContain(expect.stringContaining('patientId'))
+      expect(andWhereCalls).not.toContain(expect.stringContaining('dateFrom'))
+    })
+  })
+
+  describe('findOne', () => {
+    it('lança NotFoundException quando sessão não existe', async () => {
+      sessionRepo.findOne.mockResolvedValue(null)
+      await expect(service.findOne('missing', PSY_ID)).rejects.toThrow(NotFoundException)
+    })
+
+    it('lança ForbiddenException quando sessão pertence a outro psicólogo', async () => {
+      sessionRepo.findOne.mockResolvedValue(makeSession({ psychologistId: 'outro-psy' }))
+      await expect(service.findOne('sess-1', PSY_ID)).rejects.toThrow(ForbiddenException)
+    })
+
+    it('retorna sessão quando encontrada e autorizada', async () => {
+      sessionRepo.findOne.mockResolvedValue(makeSession())
+      const result = await service.findOne('sess-1', PSY_ID)
+      expect(result.id).toBe('sess-1')
+    })
+  })
+})

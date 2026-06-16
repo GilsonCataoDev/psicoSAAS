@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
-import { Users, CalendarCheck, Wallet, Clock, ArrowRight, Video, MapPin, AlertTriangle, Sparkles, MessageSquareText, Ban, TimerReset, CheckCircle2, ShieldCheck } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Users, CalendarCheck, Wallet, Clock, ArrowRight, Video, MapPin, AlertTriangle, Sparkles, MessageSquareText, Ban, TimerReset, CheckCircle2, ShieldCheck, NotebookPen, AlertCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -13,6 +13,7 @@ import { track, EVENTS } from '@/lib/analytics'
 import { useDashboard, useSessions } from '@/hooks/useApi'
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard'
 import { useOnboardingStore } from '@/store/onboarding'
+import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 
 function greeting() {
   const h = new Date().getHours()
@@ -37,8 +38,14 @@ export default function DashboardPage() {
   const user = useAuthStore(s => s.user)
   const onboardingCompleted = useOnboardingStore(s => s.completed)
   const firstName = user?.name?.split(' ')[0] ?? 'Psicólogo(a)'
+  const [sessionDefaults, setSessionDefaults] = useState<{ patientId: string; date: string; appointmentId: string } | null>(null)
 
   useEffect(() => { track(EVENTS.LOGIN) }, [])
+
+  const today = format(new Date(), 'yyyy-MM-dd')
+  const overduePayments = (stats as any)?.pendingPaymentsDetail?.filter(
+    (p: any) => p.dueDate && p.dueDate < today
+  ) ?? []
 
   const s = stats ?? {} as any
   const sessionsToday = s?.todayAppointments?.length ?? 0
@@ -112,6 +119,21 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Alerta de pagamentos em atraso */}
+      {overduePayments.length > 0 && (
+        <div className="bg-rose-50 border border-rose-200/70 rounded-2xl px-4 py-3 flex items-center gap-3">
+          <div className="w-8 h-8 bg-rose-100 rounded-xl flex items-center justify-center shrink-0">
+            <AlertCircle className="w-4 h-4 text-rose-500" />
+          </div>
+          <p className="text-sm text-rose-800">
+            <strong>{overduePayments.length} pagamento{overduePayments.length !== 1 ? 's' : ''} em atraso</strong> — {formatCurrency(overduePayments.reduce((s: number, p: any) => s + Number(p.amount), 0))} aguardando.{' '}
+            <Link to="/financeiro" className="underline underline-offset-2 hover:no-underline font-medium">
+              Ver lançamentos →
+            </Link>
+          </p>
+        </div>
+      )}
 
       {/* Alerta de pacientes inativos */}
       {(s?.inactivePatients ?? 0) > 0 && (
@@ -313,7 +335,18 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <StatusBadge status={appt.status} />
+                  <div className="flex items-center gap-2 shrink-0">
+                    <StatusBadge status={appt.status} />
+                    {appt.status !== 'completed' && (
+                      <button
+                        onClick={() => setSessionDefaults({ patientId: appt.patientId, date: appt.date, appointmentId: appt.id })}
+                        title="Registrar sessão"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 rounded-xl bg-sage-50 border border-sage-200 px-2 py-1 text-xs font-medium text-sage-700 hover:bg-sage-100"
+                      >
+                        <NotebookPen className="w-3 h-3" /> Registrar
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -406,6 +439,12 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      <NewSessionModal
+        open={!!sessionDefaults}
+        onClose={() => setSessionDefaults(null)}
+        defaults={sessionDefaults ?? undefined}
+      />
     </div>
   )
 }

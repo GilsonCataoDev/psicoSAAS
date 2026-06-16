@@ -9,7 +9,7 @@ import { SCALE_CONFIGS, getThresholdLevel } from '@/lib/scale-scoring'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
 import { formatDate, formatCurrency, formatDateRelative } from '@/lib/utils'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   usePatient, useSessions, useFinancial,
   useMarkFinancialPaid, useSendCharge, useUpdatePatient,
@@ -18,6 +18,7 @@ import {
 import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
+import { LineChart, Line, XAxis, YAxis, Tooltip as RechartTooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 
 const MOODS = ['', '1', '2', '3', '4', '5']
 const WEEKDAYS = ['Domingo', 'Segunda', 'Terca', 'Quarta', 'Quinta', 'Sexta', 'Sabado']
@@ -213,6 +214,15 @@ export default function PatientDetailPage() {
   const totalPending = financialRecords.filter(r => r.status !== 'paid').reduce((s, r) => s + Number(r.amount), 0)
   const clinicalSessions = allSessions.filter(session => !session.tags?.some(tag => String(tag) === 'instrumento'))
   const prontuario = patient.prontuario ?? {}
+
+  const moodChartData = useMemo(() => {
+    const withMood = [...clinicalSessions].reverse().filter(s => s.mood)
+    if (withMood.length < 2) return []
+    return withMood.map(s => ({
+      label: formatDate(s.date),
+      humor: s.mood,
+    }))
+  }, [clinicalSessions])
   const filledProntuarioFields = PRONTUARIO_FIELDS.filter(field => {
     const value = prontuario[field.key]
     return typeof value === 'string' && value.trim().length > 0
@@ -611,6 +621,24 @@ export default function PatientDetailPage() {
       {/* ── Timeline ──────────────────────────────────────────────────── */}
       {tab === 'timeline' && (
         <div className="space-y-3">
+          {moodChartData.length >= 2 && (
+            <div className="card">
+              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-3">Humor por sessão</p>
+              <ResponsiveContainer width="100%" height={100}>
+                <LineChart data={moodChartData} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#a3a3a3' }} axisLine={false} tickLine={false} />
+                  <YAxis domain={[1, 5]} ticks={[1, 2, 3, 4, 5]} tick={{ fontSize: 10, fill: '#a3a3a3' }} axisLine={false} tickLine={false} />
+                  <RechartTooltip
+                    formatter={(v: number) => [['Muito difícil', 'Difícil', 'Neutro', 'Positivo', 'Muito positivo'][v - 1], 'Humor']}
+                    contentStyle={{ borderRadius: 10, border: '1px solid #f0f0f0', fontSize: 12 }}
+                  />
+                  <Line type="monotone" dataKey="humor" stroke="#2F7657" strokeWidth={2} dot={{ r: 3, fill: '#2F7657' }} activeDot={{ r: 5 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
           {clinicalSessions.length === 0 ? (
             <div className="card py-12 text-center">
               <div className="w-12 h-12 bg-sage-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
