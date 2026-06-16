@@ -58,16 +58,29 @@ export class InstrumentAssignmentsService {
     }))
 
     const url = this.publicUrl(assignment.token)
+
+    let whatsAppSent = false
+    let whatsAppError: string | undefined
+
     if (input.sendWhatsApp && patient.phone) {
       const first = patient.name.split(' ')[0]
-      await this.notifications.sendDirectWhatsApp(
+      const result = await this.notifications.sendDirectWhatsApp(
         patient.phone,
         `Ola, ${first}! Segue o formulario combinado para preencher com calma:\n\n${url}\n\nO link fica disponivel por 7 dias.`,
         psychologistId,
       )
+      whatsAppSent = result.sent
+      if (!result.sent) whatsAppError = result.error
     }
 
-    return { ...this.toDto(assignment), url, patientName: patient.name, patientPhone: patient.phone ?? null }
+    return {
+      ...this.toDto(assignment),
+      url,
+      patientName: patient.name,
+      patientPhone: patient.phone ?? null,
+      whatsAppSent,
+      whatsAppError,
+    }
   }
 
   async findMine(psychologistId: string, patientId?: string) {

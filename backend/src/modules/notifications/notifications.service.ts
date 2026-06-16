@@ -85,6 +85,21 @@ export class NotificationsService {
     return plan === 'pro'
   }
 
+  /** Envio manual acionado pelo psicólogo (formulários, links). Liberado a partir do Essencial. */
+  private async canSendManualWhatsApp(userId?: string | null): Promise<boolean> {
+    if (!userId) return false
+
+    const [user, sub] = await Promise.all([
+      this.users.findOneBy({ id: userId }),
+      this.subs.findOne({ where: { userId }, order: { createdAt: 'DESC' } }),
+    ])
+    if (user?.email && COMPED_PRO_EMAILS.includes(user.email.toLowerCase())) return true
+
+    const PLAN_ORDER: Record<string, number> = { free: 0, basic: 1, essencial: 1, pro: 2, premium: 2 }
+    const plan = (sub?.status === 'active' || sub?.status === 'trialing') ? (sub.plan ?? 'free') : 'free'
+    return (PLAN_ORDER[plan] ?? 0) >= 1
+  }
+
   // ─── Envio via WhatsApp (Evolution API) ──────────────────────────────────
 
   async getWhatsAppStatus(ownerId: string): Promise<{ configured: boolean; connected: boolean; state: string; instance: string }> {
@@ -281,7 +296,33 @@ export class NotificationsService {
   // ─── Agendamentos internos ─────────────────────────────────────────────────
 
   async sendDirectWhatsApp(phone: string, text: string, ownerId?: string | null): Promise<WhatsAppDeliveryResult> {
-    return this.sendWhatsApp(phone, text, ownerId)
+    if (!await this.canSendManualWhatsApp(ownerId)) {
+      return { sent: false, reason: 'plan', error: 'Envio via WhatsApp disponível a partir do plano Essencial' }
+    }
+
+    if (!this.waEnabled) {
+      this.logger.log(`[WhatsApp DEV] envio manual simulado owner=${ownerId ?? 'unknown'} chars=${text.length}`)
+      return { sent: false, reason: 'not_configured', error: 'WhatsApp não configurado no servidor' }
+    }
+
+    const normalized = phone.replace(/\D/g, '')
+    const withDdi = normalized.startsWith('55') ? normalized : `55${normalized}`
+
+    try {
+      const instance = this.getWhatsAppInstance(ownerId)
+      const res = await fetch(`${this.WA_URL}/message/sendText/${instance}`, {
+        method: 'POST',
+        headers: { 'apikey': this.WA_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ number: withDdi, text }),
+      })
+      if (!res.ok) {
+        this.logger.error(`[WhatsApp] Erro ${res.status} instance=${instance}`)
+        return { sent: false, reason: 'api_error', error: `WhatsApp respondeu ${res.status}` }
+      }
+      return { sent: true }
+    } catch {
+      return { sent: false, reason: 'disconnected', error: 'WhatsApp desconectado ou indisponível' }
+    }
   }
 
   private getWhatsAppInstance(ownerId?: string | null): string {

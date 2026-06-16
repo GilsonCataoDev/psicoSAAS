@@ -1784,11 +1784,17 @@ function SendInstrumentModal({
         template: instrument.template,
         sendWhatsApp: shouldSendWhatsApp,
       })
-      if (!shouldSendWhatsApp && result.url) {
-        await navigator.clipboard.writeText(result.url)
-        toast.success('Link copiado')
+
+      if (!shouldSendWhatsApp) {
+        if (result.url) await navigator.clipboard.writeText(result.url)
+        toast.success('Link copiado para a área de transferência')
+      } else if (result.whatsAppSent) {
+        toast.success('Formulário enviado via WhatsApp')
       } else {
-        toast.success('Formulario enviado')
+        // Formulário criado mas WhatsApp não enviou — copia o link como fallback
+        if (result.url) await navigator.clipboard.writeText(result.url)
+        const motivo = result.whatsAppError ?? 'WhatsApp não configurado'
+        toast(`Link copiado — ${motivo}`, { icon: '⚠️' })
       }
       onClose()
     } catch {
