@@ -93,6 +93,8 @@ export class InstrumentAssignmentsService {
 
     return {
       token,
+      instrumentId: assignment.instrumentId,
+      category: assignment.category,
       title: assignment.title,
       description: assignment.description,
       patientName: assignment.patient?.name ?? null,
@@ -101,7 +103,7 @@ export class InstrumentAssignmentsService {
     }
   }
 
-  async submit(token: string, answers: Record<string, string>) {
+  async submit(token: string, answers: Record<string, string>, score?: number, scoreDetails?: string) {
     const assignment = await this.assignments.findOne({ where: { token }, relations: ['patient'] })
     if (!assignment) throw new NotFoundException('Formulario nao encontrado')
     if (assignment.status !== 'pending' || assignment.expiresAt.getTime() < Date.now()) {
@@ -118,6 +120,8 @@ export class InstrumentAssignmentsService {
     assignment.completedAt = new Date()
     assignment.responseText = encrypt(responseText)
     assignment.responseData = encrypt(JSON.stringify(cleanAnswers))
+    if (score != null) assignment.score = score
+    if (scoreDetails) assignment.scoreDetails = scoreDetails
     await this.assignments.save(assignment)
 
     return { ok: true }
@@ -197,6 +201,8 @@ export class InstrumentAssignmentsService {
       expiresAt: item.expiresAt,
       completedAt: item.completedAt,
       responseText: item.responseText ? safeDecrypt(item.responseText) : null,
+      score: item.score ?? null,
+      scoreDetails: item.scoreDetails ?? null,
       fields,
       answers: this.decryptAnswers(item.responseData, item.responseText, fields),
       createdAt: item.createdAt,

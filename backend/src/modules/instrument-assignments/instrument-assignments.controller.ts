@@ -52,7 +52,12 @@ export class InstrumentAssignmentsController {
   @Post('public/instruments/:token')
   @PublicRoute()
   @Throttle({ long: { limit: 5, ttl: 60 * 1000 } }) // Envio limitado para reduzir flood e abuso de token vazado.
-  submit(@Param('token') token: string, @Body('answers') answers: Record<string, string>) {
-    return this.svc.submit(token, answers ?? {})
+  submit(
+    @Param('token') token: string,
+    @Body('answers') answers: Record<string, string>,
+    @Body('score') score?: number,
+    @Body('scoreDetails') scoreDetails?: string,
+  ) {
+    return this.svc.submit(token, answers ?? {}, score, scoreDetails)
   }
 }

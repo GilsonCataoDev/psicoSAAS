@@ -456,14 +456,29 @@ export type InstrumentField = {
 
 export type InstrumentAssignment = {
   id: string
+  instrumentId: string
   title: string
   description?: string
+  category: string
   status: 'pending' | 'completed' | 'expired'
   completedAt?: string
   createdAt: string
   fields: InstrumentField[]
   answers: Record<string, string> | null
   responseText?: string | null
+  score?: number | null
+  scoreDetails?: string | null
+}
+
+export type PublicInstrumentData = {
+  token: string
+  instrumentId: string
+  category: string
+  title: string
+  description?: string
+  patientName?: string | null
+  expiresAt: string
+  fields: InstrumentField[]
 }
 
 export function useInstrumentAssignments(patientId?: string) {
@@ -566,7 +581,7 @@ export function useUpdateInstrumentAnswers() {
 }
 
 export function usePublicInstrument(token: string | undefined) {
-  return useQuery<any>({
+  return useQuery<PublicInstrumentData>({
     queryKey: ['public-instrument', token],
     queryFn: () => api.get(`/public/instruments/${token}`, { skipAuthRedirect: true } as AuthAxiosRequestConfig).then(r => r.data),
     enabled: !!token,
@@ -576,8 +591,12 @@ export function usePublicInstrument(token: string | undefined) {
 
 export function useSubmitPublicInstrument(token: string | undefined) {
   return useMutation({
-    mutationFn: (answers: Record<string, string>) =>
-      api.post(`/public/instruments/${token}`, { answers }, { skipAuthRedirect: true } as AuthAxiosRequestConfig).then(r => r.data),
+    mutationFn: ({ answers, score, scoreDetails }: {
+      answers: Record<string, string>
+      score?: number | null
+      scoreDetails?: string | null
+    }) =>
+      api.post(`/public/instruments/${token}`, { answers, score, scoreDetails }, { skipAuthRedirect: true } as AuthAxiosRequestConfig).then(r => r.data),
   })
 }
 

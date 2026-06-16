@@ -3,8 +3,9 @@ import {
   ArrowLeft, Phone, Mail, Calendar, Plus, Lock,
   ClipboardList, MessageCircle, CheckCircle2, Save,
   CalendarDays, Banknote, Clock, FileText, Pencil,
-  BookOpenText,
+  BookOpenText, BarChart3,
 } from 'lucide-react'
+import { SCALE_CONFIGS, getThresholdLevel } from '@/lib/scale-scoring'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
 import { formatDate, formatCurrency, formatDateRelative } from '@/lib/utils'
@@ -668,11 +669,40 @@ export default function PatientDetailPage() {
                   <p className="mt-1 text-xs text-neutral-400">
                     Respondido em {response.completedAt ? formatDate(response.completedAt) : formatDate(response.createdAt)}
                   </p>
-                  <p className="mt-3 text-sm text-neutral-500">
+                  <p className="mt-1 text-sm text-neutral-500">
                     {response.answers
                       ? `${Object.values(response.answers).filter(Boolean).length} respostas preenchidas`
                       : 'Resposta em formato anterior'}
                   </p>
+                  {response.score != null && (() => {
+                    const cfg = SCALE_CONFIGS[response.instrumentId]
+                    if (!cfg) return null
+                    if (cfg.subscales && response.scoreDetails) {
+                      let details: Record<string, number> = {}
+                      try { details = JSON.parse(response.scoreDetails) } catch { /* ignore */ }
+                      return (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {cfg.subscales.map(sub => {
+                            const s = details[sub.id] ?? 0
+                            const level = getThresholdLevel(s, sub.thresholds)
+                            return (
+                              <span key={sub.id} className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${level.color}`}>
+                                {sub.label}: {s} ({level.label})
+                              </span>
+                            )
+                          })}
+                        </div>
+                      )
+                    }
+                    const thresholds = cfg.thresholds
+                    if (!thresholds) return null
+                    const level = getThresholdLevel(response.score, thresholds)
+                    return (
+                      <span className={`mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${level.color}`}>
+                        <BarChart3 className="h-3 w-3" /> Pontuação: {response.score} — {level.label}
+                      </span>
+                    )
+                  })()}
                 </div>
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-sage-600">
                   <Pencil className="h-3.5 w-3.5" /> Ver e editar
@@ -799,6 +829,36 @@ export default function PatientDetailPage() {
       />
 
       <Modal open={!!editingResponse} onClose={() => setEditingResponse(null)} title={editingResponse?.title ?? 'Respostas'} size="lg">
+        {editingResponse?.score != null && (() => {
+          const cfg = SCALE_CONFIGS[editingResponse.instrumentId]
+          if (!cfg) return null
+          if (cfg.subscales && editingResponse.scoreDetails) {
+            let details: Record<string, number> = {}
+            try { details = JSON.parse(editingResponse.scoreDetails) } catch { /* ignore */ }
+            return (
+              <div className="mb-4 flex flex-wrap gap-2 rounded-xl border border-neutral-100 bg-neutral-50 p-3">
+                {cfg.subscales.map(sub => {
+                  const s = details[sub.id] ?? 0
+                  const level = getThresholdLevel(s, sub.thresholds)
+                  return (
+                    <span key={sub.id} className={`rounded-full px-3 py-1 text-xs font-semibold ${level.color}`}>
+                      {sub.label}: {s} — {level.label}
+                    </span>
+                  )
+                })}
+              </div>
+            )
+          }
+          const thresholds = cfg.thresholds
+          if (!thresholds) return null
+          const level = getThresholdLevel(editingResponse.score, thresholds)
+          return (
+            <div className={`mb-4 flex items-center gap-3 rounded-xl p-3 ${level.color}`}>
+              <BarChart3 className="h-4 w-4 shrink-0" />
+              <span className="text-sm font-semibold">Pontuação: {editingResponse.score} — {level.label}</span>
+            </div>
+          )
+        })()}
         {editingResponse?.answers ? (
           <div className="space-y-4">
             {editingResponse.fields.map(field => (
