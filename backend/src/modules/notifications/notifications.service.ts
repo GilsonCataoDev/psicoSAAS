@@ -55,7 +55,12 @@ export class NotificationsService {
     this.WA_URL       = cfg.get('WHATSAPP_API_URL') ?? ''
     this.WA_KEY       = cfg.get('WHATSAPP_API_KEY') ?? ''
     this.WA_INSTANCE_PREFIX = cfg.get('WHATSAPP_INSTANCE_PREFIX') ?? 'usecognia'
-    this.waEnabled    = !!(this.WA_URL && this.WA_KEY && cfg.get('NODE_ENV') === 'production')
+    this.waEnabled    = !!(
+      this.WA_URL &&
+      this.WA_KEY &&
+      !this.WA_URL.includes('your-evolution-api') &&
+      this.WA_KEY !== 'your-api-key'
+    )
     this.VAPID_PUBLIC_KEY = cfg.get('WEB_PUSH_PUBLIC_KEY') ?? ''
     this.VAPID_PRIVATE_KEY = cfg.get('WEB_PUSH_PRIVATE_KEY') ?? ''
     this.pushEnabled = !!(this.VAPID_PUBLIC_KEY && this.VAPID_PRIVATE_KEY)
