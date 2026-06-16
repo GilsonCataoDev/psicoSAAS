@@ -35,6 +35,11 @@ export class NotificationsController {
   test(@Request() req: any, @Body('phone') phone?: string) {
     return this.notifications.sendTestWhatsApp(req.user.id, phone)
   }
+
+  @Get('debug')
+  debug(@Request() req: any) {
+    return this.notifications.debugWhatsApp(req.user.id)
+  }
 }
 
 @Controller('notifications/push')

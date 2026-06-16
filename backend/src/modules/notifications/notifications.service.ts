@@ -164,6 +164,29 @@ export class NotificationsService {
     throw new BadRequestException('Nao foi possivel gerar o QR Code. Tente novamente.')
   }
 
+  async debugWhatsApp(ownerId: string) {
+    const instance = this.getWhatsAppInstance(ownerId)
+    const results: Record<string, any> = { waEnabled: this.waEnabled, instance }
+    if (!this.waEnabled) return results
+
+    const call = async (label: string, url: string, opts?: RequestInit) => {
+      try {
+        const res = await fetch(url, { headers: { apikey: this.WA_KEY }, ...opts })
+        const text = await res.text()
+        let json: any
+        try { json = JSON.parse(text) } catch { json = text }
+        results[label] = { status: res.status, body: json }
+      } catch (e: any) {
+        results[label] = { error: e.message }
+      }
+    }
+
+    await call('fetchInstances', `${this.WA_URL}/instance/fetchInstances`)
+    await call('connectionState', `${this.WA_URL}/instance/connectionState/${instance}`)
+    await call('connect', `${this.WA_URL}/instance/connect/${instance}`)
+    return results
+  }
+
   private async deleteWhatsAppInstance(instance: string): Promise<void> {
     try {
       await fetch(`${this.WA_URL}/instance/delete/${instance}`, {
