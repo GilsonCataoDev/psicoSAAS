@@ -600,6 +600,27 @@ export function useSubmitPublicInstrument(token: string | undefined) {
   })
 }
 
+// ── AI / Transcription ────────────────────────────────────────────────────────
+
+export function useTranscribeAudio() {
+  return useMutation({
+    mutationFn: async (audio: Blob) => {
+      const form = new FormData()
+      form.append('audio', audio, 'recording.webm')
+      return api.post<{ text: string }>('/sessions/transcribe', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }).then(r => r.data)
+    },
+  })
+}
+
+export function useGenerateAiSummary() {
+  return useMutation({
+    mutationFn: (data: { transcription: string; patientName?: string }) =>
+      api.post<{ draft: string }>('/sessions/ai-summary', data).then(r => r.data),
+  })
+}
+
 export function useDeleteDocument() {
   const qc = useQueryClient()
   return useMutation({

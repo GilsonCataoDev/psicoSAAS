@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { usePatients, useCreateSession, useDefaultTemplate } from '@/hooks/useApi'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 import DictationButton from '@/components/ui/DictationButton'
+import RecordingPanel from '@/components/ui/RecordingPanel'
 
 const MOODS = [
   { value: 1, label: 'Muito dificil' },
@@ -131,9 +132,16 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
         </div>
 
         <div>
-          <div className="mb-1 flex items-center justify-between gap-2">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <label className="label mb-0">Resumo da sessão</label>
-            <DictationButton value={watch('summary') ?? ''} onChange={value => setValue('summary', value)} />
+            <div className="flex items-center gap-2">
+              <RecordingPanel
+                patientName={patients.find(p => p.id === watch('patientId'))?.name}
+                onApplyTranscription={text => setValue('privateNotes', (watch('privateNotes') ? watch('privateNotes') + '\n\n' : '') + text)}
+                onApplySummary={text => setValue('summary', text)}
+              />
+              <DictationButton value={watch('summary') ?? ''} onChange={value => setValue('summary', value)} />
+            </div>
           </div>
           <textarea {...register('summary')} rows={3} className="input-field resize-none"
             placeholder="O que foi trabalhado, pontos de atenção, avanços observados..." />
