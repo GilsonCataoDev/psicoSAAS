@@ -52,11 +52,11 @@ export default function DictationButton({ value, onChange, className }: Dictatio
       onChangeRef.current(next)
     }
     recognition.onerror = (event: any) => {
-      console.error('[Dictation] error:', event.error, event.message)
       if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
         toast.error('Permita o uso do microfone no navegador para usar o ditado.')
+        setSupported(false)
       } else if (event.error === 'network') {
-        toast.error('Ditado indisponível: o reconhecimento de voz deste navegador requer conexão com o serviço do Google. Tente o Chrome.')
+        setSupported(false)
       } else if (event.error === 'audio-capture') {
         toast.error('Nenhum microfone encontrado. Verifique o dispositivo de áudio.')
       } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
@@ -90,6 +90,8 @@ export default function DictationButton({ value, onChange, className }: Dictatio
       setListening(false)
     }
   }
+
+  if (!supported) return null
 
   return (
     <button
