@@ -6,10 +6,19 @@ import Anthropic from '@anthropic-ai/sdk'
 export class AiService {
   private readonly logger = new Logger(AiService.name)
 
-  private get openai(): OpenAI {
-    const key = process.env.OPENAI_API_KEY
-    if (!key) throw new BadRequestException('Transcrição por IA não configurada (OPENAI_API_KEY ausente)')
-    return new OpenAI({ apiKey: key })
+  private get whisperClient(): { client: OpenAI; model: string } {
+    const groqKey = process.env.GROQ_API_KEY
+    if (groqKey) {
+      return {
+        client: new OpenAI({ apiKey: groqKey, baseURL: 'https://api.groq.com/openai/v1' }),
+        model: 'whisper-large-v3-turbo',
+      }
+    }
+    const openaiKey = process.env.OPENAI_API_KEY
+    if (openaiKey) {
+      return { client: new OpenAI({ apiKey: openaiKey }), model: 'whisper-1' }
+    }
+    throw new BadRequestException('Transcrição não configurada. Defina GROQ_API_KEY (gratuito) ou OPENAI_API_KEY no servidor.')
   }
 
   private get anthropic(): Anthropic {
@@ -25,11 +34,12 @@ export class AiService {
       : 'webm'
 
     const file = new File([buffer as unknown as BlobPart], `recording.${ext}`, { type: mimeType })
+    const { client, model } = this.whisperClient
 
     try {
-      const result = await this.openai.audio.transcriptions.create({
+      const result = await client.audio.transcriptions.create({
         file,
-        model: 'whisper-1',
+        model,
         language: 'pt',
       })
       return result.text
