@@ -127,10 +127,15 @@ export class NotificationsService {
   async getWhatsAppQrCode(ownerId: string): Promise<{ base64: string; instance: string }> {
     if (!this.waEnabled) throw new BadRequestException('WhatsApp nao configurado no servidor')
     const instance = this.getWhatsAppInstance(ownerId)
-    await this.ensureWhatsAppInstance(instance)
-
-    // Baileys leva alguns segundos para inicializar após a instância ser criada
     const delay = (ms: number) => new Promise(r => setTimeout(r, ms))
+
+    // Garante instância limpa: deleta se existir e recria
+    await this.deleteWhatsAppInstance(instance)
+    await delay(1000)
+    await this.ensureWhatsAppInstance(instance)
+    await delay(3000)
+
+    // Tenta obter QR com retry
     const maxAttempts = 4
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       const res = await fetch(`${this.WA_URL}/instance/connect/${instance}`, {
@@ -142,7 +147,7 @@ export class NotificationsService {
       this.logger.log(`[WA connect] attempt=${attempt} instance=${instance} status=${res.status} base64=${!!data.base64}`)
 
       if (res.status === 502 && attempt < maxAttempts) {
-        this.logger.warn(`[WA connect] 502 — aguardando Baileys inicializar (tentativa ${attempt}/${maxAttempts})`)
+        this.logger.warn(`[WA connect] 502 — aguardando Baileys (tentativa ${attempt}/${maxAttempts})`)
         await delay(3000 * attempt)
         continue
       }
@@ -156,7 +161,19 @@ export class NotificationsService {
       }
       return { base64: data.base64, instance }
     }
-    throw new BadRequestException('WhatsApp ainda inicializando — aguarde alguns segundos e tente novamente')
+    throw new BadRequestException('Nao foi possivel gerar o QR Code. Tente novamente.')
+  }
+
+  private async deleteWhatsAppInstance(instance: string): Promise<void> {
+    try {
+      await fetch(`${this.WA_URL}/instance/delete/${instance}`, {
+        method: 'DELETE',
+        headers: { apikey: this.WA_KEY },
+      })
+      this.logger.log(`[WA] instancia deletada: ${instance}`)
+    } catch {
+      // OK — pode não existir ainda
+    }
   }
 
   async resetWhatsAppConnection(ownerId: string): Promise<{ base64: string; instance: string }> {
