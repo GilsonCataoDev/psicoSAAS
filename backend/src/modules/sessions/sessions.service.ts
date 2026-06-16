@@ -55,10 +55,17 @@ export class SessionsService {
 
   // ─── API pública ─────────────────────────────────────────────────────────────
 
-  async findAll(psychologistId: string, patientId?: string): Promise<Session[]> {
-    const where: any = { psychologistId }
-    if (patientId) where.patientId = patientId
-    const sessions = await this.repo.find({ where, relations: ['patient'], order: { date: 'DESC' } })
+  async findAll(psychologistId: string, patientId?: string, dateFrom?: string, dateTo?: string): Promise<Session[]> {
+    const qb = this.repo.createQueryBuilder('s')
+      .leftJoinAndSelect('s.patient', 'patient')
+      .where('s.psychologistId = :psychologistId', { psychologistId })
+      .orderBy('s.date', 'DESC')
+
+    if (patientId) qb.andWhere('s.patientId = :patientId', { patientId })
+    if (dateFrom)  qb.andWhere('s.date >= :dateFrom', { dateFrom })
+    if (dateTo)    qb.andWhere('s.date <= :dateTo', { dateTo })
+
+    const sessions = await qb.getMany()
     return sessions.map(s => this.dec(s))
   }
 

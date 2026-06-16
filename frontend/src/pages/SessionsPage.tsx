@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FileText, NotebookPen, Plus, Trash2 } from 'lucide-react'
+import { FileText, NotebookPen, Plus, Search, Trash2, X } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
@@ -15,8 +15,19 @@ const MOODS = ['', '1', '2', '3', '4', '5']
 export default function SessionsPage() {
   const [showModal, setShowModal] = useState(false)
   const [sessionToDelete, setSessionToDelete] = useState<any | null>(null)
-  const { data: sessions = [], isLoading } = useSessions()
+  const [search, setSearch] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+
+  const { data: sessions = [], isLoading } = useSessions({
+    search: search || undefined,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
+  })
   const deleteSession = useDeleteSession()
+
+  const hasFilters = search || dateFrom || dateTo
+  function clearFilters() { setSearch(''); setDateFrom(''); setDateTo('') }
 
   async function handleDelete() {
     if (!sessionToDelete) return
@@ -46,6 +57,38 @@ export default function SessionsPage() {
         </button>
       </div>
 
+      {/* Filter bar */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-48">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-400" />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Buscar por paciente..."
+            className="input-field pl-9 py-2 text-sm"
+          />
+        </div>
+        <input
+          type="date"
+          value={dateFrom}
+          onChange={e => setDateFrom(e.target.value)}
+          className="input-field py-2 text-sm w-40"
+          title="De"
+        />
+        <input
+          type="date"
+          value={dateTo}
+          onChange={e => setDateTo(e.target.value)}
+          className="input-field py-2 text-sm w-40"
+          title="Até"
+        />
+        {hasFilters && (
+          <button onClick={clearFilters} className="flex items-center gap-1 text-xs text-neutral-500 hover:text-neutral-700 px-2 py-2">
+            <X className="h-3.5 w-3.5" /> Limpar
+          </button>
+        )}
+      </div>
+
       {isLoading && (
         <div className="space-y-3">
           {[...Array(4)].map((_, i) => (
@@ -57,13 +100,13 @@ export default function SessionsPage() {
       {!isLoading && sessions.length === 0 && (
         <EmptyState
           icon={<NotebookPen className="h-7 w-7" strokeWidth={1.8} />}
-          title="Nenhuma sessão registrada ainda"
-          description="Após cada atendimento, registre o que aconteceu. Seus registros ficam seguros e organizados aqui."
-          action={
+          title={hasFilters ? 'Nenhuma sessão encontrada' : 'Nenhuma sessão registrada ainda'}
+          description={hasFilters ? 'Tente ajustar os filtros de busca.' : 'Após cada atendimento, registre o que aconteceu. Seus registros ficam seguros e organizados aqui.'}
+          action={!hasFilters ? (
             <button onClick={() => setShowModal(true)} className="btn-primary">
               Registrar primeira sessão
             </button>
-          }
+          ) : undefined}
         />
       )}
 

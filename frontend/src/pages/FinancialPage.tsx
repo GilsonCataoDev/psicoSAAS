@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Wallet, TrendingUp, Clock, CheckCircle, Plus, Trash2 } from 'lucide-react'
+import { Wallet, TrendingUp, Clock, CheckCircle, Plus, Download, Trash2 } from 'lucide-react'
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import StatCard from '@/components/ui/StatCard'
 import Avatar from '@/components/ui/Avatar'
@@ -33,6 +33,10 @@ export default function FinancialPage() {
   const [showNew, setShowNew] = useState(false)
   const [markRecord, setMarkRecord] = useState<FinancialRecord | null>(null)
   const [recordToDelete, setRecordToDelete] = useState<FinancialRecord | null>(null)
+  const [exportMonth, setExportMonth] = useState(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  })
 
   const total   = records.reduce((s, r) => s + (r.type === 'income' ? Number(r.amount) : 0), 0)
   const paid    = records.filter(r => r.status === 'paid').reduce((s, r) => s + Number(r.amount), 0)
@@ -66,6 +70,33 @@ export default function FinancialPage() {
     }
   }
 
+  function downloadCsv() {
+    const [year, m] = exportMonth.split('-').map(Number)
+    const monthRecords = records.filter(r => {
+      const d = new Date(r.paidAt ?? r.dueDate ?? r.createdAt)
+      return d.getFullYear() === year && d.getMonth() + 1 === m
+    })
+    const header = 'Tipo,Descrição,Paciente,Valor,Status,Método,Data venc.,Data pag.'
+    const rows = monthRecords.map(r => [
+      r.type === 'income' ? 'Receita' : 'Despesa',
+      `"${(r.description ?? '').replace(/"/g, '""')}"`,
+      `"${(r.patient?.name ?? '').replace(/"/g, '""')}"`,
+      Number(r.amount).toFixed(2).replace('.', ','),
+      r.status,
+      r.method ?? '',
+      r.dueDate ?? '',
+      r.paidAt ?? '',
+    ].join(','))
+    const csv = [header, ...rows].join('\n')
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `financeiro-${exportMonth}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   async function handleDeleteRecord() {
     if (!recordToDelete) return
     try {
@@ -84,10 +115,24 @@ export default function FinancialPage() {
           <h1 className="page-title">Financeiro</h1>
           <p className="page-subtitle">Controle simples e sem julgamentos</p>
         </div>
-        <button onClick={() => setShowNew(true)} className="btn-primary flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Novo lancamento</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 rounded-xl border border-neutral-200 bg-neutral-50 px-2 py-1">
+            <input
+              type="month"
+              value={exportMonth}
+              onChange={e => setExportMonth(e.target.value)}
+              className="text-xs text-neutral-600 bg-transparent border-none outline-none"
+            />
+            <button onClick={downloadCsv} title="Exportar CSV" className="flex items-center gap-1 text-xs text-sage-600 hover:text-sage-800 font-medium px-1">
+              <Download className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">CSV</span>
+            </button>
+          </div>
+          <button onClick={() => setShowNew(true)} className="btn-primary flex items-center gap-2">
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Novo lancamento</span>
+          </button>
+        </div>
       </div>
 
       {/* Stats */}

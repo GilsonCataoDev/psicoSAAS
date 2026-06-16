@@ -25,6 +25,11 @@ export class FinancialController {
   @Get('summary')
   summary(@Request() req: any) { return this.svc.getSummary(req.user.id) }
 
+  @Get('report')
+  report(@Request() req: any, @Query('month') month: string) {
+    return this.svc.getMonthlyReport(req.user.id, month)
+  }
+
   @Post()
   create(@Body() dto: CreateFinancialDto, @Request() req: any) {
     return this.svc.create(dto, req.user.id)

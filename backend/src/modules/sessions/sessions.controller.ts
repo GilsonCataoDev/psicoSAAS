@@ -15,7 +15,12 @@ import { CreateSessionDto } from './dto/create-session.dto'
 export class SessionsController {
   constructor(private svc: SessionsService, private ai: AiService) {}
 
-  @Get() findAll(@Request() req: any, @Query('patientId') patientId?: string) { return this.svc.findAll(req.user.id, patientId) }
+  @Get() findAll(
+    @Request() req: any,
+    @Query('patientId') patientId?: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+  ) { return this.svc.findAll(req.user.id, patientId, dateFrom, dateTo) }
   @Get('dashboard') dashboard(@Request() req: any) { return this.svc.getDashboard(req.user.id) }
   @Get(':id') findOne(@Param('id') id: string, @Request() req: any) { return this.svc.findOne(id, req.user.id) }
   @Post() create(@Body() dto: CreateSessionDto, @Request() req: any) { return this.svc.create(dto, req.user.id) }

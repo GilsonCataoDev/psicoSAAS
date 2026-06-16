@@ -144,10 +144,14 @@ export function useDeleteAppointmentGroup() {
 
 // ── Sessions ──────────────────────────────────────────────────────────────────
 
-export function useSessions(params?: { patientId?: string }) {
+export function useSessions(params?: { patientId?: string; dateFrom?: string; dateTo?: string; search?: string }) {
+  const { search, ...apiParams } = params ?? {}
   return useQuery<Session[]>({
     queryKey: ['sessions', params],
-    queryFn: () => api.get('/sessions', { params }).then(r => r.data),
+    queryFn: () => api.get('/sessions', { params: apiParams }).then(r => r.data),
+    select: search
+      ? (data) => data.filter(s => s.patient?.name?.toLowerCase().includes(search.toLowerCase()))
+      : undefined,
   })
 }
 
@@ -224,6 +228,12 @@ export function useMarkFinancialPaid() {
 export function useSendCharge() {
   return useMutation({
     mutationFn: (id: string) => api.post(`/financial/${id}/send-charge`).then(r => r.data),
+  })
+}
+
+export function useFinancialReport() {
+  return useMutation({
+    mutationFn: (month: string) => api.get('/financial/report', { params: { month } }).then(r => r.data),
   })
 }
 

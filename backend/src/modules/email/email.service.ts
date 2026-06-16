@@ -246,6 +246,41 @@ export class EmailService {
     })
   }
 
+  async sendSessionReminder(opts: {
+    patientName: string
+    patientEmail: string
+    date: string
+    time: string
+    psychologistName: string
+  }) {
+    const first = opts.patientName.split(' ')[0]
+    const dateLabel = (() => {
+      try {
+        const [y, m, d] = opts.date.split('-').map(Number)
+        return new Date(y, m - 1, d).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })
+      } catch { return opts.date }
+    })()
+    const timeLabel = String(opts.time).slice(0, 5)
+
+    await this.send({
+      to: opts.patientEmail,
+      subject: `Lembrete de sessão — ${dateLabel}`,
+      html: this.wrap(`
+        <h1 style="color:#2F7657;font-weight:300;font-size:24px">Lembrete de sessão</h1>
+        <p style="color:#555;font-size:16px;line-height:1.6">
+          Olá, ${this.escapeHtml(first)}! Passando para lembrar que temos nosso encontro amanhã:
+        </p>
+        <div style="background:#f5f9f7;border-radius:12px;padding:16px 20px;margin:16px 0">
+          <p style="margin:0;color:#2F7657;font-size:18px;font-weight:600">${this.escapeHtml(dateLabel)}</p>
+          <p style="margin:4px 0 0;color:#555;font-size:16px">às ${this.escapeHtml(timeLabel)}</p>
+        </div>
+        <p style="color:#888;font-size:14px">
+          Caso precise reagendar, entre em contato com ${this.escapeHtml(opts.psychologistName)}.
+        </p>
+      `),
+    })
+  }
+
   async sendDocumentEmail(opts: {
     to: string
     recipientName: string

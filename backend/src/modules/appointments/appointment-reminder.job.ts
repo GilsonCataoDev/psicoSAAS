@@ -4,6 +4,7 @@ import { Between, In, Not, Repository } from 'typeorm'
 import { ConfigService } from '@nestjs/config'
 import { Appointment } from './entities/appointment.entity'
 import { NotificationsService } from '../notifications/notifications.service'
+import { EmailService } from '../email/email.service'
 
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000
@@ -20,6 +21,7 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
     private readonly appointments: Repository<Appointment>,
     private readonly notifications: NotificationsService,
     private readonly config: ConfigService,
+    private readonly email: EmailService,
   ) {}
 
   onModuleInit(): void {
@@ -58,6 +60,22 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
             appointment.reminder24hSentAt = new Date()
             await this.appointments.save(appointment)
             sent++
+          } else if (appointment.patient?.email) {
+            try {
+              const psychologistName = (appointment.psychologist as any)?.name ?? 'seu psicólogo(a)'
+              await this.email.sendSessionReminder({
+                patientName: appointment.patient.name,
+                patientEmail: appointment.patient.email,
+                date: appointment.date,
+                time: appointment.time,
+                psychologistName,
+              })
+              appointment.reminder24hSentAt = new Date()
+              await this.appointments.save(appointment)
+              sent++
+            } catch (err: any) {
+              this.logger.warn(`Falha ao enviar lembrete por e-mail para appointment ${appointment.id}: ${err?.message}`)
+            }
           }
         }
 

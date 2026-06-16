@@ -105,6 +105,39 @@ export class FinancialService {
     return { deleted: true }
   }
 
+  async getMonthlyReport(psychologistId: string, month: string) {
+    // month = 'YYYY-MM'
+    const [year, m] = month.split('-').map(Number)
+    if (!year || !m) throw new BadRequestException('Formato inválido. Use YYYY-MM.')
+    const dateFrom = `${year}-${String(m).padStart(2, '0')}-01`
+    const lastDay = new Date(year, m, 0).getDate()
+    const dateTo = `${year}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+
+    const records = await this.repo
+      .createQueryBuilder('r')
+      .leftJoinAndSelect('r.patient', 'patient')
+      .where('r.psychologistId = :psychologistId', { psychologistId })
+      .andWhere(`COALESCE(r.paidAt, r.dueDate, CAST(r.createdAt AS text)) >= :dateFrom`, { dateFrom })
+      .andWhere(`COALESCE(r.paidAt, r.dueDate, CAST(r.createdAt AS text)) <= :dateTo + ' 23:59:59'`, { dateTo })
+      .orderBy('r.createdAt', 'DESC')
+      .getMany()
+
+    const income  = records.filter(r => r.type === 'income')
+    const expense = records.filter(r => r.type === 'expense')
+
+    return {
+      month,
+      records,
+      totals: {
+        income:  income.reduce((s, r) => s + Number(r.amount), 0),
+        expense: expense.reduce((s, r) => s + Number(r.amount), 0),
+        paidIncome:    income.filter(r => r.status === 'paid').reduce((s, r) => s + Number(r.amount), 0),
+        pendingIncome: income.filter(r => r.status === 'pending').reduce((s, r) => s + Number(r.amount), 0),
+        net: income.reduce((s, r) => s + Number(r.amount), 0) - expense.reduce((s, r) => s + Number(r.amount), 0),
+      },
+    }
+  }
+
   async getSummary(psychologistId: string) {
     const records = await this.repo.find({ where: { psychologistId } })
     const income = records.filter(r => r.type === 'income')
