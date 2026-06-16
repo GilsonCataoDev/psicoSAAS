@@ -817,7 +817,7 @@ export default function SettingsPage() {
                   <div className="flex flex-wrap gap-2">
                     {!whatsappConnected && (
                       <button type="button" onClick={connectWhatsApp} disabled={whatsappBusy} className="btn-primary text-sm">
-                        {whatsappQr ? 'Gerar novo QR Code' : 'Conectar WhatsApp'}
+                        {whatsappBusy ? 'Gerando QR Code...' : whatsappQr ? 'Gerar novo QR Code' : 'Conectar WhatsApp'}
                       </button>
                     )}
                     {!whatsappConnected && whatsappQr && (
