@@ -27,32 +27,45 @@ function LikertItem({
         <span className="mr-2 text-xs font-semibold text-sage-600">{index + 1}.</span>
         {label}
       </p>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {options.map(opt => {
-          const selected = value === String(opt.value)
-          return (
-            <label
-              key={opt.value}
-              className={`flex cursor-pointer flex-col items-center gap-1 rounded-xl border-2 p-2 text-center text-xs transition-all ${
-                selected
-                  ? 'border-sage-500 bg-sage-50 font-semibold text-sage-700'
-                  : 'border-neutral-200 bg-white text-neutral-500 hover:border-sage-300'
-              }`}
-            >
-              <input
-                type="radio"
-                name={`item-${index}`}
-                value={String(opt.value)}
-                checked={selected}
-                onChange={() => onChange(String(opt.value))}
-                className="sr-only"
-              />
-              <span className="text-base font-bold">{opt.value}</span>
-              <span className="leading-tight">{opt.label}</span>
-            </label>
-          )
-        })}
-      </div>
+      {options.length > 4 ? (
+        <select
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-700 focus:border-sage-400 focus:outline-none"
+        >
+          <option value="">Selecione</option>
+          {options.map(opt => (
+            <option key={opt.value} value={String(opt.value)}>{opt.label}</option>
+          ))}
+        </select>
+      ) : (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {options.map(opt => {
+            const selected = value === String(opt.value)
+            return (
+              <label
+                key={opt.value}
+                className={`flex cursor-pointer flex-col items-center gap-1 rounded-xl border-2 p-2 text-center text-xs transition-all ${
+                  selected
+                    ? 'border-sage-500 bg-sage-50 font-semibold text-sage-700'
+                    : 'border-neutral-200 bg-white text-neutral-500 hover:border-sage-300'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name={`item-${index}`}
+                  value={String(opt.value)}
+                  checked={selected}
+                  onChange={() => onChange(String(opt.value))}
+                  className="sr-only"
+                />
+                <span className="text-base font-bold">{opt.value}</span>
+                <span className="leading-tight">{opt.label}</span>
+              </label>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
@@ -124,7 +137,7 @@ export default function InstrumentResponsePage() {
 
   const allAnswered = isScale
     ? scaleConfig.items.every(item => answers[item.id] !== undefined && answers[item.id] !== '')
-    : genericFields.some(f => answers[f.id]?.trim())
+    : genericFields.some(f => (answers[f.id] ?? '').trim())
 
   function setAnswer(id: string, value: string) {
     setAnswers(prev => ({ ...prev, [id]: value }))
@@ -224,7 +237,7 @@ export default function InstrumentResponsePage() {
                       key={item.id}
                       index={i}
                       label={item.label}
-                      options={scaleConfig.options}
+                      options={item.options ?? scaleConfig.options}
                       value={answers[item.id] ?? ''}
                       onChange={v => setAnswer(item.id, v)}
                     />
