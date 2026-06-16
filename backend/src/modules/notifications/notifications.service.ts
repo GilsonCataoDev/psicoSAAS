@@ -128,23 +128,35 @@ export class NotificationsService {
     if (!this.waEnabled) throw new BadRequestException('WhatsApp nao configurado no servidor')
     const instance = this.getWhatsAppInstance(ownerId)
     await this.ensureWhatsAppInstance(instance)
-    const res = await fetch(`${this.WA_URL}/instance/connect/${instance}`, {
-      headers: { apikey: this.WA_KEY },
-    })
-    const raw = await res.text()
-    let data: { base64?: string; message?: string; code?: string } = {}
-    try { data = JSON.parse(raw) } catch { /* not json */ }
-    this.logger.log(`[WA connect] instance=${instance} status=${res.status} base64=${!!data.base64} code=${!!data.code}`)
-    if (!res.ok) {
-      this.logger.error(`[WA connect] erro ${res.status}: ${raw.slice(0, 300)}`)
-      throw new BadRequestException(data.message ?? `Evolution API retornou ${res.status}`)
+
+    // Baileys leva alguns segundos para inicializar após a instância ser criada
+    const delay = (ms: number) => new Promise(r => setTimeout(r, ms))
+    const maxAttempts = 4
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const res = await fetch(`${this.WA_URL}/instance/connect/${instance}`, {
+        headers: { apikey: this.WA_KEY },
+      })
+      const raw = await res.text()
+      let data: { base64?: string; message?: string; code?: string } = {}
+      try { data = JSON.parse(raw) } catch { /* not json */ }
+      this.logger.log(`[WA connect] attempt=${attempt} instance=${instance} status=${res.status} base64=${!!data.base64}`)
+
+      if (res.status === 502 && attempt < maxAttempts) {
+        this.logger.warn(`[WA connect] 502 — aguardando Baileys inicializar (tentativa ${attempt}/${maxAttempts})`)
+        await delay(3000 * attempt)
+        continue
+      }
+      if (!res.ok) {
+        this.logger.error(`[WA connect] erro ${res.status}: ${raw.slice(0, 300)}`)
+        throw new BadRequestException(data.message ?? `Evolution API retornou ${res.status}`)
+      }
+      if (!data.base64) {
+        this.logger.error(`[WA connect] sem base64 na resposta: ${raw.slice(0, 300)}`)
+        throw new BadRequestException('QR Code nao disponivel — tente novamente em alguns segundos')
+      }
+      return { base64: data.base64, instance }
     }
-    const qrBase64 = data.base64 ?? (data.code ? undefined : undefined)
-    if (!qrBase64) {
-      this.logger.error(`[WA connect] sem base64 na resposta: ${raw.slice(0, 300)}`)
-      throw new BadRequestException('QR Code nao disponivel — tente novamente em alguns segundos')
-    }
-    return { base64: qrBase64, instance }
+    throw new BadRequestException('WhatsApp ainda inicializando — aguarde alguns segundos e tente novamente')
   }
 
   async resetWhatsAppConnection(ownerId: string): Promise<{ base64: string; instance: string }> {
