@@ -398,11 +398,13 @@ Tipografia:
 - [x] Lembretes de sessão por WhatsApp
 - [x] Notificações push (Web Push API)
 
+### Aguardando configuração de API
+- [ ] Transcrição de áudio de sessão — requer `OPENAI_API_KEY` (Whisper, ~R$0,17/sessão 50 min)
+- [ ] Resumo sugestivo por IA — requer `ANTHROPIC_API_KEY` (Claude Haiku, ~R$0,02/resumo)
+
 ### Próximas versões
 - [ ] App mobile (React Native)
 - [ ] Multi-profissional (clínica com vários psicólogos)
-- [ ] Transcrição de áudio com consentimento explícito
-- [ ] Resumo sugestivo de sessão por IA (sem diagnóstico)
 
 ---
 
