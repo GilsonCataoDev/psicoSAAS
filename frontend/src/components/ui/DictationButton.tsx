@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Mic, MicOff } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cn } from '@/lib/utils'
+import { useHasPlan } from '@/store/subscription'
 
 type DictationButtonProps = {
   value: string
@@ -17,6 +18,7 @@ function appendTranscript(current: string, transcript: string) {
 }
 
 export default function DictationButton({ value, onChange, className }: DictationButtonProps) {
+  const hasPlan = useHasPlan('essencial')
   const recognitionRef = useRef<any>(null)
   const valueRef = useRef(value)
   const onChangeRef = useRef(onChange)
@@ -91,7 +93,7 @@ export default function DictationButton({ value, onChange, className }: Dictatio
     }
   }
 
-  if (!supported) return null
+  if (!hasPlan || !supported) return null
 
   return (
     <button
