@@ -53,14 +53,22 @@ export default function RecordingPanel({ patientName, onApplyTranscription, onAp
     setStep('transcribing')
   }
 
+  function extractApiError(err: unknown): string {
+    if (typeof err === 'object' && err !== null) {
+      const msg = (err as any)?.response?.data?.message
+      if (typeof msg === 'string') return msg
+    }
+    return 'Erro ao transcrever. Verifique sua conexão e tente novamente.'
+  }
+
   async function handleTranscribe(blob: Blob) {
     try {
       const { text } = await transcribe.mutateAsync(blob)
       setTranscription(text)
       setStep('transcribed')
-    } catch {
+    } catch (err) {
       setStep('idle')
-      toast.error('Erro ao transcrever. Verifique sua conexão e tente novamente.')
+      toast.error(extractApiError(err))
     }
   }
 
@@ -72,9 +80,9 @@ export default function RecordingPanel({ patientName, onApplyTranscription, onAp
       onApplySummary(draft)
       toast.success('Rascunho aplicado ao resumo da sessão')
       setStep('transcribed')
-    } catch {
+    } catch (err) {
       setStep('transcribed')
-      toast.error('Erro ao gerar resumo. Tente novamente.')
+      toast.error(extractApiError(err))
     }
   }
 
