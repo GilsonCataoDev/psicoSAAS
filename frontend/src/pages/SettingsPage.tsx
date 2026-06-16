@@ -373,7 +373,7 @@ export default function SettingsPage() {
       const { data } = await api.post('/notifications/whatsapp/connect')
       setWhatsappQr(data.base64)
     } catch (e: any) {
-      toast.error(userSafeError(e, 'Nao foi possivel gerar o QR Code.'))
+      toast.error(userSafeError(e, 'Nao foi possivel gerar o QR Code.'), { duration: 8000 })
     } finally {
       setWhatsappBusy(false)
     }
