@@ -125,17 +125,26 @@ export class NotificationsService {
   }
 
   async getWhatsAppQrCode(ownerId: string): Promise<{ base64: string; instance: string }> {
-    if (!this.waEnabled) throw new BadRequestException('WhatsApp nao configurado')
+    if (!this.waEnabled) throw new BadRequestException('WhatsApp nao configurado no servidor')
     const instance = this.getWhatsAppInstance(ownerId)
     await this.ensureWhatsAppInstance(instance)
     const res = await fetch(`${this.WA_URL}/instance/connect/${instance}`, {
       headers: { apikey: this.WA_KEY },
     })
-    const data = await res.json() as { base64?: string; message?: string }
-    if (!res.ok || !data.base64) {
-      throw new BadRequestException(data.message ?? 'Nao foi possivel gerar o QR Code')
+    const raw = await res.text()
+    let data: { base64?: string; message?: string; code?: string } = {}
+    try { data = JSON.parse(raw) } catch { /* not json */ }
+    this.logger.log(`[WA connect] instance=${instance} status=${res.status} base64=${!!data.base64} code=${!!data.code}`)
+    if (!res.ok) {
+      this.logger.error(`[WA connect] erro ${res.status}: ${raw.slice(0, 300)}`)
+      throw new BadRequestException(data.message ?? `Evolution API retornou ${res.status}`)
     }
-    return { base64: data.base64, instance }
+    const qrBase64 = data.base64 ?? (data.code ? undefined : undefined)
+    if (!qrBase64) {
+      this.logger.error(`[WA connect] sem base64 na resposta: ${raw.slice(0, 300)}`)
+      throw new BadRequestException('QR Code nao disponivel — tente novamente em alguns segundos')
+    }
+    return { base64: qrBase64, instance }
   }
 
   async resetWhatsAppConnection(ownerId: string): Promise<{ base64: string; instance: string }> {
@@ -356,8 +365,9 @@ export class NotificationsService {
     })
     if (res.ok || res.status === 409 || res.status === 403) return
 
-    await res.text().catch(() => '')
-    throw new BadRequestException(`Nao foi possivel criar a conexao WhatsApp: erro ${res.status}`)
+    const body = await res.text().catch(() => '')
+    this.logger.error(`[WA create instance] erro ${res.status}: ${body.slice(0, 300)}`)
+    throw new BadRequestException(`Nao foi possivel criar a instancia WhatsApp: erro ${res.status}`)
   }
 
   async scheduleReminder(appointment: any): Promise<void> {
