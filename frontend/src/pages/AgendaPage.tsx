@@ -116,14 +116,14 @@ export default function AgendaPage() {
 
   return (
     <div className="animate-slide-up space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="page-title">Agenda</h1>
           <p className="page-subtitle capitalize">
             {format(weekStart, "MMMM 'de' yyyy", { locale: ptBR })}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
           <button onClick={() => setWeekStart(w => subWeeks(w, 1))}
             className="p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-white/10 text-neutral-500 dark:text-neutral-300 transition-colors">
             <ChevronLeft className="w-5 h-5" />
@@ -205,7 +205,7 @@ export default function AgendaPage() {
                   <button
                     type="button"
                     onClick={() => evolveAppointment(appt)}
-                    className="btn-secondary text-xs justify-center"
+                    className="btn-secondary inline-flex min-w-0 flex-col items-center justify-center gap-1 px-2 py-2 text-[11px] leading-tight"
                     title="Evoluir sessão"
                   >
                     <FileText className="w-3.5 h-3.5" />
@@ -215,17 +215,17 @@ export default function AgendaPage() {
                     type="button"
                     onClick={() => changeAppointmentStatus(appt, 'completed')}
                     disabled={updateStatus.isPending || appt.status === 'completed'}
-                    className="btn-secondary text-xs justify-center disabled:opacity-40"
+                    className="btn-secondary inline-flex min-w-0 flex-col items-center justify-center gap-1 px-2 py-2 text-[11px] leading-tight disabled:opacity-40"
                     title="Marcar como finalizada"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    Finalizada
+                    Finalizar
                   </button>
                   <button
                     type="button"
                     onClick={() => changeAppointmentStatus(appt, 'no_show')}
                     disabled={updateStatus.isPending || appt.status === 'no_show'}
-                    className="btn-secondary text-xs justify-center disabled:opacity-40"
+                    className="btn-secondary inline-flex min-w-0 flex-col items-center justify-center gap-1 px-2 py-2 text-[11px] leading-tight disabled:opacity-40"
                     title="Registrar falta"
                   >
                     <XCircle className="w-3.5 h-3.5" />
@@ -296,16 +296,22 @@ export default function AgendaPage() {
                     className={`agenda-grid-line border-l border-neutral-100 p-1 ${isToday(day) ? 'agenda-today bg-sage-50/40' : ''}`}>
                     {dayAppts.map(appt => (
                       <div key={appt.id}
-                        className="agenda-appointment group bg-sage-100 border border-sage-200 rounded-xl p-2 hover:bg-sage-200 transition-colors mb-1">
+                        className="agenda-appointment bg-sage-100 border border-sage-200 rounded-xl p-2 hover:bg-sage-200 transition-colors mb-1">
                         <div className="flex items-center gap-1.5">
                           {appt.modality === 'online'
                             ? <Video className="w-3 h-3 text-mist-500 shrink-0" />
                             : <MapPin className="w-3 h-3 text-sage-600 shrink-0" />}
-                          <span className="text-xs text-sage-800 dark:text-sage-100 font-semibold flex-1">{formatTime(appt.time)}</span>
+                          <span className="text-xs text-sage-800 dark:text-sage-100 font-semibold flex-1 truncate">{formatTime(appt.time)}</span>
+                          <StatusBadge status={appt.status} />
+                        </div>
+                        <p className="text-xs text-sage-700 dark:text-neutral-100 font-medium truncate mt-1">
+                          {appt.patient?.name?.split(' ')[0] ?? 'Paciente'}
+                        </p>
+                        <div className="mt-2 flex flex-wrap items-center gap-1">
                           <button
                             type="button"
                             onClick={() => evolveAppointment(appt)}
-                            className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-sage-700 hover:text-sage-800 hover:bg-white/70 transition-all"
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-white/65 text-sage-700 transition-colors hover:bg-white hover:text-sage-900"
                             title="Evoluir sessão"
                           >
                             <FileText className="w-3.5 h-3.5" />
@@ -314,7 +320,7 @@ export default function AgendaPage() {
                             type="button"
                             onClick={() => changeAppointmentStatus(appt, 'completed')}
                             disabled={updateStatus.isPending || appt.status === 'completed'}
-                            className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-sage-700 hover:text-sage-800 hover:bg-white/70 transition-all disabled:opacity-40"
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-white/65 text-sage-700 transition-colors hover:bg-white hover:text-sage-900 disabled:opacity-40"
                             title="Marcar como finalizada"
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" />
@@ -323,7 +329,7 @@ export default function AgendaPage() {
                             type="button"
                             onClick={() => changeAppointmentStatus(appt, 'no_show')}
                             disabled={updateStatus.isPending || appt.status === 'no_show'}
-                            className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-sage-700 hover:text-rose-600 hover:bg-white/70 transition-all disabled:opacity-40"
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-white/65 text-sage-700 transition-colors hover:bg-white hover:text-rose-600 disabled:opacity-40"
                             title="Registrar falta"
                           >
                             <XCircle className="w-3.5 h-3.5" />
@@ -331,7 +337,7 @@ export default function AgendaPage() {
                           <button
                             type="button"
                             onClick={() => messageAppointment(appt)}
-                            className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-sage-700 hover:text-sage-800 hover:bg-white/70 transition-all"
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-white/65 text-sage-700 transition-colors hover:bg-white hover:text-sage-900"
                             title="Enviar WhatsApp"
                           >
                             <MessageCircle className="w-3.5 h-3.5" />
@@ -339,7 +345,7 @@ export default function AgendaPage() {
                           <button
                             type="button"
                             onClick={() => editAppointment(appt)}
-                            className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-sage-700 hover:text-mist-700 hover:bg-white/70 transition-all"
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-white/65 text-sage-700 transition-colors hover:bg-white hover:text-mist-700"
                             title="Alterar esta ocorrencia"
                           >
                             <Pencil className="w-3.5 h-3.5" />
@@ -348,21 +354,15 @@ export default function AgendaPage() {
                             type="button"
                             onClick={() => setAppointmentToRemove(appt)}
                             disabled={deleteAppointment.isPending}
-                            className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-sage-700 hover:text-rose-600 hover:bg-white/70 transition-all disabled:opacity-50"
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-white/65 text-sage-700 transition-colors hover:bg-white hover:text-rose-600 disabled:opacity-50"
                             title="Remover agendamento"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
-                        </div>
-                        <p className="text-xs text-sage-700 dark:text-neutral-100 font-medium truncate mt-0.5">
-                          {appt.patient?.name?.split(' ')[0] ?? 'Paciente'}
-                        </p>
-                        <div className="mt-1 flex items-center justify-between gap-2">
-                          <StatusBadge status={appt.status} />
                           {appt.patientId && (
                             <Link
                               to={`/prontuario/${appt.patientId}`}
-                              className="text-[10px] font-medium text-sage-700/80 hover:text-sage-900"
+                              className="ml-auto rounded-lg bg-white/45 px-2 py-1 text-[10px] font-medium text-sage-700/80 transition-colors hover:bg-white hover:text-sage-900"
                             >
                               Prontuário
                             </Link>
