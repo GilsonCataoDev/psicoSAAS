@@ -1,5 +1,8 @@
-import { BadGatewayException, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common'
+import { BadGatewayException, Injectable, Logger, Optional, ServiceUnavailableException } from '@nestjs/common'
+import { InjectRepository } from '@nestjs/typeorm'
+import { Repository } from 'typeorm'
 import { ConfigService } from '@nestjs/config'
+import { EmailLog } from './entities/email-log.entity'
 
 interface Attachment {
   filename: string
@@ -21,7 +24,10 @@ export class EmailService {
   private readonly enabled: boolean
   private readonly frontendUrl: string
 
-  constructor(private cfg: ConfigService) {
+  constructor(
+    private cfg: ConfigService,
+    @Optional() @InjectRepository(EmailLog) private readonly logs?: Repository<EmailLog>,
+  ) {
     this.apiKey = cfg.get<string>('RESEND_API_KEY') ?? ''
     this.from = cfg.get<string>('RESEND_FROM') ?? 'UseCognia <noreply@usecognia.com.br>'
     this.enabled = !!this.apiKey
@@ -62,9 +68,14 @@ export class EmailService {
         throw new BadGatewayException('Nao foi possivel enviar o e-mail')
       }
       this.logger.log(`[Resend] Email enviado subjectChars=${opts.subject.length}`)
+      this.writeLog(opts.to, opts.subject, 'sent', null)
     } catch (err) {
-      if (err instanceof BadGatewayException || err instanceof ServiceUnavailableException) throw err
+      if (err instanceof BadGatewayException || err instanceof ServiceUnavailableException) {
+        this.writeLog(opts.to, opts.subject, 'failed', (err as Error).message)
+        throw err
+      }
       this.logger.error('[Resend] Falha de conexão', err)
+      this.writeLog(opts.to, opts.subject, 'failed', (err as Error)?.message ?? 'unknown')
       throw new BadGatewayException('Nao foi possivel conectar ao servico de e-mail')
     }
   }
@@ -320,6 +331,12 @@ export class EmailService {
   }
 
   // ─── Layout base ─────────────────────────────────────────────────────────
+
+  private writeLog(to: string, subject: string, status: 'sent' | 'failed', error: string | null): void {
+    if (!this.logs) return
+    this.logs.save(this.logs.create({ to, subject: subject.slice(0, 255), status, error }))
+      .catch(e => this.logger.warn(`[EmailLog] Falha ao gravar log: ${e?.message}`))
+  }
 
   private wrap(content: string): string {
     return `

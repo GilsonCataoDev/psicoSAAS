@@ -1,8 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { MoreThan, Repository } from 'typeorm'
 import { User } from '../auth/entities/user.entity'
 import { Subscription, BillingSubscriptionStatus } from '../billing/entities/subscription.entity'
+import { WebhookEvent } from '../billing/entities/webhook-event.entity'
+import { EmailLog } from '../email/entities/email-log.entity'
 import { AsaasService } from '../billing/asaas.service'
 import { OverrideSubscriptionDto } from './dto/override-subscription.dto'
 import { ListAdminUsersDto } from './dto/list-admin-users.dto'
@@ -12,6 +14,8 @@ export class AdminService {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
     @InjectRepository(Subscription) private readonly subs: Repository<Subscription>,
+    @InjectRepository(WebhookEvent) private readonly webhookEvents: Repository<WebhookEvent>,
+    @InjectRepository(EmailLog) private readonly emailLogs: Repository<EmailLog>,
     private readonly asaas: AsaasService,
   ) {}
 
@@ -109,6 +113,58 @@ export class AdminService {
     }
 
     return this.subs.save(sub)
+  }
+
+  async getMonitor() {
+    const since7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+    const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+
+    const [emailSent, emailFailed, recentFailures, webhookEvents, subsByStatus, pastDueUsers] =
+      await Promise.all([
+        this.emailLogs.count({ where: { status: 'sent', createdAt: MoreThan(since7d) } }),
+        this.emailLogs.count({ where: { status: 'failed', createdAt: MoreThan(since7d) } }),
+        this.emailLogs.find({
+          where: { status: 'failed', createdAt: MoreThan(since7d) },
+          order: { createdAt: 'DESC' },
+          take: 10,
+          select: ['id', 'to', 'subject', 'error', 'createdAt'],
+        }),
+        this.webhookEvents.find({
+          order: { processedAt: 'DESC' },
+          take: 20,
+          select: ['id', 'eventType', 'eventId', 'processedAt'],
+        }),
+        this.subs
+          .createQueryBuilder('s')
+          .select('s.status', 'status')
+          .addSelect('COUNT(*)', 'count')
+          .groupBy('s.status')
+          .getRawMany<{ status: string; count: string }>(),
+        this.subs
+          .createQueryBuilder('s')
+          .innerJoin('s.user', 'u')
+          .select(['u.id', 'u.name', 'u.email', 's.plan', 's.status', 's.updatedAt'])
+          .where('s.status = :status', { status: 'past_due' })
+          .andWhere('s.updatedAt > :since', { since: since30d })
+          .orderBy('s.updatedAt', 'DESC')
+          .take(20)
+          .getMany(),
+      ])
+
+    return {
+      email: {
+        last7d: { sent: emailSent, failed: emailFailed },
+        failureRate: emailSent + emailFailed > 0
+          ? Math.round((emailFailed / (emailSent + emailFailed)) * 100)
+          : 0,
+        recentFailures,
+      },
+      billing: {
+        byStatus: Object.fromEntries(subsByStatus.map(r => [r.status, Number(r.count)])),
+        pastDueAccounts: pastDueUsers,
+        recentWebhooks: webhookEvents,
+      },
+    }
   }
 
   async getStats() {
