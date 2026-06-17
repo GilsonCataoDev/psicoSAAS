@@ -191,12 +191,13 @@
   }
 
   .dark .agenda-grid .agenda-appointment {
-    background-color: #244638;
-    border-color: #579576;
+    background-color: rgb(255 255 255 / 0.07);
+    border-color: rgb(255 255 255 / 0.16);
+    box-shadow: 0 10px 24px rgb(0 0 0 / 0.16);
   }
 
   .dark .agenda-grid .agenda-appointment:hover {
-    background-color: #2b5342;
+    background-color: rgb(255 255 255 / 0.11);
   }
 }
 
