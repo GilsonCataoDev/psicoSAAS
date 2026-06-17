@@ -18,6 +18,11 @@ export class NotificationsController {
     return this.notifications.getWhatsAppStatus(req.user.id)
   }
 
+  @Get('logs')
+  logs(@Request() req: any) {
+    return this.notifications.getWhatsAppLogs(req.user.id)
+  }
+
   @Post('connect')
   @UseGuards(CsrfGuard)
   connect(@Request() req: any) {

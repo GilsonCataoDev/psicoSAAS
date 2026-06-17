@@ -68,6 +68,7 @@ export class InstrumentAssignmentsService {
         patient.phone,
         `Ola, ${first}! Segue o formulario combinado para preencher com calma:\n\n${url}\n\nO link fica disponivel por 7 dias.`,
         psychologistId,
+        { type: 'Formulario', patientId: patient.id, patientName: patient.name },
       )
       whatsAppSent = result.sent
       if (!result.sent) whatsAppError = result.error

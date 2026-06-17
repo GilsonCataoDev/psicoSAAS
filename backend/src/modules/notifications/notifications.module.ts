@@ -6,9 +6,10 @@ import { Subscription } from '../billing/entities/subscription.entity'
 import { User } from '../auth/entities/user.entity'
 import { NotificationsController, PushNotificationsController } from './notifications.controller'
 import { PushSubscriptionEntity } from './entities/push-subscription.entity'
+import { WhatsAppDeliveryLog } from './entities/whatsapp-delivery-log.entity'
 
 @Module({
-  imports: [EmailModule, TypeOrmModule.forFeature([Subscription, User, PushSubscriptionEntity])],
+  imports: [EmailModule, TypeOrmModule.forFeature([Subscription, User, PushSubscriptionEntity, WhatsAppDeliveryLog])],
   controllers: [NotificationsController, PushNotificationsController],
   providers: [NotificationsService],
   exports: [NotificationsService],

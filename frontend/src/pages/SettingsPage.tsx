@@ -37,6 +37,24 @@ type AuditLog = {
   createdAt: string
 }
 
+type WhatsAppLog = {
+  id: string
+  type: string
+  status: 'sent' | 'failed'
+  patientName?: string | null
+  recipientPhone?: string | null
+  error?: string | null
+  createdAt: string
+}
+
+type WhatsAppStatus = {
+  connected: boolean
+  configured: boolean
+  state?: string
+  phone?: string | null
+  profileName?: string | null
+}
+
 const AUDIT_LABELS: Record<string, string> = {
   'patient.viewed': 'Paciente visualizado',
   'patient.created': 'Paciente criado',
@@ -149,6 +167,7 @@ export default function SettingsPage() {
   const [whatsappBusy, setWhatsappBusy] = useState(false)
   const [whatsappConnected, setWhatsappConnected] = useState(false)
   const [whatsappConfigured, setWhatsappConfigured] = useState(true)
+  const [whatsappStatus, setWhatsappStatus] = useState<WhatsAppStatus | null>(null)
   const [whatsappQr, setWhatsappQr] = useState('')
   const [pushConfigured, setPushConfigured] = useState(false)
   const [pushSubscribed, setPushSubscribed] = useState(false)
@@ -160,6 +179,7 @@ export default function SettingsPage() {
   const [googleLastSyncError, setGoogleLastSyncError] = useState<string | null>(null)
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
   const [loadingAudit, setLoadingAudit] = useState(false)
+  const [whatsappLogs, setWhatsappLogs] = useState<WhatsAppLog[]>([])
   const { data: messageTemplates = [] } = useTemplates('whatsapp_message')
   const { data: receiptTemplates = [] } = useTemplates('receipt')
   const createTemplate = useCreateTemplate()
@@ -209,15 +229,26 @@ export default function SettingsPage() {
     if (!isAuthenticated || tab !== 'messages') return
     const loadStatus = () => api.get('/notifications/whatsapp/status')
       .then(({ data }) => {
+        setWhatsappStatus(data)
         setWhatsappConfigured(data.configured !== false)
         setWhatsappConnected(!!data.connected)
         if (data.connected) setWhatsappQr('')
       })
-      .catch(() => setWhatsappConfigured(false))
+      .catch(() => {
+        setWhatsappStatus(null)
+        setWhatsappConfigured(false)
+      })
     loadStatus()
     const timer = window.setInterval(loadStatus, 5000)
     return () => window.clearInterval(timer)
   }, [isAuthenticated, tab])
+
+  useEffect(() => {
+    if (!isAuthenticated || tab !== 'messages') return
+    api.get('/notifications/whatsapp/logs')
+      .then(({ data }) => setWhatsappLogs(Array.isArray(data) ? data : []))
+      .catch(() => setWhatsappLogs([]))
+  }, [isAuthenticated, tab, whatsappConnected])
 
   useEffect(() => {
     if (!isAuthenticated || tab !== 'notify') return
@@ -383,6 +414,8 @@ export default function SettingsPage() {
     setWhatsappBusy(true)
     try {
       await api.post('/notifications/whatsapp/test', { phone: prefs.whatsapp })
+      const { data } = await api.get('/notifications/whatsapp/logs')
+      setWhatsappLogs(Array.isArray(data) ? data : [])
       setWhatsappConnected(true)
       setWhatsappQr('')
       toast.success('Mensagem teste enviada')
@@ -781,6 +814,15 @@ export default function SettingsPage() {
                     {whatsappConnected ? 'Conectado' : 'Desconectado'}
                   </span>
                 </div>
+                {whatsappConnected && (
+                  <div className="rounded-xl border border-sage-100 bg-sage-50 px-4 py-3 text-sm text-sage-800">
+                    <p className="font-medium">WhatsApp conectado</p>
+                    <p className="mt-1 text-sage-700">
+                      {whatsappStatus?.profileName ? `${whatsappStatus.profileName} · ` : ''}
+                      {whatsappStatus?.phone ? `+${whatsappStatus.phone}` : 'Numero conectado pela instancia da psicologa'}
+                    </p>
+                  </div>
+                )}
                 {!hasProAutomation && (
                   <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                     <p className="font-medium">Envio automatico sera recurso Pro.</p>
@@ -828,6 +870,37 @@ export default function SettingsPage() {
                     <button type="button" onClick={testWhatsApp} disabled={whatsappBusy || !prefs.whatsapp} className="btn-secondary text-sm">
                       Enviar mensagem teste
                     </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="card space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="section-title mb-0">Historico de envios</h2>
+                  <span className="text-xs text-neutral-400">ultimos 20</span>
+                </div>
+                {whatsappLogs.length === 0 ? (
+                  <p className="text-sm text-neutral-500">Nenhum envio registrado ainda.</p>
+                ) : (
+                  <div className="divide-y divide-neutral-100">
+                    {whatsappLogs.map(log => (
+                      <div key={log.id} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-neutral-800">
+                            {log.type} {log.patientName ? `· ${log.patientName}` : ''}
+                          </p>
+                          <p className="text-xs text-neutral-400">
+                            {new Date(log.createdAt).toLocaleString('pt-BR')} {log.recipientPhone ? `· +${log.recipientPhone}` : ''}
+                          </p>
+                          {log.status === 'failed' && log.error && (
+                            <p className="mt-1 text-xs text-red-600">{log.error}</p>
+                          )}
+                        </div>
+                        <span className={`badge w-fit ${log.status === 'sent' ? 'bg-sage-50 text-sage-700' : 'bg-red-50 text-red-700'}`}>
+                          {log.status === 'sent' ? 'Enviado' : 'Falhou'}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
