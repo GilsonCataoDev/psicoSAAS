@@ -91,7 +91,7 @@ export class NotificationsService {
     }
   }
 
-  private async canUseWhatsAppAutomation(userId?: string | null): Promise<boolean> {
+  async canUseWhatsAppAutomation(userId?: string | null): Promise<boolean> {
     if (!userId) return false
 
     const [user, sub] = await Promise.all([

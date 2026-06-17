@@ -53,10 +53,14 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
         const prefs = (appointment.psychologist?.preferences ?? {}) as Record<string, any>
         const startsAt = this.appointmentStartsAt(appointment)
         const diff = startsAt.getTime() - now.getTime()
+        const canUseWhatsApp = await this.notifications.canUseWhatsAppAutomation(appointment.psychologistId)
 
         if (!appointment.reminder24hSentAt && prefs.reminder24h !== false && diff <= DAY_MS && diff > TWO_HOURS_MS) {
-          const result = await this.notifications.sendAppointmentReminder(appointment, '24h')
-          if (result.sent) {
+          const result = canUseWhatsApp
+            ? await this.notifications.sendAppointmentReminder(appointment, '24h')
+            : await this.notifications.sendAppointmentPushReminder(appointment, '24h')
+          const delivered = Number(result.sent) > 0
+          if (delivered) {
             appointment.reminder24hSentAt = new Date()
             await this.appointments.save(appointment)
             sent++
@@ -80,8 +84,11 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
         }
 
         if (!appointment.reminder2hSentAt && prefs.reminder2h !== false && diff <= TWO_HOURS_MS && diff > 0) {
-          const result = await this.notifications.sendAppointmentReminder(appointment, '2h')
-          if (result.sent) {
+          const result = canUseWhatsApp
+            ? await this.notifications.sendAppointmentReminder(appointment, '2h')
+            : await this.notifications.sendAppointmentPushReminder(appointment, '2h')
+          const delivered = Number(result.sent) > 0
+          if (delivered) {
             appointment.reminder2hSentAt = new Date()
             await this.appointments.save(appointment)
             sent++

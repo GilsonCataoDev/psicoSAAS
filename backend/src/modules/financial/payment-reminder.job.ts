@@ -45,8 +45,9 @@ export class PaymentReminderJob implements OnModuleInit, OnModuleDestroy {
 
       for (const record of overdue) {
         const prefs = (record.psychologist?.preferences ?? {}) as Record<string, any>
+        const canUseWhatsApp = await this.notifications.canUseWhatsAppAutomation(record.psychologistId)
 
-        if (prefs.lateReminder !== false && record.patient?.phone) {
+        if (canUseWhatsApp && prefs.lateReminder !== false && record.patient?.phone) {
           const result = await this.notifications.sendLatePaymentReminder(
             record.patient,
             Number(record.amount),
