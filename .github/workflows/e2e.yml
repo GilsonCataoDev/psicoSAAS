@@ -36,7 +36,7 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
-      - name: Run production smoke test
+      - name: Run production E2E tests
         env:
           E2E_BASE_URL: ${{ secrets.E2E_BASE_URL || 'https://usecognia.com.br' }}
           E2E_API_URL: ${{ secrets.E2E_API_URL || 'https://psicosaas-production-2d6c.up.railway.app/api' }}
