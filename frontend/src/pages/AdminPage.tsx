@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Search, ShieldCheck, TrendingUp, Users, X } from 'lucide-react'
-import { useAdminStats, useAdminUsers, useAdminOverrideSubscription, AdminUser } from '@/hooks/useApi'
+import { Activity, AlertCircle, Mail, Search, ShieldCheck, TrendingUp, Users, Webhook, X } from 'lucide-react'
+import { useAdminStats, useAdminUsers, useAdminOverrideSubscription, useAdminMonitor, AdminUser } from '@/hooks/useApi'
 
 const STATUS_LABEL: Record<string, string> = {
   active: 'Ativo',
@@ -88,13 +88,12 @@ function OverrideModal({ user, onClose }: { user: AdminUser; onClose: () => void
   )
 }
 
-export default function AdminPage() {
+function UsersTab() {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [plan, setPlan] = useState('')
   const [status, setStatus] = useState('')
   const [selected, setSelected] = useState<AdminUser | null>(null)
-  const { data: stats } = useAdminStats()
   const { data: users, isLoading } = useAdminUsers({ page, search: search.trim() || undefined, plan: plan || undefined, status: status || undefined })
 
   const totalPages = users ? Math.ceil(users.total / users.limit) : 1
@@ -108,30 +107,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 px-4 py-6">
-
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sage-50">
-          <ShieldCheck className="h-4 w-4 text-sage-600" />
-        </div>
-        <h1 className="text-lg font-semibold text-neutral-800">Painel Admin</h1>
-      </div>
-
-      {/* Stats */}
-      {stats && (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <StatCard label="Usuários" value={stats.totalUsers} icon={Users} />
-          <StatCard label="Ativos" value={stats.activeUsers} icon={Users} />
-          <StatCard label="MRR" value={`R$ ${stats.mrr}`} icon={TrendingUp} />
-          <StatCard
-            label="Trial"
-            value={stats.byPlanStatus.find(r => r.status === 'trialing')?.count ?? '0'}
-            icon={Users}
-          />
-        </div>
-      )}
-
+    <>
       {/* Filters */}
       <div className="rounded-2xl border border-neutral-100 bg-white p-3 shadow-sm">
         <div className="grid gap-2 md:grid-cols-[1fr_160px_160px_auto]">
@@ -226,7 +202,6 @@ export default function AdminPage() {
           </tbody>
         </table>
 
-        {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex min-w-[620px] items-center justify-between border-t border-neutral-100 px-4 py-3">
             <span className="text-xs text-neutral-400">
@@ -253,6 +228,210 @@ export default function AdminPage() {
       </div>
 
       {selected && <OverrideModal user={selected} onClose={() => setSelected(null)} />}
+    </>
+  )
+}
+
+function MonitorTab() {
+  const { data: monitor, isLoading } = useAdminMonitor()
+
+  if (isLoading) {
+    return <p className="py-10 text-center text-xs text-neutral-400">Carregando…</p>
+  }
+
+  if (!monitor) return null
+
+  const { email, billing } = monitor
+  const emailTotal = email.last7d.sent + email.last7d.failed
+
+  const billingOrder = ['active', 'trialing', 'past_due', 'canceled', 'pending', 'none']
+  const billingEntries = billingOrder
+    .filter(s => billing.byStatus[s] !== undefined)
+    .map(s => ({ status: s, count: billing.byStatus[s] }))
+
+  return (
+    <div className="space-y-6">
+      {/* Email health */}
+      <section className="rounded-2xl border border-neutral-100 bg-white p-5 shadow-sm">
+        <div className="mb-4 flex items-center gap-2">
+          <Mail className="h-4 w-4 text-sage-600" />
+          <h2 className="text-sm font-semibold text-neutral-800">E-mail — últimos 7 dias</h2>
+        </div>
+
+        <div className="mb-4 grid grid-cols-3 gap-3">
+          <div className="rounded-xl bg-neutral-50 p-3 text-center">
+            <p className="text-xl font-bold text-neutral-800">{email.last7d.sent}</p>
+            <p className="text-xs text-neutral-400">Enviados</p>
+          </div>
+          <div className="rounded-xl bg-neutral-50 p-3 text-center">
+            <p className={`text-xl font-bold ${email.last7d.failed > 0 ? 'text-red-600' : 'text-neutral-800'}`}>
+              {email.last7d.failed}
+            </p>
+            <p className="text-xs text-neutral-400">Falhas</p>
+          </div>
+          <div className="rounded-xl bg-neutral-50 p-3 text-center">
+            <p className={`text-xl font-bold ${email.failureRate > 10 ? 'text-red-600' : email.failureRate > 0 ? 'text-yellow-600' : 'text-neutral-800'}`}>
+              {emailTotal > 0 ? `${email.failureRate}%` : '—'}
+            </p>
+            <p className="text-xs text-neutral-400">Taxa de falha</p>
+          </div>
+        </div>
+
+        {email.recentFailures.length > 0 ? (
+          <>
+            <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-red-600">
+              <AlertCircle className="h-3.5 w-3.5" />
+              Falhas recentes
+            </p>
+            <div className="divide-y divide-neutral-50 rounded-xl border border-neutral-100">
+              {email.recentFailures.map(f => (
+                <div key={f.id} className="px-3 py-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-medium text-neutral-700">{f.to}</p>
+                      <p className="truncate text-xs text-neutral-400">{f.subject}</p>
+                      {f.error && (
+                        <p className="mt-0.5 truncate text-[11px] text-red-500">{f.error}</p>
+                      )}
+                    </div>
+                    <time className="shrink-0 text-[11px] text-neutral-400">
+                      {new Date(f.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    </time>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <p className="text-xs text-emerald-600">Nenhuma falha nos últimos 7 dias.</p>
+        )}
+      </section>
+
+      {/* Billing health */}
+      <section className="rounded-2xl border border-neutral-100 bg-white p-5 shadow-sm">
+        <div className="mb-4 flex items-center gap-2">
+          <TrendingUp className="h-4 w-4 text-sage-600" />
+          <h2 className="text-sm font-semibold text-neutral-800">Billing — assinaturas</h2>
+        </div>
+
+        <div className="mb-4 flex flex-wrap gap-2">
+          {billingEntries.map(({ status, count }) => (
+            <span
+              key={status}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${STATUS_COLOR[status] ?? 'bg-neutral-100 text-neutral-500'}`}
+            >
+              {STATUS_LABEL[status] ?? status}
+              <span className="rounded-full bg-white/60 px-1.5 py-0.5 text-[11px] font-bold">{count}</span>
+            </span>
+          ))}
+          {billingEntries.length === 0 && (
+            <p className="text-xs text-neutral-400">Nenhuma assinatura registrada.</p>
+          )}
+        </div>
+
+        {billing.pastDueAccounts.length > 0 && (
+          <div className="mb-4">
+            <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-yellow-600">
+              <AlertCircle className="h-3.5 w-3.5" />
+              Em atraso (últimos 30 dias)
+            </p>
+            <div className="divide-y divide-neutral-50 rounded-xl border border-neutral-100">
+              {billing.pastDueAccounts.map(acc => (
+                <div key={acc.id} className="flex items-center justify-between gap-2 px-3 py-2.5">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-medium text-neutral-700">{acc.user.name}</p>
+                    <p className="truncate text-xs text-neutral-400">{acc.user.email}</p>
+                  </div>
+                  <span className="shrink-0 text-xs capitalize text-neutral-500">{acc.plan}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Recent webhooks */}
+        {billing.recentWebhooks.length > 0 && (
+          <>
+            <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-neutral-500">
+              <Webhook className="h-3.5 w-3.5" />
+              Webhooks recentes
+            </p>
+            <div className="divide-y divide-neutral-50 rounded-xl border border-neutral-100">
+              {billing.recentWebhooks.map(wh => (
+                <div key={wh.id} className="flex items-center justify-between gap-2 px-3 py-2.5">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-medium text-neutral-700">{wh.eventType}</p>
+                    <p className="truncate text-[11px] text-neutral-400">{wh.eventId}</p>
+                  </div>
+                  <time className="shrink-0 text-[11px] text-neutral-400">
+                    {new Date(wh.processedAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                  </time>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </section>
+    </div>
+  )
+}
+
+export default function AdminPage() {
+  const [tab, setTab] = useState<'users' | 'monitor'>('users')
+  const { data: stats } = useAdminStats()
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-6 px-4 py-6">
+
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sage-50">
+          <ShieldCheck className="h-4 w-4 text-sage-600" />
+        </div>
+        <h1 className="text-lg font-semibold text-neutral-800">Painel Admin</h1>
+      </div>
+
+      {/* Stats */}
+      {stats && (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <StatCard label="Usuários" value={stats.totalUsers} icon={Users} />
+          <StatCard label="Ativos" value={stats.activeUsers} icon={Users} />
+          <StatCard label="MRR" value={`R$ ${stats.mrr}`} icon={TrendingUp} />
+          <StatCard
+            label="Trial"
+            value={stats.byPlanStatus.find(r => r.status === 'trialing')?.count ?? '0'}
+            icon={Users}
+          />
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div className="flex gap-1 rounded-xl border border-neutral-100 bg-neutral-50 p-1">
+        <button
+          onClick={() => setTab('users')}
+          className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition-colors ${
+            tab === 'users'
+              ? 'bg-white text-neutral-800 shadow-sm'
+              : 'text-neutral-400 hover:text-neutral-600'
+          }`}
+        >
+          <Users className="h-4 w-4" />
+          Usuários
+        </button>
+        <button
+          onClick={() => setTab('monitor')}
+          className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition-colors ${
+            tab === 'monitor'
+              ? 'bg-white text-neutral-800 shadow-sm'
+              : 'text-neutral-400 hover:text-neutral-600'
+          }`}
+        >
+          <Activity className="h-4 w-4" />
+          Monitor
+        </button>
+      </div>
+
+      {tab === 'users' ? <UsersTab /> : <MonitorTab />}
     </div>
   )
 }

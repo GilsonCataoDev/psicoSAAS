@@ -583,6 +583,27 @@ export function useAdminOverrideSubscription() {
   })
 }
 
+export interface AdminMonitor {
+  email: {
+    last7d: { sent: number; failed: number }
+    failureRate: number
+    recentFailures: { id: string; to: string; subject: string; error: string | null; createdAt: string }[]
+  }
+  billing: {
+    byStatus: Record<string, number>
+    pastDueAccounts: { id: string; plan: string; status: string; updatedAt: string; user: { id: string; name: string; email: string } }[]
+    recentWebhooks: { id: string; eventType: string; eventId: string; processedAt: string }[]
+  }
+}
+
+export function useAdminMonitor() {
+  return useQuery<AdminMonitor>({
+    queryKey: ['admin', 'monitor'],
+    queryFn: () => api.get('/admin/monitor').then(r => r.data),
+    refetchInterval: 60_000,
+  })
+}
+
 export function useUpdateInstrumentAnswers() {
   const qc = useQueryClient()
   return useMutation({
