@@ -49,11 +49,16 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
       })
 
       let sent = 0
+      const planCache = new Map<string, boolean>()
       for (const appointment of upcoming) {
         const prefs = (appointment.psychologist?.preferences ?? {}) as Record<string, any>
         const startsAt = this.appointmentStartsAt(appointment)
         const diff = startsAt.getTime() - now.getTime()
-        const canUseWhatsApp = await this.notifications.canUseWhatsAppAutomation(appointment.psychologistId)
+
+        if (!planCache.has(appointment.psychologistId)) {
+          planCache.set(appointment.psychologistId, await this.notifications.canUseWhatsAppAutomation(appointment.psychologistId))
+        }
+        const canUseWhatsApp = planCache.get(appointment.psychologistId)!
 
         if (!appointment.reminder24hSentAt && prefs.reminder24h !== false && diff <= DAY_MS && diff > TWO_HOURS_MS) {
           const result = canUseWhatsApp
