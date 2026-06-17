@@ -1580,9 +1580,6 @@ function InstrumentModal({
   }
 
   function printInstrument() {
-    const win = window.open('', '_blank', 'noopener,noreferrer')
-    if (!win) { toast.error('Não foi possível abrir a janela de impressão.'); return }
-
     const rows = lines.map(line => {
       if (!line.trim()) return '<div style="height:8px"></div>'
       const isHeader =
@@ -1606,8 +1603,7 @@ function InstrumentModal({
     }).join('')
 
     const catLabel = CAT_LABEL[inst.category]
-
-    win.document.write(`<!doctype html><html><head><title>${escHtml(inst.title)}</title>
+    const html = `<!doctype html><html><head><title>${escHtml(inst.title)}</title>
 <style>
 @page{size:A4;margin:16mm 14mm}
 *{box-sizing:border-box}
@@ -1625,9 +1621,42 @@ html,body{width:210mm;min-height:297mm;margin:0;background:#fff;font-family:Aria
 </div>
 ${rows}
 <p style="font-size:8px;color:#9ca3af;margin-top:16px;border-top:1px solid #e5e7eb;padding-top:8px">Instrumento de apoio clínico · não substitui prontuário oficial · UseCognia</p>
-</div></body></html>`)
-    win.document.close()
-    setTimeout(() => { win.focus(); win.print() }, 150)
+</div></body></html>`
+
+    const printWindow = window.open('', '_blank')
+    if (printWindow) {
+      printWindow.opener = null
+      printWindow.document.open()
+      printWindow.document.write(html)
+      printWindow.document.close()
+      setTimeout(() => { printWindow.focus(); printWindow.print() }, 250)
+      return
+    }
+
+    const iframe = document.createElement('iframe')
+    iframe.style.position = 'fixed'
+    iframe.style.right = '0'
+    iframe.style.bottom = '0'
+    iframe.style.width = '0'
+    iframe.style.height = '0'
+    iframe.style.border = '0'
+    document.body.appendChild(iframe)
+
+    const doc = iframe.contentWindow?.document
+    if (!doc) {
+      iframe.remove()
+      toast.error('Não foi possível abrir a impressão neste navegador.')
+      return
+    }
+
+    doc.open()
+    doc.write(html)
+    doc.close()
+    setTimeout(() => {
+      iframe.contentWindow?.focus()
+      iframe.contentWindow?.print()
+      setTimeout(() => iframe.remove(), 1000)
+    }, 250)
   }
 
   return (
