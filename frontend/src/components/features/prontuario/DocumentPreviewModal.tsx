@@ -69,7 +69,7 @@ export default function DocumentPreviewModal({
       document.body.appendChild(link)
       link.click()
       link.remove()
-      URL.revokeObjectURL(url)
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000)
     } catch (err: any) {
       const message = err?.response?.status === 403
         ? 'Seu plano atual não permite baixar este PDF.'

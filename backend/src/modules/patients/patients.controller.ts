@@ -6,6 +6,7 @@ import { PatientsService } from './patients.service'
 import { CreatePatientDto } from './dto/create-patient.dto'
 import { UpdatePatientDto } from './dto/update-patient.dto'
 import { AuditService } from '../audit/audit.service'
+import { pdfAttachment } from '../../common/http/content-disposition.util'
 
 @Controller('patients')
 @UseGuards(JwtAuthGuard, CsrfGuard)
@@ -29,7 +30,7 @@ export class PatientsController {
     await this.record(req, 'patient.prontuario_exported', 'patient', id)
     res.set({
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Disposition': pdfAttachment(filename),
       'Content-Length': buffer.length,
       'Cache-Control': 'private, no-store',
     })

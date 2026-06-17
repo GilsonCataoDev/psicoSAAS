@@ -11,6 +11,7 @@ import { PublicRoute } from '../../common/decorators/public-route.decorator'
 import { AuditService } from '../audit/audit.service'
 import { DocumentsService, CreateDocumentDto } from './documents.service'
 import { DocType } from './entities/document.entity'
+import { pdfAttachment } from '../../common/http/content-disposition.util'
 
 class CreateDocumentBodyDto implements CreateDocumentDto {
   @IsString() @IsNotEmpty() patientId: string
@@ -56,7 +57,7 @@ export class DocumentsController {
     await this.record(req, 'document.pdf_downloaded', 'document', id, { filename })
     res.set({
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Disposition': pdfAttachment(filename),
       'Content-Length': buffer.length,
       'Cache-Control': 'private, no-store',
     })

@@ -566,8 +566,10 @@ export function useExportProntuario(patientId: string) {
       const match = cd?.match(/filename="([^"]+)"/)
       a.href = url
       a.download = match?.[1] ?? `Prontuario_${patientId}.pdf`
+      document.body.appendChild(a)
       a.click()
-      URL.revokeObjectURL(url)
+      a.remove()
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000)
     },
   })
 }

@@ -4,6 +4,7 @@ import { Response } from 'express'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { AuditService } from '../audit/audit.service'
 import { DataExportService } from './data-export.service'
+import { pdfAttachment } from '../../common/http/content-disposition.util'
 
 @Controller('data-export')
 @UseGuards(JwtAuthGuard)
@@ -45,7 +46,7 @@ export class DataExportController {
 
     res.set({
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Disposition': pdfAttachment(filename),
       'Content-Length': buffer.length,
       'Cache-Control': 'private, no-store',
     })
