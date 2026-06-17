@@ -296,22 +296,22 @@ export default function AgendaPage() {
                     className={`agenda-grid-line border-l border-neutral-100 p-1 ${isToday(day) ? 'agenda-today bg-sage-50/40' : ''}`}>
                     {dayAppts.map(appt => (
                       <div key={appt.id}
-                        className="agenda-appointment bg-sage-100 border border-sage-200 rounded-xl p-2 hover:bg-sage-200 transition-colors mb-1">
+                        className="agenda-appointment rounded-xl border border-sage-200 bg-sage-50 p-2.5 shadow-sm transition-colors hover:bg-sage-100 dark:border-white/15 dark:bg-white/[0.07] dark:hover:bg-white/[0.11] mb-1">
                         <div className="flex items-center gap-1.5">
                           {appt.modality === 'online'
                             ? <Video className="w-3 h-3 text-mist-500 shrink-0" />
-                            : <MapPin className="w-3 h-3 text-sage-600 shrink-0" />}
-                          <span className="text-xs text-sage-800 dark:text-sage-100 font-semibold flex-1 truncate">{formatTime(appt.time)}</span>
+                            : <MapPin className="w-3 h-3 text-sage-600 dark:text-sage-300 shrink-0" />}
+                          <span className="text-xs text-sage-900 dark:text-neutral-50 font-semibold flex-1 truncate">{formatTime(appt.time)}</span>
                           <StatusBadge status={appt.status} />
                         </div>
-                        <p className="text-xs text-sage-700 dark:text-neutral-100 font-medium truncate mt-1">
+                        <p className="text-sm text-sage-900 dark:text-neutral-50 font-semibold truncate mt-1.5">
                           {appt.patient?.name?.split(' ')[0] ?? 'Paciente'}
                         </p>
                         <div className="mt-2 flex flex-wrap items-center gap-1">
                           <button
                             type="button"
                             onClick={() => evolveAppointment(appt)}
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-white/65 text-sage-700 transition-colors hover:bg-white hover:text-sage-900"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sage-200 bg-white text-sage-700 shadow-sm transition-colors hover:border-sage-300 hover:bg-sage-50 hover:text-sage-900 dark:border-white/10 dark:bg-white/10 dark:text-neutral-100 dark:hover:bg-white/20"
                             title="Evoluir sessão"
                           >
                             <FileText className="w-3.5 h-3.5" />
@@ -320,7 +320,7 @@ export default function AgendaPage() {
                             type="button"
                             onClick={() => changeAppointmentStatus(appt, 'completed')}
                             disabled={updateStatus.isPending || appt.status === 'completed'}
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-white/65 text-sage-700 transition-colors hover:bg-white hover:text-sage-900 disabled:opacity-40"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sage-200 bg-white text-sage-700 shadow-sm transition-colors hover:border-sage-300 hover:bg-sage-50 hover:text-sage-900 disabled:opacity-40 dark:border-white/10 dark:bg-white/10 dark:text-neutral-100 dark:hover:bg-white/20"
                             title="Marcar como finalizada"
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" />
@@ -329,7 +329,7 @@ export default function AgendaPage() {
                             type="button"
                             onClick={() => changeAppointmentStatus(appt, 'no_show')}
                             disabled={updateStatus.isPending || appt.status === 'no_show'}
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-white/65 text-sage-700 transition-colors hover:bg-white hover:text-rose-600 disabled:opacity-40"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sage-200 bg-white text-sage-700 shadow-sm transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40 dark:border-white/10 dark:bg-white/10 dark:text-neutral-100 dark:hover:bg-rose-500/20 dark:hover:text-rose-200"
                             title="Registrar falta"
                           >
                             <XCircle className="w-3.5 h-3.5" />
@@ -337,7 +337,7 @@ export default function AgendaPage() {
                           <button
                             type="button"
                             onClick={() => messageAppointment(appt)}
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-white/65 text-sage-700 transition-colors hover:bg-white hover:text-sage-900"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sage-200 bg-white text-sage-700 shadow-sm transition-colors hover:border-sage-300 hover:bg-sage-50 hover:text-sage-900 dark:border-white/10 dark:bg-white/10 dark:text-neutral-100 dark:hover:bg-white/20"
                             title="Enviar WhatsApp"
                           >
                             <MessageCircle className="w-3.5 h-3.5" />
@@ -345,7 +345,7 @@ export default function AgendaPage() {
                           <button
                             type="button"
                             onClick={() => editAppointment(appt)}
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-white/65 text-sage-700 transition-colors hover:bg-white hover:text-mist-700"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sage-200 bg-white text-sage-700 shadow-sm transition-colors hover:border-mist-200 hover:bg-mist-50 hover:text-mist-700 dark:border-white/10 dark:bg-white/10 dark:text-neutral-100 dark:hover:bg-mist-500/20 dark:hover:text-mist-100"
                             title="Alterar esta ocorrencia"
                           >
                             <Pencil className="w-3.5 h-3.5" />
@@ -354,22 +354,22 @@ export default function AgendaPage() {
                             type="button"
                             onClick={() => setAppointmentToRemove(appt)}
                             disabled={deleteAppointment.isPending}
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-white/65 text-sage-700 transition-colors hover:bg-white hover:text-rose-600 disabled:opacity-50"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sage-200 bg-white text-sage-700 shadow-sm transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50 dark:border-white/10 dark:bg-white/10 dark:text-neutral-100 dark:hover:bg-rose-500/20 dark:hover:text-rose-200"
                             title="Remover agendamento"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
-                          {appt.patientId && (
-                            <Link
-                              to={`/prontuario/${appt.patientId}`}
-                              className="ml-auto rounded-lg bg-white/45 px-2 py-1 text-[10px] font-medium text-sage-700/80 transition-colors hover:bg-white hover:text-sage-900"
-                            >
-                              Prontuário
-                            </Link>
-                          )}
                         </div>
+                        {appt.patientId && (
+                          <Link
+                            to={`/prontuario/${appt.patientId}`}
+                            className="mt-1.5 inline-flex h-7 w-full items-center justify-center rounded-lg border border-sage-200 bg-white text-[10px] font-semibold text-sage-800 shadow-sm transition-colors hover:border-sage-300 hover:bg-sage-50 hover:text-sage-950 dark:border-white/10 dark:bg-white/10 dark:text-neutral-100 dark:hover:bg-white/20"
+                          >
+                            Prontuário
+                          </Link>
+                        )}
                         {(appt.isRecurring || appt.isFixedScheduleException) && (
-                          <p className="text-[10px] text-sage-700/70 dark:text-sage-100/75 mt-0.5">
+                          <p className="text-[10px] font-medium text-sage-700/80 dark:text-neutral-200/80 mt-1">
                             {appt.isFixedScheduleException
                               ? 'alteracao pontual'
                               : appt.recurringFrequency === 'biweekly' ? '15 em 15 dias' : 'semanal'}
