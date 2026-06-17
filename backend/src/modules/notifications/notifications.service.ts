@@ -186,7 +186,6 @@ export class NotificationsService {
       }
     }
 
-    await call('fetchInstances', `${this.WA_URL}/instance/fetchInstances`)
     await call('connectionState', `${this.WA_URL}/instance/connectionState/${instance}`)
     await call('connect', `${this.WA_URL}/instance/connect/${instance}`)
     return results
@@ -322,7 +321,7 @@ export class NotificationsService {
     return sent > 0 ? { sent, removed } : { sent, removed, reason: 'api_error' }
   }
 
-  private async sendWhatsApp(phone: string, text: string, ownerId?: string | null): Promise<WhatsAppDeliveryResult> {
+  private async sendWhatsApp(phone: string, text: string, ownerId: string): Promise<WhatsAppDeliveryResult> {
     if (!await this.canUseWhatsAppAutomation(ownerId)) {
       this.logger.log(`[WhatsApp bloqueado por plano] owner=${ownerId ?? 'unknown'}`)
       return { sent: false, reason: 'plan', error: 'Automacao disponivel apenas no plano Pro' }
@@ -366,7 +365,7 @@ export class NotificationsService {
 
   // ─── Agendamentos internos ─────────────────────────────────────────────────
 
-  async sendDirectWhatsApp(phone: string, text: string, ownerId?: string | null): Promise<WhatsAppDeliveryResult> {
+  async sendDirectWhatsApp(phone: string, text: string, ownerId: string): Promise<WhatsAppDeliveryResult> {
     if (!await this.canSendManualWhatsApp(ownerId)) {
       return { sent: false, reason: 'plan', error: 'Envio via WhatsApp disponível a partir do plano Essencial' }
     }
@@ -396,8 +395,8 @@ export class NotificationsService {
     }
   }
 
-  private getWhatsAppInstance(ownerId?: string | null): string {
-    if (!ownerId) return `${this.WA_INSTANCE_PREFIX}-unknown`
+  private getWhatsAppInstance(ownerId: string): string {
+    if (!ownerId) throw new BadRequestException('Identificador do psicologo ausente')
     const safeId = ownerId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 24).toLowerCase()
     return `${this.WA_INSTANCE_PREFIX}-${safeId}`
   }
