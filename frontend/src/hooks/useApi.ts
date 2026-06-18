@@ -647,9 +647,10 @@ export function useSubmitPublicInstrument(token: string | undefined) {
 
 export function useTranscribeAudio() {
   return useMutation({
-    mutationFn: async (audio: Blob) => {
+    mutationFn: async ({ blob, durationSeconds }: { blob: Blob; durationSeconds: number }) => {
       const form = new FormData()
-      form.append('audio', audio, 'recording.webm')
+      form.append('audio', blob, 'recording.webm')
+      form.append('durationSeconds', String(Math.max(1, Math.ceil(durationSeconds))))
       return api.post<{ text: string }>('/sessions/transcribe', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       }).then(r => r.data)

@@ -1,14 +1,40 @@
 import { useEffect, useRef, useState } from 'react'
-import { Loader2, Mic, MicOff } from 'lucide-react'
+import { Mic, MicOff } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cn } from '@/lib/utils'
-import { useHasPlan } from '@/store/subscription'
-import { useTranscribeAudio } from '@/hooks/useApi'
 
 type DictationButtonProps = {
   value: string
   onChange: (value: string) => void
   className?: string
+}
+
+type SpeechRecognitionConstructor = new () => SpeechRecognition
+
+type SpeechRecognition = EventTarget & {
+  continuous: boolean
+  interimResults: boolean
+  lang: string
+  onresult: ((event: SpeechRecognitionEvent) => void) | null
+  onerror: (() => void) | null
+  onend: (() => void) | null
+  start: () => void
+  stop: () => void
+}
+
+type SpeechRecognitionEvent = {
+  results: {
+    length: number
+    [index: number]: {
+      isFinal: boolean
+      [index: number]: { transcript: string }
+    }
+  }
+}
+
+type SpeechRecognitionWindow = Window & {
+  SpeechRecognition?: SpeechRecognitionConstructor
+  webkitSpeechRecognition?: SpeechRecognitionConstructor
 }
 
 function appendTranscript(current: string, transcript: string) {
@@ -18,85 +44,83 @@ function appendTranscript(current: string, transcript: string) {
   return `${current.trimEnd()} ${clean}`
 }
 
-function extractApiError(err: unknown): string {
-  if (typeof err === 'object' && err !== null) {
-    const msg = (err as any)?.response?.data?.message
-    if (typeof msg === 'string') return msg
-  }
-  return 'Erro ao transcrever. Tente novamente.'
-}
-
 export default function DictationButton({ value, onChange, className }: DictationButtonProps) {
-  const hasPlan = useHasPlan('essencial')
-  const transcribe = useTranscribeAudio()
-  const [state, setState] = useState<'idle' | 'recording' | 'transcribing'>('idle')
-
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const chunksRef = useRef<BlobPart[]>([])
+  const [state, setState] = useState<'idle' | 'listening'>('idle')
+  const recognitionRef = useRef<SpeechRecognition | null>(null)
   const valueRef = useRef(value)
 
   useEffect(() => {
     valueRef.current = value
   }, [value])
 
-  async function startRecording() {
+  useEffect(() => () => {
+    recognitionRef.current?.stop()
+  }, [])
+
+  function getRecognition() {
+    const win = window as SpeechRecognitionWindow
+    return win.SpeechRecognition ?? win.webkitSpeechRecognition
+  }
+
+  function startDictation() {
+    const Recognition = getRecognition()
+    if (!Recognition) {
+      toast.error('Ditado nativo indisponível neste navegador. Use o teclado por voz do celular ou tente Chrome/Edge.')
+      return
+    }
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : 'audio/webm'
-      const mr = new MediaRecorder(stream, { mimeType })
-      chunksRef.current = []
-      mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data) }
-      mr.onstop = async () => {
-        stream.getTracks().forEach(t => t.stop())
-        const blob = new Blob(chunksRef.current, { type: mr.mimeType })
-        setState('transcribing')
-        try {
-          const { text } = await transcribe.mutateAsync(blob)
-          if (text.trim()) onChange(appendTranscript(valueRef.current, text))
-        } catch (err) {
-          toast.error(extractApiError(err))
-        } finally {
-          setState('idle')
+      const recognition = new Recognition()
+      recognition.lang = 'pt-BR'
+      recognition.continuous = true
+      recognition.interimResults = true
+      recognition.onresult = event => {
+        let finalText = ''
+        for (let index = 0; index < event.results.length; index++) {
+          const result = event.results[index]
+          if (result.isFinal) finalText += result[0].transcript
         }
+        if (finalText.trim()) onChange(appendTranscript(valueRef.current, finalText))
       }
-      mr.start(1000)
-      mediaRecorderRef.current = mr
-      setState('recording')
+      recognition.onerror = () => {
+        setState('idle')
+        toast.error('Não foi possível usar o ditado. Verifique a permissão do microfone.')
+      }
+      recognition.onend = () => setState('idle')
+      recognition.start()
+      recognitionRef.current = recognition
+      setState('listening')
     } catch {
       toast.error('Não foi possível acessar o microfone. Verifique as permissões.')
     }
   }
 
-  function stopRecording() {
-    mediaRecorderRef.current?.stop()
+  function stopDictation() {
+    recognitionRef.current?.stop()
+    recognitionRef.current = null
+    setState('idle')
   }
 
   function handleClick() {
-    if (state === 'recording') return stopRecording()
-    if (state === 'idle') return startRecording()
+    if (state === 'listening') return stopDictation()
+    return startDictation()
   }
-
-  if (!hasPlan) return null
 
   return (
     <button
       type="button"
       onClick={handleClick}
-      disabled={state === 'transcribing'}
       className={cn(
         'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50',
-        state === 'recording'
+        state === 'listening'
           ? 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
           : 'border-neutral-200 bg-white text-neutral-500 hover:border-sage-200 hover:bg-sage-50 hover:text-sage-700',
         className,
       )}
-      title={state === 'recording' ? 'Parar ditado' : state === 'transcribing' ? 'Transcrevendo...' : 'Ditado por voz'}
+      title={state === 'listening' ? 'Parar ditado nativo' : 'Ditado nativo por voz'}
+      aria-label={state === 'listening' ? 'Parar ditado nativo' : 'Iniciar ditado nativo'}
     >
-      {state === 'transcribing'
-        ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Transcrevendo</>
-        : state === 'recording'
+      {state === 'listening'
         ? <><MicOff className="h-3.5 w-3.5" /> Parar</>
         : <><Mic className="h-3.5 w-3.5" /> Ditar</>
       }

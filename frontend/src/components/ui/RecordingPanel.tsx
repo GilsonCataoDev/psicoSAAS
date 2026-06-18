@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { Mic, MicOff, Loader2, Sparkles, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useTranscribeAudio, useGenerateAiSummary } from '@/hooks/useApi'
+import { useHasPlan } from '@/store/subscription'
 
 type Step = 'idle' | 'consent' | 'recording' | 'transcribing' | 'transcribed' | 'generating'
 
@@ -11,7 +12,10 @@ type Props = {
   onApplySummary: (text: string) => void
 }
 
+const MAX_RECORDING_SECONDS = 15 * 60
+
 export default function RecordingPanel({ patientName, onApplyTranscription, onApplySummary }: Props) {
+  const hasPro = useHasPlan('pro')
   const [step, setStep] = useState<Step>('idle')
   const [elapsed, setElapsed] = useState(0)
   const [transcription, setTranscription] = useState('')
@@ -40,7 +44,16 @@ export default function RecordingPanel({ patientName, onApplyTranscription, onAp
       mr.start(1000)
       mediaRecorderRef.current = mr
       setElapsed(0)
-      timerRef.current = setInterval(() => setElapsed(s => s + 1), 1000)
+      timerRef.current = setInterval(() => {
+        setElapsed(s => {
+          const next = s + 1
+          if (next >= MAX_RECORDING_SECONDS) {
+            window.setTimeout(stopRecording, 0)
+            toast('Limite de 15 minutos por transcrição atingido.')
+          }
+          return next
+        })
+      }, 1000)
       setStep('recording')
     } catch {
       toast.error('Não foi possível acessar o microfone. Verifique as permissões.')
@@ -63,7 +76,7 @@ export default function RecordingPanel({ patientName, onApplyTranscription, onAp
 
   async function handleTranscribe(blob: Blob) {
     try {
-      const { text } = await transcribe.mutateAsync(blob)
+      const { text } = await transcribe.mutateAsync({ blob, durationSeconds: elapsed })
       setTranscription(text)
       setStep('transcribed')
     } catch (err) {
@@ -194,6 +207,19 @@ export default function RecordingPanel({ patientName, onApplyTranscription, onAp
   }
 
   // ── Idle ─────────────────────────────────────────────────────────────────────
+  if (!hasPro) {
+    return (
+      <button
+        type="button"
+        disabled
+        title="Transcrição por IA disponível apenas no plano Pro"
+        className="flex items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs text-neutral-400"
+      >
+        <Mic className="h-3.5 w-3.5" /> IA Pro
+      </button>
+    )
+  }
+
   return (
     <button type="button" onClick={() => setStep('consent')}
       className="flex items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs text-neutral-500 hover:border-sage-300 hover:text-sage-700">
