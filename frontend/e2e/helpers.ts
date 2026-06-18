@@ -8,6 +8,20 @@ export function appPath(path: string) {
   return `${appBaseUrl.replace(/\/$/, '')}/#${path}`
 }
 
+export async function navigateApp(page: Page, path: string) {
+  await page.goto(appPath(path))
+  await page.waitForURL(new RegExp(`#${path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:$|[?&])`), {
+    timeout: 15_000,
+  }).catch(async () => {
+    await page.evaluate((targetPath) => {
+      window.location.hash = targetPath
+    }, path)
+    await page.waitForURL(new RegExp(`#${path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:$|[?&])`), {
+      timeout: 15_000,
+    })
+  })
+}
+
 export async function dismissOverlays(page: Page) {
   const btn = page.getByRole('button', { name: 'Fechar' })
   if (await btn.count()) await btn.first().click().catch(() => undefined)
@@ -30,8 +44,14 @@ export async function registerAndActivateFree(page: Page, email: string, name = 
 export async function login(page: Page, email: string, password = testPassword) {
   await page.goto(appPath('/login'))
   await page.getByPlaceholder('seu@email.com').fill(email)
-  await page.getByPlaceholder('Mínimo 8 caracteres').fill(password)
+  await page.locator('input[type="password"]').fill(password)
   await page.getByRole('button', { name: 'Entrar' }).click()
+  await Promise.race([
+    page.waitForURL(/#\/(?!login)/, { timeout: 15_000 }).catch(() => undefined),
+    page.getByText(/e-mail ou senha incorretos|não foi possível entrar/i).waitFor({ timeout: 15_000 }).catch(() => undefined),
+  ])
+  if (page.url().includes('#/login')) return
+  await page.getByRole('link', { name: 'Pacientes' }).waitFor({ timeout: 15_000 }).catch(() => undefined)
 }
 
 export async function logout(page: Page) {
@@ -63,7 +83,7 @@ export async function cleanupAccount(email: string) {
 }
 
 export async function createPatient(page: Page, name: string, stamp: number) {
-  await page.goto(appPath('/pacientes'))
+  await navigateApp(page, '/pacientes')
   const newBtn = page.getByRole('button', { name: 'Novo paciente' })
   if (await newBtn.count()) {
     await newBtn.click()

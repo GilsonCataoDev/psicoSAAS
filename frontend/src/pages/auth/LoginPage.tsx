@@ -20,6 +20,7 @@ type FormData = z.infer<typeof schema>
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const setAuth      = useAuthStore((s) => s.setAuth)
   const setCsrfToken = useAuthStore((s) => s.setCsrfToken)
   const logout       = useAuthStore((s) => s.logout)
@@ -31,6 +32,7 @@ export default function LoginPage() {
 
   async function onSubmit(data: FormData) {
     setLoading(true)
+    setErrorMessage(null)
     let loginAccepted = false
     try {
       const res = await api.post('/auth/login', { email: data.email, password: data.password })
@@ -43,13 +45,14 @@ export default function LoginPage() {
     } catch (err: any) {
       logout()
       const msg = err?.response?.data?.message
-      toast.error(
+      const safeMessage =
         err?.response?.status === 401 || msg === 'Unauthorized'
           ? loginAccepted
             ? 'Não foi possível manter sua sessão. Verifique se os cookies do navegador estão habilitados.'
             : 'E-mail ou senha incorretos.'
-          : 'Não foi possível entrar. Tente novamente.',
-      )
+          : 'Não foi possível entrar. Tente novamente.'
+      setErrorMessage(safeMessage)
+      toast.error(safeMessage)
     } finally {
       setLoading(false)
     }
@@ -98,6 +101,12 @@ export default function LoginPage() {
           </div>
           {errors.password && <p className="text-rose-500 text-xs mt-1">{errors.password.message}</p>}
         </div>
+
+        {errorMessage && (
+          <p role="alert" className="rounded-xl border border-rose-100 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+            {errorMessage}
+          </p>
+        )}
 
         <button
           type="submit"

@@ -4,6 +4,7 @@ import {
   cleanupAccount,
   dismissOverlays,
   login,
+  navigateApp,
   logout,
   registerAndActivateFree,
   testPassword,
@@ -78,7 +79,7 @@ test.describe('Plano — gating de features', () => {
 
   test('plano free exibe contador de pacientes', async ({ page }) => {
     await login(page, email)
-    await page.goto(appPath('/pacientes'))
+    await navigateApp(page, '/pacientes')
     await expect(page.getByText(/0\/10 pacientes|pacientes no plano grátis/i)).toBeVisible({
       timeout: 10_000,
     })
@@ -86,7 +87,7 @@ test.describe('Plano — gating de features', () => {
 
   test('aba WhatsApp não exibe botão de conectar para plano free', async ({ page }) => {
     await login(page, email)
-    await page.goto(appPath('/configuracoes?tab=messages'))
+    await navigateApp(page, '/configuracoes?tab=messages')
     await dismissOverlays(page)
     await expect(page.getByRole('button', { name: 'Conectar WhatsApp' })).not.toBeVisible({
       timeout: 8_000,
@@ -95,7 +96,7 @@ test.describe('Plano — gating de features', () => {
 
   test('transcrição por voz não aparece para plano free', async ({ page }) => {
     await login(page, email)
-    await page.goto(appPath('/sessoes'))
+    await navigateApp(page, '/sessoes')
     await page.getByRole('button', { name: /registrar|nova sessão/i }).first().click({
       timeout: 10_000,
     }).catch(() => undefined)
