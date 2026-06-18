@@ -629,7 +629,30 @@ function PricingFAQItem({ item }: { item: typeof PRICING_FAQ[number] }) {
   )
 }
 
-function CheckoutForm(props: {
+function CheckoutForm({
+  checkoutRef,
+  selectedPlan,
+  subscriptionStatus,
+  loadingPlan,
+  cardNumber,
+  cardName,
+  cardExpiry,
+  cardCvv,
+  cpfCnpj,
+  phone,
+  postalCode,
+  addressNumber,
+  setCardNumber,
+  setCardName,
+  setCardExpiry,
+  setCardCvv,
+  setCpfCnpj,
+  setPhone,
+  setPostalCode,
+  setAddressNumber,
+  onCancel,
+  onSubmit,
+}: {
   checkoutRef?: React.Ref<HTMLElement>
   selectedPlan: Plan
   subscriptionStatus: string
@@ -654,66 +677,66 @@ function CheckoutForm(props: {
   onSubmit: () => void
 }) {
   return (
-    <section ref={props.checkoutRef} className="scroll-mt-4 mx-auto max-w-xl rounded-2xl border border-neutral-100 bg-white p-5 shadow-card dark:border-white/10 dark:bg-cognia-panel sm:p-6">
+    <section ref={checkoutRef} className="scroll-mt-4 mx-auto max-w-xl rounded-2xl border border-neutral-100 bg-white p-5 shadow-card dark:border-white/10 dark:bg-cognia-panel sm:p-6">
       <div className="mb-5">
         <h2 className="font-semibold text-neutral-800 dark:text-white">Cartao de credito</h2>
         <p className="text-sm text-neutral-500 dark:text-neutral-300">
-          Plano {props.selectedPlan.name}. Os dados do cartao sao enviados ao Asaas para tokenizacao. Voce nao sera cobrado agora.
+          Plano {selectedPlan.name}. Os dados do cartao sao enviados ao Asaas para tokenizacao. Voce nao sera cobrado agora.
         </p>
       </div>
 
       <div className="space-y-4">
         <div>
           <label className="label">Numero do cartao</label>
-          <input className="input-field font-mono" inputMode="numeric" autoComplete="cc-number" placeholder="0000 0000 0000 0000" value={props.cardNumber} onChange={(event) => props.setCardNumber(event.target.value)} />
+          <input className="input-field font-mono" inputMode="numeric" autoComplete="cc-number" placeholder="0000 0000 0000 0000" value={cardNumber} onChange={(event) => setCardNumber(event.target.value)} />
         </div>
 
         <div>
           <label className="label">Nome no cartao</label>
-          <input className="input-field" autoComplete="cc-name" placeholder="NOME COMO NO CARTAO" value={props.cardName} onChange={(event) => props.setCardName(event.target.value)} />
+          <input className="input-field" autoComplete="cc-name" placeholder="NOME COMO NO CARTAO" value={cardName} onChange={(event) => setCardName(event.target.value)} />
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label className="label">Validade</label>
-            <input className="input-field" inputMode="numeric" autoComplete="cc-exp" placeholder="MM/AA" value={props.cardExpiry} onChange={(event) => props.setCardExpiry(event.target.value)} />
+            <input className="input-field" inputMode="numeric" autoComplete="cc-exp" placeholder="MM/AA" value={cardExpiry} onChange={(event) => setCardExpiry(event.target.value)} />
           </div>
           <div>
             <label className="label">CVV</label>
-            <input className="input-field" inputMode="numeric" autoComplete="cc-csc" placeholder="123" type="password" value={props.cardCvv} onChange={(event) => props.setCardCvv(event.target.value)} />
+            <input className="input-field" inputMode="numeric" autoComplete="cc-csc" placeholder="123" type="password" value={cardCvv} onChange={(event) => setCardCvv(event.target.value)} />
           </div>
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label className="label">CPF/CNPJ do titular</label>
-            <input className="input-field" inputMode="numeric" autoComplete="off" placeholder="000.000.000-00" value={props.cpfCnpj} onChange={(event) => props.setCpfCnpj(event.target.value)} />
+            <input className="input-field" inputMode="numeric" autoComplete="off" placeholder="000.000.000-00" value={cpfCnpj} onChange={(event) => setCpfCnpj(event.target.value)} />
           </div>
           <div>
             <label className="label">Telefone</label>
-            <input className="input-field" inputMode="numeric" autoComplete="tel" placeholder="(11) 99999-9999" value={props.phone} onChange={(event) => props.setPhone(event.target.value)} />
+            <input className="input-field" inputMode="numeric" autoComplete="tel" placeholder="(11) 99999-9999" value={phone} onChange={(event) => setPhone(event.target.value)} />
           </div>
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label className="label">CEP</label>
-            <input className="input-field" inputMode="numeric" autoComplete="postal-code" placeholder="00000-000" value={props.postalCode} onChange={(event) => props.setPostalCode(event.target.value)} />
+            <input className="input-field" inputMode="numeric" autoComplete="postal-code" placeholder="00000-000" value={postalCode} onChange={(event) => setPostalCode(event.target.value)} />
           </div>
           <div>
             <label className="label">Numero</label>
-            <input className="input-field" inputMode="numeric" autoComplete="off" placeholder="123" value={props.addressNumber} onChange={(event) => props.setAddressNumber(event.target.value)} />
+            <input className="input-field" inputMode="numeric" autoComplete="off" placeholder="123" value={addressNumber} onChange={(event) => setAddressNumber(event.target.value)} />
           </div>
         </div>
 
-        <button type="button" onClick={props.onSubmit} disabled={props.loadingPlan !== null} className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-sage-600 text-sm font-medium text-white transition-colors hover:bg-sage-700 disabled:opacity-60">
-          {props.loadingPlan === props.selectedPlan.id && <Loader2 className="h-4 w-4 animate-spin" />}
-          {props.subscriptionStatus === 'past_due' ? 'Pagar agora' : 'Iniciar teste gratis'}
+        <button type="button" onClick={onSubmit} disabled={loadingPlan !== null} className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-sage-600 text-sm font-medium text-white transition-colors hover:bg-sage-700 disabled:opacity-60">
+          {loadingPlan === selectedPlan.id && <Loader2 className="h-4 w-4 animate-spin" />}
+          {subscriptionStatus === 'past_due' ? 'Pagar agora' : 'Iniciar teste gratis'}
         </button>
         <button
           type="button"
-          onClick={props.onCancel}
-          disabled={props.loadingPlan !== null}
+          onClick={onCancel}
+          disabled={loadingPlan !== null}
           className="flex h-10 w-full items-center justify-center rounded-xl border border-neutral-200 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-50 disabled:opacity-60 dark:border-white/10 dark:text-neutral-300 dark:hover:bg-white/5"
         >
           Escolher outro plano

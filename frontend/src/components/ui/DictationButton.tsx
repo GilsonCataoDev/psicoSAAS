@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Loader2, Mic, MicOff } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cn } from '@/lib/utils'
@@ -34,7 +34,10 @@ export default function DictationButton({ value, onChange, className }: Dictatio
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<BlobPart[]>([])
   const valueRef = useRef(value)
-  valueRef.current = value
+
+  useEffect(() => {
+    valueRef.current = value
+  }, [value])
 
   async function startRecording() {
     try {

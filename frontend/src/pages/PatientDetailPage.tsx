@@ -9,7 +9,7 @@ import { SCALE_CONFIGS, getThresholdLevel } from '@/lib/scale-scoring'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
 import { formatDate, formatCurrency, formatDateRelative } from '@/lib/utils'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import {
   usePatient, useSessions, useFinancial,
   useMarkFinancialPaid, useSendCharge, useUpdatePatient,
@@ -215,14 +215,14 @@ export default function PatientDetailPage() {
   const clinicalSessions = allSessions.filter(session => !session.tags?.some(tag => String(tag) === 'instrumento'))
   const prontuario = patient.prontuario ?? {}
 
-  const moodChartData = useMemo(() => {
+  const moodChartData = (() => {
     const withMood = [...clinicalSessions].reverse().filter(s => s.mood)
     if (withMood.length < 2) return []
     return withMood.map(s => ({
       label: formatDate(s.date),
       humor: s.mood,
     }))
-  }, [clinicalSessions])
+  })()
   const filledProntuarioFields = PRONTUARIO_FIELDS.filter(field => {
     const value = prontuario[field.key]
     return typeof value === 'string' && value.trim().length > 0
