@@ -39,7 +39,7 @@ test.describe('Auth', () => {
   test('login com senha errada exibe mensagem de erro', async ({ page }) => {
     await login(page, email, 'SenhaErrada@999')
     await expect(
-      page.getByText(/credenciais inválidas|senha incorreta|e-mail ou senha/i),
+      page.getByRole('alert').filter({ hasText: /credenciais inválidas|senha incorreta|e-mail ou senha/i }),
     ).toBeVisible({ timeout: 10_000 })
   })
 
