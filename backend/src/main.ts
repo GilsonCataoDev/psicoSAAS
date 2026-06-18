@@ -14,7 +14,6 @@ import { Logger, ValidationPipe } from '@nestjs/common'
 import { AppModule } from './app.module'
 import helmet from 'helmet'
 import * as cookieParser from 'cookie-parser'
-import * as Sentry from '@sentry/node'
 
 async function bootstrap() {
   // ── Validação de variáveis críticas na inicialização ───────────────────────
@@ -37,6 +36,7 @@ async function bootstrap() {
 
   // ── Sentry (erros em produção) ─────────────────────────────────────────────
   if (process.env.SENTRY_DSN) {
+    const Sentry = await import('@sentry/node')
     Sentry.init({
       dsn: process.env.SENTRY_DSN,
       environment: process.env.NODE_ENV ?? 'development',
