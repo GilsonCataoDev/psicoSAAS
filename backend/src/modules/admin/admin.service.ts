@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import { InjectRepository } from '@nestjs/typeorm'
-import { MoreThan, Repository } from 'typeorm'
+import { DataSource, MoreThan, Repository } from 'typeorm'
 import { User } from '../auth/entities/user.entity'
 import { Subscription, BillingSubscriptionStatus } from '../billing/entities/subscription.entity'
 import { WebhookEvent } from '../billing/entities/webhook-event.entity'
@@ -17,6 +18,8 @@ export class AdminService {
     @InjectRepository(WebhookEvent) private readonly webhookEvents: Repository<WebhookEvent>,
     @InjectRepository(EmailLog) private readonly emailLogs: Repository<EmailLog>,
     private readonly asaas: AsaasService,
+    private readonly cfg: ConfigService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async listUsers(filters: ListAdminUsersDto) {
@@ -119,8 +122,9 @@ export class AdminService {
     const since7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
     const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
 
-    const [emailSent, emailFailed, recentFailures, webhookEvents, subsByStatus, pastDueUsers] =
+    const [database, emailSent, emailFailed, recentFailures, webhookEvents, subsByStatus, pastDueUsers] =
       await Promise.all([
+        this.checkDatabase(),
         this.emailLogs.count({ where: { status: 'sent', createdAt: MoreThan(since7d) } }),
         this.emailLogs.count({ where: { status: 'failed', createdAt: MoreThan(since7d) } }),
         this.emailLogs.find({
@@ -151,7 +155,14 @@ export class AdminService {
           .getMany(),
       ])
 
+    const integrations = this.getIntegrationStatus()
+
     return {
+      generatedAt: new Date().toISOString(),
+      system: {
+        database,
+        integrations,
+      },
       email: {
         last7d: { sent: emailSent, failed: emailFailed },
         failureRate: emailSent + emailFailed > 0
@@ -163,6 +174,57 @@ export class AdminService {
         byStatus: Object.fromEntries(subsByStatus.map(r => [r.status, Number(r.count)])),
         pastDueAccounts: pastDueUsers,
         recentWebhooks: webhookEvents,
+      },
+    }
+  }
+
+  private async checkDatabase() {
+    const startedAt = Date.now()
+    try {
+      await this.dataSource.query('SELECT 1')
+      return {
+        ok: true,
+        latencyMs: Date.now() - startedAt,
+        checkedAt: new Date().toISOString(),
+      }
+    } catch {
+      return {
+        ok: false,
+        latencyMs: Date.now() - startedAt,
+        checkedAt: new Date().toISOString(),
+      }
+    }
+  }
+
+  private getIntegrationStatus() {
+    const whatsappUrl = this.cfg.get<string>('WHATSAPP_API_URL') ?? ''
+    const whatsappKey = this.cfg.get<string>('WHATSAPP_API_KEY') ?? ''
+    const resendKey = this.cfg.get<string>('RESEND_API_KEY') ?? ''
+    const resendFrom = this.cfg.get<string>('RESEND_FROM') ?? ''
+    const asaasKey = this.cfg.get<string>('ASAAS_API_KEY') ?? ''
+    const asaasWebhookToken = this.cfg.get<string>('ASAAS_WEBHOOK_TOKEN') ?? ''
+    const webPushPublic = this.cfg.get<string>('WEB_PUSH_PUBLIC_KEY') ?? ''
+    const webPushPrivate = this.cfg.get<string>('WEB_PUSH_PRIVATE_KEY') ?? ''
+
+    return {
+      resend: {
+        configured: Boolean(resendKey && resendFrom),
+        fromConfigured: Boolean(resendFrom),
+      },
+      asaas: {
+        configured: Boolean(asaasKey),
+        webhookProtected: Boolean(asaasWebhookToken),
+      },
+      whatsapp: {
+        configured: Boolean(
+          whatsappUrl
+          && whatsappKey
+          && !whatsappUrl.includes('your-evolution-api')
+          && whatsappKey !== 'your-api-key',
+        ),
+      },
+      webPush: {
+        configured: Boolean(webPushPublic && webPushPrivate),
       },
     }
   }

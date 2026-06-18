@@ -1,5 +1,19 @@
 import { useState } from 'react'
-import { Activity, AlertCircle, Mail, Search, ShieldCheck, TrendingUp, Users, Webhook, X } from 'lucide-react'
+import {
+  Activity,
+  AlertCircle,
+  Bell,
+  CreditCard,
+  Database,
+  Mail,
+  MessageCircle,
+  Search,
+  ShieldCheck,
+  TrendingUp,
+  Users,
+  Webhook,
+  X,
+} from 'lucide-react'
 import { useAdminStats, useAdminUsers, useAdminOverrideSubscription, useAdminMonitor, AdminUser } from '@/hooks/useApi'
 
 const STATUS_LABEL: Record<string, string> = {
@@ -242,6 +256,7 @@ function MonitorTab() {
   if (!monitor) return null
 
   const { email, billing } = monitor
+  const { database, integrations } = monitor.system
   const emailTotal = email.last7d.sent + email.last7d.failed
 
   const billingOrder = ['active', 'trialing', 'past_due', 'canceled', 'pending', 'none']
@@ -251,6 +266,57 @@ function MonitorTab() {
 
   return (
     <div className="space-y-6">
+      {/* System health */}
+      <section className="rounded-2xl border border-neutral-100 bg-white p-5 shadow-sm">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Activity className="h-4 w-4 text-sage-600" />
+            <h2 className="text-sm font-semibold text-neutral-800">Operação</h2>
+          </div>
+          <time className="text-[11px] text-neutral-400">
+            Atualizado em {new Date(monitor.generatedAt).toLocaleString('pt-BR', {
+              day: '2-digit',
+              month: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </time>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <HealthItem
+            icon={Database}
+            label="Banco"
+            ok={database.ok}
+            detail={database.ok ? `${database.latencyMs}ms` : 'Falha'}
+          />
+          <HealthItem
+            icon={Mail}
+            label="Resend"
+            ok={integrations.resend.configured}
+            detail={integrations.resend.configured ? 'Configurado' : 'Pendente'}
+          />
+          <HealthItem
+            icon={CreditCard}
+            label="Asaas"
+            ok={integrations.asaas.configured && integrations.asaas.webhookProtected}
+            detail={integrations.asaas.webhookProtected ? 'Webhook protegido' : 'Verificar token'}
+          />
+          <HealthItem
+            icon={MessageCircle}
+            label="WhatsApp"
+            ok={integrations.whatsapp.configured}
+            detail={integrations.whatsapp.configured ? 'Configurado' : 'Pendente'}
+          />
+          <HealthItem
+            icon={Bell}
+            label="Push"
+            ok={integrations.webPush.configured}
+            detail={integrations.webPush.configured ? 'Configurado' : 'Pendente'}
+          />
+        </div>
+      </section>
+
       {/* Email health */}
       <section className="rounded-2xl border border-neutral-100 bg-white p-5 shadow-sm">
         <div className="mb-4 flex items-center gap-2">
@@ -372,6 +438,33 @@ function MonitorTab() {
           </>
         )}
       </section>
+    </div>
+  )
+}
+
+function HealthItem({
+  icon: Icon,
+  label,
+  ok,
+  detail,
+}: {
+  icon: typeof Activity
+  label: string
+  ok: boolean
+  detail: string
+}) {
+  return (
+    <div className="rounded-xl bg-neutral-50 p-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <Icon className={`h-4 w-4 ${ok ? 'text-emerald-600' : 'text-yellow-600'}`} />
+        <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+          ok ? 'bg-emerald-100 text-emerald-700' : 'bg-yellow-100 text-yellow-700'
+        }`}>
+          {ok ? 'OK' : 'Atenção'}
+        </span>
+      </div>
+      <p className="text-xs font-semibold text-neutral-700">{label}</p>
+      <p className="mt-0.5 text-[11px] text-neutral-400">{detail}</p>
     </div>
   )
 }

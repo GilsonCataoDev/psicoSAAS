@@ -584,6 +584,16 @@ export function useAdminOverrideSubscription() {
 }
 
 export interface AdminMonitor {
+  generatedAt: string
+  system: {
+    database: { ok: boolean; latencyMs: number; checkedAt: string }
+    integrations: {
+      resend: { configured: boolean; fromConfigured: boolean }
+      asaas: { configured: boolean; webhookProtected: boolean }
+      whatsapp: { configured: boolean }
+      webPush: { configured: boolean }
+    }
+  }
   email: {
     last7d: { sent: number; failed: number }
     failureRate: number
