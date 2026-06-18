@@ -8,9 +8,10 @@ import { BillingService } from './billing.service'
 import { Subscription } from './entities/subscription.entity'
 import { WebhookEvent } from './entities/webhook-event.entity'
 import { User } from '../auth/entities/user.entity'
+import { EmailLog } from '../email/entities/email-log.entity'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Subscription, WebhookEvent, User])],
+  imports: [TypeOrmModule.forFeature([Subscription, WebhookEvent, User, EmailLog])],
   controllers: [BillingController],
   providers: [AsaasService, BillingService, BillingWebhookService, BillingTrialEmailJob],
   exports: [BillingService, AsaasService],
