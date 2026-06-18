@@ -33,6 +33,12 @@ export class BillingTrialEmailJob implements OnModuleInit, OnModuleDestroy {
     })
 
     for (const subscription of trialing) {
+      if (this.email.isRateLimited()) {
+        this.logger.warn(
+          `Envio de e-mails de trial pausado por limite do provedor. Retry em ${Math.ceil(this.email.getRateLimitRetryAfterMs() / 1000)}s.`,
+        )
+        break
+      }
       if (!subscription.trialEndsAt || !subscription.user?.email) continue
 
       const daysLeft = Math.ceil(
@@ -40,19 +46,35 @@ export class BillingTrialEmailJob implements OnModuleInit, OnModuleDestroy {
       )
 
       if (daysLeft === 2) {
-        await this.email.sendTrialEndingReminder(subscription.user.name, subscription.user.email, 2)
+        try {
+          await this.email.sendTrialEndingReminder(subscription.user.name, subscription.user.email, 2)
+        } catch (err: any) {
+          if (this.email.isRateLimited()) {
+            this.logger.warn(`Envio de e-mails de trial pausado por limite do provedor: ${err?.message}`)
+            break
+          }
+          throw err
+        }
       }
 
       if (daysLeft === 0) {
-        await this.email.send({
-          to: subscription.user.email,
-          subject: 'Vamos cobrar hoje — UseCognia',
-          html: `
-            <p>Olá, ${subscription.user.name.split(' ')[0]}.</p>
-            <p>Seu teste gratuito termina hoje. A cobrança do plano ${subscription.plan} será feita no cartão cadastrado.</p>
-            <p>Se precisar trocar de plano ou cancelar, acesse a área de planos antes da cobrança.</p>
-          `,
-        })
+        try {
+          await this.email.send({
+            to: subscription.user.email,
+            subject: 'Vamos cobrar hoje — UseCognia',
+            html: `
+              <p>Olá, ${subscription.user.name.split(' ')[0]}.</p>
+              <p>Seu teste gratuito termina hoje. A cobrança do plano ${subscription.plan} será feita no cartão cadastrado.</p>
+              <p>Se precisar trocar de plano ou cancelar, acesse a área de planos antes da cobrança.</p>
+            `,
+          })
+        } catch (err: any) {
+          if (this.email.isRateLimited()) {
+            this.logger.warn(`Envio de e-mails de trial pausado por limite do provedor: ${err?.message}`)
+            break
+          }
+          throw err
+        }
       }
     }
   }

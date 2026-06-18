@@ -16,6 +16,9 @@ interface SendEmailOptions {
   attachments?: Attachment[]
 }
 
+const DEFAULT_SEND_INTERVAL_MS = 1200
+const DEFAULT_RATE_LIMIT_COOLDOWN_MS = 5 * 60 * 1000
+
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name)
@@ -23,6 +26,11 @@ export class EmailService {
   private readonly apiKey: string
   private readonly enabled: boolean
   private readonly frontendUrl: string
+  private readonly sendIntervalMs: number
+  private readonly rateLimitCooldownMs: number
+  private queue: Promise<void> = Promise.resolve()
+  private lastSentAt = 0
+  private rateLimitedUntil = 0
 
   constructor(
     private cfg: ConfigService,
@@ -32,15 +40,35 @@ export class EmailService {
     this.from = cfg.get<string>('RESEND_FROM') ?? 'UseCognia <noreply@usecognia.com.br>'
     this.enabled = !!this.apiKey
     this.frontendUrl = cfg.get('FRONTEND_URL') ?? 'http://localhost:3000'
+    this.sendIntervalMs = this.positiveNumber(cfg.get<string>('EMAIL_SEND_INTERVAL_MS'), DEFAULT_SEND_INTERVAL_MS)
+    this.rateLimitCooldownMs = this.positiveNumber(
+      cfg.get<string>('EMAIL_RATE_LIMIT_COOLDOWN_MS'),
+      DEFAULT_RATE_LIMIT_COOLDOWN_MS,
+    )
   }
 
   async send(opts: SendEmailOptions): Promise<void> {
+    const queued = this.queue.then(() => this.deliver(opts))
+    this.queue = queued.catch(() => undefined)
+    return queued
+  }
+
+  isRateLimited(): boolean {
+    return Date.now() < this.rateLimitedUntil
+  }
+
+  getRateLimitRetryAfterMs(): number {
+    return Math.max(0, this.rateLimitedUntil - Date.now())
+  }
+
+  private async deliver(opts: SendEmailOptions): Promise<void> {
     if (!this.enabled) {
       this.logger.warn(`[Email desativado] RESEND_API_KEY ausente. subjectChars=${opts.subject.length}`)
       throw new ServiceUnavailableException('Envio de e-mail nao configurado')
     }
 
     try {
+      await this.waitForProviderWindow()
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -57,6 +85,15 @@ export class EmailService {
       })
       if (!res.ok) {
         const err = await res.text().catch(() => '')
+
+        if (res.status === 429) {
+          this.logger.warn('[Resend] Limite de envio atingido status=429')
+          this.startRateLimitCooldown(res.headers.get('retry-after'))
+          throw new ServiceUnavailableException(
+            'Envio de e-mail temporariamente limitado pelo provedor. Tentaremos novamente depois.',
+          )
+        }
+
         this.logger.error(`[Resend] Erro ao enviar email status=${res.status}`)
 
         if (err.includes('domain is not verified')) {
@@ -67,6 +104,7 @@ export class EmailService {
 
         throw new BadGatewayException('Nao foi possivel enviar o e-mail')
       }
+      this.lastSentAt = Date.now()
       this.logger.log(`[Resend] Email enviado subjectChars=${opts.subject.length}`)
       this.writeLog(opts.to, opts.subject, 'sent', null)
     } catch (err) {
@@ -78,6 +116,42 @@ export class EmailService {
       this.writeLog(opts.to, opts.subject, 'failed', (err as Error)?.message ?? 'unknown')
       throw new BadGatewayException('Nao foi possivel conectar ao servico de e-mail')
     }
+  }
+
+  private async waitForProviderWindow(): Promise<void> {
+    const now = Date.now()
+    if (now < this.rateLimitedUntil) {
+      const seconds = Math.ceil((this.rateLimitedUntil - now) / 1000)
+      throw new ServiceUnavailableException(`Envio de e-mail em cooldown por limite do provedor (${seconds}s).`)
+    }
+
+    const nextAllowedAt = this.lastSentAt + this.sendIntervalMs
+    const waitMs = nextAllowedAt - now
+    if (waitMs > 0) {
+      await new Promise(resolve => setTimeout(resolve, waitMs))
+    }
+  }
+
+  private startRateLimitCooldown(retryAfter: string | null): void {
+    const retryAfterMs = this.retryAfterToMs(retryAfter)
+    const cooldownMs = Math.max(retryAfterMs, this.rateLimitCooldownMs)
+    this.rateLimitedUntil = Date.now() + cooldownMs
+    this.logger.warn(`[Resend] Rate limit ativo. Pausando envios por ${Math.ceil(cooldownMs / 1000)}s.`)
+  }
+
+  private retryAfterToMs(value: string | null): number {
+    if (!value) return 0
+    const seconds = Number(value)
+    if (Number.isFinite(seconds) && seconds > 0) return seconds * 1000
+
+    const date = new Date(value).getTime()
+    if (Number.isFinite(date)) return Math.max(0, date - Date.now())
+    return 0
+  }
+
+  private positiveNumber(value: string | undefined, fallback: number): number {
+    const number = Number(value)
+    return Number.isFinite(number) && number > 0 ? number : fallback
   }
 
   // ─── Templates ────────────────────────────────────────────────────────────
