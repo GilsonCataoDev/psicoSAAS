@@ -29,7 +29,16 @@ export class SessionsController {
 
   @Post('transcribe')
   @Throttle({ default: { limit: 10, ttl: 60 * 1000 } })
-  @UseInterceptors(FileInterceptor('audio', { limits: { fileSize: 25 * 1024 * 1024 } }))
+  @UseInterceptors(FileInterceptor('audio', {
+    limits: {
+      fileSize: 25 * 1024 * 1024,
+      files: 1,
+      fields: 0,
+      parts: 1,
+      fieldNameSize: 32,
+      fieldSize: 0,
+    },
+  }))
   async transcribe(@UploadedFile() file: Express.Multer.File) {
     if (!file?.buffer?.length) throw new BadRequestException('Arquivo de áudio ausente')
     const text = await this.ai.transcribeAudio(file.buffer, file.mimetype)

@@ -174,12 +174,25 @@ export class AuthController {
 
   @Post('avatar')
   @UseGuards(JwtAuthGuard, CsrfGuard)
-  @UseInterceptors(FileInterceptor('avatar', { limits: { fileSize: 1024 * 1024 } }))
+  @UseInterceptors(FileInterceptor('avatar', {
+    limits: {
+      fileSize: 1024 * 1024,
+      files: 1,
+      fields: 0,
+      parts: 1,
+      fieldNameSize: 32,
+      fieldSize: 0,
+    },
+    fileFilter: (_req, file, cb) => {
+      if (!['image/jpeg', 'image/jpg'].includes(file.mimetype)) {
+        cb(new BadRequestException('A foto precisa ser um arquivo JPG'), false)
+        return
+      }
+      cb(null, true)
+    },
+  }))
   uploadAvatar(@Request() req: any, @UploadedFile() file: any) {
     if (!file) throw new BadRequestException('Envie uma imagem JPG')
-    if (!['image/jpeg', 'image/jpg'].includes(file.mimetype)) {
-      throw new BadRequestException('A foto precisa ser um arquivo JPG')
-    }
     return this.auth.updateAvatar(req.user.id, file.buffer)
   }
 
