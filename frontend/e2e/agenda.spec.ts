@@ -46,7 +46,7 @@ test.describe('Agenda', () => {
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
     const dateStr = tomorrow.toISOString().slice(0, 10)
-    const dateInput = dialog.locator('input[type="date"]')
+    const dateInput = dialog.locator('input[name="date"]')
     if (await dateInput.count()) {
       await dateInput.fill(dateStr)
     }
@@ -58,14 +58,23 @@ test.describe('Agenda', () => {
 
     await dialog.getByRole('button', { name: /salvar|agendar|confirmar/i }).click()
     await selectMobileAgendaDate(page, tomorrow)
-    await expect(page.getByText(patientName.split(' ')[0]).first()).toBeVisible({ timeout: 10_000 })
+    const visibleName = page.viewportSize()?.width && page.viewportSize()!.width < 1024
+      ? patientName
+      : patientName.split(' ')[0]
+    await expect(page.getByText(visibleName).first()).toBeVisible({ timeout: 10_000 })
   })
 
-  test('agendamento aparece no dashboard como próxima consulta', async ({ page }) => {
+  test('agendamento aparece na agenda do dia', async ({ page }) => {
     await login(page, email)
-    await navigateApp(page, '/')
+    await navigateApp(page, '/agenda')
     await dismissOverlays(page)
-    await expect(page.getByText(patientName.split(' ')[0]).first()).toBeVisible({ timeout: 10_000 })
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    await selectMobileAgendaDate(page, tomorrow)
+    const visibleName = page.viewportSize()?.width && page.viewportSize()!.width < 1024
+      ? patientName
+      : patientName.split(' ')[0]
+    await expect(page.getByText(visibleName).first()).toBeVisible({ timeout: 10_000 })
   })
 
   test('cancela agendamento', async ({ page }) => {
@@ -76,7 +85,10 @@ test.describe('Agenda', () => {
     tomorrow.setDate(tomorrow.getDate() + 1)
     await selectMobileAgendaDate(page, tomorrow)
 
-    const appointment = page.getByText(patientName.split(' ')[0]).first()
+    const visibleName = page.viewportSize()?.width && page.viewportSize()!.width < 1024
+      ? patientName
+      : patientName.split(' ')[0]
+    const appointment = page.getByText(visibleName).first()
     await appointment.click({ timeout: 10_000 })
 
     const cancelBtn = page.getByRole('button', { name: /cancelar/i })

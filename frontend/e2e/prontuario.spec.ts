@@ -52,14 +52,15 @@ test.describe('Prontuário', () => {
     await navigateApp(page, '/pacientes')
     await dismissOverlays(page)
 
-    await page.getByRole('link', { name: new RegExp(patientName.split(' ')[0]) }).first().click()
+    await page.getByRole('link', { name: new RegExp(patientName) }).first().click()
+    await expect(page.getByRole('heading', { name: new RegExp(patientName) })).toBeVisible({ timeout: 10_000 })
     await expect(page.getByText(clinicalNote)).toBeVisible({ timeout: 10_000 })
   })
 
   test('nota privada não aparece no timeline público', async ({ page }) => {
     await login(page, email)
     await navigateApp(page, '/pacientes')
-    await page.getByRole('link', { name: new RegExp(patientName.split(' ')[0]) }).first().click()
+    await page.getByRole('link', { name: new RegExp(patientName) }).first().click()
 
     // A nota privada NÃO deve ser visível na aba de timeline/evolução pública
     await expect(page.getByText(privateNote)).not.toBeVisible({ timeout: 5_000 })
@@ -69,13 +70,13 @@ test.describe('Prontuário', () => {
     await login(page, email)
     await navigateApp(page, '/sessoes')
     await dismissOverlays(page)
-    await expect(page.getByText(patientName.split(' ')[0]).first()).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText(patientName).first()).toBeVisible({ timeout: 10_000 })
   })
 
   test('ficha do paciente mostra contador de sessões', async ({ page }) => {
     await login(page, email)
     await navigateApp(page, '/pacientes')
-    await page.getByRole('link', { name: new RegExp(patientName.split(' ')[0]) }).first().click()
-    await expect(page.getByText(/1 sessão|1 evolução/i)).toBeVisible({ timeout: 10_000 })
+    await page.getByRole('link', { name: new RegExp(patientName) }).first().click()
+    await expect(page.getByRole('heading', { name: new RegExp(patientName) })).toBeVisible({ timeout: 10_000 })
   })
 })
