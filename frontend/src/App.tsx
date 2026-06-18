@@ -28,6 +28,7 @@ const LandingPage         = lazy(() => import('@/pages/LandingPage'))
 const LegalPage           = lazy(() => import('@/pages/LegalPage'))
 const SecurityPage        = lazy(() => import('@/pages/SecurityPage'))
 const DpaPage             = lazy(() => import('@/pages/DpaPage'))
+const AccessibilityPage   = lazy(() => import('@/pages/AccessibilityPage'))
 const InstrumentosPage    = lazy(() => import('@/pages/InstrumentosPage'))
 const AdminPage           = lazy(() => import('@/pages/AdminPage'))
 
@@ -92,6 +93,7 @@ export default function App() {
         <Route path="/termos" element={<LegalPage type="terms" />} />
         <Route path="/seguranca" element={<SecurityPage />} />
         <Route path="/dpa" element={<DpaPage />} />
+        <Route path="/acessibilidade" element={<AccessibilityPage />} />
 
         {/* ── Rotas públicas de autenticação ──────────────────────── */}
         <Route element={<PublicRoute><AuthLayout /></PublicRoute>}>

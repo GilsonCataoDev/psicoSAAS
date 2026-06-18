@@ -5,6 +5,7 @@ import BrandLogo from '@/components/ui/BrandLogo'
 export default function AuthLayout() {
   return (
     <div className="min-h-screen flex cognia-surface">
+      <a href="#main-content" className="skip-link">Ir para o conteúdo</a>
       <div className="hidden lg:flex lg:w-1/2 hero-gradient flex-col justify-between p-12">
         <BrandLogo light />
 
@@ -37,7 +38,7 @@ export default function AuthLayout() {
         </p>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-8">
+      <main id="main-content" tabIndex={-1} className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md animate-slide-up">
           <div className="lg:hidden mb-8">
             <BrandLogo />
@@ -46,7 +47,7 @@ export default function AuthLayout() {
             <Outlet />
           </div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

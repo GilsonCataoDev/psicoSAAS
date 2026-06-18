@@ -145,6 +145,7 @@ export default function TopBar() {
           <button
             onClick={() => setSearchOpen(true)}
             className="p-2 rounded-xl hover:bg-neutral-100 text-neutral-400 hover:text-neutral-600 transition-colors"
+            aria-label="Abrir busca de pacientes"
           >
             <Search className="w-4 h-4" />
           </button>
@@ -152,6 +153,7 @@ export default function TopBar() {
           <div className="flex items-center w-full relative">
             <Search className="absolute left-3 w-3.5 h-3.5 text-neutral-400" />
             <input
+              id="patient-search"
               autoFocus
               type="text"
               placeholder="Buscar pacientes..."
@@ -162,7 +164,12 @@ export default function TopBar() {
                          focus:outline-none focus:ring-2 focus:ring-sage-200 focus:border-sage-400 w-full"
               onBlur={() => window.setTimeout(closeSearch, 120)}
             />
-            <button onClick={closeSearch} className="absolute right-2 text-neutral-400 hover:text-neutral-600">
+            <button
+              type="button"
+              onClick={closeSearch}
+              className="absolute right-2 text-neutral-400 hover:text-neutral-600"
+              aria-label="Fechar busca"
+            >
               <X className="w-3.5 h-3.5" />
             </button>
             {search.trim() && (
@@ -238,11 +245,14 @@ export default function TopBar() {
 
       <div className="relative" ref={panelRef}>
         <button
+          type="button"
           onClick={() => setPanelOpen(v => !v)}
           className={cn(
             'relative p-2 rounded-xl transition-colors',
             panelOpen ? 'bg-sage-50 text-sage-600' : 'hover:bg-neutral-100 text-neutral-400 hover:text-neutral-600',
           )}
+          aria-label={panelOpen ? 'Fechar notificações' : 'Abrir notificações'}
+          aria-expanded={panelOpen}
         >
           <Bell className="w-4 h-4" />
           {unread > 0 && (

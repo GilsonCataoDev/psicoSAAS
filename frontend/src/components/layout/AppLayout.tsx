@@ -206,11 +206,18 @@ export default function AppLayout() {
 
   return (
     <div className="flex h-dvh cognia-surface overflow-hidden">
+      <a href="#main-content" className="skip-link">Ir para o conteúdo</a>
+      <a href="#main-navigation" className="skip-link left-44">Ir para o menu</a>
+      <a href="#patient-search" className="skip-link left-80">Ir para a busca</a>
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <TopBar />
-        <main className="flex-1 overflow-y-auto overscroll-contain p-4 lg:p-6 pb-28 lg:pb-6 animate-fade-in">
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="flex-1 overflow-y-auto overscroll-contain p-4 lg:p-6 pb-28 lg:pb-6 animate-fade-in"
+        >
           <div className="max-w-7xl mx-auto">
             <EmailVerificationBanner />
             <SubscriptionBanner />

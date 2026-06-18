@@ -372,6 +372,11 @@ export default function LandingPage() {
           >
             Testar 7 dias grátis <ArrowRight className="h-4 w-4" />
           </Link>
+          <div className="mt-6 flex justify-center gap-4 text-sm text-white/60">
+            <Link to="/acessibilidade" className="hover:text-white">Acessibilidade</Link>
+            <Link to="/privacidade" className="hover:text-white">Privacidade</Link>
+            <Link to="/termos" className="hover:text-white">Termos</Link>
+          </div>
         </div>
       </section>
     </main>

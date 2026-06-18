@@ -39,7 +39,7 @@ export default function Sidebar() {
         <BrandLogo />
       </div>
 
-      <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
+      <nav id="main-navigation" aria-label="Navegação principal" className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
         {navItems.filter(item => !item.proOnly || isPro).map(({ to, icon, label }) => (
           <NavLink key={to} to={to} end={to === '/'}>
             {({ isActive }) => (
@@ -120,7 +120,13 @@ export default function Sidebar() {
             <p className="text-sm font-semibold text-neutral-700 truncate leading-tight">{user?.name ?? 'Psicólogo(a)'}</p>
             <p className="text-xs text-neutral-400 truncate">{user?.crp ? `CRP ${user.crp}` : 'Minha conta'}</p>
           </div>
-          <button onClick={() => { logout(); navigate('/login') }} className="p-1.5 rounded-lg hover:bg-rose-50 text-neutral-300 hover:text-rose-400 transition-colors opacity-0 group-hover:opacity-100" title="Sair">
+          <button
+            type="button"
+            onClick={() => { logout(); navigate('/login') }}
+            className="p-1.5 rounded-lg hover:bg-rose-50 text-neutral-300 hover:text-rose-400 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+            title="Sair"
+            aria-label="Sair da conta"
+          >
             <LogOut className="w-3.5 h-3.5" />
           </button>
         </div>
