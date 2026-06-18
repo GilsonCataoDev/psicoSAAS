@@ -5,7 +5,7 @@ import { api } from '@/lib/api'
 import { useCreateTemplate, useTemplates } from '@/hooks/useApi'
 import {
   Bell, CalendarDays, Lock, User, MessageSquare, Shield,
-  ExternalLink, CheckCircle2, Zap, ArrowRight, X, Eye, EyeOff, Wallet, Download, Trash2, Camera,
+  ExternalLink, CheckCircle2, Zap, ArrowRight, X, Eye, EyeOff, Wallet, Download, Trash2, Camera, LogOut,
 } from 'lucide-react'
 import { isValidCrpFormat, getCrpRegion, openCfpVerification, formatCrpInput } from '@/lib/crp'
 import { useSubscriptionStore, PLANS } from '@/store/subscription'
@@ -596,6 +596,12 @@ export default function SettingsPage() {
     }
   }
 
+  function handleLogout() {
+    logout()
+    resetSubscription()
+    navigate('/login', { replace: true })
+  }
+
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="animate-slide-up space-y-6 max-w-4xl">
@@ -692,6 +698,16 @@ export default function SettingsPage() {
                 <button onClick={saveProfile} disabled={savingProfile} className="btn-primary flex items-center gap-2">
                   {savingProfile && <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
                   Salvar alterações
+                </button>
+              </div>
+              <div className="border-t border-neutral-100 pt-4">
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="btn-secondary inline-flex items-center gap-2 text-rose-600 hover:bg-rose-50"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sair da conta
                 </button>
               </div>
             </div>

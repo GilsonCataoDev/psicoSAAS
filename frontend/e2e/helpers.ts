@@ -1,4 +1,4 @@
-import { request, type Page } from '@playwright/test'
+import { request, type Locator, type Page } from '@playwright/test'
 
 export const apiBaseUrl = process.env.E2E_API_URL ?? 'https://psicosaas-production-2d6c.up.railway.app/api'
 export const appBaseUrl = process.env.E2E_BASE_URL ?? 'https://usecognia.com.br'
@@ -20,6 +20,24 @@ export async function navigateApp(page: Page, path: string) {
       timeout: 15_000,
     })
   })
+}
+
+export async function selectOptionByText(selectLocator: Locator, text: string) {
+  await selectLocator.waitFor({ state: 'visible', timeout: 15_000 })
+  const value = await selectLocator.evaluate((select, optionText) => {
+    const options = Array.from((select as HTMLSelectElement).options)
+    return options.find(option => option.textContent?.includes(optionText))?.value ?? ''
+  }, text)
+  if (!value) throw new Error(`Option containing "${text}" not found`)
+  await selectLocator.selectOption(value)
+}
+
+export async function selectMobileAgendaDate(page: Page, date: Date) {
+  const viewport = page.viewportSize()
+  if (!viewport || viewport.width >= 1024) return
+
+  const day = String(date.getDate())
+  await page.getByRole('button', { name: new RegExp(`\\b${day}\\b`) }).first().click({ timeout: 10_000 })
 }
 
 export async function dismissOverlays(page: Page) {
@@ -59,11 +77,12 @@ export async function logout(page: Page) {
   const userMenu = page.getByRole('button', { name: /menu do usuário|minha conta/i })
   if (await userMenu.count()) {
     await userMenu.click()
-  } else {
-    await page.getByRole('button', { name: 'Sair' }).click()
+    await page.getByRole('menuitem', { name: 'Sair' }).click()
     return
   }
-  await page.getByRole('menuitem', { name: 'Sair' }).click()
+
+  await page.getByRole('button', { name: 'Abrir perfil' }).click()
+  await page.getByRole('button', { name: 'Sair da conta' }).click({ timeout: 15_000 })
 }
 
 export async function cleanupAccount(email: string) {

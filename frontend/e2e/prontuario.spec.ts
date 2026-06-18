@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test'
 import {
-  appPath,
   cleanupAccount,
   createPatient,
   dismissOverlays,
   login,
+  navigateApp,
   registerAndActivateFree,
+  selectOptionByText,
 } from './helpers'
 
 test.describe('Prontuário', () => {
@@ -25,15 +26,12 @@ test.describe('Prontuário', () => {
       await createPatient(page, patientName, stamp)
 
       // Registra uma sessão
-      await page.goto(appPath('/sessoes'))
+      await navigateApp(page, '/sessoes')
       const btn = page.getByRole('button', { name: /registrar primeira sessão|nova sessão|como foi/i })
       await btn.first().click({ timeout: 10_000 })
 
       const dialog = page.getByRole('dialog')
-      const patientSelect = dialog.locator('select').first()
-      await patientSelect.selectOption({ label: new RegExp(patientName.split(' ')[0]) }).catch(async () => {
-        await dialog.getByText(patientName.split(' ')[0]).click()
-      })
+      await selectOptionByText(dialog.locator('select').first(), patientName)
 
       await page.getByPlaceholder(/trabalhado|evolução|pontos de atenção/i).fill(clinicalNote)
       await page.getByPlaceholder(/privada|reflexões|hipóteses/i).fill(privateNote)
@@ -51,7 +49,7 @@ test.describe('Prontuário', () => {
 
   test('sessão registrada aparece na ficha do paciente', async ({ page }) => {
     await login(page, email)
-    await page.goto(appPath('/pacientes'))
+    await navigateApp(page, '/pacientes')
     await dismissOverlays(page)
 
     await page.getByRole('link', { name: new RegExp(patientName.split(' ')[0]) }).first().click()
@@ -60,7 +58,7 @@ test.describe('Prontuário', () => {
 
   test('nota privada não aparece no timeline público', async ({ page }) => {
     await login(page, email)
-    await page.goto(appPath('/pacientes'))
+    await navigateApp(page, '/pacientes')
     await page.getByRole('link', { name: new RegExp(patientName.split(' ')[0]) }).first().click()
 
     // A nota privada NÃO deve ser visível na aba de timeline/evolução pública
@@ -69,14 +67,14 @@ test.describe('Prontuário', () => {
 
   test('próximo passo aparece na sessão', async ({ page }) => {
     await login(page, email)
-    await page.goto(appPath('/sessoes'))
+    await navigateApp(page, '/sessoes')
     await dismissOverlays(page)
     await expect(page.getByText(patientName.split(' ')[0]).first()).toBeVisible({ timeout: 10_000 })
   })
 
   test('ficha do paciente mostra contador de sessões', async ({ page }) => {
     await login(page, email)
-    await page.goto(appPath('/pacientes'))
+    await navigateApp(page, '/pacientes')
     await page.getByRole('link', { name: new RegExp(patientName.split(' ')[0]) }).first().click()
     await expect(page.getByText(/1 sessão|1 evolução/i)).toBeVisible({ timeout: 10_000 })
   })

@@ -134,7 +134,7 @@ export default function AgendaPage() {
             className="p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-white/10 text-neutral-500 dark:text-neutral-300 transition-colors">
             <ChevronRight className="w-5 h-5" />
           </button>
-          <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2">
+          <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2" aria-label="Agendar">
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Agendar</span>
           </button>

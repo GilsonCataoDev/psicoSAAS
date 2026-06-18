@@ -1,11 +1,13 @@
 import { expect, test } from '@playwright/test'
 import {
-  appPath,
   cleanupAccount,
   createPatient,
   dismissOverlays,
   login,
+  navigateApp,
   registerAndActivateFree,
+  selectMobileAgendaDate,
+  selectOptionByText,
 } from './helpers'
 
 test.describe('Agenda', () => {
@@ -31,17 +33,14 @@ test.describe('Agenda', () => {
 
   test('cria agendamento e aparece na lista da agenda', async ({ page }) => {
     await login(page, email)
-    await page.goto(appPath('/agenda'))
+    await navigateApp(page, '/agenda')
     await dismissOverlays(page)
 
     const newBtn = page.getByRole('button', { name: /novo agendamento|agendar/i })
     await newBtn.first().click({ timeout: 10_000 })
 
     const dialog = page.getByRole('dialog')
-    await dialog.locator('select, [role="combobox"]').first().selectOption({ label: new RegExp(patientName.split(' ')[0]) }).catch(async () => {
-      await dialog.getByPlaceholder(/buscar paciente|paciente/i).fill(patientName.split(' ')[0])
-      await page.getByText(patientName).click()
-    })
+    await selectOptionByText(dialog.locator('select').first(), patientName)
 
     // Define data para amanhã
     const tomorrow = new Date()
@@ -58,20 +57,24 @@ test.describe('Agenda', () => {
     }
 
     await dialog.getByRole('button', { name: /salvar|agendar|confirmar/i }).click()
+    await selectMobileAgendaDate(page, tomorrow)
     await expect(page.getByText(patientName.split(' ')[0]).first()).toBeVisible({ timeout: 10_000 })
   })
 
   test('agendamento aparece no dashboard como próxima consulta', async ({ page }) => {
     await login(page, email)
-    await page.goto(appPath('/'))
+    await navigateApp(page, '/')
     await dismissOverlays(page)
     await expect(page.getByText(patientName.split(' ')[0]).first()).toBeVisible({ timeout: 10_000 })
   })
 
   test('cancela agendamento', async ({ page }) => {
     await login(page, email)
-    await page.goto(appPath('/agenda'))
+    await navigateApp(page, '/agenda')
     await dismissOverlays(page)
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    await selectMobileAgendaDate(page, tomorrow)
 
     const appointment = page.getByText(patientName.split(' ')[0]).first()
     await appointment.click({ timeout: 10_000 })
