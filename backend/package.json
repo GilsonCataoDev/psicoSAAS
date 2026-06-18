@@ -71,7 +71,6 @@
     "typescript-eslint": "^8.59.2"
   },
   "overrides": {
-    "@opentelemetry/core": "^2.8.0",
     "js-yaml": "^4.2.0"
   }
 }
