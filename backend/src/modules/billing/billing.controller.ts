@@ -1,4 +1,4 @@
-import { Body, Controller, ForbiddenException, Get, Headers, HttpCode, Logger, Post, Request, UseGuards } from '@nestjs/common'
+import { Body, Controller, ForbiddenException, Get, Headers, HttpCode, Logger, Post, Request, UnauthorizedException, UseGuards } from '@nestjs/common'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { AsaasService, TokenizeCreditCardInput } from './asaas.service'
@@ -117,15 +117,14 @@ export class BillingController {
 
   @Post('webhook')
   @HttpCode(200)
-  webhook(@Headers() headers: Record<string, any>, @Body() body: any) {
+  async webhook(@Headers() headers: Record<string, any>, @Body() body: any) {
     if (!this.webhooks.isValidOrigin(headers, body)) {
       this.logger.warn('[Asaas webhook] Origem inválida')
-      return { received: false }
+      throw new UnauthorizedException('Webhook não autorizado')
     }
 
-    this.webhooks.process(body).catch((err) => {
-      this.logger.error('[Asaas webhook] Erro assíncrono', err)
-    })
+    // Só confirma o recebimento depois de persistir o evento e atualizar a assinatura.
+    await this.webhooks.process(body)
 
     return { received: true }
   }

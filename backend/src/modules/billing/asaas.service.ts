@@ -28,6 +28,21 @@ export interface TokenizeCreditCardInput {
   }
 }
 
+export interface AsaasBillingSnapshot {
+  subscription: {
+    status: string
+    nextDueDate: string | null
+  }
+  payments: Array<{
+    id: string
+    status: string
+    value: number
+    dueDate: string
+    paymentDate: string | null
+    confirmedDate: string | null
+  }>
+}
+
 @Injectable()
 export class AsaasService {
   private readonly api: AxiosInstance
@@ -200,6 +215,35 @@ export class AsaasService {
       throw new BadRequestException(
         err?.response?.data?.errors?.[0]?.description ?? 'Nao foi possivel tentar a cobranca novamente',
       )
+    }
+  }
+
+  async getSubscriptionBilling(subscriptionId: string): Promise<AsaasBillingSnapshot> {
+    try {
+      const [{ data: subscription }, { data: paymentPage }] = await Promise.all([
+        this.api.get(`/subscriptions/${subscriptionId}`),
+        this.api.get(`/subscriptions/${subscriptionId}/payments`, {
+          params: { limit: 20, offset: 0 },
+        }),
+      ])
+
+      return {
+        subscription: {
+          status: String(subscription?.status ?? ''),
+          nextDueDate: subscription?.nextDueDate ?? null,
+        },
+        payments: (paymentPage?.data ?? []).map((payment: any) => ({
+          id: String(payment.id),
+          status: String(payment.status ?? ''),
+          value: Number(payment.value ?? 0),
+          dueDate: String(payment.dueDate ?? ''),
+          paymentDate: payment.paymentDate ?? null,
+          confirmedDate: payment.confirmedDate ?? null,
+        })),
+      }
+    } catch (err: any) {
+      this.logger.warn('[Asaas] Falha ao consultar assinatura', this.safeAsaasError(err))
+      throw err
     }
   }
 
