@@ -12,6 +12,7 @@ const PAID_STATUSES = new Set(['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'])
 export class BillingReconciliationJob implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(BillingReconciliationJob.name)
   private timer?: NodeJS.Timeout
+  private initialTimer?: NodeJS.Timeout
 
   constructor(
     @InjectRepository(Subscription)
@@ -24,7 +25,7 @@ export class BillingReconciliationJob implements OnModuleInit, OnModuleDestroy {
       () => this.run().catch(err => this.logger.error('Falha na reconciliação de billing', err)),
       RECONCILIATION_INTERVAL_MS,
     )
-    setTimeout(
+    this.initialTimer = setTimeout(
       () => this.run().catch(err => this.logger.error('Falha na reconciliação inicial de billing', err)),
       INITIAL_DELAY_MS,
     )
@@ -32,6 +33,7 @@ export class BillingReconciliationJob implements OnModuleInit, OnModuleDestroy {
 
   onModuleDestroy(): void {
     if (this.timer) clearInterval(this.timer)
+    if (this.initialTimer) clearTimeout(this.initialTimer)
   }
 
   async run(): Promise<void> {
@@ -66,7 +68,13 @@ export class BillingReconciliationJob implements OnModuleInit, OnModuleDestroy {
         .sort((a, b) => b.dueDate.localeCompare(a.dueDate))
       const latestDuePayment = duePayments[0]
 
-      if (latestDuePayment && PAID_STATUSES.has(latestDuePayment.status)) {
+      if (!latestDuePayment && snapshot.subscription.status === 'ACTIVE') {
+        // Assinatura recém-criada: nenhum pagamento vencido ainda, mas Asaas confirma que está ativa.
+        subscription.status = 'active'
+        subscription.trialEndsAt = null
+        subscription.cancelAtPeriodEnd = false
+        subscription.currentPeriodEnd = this.parseDate(snapshot.subscription.nextDueDate)
+      } else if (latestDuePayment && PAID_STATUSES.has(latestDuePayment.status)) {
         subscription.status = 'active'
         subscription.trialEndsAt = null
         subscription.cancelAtPeriodEnd = false
@@ -75,6 +83,7 @@ export class BillingReconciliationJob implements OnModuleInit, OnModuleDestroy {
         subscription.status = 'past_due'
         subscription.trialEndsAt = null
       }
+      // PENDING / AWAITING_RISK_ANALYSIS → aguarda webhook, não altera status local
     }
 
     if (subscription.status === previousStatus) return

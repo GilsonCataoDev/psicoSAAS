@@ -104,7 +104,6 @@ export class EmailService {
 
         throw new BadGatewayException('Nao foi possivel enviar o e-mail')
       }
-      this.lastSentAt = Date.now()
       this.logger.log(`[Resend] Email enviado subjectChars=${opts.subject.length}`)
       this.writeLog(opts.to, opts.subject, 'sent', null)
     } catch (err) {
@@ -130,6 +129,9 @@ export class EmailService {
     if (waitMs > 0) {
       await new Promise(resolve => setTimeout(resolve, waitMs))
     }
+    // Marca o slot ANTES do envio: falhas também consomem a janela e não
+    // disparam o próximo email imediatamente, evitando burst pós-erro.
+    this.lastSentAt = Date.now()
   }
 
   private startRateLimitCooldown(retryAfter: string | null): void {

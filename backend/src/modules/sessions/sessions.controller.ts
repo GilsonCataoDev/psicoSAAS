@@ -58,9 +58,8 @@ export class SessionsController {
   ) {
     if (!file?.buffer?.length) throw new BadRequestException('Arquivo de áudio ausente')
     const duration = this.parseDuration(durationSeconds)
-    await this.ensureTranscriptionQuota(req.user.id, duration)
+    await this.chargeTranscriptionQuota(req.user.id, duration)
     const text = await this.ai.transcribeAudio(file.buffer, file.mimetype)
-    await this.incrementTranscriptionUsage(req.user.id, duration)
     return { text }
   }
 
@@ -93,13 +92,29 @@ export class SessionsController {
     return new Date().toISOString().slice(0, 7)
   }
 
-  private async ensureTranscriptionQuota(userId: string, durationSeconds: number): Promise<void> {
+  private async chargeTranscriptionQuota(userId: string, durationSeconds: number): Promise<void> {
     const month = this.currentMonth()
-    let usage = await this.aiUsage.findOne({ where: { userId, month } })
-    if (!usage) usage = await this.aiUsage.save(this.aiUsage.create({ userId, month }))
+    // Garante que a linha existe (idempotente sob concorrência pelo ON CONFLICT DO NOTHING)
+    await this.aiUsage
+      .createQueryBuilder()
+      .insert()
+      .values({ userId, month })
+      .orIgnore()
+      .execute()
+    // UPDATE atômico: decrementa cota apenas se ainda há espaço. 0 affected = limite atingido.
+    const result = await this.aiUsage
+      .createQueryBuilder()
+      .update()
+      .set({ transcriptionSeconds: () => `"transcriptionSeconds" + ${durationSeconds}` })
+      .where(
+        '"userId" = :userId AND month = :month AND "transcriptionSeconds" + :duration <= :limit',
+        { userId, month, duration: durationSeconds, limit: AI_TRANSCRIPTION_MONTHLY_SECONDS },
+      )
+      .execute()
 
-    if (usage.transcriptionSeconds + durationSeconds > AI_TRANSCRIPTION_MONTHLY_SECONDS) {
-      const usedMinutes = Math.ceil(usage.transcriptionSeconds / 60)
+    if (!result.affected) {
+      const usage = await this.aiUsage.findOne({ where: { userId, month } })
+      const usedMinutes = Math.ceil((usage?.transcriptionSeconds ?? 0) / 60)
       throw new ForbiddenException({
         message: `Limite mensal de transcrição por IA atingido (${usedMinutes}/60 min).`,
         limitMinutes: 60,
@@ -108,14 +123,14 @@ export class SessionsController {
     }
   }
 
-  private async incrementTranscriptionUsage(userId: string, durationSeconds: number): Promise<void> {
-    await this.aiUsage.increment({ userId, month: this.currentMonth() }, 'transcriptionSeconds', durationSeconds)
-  }
-
   private async incrementSummaryUsage(userId: string): Promise<void> {
     const month = this.currentMonth()
-    let usage = await this.aiUsage.findOne({ where: { userId, month } })
-    if (!usage) usage = await this.aiUsage.save(this.aiUsage.create({ userId, month }))
-    await this.aiUsage.increment({ id: usage.id }, 'summaryRequests', 1)
+    await this.aiUsage
+      .createQueryBuilder()
+      .insert()
+      .values({ userId, month })
+      .orIgnore()
+      .execute()
+    await this.aiUsage.increment({ userId, month }, 'summaryRequests', 1)
   }
 }
