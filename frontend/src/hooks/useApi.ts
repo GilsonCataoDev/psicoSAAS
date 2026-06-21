@@ -601,7 +601,7 @@ export interface AdminMonitor {
   }
   billing: {
     byStatus: Record<string, number>
-    pastDueAccounts: { id: string; plan: string; status: string; updatedAt: string; user: { id: string; name: string; email: string } }[]
+    pastDueAccounts: { id: string; plan: string; status: string; createdAt: string; user: { id: string; name: string; email: string } }[]
     recentWebhooks: { id: string; eventType: string; eventId: string; processedAt: string }[]
   }
 }

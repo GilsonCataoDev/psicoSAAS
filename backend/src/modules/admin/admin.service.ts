@@ -146,11 +146,11 @@ export class AdminService {
           .getRawMany<{ status: string; count: string }>(),
         this.subs
           .createQueryBuilder('s')
-          .innerJoin('s.user', 'u')
-          .select(['u.id', 'u.name', 'u.email', 's.plan', 's.status', 's.updatedAt'])
+          .innerJoinAndSelect('s.user', 'u')
+          .select(['s.id', 's.plan', 's.status', 's.createdAt', 'u.id', 'u.name', 'u.email'])
           .where('s.status = :status', { status: 'past_due' })
-          .andWhere('s.updatedAt > :since', { since: since30d })
-          .orderBy('s.updatedAt', 'DESC')
+          .andWhere('s.createdAt > :since', { since: since30d })
+          .orderBy('s.createdAt', 'DESC')
           .take(20)
           .getMany(),
       ])
