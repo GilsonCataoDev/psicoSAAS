@@ -11,6 +11,7 @@ import { isValidCrpFormat, getCrpRegion, openCfpVerification, formatCrpInput } f
 import { useSubscriptionStore, PLANS } from '@/store/subscription'
 import toast from 'react-hot-toast'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
+import ReferralCard from '@/components/features/referral/ReferralCard'
 import Avatar from '@/components/ui/Avatar'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { disableWebPush, enableWebPush, getPushStatus, isPushSupported, sendTestWebPush } from '@/lib/pushNotifications'
@@ -1257,6 +1258,8 @@ export default function SettingsPage() {
               )}
             </div>
           )}
+
+          {tab === 'plan' && <ReferralCard />}
 
           {/* ── Privacidade ───────────────────────────────────────────── */}
           {tab === 'privacy' && (

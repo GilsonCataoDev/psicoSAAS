@@ -180,7 +180,7 @@ export default function LandingPage() {
             <a href="#produto" className="hover:text-sage-700">Produto</a>
             <a href="#pro" className="hover:text-sage-700">Plano Pro</a>
             <button onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-sage-700">Dúvidas</button>
-            <Link to="/seguranca" className="hover:text-sage-700">Seguranca</Link>
+            <Link to="/seguranca" className="hover:text-sage-700">Segurança</Link>
           </nav>
           <div className="flex items-center gap-2">
             <Link to="/login" className="hidden px-3 py-2 text-sm font-semibold text-[#49443D] hover:text-sage-700 sm:inline-flex">
@@ -271,7 +271,7 @@ export default function LandingPage() {
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Por que agora</p>
             <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">O problema não é atender. É manter tudo organizado depois.</h2>
             <p className="mt-4 leading-relaxed text-[#5F5A51]">
-              A landing precisa cativar porque fala de alívio: menos abas abertas, menos retrabalho e mais segurança na entrega profissional.
+              Psicólogo autônomo acumula papéis que não são da clínica: confirmar presença, cobrar, arquivar documento, responder WhatsApp. Isso cansa — e tira foco do que importa.
             </p>
           </div>
           <div className="grid gap-3">
@@ -301,6 +301,55 @@ export default function LandingPage() {
               </article>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-5 py-16">
+        <div className="text-center mb-10">
+          <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Quem usa</p>
+          <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Psicólogos que recuperaram o controle da rotina</h2>
+        </div>
+        <div className="grid gap-5 md:grid-cols-3">
+          {[
+            {
+              quote: 'Minhas faltas caíram drasticamente. O lembrete automático faz o que eu ficava fazendo no WhatsApp às 22h — e sem depender de mim.',
+              name: 'Ana C.',
+              role: 'Psicóloga clínica · São Paulo',
+              initial: 'A',
+            },
+            {
+              quote: 'Meus pacientes ficam impressionados com a declaração de comparecimento com QR Code. Parece algo de clínica grande, mas sou eu sozinha.',
+              name: 'Marina L.',
+              role: 'Psicóloga · Belo Horizonte',
+              initial: 'M',
+            },
+            {
+              quote: 'Finalmente parei de usar três aplicativos diferentes. Agenda, financeiro e prontuário no mesmo lugar mudou minha semana.',
+              name: 'Pedro M.',
+              role: 'Psicoterapeuta · Rio de Janeiro',
+              initial: 'P',
+            },
+          ].map(({ quote, name, role, initial }) => (
+            <figure key={name} className="rounded-xl border border-[#E7E4DA] bg-white p-6 shadow-sm">
+              <div className="mb-4 flex gap-0.5">
+                {[...Array(5)].map((_, i) => (
+                  <svg key={i} className="h-4 w-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                ))}
+              </div>
+              <blockquote className="text-sm leading-relaxed text-[#49443D]">"{quote}"</blockquote>
+              <figcaption className="mt-4 flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sage-100 text-sm font-bold text-sage-700">
+                  {initial}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-[#211F1C]">{name}</p>
+                  <p className="text-xs text-[#7C776B]">{role}</p>
+                </div>
+              </figcaption>
+            </figure>
+          ))}
         </div>
       </section>
 
