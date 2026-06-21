@@ -11,6 +11,11 @@ import { ListAdminUsersDto } from './dto/list-admin-users.dto'
 export class AdminController {
   constructor(private readonly admin: AdminService) {}
 
+  @Get('health-scores')
+  getHealthScores() {
+    return this.admin.getHealthScores()
+  }
+
   @Get('monitor')
   monitor() {
     return this.admin.getMonitor()

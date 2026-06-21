@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common'
-import { APP_GUARD } from '@nestjs/core'
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler'
@@ -22,9 +22,11 @@ import { InstrumentAssignmentsModule } from './modules/instrument-assignments/in
 import { AuditModule } from './modules/audit/audit.module'
 import { TemplatesModule } from './modules/templates/templates.module'
 import { AdminModule } from './modules/admin/admin.module'
+import { TestimonialModule } from './modules/testimonial/testimonial.module'
 import { Subscription as BillingSubscription } from './modules/billing/entities/subscription.entity'
 import { PlanGuard } from './common/guards/plan.guard'
 import { SubscriptionGuard } from './common/guards/subscription.guard'
+import { LastActiveInterceptor } from './common/interceptors/last-active.interceptor'
 
 @Module({
   imports: [
@@ -74,11 +76,13 @@ import { SubscriptionGuard } from './common/guards/subscription.guard'
     AuditModule,
     TemplatesModule,
     AdminModule,
+    TestimonialModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: SubscriptionGuard },
     { provide: APP_GUARD, useClass: PlanGuard },
+    { provide: APP_INTERCEPTOR, useClass: LastActiveInterceptor },
   ],
 })
 export class AppModule {}

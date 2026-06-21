@@ -229,6 +229,122 @@ export class AdminService {
     }
   }
 
+  async getHealthScores() {
+    type RawRow = {
+      id: string
+      name: string
+      email: string
+      lastActiveAt: Date | null
+      createdAt: Date
+      plan: string | null
+      subscriptionStatus: string | null
+      patientCount: string
+      sessionsLast30d: string
+      hasFinancialLast30d: boolean
+      hasAiUsageLast30d: boolean
+    }
+
+    const rows: RawRow[] = await this.dataSource.query(`
+      SELECT
+        u.id,
+        u.name,
+        u.email,
+        u."lastActiveAt",
+        u."createdAt",
+        sub.plan,
+        sub.status                                             AS "subscriptionStatus",
+        (SELECT COUNT(*)::int FROM patients p
+           WHERE p."psychologistId" = u.id)                   AS "patientCount",
+        (SELECT COUNT(*)::int FROM sessions ses
+           WHERE ses."psychologistId" = u.id
+             AND ses."createdAt" > NOW() - INTERVAL '30 days') AS "sessionsLast30d",
+        (SELECT EXISTS (
+           SELECT 1 FROM financial_records fr
+           WHERE fr."psychologistId" = u.id
+             AND fr."createdAt" > NOW() - INTERVAL '30 days'
+         ))                                                    AS "hasFinancialLast30d",
+        (SELECT EXISTS (
+           SELECT 1 FROM ai_usage au
+           WHERE au."userId" = u.id
+             AND au."updatedAt" > NOW() - INTERVAL '30 days'
+             AND (au."transcriptionSeconds" > 0 OR au."summaryRequests" > 0)
+         ))                                                    AS "hasAiUsageLast30d"
+      FROM users u
+      LEFT JOIN LATERAL (
+        SELECT s.plan, s.status
+        FROM billing_subscriptions s
+        WHERE s."userId" = u.id
+        ORDER BY s."createdAt" DESC
+        LIMIT 1
+      ) sub ON TRUE
+      WHERE u."isActive" = true
+      ORDER BY u."lastActiveAt" DESC NULLS LAST
+    `)
+
+    return rows.map(r => {
+      const { rawScore, score } = this.computeScore(r)
+      return {
+        id: r.id,
+        name: r.name,
+        email: r.email,
+        lastActiveAt: r.lastActiveAt,
+        createdAt: r.createdAt,
+        plan: r.plan,
+        subscriptionStatus: r.subscriptionStatus,
+        patientCount: Number(r.patientCount),
+        sessionsLast30d: Number(r.sessionsLast30d),
+        hasFinancialLast30d: r.hasFinancialLast30d,
+        hasAiUsageLast30d: r.hasAiUsageLast30d,
+        rawScore,
+        score,
+        tier: score >= 80 ? 'healthy' : score >= 50 ? 'attention' : 'risk',
+      }
+    })
+  }
+
+  private computeScore(r: {
+    lastActiveAt: Date | null
+    createdAt: Date
+    plan: string | null
+    patientCount: string
+    sessionsLast30d: string
+    hasFinancialLast30d: boolean
+    hasAiUsageLast30d: boolean
+  }): { rawScore: number; score: number } {
+    const now = Date.now()
+    const reference = r.lastActiveAt ?? r.createdAt
+    const daysSince = Math.floor((now - new Date(reference).getTime()) / 86_400_000)
+
+    // Recência de login — 40 pts
+    let recency = 0
+    if (daysSince <= 7) recency = 40
+    else if (daysSince <= 14) recency = 28
+    else if (daysSince <= 30) recency = 15
+    else if (daysSince <= 60) recency = 5
+
+    // Pacientes cadastrados — 15 pts
+    const patients = Number(r.patientCount)
+    const patientPts = patients >= 5 ? 15 : patients >= 3 ? 10 : patients >= 1 ? 5 : 0
+
+    // Sessões últimos 30 dias — 25 pts
+    const sessions = Number(r.sessionsLast30d)
+    const sessionPts = sessions >= 10 ? 25 : sessions >= 4 ? 17 : sessions >= 1 ? 8 : 0
+
+    // Uso financeiro — 10 pts
+    const financialPts = r.hasFinancialLast30d ? 10 : 0
+
+    // Uso de IA (só Pro) — 10 pts; Free nunca marca aqui, teto bruto = 90
+    const aiPts = r.plan === 'pro' && r.hasAiUsageLast30d ? 10 : 0
+
+    const rawScore = recency + patientPts + sessionPts + financialPts + aiPts
+
+    // Normaliza pelo teto do plano para que Free e Pro usem a mesma escala 0-100
+    const maxPossible = r.plan === 'pro' ? 100 : 90
+    const score = Math.min(100, Math.round((rawScore / maxPossible) * 100))
+
+    return { rawScore, score }
+  }
+
   async getStats() {
     const [totalUsers, activeUsers] = await Promise.all([
       this.users.count(),

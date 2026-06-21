@@ -11,6 +11,8 @@ import { api, USE_MOCK, type AuthAxiosRequestConfig } from '@/lib/api'
 import { setNativeTokens } from '@/lib/nativeAuth'
 import { useAuthStore } from '@/store/auth'
 import { useSubscriptionStore } from '@/store/subscription'
+import { useFeedbackStatus } from '@/hooks/useApi'
+import TestimonialModal from '@/components/features/testimonial/TestimonialModal'
 
 function formatDate(date?: string | null) {
   if (!date) return '-'
@@ -191,10 +193,24 @@ function EmailVerificationBanner() {
   )
 }
 
+function useTestimonialTrigger() {
+  const { data } = useFeedbackStatus()
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (!data?.shouldShow) return
+    const timer = window.setTimeout(() => setOpen(true), 3000)
+    return () => window.clearTimeout(timer)
+  }, [data?.shouldShow])
+
+  return { open, close: () => setOpen(false) }
+}
+
 export default function AppLayout() {
   const booting = useCsrfBoot()
   useSessionKeepAlive()
   useSubscriptionPolling()
+  const testimonial = useTestimonialTrigger()
 
   if (booting) {
     return (
@@ -230,6 +246,7 @@ export default function AppLayout() {
       <PWAInstallBanner />
       <OnboardingTour />
       <FirstSessionCelebration />
+      <TestimonialModal open={testimonial.open} onDone={testimonial.close} />
     </div>
   )
 }

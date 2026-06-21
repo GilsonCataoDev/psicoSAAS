@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Activity,
   AlertCircle,
+  ArrowDownUp,
   Bell,
   CreditCard,
   Database,
@@ -14,7 +16,7 @@ import {
   Webhook,
   X,
 } from 'lucide-react'
-import { useAdminStats, useAdminUsers, useAdminOverrideSubscription, useAdminMonitor, AdminUser } from '@/hooks/useApi'
+import { useAdminStats, useAdminUsers, useAdminOverrideSubscription, useAdminMonitor, useAdminHealthScores, AdminUser, HealthScore } from '@/hooks/useApi'
 
 const STATUS_LABEL: Record<string, string> = {
   active: 'Ativo',
@@ -469,8 +471,130 @@ function HealthItem({
   )
 }
 
+const TIER_LABEL: Record<HealthScore['tier'], string> = {
+  healthy: 'Saudável',
+  attention: 'Atenção',
+  risk: 'Risco',
+}
+
+const TIER_COLOR: Record<HealthScore['tier'], string> = {
+  healthy: 'bg-emerald-100 text-emerald-700',
+  attention: 'bg-yellow-100 text-yellow-700',
+  risk: 'bg-rose-100 text-rose-700',
+}
+
+function ScoreBar({ score, tier }: { score: number; tier: HealthScore['tier'] }) {
+  const fill = tier === 'healthy' ? 'bg-emerald-500' : tier === 'attention' ? 'bg-yellow-400' : 'bg-rose-500'
+  return (
+    <div className="flex items-center gap-2">
+      <div className="w-20 h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full ${fill}`} style={{ width: `${score}%` }} />
+      </div>
+      <span className="text-sm font-semibold text-neutral-800 tabular-nums">{score}</span>
+    </div>
+  )
+}
+
+function HealthScoresTab() {
+  const { data = [], isLoading } = useAdminHealthScores()
+  const [sortAsc, setSortAsc] = useState(false)
+
+  const sorted = [...data].sort((a, b) => sortAsc ? a.score - b.score : b.score - a.score)
+
+  const counts = { healthy: 0, attention: 0, risk: 0 }
+  for (const u of data) counts[u.tier]++
+
+  function relativeDate(iso: string | null) {
+    if (!iso) return '—'
+    const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)
+    if (days === 0) return 'hoje'
+    if (days === 1) return 'ontem'
+    return `${days}d atrás`
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Resumo por tier */}
+      <div className="grid grid-cols-3 gap-3">
+        {(['healthy', 'attention', 'risk'] as const).map(t => (
+          <div key={t} className={`rounded-2xl border p-4 ${
+            t === 'healthy' ? 'border-emerald-100 bg-emerald-50' :
+            t === 'attention' ? 'border-yellow-100 bg-yellow-50' :
+            'border-rose-100 bg-rose-50'
+          }`}>
+            <p className={`text-2xl font-bold ${
+              t === 'healthy' ? 'text-emerald-700' :
+              t === 'attention' ? 'text-yellow-700' : 'text-rose-700'
+            }`}>{counts[t]}</p>
+            <p className="text-xs font-medium text-neutral-500 mt-0.5">{TIER_LABEL[t]}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Tabela */}
+      <div className="rounded-2xl border border-neutral-100 bg-white overflow-hidden">
+        {isLoading ? (
+          <div className="animate-pulse p-4 space-y-2">
+            {[...Array(5)].map((_, i) => <div key={i} className="h-10 bg-neutral-100 rounded-xl" />)}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-[700px] w-full text-sm">
+              <thead>
+                <tr className="border-b border-neutral-100 text-left text-xs font-semibold uppercase tracking-wide text-neutral-400">
+                  <th className="px-4 py-3">Usuário</th>
+                  <th className="px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={() => setSortAsc(v => !v)}
+                      className="flex items-center gap-1 hover:text-neutral-600 transition-colors"
+                    >
+                      Score <ArrowDownUp className="w-3 h-3" />
+                    </button>
+                  </th>
+                  <th className="px-4 py-3">Tier</th>
+                  <th className="px-4 py-3">Último acesso</th>
+                  <th className="px-4 py-3">Pacientes</th>
+                  <th className="px-4 py-3">Sessões 30d</th>
+                  <th className="px-4 py-3">Fin.</th>
+                  <th className="px-4 py-3">IA</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-50">
+                {sorted.map(u => (
+                  <tr key={u.id} className="hover:bg-neutral-50/60">
+                    <td className="px-4 py-3">
+                      <p className="font-medium text-neutral-800 truncate max-w-[180px]">{u.name}</p>
+                      <p className="text-xs text-neutral-400 truncate max-w-[180px]">{u.email}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <ScoreBar score={u.score} tier={u.tier} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${TIER_COLOR[u.tier]}`}>
+                        {TIER_LABEL[u.tier]}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-neutral-500 whitespace-nowrap">
+                      {relativeDate(u.lastActiveAt)}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-neutral-700 font-medium">{u.patientCount}</td>
+                    <td className="px-4 py-3 text-xs text-neutral-700 font-medium">{u.sessionsLast30d}</td>
+                    <td className="px-4 py-3 text-xs">{u.hasFinancialLast30d ? '✓' : <span className="text-neutral-300">—</span>}</td>
+                    <td className="px-4 py-3 text-xs">{u.hasAiUsageLast30d ? '✓' : <span className="text-neutral-300">—</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function AdminPage() {
-  const [tab, setTab] = useState<'users' | 'monitor'>('users')
+  const [tab, setTab] = useState<'users' | 'monitor' | 'health'>('users')
   const { data: stats } = useAdminStats()
 
   return (
@@ -482,6 +606,13 @@ export default function AdminPage() {
           <ShieldCheck className="h-4 w-4 text-sage-600" />
         </div>
         <h1 className="text-lg font-semibold text-neutral-800">Painel Admin</h1>
+        <Link
+          to="/admin/depoimentos"
+          className="ml-auto inline-flex h-9 items-center gap-2 rounded-lg border border-neutral-200 px-3 text-sm font-medium text-neutral-600 hover:border-sage-300 hover:text-sage-700"
+        >
+          <MessageCircle className="h-4 w-4" />
+          Depoimentos
+        </Link>
       </div>
 
       {/* Stats */}
@@ -500,31 +631,29 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 rounded-xl border border-neutral-100 bg-neutral-50 p-1">
-        <button
-          onClick={() => setTab('users')}
-          className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition-colors ${
-            tab === 'users'
-              ? 'bg-white text-neutral-800 shadow-sm'
-              : 'text-neutral-400 hover:text-neutral-600'
-          }`}
-        >
-          <Users className="h-4 w-4" />
-          Usuários
-        </button>
-        <button
-          onClick={() => setTab('monitor')}
-          className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition-colors ${
-            tab === 'monitor'
-              ? 'bg-white text-neutral-800 shadow-sm'
-              : 'text-neutral-400 hover:text-neutral-600'
-          }`}
-        >
-          <Activity className="h-4 w-4" />
-          Monitor
-        </button>
+        {([
+          { key: 'users', icon: Users, label: 'Usuários' },
+          { key: 'health', icon: TrendingUp, label: 'Engajamento' },
+          { key: 'monitor', icon: Activity, label: 'Monitor' },
+        ] as const).map(({ key, icon: Icon, label }) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition-colors ${
+              tab === key
+                ? 'bg-white text-neutral-800 shadow-sm'
+                : 'text-neutral-400 hover:text-neutral-600'
+            }`}
+          >
+            <Icon className="h-4 w-4" />
+            {label}
+          </button>
+        ))}
       </div>
 
-      {tab === 'users' ? <UsersTab /> : <MonitorTab />}
+      {tab === 'users' && <UsersTab />}
+      {tab === 'health' && <HealthScoresTab />}
+      {tab === 'monitor' && <MonitorTab />}
     </div>
   )
 }

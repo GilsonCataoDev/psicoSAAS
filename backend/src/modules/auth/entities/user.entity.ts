@@ -74,6 +74,9 @@ export class User {
   @Column({ type: 'jsonb', nullable: true })
   preferences?: Record<string, unknown>
 
+  @Column({ type: 'timestamptz', nullable: true })
+  lastActiveAt?: Date
+
   @OneToMany(() => Patient, (p) => p.psychologist)
   patients: Patient[]
 

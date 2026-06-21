@@ -31,6 +31,7 @@ const DpaPage             = lazy(() => import('@/pages/DpaPage'))
 const AccessibilityPage   = lazy(() => import('@/pages/AccessibilityPage'))
 const InstrumentosPage    = lazy(() => import('@/pages/InstrumentosPage'))
 const AdminPage           = lazy(() => import('@/pages/AdminPage'))
+const TestimonialsPage    = lazy(() => import('@/pages/admin/TestimonialsPage'))
 
 // Public pages — lazy loaded
 const BookingPage         = lazy(() => import('@/pages/public/BookingPage'))
@@ -77,6 +78,11 @@ function ProOnlyRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const isAdmin = useAuthStore(state => state.user?.isAdmin === true)
+  return isAdmin ? <>{children}</> : <Navigate to="/" replace />
+}
+
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   return isAuthenticated ? <Navigate to="/" replace /> : <>{children}</>
@@ -119,7 +125,8 @@ export default function App() {
         <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
           <Route path="pricing" element={<Navigate to="/planos" replace />} />
           <Route path="planos" element={<PricingPage />} />
-          <Route path="admin" element={<AdminPage />} />
+          <Route path="admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
+          <Route path="admin/depoimentos" element={<AdminRoute><TestimonialsPage /></AdminRoute>} />
           <Route element={<SubscriptionRoute />}>
             <Route index element={<DashboardPage />} />
             <Route path="pacientes" element={<PatientsPage />} />

@@ -205,8 +205,8 @@ export default function DashboardPage() {
               </div>
               <div className="rounded-xl bg-mist-50 px-3 py-3 dark:bg-white/5">
                 <Ban className="mb-1 h-4 w-4 text-mist-700 dark:text-mist-200" />
-                <p className="text-base font-semibold text-neutral-800 dark:text-white">{s?.roi?.earlyCancellations ?? 0}</p>
-                <p className="text-xs text-neutral-500 dark:text-neutral-300">faltas evitadas</p>
+                <p className="text-base font-semibold text-neutral-800 dark:text-white">{s?.roi?.absencesCount ?? s?.roi?.earlyCancellations ?? 0}</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-300">cancelamentos e faltas</p>
               </div>
               <div className="rounded-xl bg-amber-50 px-3 py-3 dark:bg-white/5">
                 <TimerReset className="mb-1 h-4 w-4 text-amber-700 dark:text-amber-200" />
@@ -261,8 +261,8 @@ export default function DashboardPage() {
           <div className="flex items-center gap-3 rounded-xl bg-amber-50 px-4 py-3">
             <Ban className="h-4 w-4 text-amber-700" />
             <div>
-              <p className="text-lg font-semibold text-neutral-800">{s.roi.earlyCancellations}</p>
-              <p className="text-xs text-neutral-500">{formatCurrency(s.roi.preservedAmount)} preservados</p>
+              <p className="text-lg font-semibold text-neutral-800">{s.roi.absencesCount ?? s.roi.earlyCancellations ?? 0}</p>
+              <p className="text-xs text-neutral-500">{formatCurrency(s.roi.absencesAmount ?? 0)} em faltas e cancelamentos</p>
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-xl bg-mist-50 px-4 py-3">

@@ -175,15 +175,32 @@ export class AnalyticsService {
         0,
       ),
 
-      safe('earlyCancellations', log, () =>
-        this.bookings
-          .createQueryBuilder('b')
-          .select('COUNT(*)', 'count')
-          .addSelect('COALESCE(SUM(b.amount), 0)', 'amount')
-          .where('b.psychologistId = :userId', { userId })
-          .andWhere('b.status = :status', { status: 'cancelled' })
-          .andWhere('b.cancelledAt BETWEEN :start AND :end', { start: monthStart, end: monthEnd })
-          .getRawOne(),
+      safe('absences', log, () =>
+        Promise.all([
+          // Cancelamentos ainda sem consulta interna vinculada.
+          this.bookings
+            .createQueryBuilder('b')
+            .select('COUNT(*)', 'count')
+            .addSelect('COALESCE(SUM(b.amount), 0)', 'amount')
+            .where('b.psychologistId = :userId', { userId })
+            .andWhere('b.status = :status', { status: 'cancelled' })
+            .andWhere('b.appointmentId IS NULL')
+            .andWhere('b.cancelledAt BETWEEN :start AND :end', { start: monthStart, end: monthEnd })
+            .getRawOne(),
+          // Consultas da agenda marcadas como canceladas ou falta, valorizadas pelo preço do paciente.
+          this.appointments
+            .createQueryBuilder('a')
+            .leftJoin('a.patient', 'p')
+            .select('COUNT(*)', 'count')
+            .addSelect('COALESCE(SUM(p.sessionPrice), 0)', 'amount')
+            .where('a.psychologistId = :userId', { userId })
+            .andWhere('a.status IN (:...statuses)', { statuses: ['cancelled', 'no_show'] })
+            .andWhere('a.date BETWEEN :start AND :end', { start: monthStart, end: monthEnd })
+            .getRawOne(),
+        ]).then(([publicCancellations, appointmentAbsences]) => ({
+          count: Number(publicCancellations?.count ?? 0) + Number(appointmentAbsences?.count ?? 0),
+          amount: Number(publicCancellations?.amount ?? 0) + Number(appointmentAbsences?.amount ?? 0),
+        })),
         { count: 0, amount: 0 },
       ),
 
@@ -197,8 +214,8 @@ export class AnalyticsService {
     ])
 
     const reminderCount = Number(remindersSent ?? 0)
-    const cancellationCount = Number((earlyCancellations as any)?.count ?? 0)
-    const preservedAmount = Number((earlyCancellations as any)?.amount ?? 0)
+    const absenceCount = Number((earlyCancellations as any)?.count ?? 0)
+    const absencesAmount = Number((earlyCancellations as any)?.amount ?? 0)
 
     this.logger.log(
       `dashboard OK: active=${activePatients} sessMonth=${sessionsThisMonth} pending=${(pendingPayments as any[]).length}`,
@@ -218,9 +235,10 @@ export class AnalyticsService {
       revenueChart,
       roi: {
         remindersSent: reminderCount,
-        earlyCancellations: cancellationCount,
-        preservedAmount,
-        estimatedMinutesSaved: (reminderCount * 2) + (cancellationCount * 10),
+        absencesCount: absenceCount,
+        earlyCancellations: absenceCount, // Compatibilidade com clientes anteriores.
+        absencesAmount,
+        estimatedMinutesSaved: reminderCount * 2,
       },
     }
   }
