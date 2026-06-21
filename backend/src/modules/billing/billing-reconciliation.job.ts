@@ -6,6 +6,8 @@ import { Subscription } from './entities/subscription.entity'
 
 const RECONCILIATION_INTERVAL_MS = 30 * 60 * 1000
 const INITIAL_DELAY_MS = 15 * 1000
+const BATCH_SIZE = 5
+const BATCH_DELAY_MS = 2_000
 const PAID_STATUSES = new Set(['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'])
 
 @Injectable()
@@ -41,16 +43,26 @@ export class BillingReconciliationJob implements OnModuleInit, OnModuleDestroy {
       where: { status: In(['active', 'trialing', 'past_due']) },
     })
 
-    for (const subscription of subscriptions) {
-      if (!subscription.gatewaySubscriptionId) continue
+    const eligible = subscriptions.filter(s => s.gatewaySubscriptionId)
 
-      try {
-        await this.reconcile(subscription)
-      } catch (err: any) {
-        this.logger.warn(
-          `Não foi possível reconciliar assinatura ${subscription.id}: ${err?.message ?? 'erro desconhecido'}`,
-        )
+    for (let i = 0; i < eligible.length; i += BATCH_SIZE) {
+      const batch = eligible.slice(i, i + BATCH_SIZE)
+      await Promise.all(
+        batch.map(s =>
+          this.reconcile(s).catch((err: any) =>
+            this.logger.warn(
+              `Não foi possível reconciliar assinatura ${s.id}: ${err?.message ?? 'erro desconhecido'}`,
+            ),
+          ),
+        ),
+      )
+      if (i + BATCH_SIZE < eligible.length) {
+        await new Promise(resolve => setTimeout(resolve, BATCH_DELAY_MS))
       }
+    }
+
+    if (eligible.length > 0) {
+      this.logger.log(`Reconciliação concluída: ${eligible.length} assinatura(s) processada(s)`)
     }
   }
 
