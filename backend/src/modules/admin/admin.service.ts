@@ -265,7 +265,7 @@ export class AdminService {
          ))                                                    AS "hasFinancialLast30d",
         (SELECT EXISTS (
            SELECT 1 FROM ai_usage au
-           WHERE au."userId" = u.id
+           WHERE au."userId" = u.id::text
              AND au."updatedAt" > NOW() - INTERVAL '30 days'
              AND (au."transcriptionSeconds" > 0 OR au."summaryRequests" > 0)
          ))                                                    AS "hasAiUsageLast30d"

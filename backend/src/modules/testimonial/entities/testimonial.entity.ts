@@ -8,7 +8,7 @@ export class Testimonial {
   @PrimaryGeneratedColumn('uuid')
   id: string
 
-  @Column()
+  @Column({ type: 'uuid' })
   userId: string
 
   @Column({ type: 'int', nullable: true })

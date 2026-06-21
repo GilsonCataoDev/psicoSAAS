@@ -31,6 +31,7 @@ describe('AdminService health scores', () => {
     const sql = dataSource.query.mock.calls[0][0] as string
 
     expect(sql).toContain('FROM billing_subscriptions s')
+    expect(sql).toContain('au."userId" = u.id::text')
     expect(sql).not.toContain('FROM subscriptions s')
     expect(result).toEqual([expect.objectContaining({ score: 100, tier: 'healthy' })])
   })
