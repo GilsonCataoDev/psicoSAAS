@@ -5,6 +5,10 @@ export class HardenTestimonials1750000005000 implements MigrationInterface {
 
   async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
+      ALTER TABLE "testimonials"
+      ALTER COLUMN "userId" TYPE uuid USING "userId"::uuid
+    `)
+    await queryRunner.query(`
       DO $$
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'FK_testimonials_userId') THEN
