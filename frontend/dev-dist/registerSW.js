@@ -1,1 +1,0 @@
-if('serviceWorker' in navigator) navigator.serviceWorker.register('/psicoSAAS/dev-sw.js?dev-sw', { scope: '/psicoSAAS/', type: 'classic' })

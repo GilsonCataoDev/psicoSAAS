@@ -33,6 +33,7 @@ Thumbs.db
 
 # Vite
 **/.vite/
+**/dev-dist/
 
 # Coverage
 coverage/
