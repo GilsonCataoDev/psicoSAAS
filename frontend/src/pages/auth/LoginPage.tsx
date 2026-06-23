@@ -3,12 +3,11 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, LogIn, ShieldCheck } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
-import { api, AuthAxiosRequestConfig } from '@/lib/api'
+import { api } from '@/lib/api'
 import { setNativeTokens } from '@/lib/nativeAuth'
 import toast from 'react-hot-toast'
-import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 
 const schema = z.object({
   email: z.string().email('E-mail inválido'),
@@ -40,7 +39,6 @@ export default function LoginPage() {
       await setNativeTokens(res.data.tokens)
       setAuth(res.data.user)
       if (res.data.csrfToken) setCsrfToken(res.data.csrfToken)
-      await api.get('/auth/me', { skipAuthRedirect: true } as AuthAxiosRequestConfig)
       navigate('/')
     } catch (err: any) {
       logout()
@@ -116,7 +114,7 @@ export default function LoginPage() {
           {loading ? (
             <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           ) : (
-            <UseCogniaIcon name="login" size={24} />
+            <LogIn className="h-5 w-5" />
           )}
           {loading ? 'Entrando...' : 'Entrar'}
         </button>
@@ -131,7 +129,7 @@ export default function LoginPage() {
 
       <div className="mt-8 p-4 bg-sage-50 rounded-2xl border border-sage-100">
         <p className="text-xs text-sage-700 text-center">
-          <UseCogniaIcon name="security-lgpd" size={24} className="mr-1 inline-block align-middle" />
+          <ShieldCheck className="mr-1 inline-block h-5 w-5 align-middle" />
           Seus dados sensiveis sao protegidos com criptografia em repouso e controles de acesso.
         </p>
       </div>

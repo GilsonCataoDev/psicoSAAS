@@ -41,7 +41,21 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        // O app depende da API para operar; precacheia apenas o shell e deixa telas pesadas sob demanda.
+        globPatterns: [
+          '**/*.{css,html,svg,png,ico,woff2}',
+          'assets/index-*.js',
+          'assets/react-vendor-*.js',
+          'assets/query-vendor-*.js',
+          'assets/form-vendor-*.js',
+          'assets/rolldown-runtime-*.js',
+        ],
+        globIgnores: [
+          'assets/illustrations/**',
+          'assets/empty-states/**',
+          'assets/icons/**',
+          'og-image.png',
+        ],
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,
@@ -92,9 +106,7 @@ export default defineConfig({
           if (id.includes('node_modules/date-fns')) {
             return 'date-vendor'
           }
-          if (id.includes('node_modules/lucide-react')) {
-            return 'icons-vendor'
-          }
+          if (id.includes('node_modules/posthog-js')) return 'analytics-vendor'
           if (id.includes('node_modules/pdfkit') || id.includes('node_modules/qrcode')) {
             return 'pdf-vendor'
           }

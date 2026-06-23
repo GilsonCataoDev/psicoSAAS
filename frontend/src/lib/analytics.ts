@@ -5,44 +5,60 @@
  *
  * Setup: https://posthog.com → criar projeto → copiar API key para VITE_POSTHOG_KEY
  */
-import posthog from 'posthog-js'
-
 const KEY  = import.meta.env.VITE_POSTHOG_KEY as string | undefined
 const HOST = (import.meta.env.VITE_POSTHOG_HOST as string | undefined) ?? 'https://app.posthog.com'
 const isDev = import.meta.env.DEV
+type PostHogClient = typeof import('posthog-js')['default']
+
+let client: PostHogClient | null = null
+let loadPromise: Promise<PostHogClient | null> | null = null
+let identityGeneration = 0
+
+function loadAnalytics(): Promise<PostHogClient | null> {
+  if (!KEY || isDev) return Promise.resolve(null)
+  if (client) return Promise.resolve(client)
+  if (loadPromise) return loadPromise
+
+  loadPromise = import('posthog-js').then(({ default: posthog }) => {
+    posthog.init(KEY, {
+      api_host: HOST,
+      capture_pageview: false,
+      capture_pageleave: false,
+      autocapture: false,
+      disable_session_recording: true,
+    })
+    client = posthog
+    return client
+  }).catch(() => null)
+
+  return loadPromise
+}
 
 /** Inicializa PostHog — chamar uma vez no main.tsx */
 export function initAnalytics() {
-  if (!KEY || isDev) return
-
-  posthog.init(KEY, {
-    api_host: HOST,
-    capture_pageview: false,
-    capture_pageleave: false,
-    autocapture: false,           // captura automatica pode incluir dados clinicos do DOM
-    disable_session_recording: true, // LGPD: manter somente eventos manuais explicitos
-    loaded: (ph) => {
-      if (import.meta.env.DEV) ph.opt_out_capturing()
-    },
-  })
+  void loadAnalytics()
 }
 
 /** Identifica o usuário após login */
 export function identifyUser(id: string, props?: Record<string, any>) {
   if (isDev) { console.debug('[Analytics] identify', id, props); return }
-  posthog.identify(id, props)
+  const generation = identityGeneration
+  void loadAnalytics().then(posthog => {
+    if (generation === identityGeneration) posthog?.identify(id, props)
+  })
 }
 
 /** Rastreia evento sem dados pessoais */
 export function track(event: string, props?: Record<string, string | number | boolean>) {
   if (isDev) { console.debug('[Analytics]', event, props); return }
-  posthog.capture(event, props)
+  void loadAnalytics().then(posthog => posthog?.capture(event, props))
 }
 
 /** Reseta ao fazer logout */
 export function resetAnalytics() {
   if (isDev) return
-  posthog.reset()
+  identityGeneration += 1
+  if (client) client.reset()
 }
 
 // Eventos padronizados — use estas constantes para consistência

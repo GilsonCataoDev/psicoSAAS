@@ -1,5 +1,3 @@
-import { cn } from '@/lib/utils'
-
 type BrandLogoProps = {
   compact?: boolean
   light?: boolean
@@ -8,7 +6,7 @@ type BrandLogoProps = {
 
 export default function BrandLogo({ compact = false, light = false, className }: BrandLogoProps) {
   return (
-    <div className={cn('flex items-center gap-2.5', className)}>
+    <div className={['flex items-center gap-2.5', className].filter(Boolean).join(' ')}>
       <svg
         viewBox="0 0 48 48"
         className="h-9 w-9 shrink-0"
@@ -48,7 +46,7 @@ export default function BrandLogo({ compact = false, light = false, className }:
         ))}
       </svg>
       {!compact && (
-        <span className={cn('font-display text-xl font-bold tracking-tight', light ? 'text-white' : 'text-neutral-900')}>
+        <span className={`font-display text-xl font-bold tracking-tight ${light ? 'text-white' : 'text-neutral-900'}`}>
           Use<span className={light ? 'text-[#B7DFCD]' : 'text-[#2F7657]'}>Cognia</span>
         </span>
       )}

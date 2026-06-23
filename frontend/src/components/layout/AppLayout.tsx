@@ -39,26 +39,18 @@ function useCsrfBoot() {
       return
     }
 
-    const loadSession = () => api.get('/auth/me', { skipAuthRedirect: true } as AuthAxiosRequestConfig)
-      .catch((err) => {
-        if (err?.response?.status !== 401) throw err
-        return api.post('/auth/refresh', undefined, { skipAuthRedirect: true } as AuthAxiosRequestConfig)
-          .then(async ({ data }) => {
-            if (data?.csrfToken) setCsrfToken(data.csrfToken)
-            if (data?.tokens) await setNativeTokens(data.tokens)
-            if (data?.user) setAuth(data.user)
-          })
-          .then(() => api.get('/auth/me', { skipAuthRedirect: true } as AuthAxiosRequestConfig))
-      })
-
-    loadSession()
-      .then(res => {
-        if (res.data?.csrfToken) setCsrfToken(res.data.csrfToken)
-        if (res.data?.id) setAuth(res.data)
-        return api.get('/billing/me')
-      })
-      .then(res => {
-        setSubscription(res.data?.status ? res.data : { plan: 'free', planId: 'free', status: 'none' })
+    Promise.all([
+      api.get('/auth/me'),
+      api.get('/billing/me'),
+    ])
+      .then(([authResponse, billingResponse]) => {
+        if (authResponse.data?.csrfToken) setCsrfToken(authResponse.data.csrfToken)
+        if (authResponse.data?.id) setAuth(authResponse.data)
+        setSubscription(
+          billingResponse.data?.status
+            ? billingResponse.data
+            : { plan: 'free', planId: 'free', status: 'none' },
+        )
       })
       .catch((err) => {
         if (err?.response?.status === 401) logout()

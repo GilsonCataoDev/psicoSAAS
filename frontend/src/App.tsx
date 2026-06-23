@@ -2,17 +2,17 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { useAuthStore } from '@/store/auth'
 import { useSubscriptionStore } from '@/store/subscription'
-import AppLayout from '@/components/layout/AppLayout'
 import AuthLayout from '@/components/layout/AuthLayout'
 
 // Auth pages — small, loaded eagerly so login is instant
 import LoginPage from '@/pages/auth/LoginPage'
-import RegisterPage from '@/pages/auth/RegisterPage'
-import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage'
-import ResetPasswordPage from '@/pages/auth/ResetPasswordPage'
-import VerifyEmailPage from '@/pages/auth/VerifyEmailPage'
 
 // App pages — lazy loaded
+const AppLayout           = lazy(() => import('@/components/layout/AppLayout'))
+const RegisterPage        = lazy(() => import('@/pages/auth/RegisterPage'))
+const ForgotPasswordPage  = lazy(() => import('@/pages/auth/ForgotPasswordPage'))
+const ResetPasswordPage   = lazy(() => import('@/pages/auth/ResetPasswordPage'))
+const VerifyEmailPage     = lazy(() => import('@/pages/auth/VerifyEmailPage'))
 const DashboardPage       = lazy(() => import('@/pages/DashboardPage'))
 const PatientsPage        = lazy(() => import('@/pages/PatientsPage'))
 const PatientDetailPage   = lazy(() => import('@/pages/PatientDetailPage'))

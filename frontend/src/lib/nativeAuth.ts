@@ -1,8 +1,12 @@
 import { Capacitor } from '@capacitor/core'
-import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 
 const ACCESS_TOKEN_KEY = 'usecognia.native.accessToken'
 const REFRESH_TOKEN_KEY = 'usecognia.native.refreshToken'
+
+async function getSecureStorage() {
+  const { SecureStoragePlugin } = await import('capacitor-secure-storage-plugin')
+  return SecureStoragePlugin
+}
 
 export function isNativeApp(): boolean {
   return Capacitor.isNativePlatform()
@@ -11,6 +15,7 @@ export function isNativeApp(): boolean {
 export async function getNativeAccessToken(): Promise<string | null> {
   if (!isNativeApp()) return null
   try {
+    const SecureStoragePlugin = await getSecureStorage()
     const { value } = await SecureStoragePlugin.get({ key: ACCESS_TOKEN_KEY })
     return value
   } catch {
@@ -21,6 +26,7 @@ export async function getNativeAccessToken(): Promise<string | null> {
 export async function getNativeRefreshToken(): Promise<string | null> {
   if (!isNativeApp()) return null
   try {
+    const SecureStoragePlugin = await getSecureStorage()
     const { value } = await SecureStoragePlugin.get({ key: REFRESH_TOKEN_KEY })
     return value
   } catch {
@@ -30,6 +36,7 @@ export async function getNativeRefreshToken(): Promise<string | null> {
 
 export async function setNativeTokens(tokens?: { accessToken?: string; refreshToken?: string } | null): Promise<void> {
   if (!isNativeApp() || !tokens?.accessToken || !tokens?.refreshToken) return
+  const SecureStoragePlugin = await getSecureStorage()
   await Promise.all([
     SecureStoragePlugin.set({ key: ACCESS_TOKEN_KEY, value: tokens.accessToken }),
     SecureStoragePlugin.set({ key: REFRESH_TOKEN_KEY, value: tokens.refreshToken }), // Keychain/Keystore, nao Preferences
@@ -40,6 +47,7 @@ export async function setNativeTokens(tokens?: { accessToken?: string; refreshTo
 
 export async function clearNativeTokens(): Promise<void> {
   if (!isNativeApp()) return
+  const SecureStoragePlugin = await getSecureStorage()
   await Promise.all([
     SecureStoragePlugin.remove({ key: ACCESS_TOKEN_KEY }).catch(() => undefined),
     SecureStoragePlugin.remove({ key: REFRESH_TOKEN_KEY }).catch(() => undefined),

@@ -4,7 +4,6 @@ import { HashRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
 import toast from 'react-hot-toast'
-import { registerSW } from 'virtual:pwa-register'
 import App from './App'
 import { initAnalytics } from '@/lib/analytics'
 import { readPersistedStorage } from '@/lib/storageMigration'
@@ -35,43 +34,54 @@ const persistedTheme = (() => {
 })()
 
 applyTheme(persistedTheme ?? 'system')
-initAnalytics()
 
-const updateServiceWorker = registerSW({
-  immediate: true,
-  onNeedRefresh() {
-    toast((t) => (
-      <div className="flex max-w-sm flex-col gap-3">
-        <div>
-          <p className="font-semibold text-neutral-900">Atualizacao disponivel</p>
-          <p className="mt-1 text-sm text-neutral-600">Recarregue para usar a versao mais recente do UseCognia.</p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              toast.dismiss(t.id)
-              updateServiceWorker(true)
-            }}
-            className="rounded-lg bg-sage-600 px-3 py-2 text-sm font-semibold text-white"
-          >
-            Atualizar
-          </button>
-          <button
-            type="button"
-            onClick={() => toast.dismiss(t.id)}
-            className="rounded-lg border border-neutral-200 px-3 py-2 text-sm font-semibold text-neutral-600"
-          >
-            Depois
-          </button>
-        </div>
-      </div>
-    ), { duration: 10000 })
-  },
-  onOfflineReady() {
-    toast.success('UseCognia pronto para abrir mais rapido neste dispositivo.')
-  },
-})
+function runWhenIdle(callback: () => void) {
+  const requestIdle = window.requestIdleCallback
+  if (requestIdle) requestIdle(callback, { timeout: 3000 })
+  else window.setTimeout(callback, 1500)
+}
+
+window.addEventListener('load', () => {
+  runWhenIdle(() => {
+    initAnalytics()
+    void import('virtual:pwa-register').then(({ registerSW }) => {
+      const updateServiceWorker = registerSW({
+        onNeedRefresh() {
+          toast((t) => (
+            <div className="flex max-w-sm flex-col gap-3">
+              <div>
+                <p className="font-semibold text-neutral-900">Atualizacao disponivel</p>
+                <p className="mt-1 text-sm text-neutral-600">Recarregue para usar a versao mais recente do UseCognia.</p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    toast.dismiss(t.id)
+                    void updateServiceWorker(true)
+                  }}
+                  className="rounded-lg bg-sage-600 px-3 py-2 text-sm font-semibold text-white"
+                >
+                  Atualizar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toast.dismiss(t.id)}
+                  className="rounded-lg border border-neutral-200 px-3 py-2 text-sm font-semibold text-neutral-600"
+                >
+                  Depois
+                </button>
+              </div>
+            </div>
+          ), { duration: 10000 })
+        },
+        onOfflineReady() {
+          toast.success('UseCognia pronto para abrir mais rapido neste dispositivo.')
+        },
+      })
+    })
+  })
+}, { once: true })
 
 const queryClient = new QueryClient({
   defaultOptions: {
