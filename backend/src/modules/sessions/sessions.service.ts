@@ -55,7 +55,13 @@ export class SessionsService {
 
   // ─── API pública ─────────────────────────────────────────────────────────────
 
-  async findAll(psychologistId: string, patientId?: string, dateFrom?: string, dateTo?: string): Promise<Session[]> {
+  async findAll(
+    psychologistId: string,
+    patientId?: string,
+    dateFrom?: string,
+    dateTo?: string,
+    includeClinical = false,
+  ): Promise<Session[]> {
     const qb = this.repo.createQueryBuilder('s')
       .leftJoinAndSelect('s.patient', 'patient')
       .where('s.psychologistId = :psychologistId', { psychologistId })
@@ -65,8 +71,36 @@ export class SessionsService {
     if (dateFrom)  qb.andWhere('s.date >= :dateFrom', { dateFrom })
     if (dateTo)    qb.andWhere('s.date <= :dateTo', { dateTo })
 
-    const sessions = await qb.getMany()
-    return sessions.map(s => this.dec(s))
+    if (includeClinical) {
+      const sessions = await qb.getMany()
+      return sessions.map(s => this.dec(s))
+    }
+
+    // Listagens não precisam transferir/descriptografar prontuário nem dados privados do paciente.
+    qb.select([
+      's.id',
+      's.date',
+      's.duration',
+      's.appointmentId',
+      's.mood',
+      's.tags',
+      's.paymentStatus',
+      's.paymentId',
+      's.patientId',
+      's.psychologistId',
+      's.createdAt',
+      's.updatedAt',
+      'patient.id',
+      'patient.name',
+      'patient.avatarColor',
+    ]).addSelect('s.summary IS NOT NULL', 's_has_summary')
+
+    const { entities, raw } = await qb.getRawAndEntities()
+    return entities.map((session, index) => ({
+      ...session,
+      // A lista só informa a existência da evolução, nunca seu conteúdo clínico.
+      summary: raw[index]?.s_has_summary ? 'registered' : undefined,
+    } as Session))
   }
 
   async findOne(id: string, psychologistId: string): Promise<Session> {

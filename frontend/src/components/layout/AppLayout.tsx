@@ -1,18 +1,38 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link, Outlet } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import Sidebar from './Sidebar'
 import BottomNav from './BottomNav'
 import TopBar from './TopBar'
 import PWAInstallBanner from '@/components/ui/PWAInstallBanner'
-import OnboardingTour from '@/components/onboarding/OnboardingTour'
-import FirstSessionCelebration from '@/components/onboarding/FirstSessionCelebration'
 import { api, USE_MOCK, type AuthAxiosRequestConfig } from '@/lib/api'
 import { setNativeTokens } from '@/lib/nativeAuth'
 import { useAuthStore } from '@/store/auth'
 import { useSubscriptionStore } from '@/store/subscription'
 import { useFeedbackStatus } from '@/hooks/useApi'
-import TestimonialModal from '@/components/features/testimonial/TestimonialModal'
+
+const OnboardingTour = lazy(() => import('@/components/onboarding/OnboardingTour'))
+const FirstSessionCelebration = lazy(() => import('@/components/onboarding/FirstSessionCelebration'))
+const TestimonialModal = lazy(() => import('@/components/features/testimonial/TestimonialModal'))
+
+function useCoreRoutePreload() {
+  useEffect(() => {
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection
+    if (connection?.saveData) return
+
+    const timer = window.setTimeout(() => {
+      void Promise.allSettled([
+        import('@/pages/DashboardPage'),
+        import('@/pages/PatientsPage'),
+        import('@/pages/AgendaPage'),
+        import('@/pages/SessionsPage'),
+        import('@/pages/DocumentosPage'),
+      ])
+    }, 1200)
+
+    return () => window.clearTimeout(timer)
+  }, [])
+}
 
 function formatDate(date?: string | null) {
   if (!date) return '-'
@@ -202,6 +222,7 @@ export default function AppLayout() {
   const booting = useCsrfBoot()
   useSessionKeepAlive()
   useSubscriptionPolling()
+  useCoreRoutePreload()
   const testimonial = useTestimonialTrigger()
 
   if (booting) {
@@ -236,9 +257,11 @@ export default function AppLayout() {
 
       <BottomNav />
       <PWAInstallBanner />
-      <OnboardingTour />
-      <FirstSessionCelebration />
-      <TestimonialModal open={testimonial.open} onDone={testimonial.close} />
+      <Suspense fallback={null}>
+        <OnboardingTour />
+        <FirstSessionCelebration />
+        <TestimonialModal open={testimonial.open} onDone={testimonial.close} />
+      </Suspense>
     </div>
   )
 }

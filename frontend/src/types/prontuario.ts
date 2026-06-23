@@ -49,6 +49,8 @@ export interface Documento {
   createdAt: string
 }
 
+export type DocumentoListItem = Omit<Documento, 'content'>
+
 export const DOC_TYPE_LABELS: Record<DocType, string> = {
   declaracao:    'Declaração de Comparecimento',
   recibo:        'Recibo de Pagamento',

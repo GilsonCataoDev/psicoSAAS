@@ -31,7 +31,16 @@ export class SessionsController {
     @Query('patientId') patientId?: string,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
-  ) { return this.svc.findAll(req.user.id, patientId, dateFrom, dateTo) }
+    @Query('includeClinical') includeClinical?: string,
+  ) {
+    return this.svc.findAll(
+      req.user.id,
+      patientId,
+      dateFrom,
+      dateTo,
+      includeClinical === 'true',
+    )
+  }
   @Get('dashboard') dashboard(@Request() req: any) { return this.svc.getDashboard(req.user.id) }
   @Get(':id') findOne(@Param('id') id: string, @Request() req: any) { return this.svc.findOne(id, req.user.id) }
   @Post() create(@Body() dto: CreateSessionDto, @Request() req: any) { return this.svc.create(dto, req.user.id) }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FileText, NotebookPen, Plus, Search, Trash2, X } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
@@ -6,9 +6,10 @@ import { TagBadge, StatusBadge } from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { formatDateRelative } from '@/lib/utils'
-import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 import { useSessions, useDeleteSession } from '@/hooks/useApi'
 import toast from 'react-hot-toast'
+
+const NewSessionModal = lazy(() => import('@/components/features/sessions/NewSessionModal'))
 
 const MOODS = ['', '1', '2', '3', '4', '5']
 
@@ -165,7 +166,15 @@ export default function SessionsPage() {
         </div>
       )}
 
-      <NewSessionModal open={showModal} onClose={() => setShowModal(false)} />
+      <Suspense fallback={(
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/25 backdrop-blur-[1px]">
+          <div className="rounded-xl bg-white p-4 shadow-xl" role="status" aria-label="Carregando">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-sage-200 border-t-sage-600" />
+          </div>
+        </div>
+      )}>
+        {showModal && <NewSessionModal open onClose={() => setShowModal(false)} />}
+      </Suspense>
       <ConfirmDialog
         open={!!sessionToDelete}
         title="Excluir sessão"

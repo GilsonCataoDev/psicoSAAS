@@ -38,7 +38,13 @@ function makeQb(results: any[]) {
     where: jest.fn().mockReturnThis(),
     andWhere: jest.fn().mockReturnThis(),
     orderBy: jest.fn().mockReturnThis(),
+    select: jest.fn().mockReturnThis(),
+    addSelect: jest.fn().mockReturnThis(),
     getMany: jest.fn().mockResolvedValue(results),
+    getRawAndEntities: jest.fn().mockResolvedValue({
+      entities: results,
+      raw: results.map((session) => ({ s_has_summary: Boolean(session.summary) })),
+    }),
   }
   return qb
 }
@@ -82,7 +88,7 @@ describe('SessionsService', () => {
   })
 
   describe('findAll', () => {
-    it('retorna sessões descriptografadas sem filtros', async () => {
+    it('retorna listagem sem selecionar conteúdo clínico', async () => {
       const raw = makeSession()
       const qb = makeQb([raw])
       sessionRepo.createQueryBuilder.mockReturnValue(qb)
@@ -91,8 +97,21 @@ describe('SessionsService', () => {
 
       expect(sessionRepo.createQueryBuilder).toHaveBeenCalledWith('s')
       expect(qb.where).toHaveBeenCalledWith('s.psychologistId = :psychologistId', { psychologistId: PSY_ID })
+      expect(qb.select).toHaveBeenCalled()
+      expect(qb.getRawAndEntities).toHaveBeenCalled()
+      expect(qb.getMany).not.toHaveBeenCalled()
       expect(result).toHaveLength(1)
       expect(result[0].id).toBe('sess-1')
+    })
+
+    it('descriptografa conteúdo clínico apenas quando solicitado', async () => {
+      const qb = makeQb([makeSession()])
+      sessionRepo.createQueryBuilder.mockReturnValue(qb)
+
+      await service.findAll(PSY_ID, undefined, undefined, undefined, true)
+
+      expect(qb.getMany).toHaveBeenCalled()
+      expect(qb.getRawAndEntities).not.toHaveBeenCalled()
     })
 
     it('aplica filtro por patientId', async () => {

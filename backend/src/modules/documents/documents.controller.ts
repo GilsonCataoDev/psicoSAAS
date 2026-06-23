@@ -48,6 +48,13 @@ export class DocumentsController {
     return this.svc.findByUser(req.user.id)
   }
 
+  /** Carrega o conteúdo somente quando o profissional abre um documento. */
+  @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  findOne(@Param('id') id: string, @Req() req: any) {
+    return this.svc.findOneForUser(id, req.user.id)
+  }
+
   /** Excluir documento próprio */
   /** Gerar PDF do documento proprio, com QR e codigo de verificacao */
   @Get(':id/pdf')

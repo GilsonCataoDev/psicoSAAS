@@ -1,32 +1,44 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   FilePlus, Shield, Download, Eye, Search, ExternalLink, Trash2, Copy,
-  FileSignature,
+  FileSignature, LoaderCircle,
 } from 'lucide-react'
-import { Documento, DocType, DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '@/types/prontuario'
+import { Documento, DocumentoListItem, DocType, DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '@/types/prontuario'
 import { useAuthStore } from '@/store/auth'
 import { formatDate } from '@/lib/utils'
 import { openCfpVerification } from '@/lib/crp'
-import GenerateDocModal from '@/components/features/prontuario/GenerateDocModal'
 import { usePatients, useDocuments, useDeleteDocument } from '@/hooks/useApi'
-import DocumentPreviewModal from '@/components/features/prontuario/DocumentPreviewModal'
 import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
 import EmptyState from '@/components/ui/EmptyState'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
+const GenerateDocModal = lazy(() => import('@/components/features/prontuario/GenerateDocModal'))
+const DocumentPreviewModal = lazy(() => import('@/components/features/prontuario/DocumentPreviewModal'))
+
+function ModalLoadingOverlay() {
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/25 backdrop-blur-[1px]">
+      <div className="rounded-xl bg-white p-4 shadow-xl" role="status" aria-label="Carregando">
+        <LoaderCircle className="h-6 w-6 animate-spin text-sage-600" />
+      </div>
+    </div>
+  )
+}
+
 export default function DocumentosPage() {
   const [searchParams] = useSearchParams()
   const user = useAuthStore(s => s.user)
-  const { data: patients = [] } = usePatients()
+  const [showGenerate, setShowGenerate] = useState(false)
+  const { data: patients = [], isLoading: patientsLoading } = usePatients({ enabled: showGenerate })
   const { data: docs = [], isLoading } = useDocuments()
   const deleteDoc = useDeleteDocument()
-  const [showGenerate, setShowGenerate] = useState(false)
   const [generateType, setGenerateType] = useState<DocType | undefined>(undefined)
   const [preview, setPreview] = useState<Documento | null>(null)
-  const [docToDelete, setDocToDelete] = useState<Documento | null>(null)
+  const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null)
+  const [docToDelete, setDocToDelete] = useState<DocumentoListItem | null>(null)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<DocType | 'all'>('all')
 
@@ -49,7 +61,19 @@ export default function DocumentosPage() {
     setPreview(doc)
   }
 
-  async function downloadPdf(doc: Documento) {
+  async function openPreview(doc: DocumentoListItem) {
+    setPreviewLoadingId(doc.id)
+    try {
+      const { data } = await api.get<Documento>(`/documents/${doc.id}`)
+      setPreview(data)
+    } catch {
+      toast.error('Não foi possível abrir o documento.')
+    } finally {
+      setPreviewLoadingId(null)
+    }
+  }
+
+  async function downloadPdf(doc: DocumentoListItem) {
     try {
       const response = await api.get(`/documents/${doc.id}/pdf`, { responseType: 'blob' })
       const url = URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }))
@@ -68,7 +92,7 @@ export default function DocumentosPage() {
     }
   }
 
-  function copyDocLink(doc: Documento) {
+  function copyDocLink(doc: DocumentoListItem) {
     const base = import.meta.env.BASE_URL.replace(/\/$/, '')
     const url = `${window.location.origin}${base}/#/verificar/${encodeURIComponent(doc.signCode)}`
     navigator.clipboard.writeText(url).then(
@@ -188,7 +212,8 @@ export default function DocumentosPage() {
           </div>
         ) : filtered.map(doc => (
           <DocCard key={doc.id} doc={doc}
-            onPreview={() => setPreview(doc)}
+            previewLoading={previewLoadingId === doc.id}
+            onPreview={() => openPreview(doc)}
             onDownload={() => downloadPdf(doc)}
             onCopyLink={() => copyDocLink(doc)}
             onDelete={() => setDocToDelete(doc)}
@@ -196,20 +221,27 @@ export default function DocumentosPage() {
         ))}
       </div>
 
-      <GenerateDocModal
-        open={showGenerate}
-        onClose={() => setShowGenerate(false)}
-        onGenerate={handleGenerate}
-        patients={patients}
-        user={user}
-        initialType={generateType}
-      />
+      <Suspense fallback={<ModalLoadingOverlay />}>
+        {showGenerate && !patientsLoading && (
+          <GenerateDocModal
+            open
+            onClose={() => setShowGenerate(false)}
+            onGenerate={handleGenerate}
+            patients={patients}
+            user={user}
+            initialType={generateType}
+          />
+        )}
 
-      <DocumentPreviewModal
-        doc={preview}
-        open={!!preview}
-        onClose={() => setPreview(null)}
-      />
+        {preview && (
+          <DocumentPreviewModal
+            doc={preview}
+            open
+            onClose={() => setPreview(null)}
+          />
+        )}
+      </Suspense>
+      {showGenerate && patientsLoading && <ModalLoadingOverlay />}
 
       <ConfirmDialog
         open={!!docToDelete}
@@ -224,8 +256,9 @@ export default function DocumentosPage() {
   )
 }
 
-function DocCard({ doc, onPreview, onDownload, onCopyLink, onDelete }: {
-  doc: Documento
+function DocCard({ doc, previewLoading, onPreview, onDownload, onCopyLink, onDelete }: {
+  doc: DocumentoListItem
+  previewLoading: boolean
   onPreview: () => void
   onDownload: () => void
   onCopyLink: () => void
@@ -249,10 +282,12 @@ function DocCard({ doc, onPreview, onDownload, onCopyLink, onDelete }: {
         </div>
       </div>
       <div className="flex items-center gap-1 shrink-0">
-        <button onClick={onPreview}
+        <button onClick={onPreview} disabled={previewLoading}
           className="p-2 rounded-lg hover:bg-neutral-100 text-neutral-400 hover:text-sage-600 transition-colors"
           title="Visualizar">
-          <Eye className="w-4 h-4" />
+          {previewLoading
+            ? <LoaderCircle className="w-4 h-4 animate-spin" />
+            : <Eye className="w-4 h-4" />}
         </button>
         <button onClick={onCopyLink}
           className="p-2 rounded-lg hover:bg-neutral-100 text-neutral-400 hover:text-sage-600 transition-colors"

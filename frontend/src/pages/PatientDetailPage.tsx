@@ -41,7 +41,7 @@ const PRONTUARIO_FIELDS = [
 export default function PatientDetailPage() {
   const { id } = useParams()
   const { data: patient, isLoading } = usePatient(id ?? '')
-  const { data: allSessions = [] } = useSessions({ patientId: id })
+  const { data: allSessions = [] } = useSessions({ patientId: id, includeClinical: true })
   const { data: financialRecords = [], isLoading: loadingFinancial } = useFinancial({ patientId: id })
   const markPaid = useMarkFinancialPaid()
   const sendCharge = useSendCharge()

@@ -83,11 +83,15 @@ export class BookingService {
     const secret = this.config.get<string>('SIGN_SECRET') ?? 'fallback-secret'
     const today = saoPauloDateKey()
 
-    // Carrega apenas páginas ativas com relations — sem SQL raw
-    const pages = await this.pages.find({
-      where: { isActive: true },
-      relations: ['psychologist'],
-    })
+    // Filtra no banco pelo prefixo embutido no token; evita carregar todas as páginas ativas.
+    const pages = await this.pages.createQueryBuilder('page')
+      .leftJoinAndSelect('page.psychologist', 'psychologist')
+      .where('page.isActive = true')
+      .andWhere(
+        `LEFT(REPLACE("page"."psychologistId"::text, '-', ''), 8) = :userPrefix`,
+        { userPrefix },
+      )
+      .getMany()
 
     for (const page of pages) {
       // Compara prefixo do userId (8 primeiros hex chars sem dashes)

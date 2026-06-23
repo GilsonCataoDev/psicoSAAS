@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, type AuthAxiosRequestConfig } from '@/lib/api'
 import { Patient, Appointment, Session, FinancialRecord } from '@/types'
-import { Documento } from '@/types/prontuario'
+import { DocumentoListItem } from '@/types/prontuario'
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 
@@ -20,10 +20,11 @@ export function useResetPassword() {
 
 // ── Patients ──────────────────────────────────────────────────────────────────
 
-export function usePatients() {
+export function usePatients(options?: { enabled?: boolean }) {
   return useQuery<Patient[]>({
     queryKey: ['patients'],
     queryFn: () => api.get('/patients').then(r => r.data),
+    enabled: options?.enabled ?? true,
   })
 }
 
@@ -144,7 +145,13 @@ export function useDeleteAppointmentGroup() {
 
 // ── Sessions ──────────────────────────────────────────────────────────────────
 
-export function useSessions(params?: { patientId?: string; dateFrom?: string; dateTo?: string; search?: string }) {
+export function useSessions(params?: {
+  patientId?: string
+  dateFrom?: string
+  dateTo?: string
+  search?: string
+  includeClinical?: boolean
+}) {
   const { search, ...apiParams } = params ?? {}
   return useQuery<Session[]>({
     queryKey: ['sessions', params],
@@ -438,14 +445,14 @@ export function usePublicBookingSlots(slug: string, date: string | null, modalit
   })
 }
 
-export function usePublicBookingDates(slug: string, month: string, modality?: string | null) {
+export function usePublicBookingDates(slug: string, month: string, modality?: string | null, enabled = true) {
   return useQuery<string[]>({
     queryKey: ['public-booking-dates', slug, month, modality],
     queryFn: () => api.get(`/public/booking/${slug}/dates`, {
       params: { month, modality },
       skipAuthRedirect: true,
     } as AuthAxiosRequestConfig).then(r => r.data),
-    enabled: !!slug && !!month && !!modality,
+    enabled: enabled && !!slug && !!month && !!modality,
   })
 }
 
@@ -767,7 +774,7 @@ export function useDeleteFinancial() {
 // ── Documents ─────────────────────────────────────────────────────────────────
 
 export function useDocuments() {
-  return useQuery<Documento[]>({
+  return useQuery<DocumentoListItem[]>({
     queryKey: ['documents'],
     queryFn: () => api.get('/documents').then(r => r.data),
   })

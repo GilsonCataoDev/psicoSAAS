@@ -65,7 +65,12 @@ export default function BookingPage() {
   })
   const selectedModality = watch('modality')
   const monthKey = format(month, 'yyyy-MM')
-  const { data: availableDates = [], isFetching: datesLoading } = usePublicBookingDates(slug ?? '', monthKey, selectedModality)
+  const { data: availableDates = [], isFetching: datesLoading } = usePublicBookingDates(
+    slug ?? '',
+    monthKey,
+    selectedModality,
+    step !== 'landing',
+  )
   const { data: slots = [], isFetching: slotsLoading } = usePublicBookingSlots(slug ?? '', selectedDate, selectedModality)
   const createBooking = useCreateBooking(slug ?? '')
 

@@ -54,7 +54,7 @@ const FIELD = ({
 export default function ProntuarioPage() {
   const { id } = useParams()
   const { data: patient } = usePatient(id ?? '')
-  const { data: sessions = [] } = useSessions({ patientId: id })
+  const { data: sessions = [] } = useSessions({ patientId: id, includeClinical: true })
   const createSession = useCreateSession()
   const updateSession = useUpdateSession()
   const updatePatient = useUpdatePatient()

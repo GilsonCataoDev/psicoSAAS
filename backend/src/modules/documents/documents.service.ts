@@ -178,11 +178,32 @@ export class DocumentsService {
 
   // ─── Listar documentos do psicólogo ──────────────────────────────────────
 
-  async findByUser(userId: string, type?: DocType): Promise<Document[]> {
+  async findByUser(userId: string, type?: DocType): Promise<Partial<Document>[]> {
     const where: any = { userId }
     if (type) where.type = type
-    const docs = await this.repo.find({ where, order: { createdAt: 'DESC' } })
-    return docs.map((doc) => this.exposeDocument(doc))
+    return this.repo.find({
+      where,
+      order: { createdAt: 'DESC' },
+      // Conteúdo criptografado, hash e IP não pertencem à listagem.
+      select: [
+        'id',
+        'patientId',
+        'patientName',
+        'type',
+        'title',
+        'signCode',
+        'signedAt',
+        'psychologistName',
+        'psychologistCrp',
+        'createdAt',
+      ],
+    })
+  }
+
+  async findOneForUser(id: string, userId: string): Promise<Document> {
+    const doc = await this.repo.findOne({ where: { id, userId } })
+    if (!doc) throw new NotFoundException()
+    return this.exposeDocument(doc)
   }
 
   async generatePdf(id: string, userId: string): Promise<{ filename: string; buffer: Buffer }> {

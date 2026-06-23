@@ -14,6 +14,7 @@ import { Logger, ValidationPipe } from '@nestjs/common'
 import { AppModule } from './app.module'
 import helmet from 'helmet'
 import * as cookieParser from 'cookie-parser'
+import compression from 'compression'
 
 async function bootstrap() {
   // ── Validação de variáveis críticas na inicialização ───────────────────────
@@ -63,6 +64,7 @@ async function bootstrap() {
 
   // ── Cookie parser (JWT em HttpOnly cookies) ─────────────────────────────────
   app.use(cookieParser())
+  app.use(compression({ threshold: 1024 }))
 
   // ── CORS: whitelist explícita ───────────────────────────────────────────────
   const normalizeOrigin = (origin: string) => origin.trim().replace(/\/+$/, '')
