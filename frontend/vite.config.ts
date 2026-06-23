@@ -43,7 +43,8 @@ export default defineConfig({
       workbox: {
         // O app depende da API para operar; precacheia apenas o shell e deixa telas pesadas sob demanda.
         globPatterns: [
-          '**/*.{css,html,svg,png,ico,woff2}',
+          // index.html deve sempre vir da rede para não apontar para chunks removidos após deploy.
+          '**/*.{css,svg,png,ico,woff2}',
           'assets/index-*.js',
           'assets/react-vendor-*.js',
           'assets/query-vendor-*.js',
@@ -59,6 +60,7 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,
+        navigateFallback: null,
         importScripts: [`${BASE_PATH}push-sw.js`],
         runtimeCaching: [
           {

@@ -10,6 +10,36 @@ import { readPersistedStorage } from '@/lib/storageMigration'
 import { applyTheme, ThemeMode } from '@/store/theme'
 import './index.css'
 
+const CHUNK_RECOVERY_KEY = 'usecognia.chunk-recovery-at'
+
+function isStaleChunkError(reason: unknown): boolean {
+  const message = reason instanceof Error ? reason.message : String(reason ?? '')
+  return [
+    'Failed to fetch dynamically imported module',
+    'Importing a module script failed',
+    'Loading chunk',
+  ].some(fragment => message.includes(fragment))
+}
+
+async function recoverFromStaleChunk() {
+  const lastRecovery = Number(sessionStorage.getItem(CHUNK_RECOVERY_KEY) ?? 0)
+  if (Date.now() - lastRecovery < 30_000) return
+  sessionStorage.setItem(CHUNK_RECOVERY_KEY, String(Date.now()))
+
+  try {
+    const registration = await navigator.serviceWorker?.getRegistration()
+    await registration?.update()
+    await new Promise(resolve => window.setTimeout(resolve, 500))
+  } finally {
+    window.location.reload()
+  }
+}
+
+window.addEventListener('vite:preloadError', (event) => {
+  event.preventDefault()
+  void recoverFromStaleChunk()
+})
+
 if (
   window.location.protocol === 'http:' &&
   ['usecognia.com.br', 'www.usecognia.com.br'].includes(window.location.hostname)
@@ -19,6 +49,11 @@ if (
 
 // Silencia rejeições não tratadas do registro do SW (ex: erro de cert SSL temporário no GitHub Pages)
 window.addEventListener('unhandledrejection', (e) => {
+  if (isStaleChunkError(e.reason)) {
+    e.preventDefault()
+    void recoverFromStaleChunk()
+    return
+  }
   if (e.reason instanceof Error && e.reason.name === 'SecurityError' && e.reason.message.includes('ServiceWorker')) {
     e.preventDefault()
   }
@@ -57,10 +92,11 @@ function runWhenIdle(callback: () => void) {
 }
 
 window.addEventListener('load', () => {
-  runWhenIdle(() => {
-    initAnalytics()
-    void import('virtual:pwa-register').then(({ registerSW }) => {
+  window.setTimeout(() => sessionStorage.removeItem(CHUNK_RECOVERY_KEY), 10_000)
+  runWhenIdle(initAnalytics)
+  void import('virtual:pwa-register').then(({ registerSW }) => {
       const updateServiceWorker = registerSW({
+        immediate: true,
         onNeedRefresh() {
           toast((t) => (
             <div className="flex max-w-sm flex-col gap-3">
@@ -95,7 +131,6 @@ window.addEventListener('load', () => {
         },
       })
     })
-  })
 }, { once: true })
 
 const queryClient = new QueryClient({
