@@ -14,7 +14,7 @@ import { Logger, ValidationPipe } from '@nestjs/common'
 import { AppModule } from './app.module'
 import helmet from 'helmet'
 import * as cookieParser from 'cookie-parser'
-import compression from 'compression'
+import compression = require('compression')
 
 async function bootstrap() {
   // ── Validação de variáveis críticas na inicialização ───────────────────────
