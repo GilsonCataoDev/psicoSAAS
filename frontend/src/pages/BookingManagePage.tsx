@@ -54,9 +54,8 @@ export default function BookingManagePage() {
     syncAppointments.mutate()
   }, [])
 
-  const appBasePath = import.meta.env.BASE_URL || '/'
-  const publicBaseUrl = new URL(appBasePath, window.location.origin).toString().replace(/\/$/, '')
-  const bookingUrl = dailyLink?.token ? `${publicBaseUrl}/agendar/${dailyLink.token}` : dailyLink?.url ?? '...'
+  const appBaseUrl = new URL(import.meta.env.BASE_URL || '/', window.location.origin).toString()
+  const bookingUrl = dailyLink?.token ? `${appBaseUrl}#/agendar/${dailyLink.token}` : dailyLink?.url ?? '...'
 
   async function copyLink() {
     try {

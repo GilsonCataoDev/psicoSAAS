@@ -501,10 +501,11 @@ export class BookingService {
   getDailyLink(psychologistId: string, baseUrl: string) {
     const token = this.generateDailyToken(psychologistId)
     const tomorrow = nextSaoPauloMidnight()
+    const normalizedBaseUrl = baseUrl.replace(/\/+$/, '')
 
     return {
       token,
-      url: `${baseUrl}/agendar/${token}`,
+      url: `${normalizedBaseUrl}/#/agendar/${token}`,
       expiresAt: tomorrow.toISOString(),
     }
   }

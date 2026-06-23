@@ -33,6 +33,21 @@ const persistedTheme = (() => {
   }
 })()
 
+function restoreLegacyPublicRoute() {
+  if (window.location.hash) return
+
+  const basePath = (import.meta.env.BASE_URL || '/').replace(/\/$/, '')
+  const relativePath = basePath && window.location.pathname.startsWith(basePath)
+    ? window.location.pathname.slice(basePath.length)
+    : window.location.pathname
+
+  if (!/^\/(agendar|c|verificar|instrumentos\/responder)\//.test(relativePath)) return
+
+  const appPath = `${basePath || ''}/#${relativePath}${window.location.search}`
+  window.history.replaceState(null, '', appPath)
+}
+
+restoreLegacyPublicRoute()
 applyTheme(persistedTheme ?? 'system')
 
 function runWhenIdle(callback: () => void) {
