@@ -7,10 +7,11 @@ import { EmailLog } from '../email/entities/email-log.entity'
 import { BillingModule } from '../billing/billing.module'
 import { AdminService } from './admin.service'
 import { AdminController } from './admin.controller'
+import { InternalCleanupController } from './internal-cleanup.controller'
 
 @Module({
   imports: [TypeOrmModule.forFeature([User, Subscription, WebhookEvent, EmailLog]), BillingModule],
-  controllers: [AdminController],
+  controllers: [AdminController, InternalCleanupController],
   providers: [AdminService],
 })
 export class AdminModule {}

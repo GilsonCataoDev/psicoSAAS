@@ -89,13 +89,22 @@ export async function cleanupAccount(email: string) {
   const api = await request.newContext({ baseURL: apiBaseUrl })
   try {
     const login = await api.post('/auth/login', { data: { email, password: testPassword } })
-    if (!login.ok()) return
+    if (!login.ok()) {
+      console.warn(`[cleanup] login falhou para ${email}: HTTP ${login.status()} — globalTeardown irá limpar`)
+      return
+    }
     const { csrfToken } = await login.json()
-    if (!csrfToken) return
-    await api.delete('/auth/account', {
+    if (!csrfToken) {
+      console.warn(`[cleanup] csrfToken ausente para ${email} — globalTeardown irá limpar`)
+      return
+    }
+    const del = await api.delete('/auth/account', {
       headers: { 'X-CSRF-Token': csrfToken },
       data: { password: testPassword, confirmation: 'EXCLUIR' },
     })
+    if (!del.ok()) {
+      console.warn(`[cleanup] DELETE /auth/account falhou para ${email}: HTTP ${del.status()} ${await del.text()}`)
+    }
   } finally {
     await api.dispose()
   }
