@@ -4,6 +4,7 @@ import { HashRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
 import toast from 'react-hot-toast'
+import { inject } from '@vercel/analytics'
 import App from './App'
 import { initAnalytics } from '@/lib/analytics'
 import { readPersistedStorage } from '@/lib/storageMigration'
@@ -94,6 +95,7 @@ function runWhenIdle(callback: () => void) {
 window.addEventListener('load', () => {
   window.setTimeout(() => sessionStorage.removeItem(CHUNK_RECOVERY_KEY), 10_000)
   runWhenIdle(initAnalytics)
+  inject()
   void import('virtual:pwa-register').then(({ registerSW }) => {
       const updateServiceWorker = registerSW({
         immediate: true,
