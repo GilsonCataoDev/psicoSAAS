@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Activity,
@@ -657,9 +657,8 @@ function HealthScoresTab() {
                 {sorted.map(u => {
                   const expanded = expandedId === u.id
                   return (
-                    <>
+                    <Fragment key={u.id}>
                       <tr
-                        key={u.id}
                         className="hover:bg-neutral-50/60 cursor-pointer"
                         onClick={() => setExpandedId(expanded ? null : u.id)}
                       >
@@ -718,7 +717,7 @@ function HealthScoresTab() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   )
                 })}
                 {sorted.length === 0 && (
