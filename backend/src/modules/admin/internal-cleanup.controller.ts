@@ -20,14 +20,14 @@ export class InternalCleanupController {
     if (!expected) throw new BadRequestException('INTERNAL_CLEANUP_SECRET não configurado')
     if (secret !== expected) throw new ForbiddenException('Secret inválido')
 
-    const { rows: targets } = await this.ds.query<{ id: string; email: string }[]>(
+    const targets: { id: string; email: string }[] = await this.ds.query(
       `SELECT id, email FROM users WHERE email LIKE '%@example.com' AND "createdAt" < NOW() - INTERVAL '1 hour'`,
     )
     if (targets.length === 0) return { deleted: 0 }
 
     const ids = targets.map(t => t.id)
 
-    const { rows: fks } = await this.ds.query<{ table_name: string; column_name: string }[]>(`
+    const fks: { table_name: string; column_name: string }[] = await this.ds.query(`
       SELECT tc.table_name, kcu.column_name
       FROM information_schema.table_constraints tc
       JOIN information_schema.key_column_usage kcu
