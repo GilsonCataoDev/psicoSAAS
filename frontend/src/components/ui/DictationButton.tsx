@@ -76,15 +76,21 @@ export default function DictationButton({ value, onChange, className }: Dictatio
       recognition.interimResults = true
       recognition.onresult = event => {
         let finalText = ''
-        for (let index = 0; index < event.results.length; index++) {
+        for (let index = event.resultIndex; index < event.results.length; index++) {
           const result = event.results[index]
           if (result.isFinal) finalText += result[0].transcript
         }
         if (finalText.trim()) onChange(appendTranscript(valueRef.current, finalText))
       }
-      recognition.onerror = () => {
+      recognition.onerror = (e: any) => {
         setState('idle')
-        toast.error('Não foi possível usar o ditado. Verifique a permissão do microfone.')
+        if (e?.error === 'not-allowed') {
+          toast.error('Permissão do microfone negada. Habilite nas configurações do navegador.')
+        } else if (e?.error === 'network') {
+          toast.error('Ditado indisponível: sem conexão com o serviço de voz.')
+        } else {
+          toast.error('Não foi possível usar o ditado. Verifique a permissão do microfone.')
+        }
       }
       recognition.onend = () => setState('idle')
       recognition.start()
