@@ -53,6 +53,29 @@ export default function TestimonialModal({ open, onDone }: Props) {
       ) : (
         <div className="space-y-5">
           <div>
+            <p className="text-sm font-medium text-neutral-700 mb-2">Sua nota (obrigatório)</p>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map(n => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setRating(n)}
+                  onMouseEnter={() => setHover(n)}
+                  onMouseLeave={() => setHover(0)}
+                  className="p-1 transition-transform hover:scale-110"
+                  aria-label={`${n} estrela${n !== 1 ? 's' : ''}`}
+                >
+                  <Star
+                    className="w-7 h-7 transition-colors"
+                    fill={(hover || rating) >= n ? '#F59E0B' : 'transparent'}
+                    stroke={(hover || rating) >= n ? '#F59E0B' : '#D1D5DB'}
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
             <p className="text-sm font-medium text-neutral-700 mb-2">
               Como a UseCognia ajudou sua rotina?
             </p>
@@ -81,29 +104,6 @@ export default function TestimonialModal({ open, onDone }: Props) {
               Autorizo a publicação deste texto nos canais do UseCognia. A autorização é opcional e não inclui dados clínicos.
             </span>
           </label>
-
-          <div>
-            <p className="text-sm font-medium text-neutral-700 mb-2">Sua nota (obrigatório)</p>
-            <div className="flex gap-1">
-              {[1, 2, 3, 4, 5].map(n => (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => setRating(n)}
-                  onMouseEnter={() => setHover(n)}
-                  onMouseLeave={() => setHover(0)}
-                  className="p-1 transition-transform hover:scale-110"
-                  aria-label={`${n} estrela${n !== 1 ? 's' : ''}`}
-                >
-                  <Star
-                    className="w-7 h-7 transition-colors"
-                    fill={(hover || rating) >= n ? '#F59E0B' : 'transparent'}
-                    stroke={(hover || rating) >= n ? '#F59E0B' : '#D1D5DB'}
-                  />
-                </button>
-              ))}
-            </div>
-          </div>
 
           <div className="flex gap-2 justify-end pt-1">
             <button

@@ -1,10 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { InjectDataSource } from '@nestjs/typeorm'
+import { DataSource, Repository } from 'typeorm'
 import { Testimonial } from './entities/testimonial.entity'
-import { User } from '../auth/entities/user.entity'
-import { Patient } from '../patients/entities/patient.entity'
-import { Session } from '../sessions/entities/session.entity'
 import { CreateTestimonialDto } from './dto/create-testimonial.dto'
 
 const DAYS_THRESHOLD = 30
@@ -13,30 +11,33 @@ const SESSIONS_THRESHOLD = 20
 
 @Injectable()
 export class TestimonialService {
+  private readonly logger = new Logger(TestimonialService.name)
+
   constructor(
     @InjectRepository(Testimonial) private readonly repo: Repository<Testimonial>,
-    @InjectRepository(User)        private readonly users: Repository<User>,
-    @InjectRepository(Patient)     private readonly patients: Repository<Patient>,
-    @InjectRepository(Session)     private readonly sessions: Repository<Session>,
+    @InjectDataSource() private readonly dataSource: DataSource,
   ) {}
 
   async getStatus(userId: string): Promise<{ shouldShow: boolean }> {
-    const existing = await this.repo.findOne({ where: { userId } })
-    if (existing) return { shouldShow: false }
+    type Row = { hasRecord: boolean; daysSince: number; patients: number; sessions: number }
+    const [row] = await this.dataSource.query<Row[]>(`
+      SELECT
+        EXISTS(SELECT 1 FROM testimonials WHERE "userId" = $1)::bool           AS "hasRecord",
+        FLOOR(EXTRACT(EPOCH FROM (NOW() - u."createdAt")) / 86400)::int        AS "daysSince",
+        (SELECT COUNT(*)::int FROM patients  WHERE "psychologistId" = $1)      AS patients,
+        (SELECT COUNT(*)::int FROM sessions  WHERE "psychologistId" = $1)      AS sessions
+      FROM users u
+      WHERE u.id = $1
+    `, [userId])
 
-    const user = await this.users.findOne({ where: { id: userId }, select: ['createdAt'] })
-    if (!user) return { shouldShow: false }
+    if (!row || row.hasRecord) return { shouldShow: false }
 
-    const daysSinceRegistration = Math.floor((Date.now() - user.createdAt.getTime()) / 86_400_000)
-    if (daysSinceRegistration >= DAYS_THRESHOLD) return { shouldShow: true }
-
-    const patientCount = await this.patients.count({ where: { psychologistId: userId } })
-    if (patientCount >= PATIENTS_THRESHOLD) return { shouldShow: true }
-
-    const sessionCount = await this.sessions.count({ where: { psychologistId: userId } })
-    if (sessionCount >= SESSIONS_THRESHOLD) return { shouldShow: true }
-
-    return { shouldShow: false }
+    return {
+      shouldShow:
+        Number(row.daysSince) >= DAYS_THRESHOLD ||
+        Number(row.patients)  >= PATIENTS_THRESHOLD ||
+        Number(row.sessions)  >= SESSIONS_THRESHOLD,
+    }
   }
 
   async create(userId: string, dto: CreateTestimonialDto): Promise<void> {
@@ -66,11 +67,28 @@ export class TestimonialService {
     }
   }
 
-  async listAdmin(): Promise<Testimonial[]> {
-    return this.repo.find({
-      where: { dismissed: false },
-      order: { createdAt: 'DESC' },
-    })
+  async listAdmin() {
+    type Row = {
+      id: string; userId: string; userName: string; userEmail: string
+      rating: number | null; text: string | null
+      approvedForPublic: boolean; publicConsent: boolean; createdAt: string
+    }
+    return this.dataSource.query<Row[]>(`
+      SELECT
+        t.id,
+        t."userId",
+        u.name      AS "userName",
+        u.email     AS "userEmail",
+        t.rating,
+        t.text,
+        t."approvedForPublic",
+        t."publicConsent",
+        t."createdAt"
+      FROM testimonials t
+      JOIN users u ON u.id = t."userId"
+      WHERE t.dismissed = false
+      ORDER BY t."createdAt" DESC
+    `)
   }
 
   async setApproved(id: string, approvedForPublic: boolean): Promise<void> {
@@ -82,5 +100,6 @@ export class TestimonialService {
 
     testimonial.approvedForPublic = approvedForPublic
     await this.repo.save(testimonial)
+    this.logger.log(`testimonial:${id} ${approvedForPublic ? 'aprovado' : 'reprovado'} para exibição pública`)
   }
 }

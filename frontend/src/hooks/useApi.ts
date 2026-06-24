@@ -669,10 +669,17 @@ export interface HealthScore {
   tier: 'healthy' | 'attention' | 'risk'
 }
 
+export interface HealthScoresResponse {
+  data: HealthScore[]
+  total: number
+  generatedAt: string
+}
+
 export function useAdminHealthScores() {
-  return useQuery<HealthScore[]>({
+  return useQuery<HealthScoresResponse>({
     queryKey: ['admin', 'health-scores'],
     queryFn: () => api.get('/admin/health-scores').then(r => r.data),
+    refetchInterval: 5 * 60 * 1000,
   })
 }
 
@@ -707,6 +714,8 @@ export function useDismissTestimonial() {
 export interface AdminTestimonial {
   id: string
   userId: string
+  userName: string
+  userEmail: string
   rating: number | null
   text: string | null
   approvedForPublic: boolean

@@ -32,8 +32,9 @@ function TestimonialRow({ item }: { item: AdminTestimonial }) {
       <td className="px-4 py-3 text-sm text-neutral-700 max-w-xs">
         <p className="line-clamp-3">{item.text ?? <span className="text-neutral-400 italic">Sem texto</span>}</p>
       </td>
-      <td className="px-4 py-3 text-xs text-neutral-400 font-mono">
-        {item.userId.slice(0, 8)}…
+      <td className="px-4 py-3">
+        <p className="text-sm font-medium text-neutral-700 truncate max-w-[160px]">{item.userName}</p>
+        <p className="text-xs text-neutral-400 truncate max-w-[160px]">{item.userEmail}</p>
       </td>
       <td className="px-4 py-3">
         <button
@@ -88,7 +89,7 @@ export default function TestimonialsPage() {
                   <th className="px-4 py-3">Data</th>
                   <th className="px-4 py-3">Nota</th>
                   <th className="px-4 py-3">Texto</th>
-                  <th className="px-4 py-3">User ID</th>
+                  <th className="px-4 py-3">Psicólogo</th>
                   <th className="px-4 py-3">Ação</th>
                 </tr>
               </thead>

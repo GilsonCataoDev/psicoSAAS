@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common'
+import { Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { InjectRepository } from '@nestjs/typeorm'
 import { DataSource, MoreThan, Repository } from 'typeorm'
@@ -12,6 +12,8 @@ import { ListAdminUsersDto } from './dto/list-admin-users.dto'
 
 @Injectable()
 export class AdminService {
+  private readonly logger = new Logger(AdminService.name)
+
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
     @InjectRepository(Subscription) private readonly subs: Repository<Subscription>,
@@ -115,7 +117,9 @@ export class AdminService {
       sub.currentPeriodEnd = new Date()
     }
 
-    return this.subs.save(sub)
+    const saved = await this.subs.save(sub)
+    this.logger.log(`subscription:override userId=${userId} plan=${dto.plan ?? '—'} status=${dto.status ?? '—'}`)
+    return saved
   }
 
   async getMonitor() {
@@ -279,9 +283,10 @@ export class AdminService {
       ) sub ON TRUE
       WHERE u."isActive" = true
       ORDER BY u."lastActiveAt" DESC NULLS LAST
+      LIMIT 200
     `)
 
-    return rows.map(r => {
+    const data = rows.map(r => {
       const { rawScore, score } = this.computeScore(r)
       return {
         id: r.id,
@@ -297,9 +302,11 @@ export class AdminService {
         hasAiUsageLast30d: r.hasAiUsageLast30d,
         rawScore,
         score,
-        tier: score >= 80 ? 'healthy' : score >= 50 ? 'attention' : 'risk',
+        tier: score >= 80 ? 'healthy' : score >= 50 ? 'attention' : 'risk' as 'healthy' | 'attention' | 'risk',
       }
     })
+
+    return { data, total: data.length, generatedAt: new Date().toISOString() }
   }
 
   private computeScore(r: {

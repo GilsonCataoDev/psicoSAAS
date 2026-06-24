@@ -5,6 +5,8 @@ import {
   AlertCircle,
   ArrowDownUp,
   Bell,
+  ChevronDown,
+  ChevronRight,
   CreditCard,
   Database,
   Mail,
@@ -17,6 +19,8 @@ import {
   X,
 } from 'lucide-react'
 import { useAdminStats, useAdminUsers, useAdminOverrideSubscription, useAdminMonitor, useAdminHealthScores, AdminUser, HealthScore } from '@/hooks/useApi'
+
+const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
 
 const STATUS_LABEL: Record<string, string> = {
   active: 'Ativo',
@@ -495,14 +499,57 @@ function ScoreBar({ score, tier }: { score: number; tier: HealthScore['tier'] })
   )
 }
 
-function HealthScoresTab() {
-  const { data = [], isLoading } = useAdminHealthScores()
-  const [sortAsc, setSortAsc] = useState(false)
+function computeFactors(u: HealthScore) {
+  const daysSince = u.lastActiveAt
+    ? Math.floor((Date.now() - new Date(u.lastActiveAt).getTime()) / 86_400_000)
+    : 9999
+  const recencyPts = daysSince <= 7 ? 40 : daysSince <= 14 ? 28 : daysSince <= 30 ? 15 : daysSince <= 60 ? 5 : 0
+  const patientPts = u.patientCount >= 5 ? 15 : u.patientCount >= 3 ? 10 : u.patientCount >= 1 ? 5 : 0
+  const sessionPts = u.sessionsLast30d >= 10 ? 25 : u.sessionsLast30d >= 4 ? 17 : u.sessionsLast30d >= 1 ? 8 : 0
+  const financialPts = u.hasFinancialLast30d ? 10 : 0
+  const aiPts = u.plan === 'pro' && u.hasAiUsageLast30d ? 10 : 0
+  return [
+    { label: 'Recência de login', pts: recencyPts, max: 40 },
+    { label: 'Pacientes cadastrados', pts: patientPts, max: 15 },
+    { label: 'Sessões (últimos 30d)', pts: sessionPts, max: 25 },
+    { label: 'Financeiro ativo', pts: financialPts, max: 10 },
+    { label: 'Uso de IA (Pro)', pts: aiPts, max: u.plan === 'pro' ? 10 : 0 },
+  ]
+}
 
-  const sorted = [...data].sort((a, b) => sortAsc ? a.score - b.score : b.score - a.score)
+function healthScoreToAdminUser(h: HealthScore): AdminUser {
+  return {
+    id: h.id, name: h.name, email: h.email, crp: '', specialty: '',
+    isActive: true, emailVerified: true, createdAt: h.createdAt,
+    subscription: h.plan ? {
+      id: '', plan: h.plan, status: h.subscriptionStatus ?? 'none',
+      trialEndsAt: null, cancelAtPeriodEnd: false, hasUsedTrial: false,
+    } : null,
+  }
+}
+
+function HealthScoresTab() {
+  const { data: response, isLoading } = useAdminHealthScores()
+  const [sortAsc, setSortAsc] = useState(false)
+  const [search, setSearch] = useState('')
+  const [tierFilter, setTierFilter] = useState<HealthScore['tier'] | ''>('')
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [overrideUser, setOverrideUser] = useState<AdminUser | null>(null)
+
+  const allData = response?.data ?? []
+
+  const filtered = allData.filter(u => {
+    if (tierFilter && u.tier !== tierFilter) return false
+    if (search) {
+      const q = search.toLowerCase()
+      if (!u.name.toLowerCase().includes(q) && !u.email.toLowerCase().includes(q)) return false
+    }
+    return true
+  })
+  const sorted = [...filtered].sort((a, b) => sortAsc ? a.score - b.score : b.score - a.score)
 
   const counts = { healthy: 0, attention: 0, risk: 0 }
-  for (const u of data) counts[u.tier]++
+  for (const u of allData) counts[u.tier]++
 
   function relativeDate(iso: string | null) {
     if (!iso) return '—'
@@ -514,21 +561,65 @@ function HealthScoresTab() {
 
   return (
     <div className="space-y-4">
-      {/* Resumo por tier */}
+      {/* Resumo por tier — clicável para filtrar */}
       <div className="grid grid-cols-3 gap-3">
         {(['healthy', 'attention', 'risk'] as const).map(t => (
-          <div key={t} className={`rounded-2xl border p-4 ${
-            t === 'healthy' ? 'border-emerald-100 bg-emerald-50' :
-            t === 'attention' ? 'border-yellow-100 bg-yellow-50' :
-            'border-rose-100 bg-rose-50'
-          }`}>
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTierFilter(tierFilter === t ? '' : t)}
+            className={`rounded-2xl border p-4 text-left transition-opacity ${
+              tierFilter && tierFilter !== t ? 'opacity-40' : ''
+            } ${
+              t === 'healthy' ? 'border-emerald-100 bg-emerald-50' :
+              t === 'attention' ? 'border-yellow-100 bg-yellow-50' :
+              'border-rose-100 bg-rose-50'
+            }`}
+          >
             <p className={`text-2xl font-bold ${
               t === 'healthy' ? 'text-emerald-700' :
               t === 'attention' ? 'text-yellow-700' : 'text-rose-700'
             }`}>{counts[t]}</p>
             <p className="text-xs font-medium text-neutral-500 mt-0.5">{TIER_LABEL[t]}</p>
-          </div>
+          </button>
         ))}
+      </div>
+
+      {/* Filtros + timestamp */}
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="relative flex-1 min-w-[180px]">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Buscar por nome ou e-mail"
+            className="h-9 w-full rounded-xl border border-neutral-200 pl-9 pr-3 text-sm outline-none focus:border-sage-400"
+          />
+        </label>
+        <select
+          value={tierFilter}
+          onChange={e => setTierFilter(e.target.value as HealthScore['tier'] | '')}
+          className="h-9 rounded-xl border border-neutral-200 px-3 text-sm text-neutral-600 outline-none focus:border-sage-400"
+        >
+          <option value="">Todos os tiers</option>
+          <option value="healthy">Saudável</option>
+          <option value="attention">Atenção</option>
+          <option value="risk">Risco</option>
+        </select>
+        {(search || tierFilter) && (
+          <button
+            type="button"
+            onClick={() => { setSearch(''); setTierFilter('') }}
+            className="h-9 inline-flex items-center gap-1 rounded-xl border border-neutral-200 px-3 text-sm text-neutral-500 hover:bg-neutral-50"
+          >
+            <X className="h-3.5 w-3.5" /> Limpar
+          </button>
+        )}
+        {response?.generatedAt && (
+          <span className="ml-auto text-[11px] text-neutral-400 whitespace-nowrap">
+            Calculado às {new Date(response.generatedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        )}
       </div>
 
       {/* Tabela */}
@@ -539,9 +630,10 @@ function HealthScoresTab() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-[700px] w-full text-sm">
+            <table className="min-w-[760px] w-full text-sm">
               <thead>
                 <tr className="border-b border-neutral-100 text-left text-xs font-semibold uppercase tracking-wide text-neutral-400">
+                  <th className="px-4 py-3 w-6"></th>
                   <th className="px-4 py-3">Usuário</th>
                   <th className="px-4 py-3">
                     <button
@@ -556,39 +648,99 @@ function HealthScoresTab() {
                   <th className="px-4 py-3">Último acesso</th>
                   <th className="px-4 py-3">Pacientes</th>
                   <th className="px-4 py-3">Sessões 30d</th>
-                  <th className="px-4 py-3">Fin.</th>
-                  <th className="px-4 py-3">IA</th>
+                  <th className="px-4 py-3" title="Uso financeiro nos últimos 30 dias">Fin.</th>
+                  <th className="px-4 py-3" title="Uso de IA nos últimos 30 dias (somente Pro)">IA</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-50">
-                {sorted.map(u => (
-                  <tr key={u.id} className="hover:bg-neutral-50/60">
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-neutral-800 truncate max-w-[180px]">{u.name}</p>
-                      <p className="text-xs text-neutral-400 truncate max-w-[180px]">{u.email}</p>
+                {sorted.map(u => {
+                  const expanded = expandedId === u.id
+                  return (
+                    <>
+                      <tr
+                        key={u.id}
+                        className="hover:bg-neutral-50/60 cursor-pointer"
+                        onClick={() => setExpandedId(expanded ? null : u.id)}
+                      >
+                        <td className="px-4 py-3 text-neutral-300">
+                          {expanded
+                            ? <ChevronDown className="w-3.5 h-3.5" />
+                            : <ChevronRight className="w-3.5 h-3.5" />}
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-neutral-800 truncate max-w-[160px]">{u.name}</p>
+                          <p className="text-xs text-neutral-400 truncate max-w-[160px]">{u.email}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <ScoreBar score={u.score} tier={u.tier} />
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${TIER_COLOR[u.tier]}`}>
+                            {TIER_LABEL[u.tier]}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-neutral-500 whitespace-nowrap">
+                          {relativeDate(u.lastActiveAt)}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-neutral-700 font-medium">{u.patientCount}</td>
+                        <td className="px-4 py-3 text-xs text-neutral-700 font-medium">{u.sessionsLast30d}</td>
+                        <td className="px-4 py-3 text-xs">{u.hasFinancialLast30d ? '✓' : <span className="text-neutral-300">—</span>}</td>
+                        <td className="px-4 py-3 text-xs">{u.hasAiUsageLast30d ? '✓' : <span className="text-neutral-300">—</span>}</td>
+                        <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            onClick={() => setOverrideUser(healthScoreToAdminUser(u))}
+                            className="rounded-lg border border-neutral-200 px-2 py-1 text-xs text-neutral-500 hover:border-sage-300 hover:text-sage-700"
+                          >
+                            Override
+                          </button>
+                        </td>
+                      </tr>
+                      {expanded && (
+                        <tr key={`${u.id}-detail`} className="bg-neutral-50/80">
+                          <td colSpan={10} className="px-8 py-3">
+                            <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400 mb-2">
+                              Breakdown do score (raw: {u.rawScore})
+                            </p>
+                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                              {computeFactors(u).map(f => (
+                                f.max === 0 ? null : (
+                                  <div key={f.label} className="rounded-lg bg-white border border-neutral-100 px-3 py-2">
+                                    <p className="text-[10px] text-neutral-400 leading-tight">{f.label}</p>
+                                    <p className={`text-sm font-semibold mt-0.5 ${f.pts === 0 ? 'text-rose-500' : 'text-neutral-700'}`}>
+                                      {f.pts}<span className="text-neutral-300 font-normal">/{f.max}</span>
+                                    </p>
+                                  </div>
+                                )
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  )
+                })}
+                {sorted.length === 0 && (
+                  <tr>
+                    <td colSpan={10} className="py-10 text-center text-xs text-neutral-400">
+                      Nenhum usuário encontrado.
                     </td>
-                    <td className="px-4 py-3">
-                      <ScoreBar score={u.score} tier={u.tier} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${TIER_COLOR[u.tier]}`}>
-                        {TIER_LABEL[u.tier]}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-neutral-500 whitespace-nowrap">
-                      {relativeDate(u.lastActiveAt)}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-neutral-700 font-medium">{u.patientCount}</td>
-                    <td className="px-4 py-3 text-xs text-neutral-700 font-medium">{u.sessionsLast30d}</td>
-                    <td className="px-4 py-3 text-xs">{u.hasFinancialLast30d ? '✓' : <span className="text-neutral-300">—</span>}</td>
-                    <td className="px-4 py-3 text-xs">{u.hasAiUsageLast30d ? '✓' : <span className="text-neutral-300">—</span>}</td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
         )}
       </div>
+
+      {response && (
+        <p className="text-xs text-neutral-400 text-right">
+          Exibindo {sorted.length} de {response.total} usuário{response.total !== 1 ? 's' : ''}
+        </p>
+      )}
+
+      {overrideUser && <OverrideModal user={overrideUser} onClose={() => setOverrideUser(null)} />}
     </div>
   )
 }
@@ -620,7 +772,7 @@ export default function AdminPage() {
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <StatCard label="Usuários" value={stats.totalUsers} icon={Users} />
           <StatCard label="Ativos" value={stats.activeUsers} icon={Users} />
-          <StatCard label="MRR" value={`R$ ${stats.mrr}`} icon={TrendingUp} />
+          <StatCard label="MRR" value={brl.format(stats.mrr)} icon={TrendingUp} />
           <StatCard
             label="Trial"
             value={stats.byPlanStatus.find(r => r.status === 'trialing')?.count ?? '0'}
