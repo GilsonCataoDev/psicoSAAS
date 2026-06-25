@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { CheckCircle2, ClipboardList } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -124,6 +124,13 @@ function ScoreResult({ instrumentId, score, scoreDetails }: { instrumentId: stri
 type SubmitResult = { score: number | null; scoreDetails: string | null }
 
 export default function InstrumentResponsePage() {
+  useEffect(() => {
+    const html = document.documentElement
+    const wasDark = html.classList.contains('dark')
+    html.classList.remove('dark')
+    return () => { if (wasDark) html.classList.add('dark') }
+  }, [])
+
   const { token } = useParams()
   const { data, isLoading, isError } = usePublicInstrument(token)
   const submit = useSubmitPublicInstrument(token)
