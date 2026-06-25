@@ -40,4 +40,6 @@ jobs:
         env:
           E2E_BASE_URL: ${{ secrets.E2E_BASE_URL || 'https://usecognia.com.br' }}
           E2E_API_URL: ${{ secrets.E2E_API_URL || 'https://psicosaas-production-2d6c.up.railway.app/api' }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+          E2E_CLEANUP_SECRET: ${{ secrets.E2E_CLEANUP_SECRET }}
         run: npm run test:e2e -- --project=chromium
