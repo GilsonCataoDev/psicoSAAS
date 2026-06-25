@@ -94,4 +94,10 @@ export const EVENTS = {
   // Referral
   REFERRAL_COPIED:    'referral_code_copied',
   REFERRAL_SHARED:    'referral_shared',
+
+  // Ferramenta gratuita — Gerador de Evolução Psicológica
+  TOOL_OPENED:        'free_tool_opened',
+  TOOL_GENERATED:     'free_tool_generated',
+  TOOL_EMAIL_CAPTURE: 'free_tool_email_captured',
+  TOOL_CTA_CLICKED:   'free_tool_cta_clicked',
 } as const
