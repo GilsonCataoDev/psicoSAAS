@@ -50,6 +50,7 @@ export interface ChurnRiskResult {
   score: number
   reasons: string[]
   recommendations: Recommendation[]
+  scoreBreakdown: ScoreBreakdown
 }
 
 export interface BehaviorTimeline {
