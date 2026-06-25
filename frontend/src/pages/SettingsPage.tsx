@@ -240,9 +240,9 @@ export default function SettingsPage() {
         setWhatsappConfigured(false)
       })
     loadStatus()
-    const timer = window.setInterval(loadStatus, 5000)
+    const timer = window.setInterval(loadStatus, whatsappConnected ? 60_000 : 15_000)
     return () => window.clearInterval(timer)
-  }, [isAuthenticated, tab])
+  }, [isAuthenticated, tab, whatsappConnected])
 
   useEffect(() => {
     if (!isAuthenticated || tab !== 'messages') return
@@ -278,15 +278,7 @@ export default function SettingsPage() {
       .finally(() => setLoadingAudit(false))
   }, [isAuthenticated, tab])
 
-  useEffect(() => {
-    if (!whatsappQr || whatsappConnected) return
-    const timer = window.setInterval(() => {
-      api.post('/notifications/whatsapp/connect')
-        .then(({ data }) => setWhatsappQr(data.base64))
-        .catch(() => {})
-    }, 20000)
-    return () => window.clearInterval(timer)
-  }, [whatsappConnected, whatsappQr])
+  // QR expira em ~60s — o usuário clica "Gerar novo QR Code" manualmente se necessário
 
   useEffect(() => {
     if (searchParams.get('googleCalendar') === 'connected') {

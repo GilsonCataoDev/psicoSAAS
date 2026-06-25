@@ -147,11 +147,31 @@ export class NotificationsService {
     const instance = this.getWhatsAppInstance(ownerId)
     const delay = (ms: number) => new Promise(r => setTimeout(r, ms))
 
-    // Garante instância limpa: deleta se existir e recria
-    await this.deleteWhatsAppInstance(instance)
-    await delay(1000)
-    await this.ensureWhatsAppInstance(instance)
-    await delay(3000)
+    // Verifica o estado atual antes de recriar
+    let currentState = 'unknown'
+    try {
+      const stateRes = await fetch(`${this.WA_URL}/instance/connectionState/${instance}`, {
+        headers: { apikey: this.WA_KEY },
+      })
+      if (stateRes.ok) {
+        const stateData = await stateRes.json() as { instance?: { state?: string } }
+        currentState = stateData.instance?.state ?? 'unknown'
+      } else if (stateRes.status === 404) {
+        currentState = 'not_created'
+      }
+    } catch { /* ignora — vai recriar */ }
+
+    // Só deleta+recria se já está conectado (troca de conta) ou não existe
+    if (currentState === 'open') {
+      await this.deleteWhatsAppInstance(instance)
+      await delay(1000)
+      await this.ensureWhatsAppInstance(instance)
+      await delay(3000)
+    } else if (currentState === 'not_created') {
+      await this.ensureWhatsAppInstance(instance)
+      await delay(3000)
+    }
+    // Se está em estado intermediário (connecting, qrReadSuccess, etc.) apenas tenta buscar o QR
 
     // Tenta obter QR com retry
     const maxAttempts = 4
