@@ -105,7 +105,7 @@ export class ChurnService {
   async calculateChurnRisk(userId: string): Promise<ChurnRiskResult> {
     const rows = await this.fetchAllStats({ userId })
     if (!rows.length) {
-      return { riskLevel: 'CRITICAL', score: 0, reasons: ['Usuário não encontrado'], recommendations: [] }
+      return { riskLevel: 'CRITICAL', score: 0, reasons: ['Usuário não encontrado'], recommendations: [], scoreBreakdown: { patients: 0, sessions: 0, appointments: 0, whatsapp: 0, recency: 0, penalties: 0 } }
     }
     return this.scoreRow(rows[0])
   }
