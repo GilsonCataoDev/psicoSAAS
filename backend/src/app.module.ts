@@ -23,6 +23,7 @@ import { AuditModule } from './modules/audit/audit.module'
 import { TemplatesModule } from './modules/templates/templates.module'
 import { AdminModule } from './modules/admin/admin.module'
 import { TestimonialModule } from './modules/testimonial/testimonial.module'
+import { ChurnModule } from './modules/churn/churn.module'
 import { Subscription as BillingSubscription } from './modules/billing/entities/subscription.entity'
 import { PlanGuard } from './common/guards/plan.guard'
 import { SubscriptionGuard } from './common/guards/subscription.guard'
@@ -77,6 +78,7 @@ import { LastActiveInterceptor } from './common/interceptors/last-active.interce
     TemplatesModule,
     AdminModule,
     TestimonialModule,
+    ChurnModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

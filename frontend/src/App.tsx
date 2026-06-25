@@ -32,6 +32,7 @@ const AccessibilityPage   = lazy(() => import('@/pages/AccessibilityPage'))
 const InstrumentosPage    = lazy(() => import('@/pages/InstrumentosPage'))
 const AdminPage           = lazy(() => import('@/pages/AdminPage'))
 const TestimonialsPage    = lazy(() => import('@/pages/admin/TestimonialsPage'))
+const ChurnPage           = lazy(() => import('@/pages/admin/ChurnPage'))
 
 // Public pages — lazy loaded
 const BookingPage         = lazy(() => import('@/pages/public/BookingPage'))
@@ -127,6 +128,7 @@ export default function App() {
           <Route path="planos" element={<PricingPage />} />
           <Route path="admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
           <Route path="admin/depoimentos" element={<AdminRoute><TestimonialsPage /></AdminRoute>} />
+          <Route path="admin/churn" element={<AdminRoute><ChurnPage /></AdminRoute>} />
           <Route element={<SubscriptionRoute />}>
             <Route index element={<DashboardPage />} />
             <Route path="pacientes" element={<PatientsPage />} />

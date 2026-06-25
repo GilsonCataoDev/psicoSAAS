@@ -13,6 +13,7 @@ import {
   MessageCircle,
   Search,
   ShieldCheck,
+  TrendingDown,
   TrendingUp,
   Users,
   Webhook,
@@ -757,13 +758,22 @@ export default function AdminPage() {
           <ShieldCheck className="h-4 w-4 text-sage-600" />
         </div>
         <h1 className="text-lg font-semibold text-neutral-800">Painel Admin</h1>
-        <Link
-          to="/admin/depoimentos"
-          className="ml-auto inline-flex h-9 items-center gap-2 rounded-lg border border-neutral-200 px-3 text-sm font-medium text-neutral-600 hover:border-sage-300 hover:text-sage-700"
-        >
-          <MessageCircle className="h-4 w-4" />
-          Depoimentos
-        </Link>
+        <div className="ml-auto flex items-center gap-2">
+          <Link
+            to="/admin/churn"
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-neutral-200 px-3 text-sm font-medium text-neutral-600 hover:border-rose-300 hover:text-rose-700"
+          >
+            <TrendingDown className="h-4 w-4" />
+            Churn
+          </Link>
+          <Link
+            to="/admin/depoimentos"
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-neutral-200 px-3 text-sm font-medium text-neutral-600 hover:border-sage-300 hover:text-sage-700"
+          >
+            <MessageCircle className="h-4 w-4" />
+            Depoimentos
+          </Link>
+        </div>
       </div>
 
       {/* Stats */}
