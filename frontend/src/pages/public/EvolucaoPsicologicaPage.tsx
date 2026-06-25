@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import * as Dialog from '@radix-ui/react-dialog'
 import {
   Brain, ClipboardCopy, Check, ArrowRight, ShieldAlert,
-  Sparkles, Lock, ChevronDown, X, Loader2, ExternalLink,
+  Sparkles, Lock, ChevronDown, Loader2,
 } from 'lucide-react'
 import { track, EVENTS } from '@/lib/analytics'
 import { cn } from '@/lib/utils'
@@ -314,7 +314,22 @@ export default function EvolucaoPsicologicaPage() {
   const [blurred, setBlurred] = useState(false)
   const resultRef = useRef<HTMLDivElement>(null)
 
-  const isFormValid = form.abordagem && form.ciclo && form.resumo.trim().length >= 20
+  // Força modo claro — esta é uma página pública de marketing
+  useEffect(() => {
+    const html = document.documentElement
+    const wasDark = html.classList.contains('dark')
+    html.classList.remove('dark')
+    return () => { if (wasDark) html.classList.add('dark') }
+  }, [])
+
+  // Validação: mínimo de 5 palavras distintas com > 2 letras (evita "aaaaaaa")
+  const isResumoMeaningful = (() => {
+    const words = form.resumo.trim().split(/\s+/).filter(w => w.length > 2)
+    const unique = new Set(words.map(w => w.toLowerCase()))
+    return unique.size >= 5
+  })()
+
+  const isFormValid = form.abordagem && form.ciclo && isResumoMeaningful
 
   // [ANALYTICS] tool_open — dispara ao montar
   useEffect(() => {
@@ -454,14 +469,11 @@ export default function EvolucaoPsicologicaPage() {
               placeholder="Paciente relatou melhora na ansiedade ao aplicar a técnica de respiração diafragmática exposta na sessão anterior, porém trouxe demandas de conflito familiar com o cônjuge, com relatos de desgaste emocional e dificuldade de comunicação…"
               className="input-field resize-none"
             />
-            <p className={cn(
-              'text-right text-xs transition-colors',
-              form.resumo.length < 20 && form.resumo.length > 0
-                ? 'text-amber-500'
-                : 'text-neutral-300',
-            )}>
-              {form.resumo.length} caracteres {form.resumo.length < 20 && form.resumo.length > 0 && '(mínimo 20)'}
-            </p>
+            {form.resumo.length > 0 && !isResumoMeaningful && (
+              <p className="text-xs text-amber-500 mt-1">
+                Descreva a sessão com ao menos 5 palavras diferentes para gerar a evolução.
+              </p>
+            )}
           </div>
 
           {/* LGPD notice */}
