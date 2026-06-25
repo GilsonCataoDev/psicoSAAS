@@ -14,65 +14,65 @@ import {
 import BrandLogo from '@/components/ui/BrandLogo'
 
 const trustSignals = [
-  'Teste grátis por 7 dias',
-  'Lembretes para reduzir faltas',
-  'Documentos com verificação digital',
+  'Beta gratuito',
+  'Para psicólogos e estagiários clínicos',
+  'Sem cartão nesta fase',
 ]
 
 const pains = [
   {
-    title: 'Falta que vira prejuízo',
-    text: 'Confirmações, lembretes e cancelamento antecipado ajudam a proteger horários e receita.',
+    title: 'Paciente esquece sessão',
+    text: 'Quando a agenda depende da memória e do WhatsApp, faltas e desencontros começam a aparecer.',
   },
   {
-    title: 'Prontuário fragmentado',
-    text: 'Pacientes, sessões, instrumentos, documentos e financeiro ficam reunidos na mesma rotina.',
+    title: 'Prontuário fica espalhado',
+    text: 'Histórico, evoluções, documentos e observações clínicas não deveriam morar em lugares diferentes.',
   },
   {
-    title: 'Operação manual demais',
-    text: 'Templates, link público e automações tiram tarefas repetitivas do WhatsApp pessoal.',
+    title: 'Rotina manual demais',
+    text: 'Confirmar horário, organizar paciente e registrar sessão consome energia que deveria ir para a clínica.',
   },
 ]
 
 const features = [
   {
     icon: CalendarCheck2,
-    title: 'Agenda anti-falta',
-    text: 'Sessões, recorrências, link público, cancelamento curto e lembretes automáticos.',
+    title: 'Agenda online com link público',
+    text: 'Crie horários, organize sessões e compartilhe uma página simples para agendamento.',
   },
   {
     icon: FileSignature,
-    title: 'Documentos e prontuário',
-    text: 'Declarações, recibos, relatórios, registros e verificação pública sem expor conteúdo clínico.',
+    title: 'Prontuário clínico digital',
+    text: 'Registre evoluções, acompanhe histórico e mantenha dados clínicos em uma rotina mais segura.',
   },
   {
     icon: WalletCards,
-    title: 'Financeiro do consultório',
-    text: 'Recebidos, pendentes, atrasados e ROI operacional para enxergar valor economizado.',
+    title: 'Organização de pacientes',
+    text: 'Tenha pacientes, sessões, documentos e informações importantes sem depender de planilhas soltas.',
   },
   {
     icon: MessageSquareText,
-    title: 'WhatsApp do psicólogo',
-    text: 'Mensagens saem do número conectado pelo profissional, com modelos editáveis.',
+    title: 'Lembretes em evolução',
+    text: 'Estamos construindo lembretes automáticos para reduzir esquecimentos e confirmações manuais.',
   },
 ]
 
-const proItems = [
-  'Pacientes e documentos ilimitados',
-  'Links de pagamento e cartão via Asaas',
-  'Mensagens, lembretes e cancelamento curto',
-  'Dashboard de faltas, tempo e valor preservado',
-  'Recursos para rotina profissional completa',
+const betaItems = [
+  'Acesso gratuito durante o programa Beta',
+  'Participação nas decisões de novas funcionalidades',
+  'Suporte próximo da equipe UseCognia',
+  'Prioridade para recursos de agenda, prontuário e lembretes',
+  'Ideal para psicólogos e estagiários que atendem na clínica',
 ]
 
 const faqs = [
   {
     question: 'Preciso configurar tudo antes de usar?',
-    answer: 'Não. Você começa pelo que precisar — agenda, pacientes ou documentos. Cada funcionalidade pode ser ativada no seu próprio tempo, sem obrigar uma configuração completa.',
+    answer: 'Não. A ideia do Beta é começar pelo essencial: cadastrar pacientes, organizar agenda e testar a rotina clínica aos poucos.',
   },
   {
-    question: 'Serve para psicólogo que atende sozinho?',
-    answer: 'Sim, e é exatamente para esse perfil que a plataforma foi pensada. Consultório individual que precisa de organização profissional sem estrutura de clínica grande.',
+    question: 'Quem pode participar do Beta?',
+    answer: 'Psicólogos e estagiários clínicos no Brasil que querem organizar agenda, pacientes, prontuário e rotina de atendimento.',
   },
   {
     question: 'Meus dados e os dos meus pacientes ficam seguros?',
@@ -83,20 +83,20 @@ const faqs = [
     answer: 'Cada PDF gerado pela plataforma recebe um código único e um QR Code de verificação. Qualquer pessoa pode confirmar a autenticidade do documento pelo link público — útil para declarações de comparecimento e outros registros.',
   },
   {
-    question: 'O paciente precisa instalar algum aplicativo?',
-    answer: 'Não. O link de agendamento, as confirmações e as verificações de documentos abrem direto no navegador do celular ou computador do paciente.',
+    question: 'O paciente precisa instalar aplicativo?',
+    answer: 'Não. A proposta é que links públicos e páginas de confirmação abram direto no navegador do celular ou computador.',
   },
   {
     question: 'Posso usar se atendo online e presencialmente?',
     answer: 'Sim. A agenda e os agendamentos públicos permitem configurar modalidades separadas — presencial e online — com disponibilidades e horários distintos para cada uma.',
   },
   {
-    question: 'O que acontece com meus dados se eu cancelar?',
-    answer: 'Antes de cancelar você pode exportar seus dados — pacientes, prontuários, histórico financeiro e documentos.',
+    question: 'O Beta é realmente gratuito?',
+    answer: 'Sim. Nesta fase, o objetivo é validar a rotina com psicólogos e estagiários clínicos, coletar feedback e priorizar as funcionalidades certas.',
   },
   {
-    question: 'Há período de teste gratuito?',
-    answer: 'Sim. Você escolhe um plano, cadastra o cartão e tem 7 dias grátis. Nada é cobrado hoje e você pode cancelar antes do fim do teste.',
+    question: 'Preciso cadastrar cartão?',
+    answer: 'Não para o programa Beta. A página de cadastro pode ser usada para solicitar acesso e iniciar os testes gratuitos.',
   },
   {
     question: 'A plataforma é compatível com as normas do CFP?',
@@ -114,9 +114,9 @@ function ProductPreview() {
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-white/5 px-4 py-3">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sage-200">Painel UseCognia</p>
-          <p className="mt-1 text-sm text-white/70">Hoje, 02 de junho</p>
+          <p className="mt-1 text-sm text-white/70">Beta clínico</p>
         </div>
-        <span className="shrink-0 rounded-full bg-sage-200 px-3 py-1 text-xs font-semibold text-sage-900">Pro ativo</span>
+        <span className="shrink-0 rounded-full bg-sage-200 px-3 py-1 text-xs font-semibold text-sage-900">Beta gratuito</span>
       </div>
 
       <div className="grid gap-0 md:grid-cols-[180px_1fr]">
@@ -178,7 +178,7 @@ export default function LandingPage() {
           </Link>
           <nav className="hidden items-center gap-6 text-sm font-medium text-[#5F5A51] md:flex">
             <a href="#produto" className="hover:text-sage-700">Produto</a>
-            <a href="#pro" className="hover:text-sage-700">Plano Pro</a>
+            <a href="#beta" className="hover:text-sage-700">Beta</a>
             <button onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-sage-700">Dúvidas</button>
             <Link to="/seguranca" className="hover:text-sage-700">Segurança</Link>
           </nav>
@@ -187,7 +187,7 @@ export default function LandingPage() {
               Entrar
             </Link>
             <Link to="/cadastro" className="hidden rounded-md bg-sage-800 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sage-900 sm:inline-flex">
-              Começar
+              Quero testar
             </Link>
           </div>
         </div>
@@ -199,15 +199,15 @@ export default function LandingPage() {
           <div className="w-full min-w-0 max-w-full sm:max-w-2xl">
             <p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-3 py-1 text-sm font-semibold text-sage-200">
               <Sparkles className="h-4 w-4" />
-              Menos faltas. Menos caos. Mais rotina clínica.
+              Beta gratuito para psicólogos e estagiários
             </p>
 
             <h1 className="mt-6 max-w-[21rem] text-[2.1rem] font-bold leading-[1.06] tracking-normal text-white sm:max-w-2xl sm:text-5xl lg:text-6xl">
-              Reduza faltas e organize o consultório sem virar refém do WhatsApp.
+              Menos bagunça na rotina clínica. Mais tempo para cuidar dos seus pacientes.
             </h1>
 
             <p className="mt-6 max-w-[22rem] text-base leading-relaxed text-white/76 sm:max-w-xl sm:text-lg">
-              Agenda, prontuário, documentos verificáveis, financeiro e confirmações automáticas para psicólogos solo que querem crescer sem perder controle.
+              UseCognia organiza agenda, pacientes, prontuário e histórico clínico em uma plataforma simples para quem atende na clínica e quer construir uma rotina mais profissional.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -215,7 +215,7 @@ export default function LandingPage() {
                 to="/cadastro"
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-sage-200 px-5 text-sm font-bold text-sage-900 shadow-lg shadow-sage-200/15 hover:bg-sage-100"
               >
-                Testar 7 dias grátis <ArrowRight className="h-4 w-4" />
+                Quero testar o Beta <ArrowRight className="h-4 w-4" />
               </Link>
               <a
                 href="#produto"
@@ -245,7 +245,7 @@ export default function LandingPage() {
             <ShieldCheck className="mt-0.5 h-5 w-5 text-sage-600" />
             <div>
               <p className="text-sm font-semibold text-[#211F1C]">Privacidade visível</p>
-              <p className="mt-1 text-sm text-[#7C776B]">Mensagens, documentos e dados sensíveis tratados com cuidado.</p>
+              <p className="mt-1 text-sm text-[#7C776B]">Dados clínicos tratados com cuidado desde a base do produto.</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
@@ -258,8 +258,8 @@ export default function LandingPage() {
           <div className="flex items-start gap-3">
             <WalletCards className="mt-0.5 h-5 w-5 text-sage-600" />
             <div>
-              <p className="text-sm font-semibold text-[#211F1C]">Cobrança integrada</p>
-              <p className="mt-1 text-sm text-[#7C776B]">Fluxo financeiro preparado para links e cartão via Asaas.</p>
+              <p className="text-sm font-semibold text-[#211F1C]">Construído com usuários reais</p>
+              <p className="mt-1 text-sm text-[#7C776B]">O Beta prioriza feedback de psicólogos e estagiários clínicos.</p>
             </div>
           </div>
         </div>
@@ -269,9 +269,9 @@ export default function LandingPage() {
         <div className="grid gap-8 lg:grid-cols-[0.9fr_1fr]">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Por que agora</p>
-            <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">O problema não é atender. É manter tudo organizado depois.</h2>
+            <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Você não estudou psicologia para virar administrador de agenda.</h2>
             <p className="mt-4 leading-relaxed text-[#5F5A51]">
-              Psicólogo autônomo acumula papéis que não são da clínica: confirmar presença, cobrar, arquivar documento, responder WhatsApp. Isso cansa — e tira foco do que importa.
+              A clínica exige presença. Mas a rotina ao redor dela costuma virar uma mistura de WhatsApp, planilha, agenda, caderno e lembretes soltos. É exatamente essa dor que queremos resolver com os primeiros usuários.
             </p>
           </div>
           <div className="grid gap-3">
@@ -289,7 +289,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-6xl px-5 py-16">
           <div className="max-w-2xl">
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Produto</p>
-            <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Uma operação mais leve para o dia a dia clínico.</h2>
+            <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">O essencial da rotina clínica em um só lugar.</h2>
           </div>
 
           <div className="mt-8 grid gap-4 md:grid-cols-4">
@@ -306,38 +306,31 @@ export default function LandingPage() {
 
       <section className="mx-auto max-w-6xl px-5 py-16">
         <div className="text-center mb-10">
-          <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Quem usa</p>
-          <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Psicólogos que recuperaram o controle da rotina</h2>
+          <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Por que entrar cedo</p>
+          <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">O Beta é para construir com quem vive a rotina clínica.</h2>
         </div>
         <div className="grid gap-5 md:grid-cols-3">
           {[
             {
-              quote: 'Minhas faltas caíram drasticamente. O lembrete automático faz o que eu ficava fazendo no WhatsApp às 22h — e sem depender de mim.',
-              name: 'Ana C.',
-              role: 'Psicóloga clínica · São Paulo',
+              quote: 'Você testa primeiro os fluxos de agenda, pacientes e prontuário — e ajuda a mostrar o que realmente precisa ficar mais simples.',
+              name: 'Acesso antecipado',
+              role: 'Use antes do lançamento amplo',
               initial: 'A',
             },
             {
-              quote: 'Meus pacientes ficam impressionados com a declaração de comparecimento com QR Code. Parece algo de clínica grande, mas sou eu sozinha.',
-              name: 'Marina L.',
-              role: 'Psicóloga · Belo Horizonte',
-              initial: 'M',
+              quote: 'Seu feedback entra na priorização do produto, principalmente em lembretes, agenda pública e organização de histórico clínico.',
+              name: 'Produto com sua rotina',
+              role: 'Funcionalidades guiadas por uso real',
+              initial: 'P',
             },
             {
-              quote: 'Finalmente parei de usar três aplicativos diferentes. Agenda, financeiro e prontuário no mesmo lugar mudou minha semana.',
-              name: 'Pedro M.',
-              role: 'Psicoterapeuta · Rio de Janeiro',
-              initial: 'P',
+              quote: 'Você fala com a equipe de perto, sem formulário perdido. O objetivo é entender onde a gestão clínica ainda pesa.',
+              name: 'Suporte próximo',
+              role: 'Contato direto durante o Beta',
+              initial: 'S',
             },
           ].map(({ quote, name, role, initial }) => (
             <figure key={name} className="rounded-xl border border-[#E7E4DA] bg-white p-6 shadow-sm">
-              <div className="mb-4 flex gap-0.5">
-                {[...Array(5)].map((_, i) => (
-                  <svg key={i} className="h-4 w-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                ))}
-              </div>
               <blockquote className="text-sm leading-relaxed text-[#49443D]">"{quote}"</blockquote>
               <figcaption className="mt-4 flex items-center gap-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sage-100 text-sm font-bold text-sage-700">
@@ -353,26 +346,25 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="pro" className="mx-auto grid max-w-6xl gap-8 px-5 py-16 lg:grid-cols-[0.9fr_1fr]">
+      <section id="beta" className="mx-auto grid max-w-6xl gap-8 px-5 py-16 lg:grid-cols-[0.9fr_1fr]">
         <div>
-          <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Plano Pro</p>
-          <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Para vender mais tempo, não mais trabalho.</h2>
+          <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Beta gratuito</p>
+          <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Entre antes e ajude a construir o sistema clínico que você realmente usaria.</h2>
           <p className="mt-4 max-w-xl leading-relaxed text-[#5F5A51]">
-            O Pro é o plano para psicólogos que já atendem com frequência e querem automatizar cobranças,
-            mensagens e organização financeira sem perder controle da rotina.
+            Estamos selecionando psicólogos e estagiários clínicos para testar o UseCognia gratuitamente, validar a rotina e priorizar as funcionalidades que mais reduzem retrabalho.
           </p>
         </div>
 
         <div className="rounded-lg border border-sage-200 bg-[#FFFFFF] p-6 shadow-card">
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-sage-700">UseCognia Pro</p>
-              <p className="mt-1 text-3xl font-bold text-[#211F1C]">7 dias grátis</p>
+              <p className="text-sm font-semibold text-sage-700">UseCognia Beta</p>
+              <p className="mt-1 text-3xl font-bold text-[#211F1C]">Gratuito</p>
             </div>
-            <span className="rounded-full bg-sage-100 px-3 py-1 text-xs font-semibold text-sage-700">sem compromisso</span>
+            <span className="rounded-full bg-sage-100 px-3 py-1 text-xs font-semibold text-sage-700">vagas limitadas</span>
           </div>
           <ul className="space-y-3">
-            {proItems.map((item) => (
+            {betaItems.map((item) => (
               <li key={item} className="flex items-start gap-3 text-sm font-medium text-[#49443D]">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-sage-600" />
                 {item}
@@ -383,9 +375,9 @@ export default function LandingPage() {
             to="/cadastro"
             className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-md bg-sage-800 text-sm font-bold text-white hover:bg-sage-900"
           >
-            Começar teste grátis
+            Quero testar o Beta
           </Link>
-          <p className="mt-3 text-center text-xs text-[#A9A394]">Configure o essencial primeiro. Automatize depois.</p>
+          <p className="mt-3 text-center text-xs text-[#A9A394]">Sem cartão nesta fase. Feedback direto com a equipe.</p>
         </div>
       </section>
 
@@ -413,13 +405,13 @@ export default function LandingPage() {
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-3xl font-bold">Pronto para deixar o consultório com cara de operação profissional?</h2>
           <p className="mx-auto mt-4 max-w-2xl text-white/70">
-            Comece pela agenda e pelos documentos. Em poucos minutos você já vê se a UseCognia combina com sua rotina.
+            Participe do Beta gratuito e ajude a criar uma rotina mais simples para agenda, pacientes e prontuário.
           </p>
           <Link
             to="/cadastro"
             className="mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-md bg-sage-200 px-6 text-sm font-bold text-sage-900 hover:bg-sage-100"
           >
-            Testar 7 dias grátis <ArrowRight className="h-4 w-4" />
+            Quero testar o Beta <ArrowRight className="h-4 w-4" />
           </Link>
           <div className="mt-6 flex justify-center gap-4 text-sm text-white/60">
             <Link to="/acessibilidade" className="hover:text-white">Acessibilidade</Link>

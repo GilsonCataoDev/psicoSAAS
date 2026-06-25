@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { DataSource, Repository, Between, In, Not } from 'typeorm'
+import { DataSource, Repository, In, Not } from 'typeorm'
 import { randomUUID } from 'crypto'
 import { Appointment } from './entities/appointment.entity'
 import { CreateAppointmentDto } from './dto/create-appointment.dto'
@@ -22,10 +22,41 @@ export class AppointmentsService {
     private googleCalendar: GoogleCalendarService,
   ) {}
 
-  findAll(psychologistId: string, dateFrom?: string, dateTo?: string) {
-    const where: any = { psychologistId }
-    if (dateFrom && dateTo) where.date = Between(dateFrom, dateTo)
-    return this.repo.find({ where, relations: ['patient'], order: { date: 'ASC', time: 'ASC' } })
+  findAll(psychologistId: string, dateFrom?: string, dateTo?: string, patientId?: string) {
+    const qb = this.repo.createQueryBuilder('appointment')
+      .leftJoinAndSelect('appointment.patient', 'patient')
+      .where('appointment.psychologistId = :psychologistId', { psychologistId })
+      .orderBy('appointment.date', 'ASC')
+      .addOrderBy('appointment.time', 'ASC')
+      .select([
+        'appointment.id',
+        'appointment.date',
+        'appointment.time',
+        'appointment.duration',
+        'appointment.status',
+        'appointment.modality',
+        'appointment.isRecurring',
+        'appointment.recurringFrequency',
+        'appointment.recurringGroupId',
+        'appointment.isFixedScheduleException',
+        'appointment.originalDate',
+        'appointment.originalTime',
+        'appointment.patientId',
+        'appointment.psychologistId',
+        'patient.id',
+        'patient.name',
+        'patient.phone',
+        'patient.avatarColor',
+      ])
+
+    if (dateFrom && dateTo) {
+      qb.andWhere('appointment.date BETWEEN :dateFrom AND :dateTo', { dateFrom, dateTo })
+    }
+    if (patientId) {
+      qb.andWhere('appointment.patientId = :patientId', { patientId })
+    }
+
+    return qb.getMany()
   }
 
   async findOne(id: string, psychologistId: string) {

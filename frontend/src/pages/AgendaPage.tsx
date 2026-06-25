@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Plus, Video, MapPin, Trash2, MessageCircle, Pencil, CheckCircle2, XCircle, FileText } from 'lucide-react'
 import {
@@ -10,11 +10,12 @@ import Avatar from '@/components/ui/Avatar'
 import { StatusBadge } from '@/components/ui/Badge'
 import { formatTime } from '@/lib/utils'
 import { useAppointments, useDeleteAppointment, useDeleteAppointmentGroup, useUpdateAppointmentStatus } from '@/hooks/useApi'
-import NewAppointmentModal from '@/components/features/agenda/NewAppointmentModal'
-import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 import toast from 'react-hot-toast'
 import { openWhatsApp } from '@/lib/whatsapp'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+
+const NewAppointmentModal = lazy(() => import('@/components/features/agenda/NewAppointmentModal'))
+const NewSessionModal = lazy(() => import('@/components/features/sessions/NewSessionModal'))
 
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 7) // 7h–19h
 
@@ -32,25 +33,55 @@ export default function AgendaPage() {
     from: format(weekStart, 'yyyy-MM-dd'),
     to: format(weekEnd, 'yyyy-MM-dd'),
   })
-  const visibleHours = Array.from(new Set([
-    ...HOURS,
-    ...appointments
-      .map(a => Number(a.time.slice(0, 2)))
-      .filter(hour => Number.isFinite(hour) && hour >= 0 && hour <= 23),
-  ])).sort((a, b) => a - b)
+  const { appointmentsByDate, appointmentsByDateHour, visibleHours } = useMemo(() => {
+    const byDate = new Map<string, typeof appointments>()
+    const byDateHour = new Map<string, typeof appointments>()
+    const hours = new Set(HOURS)
+
+    for (const appointment of appointments) {
+      const hour = Number(appointment.time.slice(0, 2))
+      if (Number.isFinite(hour) && hour >= 0 && hour <= 23) hours.add(hour)
+
+      const dateItems = byDate.get(appointment.date) ?? []
+      dateItems.push(appointment)
+      byDate.set(appointment.date, dateItems)
+
+      const hourKey = `${appointment.date}:${hour}`
+      const hourItems = byDateHour.get(hourKey) ?? []
+      hourItems.push(appointment)
+      byDateHour.set(hourKey, hourItems)
+    }
+
+    return {
+      appointmentsByDate: byDate,
+      appointmentsByDateHour: byDateHour,
+      visibleHours: Array.from(hours).sort((a, b) => a - b),
+    }
+  }, [appointments])
   const deleteAppointment = useDeleteAppointment()
   const deleteGroup = useDeleteAppointmentGroup()
   const updateStatus = useUpdateAppointmentStatus()
 
   // Mobile: só mostra o dia atual
   const [mobileDay, setMobileDay] = useState(new Date())
-  const mobileDays = eachDayOfInterval({ start: weekStart, end: addDays(weekStart, 4) })
+  const mobileDays = useMemo(
+    () => eachDayOfInterval({ start: weekStart, end: addDays(weekStart, 4) }),
+    [weekStart],
+  )
+  const mobileDayKey = format(mobileDay, 'yyyy-MM-dd')
+  const mobileAppointments = appointmentsByDate.get(mobileDayKey) ?? []
 
   useEffect(() => {
     if (searchParams.get('new') === '1') {
       setShowModal(true)
     }
   }, [searchParams])
+
+  useEffect(() => {
+    if (!mobileDays.some(day => isSameDay(day, mobileDay))) {
+      setMobileDay(weekStart)
+    }
+  }, [mobileDays, mobileDay, weekStart])
 
   async function removeAppointment() {
     if (!appointmentToRemove) return
@@ -164,10 +195,7 @@ export default function AgendaPage() {
 
         {/* Lista do dia selecionado */}
         <div className="space-y-2 mt-3">
-          {appointments
-            .filter(a => isSameDay(parseISO(a.date), mobileDay))
-            .sort((a, b) => a.time.localeCompare(b.time))
-            .map(appt => (
+          {mobileAppointments.map(appt => (
               <div key={appt.id}
                 className="card space-y-3 py-3 px-4">
                 <div className="flex items-center gap-3">
@@ -261,7 +289,7 @@ export default function AgendaPage() {
                 </div>
               </div>
             ))}
-          {appointments.filter(a => isSameDay(parseISO(a.date), mobileDay)).length === 0 && (
+          {mobileAppointments.length === 0 && (
             <div className="card text-center py-10 text-neutral-400 text-sm">
               Nenhuma sessão neste dia
             </div>
@@ -288,9 +316,8 @@ export default function AgendaPage() {
             <div key={hour} className="agenda-grid-line grid grid-cols-[64px_repeat(5,1fr)] border-b border-neutral-50 min-h-[72px]">
               <div className="p-2 text-xs text-neutral-400 dark:text-neutral-300 text-right pr-3 pt-2">{hour}:00</div>
               {days.map(day => {
-                const dayAppts = appointments.filter(a =>
-                  isSameDay(parseISO(a.date), day) && parseInt(a.time) === hour,
-                )
+                const dayKey = format(day, 'yyyy-MM-dd')
+                const dayAppts = appointmentsByDateHour.get(`${dayKey}:${hour}`) ?? []
                 return (
                   <div key={day.toISOString()}
                     className={`agenda-grid-line border-l border-neutral-100 p-1 ${isToday(day) ? 'agenda-today bg-sage-50/40' : ''}`}>
@@ -385,17 +412,27 @@ export default function AgendaPage() {
         </div>
       </div>
 
-      <NewAppointmentModal open={showModal} onClose={closeModal} appointment={editingAppointment} />
-      <NewSessionModal
-        open={!!appointmentToEvolve}
-        onClose={() => setAppointmentToEvolve(null)}
-        defaults={appointmentToEvolve ? {
-          patientId: appointmentToEvolve.patientId,
-          date: appointmentToEvolve.date,
-          duration: appointmentToEvolve.duration,
-          appointmentId: appointmentToEvolve.id,
-        } : undefined}
-      />
+      <Suspense fallback={(
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/25 backdrop-blur-[1px]">
+          <div className="rounded-xl bg-white p-4 shadow-xl" role="status" aria-label="Carregando">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-sage-200 border-t-sage-600" />
+          </div>
+        </div>
+      )}>
+        {showModal && <NewAppointmentModal open onClose={closeModal} appointment={editingAppointment} />}
+        {appointmentToEvolve && (
+          <NewSessionModal
+            open
+            onClose={() => setAppointmentToEvolve(null)}
+            defaults={{
+              patientId: appointmentToEvolve.patientId,
+              date: appointmentToEvolve.date,
+              duration: appointmentToEvolve.duration,
+              appointmentId: appointmentToEvolve.id,
+            }}
+          />
+        )}
+      </Suspense>
       <ConfirmDialog
         open={!!appointmentToRemove}
         title="Remover agendamento"

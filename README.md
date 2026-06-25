@@ -40,12 +40,13 @@ UseCognia é um SaaS completo para psicólogos brasileiros que reduz a carga ope
 - Alerta de pacientes inativos há mais de 30 dias
 - Gráfico de receita mensal (Recharts)
 
-### Monetizacao e acesso
-- **Trial de 7 dias com cartao obrigatorio** — tokenizacao do cartao feita no backend via Asaas; dados do cartao nao sao salvos
+### Monetizacao, Beta e acesso
+- **Beta gratuito sem cartao** — novos usuarios podem acessar a plataforma durante a fase Beta sem passar por checkout
+- **Trial pago preparado** — tokenizacao do cartao feita no backend via Asaas; dados do cartao nao sao salvos quando o fluxo comercial estiver ativo
 - **Billing desacoplado do dominio clinico** — modulo `billing` com subscription propria, migrations e `SubscriptionGuard`
 - **Asaas** — criacao de customer, subscription com `CREDIT_CARD`, webhook idempotente e atualizacao de cartao
 - **Controle de acesso global** — usuarios `active` e `trialing` acessam; `past_due` usa grace period; `canceled` e `none` bloqueiam
-- **Frontend de monetizacao** — `/planos`, banner de trial, countdown, polling de status e fluxo de pagamento atrasado
+- **Frontend de monetizacao** — `/planos` funciona como tela de acesso Beta nesta fase; o checkout pago permanece preservado no codigo para retomada comercial
 - **Metricas SaaS** — endpoint de contagem por status e MRR basico por plano
 
 ### Administração e conformidade
@@ -301,14 +302,14 @@ Cobertura atual: brute-force de login, rotação/replay de refresh token, expira
 
 ---
 
-## Billing, trial e monetizacao
+## Beta, billing e monetizacao
 
 ### Fluxo principal
-1. Usuario autenticado acessa `/planos`.
-2. Frontend coleta dados do cartao e chama `POST /billing/tokenize`.
-3. Backend tokeniza no Asaas e retorna apenas `{ creditCardToken }`.
-4. Frontend chama `POST /billing/subscribe` com `{ plan, creditCardToken }`.
-5. Backend cria ou reutiliza a subscription local, agenda cobranca para D+7 e salva:
+1. Usuario cria conta pelo fluxo Beta.
+2. Backend libera acesso `free/active` automaticamente quando `BETA_FREE_ACCESS` nao esta definido como `false`.
+3. Frontend mostra `/planos` como tela de acesso Beta, sem cartao.
+4. Quando o fluxo comercial voltar, o checkout pago pode usar `POST /billing/tokenize` e `POST /billing/subscribe`.
+5. No fluxo pago, o backend cria ou reutiliza a subscription local, agenda cobranca para D+7 e salva:
    - `status = trialing`
    - `trialEndsAt = agora + 7 dias`
    - `hasUsedTrial = true`
@@ -321,9 +322,10 @@ Cobertura atual: brute-force de login, rotação/replay de refresh token, expira
 
 | Metodo | Rota | Uso |
 |---|---|---|
-| `GET` | `/billing/me` | Retorna a subscription do usuario ou `{ status: "none" }` |
+| `GET` | `/billing/me` | Retorna a subscription do usuario; no Beta, cria/retorna `free/active` quando nao existir |
+| `POST` | `/billing/free` | Ativa acesso gratuito/Beta |
 | `POST` | `/billing/tokenize` | Tokeniza cartao no backend; nao persiste dados sensiveis |
-| `POST` | `/billing/subscribe` | Inicia trial de 7 dias com cartao obrigatorio |
+| `POST` | `/billing/subscribe` | Inicia trial pago de 7 dias com cartao obrigatorio quando o checkout comercial estiver ativo |
 | `POST` | `/billing/update-card` | Atualiza cartao e tenta nova cobranca quando `past_due` |
 | `POST` | `/billing/webhook` | Webhook publico do Asaas, sem CSRF, idempotente |
 | `GET` | `/billing/metrics` | Retorna `active`, `trialing`, `past_due`, `canceled` e `mrr` |
@@ -342,10 +344,10 @@ Cobertura atual: brute-force de login, rotação/replay de refresh token, expira
 - Falha de pagamento via webhook: envia "Pagamento recusado".
 
 ### Frontend
-- `/planos` mostra planos `free`, `essencial`, `pro`.
-- Botao padrao: "Testar 7 dias gratis".
+- `/planos` mostra a tela de Beta gratuito nesta fase.
+- CTA padrao: "Quero testar o Beta".
 - `past_due`: mostra "Seu teste terminou e o pagamento falhou." e botao "Pagar agora".
-- Banner global mostra countdown do trial.
+- Banner global mostra "Beta gratuito ativo" para usuarios `free/active`.
 - Polling de `/billing/me` roda a cada 5s apenas em `trialing` ou `pending` e para ao virar `active`.
 
 ---

@@ -7,21 +7,26 @@ describe('TestimonialService', () => {
     find: jest.fn(),
     save: jest.fn(),
   }
-  const users = { findOne: jest.fn() }
-  const patients = { count: jest.fn() }
-  const sessions = { count: jest.fn() }
+  const dataSource = {
+    query: jest.fn(),
+  }
   let service: TestimonialService
 
   beforeEach(() => {
     jest.clearAllMocks()
-    service = new TestimonialService(repo as any, users as any, patients as any, sessions as any)
+    service = new TestimonialService(repo as any, dataSource as any)
   })
 
   it('does not ask again after a response or dismissal', async () => {
-    repo.findOne.mockResolvedValue({ id: 'existing' })
+    dataSource.query.mockResolvedValue([{
+      hasRecord: true,
+      daysSince: 60,
+      patients: 20,
+      sessions: 40,
+    }])
 
     await expect(service.getStatus('user-1')).resolves.toEqual({ shouldShow: false })
-    expect(users.findOne).not.toHaveBeenCalled()
+    expect(dataSource.query).toHaveBeenCalled()
   })
 
   it('requires a rating when the feedback is not dismissed', async () => {

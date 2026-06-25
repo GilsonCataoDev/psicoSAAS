@@ -10,7 +10,7 @@ Frase guia: menos burocracia na rotina clinica, mais clareza sobre cada paciente
 
 UseCognia | prontuario e gestao para psicologas  
 Agenda, pacientes, evolucoes e financeiro em um so lugar.  
-Teste gratis por 7 dias.  
+Beta gratuito sem cartao nesta fase.  
 usecognia.com.br
 
 ## Tom de voz
@@ -68,13 +68,13 @@ Use fundo claro na maioria dos posts. Reserve verde escuro para capas fortes e c
 5. Seguranca: privacidade, LGPD, acesso e dados sensiveis.
 6. Produto: novidades, bastidores, antes/depois de fluxos e pequenos tutoriais.
 
-## Sequencia de stories para divulgar trial
+## Sequencia de stories para divulgar Beta
 
 Story 1: "Sua agenda clinica ainda depende de varias ferramentas?"  
 Story 2: "O UseCognia junta agenda, pacientes, evolucoes, documentos e financeiro em uma rotina mais simples."  
-Story 3: "Voce pode testar por 7 dias, com cartao cadastrado e escolha do plano antes da cobranca."  
+Story 3: "Psicologas e estagiarias clinicas podem testar gratuitamente durante o Beta."  
 Story 4: "Ideal para psicologas que querem menos retrabalho entre uma sessao e outra."  
-Story 5: "Teste em usecognia.com.br"
+Story 5: "Entre no Beta em usecognia.com.br"
 
 ## Ideias de posts
 

@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" role="img">
+  <rect width="1080" height="1350" fill="#FBFBF8"/>
+  <rect x="36" y="36" width="1008" height="1278" rx="42" fill="#FFFFFF" stroke="#E7E2D8" stroke-width="2"/>
+  
+  <g transform="translate(84 78) scale(0.64)">
+    <path d="M56 4C29.5 4 9.5 22.6 9.5 42.4S29.5 80.8 56 80.8" fill="none" stroke="#2F7657" stroke-width="17" stroke-linecap="round"/>
+    <path d="M57.2 20.2c10.7 0 19.8 8.4 20.5 19.1 6.8 1.9 11.9 8.1 11.9 15.6 0 8.6-6.8 15.9-15.4 16.3" fill="none" stroke="#4DA8DA" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M56 29.5v37.2M56 42.3l18.6-10.5M56 42.3l19.8 11.6M56 58.6l14 9.3" fill="none" stroke="#244D3D" stroke-width="5.5" stroke-linecap="round"/>
+    <circle cx="56" cy="42.3" r="7.2" fill="#244D3D"/><circle cx="74.6" cy="31.8" r="7.2" fill="#244D3D"/><circle cx="75.8" cy="53.9" r="7.2" fill="#244D3D"/><circle cx="70" cy="67.9" r="7.2" fill="#244D3D"/><circle cx="56" cy="58.6" r="7.2" fill="#244D3D"/>
+  </g>
+  <text x="133.92000000000002" y="117.03999999999999" font-family="Inter, Arial, sans-serif" font-size="21.76" font-weight="760" fill="#37332E">Use<tspan fill="#2F7657">Cognia</tspan></text>
+  <text x="84" y="216" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="830" letter-spacing="4" fill="#2F7657">AGENDA + LEMBRETES</text>
+  <text x="84" y="330" text-anchor="start" font-family="Inter, Arial, sans-serif" font-size="76" font-weight="860" fill="#1D352D"><tspan x="84" dy="0">Agenda clara. Paciente</tspan><tspan x="84" dy="86">lembrado. Sessão</tspan><tspan x="84" dy="86">mantida.</tspan></text>
+  <text x="84" y="545" text-anchor="start" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="520" fill="#37332E"><tspan x="84" dy="0">Um fluxo simples pode reduzir faltas e</tspan><tspan x="84" dy="45">tirar confirmações manuais da sua cabeça.</tspan></text>
+  
+      
+  <rect x="636" y="642" width="288" height="486" rx="42" fill="#12231D" opacity="0.16"/>
+  <rect x="648" y="630" width="288" height="486" rx="42" fill="#FFFFFF" stroke="#E7E2D8" stroke-width="3"/>
+  <rect x="680" y="664" width="224" height="18" rx="9" fill="#E7E2D8"/>
+  <text x="678" y="734" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800" fill="#1D352D">Agenda</text>
+  
+    <rect x="678" y="766" width="204" height="50" rx="14" fill="#244D3D" opacity="0.08"/>
+    <circle cx="706" cy="791" r="9" fill="#2F7657"/>
+    <text x="728" y="799" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#37332E">09:00 Ana</text>
+  
+    <rect x="678" y="832" width="204" height="50" rx="14" fill="#2F7657" opacity="1"/>
+    <circle cx="706" cy="857" r="9" fill="#FFFFFF"/>
+    <text x="728" y="865" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#FFFFFF">10:00 Pedro</text>
+  
+    <rect x="678" y="898" width="204" height="50" rx="14" fill="#244D3D" opacity="0.08"/>
+    <circle cx="706" cy="923" r="9" fill="#2F7657"/>
+    <text x="728" y="931" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#37332E">14:00 Marina</text>
+  <rect x="678" y="986" width="204" height="92" rx="22" fill="#D9EFE4"/>
+  <text x="704" y="1028" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800" fill="#244D3D">Lembrete enviado</text>
+  <text x="704" y="1058" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="500" fill="#37332E">WhatsApp • confirmado</text>
+      <rect x="84" y="690" width="470" height="390" rx="34" fill="#FFFFFF" stroke="#E7E2D8" stroke-width="3"/>
+      <text x="130" y="760" font-family="Inter, Arial, sans-serif" font-size="32" font-weight="820" fill="#1D352D">O loop é simples:</text>
+      <circle cx="142" cy="830" r="14" fill="#2F7657"/><text x="178" y="840" font-family="Inter, Arial, sans-serif" font-size="27" font-weight="700" fill="#37332E">cria o horário</text>
+      <circle cx="142" cy="900" r="14" fill="#4DA8DA"/><text x="178" y="910" font-family="Inter, Arial, sans-serif" font-size="27" font-weight="700" fill="#37332E">envia o link</text>
+      <circle cx="142" cy="970" r="14" fill="#CC7C66"/><text x="178" y="980" font-family="Inter, Arial, sans-serif" font-size="27" font-weight="700" fill="#37332E">lembrete automático</text>
+      <circle cx="142" cy="1040" r="14" fill="#2F7657"/><text x="178" y="1050" font-family="Inter, Arial, sans-serif" font-size="27" font-weight="700" fill="#37332E">menos esquecimento</text>
+  
+  <rect x="84" y="1192" width="360" height="72" rx="20" fill="#2F7657"/>
+  <text x="264" y="1238" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="27" font-weight="780" fill="#FFFFFF">Ver o UseCognia</text>
+  <text x="996" y="1236" text-anchor="end" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="650" fill="#7C776B">usecognia.com.br</text>
+  </svg>

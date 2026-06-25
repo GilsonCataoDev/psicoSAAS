@@ -132,7 +132,7 @@ export class BookingService {
     const { psychologist, ...pageData } = page
     return {
       ...pageData,
-      avatarUrl: psychologist.avatarUrl ?? page.avatarUrl,
+      avatarUrl: page.avatarUrl ?? null,
       psychologistName: psychologist.name,
       psychologistCrp: psychologist.crp,
       specialty: psychologist.specialty,

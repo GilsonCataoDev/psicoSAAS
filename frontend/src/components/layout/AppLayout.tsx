@@ -134,6 +134,18 @@ function useSubscriptionPolling() {
 
 function SubscriptionBanner() {
   const subscription = useSubscriptionStore((s) => s.subscription)
+  const plan = String(subscription.planId ?? subscription.plan ?? 'free')
+
+  if (subscription.status === 'active' && plan === 'free') {
+    return (
+      <div className="mb-4 rounded-xl border border-sage-200 bg-sage-50 px-4 py-3 text-sm text-sage-800">
+        <p className="font-medium">Beta gratuito ativo</p>
+        <p className="mt-1">
+          Teste o UseCognia sem cartão e conte para a gente onde a rotina clínica ainda pesa.
+        </p>
+      </div>
+    )
+  }
 
   if (subscription.status === 'trialing') {
     const remaining = daysUntil(subscription.trialEndsAt)

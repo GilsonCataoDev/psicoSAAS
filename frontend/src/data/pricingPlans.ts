@@ -28,11 +28,11 @@ export type PricingPlan = {
 }
 
 export const PRICING_HERO = {
-  title: 'Escolha o nivel de automacao que reduz suas faltas',
-  subtitle: 'Cada plano e um nivel de automacao. Quanto mais faltas voce quer evitar, mais o sistema trabalha para voce.',
-  context: 'Psicologos solo perdem em media 10 horas por semana com agenda, confirmacao e cobranca. Escolha quanto disso voce quer automatizar.',
-  trialCta: 'Teste 7 dias gratis no Essencial ou Pro',
-  trialSubtext: 'Cartao no inicio. Nada e cobrado hoje. Cancele antes do fim do teste.',
+  title: 'Beta gratuito para organizar sua rotina clinica',
+  subtitle: 'Teste agenda, pacientes, prontuario e historico clinico sem cartao enquanto ajudamos a construir o UseCognia com usuarios reais.',
+  context: 'O foco desta fase e validar o que mais reduz retrabalho para psicologos e estagiarios clinicos.',
+  trialCta: 'Acesso Beta gratuito',
+  trialSubtext: 'Sem cartao nesta fase. Feedback direto com a equipe.',
 }
 
 export const PRICING_PLANS: PricingPlan[] = [
@@ -79,8 +79,8 @@ export const PRICING_PLANS: PricingPlan[] = [
       ],
       note: 'Seu investimento se paga em 1 dia',
     },
-    cta: 'Teste 7 dias gratis',
-    ctaSubtext: 'Depois R$ 79/mes\nCancele a qualquer hora',
+    cta: 'Entrar no Beta',
+    ctaSubtext: 'Beta gratuito nesta fase',
   },
   {
     id: 'pro',
@@ -110,8 +110,8 @@ export const PRICING_PLANS: PricingPlan[] = [
       ],
       note: 'Seu investimento se paga em 3 atendimentos',
     },
-    cta: 'Teste 7 dias gratis',
-    ctaSubtext: 'Depois R$ 149/mes\nPaga a si mesma em 3 atendimentos\nCancele a qualquer hora',
+    cta: 'Entrar no Beta',
+    ctaSubtext: 'Beta gratuito nesta fase',
   },
 ]
 
@@ -128,13 +128,13 @@ export const PRICING_COMPARISON = {
 
 export const PRICING_FAQ = [
   { question: 'Posso cancelar a qualquer hora?', answer: 'Sim. Sem multa, sem aviso previo. Basta cancelar em 1 clique.' },
-  { question: 'Preciso de cartao para testar?', answer: 'Sim. O cartao confirma o plano escolhido, mas a primeira cobranca so acontece depois dos 7 dias gratis.' },
+  { question: 'Preciso de cartao para testar?', answer: 'Nao durante o Beta. O objetivo desta fase e validar o produto com psicologos e estagiarios clinicos.' },
   { question: 'Meus dados estao seguros?', answer: 'Sim. Dados criptografados, backup automatico e exportacao em 1 clique.' },
   { question: 'Posso mudar de plano depois?', answer: 'Sim. Voce pode fazer upgrade ou downgrade a qualquer momento.' },
   { question: 'Qual e a diferenca entre Essencial e Pro?', answer: 'Essencial ajuda voce a operar com templates. Pro automatiza lembretes, mensagens, cobrancas e relatorios.' },
   { question: 'E se eu tiver 50+ pacientes?', answer: 'Ate 50 pacientes, Essencial funciona bem. Acima disso, Pro e o plano indicado.' },
   { question: 'Voces oferecem suporte?', answer: 'Free tem suporte por email. Essencial tem prioridade maior. Pro tem atendimento mais rapido e suporte por WhatsApp.' },
   { question: 'Posso usar em mais de um dispositivo?', answer: 'Sim. Celular, tablet e computador sincronizados.' },
-  { question: 'E se eu cancelar durante o trial?', answer: 'Nada sera cobrado se voce cancelar antes do fim dos 7 dias gratis. Seus dados ficam salvos por 30 dias caso mude de ideia.' },
+  { question: 'E se eu sair do Beta?', answer: 'Voce pode parar de usar quando quiser. Antes de uma futura cobranca, a politica comercial sera comunicada com clareza.' },
   { question: 'Voces tem plano anual com desconto?', answer: 'Sim. Essencial e Pro exibem o valor mensal equivalente no anual.' },
 ]

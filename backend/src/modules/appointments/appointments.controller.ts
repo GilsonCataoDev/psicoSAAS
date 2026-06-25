@@ -35,8 +35,13 @@ export class AppointmentsController {
   // ── Individual ─────────────────────────────────────────────────────────────
 
   @Get()
-  findAll(@Request() req: any, @Query('from') from?: string, @Query('to') to?: string) {
-    return this.svc.findAll(req.user.id, from, to)
+  findAll(
+    @Request() req: any,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('patientId') patientId?: string,
+  ) {
+    return this.svc.findAll(req.user.id, from, to, patientId)
   }
 
   @Get(':id') findOne(@Param('id') id: string, @Request() req: any) { return this.svc.findOne(id, req.user.id) }

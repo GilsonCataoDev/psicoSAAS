@@ -120,7 +120,7 @@ function buildContent(abordagem: Abordagem, ciclo: Ciclo, keywords: string[]): s
   return contentMap[abordagem]
 }
 
-function buildClosing(abordagem: Abordagem, ciclo: Ciclo): string {
+function buildClosing(abordagem: Abordagem, _ciclo: Ciclo): string {
   const closings: Record<Abordagem, string> = {
     tcc: `Como encaminhamento terapêutico, foram acordadas tarefas de automonitoramento e registro de humor para a próxima sessão, com vistas ao fortalecimento das habilidades de enfrentamento e à generalização dos ganhos terapêuticos para o cotidiano. O plano terapêutico segue em conformidade com os objetivos estabelecidos inicialmente, com revisão periódica de metas.`,
     psicanalise: `Ao encerramento da sessão, foi observada a manutenção do vínculo transferencial de forma produtiva, constituindo base segura para o trabalho psíquico em curso. O processo segue seu desenvolvimento natural, com indicativos de mobilização das resistências e aprofundamento da capacidade elaborativa. A continuidade do trabalho analítico está indicada, mantendo a frequência das sessões.`,

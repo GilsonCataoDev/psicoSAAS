@@ -7,6 +7,7 @@ import { Subscription } from './entities/subscription.entity'
 
 const TRIAL_DAYS = 7
 const PLAN_PRICES: Record<string, number> = { essencial: 79, pro: 149 }
+const BETA_FREE_ACCESS = process.env.BETA_FREE_ACCESS !== 'false'
 const DEFAULT_COMPED_PRO_EMAILS = ['gilsonfilho96@outlook.com']
 const COMPED_PRO_EMAILS = (process.env.COMPED_PRO_EMAILS ?? DEFAULT_COMPED_PRO_EMAILS.join(','))
   .split(',')
@@ -30,6 +31,9 @@ export class BillingService {
     if (!subscription) {
       if (this.isCompedProUser(user)) {
         return this.ensureCompedProSubscription(user)
+      }
+      if (BETA_FREE_ACCESS) {
+        return this.ensureBetaFreeSubscription(user)
       }
       return { status: 'none' }
     }
@@ -280,6 +284,27 @@ export class BillingService {
       trialEndsAt: null,
       cancelAtPeriodEnd: false,
       hasUsedTrial: true,
+    })
+
+    return this.toPublicSubscription(await this.repo.save(subscription))
+  }
+
+  private async ensureBetaFreeSubscription(user: Pick<User, 'id' | 'email'>) {
+    const subscription = await this.repo.findOne({
+      where: { userId: user.id },
+      order: { createdAt: 'DESC' },
+    }) ?? this.repo.create({ userId: user.id })
+
+    Object.assign(subscription, {
+      userId: user.id,
+      plan: 'free',
+      status: 'active',
+      gatewayCustomerId: null,
+      gatewaySubscriptionId: null,
+      currentPeriodEnd: null,
+      trialEndsAt: null,
+      cancelAtPeriodEnd: false,
+      hasUsedTrial: false,
     })
 
     return this.toPublicSubscription(await this.repo.save(subscription))

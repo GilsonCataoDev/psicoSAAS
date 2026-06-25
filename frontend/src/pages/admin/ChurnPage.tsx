@@ -2,13 +2,13 @@ import { Fragment, useState } from 'react'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
-  AlertTriangle, CheckCircle2, TrendingDown,
+  AlertTriangle, CheckCircle2,
   Users, ShieldAlert, Bell, BellOff, ChevronDown, ChevronUp,
   RefreshCw, Mail, MessageCircle, Loader2, Target,
 } from 'lucide-react'
 import {
   useChurnDashboard, useChurnAnalytics, useChurnAlerts,
-  useResolveChurnAlert, useSendReactivationEmail, ChurnAccount, ChurnRiskLevel, BehaviorTimeline,
+  useResolveChurnAlert, useSendReactivationEmail, ChurnAccount, ChurnRiskLevel,
   useUserTimeline,
 } from '@/hooks/useApi'
 import { cn } from '@/lib/utils'

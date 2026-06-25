@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ExternalLink, CheckCircle2, AlertCircle } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
+import { useSubscriptionStore } from '@/store/subscription'
 import { api } from '@/lib/api'
 import { setNativeTokens } from '@/lib/nativeAuth'
 import { isValidCrpFormat, getCrpRegion, openCfpVerification, formatCrpInput } from '@/lib/crp'
@@ -38,6 +39,7 @@ export default function RegisterPage() {
   const [showTerms, setShowTerms] = useState(false)
   const setAuth      = useAuthStore((s) => s.setAuth)
   const setCsrfToken = useAuthStore((s) => s.setCsrfToken)
+  const setSubscription = useSubscriptionStore((s) => s.setSubscription)
   const navigate = useNavigate()
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormData>({
@@ -67,8 +69,31 @@ export default function RegisterPage() {
       await setNativeTokens(res.data.tokens)
       setAuth(res.data.user)
       if (res.data.csrfToken) setCsrfToken(res.data.csrfToken)
+
+      let betaActivated = false
+      try {
+        const billing = await api.post('/billing/free')
+        setSubscription(billing.data)
+        betaActivated = true
+      } catch {
+        try {
+          const { data: billing } = await api.get('/billing/me')
+          if (billing?.status) {
+            setSubscription(billing)
+            betaActivated = true
+          }
+        } catch {
+          // Se a ativação do Beta falhar momentaneamente, o AppLayout tenta
+          // carregar/gerar a assinatura gratuita ao entrar no painel.
+        }
+      }
+
       track(EVENTS.REGISTER)
-      toast.success('Conta criada com sucesso! Seja bem-vinda')
+      toast.success(
+        betaActivated
+          ? 'Acesso Beta liberado! Seja bem-vinda'
+          : 'Conta criada! Vamos terminar a ativação do Beta no painel.',
+      )
       navigate('/')
     } catch (err: any) {
       const msg = err?.response?.data?.message

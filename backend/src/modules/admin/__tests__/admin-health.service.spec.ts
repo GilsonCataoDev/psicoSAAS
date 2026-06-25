@@ -33,6 +33,7 @@ describe('AdminService health scores', () => {
     expect(sql).toContain('FROM billing_subscriptions s')
     expect(sql).toContain('au."userId" = u.id::text')
     expect(sql).not.toContain('FROM subscriptions s')
-    expect(result).toEqual([expect.objectContaining({ score: 100, tier: 'healthy' })])
+    expect(result.data).toEqual([expect.objectContaining({ score: 100, tier: 'healthy' })])
+    expect(result.total).toBe(1)
   })
 })

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" role="img">
+  <rect width="1080" height="1350" fill="#1D352D"/>
+  <circle cx="940" cy="118" r="270" fill="#4DA8DA" opacity=".16"/><circle cx="80" cy="1240" r="300" fill="#9BE7BD" opacity=".11"/>
+  
+  <g transform="translate(84 78) scale(0.64)">
+    <path d="M56 4C29.5 4 9.5 22.6 9.5 42.4S29.5 80.8 56 80.8" fill="none" stroke="#9BE7BD" stroke-width="17" stroke-linecap="round"/>
+    <path d="M57.2 20.2c10.7 0 19.8 8.4 20.5 19.1 6.8 1.9 11.9 8.1 11.9 15.6 0 8.6-6.8 15.9-15.4 16.3" fill="none" stroke="#8DD7FF" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M56 29.5v37.2M56 42.3l18.6-10.5M56 42.3l19.8 11.6M56 58.6l14 9.3" fill="none" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round"/>
+    <circle cx="56" cy="42.3" r="7.2" fill="#FFFFFF"/><circle cx="74.6" cy="31.8" r="7.2" fill="#FFFFFF"/><circle cx="75.8" cy="53.9" r="7.2" fill="#FFFFFF"/><circle cx="70" cy="67.9" r="7.2" fill="#FFFFFF"/><circle cx="56" cy="58.6" r="7.2" fill="#FFFFFF"/>
+  </g>
+  <text x="133.92000000000002" y="117.03999999999999" font-family="Inter, Arial, sans-serif" font-size="21.76" font-weight="760" fill="#FFFFFF">Use<tspan fill="#9BE7BD">Cognia</tspan></text>
+  <text x="84" y="216" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="830" letter-spacing="4" fill="#9BE7BD">DOR REAL DA ROTINA CLÍNICA</text>
+  <text x="84" y="330" text-anchor="start" font-family="Inter, Arial, sans-serif" font-size="76" font-weight="860" fill="#FFFFFF"><tspan x="84" dy="0">Seu consultório pode</tspan><tspan x="84" dy="86">estar vazando</tspan><tspan x="84" dy="86">pacientes.</tspan></text>
+  <text x="84" y="545" text-anchor="start" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="520" fill="#FFFFFFCC"><tspan x="84" dy="0">Nem toda perda vem da demanda. Às vezes,</tspan><tspan x="84" dy="45">ela começa em uma agenda confusa.</tspan></text>
+  
+      <rect x="84" y="670" width="912" height="410" rx="34" fill="#FFFFFF" opacity="0.08"/>
+      <rect x="132" y="718" width="410" height="86" rx="22" fill="#FFFFFF" opacity="0.11"/>
+      <text x="172" y="772" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="760" fill="#FFFFFF">Sessão sem confirmação</text>
+      <rect x="132" y="830" width="510" height="86" rx="22" fill="#FFFFFF" opacity="0.11"/>
+      <text x="172" y="884" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="760" fill="#FFFFFF">Paciente esqueceu o horário</text>
+      <rect x="132" y="942" width="610" height="86" rx="22" fill="#9BE7BD" opacity="0.95"/>
+      <text x="172" y="996" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="820" fill="#1D352D">Organização também é retenção</text>
+      <path d="M828 704c72 38 98 108 78 178-19 67-84 103-150 93-78-12-132-75-126-148 7-89 105-165 198-123z" fill="#4DA8DA" opacity=".2"/>
+      <path d="M780 790h118M780 842h88M780 894h132" stroke="#9BE7BD" stroke-width="16" stroke-linecap="round"/>
+  
+  <rect x="84" y="1192" width="360" height="72" rx="20" fill="#9BE7BD"/>
+  <text x="264" y="1238" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="27" font-weight="780" fill="#1D352D">Entrar no Beta</text>
+  <text x="996" y="1236" text-anchor="end" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="650" fill="#FFFFFF99">usecognia.com.br</text>
+  </svg>
