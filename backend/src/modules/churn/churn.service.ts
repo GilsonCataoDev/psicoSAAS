@@ -1,9 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm'
 import { DataSource, Repository } from 'typeorm'
 import { TenantHealth, RiskLevel, Recommendation, ScoreBreakdown } from './entities/tenant-health.entity'
 import { TenantActivation } from './entities/tenant-activation.entity'
 import { TenantAlert, AlertType } from './entities/tenant-alert.entity'
+import { EmailService } from '../email/email.service'
 
 // ─── Score weights — single source of truth, easy to adjust ──────────────────
 const WEIGHTS = {
@@ -73,6 +74,7 @@ export class ChurnService {
     @InjectRepository(TenantHealth) private readonly healthRepo: Repository<TenantHealth>,
     @InjectRepository(TenantActivation) private readonly activationRepo: Repository<TenantActivation>,
     @InjectRepository(TenantAlert) private readonly alertRepo: Repository<TenantAlert>,
+    private readonly email: EmailService,
   ) {}
 
   // ─── Public API ─────────────────────────────────────────────────────────────
@@ -479,6 +481,39 @@ export class ChurnService {
       ORDER BY u."lastActiveAt" DESC NULLS LAST
       LIMIT 500
     `, params)
+  }
+
+  async sendReactivationEmail(userId: string): Promise<{ sent: boolean }> {
+    const rows = await this.ds.query<Array<{ name: string; email: string }>>(
+      `SELECT name, email FROM users WHERE id = $1 LIMIT 1`, [userId],
+    )
+    if (!rows.length) throw new NotFoundException('Usuário não encontrado')
+    const { name, email } = rows[0]
+
+    await this.email.send({
+      to: email,
+      subject: `${name}, sentimos sua falta no UseCognia 💙`,
+      html: `
+        <div style="font-family:Inter,sans-serif;max-width:520px;margin:0 auto;color:#1a1a1a">
+          <h2 style="color:#2f7657">Olá, ${name}!</h2>
+          <p>Percebemos que faz um tempo que você não acessa o UseCognia.</p>
+          <p>Sua agenda, prontuários e pacientes estão te esperando. Que tal retomar de onde parou?</p>
+          <p style="margin:32px 0">
+            <a href="https://usecognia.com.br/#/login"
+               style="background:#2f7657;color:#fff;padding:12px 24px;border-radius:10px;text-decoration:none;font-weight:600">
+              Acessar minha conta →
+            </a>
+          </p>
+          <p style="color:#666;font-size:13px">
+            Precisa de ajuda? Responda este e-mail ou fale com a gente pelo WhatsApp.<br/>
+            — Equipe UseCognia
+          </p>
+        </div>
+      `,
+    })
+
+    this.logger.log(`churn:reactivation-email sent to userId=${userId}`)
+    return { sent: true }
   }
 
   private daysSince(date: Date | string): number {

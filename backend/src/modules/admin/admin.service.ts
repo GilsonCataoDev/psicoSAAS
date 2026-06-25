@@ -373,4 +373,35 @@ export class AdminService {
 
     return { totalUsers, activeUsers, byPlanStatus, mrr }
   }
+
+  async cleanupTestUsers(): Promise<{ deleted: number; emails: string[] }> {
+    const targets: { id: string; email: string }[] = await this.dataSource.query(
+      `SELECT id, email FROM users
+       WHERE (email LIKE '%@example.com' OR email LIKE '%+test%' OR name ILIKE '%teste%')
+         AND "createdAt" < NOW() - INTERVAL '1 hour'`,
+    )
+    if (!targets.length) return { deleted: 0, emails: [] }
+
+    const ids = targets.map(t => t.id)
+
+    const fks: { table_name: string; column_name: string }[] = await this.dataSource.query(`
+      SELECT tc.table_name, kcu.column_name
+      FROM information_schema.table_constraints tc
+      JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name
+      JOIN information_schema.constraint_column_usage ccu ON ccu.constraint_name = tc.constraint_name
+      WHERE tc.constraint_type = 'FOREIGN KEY'
+        AND ccu.table_name = 'users'
+        AND tc.table_name <> 'users'
+    `)
+
+    await this.dataSource.transaction(async tx => {
+      for (const fk of fks) {
+        await tx.query(`DELETE FROM "${fk.table_name}" WHERE "${fk.column_name}" = ANY($1::uuid[])`, [ids])
+      }
+      await tx.query(`DELETE FROM users WHERE id = ANY($1::uuid[])`, [ids])
+    })
+
+    this.logger.log(`admin:cleanup-test-users deleted=${targets.length}`)
+    return { deleted: targets.length, emails: targets.map(t => t.email) }
+  }
 }

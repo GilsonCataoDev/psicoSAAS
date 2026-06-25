@@ -800,6 +800,21 @@ export function useUserTimeline(userId: string) {
   })
 }
 
+export function useSendReactivationEmail() {
+  return useMutation({
+    mutationFn: (userId: string) =>
+      api.post(`/admin/churn/user/${userId}/send-reactivation`).then(r => r.data),
+  })
+}
+
+export function useCleanupTestUsers() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.delete('/admin/cleanup-test-users').then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin'] }),
+  })
+}
+
 // ── Testimonial / Feedback ──────────────────────────────────────────────────────
 
 export function useFeedbackStatus() {

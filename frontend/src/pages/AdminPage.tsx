@@ -19,7 +19,7 @@ import {
   Webhook,
   X,
 } from 'lucide-react'
-import { useAdminStats, useAdminUsers, useAdminOverrideSubscription, useAdminMonitor, useAdminHealthScores, AdminUser, HealthScore } from '@/hooks/useApi'
+import { useAdminStats, useAdminUsers, useAdminOverrideSubscription, useAdminMonitor, useAdminHealthScores, useCleanupTestUsers, AdminUser, HealthScore } from '@/hooks/useApi'
 
 const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
 
@@ -748,6 +748,7 @@ function HealthScoresTab() {
 export default function AdminPage() {
   const [tab, setTab] = useState<'users' | 'monitor' | 'health'>('users')
   const { data: stats } = useAdminStats()
+  const cleanup = useCleanupTestUsers()
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 px-4 py-6">
@@ -759,6 +760,20 @@ export default function AdminPage() {
         </div>
         <h1 className="text-lg font-semibold text-neutral-800">Painel Admin</h1>
         <div className="ml-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              if (!confirm('Remover todos os usuários de teste (@example.com, +test, nome "teste")?')) return
+              cleanup.mutate(undefined, {
+                onSuccess: (r) => alert(`${r.deleted} usuário(s) removido(s).`),
+              })
+            }}
+            disabled={cleanup.isPending}
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-neutral-200 px-3 text-sm font-medium text-neutral-600 hover:border-rose-300 hover:text-rose-700 disabled:opacity-50"
+          >
+            <X className="h-4 w-4" />
+            {cleanup.isPending ? 'Limpando…' : 'Limpar testes'}
+          </button>
           <Link
             to="/admin/churn"
             className="inline-flex h-9 items-center gap-2 rounded-lg border border-neutral-200 px-3 text-sm font-medium text-neutral-600 hover:border-rose-300 hover:text-rose-700"

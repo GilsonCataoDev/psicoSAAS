@@ -6,9 +6,10 @@ import { TenantAlert } from './entities/tenant-alert.entity'
 import { ChurnService } from './churn.service'
 import { ChurnScoreJob } from './churn-score.job'
 import { ChurnController } from './churn.controller'
+import { EmailModule } from '../email/email.module'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([TenantHealth, TenantActivation, TenantAlert])],
+  imports: [TypeOrmModule.forFeature([TenantHealth, TenantActivation, TenantAlert]), EmailModule],
   controllers: [ChurnController],
   providers: [ChurnService, ChurnScoreJob],
   exports: [ChurnService],

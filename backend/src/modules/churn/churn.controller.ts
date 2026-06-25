@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Patch, Query, UseGuards } from '@nestjs/common'
+import { Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { AdminGuard } from '../../common/guards/admin.guard'
 import { ChurnService } from './churn.service'
@@ -51,5 +51,10 @@ export class ChurnController {
   @Get('user/:userId/activation')
   getUserActivation(@Param('userId') userId: string) {
     return this.svc.checkActivation(userId)
+  }
+
+  @Post('user/:userId/send-reactivation')
+  sendReactivation(@Param('userId') userId: string) {
+    return this.svc.sendReactivationEmail(userId)
   }
 }

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Query, UseGuards } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Query, UseGuards } from '@nestjs/common'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { AdminGuard } from '../../common/guards/admin.guard'
@@ -42,5 +42,10 @@ export class AdminController {
     @Body() dto: OverrideSubscriptionDto,
   ) {
     return this.admin.overrideSubscription(id, dto)
+  }
+
+  @Delete('cleanup-test-users')
+  cleanupTestUsers() {
+    return this.admin.cleanupTestUsers()
   }
 }
