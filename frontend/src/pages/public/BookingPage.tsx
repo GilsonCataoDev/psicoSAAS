@@ -16,6 +16,7 @@ import {
 import { ptBR } from 'date-fns/locale'
 import { cn, formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import { track, EVENTS } from '@/lib/analytics'
 import { usePublicBookingPage, usePublicBookingSlots, useCreateBooking, usePublicBookingDates } from '@/hooks/useApi'
 
 // WhatsApp SVG icon
@@ -74,6 +75,8 @@ export default function BookingPage() {
   const { data: slots = [], isFetching: slotsLoading } = usePublicBookingSlots(slug ?? '', selectedDate, selectedModality)
   const createBooking = useCreateBooking(slug ?? '')
 
+  useEffect(() => { track(EVENTS.BOOKING_PAGE_VIEWED) }, [])
+
   useEffect(() => {
     if (!page) return
     if (page.allowOnline && !page.allowPresencial) setValue('modality', 'online')
@@ -121,6 +124,7 @@ export default function BookingPage() {
     try {
       const { privacyAccepted: _privacyAccepted, ...bookingData } = data
       await createBooking.mutateAsync({ ...bookingData, date: selectedDate, time: selectedTime })
+      track(EVENTS.BOOKING_CONFIRMED)
       setStep('success')
     } catch (err: any) {
       toast.error(err?.response?.data?.message ?? 'Erro ao enviar solicitacao. Tente novamente.')
@@ -427,7 +431,7 @@ export default function BookingPage() {
                 ) : (
                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                     {slots.map(slot => (
-                      <button key={slot} onClick={() => { setSelectedTime(slot); setStep('form') }}
+                      <button key={slot} onClick={() => { setSelectedTime(slot); track(EVENTS.SLOT_BOOKED); setStep('form') }}
                         className={cn(
                           'py-3 rounded-xl text-sm font-medium border transition-all',
                           selectedTime === slot

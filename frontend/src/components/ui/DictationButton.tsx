@@ -16,13 +16,14 @@ type SpeechRecognition = EventTarget & {
   interimResults: boolean
   lang: string
   onresult: ((event: SpeechRecognitionEvent) => void) | null
-  onerror: (() => void) | null
+  onerror: ((event: { error?: string }) => void) | null
   onend: (() => void) | null
   start: () => void
   stop: () => void
 }
 
 type SpeechRecognitionEvent = {
+  resultIndex: number
   results: {
     length: number
     [index: number]: {
@@ -82,7 +83,7 @@ export default function DictationButton({ value, onChange, className }: Dictatio
         }
         if (finalText.trim()) onChange(appendTranscript(valueRef.current, finalText))
       }
-      recognition.onerror = (e: any) => {
+      recognition.onerror = (e) => {
         setState('idle')
         if (e?.error === 'not-allowed') {
           toast.error('Permissão do microfone negada. Habilite nas configurações do navegador.')

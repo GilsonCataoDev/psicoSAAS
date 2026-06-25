@@ -8,6 +8,7 @@ import { formatCurrency } from '@/lib/utils'
 import { useCreateDocument, useDefaultTemplate } from '@/hooks/useApi'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 import toast from 'react-hot-toast'
+import { track, EVENTS } from '@/lib/analytics'
 
 type FormData = {
   patientId: string
@@ -180,6 +181,7 @@ export default function GenerateDocModal({
         title,
         content,
       })
+      track(EVENTS.DOCUMENT_GENERATED, { type: selectedType })
       onGenerate(doc)
       toast.success('Documento gerado e assinado digitalmente')
       handleClose()

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { identifyUser, resetAnalytics } from '@/lib/analytics'
+import { identifyUser, resetAnalytics, track, EVENTS } from '@/lib/analytics'
 import { migratePersistedStorage } from '@/lib/storageMigration'
 import { clearNativeTokens } from '@/lib/nativeAuth'
 
@@ -62,6 +62,7 @@ export const useAuthStore = create<AuthState>()(
       setCsrfToken: (token) => set({ csrfToken: token }),
 
       logout: () => {
+        track(EVENTS.LOGOUT)
         resetAnalytics()
         void clearNativeTokens()
         set({ user: null, isAuthenticated: false, csrfToken: null })

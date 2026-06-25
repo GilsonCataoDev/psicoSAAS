@@ -9,6 +9,7 @@ import { api } from '@/lib/api'
 import { setNativeTokens } from '@/lib/nativeAuth'
 import { isValidCrpFormat, getCrpRegion, openCfpVerification, formatCrpInput } from '@/lib/crp'
 import toast from 'react-hot-toast'
+import { track, EVENTS } from '@/lib/analytics'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 
 const schema = z.object({
@@ -66,6 +67,7 @@ export default function RegisterPage() {
       await setNativeTokens(res.data.tokens)
       setAuth(res.data.user)
       if (res.data.csrfToken) setCsrfToken(res.data.csrfToken)
+      track(EVENTS.REGISTER)
       toast.success('Conta criada com sucesso! Seja bem-vinda')
       navigate('/')
     } catch (err: any) {

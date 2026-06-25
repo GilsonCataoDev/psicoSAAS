@@ -5,6 +5,7 @@ import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
 import { EmotionalTag, TAG_LABELS } from '@/types'
 import { useCreatePatient, useDefaultTemplate } from '@/hooks/useApi'
+import { track, EVENTS } from '@/lib/analytics'
 
 const schema = z.object({
   name: z.string().min(2, 'Nome obrigatório'),
@@ -77,6 +78,7 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
         delete (payload as any).fixedScheduleModality
       }
       await createPatient.mutateAsync(payload as any)
+      track(EVENTS.PATIENT_CREATED)
       toast.success(`${data.name} adicionada com sucesso`)
       reset()
       onClose()

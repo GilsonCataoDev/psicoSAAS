@@ -18,6 +18,7 @@ import {
 import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
+import { track, EVENTS } from '@/lib/analytics'
 import { LineChart, Line, XAxis, YAxis, Tooltip as RechartTooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 
 const MOODS = ['', '1', '2', '3', '4', '5']
@@ -40,6 +41,7 @@ const PRONTUARIO_FIELDS = [
 
 export default function PatientDetailPage() {
   const { id } = useParams()
+  useEffect(() => { if (id) track(EVENTS.PATIENT_VIEWED) }, [id])
   const { data: patient, isLoading } = usePatient(id ?? '')
   const { data: allSessions = [] } = useSessions({ patientId: id, includeClinical: true })
   const { data: financialRecords = [], isLoading: loadingFinancial } = useFinancial({ patientId: id })
@@ -119,6 +121,7 @@ export default function PatientDetailPage() {
   async function handleSendCharge(recordId: string) {
     try {
       await sendCharge.mutateAsync(recordId)
+      track(EVENTS.PAYMENT_SENT)
       toast.success('Cobranca enviada via WhatsApp')
     } catch { toast.error('Erro ao enviar cobrança.') }
   }

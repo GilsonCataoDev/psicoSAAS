@@ -9,6 +9,7 @@ import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 import Modal from '@/components/ui/Modal'
 import { PRICING_COMPARISON, PRICING_FAQ, PRICING_HERO, PRICING_PLANS, PricingPlan, PricingRoiItem } from '@/data/pricingPlans'
 import { userSafeError } from '@/lib/userSafeError'
+import { track, EVENTS } from '@/lib/analytics'
 
 function statusMessage(status: string) {
   if (status === 'pending') return 'Aguardando pagamento'
@@ -36,6 +37,8 @@ export default function PricingPage() {
   const currentPlanId = String(subscription.planId ?? subscription.plan ?? '')
   const billingPlans = new Map(PLANS.map((plan) => [plan.id, plan]))
   const currentPlan = billingPlans.get(currentPlanId)
+
+  useEffect(() => { track(EVENTS.PLAN_PAGE_VIEWED) }, [])
 
   useEffect(() => {
     if (!selectedPlan) return
@@ -172,6 +175,7 @@ export default function PricingPage() {
 
       const { data } = await api.post(endpoint, body)
       setSubscription(data)
+      track(EVENTS.SUBSCRIPTION_ACTIVE, { plan: plan.id })
       toast.success(subscription.status === 'past_due' ? `Cartao atualizado. Tentaremos cobrar no plano ${plan.name}.` : 'Teste iniciado! Voce tem 7 dias gratis.')
     } catch (err: any) {
       toast.error(userSafeError(err, 'Cartao invalido ou pagamento recusado.'))
@@ -227,6 +231,7 @@ export default function PricingPage() {
       setPlanChangeTarget(billingPlan)
       return
     }
+    track(EVENTS.CHECKOUT_STARTED, { plan: plan.id })
     setSelectedPlan(billingPlan)
   }
 

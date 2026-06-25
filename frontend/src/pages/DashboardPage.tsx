@@ -9,7 +9,7 @@ import { StatusBadge } from '@/components/ui/Badge'
 import { formatCurrency, formatDateRelative, formatTime } from '@/lib/utils'
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
 import { useAuthStore } from '@/store/auth'
-import { track, EVENTS } from '@/lib/analytics'
+import { EVENTS } from '@/lib/analytics'
 import { useDashboard, useSessions } from '@/hooks/useApi'
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard'
 import { useOnboardingStore } from '@/store/onboarding'
@@ -40,7 +40,6 @@ export default function DashboardPage() {
   const firstName = user?.name?.split(' ')[0] ?? 'Psicólogo(a)'
   const [sessionDefaults, setSessionDefaults] = useState<{ patientId: string; date: string; appointmentId: string } | null>(null)
 
-  useEffect(() => { track(EVENTS.LOGIN) }, [])
 
   const today = format(new Date(), 'yyyy-MM-dd')
   const overduePayments = (stats as any)?.pendingPaymentsDetail?.filter(

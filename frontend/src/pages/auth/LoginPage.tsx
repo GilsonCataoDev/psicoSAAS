@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
 import { setNativeTokens } from '@/lib/nativeAuth'
 import toast from 'react-hot-toast'
+import { track, EVENTS } from '@/lib/analytics'
 
 const schema = z.object({
   email: z.string().email('E-mail inválido'),
@@ -39,6 +40,7 @@ export default function LoginPage() {
       await setNativeTokens(res.data.tokens)
       setAuth(res.data.user)
       if (res.data.csrfToken) setCsrfToken(res.data.csrfToken)
+      track(EVENTS.LOGIN)
       navigate('/')
     } catch (err: any) {
       logout()
