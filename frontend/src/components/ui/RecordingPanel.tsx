@@ -4,17 +4,24 @@ import toast from 'react-hot-toast'
 import { useTranscribeAudio, useGenerateAiSummary } from '@/hooks/useApi'
 import { useHasPlan } from '@/store/subscription'
 
-type Step = 'idle' | 'consent' | 'recording' | 'transcribing' | 'transcribed' | 'generating'
+type Step = 'idle' | 'consent' | 'recording' | 'ready' | 'transcribing' | 'transcribed' | 'generating'
 
 type Props = {
   patientName?: string
   onApplyTranscription: (text: string) => void
   onApplySummary: (text: string) => void
+  transcriptionActionLabel?: string
 }
 
 const MAX_RECORDING_SECONDS = 15 * 60
+const AI_RECORDING_ENABLED = import.meta.env.VITE_ENABLE_AI_RECORDING === 'true'
 
-export default function RecordingPanel({ patientName, onApplyTranscription, onApplySummary }: Props) {
+export default function RecordingPanel({
+  patientName,
+  onApplyTranscription,
+  onApplySummary,
+  transcriptionActionLabel = 'Copiar para notas privadas',
+}: Props) {
   const hasPro = useHasPlan('pro')
   const [step, setStep] = useState<Step>('idle')
   const [elapsed, setElapsed] = useState(0)
@@ -39,7 +46,7 @@ export default function RecordingPanel({ patientName, onApplyTranscription, onAp
         const blob = new Blob(chunksRef.current, { type: mr.mimeType })
         audioBlobRef.current = blob
         stream.getTracks().forEach(t => t.stop())
-        handleTranscribe(blob)
+        setStep('ready')
       }
       mr.start(1000)
       mediaRecorderRef.current = mr
@@ -62,8 +69,16 @@ export default function RecordingPanel({ patientName, onApplyTranscription, onAp
 
   function stopRecording() {
     if (timerRef.current) clearInterval(timerRef.current)
-    mediaRecorderRef.current?.stop()
-    setStep('transcribing')
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.stop()
+    }
+  }
+
+  function discardRecording() {
+    audioBlobRef.current = null
+    chunksRef.current = []
+    setTranscription('')
+    setStep('idle')
   }
 
   function extractApiError(err: unknown): string {
@@ -75,6 +90,7 @@ export default function RecordingPanel({ patientName, onApplyTranscription, onAp
   }
 
   async function handleTranscribe(blob: Blob) {
+    setStep('transcribing')
     try {
       const { text } = await transcribe.mutateAsync({ blob, durationSeconds: elapsed })
       setTranscription(text)
@@ -83,6 +99,16 @@ export default function RecordingPanel({ patientName, onApplyTranscription, onAp
       setStep('idle')
       toast.error(extractApiError(err))
     }
+  }
+
+  function transcribeRecording() {
+    const blob = audioBlobRef.current
+    if (!blob) {
+      toast.error('Gravação não encontrada. Grave novamente.')
+      setStep('idle')
+      return
+    }
+    handleTranscribe(blob)
   }
 
   async function handleGenerateSummary() {
@@ -104,6 +130,8 @@ export default function RecordingPanel({ patientName, onApplyTranscription, onAp
     const sec = (s % 60).toString().padStart(2, '0')
     return `${m}:${sec}`
   }
+
+  if (!AI_RECORDING_ENABLED) return null
 
   // ── Consent modal ────────────────────────────────────────────────────────────
   if (step === 'consent') {
@@ -166,6 +194,33 @@ export default function RecordingPanel({ patientName, onApplyTranscription, onAp
     )
   }
 
+  // ── Ready to transcribe ──────────────────────────────────────────────────────
+  if (step === 'ready') {
+    return (
+      <div className="rounded-2xl border border-sage-200 bg-sage-50 p-4 space-y-3">
+        <div className="flex items-start gap-3">
+          <Mic className="h-4 w-4 shrink-0 text-sage-700 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-sage-800">Gravação pronta</p>
+            <p className="text-xs text-sage-700">
+              Duração: {fmt(elapsed)}. O áudio ainda não foi enviado. Transcreva apenas se quiser usar a cota de IA.
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button type="button" onClick={discardRecording}
+            className="flex-1 rounded-xl border border-sage-200 py-2 text-xs text-sage-700 hover:bg-sage-100">
+            Descartar
+          </button>
+          <button type="button" onClick={transcribeRecording}
+            className="flex-1 rounded-xl bg-sage-600 py-2 text-xs font-semibold text-white hover:bg-sage-700">
+            Transcrever agora
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   // ── Transcribing ─────────────────────────────────────────────────────────────
   if (step === 'transcribing') {
     return (
@@ -191,9 +246,9 @@ export default function RecordingPanel({ patientName, onApplyTranscription, onAp
           {transcription}
         </p>
         <div className="flex gap-2">
-          <button type="button" onClick={() => { onApplyTranscription(transcription); toast.success('Transcrição copiada para anotações privadas') }}
+          <button type="button" onClick={() => { onApplyTranscription(transcription); toast.success('Transcrição aplicada') }}
             className="flex-1 rounded-xl border border-sage-300 py-2 text-xs font-medium text-sage-700 hover:bg-sage-100">
-            Copiar para notas privadas
+            {transcriptionActionLabel}
           </button>
           <button type="button" onClick={handleGenerateSummary} disabled={step === 'generating'}
             className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-sage-600 py-2 text-xs font-semibold text-white hover:bg-sage-700 disabled:opacity-50">

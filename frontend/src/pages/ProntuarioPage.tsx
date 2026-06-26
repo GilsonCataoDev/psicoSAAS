@@ -7,6 +7,7 @@ import { Prontuario } from '@/types/prontuario'
 import { formatDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import DictationButton from '@/components/ui/DictationButton'
+import RecordingPanel from '@/components/ui/RecordingPanel'
 
 const TABS = [
   { id: 'identificacao', label: 'Identificação' },
@@ -351,7 +352,6 @@ export default function ProntuarioPage() {
               </div>
             </div>
             <div>
-              <label className="label">Descrição da sessão</label>
               <div className="mb-1 flex items-center justify-between gap-2">
                 <label className="label mb-0">Descrição da sessão</label>
                 <DictationButton value={evolText} onChange={setEvolText} />
@@ -360,6 +360,12 @@ export default function ProntuarioPage() {
                 className="input-field resize-none text-sm"
                 placeholder="Descreva o conteúdo trabalhado, observações clínicas, intercorrências, resposta da pessoa ao processo terapêutico..." />
             </div>
+            <RecordingPanel
+              patientName={patient.name}
+              onApplyTranscription={text => setEvolText(prev => [prev, text].filter(Boolean).join('\n\n'))}
+              onApplySummary={setEvolText}
+              transcriptionActionLabel="Inserir transcrição na evolução"
+            />
             <div className="flex justify-end">
               <button
                 onClick={async () => {
