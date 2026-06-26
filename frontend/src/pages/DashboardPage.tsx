@@ -11,6 +11,7 @@ import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
 import { useAuthStore } from '@/store/auth'
 import { useDashboard, useSessions } from '@/hooks/useApi'
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard'
+import ReferralCard from '@/components/features/referral/ReferralCard'
 import { useOnboardingStore } from '@/store/onboarding'
 import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 
@@ -436,6 +437,11 @@ export default function DashboardPage() {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Referral — visível para usuários com ao menos 1 paciente ativo */}
+      {onboardingCompleted && (s?.activePatients ?? 0) >= 1 && (
+        <ReferralCard />
       )}
 
       <NewSessionModal
