@@ -183,7 +183,7 @@ export class EmailService {
   }
 
   async sendPasswordReset(name: string, email: string, resetToken: string) {
-    const link = `${this.frontendUrl}/#/redefinir-senha?token=${encodeURIComponent(resetToken)}`
+    const link = `${this.frontendUrl}/redefinir-senha?token=${encodeURIComponent(resetToken)}`
     await this.send({
       to: email,
       subject: 'Redefinir sua senha — UseCognia',
@@ -206,7 +206,7 @@ export class EmailService {
   }
 
   async sendEmailVerification(name: string, email: string, verificationToken: string) {
-    const link = `${this.frontendUrl}/#/verificar-email?token=${encodeURIComponent(verificationToken)}`
+    const link = `${this.frontendUrl}/verificar-email?token=${encodeURIComponent(verificationToken)}`
     await this.send({
       to: email,
       subject: 'Confirme seu e-mail — UseCognia',

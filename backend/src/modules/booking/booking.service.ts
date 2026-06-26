@@ -620,7 +620,7 @@ export class BookingService {
 
     return {
       token,
-      url: `${normalizedBaseUrl}/#/agendar/${token}`,
+      url: `${normalizedBaseUrl}/agendar/${token}`,
       expiresAt: tomorrow.toISOString(),
     }
   }

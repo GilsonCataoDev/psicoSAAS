@@ -24,7 +24,7 @@ export default defineConfig({
         display: 'standalone',
         display_override: ['window-controls-overlay', 'standalone', 'minimal-ui'],
         orientation: 'portrait',
-        start_url: `${BASE_PATH}#/`,
+        start_url: BASE_PATH,
         scope: BASE_PATH,
         lang: 'pt-BR',
         categories: ['health', 'productivity'],
@@ -36,8 +36,8 @@ export default defineConfig({
           { src: 'pwa-512.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' },
         ],
         shortcuts: [
-          { name: 'Agenda',  short_name: 'Agenda',  url: `${BASE_PATH}#/agenda`,    description: 'Ver agenda do dia' },
-          { name: 'Pessoas', short_name: 'Pessoas', url: `${BASE_PATH}#/pacientes`, description: 'Ver pessoas em acompanhamento' },
+          { name: 'Agenda',  short_name: 'Agenda',  url: `${BASE_PATH}agenda`,    description: 'Ver agenda do dia' },
+          { name: 'Pessoas', short_name: 'Pessoas', url: `${BASE_PATH}pacientes`, description: 'Ver pessoas em acompanhamento' },
         ],
       },
       workbox: {

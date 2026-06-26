@@ -23,23 +23,7 @@ const legacyRouteFiles = [
 ]
 
 const indexHtml = readFileSync(join(dist, 'index.html'), 'utf-8')
-const fallbackHtml = indexHtml.replace(
-  '<head>',
-  `<head>
-    <script>
-      (() => {
-        const base = ${JSON.stringify(basePath)};
-        if (window.location.hash) return;
-        const normalizedBase = base.endsWith('/') ? base : base + '/';
-        const path = window.location.pathname;
-        if (path === normalizedBase || path === normalizedBase.slice(0, -1)) return;
-        if (!path.startsWith(normalizedBase)) return;
-        const route = path.slice(normalizedBase.length).replace(/^\\/+/, '');
-        if (!route) return;
-        window.location.replace(normalizedBase + '#/' + route + window.location.search);
-      })();
-    </script>`,
-)
+const fallbackHtml = indexHtml
 
 writeFileSync(join(dist, '404.html'), fallbackHtml)
 

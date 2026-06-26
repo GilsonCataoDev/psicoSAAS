@@ -107,7 +107,7 @@ export class GoogleCalendarService {
     }
     await this.users.save(user)
 
-    return { redirectUrl: `${this.getFrontendUrl()}/#/configuracoes?tab=integrations&googleCalendar=connected` }
+    return { redirectUrl: `${this.getFrontendUrl()}/configuracoes?tab=integrations&googleCalendar=connected` }
   }
 
   getFailureRedirectUrl(reason = 'error'): string {
@@ -116,7 +116,7 @@ export class GoogleCalendarService {
       googleCalendar: 'error',
       reason,
     })
-    return `${this.getFrontendUrl()}/#/configuracoes?${params.toString()}`
+    return `${this.getFrontendUrl()}/configuracoes?${params.toString()}`
   }
 
   async disconnect(userId: string): Promise<{ connected: boolean }> {

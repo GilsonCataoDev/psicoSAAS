@@ -61,7 +61,8 @@ function processQueue(error: unknown): void {
 function redirectToLogin(): void {
   useAuthStore.getState().logout()
   void clearNativeTokens()
-  window.location.href = `${import.meta.env.BASE_URL}#/login`
+  const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '')
+  window.location.href = `${base}/login`
 }
 
 function isAuthPublicEndpoint(url?: string): boolean {

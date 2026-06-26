@@ -340,7 +340,7 @@ export class NotificationsService {
     return this.sendPushToUser(userId, {
       title: 'UseCognia',
       body: 'Notificacoes ativadas neste navegador.',
-      url: `${this.BASE_URL}/#/configuracoes?tab=notify`,
+      url: `${this.BASE_URL}/configuracoes?tab=notify`,
       tag: 'usecognia-push-test',
     })
   }
@@ -356,7 +356,7 @@ export class NotificationsService {
     return this.sendPushToUser(appointment.psychologistId, {
       title,
       body,
-      url: `${this.BASE_URL}/#/agenda`,
+      url: `${this.BASE_URL}/agenda`,
       tag: `appointment-${appointment.id}-${lead}`,
     })
   }

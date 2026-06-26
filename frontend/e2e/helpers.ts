@@ -65,10 +65,10 @@ export async function login(page: Page, email: string, password = testPassword) 
   await page.locator('input[type="password"]').fill(password)
   await page.getByRole('button', { name: 'Entrar' }).click()
   await Promise.race([
-    page.waitForURL(/#\/(?!login)/, { timeout: 15_000 }).catch(() => undefined),
+    page.waitForURL(url => !url.pathname.endsWith('/login'), { timeout: 15_000 }).catch(() => undefined),
     page.getByText(/e-mail ou senha incorretos|não foi possível entrar/i).waitFor({ timeout: 15_000 }).catch(() => undefined),
   ])
-  if (page.url().includes('#/login')) return
+  if (new URL(page.url()).pathname.endsWith('/login')) return
   await page.getByRole('link', { name: 'Pacientes' }).waitFor({ timeout: 15_000 }).catch(() => undefined)
 }
 

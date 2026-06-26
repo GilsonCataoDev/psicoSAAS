@@ -30,7 +30,7 @@ test.describe('Auth', () => {
 
   test('login com credenciais válidas redireciona para dashboard', async ({ page }) => {
     await login(page, email)
-    await expect(page).toHaveURL(new RegExp('#/'), { timeout: 15_000 })
+    await expect(page).toHaveURL(new RegExp('/$'), { timeout: 15_000 })
     await expect(page.getByText('Bom dia')).toBeVisible({ timeout: 10_000 }).catch(() =>
       expect(page.getByText('Boa tarde')).toBeVisible(),
     )
@@ -50,12 +50,12 @@ test.describe('Auth', () => {
     )
     await dismissOverlays(page)
     await logout(page)
-    await expect(page).toHaveURL(new RegExp('#/login'), { timeout: 10_000 })
+    await expect(page).toHaveURL(new RegExp('/login'), { timeout: 10_000 })
   })
 
   test('rota protegida sem login redireciona para login', async ({ page }) => {
     await page.goto(appPath('/pacientes'))
-    await expect(page).toHaveURL(new RegExp('#/login'), { timeout: 10_000 })
+    await expect(page).toHaveURL(new RegExp('/login'), { timeout: 10_000 })
   })
 })
 

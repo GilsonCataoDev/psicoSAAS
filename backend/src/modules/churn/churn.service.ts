@@ -499,7 +499,7 @@ export class ChurnService {
           <p>Percebemos que faz um tempo que você não acessa o UseCognia.</p>
           <p>Sua agenda, prontuários e pacientes estão te esperando. Que tal retomar de onde parou?</p>
           <p style="margin:32px 0">
-            <a href="https://usecognia.com.br/#/login"
+            <a href="https://usecognia.com.br/login"
                style="background:#2f7657;color:#fff;padding:12px 24px;border-radius:10px;text-decoration:none;font-weight:600">
               Acessar minha conta →
             </a>
