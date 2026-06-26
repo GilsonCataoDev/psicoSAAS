@@ -26,7 +26,14 @@ const FREE_APPOINTMENT_STATUSES = ['cancelled', 'no_show']
 const BOOKING_TIME_ZONE = 'America/Sao_Paulo'
 
 function slugifyName(value?: string | null): string {
-  const slug = (value ?? '')
+  const meaningfulParts = (value ?? '')
+    .trim()
+    .split(/\s+/)
+    .filter(part => part.length > 1)
+    .slice(0, 2)
+    .join(' ')
+
+  const slug = meaningfulParts
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
