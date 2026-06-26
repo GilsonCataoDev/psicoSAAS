@@ -45,8 +45,11 @@ function appendTranscript(current: string, transcript: string) {
   return `${current.trimEnd()} ${clean}`
 }
 
+const FREE_VOICE_FALLBACK = 'Ditado do navegador indisponível. Alternativa sem custo: clique no campo e use Windows + H no PC ou o microfone do teclado no celular.'
+
 export default function DictationButton({ value, onChange, className }: DictationButtonProps) {
   const [state, setState] = useState<'idle' | 'listening'>('idle')
+  const [browserVoiceUnavailable, setBrowserVoiceUnavailable] = useState(false)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const valueRef = useRef(value)
 
@@ -64,9 +67,15 @@ export default function DictationButton({ value, onChange, className }: Dictatio
   }
 
   function startDictation() {
+    if (browserVoiceUnavailable) {
+      toast(FREE_VOICE_FALLBACK, { duration: 8000 })
+      return
+    }
+
     const Recognition = getRecognition()
     if (!Recognition) {
-      toast.error('Ditado nativo indisponível neste navegador. Use o teclado por voz do celular ou tente Chrome/Edge.')
+      setBrowserVoiceUnavailable(true)
+      toast.error(FREE_VOICE_FALLBACK, { duration: 8000 })
       return
     }
 
@@ -88,7 +97,8 @@ export default function DictationButton({ value, onChange, className }: Dictatio
         if (e?.error === 'not-allowed') {
           toast.error('Permissão do microfone negada. Habilite nas configurações do navegador.')
         } else if (e?.error === 'network') {
-          toast.error('Ditado indisponível: sem conexão com o serviço de voz.')
+          setBrowserVoiceUnavailable(true)
+          toast.error(FREE_VOICE_FALLBACK, { duration: 8000 })
         } else {
           toast.error('Não foi possível usar o ditado. Verifique a permissão do microfone.')
         }
