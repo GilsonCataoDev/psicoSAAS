@@ -46,18 +46,89 @@
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "Web",
       "inLanguage": "pt-BR",
-      "description": "Plataforma de gestão para psicólogos: agenda com lembretes automáticos, prontuário digital, documentos com verificação por QR Code e financeiro do consultório.",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "BRL",
-        "description": "Teste gratuito de 7 dias"
-      },
+      "description": "Plataforma de gestão para psicólogos autônomos: agenda com lembretes automáticos via WhatsApp, prontuário digital criptografado, documentos com verificação por QR Code e controle financeiro do consultório.",
+      "featureList": [
+        "Agenda com lembretes automáticos via WhatsApp",
+        "Prontuário eletrônico com criptografia",
+        "Documentos com assinatura digital e QR Code",
+        "Escalas clínicas validadas (PHQ-9, GAD-7, DASS-21)",
+        "Agendamento online para pacientes",
+        "Sincronização com Google Calendar",
+        "Controle financeiro e cobranças"
+      ],
+      "offers": [
+        {
+          "@type": "Offer",
+          "name": "Plano Gratuito",
+          "price": "0",
+          "priceCurrency": "BRL",
+          "description": "Teste gratuito de 7 dias, sem cartão de crédito"
+        },
+        {
+          "@type": "Offer",
+          "name": "Plano Essencial",
+          "price": "79",
+          "priceCurrency": "BRL",
+          "billingIncrement": "P1M"
+        },
+        {
+          "@type": "Offer",
+          "name": "Plano Pro",
+          "price": "149",
+          "priceCurrency": "BRL",
+          "billingIncrement": "P1M"
+        }
+      ],
       "provider": {
         "@type": "Organization",
         "name": "UseCognia",
         "url": "https://usecognia.com.br"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "reviewCount": "47"
       }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "O UseCognia é gratuito?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sim. Você pode testar gratuitamente por 7 dias sem precisar de cartão de crédito. Após o período, os planos começam em R$79/mês."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "O prontuário eletrônico é seguro?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sim. As notas clínicas são criptografadas com AES-256-GCM. A plataforma está em conformidade com a LGPD e as resoluções do CFP sobre prontuário eletrônico."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Posso usar o UseCognia no celular?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sim. O UseCognia funciona como Progressive Web App (PWA) em qualquer smartphone, tablet ou computador, sem precisar instalar nada."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Como funcionam os lembretes automáticos?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Os lembretes são enviados automaticamente via WhatsApp para os pacientes antes de cada consulta. Você conecta seu WhatsApp uma vez e o sistema cuida do resto."
+          }
+        }
+      ]
     }
     </script>
 
