@@ -7,6 +7,9 @@ export type AlertType =
   | 'lost_healthy_status'
   | 'not_activated_7d'
   | 'critical_risk'
+  | 'activation_email_48h'
+  | 'activation_email_7d'
+  | 'reactivation_email_21d'
 
 @Entity('tenant_alerts')
 export class TenantAlert {

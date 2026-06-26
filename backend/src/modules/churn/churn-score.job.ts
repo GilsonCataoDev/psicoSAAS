@@ -35,8 +35,9 @@ export class ChurnScoreJob implements OnModuleInit, OnModuleDestroy {
     const start = Date.now()
     try {
       const result = await this.churn.recalculateAll()
+      const nudges = await this.churn.sendActivationNudges()
       const elapsed = Date.now() - start
-      this.logger.log(`Churn scores recalculados: processed=${result.processed} errors=${result.errors} elapsed=${elapsed}ms`)
+      this.logger.log(`Churn scores recalculados: processed=${result.processed} errors=${result.errors} nudges=${JSON.stringify(nudges)} elapsed=${elapsed}ms`)
     } finally {
       this.running = false
     }

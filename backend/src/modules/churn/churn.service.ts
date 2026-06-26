@@ -483,6 +483,125 @@ export class ChurnService {
     `, params)
   }
 
+  // ─── Automated email nudges ─────────────────────────────────────────────────
+
+  async sendActivationNudges(): Promise<{ sent48h: number; sent7d: number; sent21d: number }> {
+    const rows = await this.ds.query<Array<{
+      id: string; name: string; email: string; daysSinceSignup: number; patientCount: string
+    }>>(`
+      SELECT
+        u.id, u.name, u.email,
+        EXTRACT(DAY FROM NOW() - u."createdAt")::int AS "daysSinceSignup",
+        (SELECT COUNT(*)::int FROM patients p WHERE p."psychologistId" = u.id) AS "patientCount"
+      FROM users u
+      WHERE u."isActive" = true
+        AND u.email NOT LIKE '%@example.com'
+        AND u.email NOT LIKE '%+test%'
+      ORDER BY u."createdAt" DESC
+      LIMIT 500
+    `)
+
+    let sent48h = 0, sent7d = 0, sent21d = 0
+
+    for (const row of rows) {
+      const patients = Number(row.patientCount)
+      const days = row.daysSinceSignup
+
+      // 48h nudge — not activated, between 2-3 days old
+      if (patients === 0 && days >= 2 && days < 3) {
+        const already = await this.alertRepo.findOne({ where: { userId: row.id, type: 'activation_email_48h' } })
+        if (!already) {
+          await this.sendNudgeEmail(row.name, row.email, '48h')
+          await this.createAlert(row.id, 'activation_email_48h', `E-mail de ativação 48h enviado.`, {})
+          sent48h++
+        }
+      }
+
+      // 7d nudge — still not activated, between 7-8 days old
+      if (patients === 0 && days >= 7 && days < 8) {
+        const already = await this.alertRepo.findOne({ where: { userId: row.id, type: 'activation_email_7d' } })
+        if (!already) {
+          await this.sendNudgeEmail(row.name, row.email, '7d')
+          await this.createAlert(row.id, 'activation_email_7d', `E-mail de ativação 7d enviado.`, {})
+          sent7d++
+        }
+      }
+
+      // 21d reactivation — had patients but stopped using (no session in 21d)
+      if (patients > 0 && days >= 21) {
+        const lastSession = await this.ds.query<Array<{ lastSession: Date | null }>>(
+          `SELECT MAX(s."createdAt") AS "lastSession" FROM sessions s WHERE s."psychologistId" = $1`, [row.id],
+        )
+        const daysSinceSession = lastSession[0]?.lastSession
+          ? this.daysSince(lastSession[0].lastSession)
+          : days
+        if (daysSinceSession >= 21) {
+          const already = await this.alertRepo.findOne({ where: { userId: row.id, type: 'reactivation_email_21d', resolved: false } })
+          if (!already) {
+            await this.sendNudgeEmail(row.name, row.email, '21d')
+            await this.createAlert(row.id, 'reactivation_email_21d', `E-mail de reativação 21d enviado.`, {})
+            sent21d++
+          }
+        }
+      }
+    }
+
+    this.logger.log(`nudges: 48h=${sent48h} 7d=${sent7d} 21d=${sent21d}`)
+    return { sent48h, sent7d, sent21d }
+  }
+
+  private async sendNudgeEmail(name: string, email: string, type: '48h' | '7d' | '21d'): Promise<void> {
+    const url = 'https://usecognia.com.br/#/pacientes'
+    const cta = `<a href="${url}" style="display:inline-block;background:#2f7657;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px">Cadastrar meu primeiro paciente →</a>`
+
+    const subjects: Record<string, string> = {
+      '48h': `${name}, seu consultório digital está esperando por você 👋`,
+      '7d':  `Uma semana no UseCognia — mas você ainda não começou, ${name}`,
+      '21d': `${name}, seus pacientes estão esperando no UseCognia`,
+    }
+
+    const bodies: Record<string, string> = {
+      '48h': `
+        <p>Olá, <strong>${name}</strong>!</p>
+        <p>Você criou sua conta no UseCognia há dois dias. Que ótimo ter você aqui! 🎉</p>
+        <p>O primeiro passo é simples: <strong>cadastre seu primeiro paciente</strong>. Leva menos de 1 minuto e já libera agendamentos, prontuários e muito mais.</p>
+        <p style="margin:32px 0">${cta}</p>
+        <p style="color:#666;font-size:13px">Dúvidas? Responda este e-mail que a gente ajuda.</p>
+      `,
+      '7d': `
+        <p>Olá, <strong>${name}</strong>!</p>
+        <p>Faz uma semana desde que você criou sua conta — e ainda não cadastrou nenhum paciente. Tudo bem, às vezes o dia a dia não deixa. 😊</p>
+        <p>Que tal levar <strong>60 segundos agora</strong> para cadastrar o primeiro paciente? É o único passo que precisa para desbloquear toda a plataforma.</p>
+        <p style="margin:32px 0">${cta}</p>
+        <p style="color:#666;font-size:13px">Se tiver alguma dificuldade ou dúvida, é só responder este e-mail.</p>
+      `,
+      '21d': `
+        <p>Olá, <strong>${name}</strong>!</p>
+        <p>Percebemos que faz mais de 3 semanas sem registrar sessões no UseCognia. Está tudo bem por aí?</p>
+        <p>Seus prontuários, agenda e pacientes continuam salvos e seguros. Quando quiser retomar, é só entrar na plataforma.</p>
+        <p style="margin:32px 0">
+          <a href="https://usecognia.com.br/#/login" style="display:inline-block;background:#2f7657;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px">Voltar para o UseCognia →</a>
+        </p>
+        <p style="color:#666;font-size:13px">Se precisar de ajuda ou quiser conversar sobre a plataforma, responda este e-mail.</p>
+      `,
+    }
+
+    await this.email.send({
+      to: email,
+      subject: subjects[type],
+      html: `
+        <div style="font-family:Inter,sans-serif;max-width:520px;margin:0 auto;color:#1a1a1a;line-height:1.6">
+          ${bodies[type]}
+          <hr style="border:none;border-top:1px solid #eee;margin:32px 0"/>
+          <p style="color:#999;font-size:12px">
+            Equipe UseCognia · <a href="https://usecognia.com.br" style="color:#999">usecognia.com.br</a><br/>
+            Para não receber mais e-mails, responda com "descadastrar".
+          </p>
+        </div>
+      `,
+    })
+  }
+
   async sendReactivationEmail(userId: string): Promise<{ sent: boolean }> {
     const rows = await this.ds.query<Array<{ name: string; email: string }>>(
       `SELECT name, email FROM users WHERE id = $1 LIMIT 1`, [userId],
