@@ -77,6 +77,23 @@ export default function BookingPage() {
 
   useEffect(() => { track(EVENTS.BOOKING_PAGE_VIEWED) }, [])
 
+  // SEO dinâmico — atualiza title e meta description com dados do psicólogo
+  useEffect(() => {
+    if (!page) return
+    const name = page.psychologistName
+    const specialty = (page as any).specialty ?? 'Psicólogo(a)'
+    const city = (page as any).city ?? ''
+    document.title = `Agendar consulta com ${name} — ${specialty}${city ? ` em ${city}` : ''} | UseCognia`
+    const meta = document.querySelector('meta[name="description"]')
+    if (meta) meta.setAttribute('content',
+      `Agende sua sessão com ${name}, ${specialty.toLowerCase()}${city ? ` em ${city}` : ''}. Agendamento online rápido e seguro via UseCognia.`
+    )
+    return () => {
+      document.title = 'UseCognia | Agenda, prontuário e documentos para psicólogos'
+      meta?.setAttribute('content', 'Plataforma de gestão para psicólogos autônomos.')
+    }
+  }, [page])
+
   useEffect(() => {
     if (!page) return
     if (page.allowOnline && !page.allowPresencial) setValue('modality', 'online')
