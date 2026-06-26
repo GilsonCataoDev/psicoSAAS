@@ -10,6 +10,8 @@ import { NotificationsService } from '../notifications/notifications.service'
 import { Booking } from '../booking/entities/booking.entity'
 import { GoogleCalendarService } from '../google-calendar/google-calendar.service'
 import { Patient } from '../patients/entities/patient.entity'
+import { Session } from '../sessions/entities/session.entity'
+import { encrypt } from '../../common/crypto/encrypt.util'
 
 @Injectable()
 export class AppointmentsService {
@@ -17,6 +19,7 @@ export class AppointmentsService {
     @InjectRepository(Appointment) private repo: Repository<Appointment>,
     @InjectRepository(Booking) private bookings: Repository<Booking>,
     @InjectRepository(Patient) private patients: Repository<Patient>,
+    @InjectRepository(Session) private sessions: Repository<Session>,
     private dataSource: DataSource,
     private notifications: NotificationsService,
     private googleCalendar: GoogleCalendarService,
@@ -107,12 +110,36 @@ export class AppointmentsService {
     const appointment = await this.findOne(id, psychologistId)
     appointment.status = status
     const saved = await this.repo.save(appointment)
+
     if (['cancelled', 'no_show'].includes(status)) {
       this.googleCalendar.deleteAppointment(saved).catch(console.error)
     } else {
       this.googleCalendar.syncAppointment(saved).catch(console.error)
     }
+
+    // Registra falta no prontuário automaticamente
+    if (status === 'no_show') {
+      await this.registerNoShowSession(saved, psychologistId)
+    }
+
     return saved
+  }
+
+  private async registerNoShowSession(appointment: Appointment, psychologistId: string): Promise<void> {
+    // Evita duplicata se já existe sessão vinculada a este agendamento
+    const existing = await this.sessions.findOne({ where: { appointmentId: appointment.id } })
+    if (existing) return
+
+    await this.sessions.save(this.sessions.create({
+      patientId:       appointment.patientId,
+      psychologistId,
+      date:            appointment.date,
+      duration:        appointment.duration,
+      appointmentId:   appointment.id,
+      summary:         encrypt('Paciente não compareceu à sessão agendada.'),
+      tags:            ['falta'],
+      paymentStatus:   'waived',
+    }))
   }
 
   async remove(id: string, psychologistId: string) {

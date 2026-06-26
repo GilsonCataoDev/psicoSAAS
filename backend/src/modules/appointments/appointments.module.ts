@@ -8,9 +8,10 @@ import { Booking } from '../booking/entities/booking.entity'
 import { NotificationsModule } from '../notifications/notifications.module'
 import { GoogleCalendarModule } from '../google-calendar/google-calendar.module'
 import { Patient } from '../patients/entities/patient.entity'
+import { Session } from '../sessions/entities/session.entity'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Appointment, Booking, Patient]), NotificationsModule, GoogleCalendarModule],
+  imports: [TypeOrmModule.forFeature([Appointment, Booking, Patient, Session]), NotificationsModule, GoogleCalendarModule],
   controllers: [AppointmentsController],
   providers: [AppointmentsService, AppointmentReminderJob],
 })

@@ -39,6 +39,7 @@ export type EmotionalTag =
   | 'progresso'
   | 'crise'
   | 'outro'
+  | 'falta'
 
 export interface Appointment {
   id: string
@@ -124,6 +125,7 @@ export const TAG_LABELS: Record<EmotionalTag, string> = {
   progresso: 'Progresso',
   crise: 'Crise',
   outro: 'Outro',
+  falta: 'Falta',
 }
 
 export const TAG_COLORS: Record<EmotionalTag, string> = {
@@ -139,4 +141,5 @@ export const TAG_COLORS: Record<EmotionalTag, string> = {
   progresso:     'bg-sage-100 text-sage-700',
   crise:         'bg-red-100 text-red-700',
   outro:         'bg-neutral-100 text-neutral-600',
+  falta:         'bg-rose-200 text-rose-800',
 }
