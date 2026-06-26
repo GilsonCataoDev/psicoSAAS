@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { CheckCircle2, ClipboardList } from 'lucide-react'
+import { CheckCircle2, ClipboardList, ShieldCheck } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { usePublicInstrument, useSubmitPublicInstrument, type InstrumentField } from '@/hooks/useApi'
 import BrandLogo from '@/components/ui/BrandLogo'
-import { SCALE_CONFIGS, calcScaleScore, getThresholdLevel } from '@/lib/scale-scoring'
+import { SCALE_CONFIGS, calcScaleScore } from '@/lib/scale-scoring'
 
 // ── Likert radio group ───────────────────────────────────────────────────────
 
@@ -66,55 +66,6 @@ function LikertItem({
           })}
         </div>
       )}
-    </div>
-  )
-}
-
-// ── Score result card ────────────────────────────────────────────────────────
-
-function ScoreResult({ instrumentId, score, scoreDetails }: { instrumentId: string; score: number; scoreDetails?: string | null }) {
-  const config = SCALE_CONFIGS[instrumentId]
-  if (!config) return null
-
-  if (config.subscales && scoreDetails) {
-    let details: Record<string, number> = {}
-    try { details = JSON.parse(scoreDetails) } catch { /* ignore */ }
-    return (
-      <div className="mt-6 space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Seu resultado</p>
-        {config.subscales.map(sub => {
-          const subScore = details[sub.id] ?? 0
-          const level = getThresholdLevel(subScore, sub.thresholds)
-          return (
-            <div key={sub.id} className="flex items-center justify-between rounded-xl border border-neutral-100 bg-white px-4 py-3">
-              <span className="text-sm font-medium text-neutral-700">{sub.label}</span>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-neutral-800">{subScore}</span>
-                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${level.color}`}>{level.label}</span>
-              </div>
-            </div>
-          )
-        })}
-        <p className="text-xs text-neutral-400">Estes resultados serão analisados pela profissional responsável.</p>
-      </div>
-    )
-  }
-
-  if (!config.thresholds) return null
-  const level = getThresholdLevel(score, config.thresholds)
-  return (
-    <div className="mt-6 rounded-xl border border-neutral-100 bg-white p-4">
-      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">Seu resultado</p>
-      <div className="flex items-center gap-4">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-xl font-bold text-neutral-800">
-          {score}
-        </div>
-        <div>
-          <span className={`rounded-full px-3 py-1 text-sm font-semibold ${level.color}`}>{level.label}</span>
-          {config.note && <p className="mt-2 text-xs text-neutral-500">{config.note}</p>}
-        </div>
-      </div>
-      <p className="mt-3 text-xs text-neutral-400">Este resultado será analisado pela profissional responsável.</p>
     </div>
   )
 }
@@ -207,20 +158,19 @@ export default function InstrumentResponsePage() {
                   Obrigado. As respostas foram encaminhadas com segurança para a profissional.
                 </p>
               </div>
-              {result.score != null && (
-                <ScoreResult
-                  instrumentId={instrumentId}
-                  score={result.score}
-                  scoreDetails={result.scoreDetails}
-                />
-              )}
+              <div className="mx-auto mt-6 flex max-w-md items-start gap-3 rounded-xl border border-sage-100 bg-sage-50 px-4 py-3 text-left">
+                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-sage-600" />
+                <p className="text-xs leading-relaxed text-sage-800">
+                  A interpretacao sera feita pela profissional responsavel. Este formulario nao substitui avaliacao clinica.
+                </p>
+              </div>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Header */}
               <div className="border-b border-neutral-100 pb-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-sage-600">
-                  {isScale ? 'Escala clínica' : 'Formulário clínico'}
+                  {isScale ? 'Escala de rastreio' : 'Formulario de apoio'}
                 </p>
                 <h1 className="mt-1 text-xl font-semibold text-neutral-900">{data?.title}</h1>
                 {data?.description && (
@@ -234,6 +184,9 @@ export default function InstrumentResponsePage() {
                     Opções: {scaleConfig.options.map(o => `${o.value} = ${o.label}`).join(' | ')}
                   </p>
                 )}
+                <p className="mt-3 rounded-xl bg-neutral-50 px-3 py-2 text-xs leading-relaxed text-neutral-500">
+                  Responda com tranquilidade. As respostas serao enviadas apenas para a profissional responsavel.
+                </p>
               </div>
 
               {/* Scale: Likert items */}

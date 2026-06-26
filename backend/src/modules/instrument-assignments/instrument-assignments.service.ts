@@ -66,7 +66,7 @@ export class InstrumentAssignmentsService {
       const first = patient.name.split(' ')[0]
       const result = await this.notifications.sendDirectWhatsApp(
         patient.phone,
-        `Ola, ${first}! Segue o formulario combinado para preencher com calma:\n\n${url}\n\nO link fica disponivel por 7 dias.`,
+        `Ola, ${first}. A profissional enviou um formulario pelo UseCognia para voce responder com calma.\n\nAcesse: ${url}\n\nO link e individual, seguro e expira em 7 dias. Responda em um ambiente reservado.`,
         psychologistId,
         { type: 'Formulario', patientId: patient.id, patientName: patient.name },
       )
@@ -125,9 +125,7 @@ export class InstrumentAssignmentsService {
     }
 
     const fields = this.extractFields(assignment.template)
-    const cleanAnswers = Object.fromEntries(
-      fields.map(field => [field.id, String(answers?.[field.id] ?? '').trim().slice(0, 5000)]),
-    )
+    const cleanAnswers = this.cleanAnswers(fields, answers)
     const responseText = this.buildResponseText(assignment, fields, cleanAnswers)
 
     assignment.status = 'completed'
@@ -150,9 +148,7 @@ export class InstrumentAssignmentsService {
     if (assignment.status !== 'completed') throw new BadRequestException('Formulario ainda nao respondido')
 
     const fields = this.extractFields(assignment.template)
-    const cleanAnswers = Object.fromEntries(
-      fields.map(field => [field.id, String(answers?.[field.id] ?? '').trim().slice(0, 5000)]),
-    )
+    const cleanAnswers = this.cleanAnswers(fields, answers)
     assignment.responseData = encrypt(JSON.stringify(cleanAnswers))
     assignment.responseText = encrypt(this.buildResponseText(assignment, fields, cleanAnswers))
     await this.assignments.save(assignment)
@@ -187,14 +183,33 @@ export class InstrumentAssignmentsService {
     return { type: longAnswerTerms.some(term => normalized.includes(term)) ? 'textarea' : 'text' }
   }
 
+  private cleanAnswers(fields: InstrumentField[], answers: Record<string, string>): Record<string, string> {
+    if (fields.length > 0) {
+      return Object.fromEntries(
+        fields.map(field => [field.id, String(answers?.[field.id] ?? '').trim().slice(0, 5000)]),
+      )
+    }
+
+    return Object.fromEntries(
+      Object.entries(answers ?? {})
+        .slice(0, 200)
+        .filter(([key]) => /^[a-zA-Z0-9_-]{1,80}$/.test(key))
+        .map(([key, value]) => [key, String(value ?? '').trim().slice(0, 5000)]),
+    )
+  }
+
   private buildResponseText(assignment: InstrumentAssignment, fields: InstrumentField[], answers: Record<string, string>) {
+    const answerLines = fields.length > 0
+      ? fields.map(field => `${field.label}: ${answers[field.id] ?? ''}`)
+      : Object.entries(answers).map(([key, value]) => `${key}: ${value}`)
+
     return [
       assignment.title,
       '',
       `Paciente: ${assignment.patient?.name ?? 'Paciente'}`,
       `Respondido em: ${new Date().toLocaleString('pt-BR')}`,
       '',
-      ...fields.map(field => `${field.label}: ${answers[field.id] ?? ''}`),
+      ...answerLines,
     ].join('\n')
   }
 

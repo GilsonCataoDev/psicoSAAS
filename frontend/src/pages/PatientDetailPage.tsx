@@ -736,7 +736,7 @@ export default function PatientDetailPage() {
                   })()}
                 </div>
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-sage-600">
-                  <Pencil className="h-3.5 w-3.5" /> Ver e editar
+                  <Pencil className="h-3.5 w-3.5" /> {SCALE_CONFIGS[response.instrumentId] ? 'Ver resposta' : 'Ver e editar'}
                 </span>
               </div>
             </button>
@@ -890,7 +890,30 @@ export default function PatientDetailPage() {
             </div>
           )
         })()}
-        {editingResponse?.answers ? (
+        {editingResponse?.answers && SCALE_CONFIGS[editingResponse.instrumentId] ? (
+          <div className="space-y-3">
+            {SCALE_CONFIGS[editingResponse.instrumentId].items.map((item, index) => {
+              const value = editingResponse.answers?.[item.id] ?? ''
+              const options = item.options ?? SCALE_CONFIGS[editingResponse.instrumentId].options
+              const label = options.find(option => String(option.value) === String(value))?.label
+              return (
+                <div key={item.id} className="rounded-xl border border-neutral-100 bg-neutral-50 px-4 py-3">
+                  <p className="text-sm font-medium text-neutral-700">
+                    <span className="mr-2 text-xs font-semibold text-sage-600">{index + 1}.</span>
+                    {item.label}
+                  </p>
+                  <p className="mt-2 text-xs text-neutral-500">
+                    Resposta: <span className="font-semibold text-neutral-700">{value || '—'}</span>
+                    {label ? <span> · {label}</span> : null}
+                  </p>
+                </div>
+              )
+            })}
+            <div className="flex justify-end border-t border-neutral-100 pt-4">
+              <button type="button" onClick={() => setEditingResponse(null)} className="btn-secondary">Fechar</button>
+            </div>
+          </div>
+        ) : editingResponse?.answers ? (
           <div className="space-y-4">
             {editingResponse.fields.map(field => (
               <label key={field.id} className="block">

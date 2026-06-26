@@ -1706,7 +1706,7 @@ ${rows}
             <button type="button" onClick={onClose} className="btn-secondary text-sm">Fechar</button>
             <button type="button" onClick={() => onSend(inst)} className="btn-secondary text-sm flex items-center gap-2">
               <MessageSquare className="w-4 h-4" />
-              Enviar formulario
+              Enviar formulário
             </button>
             <button type="button" onClick={printInstrument} className="btn-primary text-sm flex items-center gap-2">
               <Download className="w-4 h-4" />
@@ -1832,7 +1832,7 @@ function SendInstrumentModal({
   }
 
   return (
-    <Modal open={!!instrument} onClose={onClose} title="Enviar formulario" size="md">
+    <Modal open={!!instrument} onClose={onClose} title="Enviar formulário" size="md">
       <div className="space-y-4">
         <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
           <p className="text-sm font-semibold text-neutral-800">{instrument?.title}</p>
@@ -1862,10 +1862,16 @@ function SendInstrumentModal({
           <span>
             <span className="block text-sm font-medium text-neutral-700">Enviar direto pelo WhatsApp</span>
             <span className="mt-0.5 block text-xs text-neutral-400">
-              {selectedPatient?.phone ? 'O paciente recebe o link seguro automaticamente.' : 'Paciente sem telefone cadastrado; o link sera copiado.'}
+              {selectedPatient?.phone ? `O link será enviado para ${selectedPatient.phone}.` : 'Paciente sem telefone cadastrado; o link será copiado.'}
             </span>
           </span>
         </label>
+
+        <div className="rounded-xl border border-sage-100 bg-sage-50 px-3 py-2">
+          <p className="text-xs leading-relaxed text-sage-800">
+            O link expira em 7 dias e fica vinculado a este paciente. Depois do envio, a resposta aparece no prontuário.
+          </p>
+        </div>
 
         <div className="flex justify-end gap-3">
           <button type="button" onClick={onClose} className="btn-secondary text-sm">Cancelar</button>
@@ -1992,7 +1998,7 @@ export default function InstrumentosPage() {
       {/* Nota CFP */}
       <p className="text-xs text-neutral-400 border-t border-neutral-100 pt-4">
         Testes psicológicos privativos devem ser utilizados exclusivamente por psicólogas(os) habilitados,
-        conforme orientação do CFP e lista do{' '}
+        conforme orientação do CFP e consulta ao{' '}
         <a
           href="https://satepsi.cfp.org.br/"
           target="_blank"
@@ -2001,7 +2007,7 @@ export default function InstrumentosPage() {
         >
           SATEPSI
         </a>
-        . As escalas de rastreio aqui listadas são de uso clínico livre e não substituem avaliação psicológica formal.
+        . Alguns instrumentos podem ter regras próprias de uso, tradução e direitos autorais. Confirme a adequação antes de aplicar.
       </p>
 
       <InstrumentModal
