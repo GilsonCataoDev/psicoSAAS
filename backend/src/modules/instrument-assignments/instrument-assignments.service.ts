@@ -199,8 +199,8 @@ export class InstrumentAssignmentsService {
   }
 
   private publicUrl(token: string): string {
-    const frontendUrl = this.config.get<string>('FRONTEND_URL') ?? 'https://usecognia.com.br'
-    return `${frontendUrl}/#/instrumentos/responder/${token}`
+    const frontendUrl = (this.config.get<string>('FRONTEND_URL') ?? 'https://usecognia.com.br').replace(/\/$/, '')
+    return `${frontendUrl}/instrumentos/responder/${token}`
   }
 
   private toDto(item: InstrumentAssignment) {

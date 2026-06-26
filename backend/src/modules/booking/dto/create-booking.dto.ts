@@ -9,6 +9,7 @@ export class CreateBookingDto {
 
   @IsEmail()
   @MaxLength(254)
+  @Transform(({ value }) => typeof value === 'string' ? value.toLowerCase().trim() : value)
   patientEmail: string
 
   @IsString() @IsOptional()

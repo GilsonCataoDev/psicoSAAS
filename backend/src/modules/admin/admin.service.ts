@@ -37,7 +37,17 @@ export class AdminService {
 
     const qb = this.users
       .createQueryBuilder('u')
-      .select(['u.id', 'u.name', 'u.email', 'u.crp', 'u.specialty', 'u.isActive', 'u.emailVerified', 'u.createdAt'])
+      .select([
+        'u.id',
+        'u.name',
+        'u.email',
+        'u.crp',
+        'u.specialty',
+        'u.isActive',
+        'u.emailVerified',
+        'u.createdAt',
+        'u.lastActiveAt',
+      ])
       .leftJoinAndMapOne('u.subscription', Subscription, 'subscription', `subscription.id = (${latestSubscriptionId})`)
       .orderBy('u.createdAt', 'DESC')
       .skip((page - 1) * limit)

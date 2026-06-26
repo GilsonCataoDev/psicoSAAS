@@ -55,7 +55,8 @@ export default function BookingManagePage() {
   }, [])
 
   const appBaseUrl = new URL(import.meta.env.BASE_URL || '/', window.location.origin).toString()
-  const bookingUrl = dailyLink?.token ? `${appBaseUrl}#/agendar/${dailyLink.token}` : dailyLink?.url ?? '...'
+  const bookingUrl = dailyLink?.url
+    ?? (bookingPage?.slug ? `${appBaseUrl}agendar/${bookingPage.slug}` : '...')
 
   async function copyLink() {
     try {
@@ -83,10 +84,6 @@ export default function BookingManagePage() {
 
   const filtered = filter === 'all' ? bookings : bookings.filter((b: any) => b.status === filter)
 
-  const expiresLabel = dailyLink?.expiresAt
-    ? new Date(dailyLink.expiresAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
-    : null
-
   return (
     <div className="animate-slide-up space-y-5">
       <div className="flex items-start justify-between gap-3">
@@ -104,10 +101,10 @@ export default function BookingManagePage() {
       {/* Link card */}
       <div className="card bg-gradient-to-r from-sage-500 to-sage-600 dark:from-sage-700 dark:to-sage-800 text-white border-0">
         <div className="flex items-center gap-2 mb-1 flex-wrap">
-          <p className="text-sage-100 text-xs">Seu link de agendamento de hoje</p>
-          {expiresLabel && (
+          <p className="text-sage-100 text-xs">Seu link fixo de agendamento</p>
+          {dailyLink?.slug && (
             <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full text-white/90">
-              renova às {expiresLabel}
+              usecognia.com.br/agendar/{dailyLink.slug}
             </span>
           )}
         </div>
@@ -117,7 +114,7 @@ export default function BookingManagePage() {
             className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2">
             <Link2 className="w-4 h-4" />Copiar
           </button>
-          {dailyLink?.token && (
+          {dailyLink?.url && (
             <a href={bookingUrl} target="_blank" rel="noreferrer"
               className="bg-white text-sage-700 hover:bg-sage-50 px-4 py-2 rounded-xl text-sm font-medium transition-colors">
               Visualizar

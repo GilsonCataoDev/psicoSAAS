@@ -48,7 +48,10 @@ class PatientProntuarioDto {
 export class CreatePatientDto {
   @IsString() name: string
 
-  @Transform(({ value }) => emptyToUndefined(value))
+  @Transform(({ value }) => {
+    const normalized = emptyToUndefined(value)
+    return typeof normalized === 'string' ? normalized.toLowerCase().trim() : normalized
+  })
   @IsEmail()
   @IsOptional()
   email?: string

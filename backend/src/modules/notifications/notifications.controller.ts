@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Post, Request, UseGuards } from '@nestjs/common'
-import { SkipThrottle } from '@nestjs/throttler'
+import { Throttle } from '@nestjs/throttler'
 import { RequirePlan } from '../../common/decorators/require-plan.decorator'
+import { AdminGuard } from '../../common/guards/admin.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { NotificationsService } from './notifications.service'
@@ -13,7 +14,6 @@ export class NotificationsController {
   constructor(private readonly notifications: NotificationsService) {}
 
   @Get('status')
-  @SkipThrottle()
   status(@Request() req: any) {
     return this.notifications.getWhatsAppStatus(req.user.id)
   }
@@ -42,6 +42,8 @@ export class NotificationsController {
   }
 
   @Get('debug')
+  @UseGuards(AdminGuard)
+  @Throttle({ long: { limit: 10, ttl: 60 * 1000 } })
   debug(@Request() req: any) {
     return this.notifications.debugWhatsApp(req.user.id)
   }
@@ -53,7 +55,6 @@ export class PushNotificationsController {
   constructor(private readonly notifications: NotificationsService) {}
 
   @Get('status')
-  @SkipThrottle()
   status(@Request() req: any) {
     return this.notifications.getPushStatus(req.user.id)
   }

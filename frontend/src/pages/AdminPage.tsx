@@ -1,12 +1,15 @@
 import { Fragment, useState } from 'react'
 import { Link } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import {
   Activity,
   AlertCircle,
   ArrowDownUp,
   Bell,
+  CheckCircle,
   ChevronDown,
   ChevronRight,
+  Copy,
   CreditCard,
   Database,
   Mail,
@@ -20,6 +23,7 @@ import {
   X,
 } from 'lucide-react'
 import { useAdminStats, useAdminUsers, useAdminOverrideSubscription, useAdminMonitor, useAdminHealthScores, useCleanupTestUsers, AdminUser, HealthScore } from '@/hooks/useApi'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
 
@@ -39,6 +43,19 @@ const STATUS_COLOR: Record<string, string> = {
   canceled: 'bg-neutral-100 text-neutral-500',
   pending: 'bg-orange-100 text-orange-700',
   none: 'bg-neutral-100 text-neutral-400',
+}
+
+function formatShortDate(value?: string | null) {
+  if (!value) return '—'
+  return new Date(value).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
+}
+
+function relativeDate(value?: string | null) {
+  if (!value) return 'Nunca'
+  const days = Math.floor((Date.now() - new Date(value).getTime()) / 86_400_000)
+  if (days <= 0) return 'Hoje'
+  if (days === 1) return 'Ontem'
+  return `${days}d atrás`
 }
 
 function OverrideModal({ user, onClose }: { user: AdminUser; onClose: () => void }) {
@@ -115,6 +132,7 @@ function UsersTab() {
   const [plan, setPlan] = useState('')
   const [status, setStatus] = useState('')
   const [selected, setSelected] = useState<AdminUser | null>(null)
+  const [copiedEmail, setCopiedEmail] = useState<string | null>(null)
   const { data: users, isLoading } = useAdminUsers({ page, search: search.trim() || undefined, plan: plan || undefined, status: status || undefined })
 
   const totalPages = users ? Math.ceil(users.total / users.limit) : 1
@@ -125,6 +143,12 @@ function UsersTab() {
     setPlan('')
     setStatus('')
     setPage(1)
+  }
+
+  async function copyEmail(email: string) {
+    await navigator.clipboard.writeText(email)
+    setCopiedEmail(email)
+    window.setTimeout(() => setCopiedEmail(null), 1600)
   }
 
   return (
@@ -175,39 +199,70 @@ function UsersTab() {
 
       {/* Users table */}
       <div className="overflow-x-auto rounded-2xl border border-neutral-100 bg-white shadow-sm">
-        <table className="min-w-[620px] w-full text-sm">
+        <table className="min-w-[920px] w-full text-sm">
           <thead>
             <tr className="border-b border-neutral-100 bg-neutral-50 text-left text-xs font-semibold uppercase tracking-wide text-neutral-400">
               <th className="px-4 py-3">Nome</th>
-              <th className="px-4 py-3 hidden sm:table-cell">E-mail</th>
+              <th className="px-4 py-3">E-mail</th>
               <th className="px-4 py-3">Plano</th>
               <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">Renovação</th>
+              <th className="px-4 py-3">Último acesso</th>
+              <th className="px-4 py-3">Verificação</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-50">
             {isLoading && (
               <tr>
-                <td colSpan={5} className="py-10 text-center text-xs text-neutral-400">
+                <td colSpan={8} className="py-10 text-center text-xs text-neutral-400">
                   Carregando…
                 </td>
               </tr>
             )}
             {!isLoading && users?.data.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-10 text-center text-xs text-neutral-400">
+                <td colSpan={8} className="py-10 text-center text-xs text-neutral-400">
                   Nenhum usuário encontrado.
                 </td>
               </tr>
             )}
             {users?.data.map(u => (
               <tr key={u.id} className="hover:bg-neutral-50/60">
-                <td className="px-4 py-3 font-medium text-neutral-800">{u.name}</td>
-                <td className="px-4 py-3 hidden text-neutral-500 sm:table-cell">{u.email}</td>
+                <td className="px-4 py-3">
+                  <p className="font-medium text-neutral-800">{u.name}</p>
+                  <p className="text-[11px] text-neutral-400">CRP {u.crp || '—'}</p>
+                </td>
+                <td className="px-4 py-3 text-neutral-500">
+                  <button
+                    type="button"
+                    onClick={() => copyEmail(u.email)}
+                    className="group inline-flex max-w-[220px] items-center gap-1.5 text-left hover:text-sage-700"
+                    title="Copiar e-mail"
+                  >
+                    <span className="truncate">{u.email}</span>
+                    {copiedEmail === u.email
+                      ? <CheckCircle className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                      : <Copy className="h-3.5 w-3.5 shrink-0 text-neutral-300 group-hover:text-sage-500" />}
+                  </button>
+                </td>
                 <td className="px-4 py-3 capitalize text-neutral-600">{u.subscription?.plan ?? '—'}</td>
                 <td className="px-4 py-3">
                   <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${STATUS_COLOR[u.subscription?.status ?? 'none']}`}>
                     {STATUS_LABEL[u.subscription?.status ?? 'none']}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-xs text-neutral-500">
+                  {u.subscription?.trialEndsAt
+                    ? `Trial ${formatShortDate(u.subscription.trialEndsAt)}`
+                    : formatShortDate(u.subscription?.currentPeriodEnd)}
+                </td>
+                <td className="px-4 py-3 text-xs text-neutral-500">{relativeDate(u.lastActiveAt)}</td>
+                <td className="px-4 py-3">
+                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                    u.emailVerified ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                  }`}>
+                    {u.emailVerified ? 'Verificado' : 'Pendente'}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-right">
@@ -224,7 +279,7 @@ function UsersTab() {
         </table>
 
         {totalPages > 1 && (
-          <div className="flex min-w-[620px] items-center justify-between border-t border-neutral-100 px-4 py-3">
+          <div className="flex min-w-[920px] items-center justify-between border-t border-neutral-100 px-4 py-3">
             <span className="text-xs text-neutral-400">
               Página {page} de {totalPages} · {users?.total ?? 0} resultado(s)
             </span>
@@ -747,8 +802,19 @@ function HealthScoresTab() {
 
 export default function AdminPage() {
   const [tab, setTab] = useState<'users' | 'monitor' | 'health'>('users')
+  const [confirmCleanup, setConfirmCleanup] = useState(false)
   const { data: stats } = useAdminStats()
   const cleanup = useCleanupTestUsers()
+
+  function handleCleanupTestUsers() {
+    cleanup.mutate(undefined, {
+      onSuccess: (r) => {
+        setConfirmCleanup(false)
+        toast.success(`${r.deleted} usuário(s) de teste removido(s).`)
+      },
+      onError: () => toast.error('Não foi possível limpar usuários de teste.'),
+    })
+  }
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 px-4 py-6">
@@ -762,12 +828,7 @@ export default function AdminPage() {
         <div className="ml-auto flex items-center gap-2">
           <button
             type="button"
-            onClick={() => {
-              if (!confirm('Remover todos os usuários de teste (@example.com, +test, nome "teste")?')) return
-              cleanup.mutate(undefined, {
-                onSuccess: (r) => alert(`${r.deleted} usuário(s) removido(s).`),
-              })
-            }}
+            onClick={() => setConfirmCleanup(true)}
             disabled={cleanup.isPending}
             className="inline-flex h-9 items-center gap-2 rounded-lg border border-neutral-200 px-3 text-sm font-medium text-neutral-600 hover:border-rose-300 hover:text-rose-700 disabled:opacity-50"
           >
@@ -830,6 +891,16 @@ export default function AdminPage() {
       {tab === 'users' && <UsersTab />}
       {tab === 'health' && <HealthScoresTab />}
       {tab === 'monitor' && <MonitorTab />}
+
+      <ConfirmDialog
+        open={confirmCleanup}
+        title="Limpar usuários de teste"
+        description="Remove contas de teste antigas e seus dados relacionados. Essa ação não deve ser usada durante atendimento real."
+        confirmLabel="Remover testes"
+        loading={cleanup.isPending}
+        onConfirm={handleCleanupTestUsers}
+        onClose={() => setConfirmCleanup(false)}
+      />
     </div>
   )
 }

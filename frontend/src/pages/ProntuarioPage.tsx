@@ -53,8 +53,13 @@ const FIELD = ({
 
 export default function ProntuarioPage() {
   const { id } = useParams()
-  const { data: patient } = usePatient(id ?? '')
-  const { data: sessions = [] } = useSessions({ patientId: id, includeClinical: true })
+  const { data: patient, isLoading: patientLoading } = usePatient(id ?? '')
+  const [tab, setTab] = useState<Tab>('identificacao')
+  const { data: sessions = [] } = useSessions({
+    patientId: id,
+    includeClinical: true,
+    enabled: tab === 'evolucao',
+  })
   const createSession = useCreateSession()
   const updateSession = useUpdateSession()
   const updatePatient = useUpdatePatient()
@@ -64,7 +69,6 @@ export default function ProntuarioPage() {
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null)
   const [editEvolDate, setEditEvolDate] = useState('')
   const [editEvolText, setEditEvolText] = useState('')
-  const [tab, setTab] = useState<Tab>('identificacao')
   const [form, setForm] = useState<Partial<Prontuario>>({})
 
   // Inicializa form quando o paciente carregar
@@ -120,6 +124,14 @@ export default function ProntuarioPage() {
       toast.error('Erro ao salvar prontuário.')
     }
   }
+
+  if (patientLoading) return (
+    <div className="animate-pulse space-y-4 max-w-4xl">
+      <div className="h-8 bg-neutral-100 rounded-xl w-48" />
+      <div className="h-12 bg-neutral-100 rounded-2xl" />
+      <div className="h-64 bg-neutral-100 rounded-2xl" />
+    </div>
+  )
 
   if (!patient) return (
     <div className="text-center py-20">

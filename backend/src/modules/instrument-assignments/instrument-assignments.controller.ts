@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common'
-import { IsBoolean, IsOptional, IsString } from 'class-validator'
+import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator'
 import { Throttle } from '@nestjs/throttler'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
@@ -8,12 +8,12 @@ import { RequirePlan } from '../../common/decorators/require-plan.decorator'
 import { InstrumentAssignmentsService } from './instrument-assignments.service'
 
 class CreateInstrumentAssignmentDto {
-  @IsString() patientId: string
-  @IsString() instrumentId: string
-  @IsString() title: string
-  @IsString() @IsOptional() description?: string
-  @IsString() category: string
-  @IsString() template: string
+  @IsString() @MaxLength(80) patientId: string
+  @IsString() @MaxLength(80) instrumentId: string
+  @IsString() @MaxLength(160) title: string
+  @IsString() @IsOptional() @MaxLength(500) description?: string
+  @IsString() @MaxLength(40) category: string
+  @IsString() @MaxLength(20000) template: string
   @IsBoolean() @IsOptional() sendWhatsApp?: boolean
 }
 

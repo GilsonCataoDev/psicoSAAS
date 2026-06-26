@@ -1,11 +1,9 @@
 import { Controller, Get, Req, UseGuards } from '@nestjs/common'
-import { SkipThrottle } from '@nestjs/throttler'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { ReferralService } from './referral.service'
 
 @Controller('referral')
 @UseGuards(JwtAuthGuard)
-@SkipThrottle()
 export class ReferralController {
   constructor(private svc: ReferralService) {}
 

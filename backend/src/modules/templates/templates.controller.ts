@@ -1,5 +1,4 @@
 import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common'
-import { SkipThrottle } from '@nestjs/throttler'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { TemplatesService } from './templates.service'
@@ -8,7 +7,6 @@ import { CreateTemplateDto } from './dto/create-template.dto'
 
 @Controller('templates')
 @UseGuards(JwtAuthGuard)
-@SkipThrottle()
 export class TemplatesController {
   constructor(private readonly templates: TemplatesService) {}
 

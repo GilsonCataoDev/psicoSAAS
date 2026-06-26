@@ -158,7 +158,7 @@ export class PatientsService {
   }
 
   async findOne(id: string, psychologistId: string): Promise<Patient> {
-    const patient = await this.findRaw(id, psychologistId, ['sessions', 'appointments'])
+    const patient = await this.findRaw(id, psychologistId)
     return this.dec(patient)
   }
 

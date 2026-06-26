@@ -1,4 +1,5 @@
 import { Body, Controller, ForbiddenException, Get, Headers, HttpCode, Logger, Post, Request, UseGuards } from '@nestjs/common'
+import { Throttle } from '@nestjs/throttler'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { AsaasService, TokenizeCreditCardInput } from './asaas.service'
@@ -117,6 +118,7 @@ export class BillingController {
 
   @Post('webhook')
   @HttpCode(200)
+  @Throttle({ short: { limit: 60, ttl: 60 * 1000 } })
   async webhook(@Headers() headers: Record<string, any>, @Body() body: any) {
     if (!this.webhooks.isValidOrigin(headers, body)) {
       this.logger.warn('[Asaas webhook] Origem inválida — ignorando silenciosamente')

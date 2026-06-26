@@ -24,11 +24,61 @@ export class FinancialService {
     const where: any = { psychologistId }
     if (status) where.status = status
     if (patientId) where.patientId = patientId
-    return this.repo.find({ where, relations: ['patient'], order: { createdAt: 'DESC' } })
+    return this.repo.find({
+      where,
+      relations: { patient: true },
+      order: { createdAt: 'DESC' },
+      select: {
+        id: true,
+        type: true,
+        amount: true,
+        description: true,
+        status: true,
+        dueDate: true,
+        paidAt: true,
+        method: true,
+        sessionId: true,
+        receiptUrl: true,
+        patientId: true,
+        psychologistId: true,
+        createdAt: true,
+        patient: {
+          id: true,
+          name: true,
+          avatarColor: true,
+        },
+      } as any,
+    })
   }
 
   async findOne(id: string, psychologistId: string) {
-    const r = await this.repo.findOne({ where: { id, psychologistId }, relations: ['patient'] })
+    const r = await this.repo.findOne({
+      where: { id, psychologistId },
+      relations: { patient: true },
+      select: {
+        id: true,
+        type: true,
+        amount: true,
+        description: true,
+        status: true,
+        dueDate: true,
+        paidAt: true,
+        method: true,
+        sessionId: true,
+        receiptUrl: true,
+        asaasPaymentId: true,
+        paymentLinkUrl: true,
+        patientId: true,
+        psychologistId: true,
+        createdAt: true,
+        patient: {
+          id: true,
+          name: true,
+          phone: true,
+          avatarColor: true,
+        },
+      } as any,
+    })
     if (!r) throw new NotFoundException()
     return r
   }

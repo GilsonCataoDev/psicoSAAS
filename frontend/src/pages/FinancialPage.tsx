@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { lazy, Suspense, useMemo, useState } from 'react'
 import { Wallet, TrendingUp, Clock, CheckCircle, Plus, Download, Trash2 } from 'lucide-react'
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import StatCard from '@/components/ui/StatCard'
@@ -7,10 +7,11 @@ import { StatusBadge } from '@/components/ui/Badge'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { useFinancial, useMarkFinancialPaid, useDeleteFinancial } from '@/hooks/useApi'
 import { FinancialRecord } from '@/types'
-import NewPaymentModal from '@/components/features/financial/NewPaymentModal'
-import MarkPaidModal from '@/components/features/financial/MarkPaidModal'
 import toast from 'react-hot-toast'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+
+const NewPaymentModal = lazy(() => import('@/components/features/financial/NewPaymentModal'))
+const MarkPaidModal = lazy(() => import('@/components/features/financial/MarkPaidModal'))
 
 const METHOD_LABELS: Record<string, string> = {
   pix: 'PIX', credit_card: 'Cartao', debit_card: 'Debito', cash: 'Dinheiro', transfer: 'Transferencia',
@@ -38,12 +39,28 @@ export default function FinancialPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
   })
 
-  const total   = records.reduce((s, r) => s + (r.type === 'income' ? Number(r.amount) : 0), 0)
-  const paid    = records.filter(r => r.status === 'paid').reduce((s, r) => s + Number(r.amount), 0)
-  const pending = records.filter(r => r.status === 'pending').reduce((s, r) => s + Number(r.amount), 0)
-  const overdue = records.filter(r => r.status === 'overdue').reduce((s, r) => s + Number(r.amount), 0)
+  const financialSummary = useMemo(() => {
+    return records.reduce((summary, record) => {
+      const amount = Number(record.amount)
+      if (record.type === 'income') summary.total += amount
+      if (record.status === 'paid') summary.paid += amount
+      if (record.status === 'pending') summary.pending += amount
+      if (record.status === 'overdue') summary.overdue += amount
+      summary.counts[record.status] = (summary.counts[record.status] ?? 0) + 1
+      return summary
+    }, {
+      total: 0,
+      paid: 0,
+      pending: 0,
+      overdue: 0,
+      counts: {} as Record<string, number>,
+    })
+  }, [records])
 
-  const filtered = filter === 'all' ? records : records.filter(r => r.status === filter)
+  const filtered = useMemo(
+    () => filter === 'all' ? records : records.filter(r => r.status === filter),
+    [filter, records],
+  )
 
   // Constroi grafico dos ultimos 6 meses a partir dos registros reais
   const revenueData = useMemo(() => {
@@ -137,14 +154,14 @@ export default function FinancialPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatCard label="Receita total"  value={formatCurrency(total)}
+        <StatCard label="Receita total"  value={formatCurrency(financialSummary.total)}
           icon={<Wallet className="w-5 h-5" />}       accent="sage" />
-        <StatCard label="Recebido"       value={formatCurrency(paid)}
+        <StatCard label="Recebido"       value={formatCurrency(financialSummary.paid)}
           icon={<CheckCircle className="w-5 h-5" />}  accent="sage" />
-        <StatCard label="Pendente"       value={formatCurrency(pending)}
+        <StatCard label="Pendente"       value={formatCurrency(financialSummary.pending)}
           icon={<Clock className="w-5 h-5" />}        accent="amber" />
-        <StatCard label="Em atraso"      value={formatCurrency(overdue)}
-          icon={<TrendingUp className="w-5 h-5" />}   accent={overdue > 0 ? 'rose' : 'sage'} />
+        <StatCard label="Em atraso"      value={formatCurrency(financialSummary.overdue)}
+          icon={<TrendingUp className="w-5 h-5" />}   accent={financialSummary.overdue > 0 ? 'rose' : 'sage'} />
       </div>
 
       {/* Grafico de receita mensal */}
@@ -217,8 +234,8 @@ export default function FinancialPage() {
                 {l}
                 {v !== 'all' && (
                   <span className="ml-1 font-bold">
-                    {records.filter(r => r.status === v).length > 0
-                      ? `(${records.filter(r => r.status === v).length})`
+                    {financialSummary.counts[v] > 0
+                      ? `(${financialSummary.counts[v]})`
                       : ''}
                   </span>
                 )}
@@ -246,13 +263,23 @@ export default function FinancialPage() {
       </div>
 
       {/* Modais */}
-      <NewPaymentModal open={showNew} onClose={() => setShowNew(false)} />
-      <MarkPaidModal
-        record={markRecord}
-        open={!!markRecord}
-        onClose={() => setMarkRecord(null)}
-        onConfirm={handleMarkPaid}
-      />
+      <Suspense fallback={(
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/25 backdrop-blur-[1px]">
+          <div className="rounded-xl bg-white p-4 shadow-xl" role="status" aria-label="Carregando">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-sage-200 border-t-sage-600" />
+          </div>
+        </div>
+      )}>
+        {showNew && <NewPaymentModal open onClose={() => setShowNew(false)} />}
+        {markRecord && (
+          <MarkPaidModal
+            record={markRecord}
+            open
+            onClose={() => setMarkRecord(null)}
+            onConfirm={handleMarkPaid}
+          />
+        )}
+      </Suspense>
       <ConfirmDialog
         open={!!recordToDelete}
         title="Excluir lancamento"

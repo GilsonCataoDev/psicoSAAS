@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   FilePlus, Shield, Download, Eye, Search, ExternalLink, Trash2, Copy,
@@ -49,12 +49,16 @@ export default function DocumentosPage() {
     }
   }, [searchParams])
 
-  const filtered = docs.filter(d => {
-    const matchSearch = d.patientName.toLowerCase().includes(search.toLowerCase()) ||
-                        d.title.toLowerCase().includes(search.toLowerCase())
-    const matchType = typeFilter === 'all' || d.type === typeFilter
-    return matchSearch && matchType
-  })
+  const filtered = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase()
+    return docs.filter(d => {
+      const matchSearch = !normalizedSearch ||
+        d.patientName.toLowerCase().includes(normalizedSearch) ||
+        d.title.toLowerCase().includes(normalizedSearch)
+      const matchType = typeFilter === 'all' || d.type === typeFilter
+      return matchSearch && matchType
+    })
+  }, [docs, search, typeFilter])
 
   function handleGenerate(doc: Documento) {
     // O GenerateDocModal já chama a API; ao fechar, revalida automaticamente via queryKey
@@ -94,7 +98,7 @@ export default function DocumentosPage() {
 
   function copyDocLink(doc: DocumentoListItem) {
     const base = import.meta.env.BASE_URL.replace(/\/$/, '')
-    const url = `${window.location.origin}${base}/#/verificar/${encodeURIComponent(doc.signCode)}`
+    const url = `${window.location.origin}${base}/verificar/${encodeURIComponent(doc.signCode)}`
     navigator.clipboard.writeText(url).then(
       () => toast.success('Link copiado!'),
       () => toast.error('Não foi possível copiar o link.'),

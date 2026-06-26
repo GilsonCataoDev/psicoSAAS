@@ -78,7 +78,7 @@ export class DocumentsService {
 
   private getVerificationUrl(signCode: string): string {
     const frontendUrl = (this.cfg.get('FRONTEND_URL') ?? '').replace(/\/$/, '')
-    return `${frontendUrl}/#/verificar/${encodeURIComponent(signCode)}`
+    return `${frontendUrl}/verificar/${encodeURIComponent(signCode)}`
   }
 
   private exposeDocument(doc: Document): Document {

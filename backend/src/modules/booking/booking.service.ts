@@ -2,7 +2,7 @@ import {
   Injectable, NotFoundException, BadRequestException, ConflictException,
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { DataSource, In, Not, Repository } from 'typeorm'
+import { Between, DataSource, In, Not, Repository } from 'typeorm'
 import { randomBytes, createHmac } from 'crypto'
 import { ConfigService } from '@nestjs/config'
 import {
@@ -14,6 +14,7 @@ import { BookingPage } from './entities/booking-page.entity'
 import { Patient } from '../patients/entities/patient.entity'
 import { Appointment } from '../appointments/entities/appointment.entity'
 import { FinancialRecord } from '../financial/entities/financial-record.entity'
+import { User } from '../auth/entities/user.entity'
 import { AvailabilityService } from '../availability/availability.service'
 import { NotificationsService } from '../notifications/notifications.service'
 import { CreateBookingDto } from './dto/create-booking.dto'
@@ -23,6 +24,19 @@ import { GoogleCalendarService } from '../google-calendar/google-calendar.servic
 const OCCUPYING_BOOKING_STATUSES: Booking['status'][] = ['pending', 'confirmed']
 const FREE_APPOINTMENT_STATUSES = ['cancelled', 'no_show']
 const BOOKING_TIME_ZONE = 'America/Sao_Paulo'
+
+function slugifyName(value?: string | null): string {
+  const slug = (value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 54)
+    .replace(/-+$/g, '')
+
+  return slug || 'psi'
+}
 
 function saoPauloDateKey(date = new Date()): string {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -48,6 +62,7 @@ export class BookingService {
     @InjectRepository(Patient)         private patients:     Repository<Patient>,
     @InjectRepository(Appointment)     private appointments: Repository<Appointment>,
     @InjectRepository(FinancialRecord) private financial:    Repository<FinancialRecord>,
+    @InjectRepository(User)            private users:        Repository<User>,
     private availability:  AvailabilityService,
     private notifications: NotificationsService,
     private googleCalendar: GoogleCalendarService,
@@ -227,12 +242,88 @@ export class BookingService {
     const start = parseISO(`${monthStr}-01`)
     const end = new Date(start.getFullYear(), start.getMonth() + 1, 0)
     const days = eachDayOfInterval({ start, end })
+    let page: BookingPage | null = null
+    if (/^[0-9a-f]{16}$/.test(slugOrToken)) {
+      page = await this.resolveDailyToken(slugOrToken)
+    }
+    if (!page) {
+      page = await this.pages.findOne({ where: { slug: slugOrToken, isActive: true } })
+    }
+    if (!page) throw new NotFoundException()
+    if (modality === 'presencial' && !page.allowPresencial) return []
+    if (modality === 'online' && !page.allowOnline) return []
+    if (page.sessionDuration <= 0 || page.slotInterval <= 0) return []
+
+    const timeZone = this.config.get<string>('GOOGLE_CALENDAR_TIMEZONE') ?? 'America/Sao_Paulo'
+    const now = new Date()
+    const todayStr = new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(now)
+    const today = parseISO(todayStr)
+    const minDate = addDays(today, page.minAdvanceDays ?? 0)
+    const maxDate = addDays(today, page.maxAdvanceDays)
+
+    const [slots, blockedDates, existingBookings, existingAppointments] = await Promise.all([
+      this.availability.findAll(page.psychologistId),
+      this.availability.getBlockedDates(page.psychologistId),
+      this.bookings.find({
+        where: {
+          psychologistId: page.psychologistId,
+          date: Between(format(start, 'yyyy-MM-dd'), format(end, 'yyyy-MM-dd')),
+          status: In(OCCUPYING_BOOKING_STATUSES),
+        },
+        select: ['date', 'time'],
+      }),
+      this.appointments.find({
+        where: {
+          psychologistId: page.psychologistId,
+          date: Between(format(start, 'yyyy-MM-dd'), format(end, 'yyyy-MM-dd')),
+          status: Not(In(FREE_APPOINTMENT_STATUSES)),
+        },
+        select: ['date', 'time'],
+      }),
+    ])
+
+    const activeSlots = slots.filter(slot => !modality || slot.modality === modality)
+    const blocked = new Set(blockedDates.map(item => item.date))
+    const occupiedByDate = new Map<string, Set<string>>()
+    for (const item of [...existingBookings, ...existingAppointments]) {
+      const occupied = occupiedByDate.get(item.date) ?? new Set<string>()
+      occupied.add(this.normalizeTime(item.time))
+      occupiedByDate.set(item.date, occupied)
+    }
+
     const available: string[] = []
 
     for (const day of days) {
       const dateStr = format(day, 'yyyy-MM-dd')
-      const slots = await this.getAvailableSlots(slugOrToken, dateStr, modality)
-      if (slots.length > 0) available.push(dateStr)
+      if (isBefore(day, minDate) || isAfter(day, maxDate) || blocked.has(dateStr)) continue
+
+      const daySlots = activeSlots.filter(slot => slot.weekday === getDay(day))
+      if (!daySlots.length) continue
+
+      const occupiedTimes = occupiedByDate.get(dateStr) ?? new Set<string>()
+      const hasAvailableTime = daySlots.some(slot => {
+        const [startH, startM] = slot.startTime.slice(0, 5).split(':').map(Number)
+        const [endH, endM] = slot.endTime.slice(0, 5).split(':').map(Number)
+        let current = setMinutes(setHours(day, startH), startM)
+        const dayEnd = setMinutes(setHours(day, endH), endM)
+
+        while (isBefore(addMinutes(current, page.sessionDuration), dayEnd)
+            || +addMinutes(current, page.sessionDuration) === +dayEnd) {
+          const timeStr = format(current, 'HH:mm')
+          const offset = this.config.get<string>('APPOINTMENT_TIMEZONE_OFFSET') ?? '-03:00'
+          const startsAt = new Date(`${dateStr}T${timeStr}:00${offset}`)
+          if (!occupiedTimes.has(timeStr) && isAfter(startsAt, now)) return true
+          current = addMinutes(current, page.slotInterval)
+        }
+        return false
+      })
+
+      if (hasAvailableTime) available.push(dateStr)
     }
 
     return available
@@ -457,9 +548,15 @@ export class BookingService {
 
   async getMyPage(psychologistId: string) {
     let page = await this.pages.findOne({ where: { psychologistId } })
+    const psychologist = await this.users.findOne({
+      where: { id: psychologistId },
+      select: ['id', 'name', 'crp'],
+    })
+    if (!psychologist) throw new NotFoundException()
+
     // Auto-cria a página na primeira visita para que o token diário funcione imediatamente
     if (!page) {
-      const autoSlug = `psi-${psychologistId.replace(/-/g, '').slice(0, 12)}`
+      const autoSlug = await this.buildUniqueSlug(psychologist.name, psychologist.crp)
       page = this.pages.create({
         psychologistId,
         slug: autoSlug,
@@ -469,6 +566,9 @@ export class BookingService {
         slotInterval: 60,
         isActive: true,
       })
+      page = await this.pages.save(page)
+    } else if (!page.slug || /^psi-[0-9a-f]{12}$/i.test(page.slug)) {
+      page.slug = await this.buildUniqueSlug(psychologist.name, psychologist.crp, page.id)
       page = await this.pages.save(page)
     }
     return page
@@ -492,8 +592,12 @@ export class BookingService {
     if (page) {
       Object.assign(page, dto)
     } else {
-      // Auto-gera slug interno baseado no userId (único e imutável)
-      const autoSlug = `psi-${psychologistId.replace(/-/g, '').slice(0, 12)}`
+      const psychologist = await this.users.findOne({
+        where: { id: psychologistId },
+        select: ['id', 'name', 'crp'],
+      })
+      if (!psychologist) throw new NotFoundException()
+      const autoSlug = await this.buildUniqueSlug(psychologist.name, psychologist.crp)
       page = this.pages.create({ ...dto, psychologistId, slug: autoSlug })
     }
     return this.pages.save(page)
@@ -512,6 +616,36 @@ export class BookingService {
       url: `${normalizedBaseUrl}/#/agendar/${token}`,
       expiresAt: tomorrow.toISOString(),
     }
+  }
+
+  getStaticLink(slug: string, baseUrl: string) {
+    const normalizedBaseUrl = baseUrl.replace(/\/+$/, '')
+    return {
+      slug,
+      url: `${normalizedBaseUrl}/agendar/${slug}`,
+    }
+  }
+
+  private async buildUniqueSlug(name: string, crp?: string | null, ignorePageId?: string): Promise<string> {
+    const base = slugifyName(name)
+    const crpSuffix = crp?.replace(/\D/g, '').slice(-6)
+    const candidates = [
+      base,
+      crpSuffix ? `${base}-${crpSuffix}` : null,
+    ].filter(Boolean) as string[]
+
+    let counter = 2
+    while (candidates.length < 20) {
+      candidates.push(`${base}-${counter}`)
+      counter++
+    }
+
+    for (const candidate of candidates) {
+      const existing = await this.pages.findOne({ where: { slug: candidate } })
+      if (!existing || existing.id === ignorePageId) return candidate
+    }
+
+    return `${base}-${randomBytes(3).toString('hex')}`
   }
 
   /**

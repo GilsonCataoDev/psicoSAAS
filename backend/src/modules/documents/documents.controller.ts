@@ -1,8 +1,8 @@
 import {
-  Controller, Post, Get, Delete, Param, Body, Req, Res, UseGuards, HttpCode,
+  Controller, Post, Get, Delete, Param, Body, Req, Res, UseGuards, HttpCode, Query,
 } from '@nestjs/common'
-import { SkipThrottle } from '@nestjs/throttler'
-import { IsEnum, IsString, IsNotEmpty } from 'class-validator'
+import { Throttle } from '@nestjs/throttler'
+import { IsEnum, IsString, IsNotEmpty, MaxLength } from 'class-validator'
 import { Response } from 'express'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
@@ -14,11 +14,11 @@ import { DocType } from './entities/document.entity'
 import { pdfAttachment } from '../../common/http/content-disposition.util'
 
 class CreateDocumentBodyDto implements CreateDocumentDto {
-  @IsString() @IsNotEmpty() patientId: string
-  @IsString() @IsNotEmpty() patientName: string
+  @IsString() @IsNotEmpty() @MaxLength(80) patientId: string
+  @IsString() @IsNotEmpty() @MaxLength(120) patientName: string
   @IsEnum(['declaracao','recibo','relatorio','atestado','encaminhamento']) type: DocType
-  @IsString() @IsNotEmpty() title: string
-  @IsString() @IsNotEmpty() content: string
+  @IsString() @IsNotEmpty() @MaxLength(160) title: string
+  @IsString() @IsNotEmpty() @MaxLength(12000) content: string
 }
 
 @Controller('documents')
@@ -42,10 +42,9 @@ export class DocumentsController {
 
   /** Listar meus documentos */
   @Get()
-  @SkipThrottle()
   @UseGuards(JwtAuthGuard)
-  async findMine(@Req() req: any) {
-    return this.svc.findByUser(req.user.id)
+  async findMine(@Req() req: any, @Query('type') type?: DocType) {
+    return this.svc.findByUser(req.user.id, type)
   }
 
   /** Carrega o conteúdo somente quando o profissional abre um documento. */
@@ -55,7 +54,6 @@ export class DocumentsController {
     return this.svc.findOneForUser(id, req.user.id)
   }
 
-  /** Excluir documento próprio */
   /** Gerar PDF do documento proprio, com QR e codigo de verificacao */
   @Get(':id/pdf')
   @UseGuards(JwtAuthGuard)
@@ -95,7 +93,7 @@ export class DocumentsController {
    * Qualquer pessoa (paciente, instituição) pode verificar a autenticidade
    */
   @Get('verify/:code')
-  @SkipThrottle()
+  @Throttle({ long: { limit: 30, ttl: 60 * 1000 } })
   @PublicRoute()
   async verify(@Param('code') code: string) {
     return this.svc.verifyByCode(code.toUpperCase())

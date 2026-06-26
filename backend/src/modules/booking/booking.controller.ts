@@ -20,12 +20,12 @@ export class BookingController {
     return this.svc.getMyBookings(req.user.id, status)
   }
 
-  /** Link diário rotativo — gera token válido por 24h (renova à meia-noite UTC) */
+  /** Link público fixo e legível para compartilhar com pacientes */
   @Get('daily-link')
   async getDailyLink(@Request() req: any) {
-    await this.svc.getMyPage(req.user.id)
+    const page = await this.svc.getMyPage(req.user.id)
     const baseUrl = process.env.FRONTEND_URL ?? 'https://usecognia.com.br'
-    return this.svc.getDailyLink(req.user.id, baseUrl)
+    return this.svc.getStaticLink(page.slug, baseUrl)
   }
 
   /** Confirmar solicitação */

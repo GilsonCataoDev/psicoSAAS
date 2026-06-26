@@ -2,6 +2,7 @@ import {
   Body, Controller, Delete, Get, Headers, HttpCode,
   Param, Patch, Post, Query, Request, UseGuards,
 } from '@nestjs/common'
+import { Throttle } from '@nestjs/throttler'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { FinancialService } from './financial.service'
@@ -63,6 +64,7 @@ export class AsaasWebhookController {
 
   @Post()
   @HttpCode(200)
+  @Throttle({ short: { limit: 60, ttl: 60 * 1000 } })
   async handle(
     @Headers('asaas-access-token') token: string,
     @Body() body: { event: string; payment: any },

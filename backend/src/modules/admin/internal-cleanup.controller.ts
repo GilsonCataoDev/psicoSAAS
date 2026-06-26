@@ -1,5 +1,6 @@
 import { BadRequestException, Controller, ForbiddenException, Headers, Logger, Post } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { Throttle } from '@nestjs/throttler'
 import { InjectDataSource } from '@nestjs/typeorm'
 import { DataSource } from 'typeorm'
 import { PublicRoute } from '../../common/decorators/public-route.decorator'
@@ -15,6 +16,7 @@ export class InternalCleanupController {
   ) {}
 
   @Post('cleanup-test-users')
+  @Throttle({ long: { limit: 3, ttl: 60 * 60 * 1000 } })
   async cleanupTestUsers(@Headers('x-internal-secret') secret: string | undefined) {
     const expected = this.cfg.get<string>('INTERNAL_CLEANUP_SECRET')
     if (!expected) throw new BadRequestException('INTERNAL_CLEANUP_SECRET não configurado')

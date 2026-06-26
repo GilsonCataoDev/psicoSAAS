@@ -1794,7 +1794,7 @@ function SendInstrumentModal({
   instrument: Instrument | null
   onClose: () => void
 }) {
-  const { data: patients = [] } = usePatients()
+  const { data: patients = [] } = usePatients({ enabled: !!instrument })
   const createAssignment = useCreateInstrumentAssignment()
   const [patientId, setPatientId] = useState('')
   const [sendWhatsApp, setSendWhatsApp] = useState(true)

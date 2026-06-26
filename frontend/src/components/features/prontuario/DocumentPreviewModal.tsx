@@ -9,7 +9,7 @@ import toast from 'react-hot-toast'
 
 function getVerificationUrl(signCode: string) {
   const base = import.meta.env.BASE_URL.replace(/\/$/, '')
-  return `${window.location.origin}${base}/#/verificar/${encodeURIComponent(signCode)}`
+  return `${window.location.origin}${base}/verificar/${encodeURIComponent(signCode)}`
 }
 
 export default function DocumentPreviewModal({

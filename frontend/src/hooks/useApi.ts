@@ -151,11 +151,13 @@ export function useSessions(params?: {
   dateTo?: string
   search?: string
   includeClinical?: boolean
+  enabled?: boolean
 }) {
-  const { search, ...apiParams } = params ?? {}
+  const { search, enabled, ...apiParams } = params ?? {}
   return useQuery<Session[]>({
-    queryKey: ['sessions', params],
+    queryKey: ['sessions', apiParams, search],
     queryFn: () => api.get('/sessions', { params: apiParams }).then(r => r.data),
+    enabled: enabled ?? true,
     select: search
       ? (data) => data.filter(s => s.patient?.name?.toLowerCase().includes(search.toLowerCase()))
       : undefined,
@@ -359,10 +361,10 @@ export function useCreateTemplate() {
 }
 
 export function useDailyBookingLink() {
-  return useQuery<{ token: string; url: string; expiresAt: string }>({
+  return useQuery<{ slug: string; url: string; token?: string; expiresAt?: string }>({
     queryKey: ['booking-daily-link'],
     queryFn: () => api.get('/booking/daily-link').then(r => r.data),
-    // Revalida a cada hora — o token muda à meia-noite UTC
+    // Revalida pouco: o slug é fixo, mas pode mudar se a página for recriada.
     staleTime: 60 * 60 * 1000,
     retry: false,
   })
@@ -532,11 +534,13 @@ export interface AdminUser {
   isActive: boolean
   emailVerified: boolean
   createdAt: string
+  lastActiveAt?: string | null
   subscription: {
     id: string
     plan: string
     status: string
     trialEndsAt: string | null
+    currentPeriodEnd?: string | null
     cancelAtPeriodEnd: boolean
     hasUsedTrial: boolean
   } | null
