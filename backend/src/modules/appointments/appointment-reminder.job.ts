@@ -105,6 +105,23 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
             appointment.reminder2hSentAt = new Date()
             await this.appointments.save(appointment)
             sent++
+          } else if (appointment.patient?.email) {
+            try {
+              const psychologistName = (appointment.psychologist as any)?.name ?? 'seu psicólogo(a)'
+              await this.email.sendSessionReminder({
+                patientName: appointment.patient.name,
+                patientEmail: appointment.patient.email,
+                date: appointment.date,
+                time: appointment.time,
+                psychologistName,
+              })
+              appointment.reminder2hSentAt = new Date()
+              await this.appointments.save(appointment)
+              sent++
+            } catch (err: any) {
+              this.logger.warn(`Falha ao enviar lembrete 2h por e-mail para appointment ${appointment.id}: ${err?.message}`)
+              if (this.email.isRateLimited()) break
+            }
           }
         }
       }
