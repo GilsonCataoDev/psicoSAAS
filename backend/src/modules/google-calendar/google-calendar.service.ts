@@ -309,7 +309,7 @@ export class GoogleCalendarService {
   }
 
   private getRequiredConfig(key: string): string {
-    const value = this.config.get<string>(key)
+    const value = this.config.get<string>(key)?.trim()
     if (!value) throw new BadRequestException(`Configuracao ausente: ${key}`)
     return value
   }
