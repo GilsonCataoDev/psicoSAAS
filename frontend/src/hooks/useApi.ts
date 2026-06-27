@@ -101,9 +101,12 @@ export function useUpdateAppointmentStatus() {
   return useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       api.patch(`/appointments/${id}/status`, { status }).then(r => r.data),
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ['appointments'] })
       qc.invalidateQueries({ queryKey: ['dashboard'] })
+      if (vars.status === 'no_show') {
+        qc.invalidateQueries({ queryKey: ['sessions'] })
+      }
     },
   })
 }
@@ -230,7 +233,10 @@ export function useMarkFinancialPaid() {
   return useMutation({
     mutationFn: ({ id, method }: { id: string; method: string }) =>
       api.patch(`/financial/${id}/pay`, { method }).then(r => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['financial'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['financial'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+    },
   })
 }
 
