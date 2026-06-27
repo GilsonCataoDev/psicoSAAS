@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Between, In, Not, Repository } from 'typeorm'
 import { ConfigService } from '@nestjs/config'
 import { Appointment } from './entities/appointment.entity'
-import { NotificationsService } from '../notifications/notifications.service'
+import { NotificationsService, WhatsAppDeliveryResult, PushDeliveryResult } from '../notifications/notifications.service'
 import { EmailService } from '../email/email.service'
 
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000
@@ -93,6 +93,10 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
               this.logger.warn(`Falha ao enviar lembrete por e-mail para appointment ${appointment.id}: ${err?.message}`)
               if (this.email.isRateLimited()) break
             }
+          } else if (this.shouldStopRetrying(result)) {
+            appointment.reminder24hSentAt = new Date()
+            await this.appointments.save(appointment)
+            this.logger.warn(`Lembrete 24h marcado como processado apos falha nao retentavel: appointment ${appointment.id}`)
           }
         }
 
@@ -122,6 +126,10 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
               this.logger.warn(`Falha ao enviar lembrete 2h por e-mail para appointment ${appointment.id}: ${err?.message}`)
               if (this.email.isRateLimited()) break
             }
+          } else if (this.shouldStopRetrying(result)) {
+            appointment.reminder2hSentAt = new Date()
+            await this.appointments.save(appointment)
+            this.logger.warn(`Lembrete 2h marcado como processado apos falha nao retentavel: appointment ${appointment.id}`)
           }
         }
       }
@@ -138,6 +146,10 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
     const offset = this.config.get<string>('APPOINTMENT_TIMEZONE_OFFSET') ?? '-03:00'
     const time = String(appointment.time).slice(0, 5)
     return new Date(`${appointment.date}T${time}:00${offset}`)
+  }
+
+  private shouldStopRetrying(result: WhatsAppDeliveryResult | PushDeliveryResult): boolean {
+    return 'nonRetryable' in result && result.nonRetryable === true
   }
 
   private addDays(date: Date, days: number): Date {

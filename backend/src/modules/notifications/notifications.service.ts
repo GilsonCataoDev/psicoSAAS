@@ -14,6 +14,7 @@ export type WhatsAppDeliveryResult = {
   sent: boolean
   reason?: 'plan' | 'not_configured' | 'disconnected' | 'api_error'
   error?: string
+  nonRetryable?: boolean
 }
 
 export type PushDeliveryResult = {
@@ -425,9 +426,11 @@ export class NotificationsService {
         },
       )
       if (!res.ok) {
-        await res.text().catch(() => '')
-        this.logger.error(`[WhatsApp] Erro ${res.status} instance=${instance}`)
-        result = { sent: false, reason: 'api_error', error: `WhatsApp respondeu ${res.status}` }
+        const body = await res.text().catch(() => '')
+        const nonRetryable = res.status >= 400 && res.status < 500 && res.status !== 429
+        const error = this.formatWhatsAppError(res.status, body)
+        this.logger.error(`[WhatsApp] Erro ${res.status} instance=${instance} nonRetryable=${nonRetryable} body=${body.slice(0, 300)}`)
+        result = { sent: false, reason: 'api_error', error, nonRetryable }
         await this.recordWhatsAppLog(ownerId, phone, meta, result)
         return result
       }
@@ -469,8 +472,11 @@ export class NotificationsService {
         body: JSON.stringify({ number: withDdi, text }),
       })
       if (!res.ok) {
-        this.logger.error(`[WhatsApp] Erro ${res.status} instance=${instance}`)
-        result = { sent: false, reason: 'api_error', error: `WhatsApp respondeu ${res.status}` }
+        const body = await res.text().catch(() => '')
+        const nonRetryable = res.status >= 400 && res.status < 500 && res.status !== 429
+        const error = this.formatWhatsAppError(res.status, body)
+        this.logger.error(`[WhatsApp] Erro ${res.status} instance=${instance} nonRetryable=${nonRetryable} body=${body.slice(0, 300)}`)
+        result = { sent: false, reason: 'api_error', error, nonRetryable }
         await this.recordWhatsAppLog(ownerId, phone, meta, result)
         return result
       }
@@ -499,6 +505,27 @@ export class NotificationsService {
     } catch (err) {
       this.logger.warn(`[WhatsApp log] Falha ao registrar envio: ${err instanceof Error ? err.message : err}`)
     }
+  }
+
+  private formatWhatsAppError(status: number, body: string): string {
+    let message: string
+    try {
+      const parsed = JSON.parse(body) as Record<string, any>
+      const raw = parsed.message ?? parsed.error ?? parsed.response?.message
+      message = Array.isArray(raw) ? raw.join(', ') : String(raw ?? '')
+    } catch {
+      message = body
+    }
+
+    const clean = message.replace(/\s+/g, ' ').trim()
+    if (status >= 400 && status < 500 && status !== 429) {
+      return clean
+        ? `WhatsApp recusou envio (${status}): ${clean}`.slice(0, 240)
+        : `WhatsApp recusou envio (${status}). Verifique número e conexão.`
+    }
+    return clean
+      ? `WhatsApp respondeu ${status}: ${clean}`.slice(0, 240)
+      : `WhatsApp respondeu ${status}`
   }
 
   private getWhatsAppInstance(ownerId: string): string {
