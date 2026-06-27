@@ -397,7 +397,7 @@ export default function DashboardPage() {
                       <button
                         onClick={() => setSessionDefaults({ patientId: appt.patientId, date: appt.date, appointmentId: appt.id })}
                         title="Registrar sessão"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 rounded-xl bg-sage-50 border border-sage-200 px-2 py-1 text-xs font-medium text-sage-700 hover:bg-sage-100"
+                        className="opacity-100 transition-opacity flex items-center gap-1 rounded-xl bg-sage-50 border border-sage-200 px-2 py-1 text-xs font-medium text-sage-700 hover:bg-sage-100 sm:opacity-0 sm:group-hover:opacity-100"
                       >
                         <NotebookPen className="w-3 h-3" /> Registrar
                       </button>
