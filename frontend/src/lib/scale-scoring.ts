@@ -6,6 +6,12 @@ export type ScaleConfig = {
   options: ScaleOption[]
   items: ScaleItem[]
   invertedItems?: string[]
+  criticalItems?: Array<{
+    itemId: string
+    minValue: number
+    label: string
+    note: string
+  }>
   subscales?: Array<{
     id: string
     label: string
@@ -100,6 +106,14 @@ export const SCALE_CONFIGS: Record<string, ScaleConfig> = {
       { id: 'q8', label: 'Mover-se ou falar tão lentamente que outras pessoas perceberam, ou o contrário' },
       { id: 'q9', label: 'Pensamentos de que seria melhor estar morto(a) ou de se machucar de alguma forma' },
     ],
+    criticalItems: [
+      {
+        itemId: 'q9',
+        minValue: 1,
+        label: 'Item 9 positivo',
+        note: 'Investigar ideação suicida/autoagressão e considerar manejo de risco.',
+      },
+    ],
     thresholds: [
       { max: 4,  label: 'Mínimo',              color: 'text-emerald-700 bg-emerald-50' },
       { max: 9,  label: 'Leve',                color: 'text-yellow-700 bg-yellow-50' },
@@ -121,6 +135,14 @@ export const SCALE_CONFIGS: Record<string, ScaleConfig> = {
       { id: 'q5', label: 'Ficar tão agitado(a) que é difícil ficar parado(a)' },
       { id: 'q6', label: 'Sentir-se facilmente irritado(a) ou irritável' },
       { id: 'q7', label: 'Sentir medo como se algo horrível pudesse acontecer' },
+    ],
+    criticalItems: [
+      {
+        itemId: 'q17',
+        minValue: 1,
+        label: 'Ideação suicida positiva',
+        note: 'Requer avaliação imediata de risco suicida, independentemente do total.',
+      },
     ],
     thresholds: [
       { max: 4,  label: 'Mínimo',   color: 'text-emerald-700 bg-emerald-50' },
@@ -825,4 +847,66 @@ export function calcScaleScore(
 
   const total = config.items.reduce((sum, item) => sum + getValue(item.id), 0)
   return { score: total, scoreDetails: null }
+}
+
+export function getCriticalResponses(
+  instrumentId: string,
+  answers: Record<string, string> | null | undefined,
+): Array<{ label: string; note: string; value: number }> {
+  const config = SCALE_CONFIGS[instrumentId]
+  if (!config?.criticalItems || !answers) return []
+
+  return config.criticalItems
+    .map(item => ({
+      label: item.label,
+      note: item.note,
+      value: parseInt(answers[item.itemId] ?? '0', 10) || 0,
+      minValue: item.minValue,
+    }))
+    .filter(item => item.value >= item.minValue)
+    .map(item => ({ label: item.label, note: item.note, value: item.value }))
+}
+
+export type ScaleInterpretation = {
+  score: number
+  level?: ScoreLevel
+  note?: string
+  critical: Array<{ label: string; note: string; value: number }>
+  subscales: Array<{
+    id: string
+    label: string
+    score: number
+    level: ScoreLevel
+  }>
+}
+
+export function interpretScaleResult(
+  instrumentId: string,
+  score: number | null | undefined,
+  scoreDetails: string | null | undefined,
+  answers: Record<string, string> | null | undefined,
+): ScaleInterpretation | null {
+  const config = SCALE_CONFIGS[instrumentId]
+  if (!config || score == null) return null
+
+  let details: Record<string, number> = {}
+  if (scoreDetails) {
+    try { details = JSON.parse(scoreDetails) } catch { details = {} }
+  }
+
+  return {
+    score,
+    level: config.thresholds ? getThresholdLevel(score, config.thresholds) : undefined,
+    note: config.note,
+    critical: getCriticalResponses(instrumentId, answers),
+    subscales: (config.subscales ?? []).map(sub => {
+      const subScore = details[sub.id] ?? 0
+      return {
+        id: sub.id,
+        label: sub.label,
+        score: subScore,
+        level: getThresholdLevel(subScore, sub.thresholds),
+      }
+    }),
+  }
 }

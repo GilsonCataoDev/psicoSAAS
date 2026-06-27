@@ -5,7 +5,7 @@ import {
   CalendarDays, Banknote, Clock, FileText, Pencil,
   BookOpenText, BarChart3, Copy,
 } from 'lucide-react'
-import { SCALE_CONFIGS, getThresholdLevel } from '@/lib/scale-scoring'
+import { SCALE_CONFIGS, getCriticalResponses, interpretScaleResult } from '@/lib/scale-scoring'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
 import { formatDate, formatCurrency, formatDateRelative } from '@/lib/utils'
@@ -186,6 +186,16 @@ export default function PatientDetailPage() {
   function openResponse(response: InstrumentAssignment) {
     setEditingResponse(response)
     setEditedAnswers(response.answers ?? {})
+  }
+
+  function criticalResponses(response: InstrumentAssignment | null) {
+    if (!response) return []
+    return getCriticalResponses(response.instrumentId, response.answers)
+  }
+
+  function scaleInterpretation(response: InstrumentAssignment | null) {
+    if (!response) return null
+    return interpretScaleResult(response.instrumentId, response.score, response.scoreDetails, response.answers)
   }
 
   async function saveResponse() {
@@ -748,34 +758,31 @@ export default function PatientDetailPage() {
                       : 'Resposta em formato anterior'}
                   </p>
                   {response.score != null && (() => {
-                    const cfg = SCALE_CONFIGS[response.instrumentId]
-                    if (!cfg) return null
-                    if (cfg.subscales && response.scoreDetails) {
-                      let details: Record<string, number> = {}
-                      try { details = JSON.parse(response.scoreDetails) } catch { /* ignore */ }
+                    const interpretation = interpretScaleResult(response.instrumentId, response.score, response.scoreDetails, response.answers)
+                    if (!interpretation) return null
+                    if (interpretation.subscales.length > 0) {
                       return (
                         <div className="mt-2 flex flex-wrap gap-1.5">
-                          {cfg.subscales.map(sub => {
-                            const s = details[sub.id] ?? 0
-                            const level = getThresholdLevel(s, sub.thresholds)
-                            return (
-                              <span key={sub.id} className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${level.color}`}>
-                                {sub.label}: {s} ({level.label})
-                              </span>
-                            )
-                          })}
+                          {interpretation.subscales.map(sub => (
+                            <span key={sub.id} className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${sub.level.color}`}>
+                              {sub.label}: {sub.score} ({sub.level.label})
+                            </span>
+                          ))}
                         </div>
                       )
                     }
-                    const thresholds = cfg.thresholds
-                    if (!thresholds) return null
-                    const level = getThresholdLevel(response.score, thresholds)
+                    if (!interpretation.level) return null
                     return (
-                      <span className={`mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${level.color}`}>
-                        <BarChart3 className="h-3 w-3" /> Pontuação: {response.score} — {level.label}
+                      <span className={`mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${interpretation.level.color}`}>
+                        <BarChart3 className="h-3 w-3" /> Pontuação: {interpretation.score} — {interpretation.level.label}
                       </span>
                     )
                   })()}
+                  {getCriticalResponses(response.instrumentId, response.answers).length > 0 && (
+                    <span className="mt-2 inline-flex rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-700">
+                      Ponto crítico assinalado
+                    </span>
+                  )}
                 </div>
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-sage-600">
                   <Pencil className="h-3.5 w-3.5" /> {SCALE_CONFIGS[response.instrumentId] ? 'Ver resposta' : 'Ver e editar'}
@@ -902,33 +909,41 @@ export default function PatientDetailPage() {
       />
 
       <Modal open={!!editingResponse} onClose={() => setEditingResponse(null)} title={editingResponse?.title ?? 'Respostas'} size="lg">
+        {criticalResponses(editingResponse).length > 0 && (
+          <div className="mb-4 rounded-xl border border-red-100 bg-red-50 p-3">
+            <p className="text-sm font-semibold text-red-800">Ponto crítico nas respostas</p>
+            <div className="mt-2 space-y-1">
+              {criticalResponses(editingResponse).map(item => (
+                <p key={item.label} className="text-xs leading-relaxed text-red-700">
+                  <span className="font-semibold">{item.label}:</span> {item.note}
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
         {editingResponse?.score != null && (() => {
-          const cfg = SCALE_CONFIGS[editingResponse.instrumentId]
-          if (!cfg) return null
-          if (cfg.subscales && editingResponse.scoreDetails) {
-            let details: Record<string, number> = {}
-            try { details = JSON.parse(editingResponse.scoreDetails) } catch { /* ignore */ }
-            return (
-              <div className="mb-4 flex flex-wrap gap-2 rounded-xl border border-neutral-100 bg-neutral-50 p-3">
-                {cfg.subscales.map(sub => {
-                  const s = details[sub.id] ?? 0
-                  const level = getThresholdLevel(s, sub.thresholds)
-                  return (
-                    <span key={sub.id} className={`rounded-full px-3 py-1 text-xs font-semibold ${level.color}`}>
-                      {sub.label}: {s} — {level.label}
-                    </span>
-                  )
-                })}
-              </div>
-            )
-          }
-          const thresholds = cfg.thresholds
-          if (!thresholds) return null
-          const level = getThresholdLevel(editingResponse.score, thresholds)
+          const interpretation = scaleInterpretation(editingResponse)
+          if (!interpretation) return null
           return (
-            <div className={`mb-4 flex items-center gap-3 rounded-xl p-3 ${level.color}`}>
-              <BarChart3 className="h-4 w-4 shrink-0" />
-              <span className="text-sm font-semibold">Pontuação: {editingResponse.score} — {level.label}</span>
+            <div className="mb-4 rounded-xl border border-neutral-100 bg-neutral-50 p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                {interpretation.level && (
+                  <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${interpretation.level.color}`}>
+                    <BarChart3 className="h-3.5 w-3.5" />
+                    Total: {interpretation.score} — {interpretation.level.label}
+                  </span>
+                )}
+                {interpretation.subscales.map(sub => (
+                  <span key={sub.id} className={`rounded-full px-3 py-1 text-xs font-semibold ${sub.level.color}`}>
+                    {sub.label}: {sub.score} — {sub.level.label}
+                  </span>
+                ))}
+              </div>
+              {interpretation.note && (
+                <p className="mt-3 text-xs leading-relaxed text-neutral-500">
+                  {interpretation.note}
+                </p>
+              )}
             </div>
           )
         })()}

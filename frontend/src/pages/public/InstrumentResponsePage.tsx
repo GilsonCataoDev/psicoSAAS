@@ -92,6 +92,11 @@ export default function InstrumentResponsePage() {
   const scaleConfig = SCALE_CONFIGS[instrumentId]
   const isScale = !!scaleConfig
   const genericFields: InstrumentField[] = data?.fields ?? []
+  const answeredCount = isScale
+    ? scaleConfig.items.filter(item => answers[item.id] !== undefined && answers[item.id] !== '').length
+    : genericFields.filter(field => (answers[field.id] ?? '').trim()).length
+  const totalCount = isScale ? scaleConfig.items.length : genericFields.length
+  const progress = totalCount > 0 ? Math.round((answeredCount / totalCount) * 100) : 0
 
   const allAnswered = isScale
     ? scaleConfig.items.every(item => answers[item.id] !== undefined && answers[item.id] !== '')
@@ -185,8 +190,17 @@ export default function InstrumentResponsePage() {
                   </p>
                 )}
                 <p className="mt-3 rounded-xl bg-neutral-50 px-3 py-2 text-xs leading-relaxed text-neutral-500">
-                  Responda com tranquilidade. As respostas serao enviadas apenas para a profissional responsavel.
+                  Responda com tranquilidade. As respostas serao enviadas apenas para a profissional responsavel, que fara a interpretacao clinica.
                 </p>
+                <div className="mt-4">
+                  <div className="flex items-center justify-between text-xs text-neutral-500">
+                    <span>Progresso</span>
+                    <span>{answeredCount}/{totalCount} respondidas</span>
+                  </div>
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-100">
+                    <div className="h-full rounded-full bg-sage-600 transition-all" style={{ width: `${progress}%` }} />
+                  </div>
+                </div>
               </div>
 
               {/* Scale: Likert items */}
@@ -231,11 +245,11 @@ export default function InstrumentResponsePage() {
               )}
 
               <div className="flex items-center justify-between border-t border-neutral-100 pt-4">
-                {isScale && (
-                  <p className="text-xs text-neutral-400">
-                    {Object.keys(answers).length}/{scaleConfig.items.length} respondidas
-                  </p>
-                )}
+                <p className="text-xs text-neutral-400">
+                  {isScale && !allAnswered
+                    ? `Faltam ${totalCount - answeredCount} resposta${totalCount - answeredCount === 1 ? '' : 's'}`
+                    : `${answeredCount}/${totalCount} preenchidas`}
+                </p>
                 <button
                   type="submit"
                   disabled={submit.isPending || (isScale ? !allAnswered : !allAnswered)}
