@@ -18,11 +18,14 @@ import { disableWebPush, enableWebPush, getPushStatus, isPushSupported, sendTest
 import { isNativeApp } from '@/lib/nativeAuth'
 import { userSafeError } from '@/lib/userSafeError'
 
+const GOOGLE_CALENDAR_ENABLED = true
+
 const tabs = [
   { id: 'profile',  icon: User,          label: 'Perfil'     },
   { id: 'plan',     icon: Zap,           label: 'Plano'      },
   { id: 'notify',   icon: Bell,          label: 'Lembretes'  },
   { id: 'messages', icon: MessageSquare, label: 'Mensagens'  },
+  ...(GOOGLE_CALENDAR_ENABLED ? [{ id: 'integrations', icon: CalendarDays, label: 'Integrações' }] : []),
   { id: 'payment',  icon: Wallet,        label: 'Pagamentos' },
   { id: 'privacy',  icon: Lock,          label: 'Privacidade'},
   { id: 'security', icon: Shield,        label: 'Segurança'  },
@@ -67,8 +70,6 @@ const AUDIT_LABELS: Record<string, string> = {
   'document.deleted': 'Documento excluido',
   'data_export.downloaded': 'Exportacao de dados baixada',
 }
-const GOOGLE_CALENDAR_ENABLED = false
-
 // ─── Toggle component ──────────────────────────────────────────────────────────
 function Toggle({ on, onChange, disabled = false }: { on: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
