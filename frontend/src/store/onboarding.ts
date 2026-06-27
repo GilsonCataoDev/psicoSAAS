@@ -4,7 +4,7 @@ import { migratePersistedStorage } from '@/lib/storageMigration'
 
 migratePersistedStorage('usecognia-onboarding', 'psicosaas-onboarding')
 
-export type OnboardingStep = 'availability' | 'first_patient' | 'booking_page' | 'done'
+export type OnboardingStep = 'first_patient' | 'first_appointment' | 'booking_page' | 'whatsapp' | 'done'
 
 interface OnboardingState {
   completed: boolean
@@ -19,7 +19,7 @@ export const useOnboardingStore = create<OnboardingState>()(
   persist(
     (set) => ({
       completed: false,
-      currentStep: 'availability',
+      currentStep: 'first_patient',
       stepsCompleted: [],
 
       completeStep: (step) =>
@@ -27,7 +27,7 @@ export const useOnboardingStore = create<OnboardingState>()(
           const steps = s.stepsCompleted.includes(step)
             ? s.stepsCompleted
             : [...s.stepsCompleted, step]
-          const order: OnboardingStep[] = ['availability', 'first_patient', 'booking_page']
+          const order: OnboardingStep[] = ['first_patient', 'first_appointment', 'booking_page', 'whatsapp']
           const nextIdx = order.indexOf(step) + 1
           const nextStep = order[nextIdx] ?? 'done'
           return { stepsCompleted: steps, currentStep: nextStep }
@@ -38,8 +38,8 @@ export const useOnboardingStore = create<OnboardingState>()(
     }),
     {
       name: 'usecognia-onboarding',
-      version: 3,
-      migrate: () => ({ completed: false, currentStep: 'availability', stepsCompleted: [] }),
+      version: 4,
+      migrate: () => ({ completed: false, currentStep: 'first_patient', stepsCompleted: [] }),
     },
   ),
 )

@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, CalendarDays, Check, CreditCard, FileText, Link2, Sparkles, Users, X } from 'lucide-react'
-import { useAvailability, useBookingPage, usePatients, useSessions } from '@/hooks/useApi'
+import { ArrowRight, CalendarDays, CalendarPlus, Check, Link2, MessageCircle, Sparkles, Users, X } from 'lucide-react'
+import { useAppointments, useBookingPage, usePatients, useWhatsAppStatus } from '@/hooks/useApi'
 import { useOnboardingStore } from '@/store/onboarding'
-import { useSubscriptionStore } from '@/store/subscription'
 import { track, EVENTS } from '@/lib/analytics'
 import { cn } from '@/lib/utils'
 
@@ -21,22 +20,12 @@ export default function OnboardingWizard() {
   const { complete, skip } = useOnboardingStore()
   const [closing, setClosing] = useState(false)
 
-  const { data: availability = [] } = useAvailability()
   const { data: patients = [] } = usePatients()
+  const { data: appointments = [] } = useAppointments()
   const { data: bookingPage } = useBookingPage()
-  const { data: sessions = [] } = useSessions()
-  const subscription = useSubscriptionStore(s => s.subscription)
+  const { data: whatsappStatus } = useWhatsAppStatus()
 
   const items = useMemo<ChecklistItem[]>(() => [
-    {
-      id: 'availability',
-      title: 'Configure sua disponibilidade',
-      description: 'Defina os dias e horários em que você atende.',
-      cta: 'Configurar agenda',
-      href: '/agendamentos',
-      done: availability.length > 0,
-      icon: CalendarDays,
-    },
     {
       id: 'first_patient',
       title: 'Adicione o primeiro paciente',
@@ -47,33 +36,33 @@ export default function OnboardingWizard() {
       icon: Users,
     },
     {
+      id: 'first_appointment',
+      title: 'Agende a primeira sessão',
+      description: 'Defina data, horário e modalidade para iniciar a rotina.',
+      cta: 'Agendar sessão',
+      href: '/agenda?new=1',
+      done: appointments.length > 0,
+      icon: CalendarPlus,
+    },
+    {
       id: 'booking_page',
-      title: 'Ative o link de agendamento',
-      description: 'Pacientes solicitam horários sem contato manual.',
+      title: 'Configure seu link público',
+      description: 'Permita que pacientes solicitem horários pelo seu link.',
       cta: 'Configurar link',
       href: '/agendamentos',
       done: Boolean(bookingPage?.isActive && bookingPage?.slug),
       icon: Link2,
     },
     {
-      id: 'first_session',
-      title: 'Registre a primeira evolução',
-      description: 'Inicie o prontuário com a primeira sessão registrada.',
-      cta: 'Registrar sessão',
-      href: '/sessoes',
-      done: sessions.length > 0,
-      icon: FileText,
+      id: 'whatsapp',
+      title: 'Conecte o WhatsApp',
+      description: 'Prepare lembretes automáticos para reduzir faltas.',
+      cta: 'Conectar WhatsApp',
+      href: '/configuracoes?tab=messages',
+      done: Boolean(whatsappStatus?.connected),
+      icon: MessageCircle,
     },
-    {
-      id: 'plan',
-      title: 'Confira seu plano e período de trial',
-      description: 'Você tem 7 dias grátis. Conheça os recursos do seu plano.',
-      cta: 'Ver planos',
-      href: '/planos',
-      done: subscription.status === 'active',
-      icon: CreditCard,
-    },
-  ], [availability.length, bookingPage, patients.length, sessions.length, subscription.status])
+  ], [appointments.length, bookingPage, patients.length, whatsappStatus?.connected])
 
   const doneCount = items.filter(item => item.done).length
   const progress = Math.round((doneCount / items.length) * 100)
@@ -202,7 +191,7 @@ export default function OnboardingWizard() {
       <div className="border-t border-sage-50 bg-sage-50/55 px-5 py-3">
         <p className="flex items-center gap-2 text-xs text-sage-800">
           <CalendarDays className="h-3.5 w-3.5 shrink-0" />
-          Meta: chegue ao primeiro agendamento confirmado em menos de 15 minutos.
+          Meta: saia com paciente, sessão, link público e lembretes preparados.
         </p>
       </div>
 
