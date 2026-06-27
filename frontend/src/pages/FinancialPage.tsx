@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from 'react'
+import { lazy, Suspense, useMemo, useRef, useState } from 'react'
 import { Wallet, TrendingUp, Clock, CheckCircle, Plus, Download, Trash2, Percent, ReceiptText, AlertCircle } from 'lucide-react'
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import StatCard from '@/components/ui/StatCard'
@@ -34,6 +34,7 @@ export default function FinancialPage() {
   const [showNew, setShowNew] = useState(false)
   const [markRecord, setMarkRecord] = useState<FinancialRecord | null>(null)
   const [recordToDelete, setRecordToDelete] = useState<FinancialRecord | null>(null)
+  const recordsSectionRef = useRef<HTMLDivElement | null>(null)
   const [exportMonth, setExportMonth] = useState(() => {
     const d = new Date()
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
@@ -148,6 +149,13 @@ export default function FinancialPage() {
     }
   }
 
+  function showOverdueRecords() {
+    setFilter('overdue')
+    window.requestAnimationFrame(() => {
+      recordsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
+
   return (
     <div className="animate-slide-up space-y-5">
       <div className="flex items-center justify-between">
@@ -235,7 +243,7 @@ export default function FinancialPage() {
               </p>
             </div>
             {financialSummary.overdue > 0 && (
-              <button type="button" onClick={() => setFilter('overdue')} className="btn-secondary shrink-0 text-xs">
+              <button type="button" onClick={showOverdueRecords} className="btn-secondary shrink-0 text-xs">
                 Ver atrasados
               </button>
             )}
@@ -326,7 +334,7 @@ export default function FinancialPage() {
       </div>
 
       {/* Lista de lancamentos */}
-      <div className="card">
+      <div ref={recordsSectionRef} className="card scroll-mt-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
           <h2 className="section-title mb-0">Lancamentos</h2>
           <div className="flex gap-1 bg-neutral-100 p-1 rounded-xl overflow-x-auto scrollbar-none">
