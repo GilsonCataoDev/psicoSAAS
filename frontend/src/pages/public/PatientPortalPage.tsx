@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { CalendarDays, CheckCircle2, Clock, Lock, UserRound } from 'lucide-react'
+import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock, Lock, UserRound } from 'lucide-react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { api, type AuthAxiosRequestConfig } from '@/lib/api'
@@ -65,6 +65,12 @@ const emptyForm: IntakeForm = {
   contatoEmergenciaRelacao: '',
 }
 
+const STEPS = [
+  { title: 'Boas-vindas', description: 'Confira seus próximos horários.' },
+  { title: 'Seus dados', description: 'Revise contatos e dados de identificação.' },
+  { title: 'Atendimento', description: 'Complete informações importantes para a profissional.' },
+]
+
 function publicConfig(): AuthAxiosRequestConfig {
   return { skipAuthRedirect: true }
 }
@@ -72,6 +78,7 @@ function publicConfig(): AuthAxiosRequestConfig {
 export default function PatientPortalPage() {
   const { token } = useParams()
   const [form, setForm] = useState<IntakeForm>(emptyForm)
+  const [step, setStep] = useState(0)
 
   const portal = useQuery<PatientPortal>({
     queryKey: ['patient-portal', token],
@@ -117,6 +124,16 @@ export default function PatientPortalPage() {
 
   function updateField(field: keyof IntakeForm, value: string) {
     setForm(current => ({ ...current, [field]: value }))
+  }
+
+  function nextStep() {
+    setStep(current => Math.min(current + 1, STEPS.length - 1))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function previousStep() {
+    setStep(current => Math.max(current - 1, 0))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   if (portal.isLoading) {
@@ -167,109 +184,147 @@ export default function PatientPortalPage() {
               </div>
             </div>
           </div>
-        </section>
-
-        <section className="rounded-2xl border border-neutral-100 bg-white p-5 shadow-card sm:p-6">
-          <div className="mb-4 flex items-center gap-2">
-            <CalendarDays className="h-4 w-4 text-sage-600" />
-            <h2 className="text-sm font-semibold text-neutral-800">Próximos horários</h2>
+          <div className="mt-5 grid grid-cols-3 gap-2">
+            {STEPS.map((item, index) => (
+              <div key={item.title} className="min-w-0">
+                <div className={`h-1.5 rounded-full ${index <= step ? 'bg-sage-600' : 'bg-neutral-200'}`} />
+                <p className={`mt-2 truncate text-xs font-semibold ${index === step ? 'text-sage-700' : 'text-neutral-400'}`}>
+                  {index + 1}. {item.title}
+                </p>
+              </div>
+            ))}
           </div>
-          {portal.data.appointments.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-5 text-sm text-neutral-500">
-              Nenhum horário futuro aparece neste link.
-            </p>
-          ) : (
-            <div className="divide-y divide-neutral-100">
-              {portal.data.appointments.map(appointment => (
-                <div key={appointment.id} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
-                  <div>
-                    <p className="font-medium text-neutral-800">{formatDate(appointment.date)}</p>
-                    <p className="mt-0.5 text-xs text-neutral-500">
-                      {appointment.modality === 'online' ? 'Online' : 'Presencial'}
-                    </p>
-                  </div>
-                  <div className="inline-flex items-center gap-2 rounded-full bg-neutral-50 px-3 py-1.5 text-sm font-semibold text-neutral-700">
-                    <Clock className="h-3.5 w-3.5 text-sage-600" />
-                    {appointment.time} · {appointment.duration} min
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </section>
 
         <section className="rounded-2xl border border-neutral-100 bg-white p-5 shadow-card sm:p-6">
           <div className="mb-4">
-            <h2 className="text-sm font-semibold text-neutral-800">Informações para atendimento</h2>
-            <p className="mt-1 text-sm text-neutral-500">Preencha ou revise seus dados antes da sessão.</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-sage-700">Etapa {step + 1} de {STEPS.length}</p>
+            <h2 className="mt-1 text-base font-semibold text-neutral-800">{STEPS[step].title}</h2>
+            <p className="mt-1 text-sm text-neutral-500">{STEPS[step].description}</p>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <label className="block">
-              <span className="label">E-mail</span>
-              <input type="email" value={form.email} onChange={e => updateField('email', e.target.value)} className="input-field" />
-            </label>
-            <label className="block">
-              <span className="label">Telefone</span>
-              <input value={form.phone} onChange={e => updateField('phone', e.target.value)} className="input-field" />
-            </label>
-            <label className="block">
-              <span className="label">Data de nascimento</span>
-              <input type="date" value={form.birthDate} onChange={e => updateField('birthDate', e.target.value)} className="input-field" />
-            </label>
-            <label className="block">
-              <span className="label">Pronomes</span>
-              <input value={form.pronouns} onChange={e => updateField('pronouns', e.target.value)} className="input-field" />
-            </label>
-            <label className="block">
-              <span className="label">Raça/cor</span>
-              <input value={form.race} onChange={e => updateField('race', e.target.value)} className="input-field" />
-            </label>
-            <label className="block">
-              <span className="label">Gênero</span>
-              <input value={form.gender} onChange={e => updateField('gender', e.target.value)} className="input-field" />
-            </label>
-            <label className="block sm:col-span-2">
-              <span className="label">Orientação sexual</span>
-              <input value={form.sexualOrientation} onChange={e => updateField('sexualOrientation', e.target.value)} className="input-field" />
-            </label>
-            <label className="block sm:col-span-2">
-              <span className="label">Principal motivo da busca</span>
-              <textarea
-                rows={4}
-                value={form.queixaPrincipal}
-                onChange={e => updateField('queixaPrincipal', e.target.value)}
-                className="input-field resize-y"
-                placeholder="Conte de forma breve o que deseja trabalhar no atendimento."
-              />
-            </label>
-            <label className="block">
-              <span className="label">Contato de emergência</span>
-              <input value={form.contatoEmergenciaNome} onChange={e => updateField('contatoEmergenciaNome', e.target.value)} className="input-field" />
-            </label>
-            <label className="block">
-              <span className="label">Telefone do contato</span>
-              <input value={form.contatoEmergenciaPhone} onChange={e => updateField('contatoEmergenciaPhone', e.target.value)} className="input-field" />
-            </label>
-            <label className="block sm:col-span-2">
-              <span className="label">Relação com o contato</span>
-              <input value={form.contatoEmergenciaRelacao} onChange={e => updateField('contatoEmergenciaRelacao', e.target.value)} className="input-field" />
-            </label>
-          </div>
+          {step === 0 && (
+            <div>
+              <div className="mb-4 flex items-center gap-2">
+                <CalendarDays className="h-4 w-4 text-sage-600" />
+                <h3 className="text-sm font-semibold text-neutral-800">Próximos horários</h3>
+              </div>
+              {portal.data.appointments.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-5 text-sm text-neutral-500">
+                  Nenhum horário futuro aparece neste link.
+                </p>
+              ) : (
+                <div className="divide-y divide-neutral-100 rounded-xl border border-neutral-100">
+                  {portal.data.appointments.map(appointment => (
+                    <div key={appointment.id} className="flex items-center justify-between gap-4 px-4 py-3">
+                      <div>
+                        <p className="font-medium text-neutral-800">{formatDate(appointment.date)}</p>
+                        <p className="mt-0.5 text-xs text-neutral-500">
+                          {appointment.modality === 'online' ? 'Online' : 'Presencial'}
+                        </p>
+                      </div>
+                      <div className="inline-flex items-center gap-2 rounded-full bg-neutral-50 px-3 py-1.5 text-sm font-semibold text-neutral-700">
+                        <Clock className="h-3.5 w-3.5 text-sage-600" />
+                        {appointment.time} · {appointment.duration} min
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="mt-4 rounded-xl bg-sage-50 px-4 py-3 text-sm leading-relaxed text-sage-800">
+                Nas próximas etapas você pode revisar seus dados. Preencha apenas o que se sentir confortável em informar.
+              </p>
+            </div>
+          )}
+
+          {step === 1 && (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label className="block">
+                <span className="label">E-mail</span>
+                <input type="email" value={form.email} onChange={e => updateField('email', e.target.value)} className="input-field" />
+              </label>
+              <label className="block">
+                <span className="label">Telefone</span>
+                <input value={form.phone} onChange={e => updateField('phone', e.target.value)} className="input-field" />
+              </label>
+              <label className="block">
+                <span className="label">Data de nascimento</span>
+                <input type="date" value={form.birthDate} onChange={e => updateField('birthDate', e.target.value)} className="input-field" />
+              </label>
+              <label className="block">
+                <span className="label">Pronomes</span>
+                <input value={form.pronouns} onChange={e => updateField('pronouns', e.target.value)} className="input-field" />
+              </label>
+              <label className="block">
+                <span className="label">Raça/cor</span>
+                <input value={form.race} onChange={e => updateField('race', e.target.value)} className="input-field" />
+              </label>
+              <label className="block">
+                <span className="label">Gênero</span>
+                <input value={form.gender} onChange={e => updateField('gender', e.target.value)} className="input-field" />
+              </label>
+              <label className="block sm:col-span-2">
+                <span className="label">Orientação sexual</span>
+                <input value={form.sexualOrientation} onChange={e => updateField('sexualOrientation', e.target.value)} className="input-field" />
+              </label>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label className="block sm:col-span-2">
+                <span className="label">Principal motivo da busca</span>
+                <textarea
+                  rows={4}
+                  value={form.queixaPrincipal}
+                  onChange={e => updateField('queixaPrincipal', e.target.value)}
+                  className="input-field resize-y"
+                  placeholder="Conte de forma breve o que deseja trabalhar no atendimento."
+                />
+              </label>
+              <label className="block">
+                <span className="label">Contato de emergência</span>
+                <input value={form.contatoEmergenciaNome} onChange={e => updateField('contatoEmergenciaNome', e.target.value)} className="input-field" />
+              </label>
+              <label className="block">
+                <span className="label">Telefone do contato</span>
+                <input value={form.contatoEmergenciaPhone} onChange={e => updateField('contatoEmergenciaPhone', e.target.value)} className="input-field" />
+              </label>
+              <label className="block sm:col-span-2">
+                <span className="label">Relação com o contato</span>
+                <input value={form.contatoEmergenciaRelacao} onChange={e => updateField('contatoEmergenciaRelacao', e.target.value)} className="input-field" />
+              </label>
+            </div>
+          )}
 
           <div className="mt-5 flex flex-col gap-3 border-t border-neutral-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs leading-relaxed text-neutral-400">
               As informações serão salvas no cadastro mantido pela profissional responsável.
             </p>
-            <button
-              type="button"
-              onClick={() => saveIntake.mutate(form)}
-              disabled={saveIntake.isPending}
-              className="btn-primary inline-flex items-center justify-center gap-2"
-            >
-              <CheckCircle2 className="h-4 w-4" />
-              {saveIntake.isPending ? 'Salvando...' : 'Salvar informações'}
-            </button>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              {step > 0 && (
+                <button type="button" onClick={previousStep} className="btn-secondary inline-flex items-center justify-center gap-2">
+                  <ChevronLeft className="h-4 w-4" />
+                  Voltar
+                </button>
+              )}
+              {step < STEPS.length - 1 ? (
+                <button type="button" onClick={nextStep} className="btn-primary inline-flex items-center justify-center gap-2">
+                  Continuar
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => saveIntake.mutate(form)}
+                  disabled={saveIntake.isPending}
+                  className="btn-primary inline-flex items-center justify-center gap-2"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  {saveIntake.isPending ? 'Salvando...' : 'Salvar informações'}
+                </button>
+              )}
+            </div>
           </div>
         </section>
       </div>

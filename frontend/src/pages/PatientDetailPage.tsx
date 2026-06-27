@@ -204,7 +204,7 @@ export default function PatientDetailPage() {
     try {
       const { url } = await createPortalLink.mutateAsync(id)
       await navigator.clipboard.writeText(url)
-      toast.success('Link do portal copiado')
+      toast.success('Link copiado. Envie ao paciente para preencher os dados antes da sessão.')
     } catch {
       toast.error('Não foi possível gerar o link.')
     }
@@ -342,6 +342,26 @@ export default function PatientDetailPage() {
           <div>
             <p className="text-xs text-neutral-400 mb-0.5">Duração</p>
             <p className="font-semibold text-neutral-700 text-sm">{patient.sessionDuration} min</p>
+          </div>
+        </div>
+
+        <div className="mt-5 rounded-xl border border-sage-100 bg-sage-50 px-4 py-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-sage-800">Portal do paciente</p>
+              <p className="mt-1 text-xs leading-relaxed text-sage-700">
+                Copie um link seguro para o paciente revisar dados, contato de emergência e próximos horários antes da sessão.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={copyPortalLink}
+              disabled={createPortalLink.isPending}
+              className="btn-primary shrink-0 text-sm inline-flex items-center justify-center gap-1.5"
+            >
+              <Copy className="w-3.5 h-3.5" />
+              {createPortalLink.isPending ? 'Gerando...' : 'Copiar link'}
+            </button>
           </div>
         </div>
       </div>

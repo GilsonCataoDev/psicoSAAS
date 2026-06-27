@@ -37,8 +37,11 @@ export class TemplatesService implements OnModuleInit {
 
   async seedDefaults(): Promise<void> {
     for (const template of DEFAULT_TEMPLATES) {
-      const exists = await this.repo.findOne({ where: { type: template.type, name: template.name, isDefault: true } })
-      if (exists) continue
+      const exists = await this.repo.findOne({ where: { type: template.type, isDefault: true }, order: { createdAt: 'ASC' } })
+      if (exists) {
+        await this.repo.save(this.repo.merge(exists, template))
+        continue
+      }
       await this.repo.save(this.repo.create({ ...template, isDefault: true }))
     }
   }

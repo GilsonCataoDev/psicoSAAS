@@ -72,10 +72,23 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
   function applyDefaultTemplate() {
     if (!sessionTemplate) return
     setValue('date', defaults?.date ?? new Date().toISOString().split('T')[0])
-    setValue('duration', defaults?.duration ?? 45)
-    setValue('summary', 'Presenca: presenca\nModalidade: presencial\nTemas abordados: ')
-    setValue('nextSteps', 'Proxima sessao: ')
-    toast.success('Template de sessao aplicado')
+    setValue('duration', defaults?.duration ?? 50)
+    setValue('summary', [
+      'Presenca: ',
+      'Modalidade: ',
+      'Demanda/tema central: ',
+      'Intervencoes realizadas: ',
+      'Resposta do paciente: ',
+      'Evolucao observada: ',
+    ].join('\n'))
+    setValue('privateNotes', [
+      'Hipoteses de trabalho: ',
+      'Pontos de atencao: ',
+      'Riscos/sinais de alerta: ',
+      'Observacoes para supervisao: ',
+    ].join('\n'))
+    setValue('nextSteps', 'Plano para a proxima sessao: ')
+    toast.success('Modelo clínico aplicado')
   }
 
   async function onSubmit(data: any) {
