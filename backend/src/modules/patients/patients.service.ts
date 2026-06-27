@@ -1,13 +1,16 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { In, MoreThanOrEqual, Not, Repository } from 'typeorm'
+import { randomBytes } from 'crypto'
 import PDFDocument = require('pdfkit')
 import { Patient } from './entities/patient.entity'
 import { CreatePatientDto } from './dto/create-patient.dto'
 import { UpdatePatientDto } from './dto/update-patient.dto'
+import { UpdatePatientPortalIntakeDto } from './dto/patient-portal.dto'
 import { Subscription } from '../billing/entities/subscription.entity'
+import { Appointment } from '../appointments/entities/appointment.entity'
 import { PLAN_LIMITS, normalizePlan } from '../../common/plans'
-import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
+import { encrypt, hashToken, safeDecrypt } from '../../common/crypto/encrypt.util'
 
 type EncryptedProntuario = {
   __encrypted: 'usecognia.prontuario.v1' | 'psicosaas.prontuario.v1'
@@ -40,6 +43,37 @@ export type PatientListItemDto = Pick<
   | 'updatedAt'
 >
 
+type PatientPortalDto = {
+  patient: {
+    name: string
+    email?: string | null
+    phone?: string | null
+    birthDate?: string | null
+    pronouns?: string | null
+    race?: string | null
+    gender?: string | null
+    sexualOrientation?: string | null
+  }
+  psychologist: {
+    name: string
+    crp?: string | null
+  }
+  appointments: Array<{
+    id: string
+    date: string
+    time: string
+    duration: number
+    modality: string
+    status: string
+  }>
+  intake: {
+    queixaPrincipal?: string
+    contatoEmergenciaNome?: string
+    contatoEmergenciaPhone?: string
+    contatoEmergenciaRelacao?: string
+  }
+}
+
 const PRONTUARIO_ENCRYPTED_MARKER = 'usecognia.prontuario.v1'
 const LEGACY_PRONTUARIO_ENCRYPTED_MARKER = 'psicosaas.prontuario.v1'
 
@@ -48,6 +82,7 @@ export class PatientsService {
   constructor(
     @InjectRepository(Patient) private repo: Repository<Patient>,
     @InjectRepository(Subscription) private subs: Repository<Subscription>,
+    @InjectRepository(Appointment) private appointments: Repository<Appointment>,
   ) {}
 
   // ─── Helpers de criptografia ────────────────────────────────────────────────
@@ -178,9 +213,112 @@ export class PatientsService {
     return this.dec(await this.repo.save(patient))
   }
 
+  async createPortalLink(id: string, psychologistId: string): Promise<{ url: string }> {
+    const patient = await this.findRaw(id, psychologistId)
+    const token = randomBytes(32).toString('base64url')
+    patient.portalTokenHash = hashToken(token)
+    patient.portalTokenCreatedAt = new Date()
+    await this.repo.save(patient)
+
+    const baseUrl = (process.env.FRONTEND_URL || process.env.PUBLIC_APP_URL || 'https://usecognia.com.br').replace(/\/$/, '')
+    return { url: `${baseUrl}/portal/${token}` }
+  }
+
+  async getPortal(token: string): Promise<PatientPortalDto> {
+    const patient = await this.findByPortalToken(token, ['psychologist'])
+    const decrypted = this.dec(patient)
+    const today = new Date().toISOString().slice(0, 10)
+    const appointments = await this.appointments.find({
+      where: {
+        patientId: patient.id,
+        psychologistId: patient.psychologistId,
+        date: MoreThanOrEqual(today),
+        status: Not(In(['cancelled', 'no_show', 'completed'])),
+      },
+      order: { date: 'ASC', time: 'ASC' },
+      take: 5,
+    })
+
+    const upcoming = appointments
+
+    const pr = (decrypted.prontuario ?? {}) as Record<string, string>
+    return {
+      patient: {
+        name: decrypted.name,
+        email: decrypted.email ?? null,
+        phone: decrypted.phone ?? null,
+        birthDate: decrypted.birthDate ?? null,
+        pronouns: decrypted.pronouns ?? null,
+        race: decrypted.race ?? null,
+        gender: decrypted.gender ?? null,
+        sexualOrientation: decrypted.sexualOrientation ?? null,
+      },
+      psychologist: {
+        name: patient.psychologist?.name ?? 'Profissional responsável',
+        crp: patient.psychologist?.crp ?? null,
+      },
+      appointments: upcoming.map(appointment => ({
+        id: appointment.id,
+        date: appointment.date,
+        time: String(appointment.time).slice(0, 5),
+        duration: appointment.duration,
+        modality: appointment.modality,
+        status: appointment.status,
+      })),
+      intake: {
+        queixaPrincipal: pr.queixaPrincipal,
+        contatoEmergenciaNome: pr.contatoEmergenciaNome,
+        contatoEmergenciaPhone: pr.contatoEmergenciaPhone,
+        contatoEmergenciaRelacao: pr.contatoEmergenciaRelacao,
+      },
+    }
+  }
+
+  async updatePortalIntake(token: string, dto: UpdatePatientPortalIntakeDto): Promise<{ saved: boolean }> {
+    const patient = await this.findByPortalToken(token)
+    const decrypted = this.dec(patient)
+    const prontuario = {
+      ...((decrypted.prontuario ?? {}) as Record<string, string>),
+      ...this.pickDefined({
+        queixaPrincipal: dto.queixaPrincipal,
+        contatoEmergenciaNome: dto.contatoEmergenciaNome,
+        contatoEmergenciaPhone: dto.contatoEmergenciaPhone,
+        contatoEmergenciaRelacao: dto.contatoEmergenciaRelacao,
+      }),
+    }
+
+    Object.assign(patient, this.pickDefined({
+      email: dto.email,
+      phone: dto.phone,
+      birthDate: dto.birthDate,
+      pronouns: dto.pronouns,
+      race: dto.race,
+      gender: dto.gender,
+      sexualOrientation: dto.sexualOrientation,
+      prontuario: this.encryptProntuario(prontuario),
+    }))
+
+    await this.repo.save(patient)
+    return { saved: true }
+  }
+
   async remove(id: string, psychologistId: string) {
     const patient = await this.findRaw(id, psychologistId)
     return this.repo.softRemove(patient)
+  }
+
+  private async findByPortalToken(token: string, relations?: string[]): Promise<Patient> {
+    if (!token || token.length < 32) throw new NotFoundException('Portal não encontrado')
+    const patient = await this.repo.findOne({
+      where: { portalTokenHash: hashToken(token) },
+      ...(relations ? { relations } : {}),
+    })
+    if (!patient) throw new NotFoundException('Portal não encontrado')
+    return patient
+  }
+
+  private pickDefined<T extends Record<string, unknown>>(value: T): Partial<T> {
+    return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined)) as Partial<T>
   }
 
   // ─── Exportação de prontuário em PDF ────────────────────────────────────────

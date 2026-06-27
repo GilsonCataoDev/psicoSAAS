@@ -40,6 +40,7 @@ const BookingConfirmPage  = lazy(() => import('@/pages/public/BookingConfirmPage
 const VerifyDocumentPage  = lazy(() => import('@/pages/public/VerifyDocumentPage'))
 const InstrumentResponsePage = lazy(() => import('@/pages/public/InstrumentResponsePage'))
 const EvolucaoPsicologicaPage = lazy(() => import('@/pages/public/EvolucaoPsicologicaPage'))
+const PatientPortalPage   = lazy(() => import('@/pages/public/PatientPortalPage'))
 
 function PageLoader() {
   return (
@@ -124,6 +125,7 @@ export default function App() {
         <Route path="/instrumentos/responder/:token" element={<InstrumentResponsePage />} />
         <Route path="/verificar/:code" element={<VerifyDocumentPage />} />
         <Route path="/ferramenta/evolucao" element={<EvolucaoPsicologicaPage />} />
+        <Route path="/portal/:token" element={<PatientPortalPage />} />
 
         {/* ── App interno (autenticado) ────────────────────────────── */}
         <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>

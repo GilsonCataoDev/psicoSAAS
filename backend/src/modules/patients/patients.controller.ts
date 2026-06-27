@@ -58,6 +58,13 @@ export class PatientsController {
     return patient
   }
 
+  @Post(':id/portal-link')
+  async createPortalLink(@Param('id') id: string, @Request() req: any) {
+    const result = await this.svc.createPortalLink(id, req.user.id)
+    await this.record(req, 'patient.portal_link_created', 'patient', id)
+    return result
+  }
+
   @Delete(':id')
   async remove(@Param('id') id: string, @Request() req: any) {
     const result = await this.svc.remove(id, req.user.id)

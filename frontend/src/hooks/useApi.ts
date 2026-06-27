@@ -44,6 +44,13 @@ export function useCreatePatient() {
   })
 }
 
+export function useCreatePatientPortalLink() {
+  return useMutation({
+    mutationFn: (patientId: string) =>
+      api.post<{ url: string }>(`/patients/${patientId}/portal-link`).then(r => r.data),
+  })
+}
+
 export function useUpdatePatient() {
   const qc = useQueryClient()
   return useMutation({

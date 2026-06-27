@@ -3,7 +3,7 @@ import {
   ArrowLeft, Phone, Mail, Calendar, Plus, Lock,
   ClipboardList, MessageCircle, CheckCircle2, Save,
   CalendarDays, Banknote, Clock, FileText, Pencil,
-  BookOpenText, BarChart3,
+  BookOpenText, BarChart3, Copy,
 } from 'lucide-react'
 import { SCALE_CONFIGS, getThresholdLevel } from '@/lib/scale-scoring'
 import Avatar from '@/components/ui/Avatar'
@@ -13,7 +13,7 @@ import { useState, useEffect } from 'react'
 import {
   usePatient, useSessions, useFinancial,
   useMarkFinancialPaid, useSendCharge, useUpdatePatient,
-  useInstrumentAssignments, useUpdateInstrumentAnswers, type InstrumentAssignment,
+  useInstrumentAssignments, useUpdateInstrumentAnswers, useCreatePatientPortalLink, type InstrumentAssignment,
 } from '@/hooks/useApi'
 import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 import Modal from '@/components/ui/Modal'
@@ -50,6 +50,7 @@ export default function PatientDetailPage() {
   const updatePatient = useUpdatePatient()
   const { data: instrumentAssignments = [] } = useInstrumentAssignments(id)
   const updateInstrumentAnswers = useUpdateInstrumentAnswers()
+  const createPortalLink = useCreatePatientPortalLink()
   const [note, setNote] = useState('')
   const [tab, setTab] = useState<'record' | 'timeline' | 'responses' | 'notes' | 'financial'>('record')
   const [showSessionModal, setShowSessionModal] = useState(false)
@@ -198,6 +199,17 @@ export default function PatientDetailPage() {
     }
   }
 
+  async function copyPortalLink() {
+    if (!id) return
+    try {
+      const { url } = await createPortalLink.mutateAsync(id)
+      await navigator.clipboard.writeText(url)
+      toast.success('Link do portal copiado')
+    } catch {
+      toast.error('Não foi possível gerar o link.')
+    }
+  }
+
   if (isLoading) return (
     <div className="animate-pulse space-y-4 max-w-4xl">
       <div className="h-5 bg-neutral-100 rounded-lg w-36" />
@@ -276,6 +288,11 @@ export default function PatientDetailPage() {
 
               {/* Ações — desktop */}
               <div className="hidden sm:flex gap-2 shrink-0">
+                <button onClick={copyPortalLink}
+                  disabled={createPortalLink.isPending}
+                  className="btn-secondary text-sm flex items-center gap-1.5">
+                  <Copy className="w-3.5 h-3.5" /> Portal
+                </button>
                 <Link to={`/prontuario/${patient.id}`}
                   className="btn-secondary text-sm flex items-center gap-1.5">
                   <ClipboardList className="w-3.5 h-3.5" /> Prontuário
@@ -297,6 +314,11 @@ export default function PatientDetailPage() {
 
         {/* Ações — mobile */}
         <div className="flex gap-2 mt-4 sm:hidden">
+          <button onClick={copyPortalLink}
+            disabled={createPortalLink.isPending}
+            className="btn-secondary text-sm flex items-center gap-1.5 flex-1 justify-center">
+            <Copy className="w-3.5 h-3.5" /> Portal
+          </button>
           <Link to={`/prontuario/${patient.id}`}
             className="btn-secondary text-sm flex items-center gap-1.5 flex-1 justify-center">
             <ClipboardList className="w-3.5 h-3.5" /> Prontuário

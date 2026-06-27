@@ -48,6 +48,12 @@ export class Patient {
   /** ID do cliente no Asaas do psicólogo — evita criar duplicatas a cada cobrança */
   @Column({ nullable: true }) asaasCustomerId?: string
 
+  @Column({ nullable: true })
+  portalTokenHash?: string
+
+  @Column({ type: 'timestamptz', nullable: true })
+  portalTokenCreatedAt?: Date
+
   @Column({ type: 'simple-array', nullable: true }) tags: string[]
 
   @Column({ nullable: true }) psychologistId: string
