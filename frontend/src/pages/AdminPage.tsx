@@ -820,31 +820,33 @@ export default function AdminPage() {
     <div className="mx-auto max-w-5xl space-y-6 px-4 py-6">
 
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sage-50">
-          <ShieldCheck className="h-4 w-4 text-sage-600" />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sage-50">
+            <ShieldCheck className="h-4 w-4 text-sage-600" />
+          </div>
+          <h1 className="text-lg font-semibold text-neutral-800">Painel Admin</h1>
         </div>
-        <h1 className="text-lg font-semibold text-neutral-800">Painel Admin</h1>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="flex w-full items-center gap-2 overflow-x-auto pb-1 scrollbar-none sm:ml-auto sm:w-auto sm:overflow-visible sm:pb-0">
           <button
             type="button"
             onClick={() => setConfirmCleanup(true)}
             disabled={cleanup.isPending}
-            className="inline-flex h-9 items-center gap-2 rounded-lg border border-neutral-200 px-3 text-sm font-medium text-neutral-600 hover:border-rose-300 hover:text-rose-700 disabled:opacity-50"
+            className="inline-flex h-9 shrink-0 items-center gap-2 rounded-lg border border-neutral-200 px-3 text-sm font-medium text-neutral-600 hover:border-rose-300 hover:text-rose-700 disabled:opacity-50"
           >
             <X className="h-4 w-4" />
             {cleanup.isPending ? 'Limpando…' : 'Limpar testes'}
           </button>
           <Link
             to="/admin/churn"
-            className="inline-flex h-9 items-center gap-2 rounded-lg border border-neutral-200 px-3 text-sm font-medium text-neutral-600 hover:border-rose-300 hover:text-rose-700"
+            className="inline-flex h-9 shrink-0 items-center gap-2 rounded-lg border border-neutral-200 px-3 text-sm font-medium text-neutral-600 hover:border-rose-300 hover:text-rose-700"
           >
             <TrendingDown className="h-4 w-4" />
             Churn
           </Link>
           <Link
             to="/admin/depoimentos"
-            className="inline-flex h-9 items-center gap-2 rounded-lg border border-neutral-200 px-3 text-sm font-medium text-neutral-600 hover:border-sage-300 hover:text-sage-700"
+            className="inline-flex h-9 shrink-0 items-center gap-2 rounded-lg border border-neutral-200 px-3 text-sm font-medium text-neutral-600 hover:border-sage-300 hover:text-sage-700"
           >
             <MessageCircle className="h-4 w-4" />
             Depoimentos
@@ -867,7 +869,7 @@ export default function AdminPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-xl border border-neutral-100 bg-neutral-50 p-1">
+      <div className="grid grid-cols-3 gap-1 rounded-xl border border-neutral-100 bg-neutral-50 p-1">
         {([
           { key: 'users', icon: Users, label: 'Usuários' },
           { key: 'health', icon: TrendingUp, label: 'Engajamento' },
@@ -876,7 +878,7 @@ export default function AdminPage() {
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition-colors ${
+            className={`flex min-w-0 items-center justify-center gap-1 rounded-lg px-1 py-2 text-[11px] font-medium transition-colors sm:gap-2 sm:text-sm ${
               tab === key
                 ? 'bg-white text-neutral-800 shadow-sm'
                 : 'text-neutral-400 hover:text-neutral-600'
