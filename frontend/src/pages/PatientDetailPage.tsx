@@ -113,7 +113,7 @@ export default function PatientDetailPage() {
 
   async function handleMarkPaid(recordId: string) {
     try {
-      await markPaid.mutateAsync({ id: recordId, method: 'PIX' })
+      await markPaid.mutateAsync({ id: recordId, method: 'pix' })
       toast.success('Pagamento registrado')
     } catch { toast.error('Erro ao registrar pagamento.') }
   }
