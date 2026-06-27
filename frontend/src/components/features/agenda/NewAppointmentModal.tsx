@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { addDays, addMonths, format, isAfter, parseISO } from 'date-fns'
-import { CalendarClock, Repeat2 } from 'lucide-react'
+import { AlertTriangle, CalendarClock, Repeat2 } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
-import { usePatients, useCreateAppointment, useUpdateAppointment, useUpdateAppointmentGroup } from '@/hooks/useApi'
+import { usePatients, useAppointments, useCreateAppointment, useUpdateAppointment, useUpdateAppointmentGroup } from '@/hooks/useApi'
 import { Appointment, Patient } from '@/types'
 
 type FormData = {
@@ -61,13 +61,19 @@ function fixedScheduleLabel(patient?: Patient): string {
   return `${frequency}, ${WEEKDAY_LABELS[patient.fixedScheduleWeekday]} as ${patient.fixedScheduleTime}`
 }
 
+function timeToMinutes(time?: string): number {
+  if (!time) return 0
+  const [hours, minutes] = time.slice(0, 5).split(':').map(Number)
+  return (hours * 60) + (minutes || 0)
+}
+
 export default function NewAppointmentModal({ open, onClose, appointment }: Props) {
   const { data: patients = [] } = usePatients()
+  const [editScope, setEditScope] = useState<'single' | 'future'>('single')
   const createAppointment = useCreateAppointment()
   const updateAppointment = useUpdateAppointment()
   const updateGroup = useUpdateAppointmentGroup()
   const isEditing = Boolean(appointment)
-  const [editScope, setEditScope] = useState<'single' | 'future'>('single')
 
   const { register, handleSubmit, reset, watch, setValue, formState: { isSubmitting } } = useForm<FormData>({
     defaultValues: {
@@ -87,15 +93,34 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
   const recurrence = watch('recurrence')
   const date = watch('date')
   const time = watch('time')
+  const duration = Number(watch('duration') || 50)
   const repeatUntil = watch('repeatUntil')
   const modality = watch('modality')
   const selectedPatient = patients.find(p => p.id === patientId)
   const fixedLabel = fixedScheduleLabel(selectedPatient)
+  const { data: dayAppointments = [] } = useAppointments({
+    from: date,
+    to: date,
+    enabled: open && !!date,
+  })
 
   const sessionPreview =
     !isEditing && recurrence !== 'none'
       ? calcSessionPreview(date, recurrence, repeatUntil)
       : null
+
+  const scheduleConflict = useMemo(() => {
+    if (!date || !time) return null
+    const start = timeToMinutes(time)
+    const end = start + duration
+    return dayAppointments.find(appt => {
+      if (appt.id === appointment?.id) return false
+      if (appt.status === 'cancelled' || appt.status === 'no_show') return false
+      const otherStart = timeToMinutes(appt.time)
+      const otherEnd = otherStart + Number(appt.duration || 50)
+      return otherStart < end && otherEnd > start
+    }) ?? null
+  }, [appointment?.id, date, dayAppointments, duration, time])
 
   useEffect(() => {
     if (!open) {
@@ -295,6 +320,20 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
           </div>
         )}
 
+        {scheduleConflict && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+              <div>
+                <p className="text-sm font-semibold text-amber-900">Horario em conflito</p>
+                <p className="mt-1 text-xs leading-relaxed text-amber-800">
+                  Ja existe atendimento para {scheduleConflict.patient?.name ?? 'outro paciente'} as {scheduleConflict.time?.slice(0, 5)}. Escolha outro horario para salvar.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {isEditing && appointment?.isRecurring && (
           <div className="overflow-hidden rounded-2xl border border-neutral-200">
             <button
@@ -371,7 +410,7 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
           <button type="button" onClick={onClose} className="btn-secondary">Cancelar</button>
           <button
             type="submit"
-            disabled={isSubmitting || createAppointment.isPending || updateAppointment.isPending || updateGroup.isPending}
+            disabled={!!scheduleConflict || isSubmitting || createAppointment.isPending || updateAppointment.isPending || updateGroup.isPending}
             className="btn-primary flex items-center gap-2"
           >
             {(isSubmitting || createAppointment.isPending || updateAppointment.isPending || updateGroup.isPending) && (

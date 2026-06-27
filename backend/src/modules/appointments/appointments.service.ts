@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { DataSource, Repository, In, Not } from 'typeorm'
+import { DataSource, Repository } from 'typeorm'
 import { randomUUID } from 'crypto'
 import { Appointment } from './entities/appointment.entity'
 import { CreateAppointmentDto } from './dto/create-appointment.dto'
@@ -77,6 +77,9 @@ export class AppointmentsService {
 
     const dates = this.buildOccurrenceDates(dto.date, dto.recurrence, dto.repeatUntil)
     if (dates.length > 1) {
+      for (const date of dates) {
+        await this.assertSlotAvailable(psychologistId, date, dto.time, dto.duration)
+      }
       const recurringGroupId = randomUUID()
       const saved: Appointment[] = []
       for (const date of dates) {
@@ -92,10 +95,12 @@ export class AppointmentsService {
     const appointment = await this.findOne(id, psychologistId)
     const nextDate = dto.date ?? appointment.date
     const nextTime = dto.time ?? appointment.time
+    const nextDuration = dto.duration ?? appointment.duration
     const changedSlot = nextDate !== appointment.date || nextTime !== appointment.time
+      || nextDuration !== appointment.duration
 
     if (changedSlot) {
-      await this.assertSlotAvailable(psychologistId, nextDate, nextTime, id)
+      await this.assertSlotAvailable(psychologistId, nextDate, nextTime, nextDuration, id)
       appointment.isFixedScheduleException = true
       appointment.originalDate = appointment.originalDate ?? appointment.date
       appointment.originalTime = appointment.originalTime ?? appointment.time
@@ -155,6 +160,15 @@ export class AppointmentsService {
     if (!all.length) throw new NotFoundException()
     if (dto.meetingUrl !== undefined) dto.meetingUrl = this.cleanMeetingUrl(dto.meetingUrl)
     const toUpdate = all.filter(a => a.date >= fromDate)
+    for (const appt of toUpdate) {
+      await this.assertSlotAvailable(
+        psychologistId,
+        appt.date,
+        dto.time ?? appt.time,
+        dto.duration ?? appt.duration,
+        appt.id,
+      )
+    }
     for (const appt of toUpdate) Object.assign(appt, dto)
     const saved = await this.repo.save(toUpdate)
     for (const appt of saved) {
@@ -181,7 +195,7 @@ export class AppointmentsService {
         ['appointment-slot', `${psychologistId}:${dto.date}:${dto.time}`],
       )
 
-      await this.assertSlotAvailable(psychologistId, dto.date, dto.time)
+      await this.assertSlotAvailable(psychologistId, dto.date, dto.time, dto.duration)
 
       const appointment = manager.create(Appointment, {
         patientId: dto.patientId,
@@ -211,30 +225,34 @@ export class AppointmentsService {
     psychologistId: string,
     date: string,
     time: string,
+    duration = 50,
     ignoreAppointmentId?: string,
   ): Promise<void> {
-    const appointmentWhere: any = {
-      psychologistId,
-      date,
-      time,
-      status: Not(In(['cancelled', 'no_show'])),
-    }
-    if (ignoreAppointmentId) appointmentWhere.id = Not(ignoreAppointmentId)
+    const startMinute = this.timeToMinutes(time)
+    const endMinute = startMinute + Number(duration || 50)
 
     const [appointmentConflict, bookingConflict] = await Promise.all([
-      this.repo.findOne({ where: appointmentWhere }),
-      this.bookings.findOne({
-        where: {
-          psychologistId,
-          date,
-          time,
-          status: In(['pending', 'confirmed']),
-        },
-      }),
+      this.repo
+        .createQueryBuilder('a')
+        .where('a.psychologistId = :psychologistId', { psychologistId })
+        .andWhere('a.date = :date', { date })
+        .andWhere('a.status NOT IN (:...ignoredStatuses)', { ignoredStatuses: ['cancelled', 'no_show'] })
+        .andWhere(ignoreAppointmentId ? 'a.id <> :ignoreAppointmentId' : '1=1', { ignoreAppointmentId })
+        .andWhere('(EXTRACT(EPOCH FROM a.time::time) / 60) < :endMinute', { endMinute })
+        .andWhere('((EXTRACT(EPOCH FROM a.time::time) / 60) + COALESCE(a.duration, 50)) > :startMinute', { startMinute })
+        .getOne(),
+      this.bookings
+        .createQueryBuilder('b')
+        .where('b.psychologistId = :psychologistId', { psychologistId })
+        .andWhere('b.date = :date', { date })
+        .andWhere('b.status IN (:...statuses)', { statuses: ['pending', 'confirmed'] })
+        .andWhere('(EXTRACT(EPOCH FROM b.time::time) / 60) < :endMinute', { endMinute })
+        .andWhere('((EXTRACT(EPOCH FROM b.time::time) / 60) + COALESCE(b.duration, 50)) > :startMinute', { startMinute })
+        .getOne(),
     ])
 
     if (appointmentConflict || bookingConflict) {
-      throw new ConflictException('Este horario ja esta ocupado')
+      throw new ConflictException('Este horario conflita com outro atendimento')
     }
   }
 
@@ -246,6 +264,11 @@ export class AppointmentsService {
   private cleanMeetingUrl(value?: string): string | undefined {
     const trimmed = value?.trim()
     return trimmed || undefined
+  }
+
+  private timeToMinutes(time: string): number {
+    const [hours, minutes] = time.slice(0, 5).split(':').map(Number)
+    return (hours * 60) + (minutes || 0)
   }
 
   private buildOccurrenceDates(date: string, recurrence?: string, repeatUntil?: string): string[] {

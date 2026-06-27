@@ -73,10 +73,12 @@ export function useMe() {
 
 // ── Appointments ──────────────────────────────────────────────────────────────
 
-export function useAppointments(params?: { patientId?: string; from?: string; to?: string }) {
+export function useAppointments(params?: { patientId?: string; from?: string; to?: string; enabled?: boolean }) {
+  const { enabled, ...apiParams } = params ?? {}
   return useQuery<Appointment[]>({
-    queryKey: ['appointments', params],
-    queryFn: () => api.get('/appointments', { params }).then(r => r.data),
+    queryKey: ['appointments', apiParams],
+    queryFn: () => api.get('/appointments', { params: apiParams }).then(r => r.data),
+    enabled: enabled ?? true,
   })
 }
 
