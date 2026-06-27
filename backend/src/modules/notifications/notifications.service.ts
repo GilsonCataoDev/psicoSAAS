@@ -621,6 +621,12 @@ export class NotificationsService {
     return whatsAppResult
   }
 
+  async sendDailyAgendaDigest(ownerId: string, phone: string, text: string): Promise<WhatsAppDeliveryResult> {
+    return this.sendWhatsApp(phone, text, ownerId, {
+      type: 'Resumo diario da agenda',
+    })
+  }
+
   async sendPaymentRequest(
     patient: any,
     amount: number,

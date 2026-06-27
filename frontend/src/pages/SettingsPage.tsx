@@ -88,6 +88,7 @@ const DEFAULT_PREFS = {
   // Lembretes
   reminder24h: true,
   reminder2h: true,
+  dailyAgendaDigest: false,
   chargeAfterSession: false,
   bookingConfirmation: true,
   // Pagamentos
@@ -726,6 +727,7 @@ export default function SettingsPage() {
                   {([
                     { key: 'reminder24h',        label: 'Lembrete 24h antes da sessão',   desc: 'Mensagem enviada via WhatsApp no dia anterior' },
                     { key: 'reminder2h',         label: 'Lembrete 2h antes da sessão',    desc: 'Mensagem rápida no dia do atendimento' },
+                    { key: 'dailyAgendaDigest',  label: 'Resumo diário da agenda',        desc: 'Envia para você, pela manhã, a lista de pacientes do dia' },
                     { key: 'bookingConfirmation',label: 'Confirmação de agendamento',      desc: 'Notifica quando um horário é reservado' },
                   ] as const).map(item => (
                     <div key={item.key} className="flex items-center justify-between gap-4 py-2 border-b border-neutral-50 last:border-0">

@@ -104,6 +104,7 @@ export default function App() {
         <Route path="/acessibilidade" element={<AccessibilityPage />} />
 
         {/* ── Rotas públicas de autenticação ──────────────────────── */}
+        <Route path="/register" element={<Navigate to="/cadastro" replace />} />
         <Route element={<PublicRoute><AuthLayout /></PublicRoute>}>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/cadastro" element={<RegisterPage />} />

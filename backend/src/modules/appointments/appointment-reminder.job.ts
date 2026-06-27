@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config'
 import { Appointment } from './entities/appointment.entity'
 import { NotificationsService, WhatsAppDeliveryResult, PushDeliveryResult } from '../notifications/notifications.service'
 import { EmailService } from '../email/email.service'
+import { User } from '../auth/entities/user.entity'
 
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000
@@ -19,6 +20,8 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
   constructor(
     @InjectRepository(Appointment)
     private readonly appointments: Repository<Appointment>,
+    @InjectRepository(User)
+    private readonly users: Repository<User>,
     private readonly notifications: NotificationsService,
     private readonly config: ConfigService,
     private readonly email: EmailService,
@@ -47,6 +50,8 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
         relations: ['patient', 'psychologist'],
         order: { date: 'ASC', time: 'ASC' },
       })
+
+      await this.sendDailyAgendaDigests(upcoming, now)
 
       let sent = 0
       const planCache = new Map<string, boolean>()
@@ -150,6 +155,74 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
 
   private shouldStopRetrying(result: WhatsAppDeliveryResult | PushDeliveryResult): boolean {
     return 'nonRetryable' in result && result.nonRetryable === true
+  }
+
+  private async sendDailyAgendaDigests(upcoming: Appointment[], now: Date): Promise<void> {
+    const currentHour = this.localHour(now)
+    if (currentHour < 6) return
+
+    const today = this.dateOnly(now)
+    const byPsychologist = new Map<string, Appointment[]>()
+    for (const appointment of upcoming) {
+      if (appointment.date !== today || !appointment.psychologistId) continue
+      const list = byPsychologist.get(appointment.psychologistId) ?? []
+      list.push(appointment)
+      byPsychologist.set(appointment.psychologistId, list)
+    }
+
+    for (const [psychologistId, appointments] of byPsychologist) {
+      const psychologist = appointments[0]?.psychologist
+      if (!psychologist) continue
+      const prefs = (psychologist.preferences ?? {}) as Record<string, any>
+      if (prefs.dailyAgendaDigest !== true) continue
+      if (prefs.dailyAgendaDigestLastSentDate === today) continue
+
+      const targetPhone = String(prefs.whatsapp || psychologist.phone || '').replace(/\D/g, '')
+      if (!targetPhone) continue
+
+      const message = this.buildDailyAgendaDigestMessage(psychologist, appointments)
+      const result = await this.notifications.sendDailyAgendaDigest(psychologistId, targetPhone, message)
+
+      psychologist.preferences = {
+        ...prefs,
+        dailyAgendaDigestLastSentDate: today,
+      }
+      await this.users.save(psychologist)
+
+      if (!result.sent) {
+        this.logger.warn(`Resumo diario da agenda nao enviado para user ${psychologistId}: ${result.error ?? result.reason}`)
+      }
+    }
+  }
+
+  private buildDailyAgendaDigestMessage(psychologist: User, appointments: Appointment[]): string {
+    const firstName = psychologist.name?.split(' ')[0] || 'Psi'
+    const ordered = [...appointments].sort((a, b) => String(a.time).localeCompare(String(b.time)))
+    const lines = ordered.map((appointment) => {
+      const time = String(appointment.time).slice(0, 5)
+      const patientName = appointment.patient?.name ?? 'Paciente'
+      const modality = appointment.modality ? ` - ${appointment.modality}` : ''
+      return `${time} - ${patientName}${modality}`
+    })
+
+    return [
+      `Bom dia, ${firstName}.`,
+      '',
+      `Sua agenda de hoje tem ${ordered.length} ${ordered.length === 1 ? 'sessao' : 'sessoes'}:`,
+      ...lines,
+      '',
+      'Bom atendimento.',
+    ].join('\n')
+  }
+
+  private localHour(date: Date): number {
+    const timeZone = this.config.get<string>('GOOGLE_CALENDAR_TIMEZONE') ?? 'America/Sao_Paulo'
+    const hour = new Intl.DateTimeFormat('pt-BR', {
+      timeZone,
+      hour: '2-digit',
+      hour12: false,
+    }).format(date)
+    return Number(hour)
   }
 
   private addDays(date: Date, days: number): Date {

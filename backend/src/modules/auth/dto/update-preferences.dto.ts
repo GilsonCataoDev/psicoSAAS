@@ -10,6 +10,7 @@ export class UpdatePreferencesDto {
   // ── Lembretes ──────────────────────────────────────────────────────────────
   @IsOptional() @IsBoolean() reminder24h?: boolean
   @IsOptional() @IsBoolean() reminder2h?: boolean
+  @IsOptional() @IsBoolean() dailyAgendaDigest?: boolean
   @IsOptional() @IsBoolean() chargeAfterSession?: boolean
   @IsOptional() @IsBoolean() bookingConfirmation?: boolean
 

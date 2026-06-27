@@ -132,22 +132,38 @@ export default function RegisterPage() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
-          <label className="label">Nome completo</label>
-          <input {...register('name')} className="input-field" placeholder="Nome completo" />
+          <label htmlFor="register-name" className="label">Nome completo</label>
+          <input
+            id="register-name"
+            {...register('name')}
+            className="input-field"
+            placeholder="Nome completo"
+            autoComplete="name"
+            aria-invalid={!!errors.name}
+          />
           {errors.name && <p className="text-rose-500 text-xs mt-1">{errors.name.message}</p>}
         </div>
 
         <div>
-          <label className="label">E-mail</label>
-          <input {...register('email')} type="email" className="input-field" placeholder="seu@email.com" />
+          <label htmlFor="register-email" className="label">E-mail</label>
+          <input
+            id="register-email"
+            {...register('email')}
+            type="email"
+            className="input-field"
+            placeholder="seu@email.com"
+            autoComplete="email"
+            aria-invalid={!!errors.email}
+          />
           {errors.email && <p className="text-rose-500 text-xs mt-1">{errors.email.message}</p>}
         </div>
 
         {/* ── CRP com validação em tempo real ────────────────────────── */}
         <div>
-          <label className="label">CRP</label>
+          <label htmlFor="register-crp" className="label">CRP</label>
           <div className="relative">
             <input
+              id="register-crp"
               value={crpValue}
               onChange={handleCrpChange}
               className={`input-field pr-10 ${
@@ -159,6 +175,9 @@ export default function RegisterPage() {
               }`}
               placeholder="06/123456"
               maxLength={9}
+              inputMode="numeric"
+              autoComplete="off"
+              aria-invalid={!!errors.crp}
             />
             {crpValue.length >= 7 && (
               <span className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -199,8 +218,16 @@ export default function RegisterPage() {
         </div>
 
         <div>
-          <label className="label">Senha</label>
-          <input {...register('password')} type="password" className="input-field" placeholder="Mínimo 8 caracteres" />
+          <label htmlFor="register-password" className="label">Senha</label>
+          <input
+            id="register-password"
+            {...register('password')}
+            type="password"
+            className="input-field"
+            placeholder="Mínimo 8 caracteres"
+            autoComplete="new-password"
+            aria-invalid={!!errors.password}
+          />
           {errors.password && <p className="text-rose-500 text-xs mt-1">{errors.password.message}</p>}
         </div>
 
