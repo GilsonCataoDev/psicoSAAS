@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Users, CalendarCheck, Wallet, Clock, ArrowRight, Video, MapPin, AlertTriangle, Sparkles, MessageSquareText, Ban, TimerReset, CheckCircle2, ShieldCheck, NotebookPen, AlertCircle } from 'lucide-react'
+import { Users, CalendarCheck, Wallet, Clock, ArrowRight, Video, MapPin, AlertTriangle, Sparkles, MessageSquareText, Ban, TimerReset, CheckCircle2, ShieldCheck, NotebookPen, AlertCircle, ExternalLink } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -31,6 +31,7 @@ function contextMessage(sessionsToday: number, pendingPayments: number): string 
 }
 
 const MOODS = ['', '1', '2', '3', '4', '5']
+const VIDEO_LINK_RE = /https?:\/\/[^\s)]+/i
 
 export default function DashboardPage() {
   const { data: stats, isLoading: loading } = useDashboard()
@@ -50,6 +51,12 @@ export default function DashboardPage() {
   const sessionsToday = s?.todayAppointments?.length ?? 0
   const registeredSessions = Number(s?.registeredSessions ?? 0)
   const estimatedSavedMinutes = Math.max(registeredSessions * 30, s?.roi?.estimatedMinutesSaved ?? 0)
+
+  function openVideoAppointment(appt: any) {
+    const link = appt.meetingUrl || String(appt.notes ?? '').match(VIDEO_LINK_RE)?.[0]
+    if (!link) return
+    window.open(link, '_blank', 'noopener,noreferrer')
+  }
 
   if (loading) {
     return (
@@ -377,6 +384,15 @@ export default function DashboardPage() {
 
                   <div className="flex items-center gap-2 shrink-0">
                     <StatusBadge status={appt.status} />
+                    {appt.modality === 'online' && (appt.meetingUrl || String(appt.notes ?? '').match(VIDEO_LINK_RE)?.[0]) && (
+                      <button
+                        onClick={() => openVideoAppointment(appt)}
+                        title="Entrar na chamada"
+                        className="opacity-100 transition-opacity flex items-center gap-1 rounded-xl bg-mist-50 border border-mist-200 px-2 py-1 text-xs font-medium text-mist-700 hover:bg-mist-100 sm:opacity-0 sm:group-hover:opacity-100"
+                      >
+                        <ExternalLink className="w-3 h-3" /> Chamada
+                      </button>
+                    )}
                     {appt.status !== 'completed' && (
                       <button
                         onClick={() => setSessionDefaults({ patientId: appt.patientId, date: appt.date, appointmentId: appt.id })}

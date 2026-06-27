@@ -13,6 +13,7 @@ type FormData = {
   time: string
   duration: number
   modality: 'presencial' | 'online'
+  meetingUrl: string
   notes: string
   recurrence: 'none' | 'weekly' | 'biweekly'
   repeatUntil: string
@@ -75,6 +76,7 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
       time: '09:00',
       duration: 50,
       modality: 'presencial',
+      meetingUrl: '',
       notes: '',
       recurrence: 'none',
       repeatUntil: '',
@@ -108,6 +110,7 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
         time: appointment.time?.slice(0, 5) ?? '09:00',
         duration: appointment.duration,
         modality: appointment.modality,
+        meetingUrl: appointment.meetingUrl ?? '',
         notes: appointment.notes ?? '',
         recurrence: 'none',
         repeatUntil: '',
@@ -121,6 +124,7 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
       time: '09:00',
       duration: 50,
       modality: 'presencial',
+      meetingUrl: '',
       notes: '',
       recurrence: 'none',
       repeatUntil: '',
@@ -147,7 +151,7 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
           const result = await updateGroup.mutateAsync({
             groupId: appointment.recurringGroupId,
             fromDate: appointment.date,
-            data: { time: data.time, duration, modality: data.modality, notes: data.notes },
+            data: { time: data.time, duration, modality: data.modality, meetingUrl: data.meetingUrl, notes: data.notes },
           })
           toast.success(`${result.updated} sessoes atualizadas`)
         } else {
@@ -335,18 +339,31 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
           <div className="rounded-2xl border border-mist-100 bg-mist-50 px-4 py-3">
             <p className="text-sm font-semibold text-mist-900">Teleatendimento</p>
             <p className="mt-1 text-xs leading-relaxed text-mist-700">
-              Cole o link do Google Meet, Zoom ou Whereby nas observacoes. A agenda mostrara o botao de chamada neste horario.
+              Cole o link do Google Meet, Zoom ou Whereby no campo abaixo. A agenda mostrara o botao de chamada neste horario.
             </p>
           </div>
         )}
 
         <div>
+          {modality === 'online' && (
+            <div className="mb-4">
+              <label className="label">Link da chamada</label>
+              <input
+                {...register('meetingUrl')}
+                type="url"
+                inputMode="url"
+                className="input-field"
+                placeholder="https://meet.google.com/..."
+              />
+            </div>
+          )}
+
           <label className="label">Observacoes (opcional)</label>
           <textarea
             {...register('notes')}
             rows={2}
             className="input-field resize-none"
-            placeholder={modality === 'online' ? 'Link da chamada: https://meet.google.com/...' : 'Alguma informacao relevante para esta sessao...'}
+            placeholder="Alguma informacao relevante para esta sessao..."
           />
         </div>
 

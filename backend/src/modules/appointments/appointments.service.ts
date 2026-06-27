@@ -38,6 +38,7 @@ export class AppointmentsService {
         'appointment.duration',
         'appointment.status',
         'appointment.modality',
+        'appointment.meetingUrl',
         'appointment.isRecurring',
         'appointment.recurringFrequency',
         'appointment.recurringGroupId',
@@ -100,6 +101,7 @@ export class AppointmentsService {
       appointment.originalTime = appointment.originalTime ?? appointment.time
     }
 
+    if (dto.meetingUrl !== undefined) dto.meetingUrl = this.cleanMeetingUrl(dto.meetingUrl)
     Object.assign(appointment, dto)
     const saved = await this.repo.save(appointment)
     this.googleCalendar.syncAppointment(saved).catch(console.error)
@@ -151,6 +153,7 @@ export class AppointmentsService {
   async updateGroup(recurringGroupId: string, fromDate: string, dto: UpdateGroupDto, psychologistId: string) {
     const all = await this.repo.find({ where: { recurringGroupId, psychologistId }, relations: ['patient'] })
     if (!all.length) throw new NotFoundException()
+    if (dto.meetingUrl !== undefined) dto.meetingUrl = this.cleanMeetingUrl(dto.meetingUrl)
     const toUpdate = all.filter(a => a.date >= fromDate)
     for (const appt of toUpdate) Object.assign(appt, dto)
     const saved = await this.repo.save(toUpdate)
@@ -186,6 +189,7 @@ export class AppointmentsService {
         time: dto.time,
         duration: dto.duration,
         modality: dto.modality,
+        meetingUrl: this.cleanMeetingUrl(dto.meetingUrl),
         notes: dto.notes,
         psychologistId,
         isRecurring: dto.recurrence === 'weekly' || dto.recurrence === 'biweekly',
@@ -237,6 +241,11 @@ export class AppointmentsService {
   private async assertPatientBelongsToPsychologist(patientId: string, psychologistId: string): Promise<void> {
     const patient = await this.patients.findOne({ where: { id: patientId, psychologistId } })
     if (!patient) throw new NotFoundException('Pessoa nao encontrada')
+  }
+
+  private cleanMeetingUrl(value?: string): string | undefined {
+    const trimmed = value?.trim()
+    return trimmed || undefined
   }
 
   private buildOccurrenceDates(date: string, recurrence?: string, repeatUntil?: string): string[] {

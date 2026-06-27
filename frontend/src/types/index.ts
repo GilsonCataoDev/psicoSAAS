@@ -50,6 +50,7 @@ export interface Appointment {
   duration: number
   status: 'scheduled' | 'completed' | 'cancelled' | 'no_show'
   modality: 'presencial' | 'online'
+  meetingUrl?: string
   notes?: string
   isRecurring?: boolean
   recurringFrequency?: 'weekly' | 'biweekly'

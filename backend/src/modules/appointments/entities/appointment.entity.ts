@@ -13,6 +13,7 @@ export class Appointment {
   @Column({ default: 50 }) duration: number
   @Column({ type: 'text', default: 'scheduled' }) status: string
   @Column({ type: 'text', default: 'presencial' }) modality: string
+  @Column({ nullable: true }) meetingUrl?: string
   @Column({ nullable: true }) notes?: string
   @Column({ default: false }) isRecurring: boolean
   @Column({ nullable: true }) recurringFrequency?: string

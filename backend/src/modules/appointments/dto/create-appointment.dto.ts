@@ -7,6 +7,7 @@ export class CreateAppointmentDto {
   @IsString() time: string
   @IsNumber() @IsOptional() @Type(() => Number) duration?: number
   @IsIn(['presencial','online']) @IsOptional() modality?: string
+  @IsString() @IsOptional() meetingUrl?: string
   @IsString() @IsOptional() notes?: string
   @IsIn(['none','weekly','biweekly']) @IsOptional() recurrence?: 'none' | 'weekly' | 'biweekly'
   @IsString() @IsOptional() repeatUntil?: string

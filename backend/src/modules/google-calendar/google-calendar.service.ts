@@ -183,11 +183,12 @@ export class GoogleCalendarService {
     const { start, end } = this.appointmentDateTimes(appointment.date, appointment.time, appointment.duration || 50)
     const patientName = appointment.patient?.name ?? 'Paciente'
     const modality = appointment.modality === 'online' ? 'Online' : 'Presencial'
+    const meetingLine = appointment.meetingUrl ? `\nLink da chamada: ${appointment.meetingUrl}` : ''
 
     return {
       summary: `Sessao - ${patientName}`,
-      description: `Sessao agendada pela UseCognia.\nModalidade: ${modality}`,
-      location: modality,
+      description: `Sessao agendada pela UseCognia.\nModalidade: ${modality}${meetingLine}`,
+      location: appointment.meetingUrl || modality,
       start: { dateTime: start, timeZone },
       end: { dateTime: end, timeZone },
       extendedProperties: {

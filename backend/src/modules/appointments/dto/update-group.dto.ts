@@ -5,5 +5,6 @@ export class UpdateGroupDto {
   @IsString() @IsOptional() time?: string
   @IsNumber() @Min(1) @IsOptional() @Type(() => Number) duration?: number
   @IsIn(['presencial', 'online']) @IsOptional() modality?: 'presencial' | 'online'
+  @IsString() @IsOptional() meetingUrl?: string
   @IsString() @IsOptional() notes?: string
 }

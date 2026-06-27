@@ -133,9 +133,9 @@ export default function AgendaPage() {
   }
 
   function openVideoAppointment(appt: any) {
-    const link = String(appt.notes ?? '').match(VIDEO_LINK_RE)?.[0]
+    const link = appt.meetingUrl || String(appt.notes ?? '').match(VIDEO_LINK_RE)?.[0]
     if (!link) {
-      toast.error('Cole o link da chamada nas observações deste agendamento.')
+      toast.error('Informe o link da chamada neste agendamento.')
       editAppointment(appt)
       return
     }
