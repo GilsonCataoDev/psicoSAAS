@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -36,11 +36,17 @@ const TERMS_VERSION = '2026-05-02'
 export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [crpValue, setCrpValue] = useState('')
-  const [showTerms, setShowTerms] = useState(false)
+  const [referralCode, setReferralCode] = useState<string | null>(null)
+  const [searchParams] = useSearchParams()
   const setAuth      = useAuthStore((s) => s.setAuth)
   const setCsrfToken = useAuthStore((s) => s.setCsrfToken)
   const setSubscription = useSubscriptionStore((s) => s.setSubscription)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const ref = searchParams.get('ref') || searchParams.get('referral')
+    if (ref) setReferralCode(ref.toUpperCase())
+  }, [searchParams])
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -65,6 +71,7 @@ export default function RegisterPage() {
         crp: data.crp,
         termsAccepted: data.terms,
         termsVersion: TERMS_VERSION,
+        ...(referralCode ? { referralCode } : {}),
       })
       await setNativeTokens(res.data.tokens)
       setAuth(res.data.user)
@@ -91,13 +98,16 @@ export default function RegisterPage() {
       track(EVENTS.REGISTER)
       toast.success(
         betaActivated
-          ? 'Acesso Beta liberado! Seja bem-vinda'
+          ? 'Acesso Beta liberado! Seja bem-vindo(a)'
           : 'Conta criada! Vamos terminar a ativação do Beta no painel.',
       )
       navigate('/')
     } catch (err: any) {
+      const status = err?.response?.status
       const msg = err?.response?.data?.message
-      if (msg === 'E-mail já cadastrado') {
+      if (status === 429) {
+        toast.error('Muitas tentativas. Aguarde um minuto e tente novamente.')
+      } else if (msg === 'E-mail já cadastrado') {
         toast.error('Este e-mail já está em uso. Tente fazer login.')
       } else {
         toast.error('Não foi possível criar a conta. Tente novamente.')
@@ -113,6 +123,12 @@ export default function RegisterPage() {
         Criar sua conta
       </h2>
       <p className="text-neutral-500 mb-6">É rápido, gratuito e sem burocracia</p>
+
+      {referralCode && (
+        <div className="mb-4 px-3 py-2 bg-sage-50 border border-sage-200 rounded-lg text-sm text-sage-700">
+          Indicado por um colega — código <strong>{referralCode}</strong> aplicado.
+        </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
@@ -238,49 +254,6 @@ export default function RegisterPage() {
           Entrar
         </Link>
       </p>
-
-      {showTerms && (
-        <div className="fixed inset-0 z-50 bg-black/40 px-4 py-6 flex items-center justify-center">
-          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[85vh] overflow-hidden">
-            <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between gap-4">
-              <div>
-                <h3 className="font-semibold text-neutral-800">Termos de Uso</h3>
-                <p className="text-xs text-neutral-400">Versao {TERMS_VERSION}</p>
-              </div>
-              <button type="button" onClick={() => setShowTerms(false)} className="text-neutral-400 hover:text-neutral-700 text-sm">
-                Fechar
-              </button>
-            </div>
-            <div className="px-5 py-4 overflow-y-auto max-h-[65vh] text-sm text-neutral-600 space-y-4 leading-relaxed">
-              <p>
-                A UseCognia é uma plataforma para gestão de agenda, pacientes, prontuário, documentos e financeiro por profissionais de psicologia.
-                Ao criar a conta, você declara que usará a plataforma de acordo com o Código de Ética Profissional e as normas aplicáveis do CFP.
-              </p>
-              <p>
-                A plataforma usa dados de cadastro, dados de uso, dados financeiros e dados clínicos inseridos pelo profissional para executar o serviço,
-                manter segurança, prevenir abuso e melhorar a experiência.
-              </p>
-              <p>
-                Dados sensíveis do prontuário, sessões e documentos são protegidos com criptografia em repouso. Senhas são armazenadas com hash,
-                tokens de sessão são protegidos e cookies de autenticação usam configurações HttpOnly. Nenhuma medida elimina todos os riscos,
-                por isso o usuário deve proteger sua senha e encerrar sessões em dispositivos compartilhados.
-              </p>
-              <p>
-                Podemos compartilhar dados estritamente necessários com provedores de infraestrutura, e-mail, analytics com mascaramento e pagamento,
-                como Railway, serviços de envio e Asaas, sempre para operar a plataforma. Dados financeiros enviados ao Asaas seguem as regras e
-                políticas do próprio provedor de pagamento.
-              </p>
-              <p>
-                O profissional é responsável pela veracidade das informações, pela configuração dos links públicos e pela guarda ética dos registros.
-              </p>
-              <p>
-                O serviço pode ser suspenso em caso de uso indevido, risco de segurança, inadimplência ou violação destes termos. Alterações relevantes
-                destes termos serão versionadas e poderão exigir novo aceite.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
