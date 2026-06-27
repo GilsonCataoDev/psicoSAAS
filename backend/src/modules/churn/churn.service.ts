@@ -85,7 +85,9 @@ export class ChurnService {
     days?: number
   } = {}) {
     const rows = await this.fetchAllStats(filters)
-    const scored = rows.map(r => this.scoreRow(r))
+    const scored = rows
+      .map(r => this.scoreRow(r))
+      .filter(account => !filters.riskLevel || account.riskLevel === filters.riskLevel)
 
     const total = scored.length
     const healthy = scored.filter(s => s.score >= 70).length
@@ -491,7 +493,7 @@ export class ChurnService {
     }>>(`
       SELECT
         u.id, u.name, u.email,
-        EXTRACT(DAY FROM NOW() - u."createdAt")::int AS "daysSinceSignup",
+        FLOOR(EXTRACT(EPOCH FROM (NOW() - u."createdAt")) / 86400)::int AS "daysSinceSignup",
         (SELECT COUNT(*)::int FROM patients p WHERE p."psychologistId" = u.id) AS "patientCount"
       FROM users u
       WHERE u."isActive" = true
@@ -551,7 +553,7 @@ export class ChurnService {
   }
 
   private async sendNudgeEmail(name: string, email: string, type: '48h' | '7d' | '21d'): Promise<void> {
-    const url = 'https://usecognia.com.br/#/pacientes'
+    const url = 'https://usecognia.com.br/pacientes'
     const cta = `<a href="${url}" style="display:inline-block;background:#2f7657;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px">Cadastrar meu primeiro paciente →</a>`
 
     const subjects: Record<string, string> = {
@@ -580,7 +582,7 @@ export class ChurnService {
         <p>Percebemos que faz mais de 3 semanas sem registrar sessões no UseCognia. Está tudo bem por aí?</p>
         <p>Seus prontuários, agenda e pacientes continuam salvos e seguros. Quando quiser retomar, é só entrar na plataforma.</p>
         <p style="margin:32px 0">
-          <a href="https://usecognia.com.br/#/login" style="display:inline-block;background:#2f7657;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px">Voltar para o UseCognia →</a>
+            <a href="https://usecognia.com.br/login" style="display:inline-block;background:#2f7657;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px">Voltar para o UseCognia →</a>
         </p>
         <p style="color:#666;font-size:13px">Se precisar de ajuda ou quiser conversar sobre a plataforma, responda este e-mail.</p>
       `,
