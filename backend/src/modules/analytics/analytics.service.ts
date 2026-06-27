@@ -55,6 +55,10 @@ export class AnalyticsService {
       inactivePatients,
       remindersSent,
       earlyCancellations,
+      monthAppointments,
+      noShowsThisMonth,
+      cancelledThisMonth,
+      onlineThisMonth,
       registeredSessions,
     ] = await Promise.all([
 
@@ -204,6 +208,45 @@ export class AnalyticsService {
         { count: 0, amount: 0 },
       ),
 
+      safe('monthAppointments', log, () =>
+        this.appointments
+          .createQueryBuilder('a')
+          .where('a.psychologistId = :userId', { userId })
+          .andWhere('a.date BETWEEN :start AND :end', { start: monthStart, end: monthEnd })
+          .getCount(),
+        0,
+      ),
+
+      safe('noShowsThisMonth', log, () =>
+        this.appointments
+          .createQueryBuilder('a')
+          .where('a.psychologistId = :userId', { userId })
+          .andWhere('a.status = :status', { status: 'no_show' })
+          .andWhere('a.date BETWEEN :start AND :end', { start: monthStart, end: monthEnd })
+          .getCount(),
+        0,
+      ),
+
+      safe('cancelledThisMonth', log, () =>
+        this.appointments
+          .createQueryBuilder('a')
+          .where('a.psychologistId = :userId', { userId })
+          .andWhere('a.status = :status', { status: 'cancelled' })
+          .andWhere('a.date BETWEEN :start AND :end', { start: monthStart, end: monthEnd })
+          .getCount(),
+        0,
+      ),
+
+      safe('onlineThisMonth', log, () =>
+        this.appointments
+          .createQueryBuilder('a')
+          .where('a.psychologistId = :userId', { userId })
+          .andWhere('a.modality = :modality', { modality: 'online' })
+          .andWhere('a.date BETWEEN :start AND :end', { start: monthStart, end: monthEnd })
+          .getCount(),
+        0,
+      ),
+
       safe('registeredSessions', log, () =>
         this.sessions
           .createQueryBuilder('s')
@@ -216,6 +259,12 @@ export class AnalyticsService {
     const reminderCount = Number(remindersSent ?? 0)
     const absenceCount = Number((earlyCancellations as any)?.count ?? 0)
     const absencesAmount = Number((earlyCancellations as any)?.amount ?? 0)
+    const totalMonthAppointments = Number(monthAppointments ?? 0)
+    const completedMonthAppointments = Number(sessionsThisMonth ?? 0)
+    const noShowCount = Number(noShowsThisMonth ?? 0)
+    const cancelledCount = Number(cancelledThisMonth ?? 0)
+    const onlineCount = Number(onlineThisMonth ?? 0)
+    const activePatientCount = Number(activePatients ?? 0)
 
     this.logger.log(
       `dashboard OK: active=${activePatients} sessMonth=${sessionsThisMonth} pending=${(pendingPayments as any[]).length}`,
@@ -233,6 +282,19 @@ export class AnalyticsService {
       inactivePatients,
       todayAppointments,
       revenueChart,
+      clinicIndicators: {
+        totalAppointments: totalMonthAppointments,
+        completedAppointments: completedMonthAppointments,
+        noShows: noShowCount,
+        cancelled: cancelledCount,
+        onlineAppointments: onlineCount,
+        attendanceRate: totalMonthAppointments > 0 ? Math.round((completedMonthAppointments / totalMonthAppointments) * 100) : 0,
+        noShowRate: totalMonthAppointments > 0 ? Math.round((noShowCount / totalMonthAppointments) * 100) : 0,
+        onlineRate: totalMonthAppointments > 0 ? Math.round((onlineCount / totalMonthAppointments) * 100) : 0,
+        avgSessionsPerActivePatient: activePatientCount > 0
+          ? Math.round((completedMonthAppointments / activePatientCount) * 10) / 10
+          : 0,
+      },
       roi: {
         remindersSent: reminderCount,
         absencesCount: absenceCount,

@@ -180,6 +180,47 @@ export default function DashboardPage() {
         />
       </div>
 
+      {(s?.clinicIndicators?.totalAppointments ?? 0) > 0 && (
+        <div className="card">
+          <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="section-title mb-0">Indicadores da clinica</h2>
+              <p className="text-xs text-neutral-400">Resumo operacional do mes atual.</p>
+            </div>
+            <Link to="/agenda" className="text-xs font-semibold text-sage-600 hover:text-sage-700">
+              Ver agenda
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div className="rounded-xl bg-sage-50 px-4 py-3">
+              <CalendarCheck className="mb-2 h-4 w-4 text-sage-700" />
+              <p className="text-xl font-semibold text-neutral-800">{s.clinicIndicators.attendanceRate}%</p>
+              <p className="text-xs text-neutral-500">comparecimento</p>
+            </div>
+            <div className="rounded-xl bg-amber-50 px-4 py-3">
+              <Ban className="mb-2 h-4 w-4 text-amber-700" />
+              <p className="text-xl font-semibold text-neutral-800">{s.clinicIndicators.noShowRate}%</p>
+              <p className="text-xs text-neutral-500">faltas no mes</p>
+            </div>
+            <div className="rounded-xl bg-mist-50 px-4 py-3">
+              <Video className="mb-2 h-4 w-4 text-mist-700" />
+              <p className="text-xl font-semibold text-neutral-800">{s.clinicIndicators.onlineRate}%</p>
+              <p className="text-xs text-neutral-500">online</p>
+            </div>
+            <div className="rounded-xl bg-neutral-50 px-4 py-3">
+              <Users className="mb-2 h-4 w-4 text-neutral-600" />
+              <p className="text-xl font-semibold text-neutral-800">{s.clinicIndicators.avgSessionsPerActivePatient}</p>
+              <p className="text-xs text-neutral-500">sessoes por paciente</p>
+            </div>
+          </div>
+          {(s.clinicIndicators.noShows ?? 0) + (s.clinicIndicators.cancelled ?? 0) > 0 && (
+            <p className="mt-3 text-xs text-neutral-500">
+              {s.clinicIndicators.noShows} falta{s.clinicIndicators.noShows === 1 ? '' : 's'} e {s.clinicIndicators.cancelled} cancelamento{s.clinicIndicators.cancelled === 1 ? '' : 's'} registrados no mes.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* ── Agenda + Receita ─────────────────────────────────────────── */}
       {registeredSessions > 0 && (
         <div className="rounded-2xl border border-sage-100 bg-white p-4 shadow-card dark:border-white/10 dark:bg-cognia-panel">

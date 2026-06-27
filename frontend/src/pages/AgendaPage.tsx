@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Plus, Video, MapPin, Trash2, MessageCircle, Pencil, CheckCircle2, XCircle, FileText } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Video, MapPin, Trash2, MessageCircle, Pencil, CheckCircle2, XCircle, FileText, ExternalLink } from 'lucide-react'
 import {
   format, addDays, startOfWeek, eachDayOfInterval, addWeeks,
   subWeeks, isSameDay, parseISO, isToday,
@@ -18,6 +18,7 @@ const NewAppointmentModal = lazy(() => import('@/components/features/agenda/NewA
 const NewSessionModal = lazy(() => import('@/components/features/sessions/NewSessionModal'))
 
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 7) // 7h–19h
+const VIDEO_LINK_RE = /https?:\/\/[^\s)]+/i
 
 export default function AgendaPage() {
   const [searchParams] = useSearchParams()
@@ -131,6 +132,16 @@ export default function AgendaPage() {
     setAppointmentToEvolve(appt)
   }
 
+  function openVideoAppointment(appt: any) {
+    const link = String(appt.notes ?? '').match(VIDEO_LINK_RE)?.[0]
+    if (!link) {
+      toast.error('Cole o link da chamada nas observações deste agendamento.')
+      editAppointment(appt)
+      return
+    }
+    window.open(link, '_blank', 'noopener,noreferrer')
+  }
+
   async function changeAppointmentStatus(appt: any, status: 'completed' | 'no_show') {
     try {
       await updateStatus.mutateAsync({ id: appt.id, status })
@@ -229,7 +240,18 @@ export default function AgendaPage() {
                     )}
                   </div>
                 )}
-                <div className="grid grid-cols-3 gap-2 border-t border-neutral-100 pt-3">
+                <div className={`grid gap-2 border-t border-neutral-100 pt-3 ${appt.modality === 'online' ? 'grid-cols-4' : 'grid-cols-3'}`}>
+                  {appt.modality === 'online' && (
+                    <button
+                      type="button"
+                      onClick={() => openVideoAppointment(appt)}
+                      className="btn-secondary inline-flex min-w-0 flex-col items-center justify-center gap-1 px-2 py-2 text-[11px] leading-tight"
+                      title="Entrar na chamada"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      Chamada
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => evolveAppointment(appt)}
@@ -343,6 +365,16 @@ export default function AgendaPage() {
                           >
                             <FileText className="w-3.5 h-3.5" />
                           </button>
+                          {appt.modality === 'online' && (
+                            <button
+                              type="button"
+                              onClick={() => openVideoAppointment(appt)}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sage-200 bg-white text-sage-700 shadow-sm transition-colors hover:border-mist-200 hover:bg-mist-50 hover:text-mist-700 dark:border-white/10 dark:bg-white/10 dark:text-neutral-100 dark:hover:bg-mist-500/20 dark:hover:text-mist-100"
+                              title="Entrar na chamada"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={() => changeAppointmentStatus(appt, 'completed')}

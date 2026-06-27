@@ -1,5 +1,5 @@
 import { lazy, Suspense, useMemo, useState } from 'react'
-import { Wallet, TrendingUp, Clock, CheckCircle, Plus, Download, Trash2 } from 'lucide-react'
+import { Wallet, TrendingUp, Clock, CheckCircle, Plus, Download, Trash2, Percent, ReceiptText, AlertCircle } from 'lucide-react'
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import StatCard from '@/components/ui/StatCard'
 import Avatar from '@/components/ui/Avatar'
@@ -56,6 +56,29 @@ export default function FinancialPage() {
       counts: {} as Record<string, number>,
     })
   }, [records])
+
+  const financialHealth = useMemo(() => {
+    const incomes = records.filter(r => r.type === 'income')
+    const paidRecords = incomes.filter(r => r.status === 'paid')
+    const receivedMethods = paidRecords.reduce((acc, record) => {
+      const key = record.method ?? 'sem_metodo'
+      acc[key] = (acc[key] ?? 0) + Number(record.amount)
+      return acc
+    }, {} as Record<string, number>)
+    const expected = financialSummary.paid + financialSummary.pending + financialSummary.overdue
+    const receivable = financialSummary.pending + financialSummary.overdue
+
+    return {
+      collectionRate: expected > 0 ? Math.round((financialSummary.paid / expected) * 100) : 0,
+      overdueRate: expected > 0 ? Math.round((financialSummary.overdue / expected) * 100) : 0,
+      averageTicket: paidRecords.length > 0 ? financialSummary.paid / paidRecords.length : 0,
+      receivable,
+      paidCount: paidRecords.length,
+      methodEntries: Object.entries(receivedMethods)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 4),
+    }
+  }, [financialSummary, records])
 
   const filtered = useMemo(
     () => filter === 'all' ? records : records.filter(r => r.status === filter),
@@ -162,6 +185,89 @@ export default function FinancialPage() {
           icon={<Clock className="w-5 h-5" />}        accent="amber" />
         <StatCard label="Em atraso"      value={formatCurrency(financialSummary.overdue)}
           icon={<TrendingUp className="w-5 h-5" />}   accent={financialSummary.overdue > 0 ? 'rose' : 'sage'} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-4">
+        <div className="card lg:col-span-2">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="section-title mb-1">Saude financeira</h2>
+              <p className="text-sm text-neutral-500">
+                Visao rapida para saber se a clinica esta recebendo dentro do esperado.
+              </p>
+            </div>
+            <span className={`inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
+              financialHealth.overdueRate > 15
+                ? 'bg-rose-50 text-rose-700'
+                : financialHealth.collectionRate >= 80
+                ? 'bg-sage-50 text-sage-700'
+                : 'bg-amber-50 text-amber-700'
+            }`}>
+              <Percent className="h-3.5 w-3.5" />
+              {financialHealth.collectionRate}% recebido
+            </span>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-xl bg-neutral-50 px-4 py-3">
+              <p className="text-xs text-neutral-400">A receber</p>
+              <p className="mt-1 text-lg font-semibold text-neutral-800">{formatCurrency(financialHealth.receivable)}</p>
+            </div>
+            <div className="rounded-xl bg-neutral-50 px-4 py-3">
+              <p className="text-xs text-neutral-400">Ticket medio recebido</p>
+              <p className="mt-1 text-lg font-semibold text-neutral-800">{formatCurrency(financialHealth.averageTicket)}</p>
+            </div>
+            <div className="rounded-xl bg-neutral-50 px-4 py-3">
+              <p className="text-xs text-neutral-400">Lancamentos pagos</p>
+              <p className="mt-1 text-lg font-semibold text-neutral-800">{financialHealth.paidCount}</p>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-2 rounded-xl border border-neutral-100 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-2">
+              <AlertCircle className={`mt-0.5 h-4 w-4 shrink-0 ${financialSummary.overdue > 0 ? 'text-rose-500' : 'text-sage-600'}`} />
+              <p className="text-sm text-neutral-600">
+                {financialSummary.overdue > 0
+                  ? 'Prioridade: revisar pagamentos em atraso e acionar pacientes pendentes.'
+                  : financialSummary.pending > 0
+                  ? 'Fluxo ok. Existem pagamentos pendentes para acompanhar nos proximos dias.'
+                  : 'Tudo em dia no financeiro registrado.'}
+              </p>
+            </div>
+            {financialSummary.overdue > 0 && (
+              <button type="button" onClick={() => setFilter('overdue')} className="btn-secondary shrink-0 text-xs">
+                Ver atrasados
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="section-title mb-0">Recebimentos</h2>
+            <ReceiptText className="h-4 w-4 text-neutral-400" />
+          </div>
+          {financialHealth.methodEntries.length === 0 ? (
+            <p className="text-sm text-neutral-400">Nenhum pagamento recebido ainda.</p>
+          ) : (
+            <div className="space-y-3">
+              {financialHealth.methodEntries.map(([method, amount]) => (
+                <div key={method}>
+                  <div className="mb-1 flex items-center justify-between gap-2 text-sm">
+                    <span className="text-neutral-500">{METHOD_LABELS[method] ?? 'Sem metodo'}</span>
+                    <span className="font-semibold text-neutral-800">{formatCurrency(amount)}</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-neutral-100">
+                    <div
+                      className="h-2 rounded-full bg-sage-500"
+                      style={{ width: `${financialSummary.paid > 0 ? Math.max(8, Math.round((amount / financialSummary.paid) * 100)) : 0}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Grafico de receita mensal */}

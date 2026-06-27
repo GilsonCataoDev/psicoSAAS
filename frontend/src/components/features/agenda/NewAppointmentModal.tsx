@@ -86,6 +86,7 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
   const date = watch('date')
   const time = watch('time')
   const repeatUntil = watch('repeatUntil')
+  const modality = watch('modality')
   const selectedPatient = patients.find(p => p.id === patientId)
   const fixedLabel = fixedScheduleLabel(selectedPatient)
 
@@ -330,9 +331,23 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
           </div>
         )}
 
+        {modality === 'online' && (
+          <div className="rounded-2xl border border-mist-100 bg-mist-50 px-4 py-3">
+            <p className="text-sm font-semibold text-mist-900">Teleatendimento</p>
+            <p className="mt-1 text-xs leading-relaxed text-mist-700">
+              Cole o link do Google Meet, Zoom ou Whereby nas observacoes. A agenda mostrara o botao de chamada neste horario.
+            </p>
+          </div>
+        )}
+
         <div>
           <label className="label">Observacoes (opcional)</label>
-          <textarea {...register('notes')} rows={2} className="input-field resize-none" placeholder="Alguma informacao relevante para esta sessao..." />
+          <textarea
+            {...register('notes')}
+            rows={2}
+            className="input-field resize-none"
+            placeholder={modality === 'online' ? 'Link da chamada: https://meet.google.com/...' : 'Alguma informacao relevante para esta sessao...'}
+          />
         </div>
 
         <div className="flex justify-end gap-3 pt-2">
