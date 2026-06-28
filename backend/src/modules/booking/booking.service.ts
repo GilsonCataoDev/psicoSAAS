@@ -406,6 +406,7 @@ export class BookingService {
     if (appointment) this.googleCalendar.syncAppointment(appointment).catch(err => this.logCalendarError('sync', appointment.id, err))
 
     await this.notifications.sendBookingConfirmation(saved)
+    await this.notifications.sendBookingCreatedToPsychologist(saved, page)
 
     return {
       id: saved.id,

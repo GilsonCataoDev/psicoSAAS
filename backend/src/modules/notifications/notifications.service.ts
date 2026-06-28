@@ -764,6 +764,33 @@ export class NotificationsService {
     this.logger.log(`[Booking] Confirmação enviada: ${booking.patientName}`)
   }
 
+  async sendBookingCreatedToPsychologist(booking: any, page: any): Promise<void> {
+    const psychologist = page.psychologist
+    const prefs = (psychologist?.preferences ?? {}) as Record<string, any>
+    const phone = prefs.whatsapp || psychologist?.phone
+    if (!phone) return
+
+    const modality = booking.modality === 'presencial'
+      ? 'Presencial'
+      : booking.modality === 'online'
+        ? 'Online'
+        : 'Nao informada'
+    const patientPhone = booking.patientPhone ? `\nWhatsApp: ${booking.patientPhone}` : ''
+    const notes = booking.patientNotes ? `\nObservacoes: ${String(booking.patientNotes).slice(0, 240)}` : ''
+    const msg =
+      `*Novo agendamento confirmado*\n\n` +
+      `Paciente: ${booking.patientName}\n` +
+      `Data: ${booking.date} as ${String(booking.time).slice(0, 5)}\n` +
+      `Modalidade: ${modality}` +
+      patientPhone +
+      notes
+
+    await this.sendWhatsApp(phone, msg, page.psychologistId, {
+      type: 'Aviso ao psicologo',
+      patientName: booking.patientName,
+    })
+  }
+
   async sendBookingCancellation(booking: any): Promise<void> {
     const psychologist = booking.psychologist
     const prefs = (psychologist?.preferences ?? {}) as Record<string, any>
