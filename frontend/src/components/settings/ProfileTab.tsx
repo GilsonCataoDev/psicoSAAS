@@ -1,0 +1,111 @@
+import { Camera, CheckCircle2, ExternalLink, LogOut } from 'lucide-react'
+import { type User } from '@/store/auth'
+import Avatar from '@/components/ui/Avatar'
+import { openCfpVerification } from '@/lib/crp'
+
+interface Props {
+  user: User | null
+  name: string
+  setName: (v: string) => void
+  crp: string
+  handleCrpChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  crpValid: boolean
+  crpRegion: string | null
+  specialty: string
+  setSpecialty: (v: string) => void
+  phone: string
+  setPhone: (v: string) => void
+  savingProfile: boolean
+  uploadingAvatar: boolean
+  saveProfile: () => void
+  uploadAvatar: (file?: File) => void
+  handleLogout: () => void
+}
+
+export function ProfileTab({
+  user, name, setName, crp, handleCrpChange, crpValid, crpRegion,
+  specialty, setSpecialty, phone, setPhone,
+  savingProfile, uploadingAvatar, saveProfile, uploadAvatar, handleLogout,
+}: Props) {
+  return (
+    <div className="card space-y-4">
+      <h2 className="section-title">Seus dados</h2>
+      <div className="flex flex-col gap-3 rounded-2xl border border-neutral-100 bg-neutral-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <Avatar name={name || user?.name || 'Perfil'} src={user?.avatarUrl ?? user?.avatar} size="lg" />
+          <div>
+            <p className="text-sm font-medium text-neutral-800">Foto do perfil</p>
+            <p className="text-xs text-neutral-400">Use um arquivo JPG de ate 1 MB.</p>
+          </div>
+        </div>
+        <label className="btn-secondary inline-flex w-fit cursor-pointer items-center gap-2 text-sm">
+          <Camera className="h-4 w-4" />
+          {uploadingAvatar ? 'Enviando...' : 'Escolher JPG'}
+          <input
+            type="file"
+            accept="image/jpeg,.jpg,.jpeg"
+            className="hidden"
+            disabled={uploadingAvatar}
+            onChange={event => {
+              uploadAvatar(event.target.files?.[0])
+              event.currentTarget.value = ''
+            }}
+          />
+        </label>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="col-span-1 sm:col-span-2">
+          <label className="label">Nome completo</label>
+          <input value={name} onChange={e => setName(e.target.value)} className="input-field" />
+        </div>
+        <div>
+          <label className="label">CRP</label>
+          <input value={crp} onChange={handleCrpChange} className="input-field"
+            placeholder="06/123456" maxLength={9} />
+          {crpValid && (
+            <div className="flex items-center justify-between mt-1.5">
+              <p className="text-xs text-emerald-600 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" />{crpRegion ?? 'CRP válido'}
+              </p>
+              <button type="button" onClick={openCfpVerification}
+                className="text-xs text-sage-600 hover:text-sage-700 flex items-center gap-1 hover:underline">
+                Verificar no CFP <ExternalLink className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+        </div>
+        <div>
+          <label className="label">Especialidade</label>
+          <input value={specialty} onChange={e => setSpecialty(e.target.value)}
+            className="input-field" placeholder="Ex: Psicologia Clínica" />
+        </div>
+        <div>
+          <label className="label">Telefone / WhatsApp</label>
+          <input value={phone} onChange={e => setPhone(e.target.value)}
+            className="input-field" placeholder="(11) 99999-9999" />
+        </div>
+        <div>
+          <label className="label">E-mail</label>
+          <input defaultValue={user?.email} className="input-field bg-neutral-50" readOnly />
+          <p className="text-xs text-neutral-400 mt-1">O e-mail não pode ser alterado.</p>
+        </div>
+      </div>
+      <div className="flex justify-end">
+        <button onClick={saveProfile} disabled={savingProfile} className="btn-primary flex items-center gap-2">
+          {savingProfile && <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+          Salvar alterações
+        </button>
+      </div>
+      <div className="border-t border-neutral-100 pt-4">
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="btn-secondary inline-flex items-center gap-2 text-rose-600 hover:bg-rose-50"
+        >
+          <LogOut className="h-4 w-4" />
+          Sair da conta
+        </button>
+      </div>
+    </div>
+  )
+}
