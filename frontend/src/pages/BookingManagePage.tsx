@@ -312,6 +312,18 @@ function normalizeSlug(value: string): string {
     .slice(0, 60)
 }
 
+function initialBreakInterval(page: any, modality: BookingModality): number {
+  const duration = modality === 'presencial'
+    ? +(page?.presencialSessionDuration ?? page?.sessionDuration ?? 50)
+    : +(page?.onlineSessionDuration ?? page?.sessionDuration ?? 50)
+  const explicitBreak = modality === 'presencial'
+    ? page?.presencialSlotInterval
+    : page?.onlineSlotInterval
+
+  if (explicitBreak !== undefined && explicitBreak !== null) return +explicitBreak
+  return Math.max(+(page?.slotInterval ?? duration) - duration, 0)
+}
+
 function BookingSettings({ page }: { page: any }) {
   const saveBookingPage = useSaveBookingPage()
   const { data: savedSlots = [] } = useAvailability()
@@ -331,9 +343,9 @@ function BookingSettings({ page }: { page: any }) {
     sessionDuration:     +(page?.sessionDuration ?? 50),
     presencialSessionDuration: +(page?.presencialSessionDuration ?? page?.sessionDuration ?? 50),
     onlineSessionDuration:     +(page?.onlineSessionDuration ?? page?.sessionDuration ?? 50),
-    slotInterval:        +(page?.slotInterval ?? 60),
-    presencialSlotInterval: +(page?.presencialSlotInterval ?? page?.slotInterval ?? 60),
-    onlineSlotInterval:     +(page?.onlineSlotInterval ?? page?.slotInterval ?? 60),
+    slotInterval:        +(page?.slotInterval ?? 50),
+    presencialSlotInterval: initialBreakInterval(page, 'presencial'),
+    onlineSlotInterval:     initialBreakInterval(page, 'online'),
     minAdvanceDays:      +(page?.minAdvanceDays ?? 0),
     maxAdvanceDays:      +(page?.maxAdvanceDays ?? 30),
     pixKey:              page?.pixKey ?? '',
@@ -353,9 +365,9 @@ function BookingSettings({ page }: { page: any }) {
       sessionDuration:     +(page.sessionDuration ?? 50),
       presencialSessionDuration: +(page.presencialSessionDuration ?? page.sessionDuration ?? 50),
       onlineSessionDuration:     +(page.onlineSessionDuration ?? page.sessionDuration ?? 50),
-      slotInterval:        +(page.slotInterval ?? 60),
-      presencialSlotInterval: +(page.presencialSlotInterval ?? page.slotInterval ?? 60),
-      onlineSlotInterval:     +(page.onlineSlotInterval ?? page.slotInterval ?? 60),
+      slotInterval:        +(page.slotInterval ?? 50),
+      presencialSlotInterval: initialBreakInterval(page, 'presencial'),
+      onlineSlotInterval:     initialBreakInterval(page, 'online'),
       minAdvanceDays:      +(page.minAdvanceDays ?? 0),
       maxAdvanceDays:      +(page.maxAdvanceDays ?? 30),
       pixKey:              page.pixKey ?? '',
@@ -431,12 +443,12 @@ function BookingSettings({ page }: { page: any }) {
       toast.error('A duração online precisa ficar entre 15 e 240 minutos.')
       return false
     }
-    if (form.presencialSlotInterval < 15 || form.presencialSlotInterval > 240) {
-      toast.error('O intervalo presencial precisa ficar entre 15 e 240 minutos.')
+    if (form.presencialSlotInterval < 0 || form.presencialSlotInterval > 180) {
+      toast.error('A pausa presencial precisa ficar entre 0 e 180 minutos.')
       return false
     }
-    if (form.onlineSlotInterval < 15 || form.onlineSlotInterval > 240) {
-      toast.error('O intervalo online precisa ficar entre 15 e 240 minutos.')
+    if (form.onlineSlotInterval < 0 || form.onlineSlotInterval > 180) {
+      toast.error('A pausa online precisa ficar entre 0 e 180 minutos.')
       return false
     }
     if (form.minAdvanceDays < 0 || form.minAdvanceDays > 30) {
@@ -479,7 +491,7 @@ function BookingSettings({ page }: { page: any }) {
         ...form,
         slug: normalizeSlug(form.slug),
         sessionDuration: form.onlineSessionDuration,
-        slotInterval: form.onlineSlotInterval,
+        slotInterval: form.onlineSessionDuration + form.onlineSlotInterval,
       })
       // Salva horários de disponibilidade
       const slots = MODALITIES.flatMap(({ key }) =>
@@ -587,7 +599,7 @@ function BookingSettings({ page }: { page: any }) {
             </span>
           )}
         </div>
-        <p className="text-xs text-neutral-400">Selecione os dias e defina o início/fim do expediente. Os slots são gerados automaticamente pelo intervalo abaixo.</p>
+        <p className="text-xs text-neutral-400">Selecione os dias e defina o início/fim do expediente. Os horários são gerados pela duração da consulta somada à pausa configurada.</p>
 
         <div className="flex gap-1 bg-neutral-100 dark:bg-black/20 p-1 rounded-xl">
           {MODALITIES.map(({ key, label }) => (
@@ -693,28 +705,28 @@ function BookingSettings({ page }: { page: any }) {
             />
           </div>
           <div>
-            <label className="label">Intervalo presencial (min)</label>
+            <label className="label">Pausa presencial (min)</label>
             <input
               type="number"
-              min={15}
-              max={240}
+              min={0}
+              max={180}
               value={form.presencialSlotInterval}
               onChange={e => set('presencialSlotInterval', +e.target.value)}
               className="input-field"
             />
-            <p className="text-xs text-neutral-400 mt-1">Use um intervalo maior se precisar de deslocamento ou preparo da sala.</p>
+            <p className="text-xs text-neutral-400 mt-1">Use 0 para uma consulta começar logo após a outra.</p>
           </div>
           <div>
-            <label className="label">Intervalo online (min)</label>
+            <label className="label">Pausa online (min)</label>
             <input
               type="number"
-              min={15}
-              max={240}
+              min={0}
+              max={180}
               value={form.onlineSlotInterval}
               onChange={e => set('onlineSlotInterval', +e.target.value)}
               className="input-field"
             />
-            <p className="text-xs text-neutral-400 mt-1">Pode ser menor quando não houver intervalo físico entre atendimentos.</p>
+            <p className="text-xs text-neutral-400 mt-1">Pode ser 0 quando não houver pausa entre atendimentos.</p>
           </div>
           <div>
             <label className="label">Antecedência mínima (dias)</label>

@@ -23,8 +23,8 @@ export class SaveBookingPageDto {
   @IsNumber() @Min(15) @Max(240) @IsOptional() @Type(() => Number) presencialSessionDuration?: number
   @IsNumber() @Min(15) @Max(240) @IsOptional() @Type(() => Number) onlineSessionDuration?: number
   @IsNumber() @Min(15) @Max(240) @IsOptional() @Type(() => Number) slotInterval?: number
-  @IsNumber() @Min(15) @Max(240) @IsOptional() @Type(() => Number) presencialSlotInterval?: number
-  @IsNumber() @Min(15) @Max(240) @IsOptional() @Type(() => Number) onlineSlotInterval?: number
+  @IsNumber() @Min(0) @Max(180) @IsOptional() @Type(() => Number) presencialSlotInterval?: number
+  @IsNumber() @Min(0) @Max(180) @IsOptional() @Type(() => Number) onlineSlotInterval?: number
   @IsNumber() @Min(0) @Max(30) @IsOptional() @Type(() => Number) minAdvanceDays?: number
   @IsNumber() @Min(1) @Max(180) @IsOptional() @Type(() => Number) maxAdvanceDays?: number
 
