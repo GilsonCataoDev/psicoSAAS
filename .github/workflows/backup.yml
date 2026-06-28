@@ -1,0 +1,39 @@
+name: Backup do banco de dados
+
+on:
+  schedule:
+    - cron: '0 4 * * *'   # 04:00 UTC = 01:00 BRT todo dia
+  workflow_dispatch:        # permite rodar manualmente
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Instalar postgresql-client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client
+
+      - name: Gerar dump
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_PUBLIC_URL }}
+        run: |
+          FILENAME="usecognia-$(date -u +%Y-%m-%d).dump"
+          pg_dump "$DATABASE_URL" \
+            --format=custom \
+            --no-acl \
+            --no-owner \
+            --file="$FILENAME"
+          echo "FILENAME=$FILENAME" >> "$GITHUB_ENV"
+          SIZE=$(du -sh "$FILENAME" | cut -f1)
+          echo "Backup gerado: $FILENAME ($SIZE)"
+
+      - name: Salvar artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_number }}
+          path: ${{ env.FILENAME }}
+          retention-days: 90
+          if-no-files-found: error
