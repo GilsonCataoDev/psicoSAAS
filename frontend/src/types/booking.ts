@@ -11,6 +11,8 @@ export interface BookingPage {
   sessionPrice: number
   sessionDuration: number
   slotInterval: number
+  presencialSlotInterval: number
+  onlineSlotInterval: number
   allowPresencial: boolean
   allowOnline: boolean
   minAdvanceDays: number

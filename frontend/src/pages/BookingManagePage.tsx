@@ -330,6 +330,8 @@ function BookingSettings({ page }: { page: any }) {
     sessionPrice:        +(page?.sessionPrice ?? 150),
     sessionDuration:     +(page?.sessionDuration ?? 50),
     slotInterval:        +(page?.slotInterval ?? 60),
+    presencialSlotInterval: +(page?.presencialSlotInterval ?? page?.slotInterval ?? 60),
+    onlineSlotInterval:     +(page?.onlineSlotInterval ?? page?.slotInterval ?? 60),
     minAdvanceDays:      +(page?.minAdvanceDays ?? 0),
     maxAdvanceDays:      +(page?.maxAdvanceDays ?? 30),
     pixKey:              page?.pixKey ?? '',
@@ -348,6 +350,8 @@ function BookingSettings({ page }: { page: any }) {
       sessionPrice:        +(page.sessionPrice ?? 150),
       sessionDuration:     +(page.sessionDuration ?? 50),
       slotInterval:        +(page.slotInterval ?? 60),
+      presencialSlotInterval: +(page.presencialSlotInterval ?? page.slotInterval ?? 60),
+      onlineSlotInterval:     +(page.onlineSlotInterval ?? page.slotInterval ?? 60),
       minAdvanceDays:      +(page.minAdvanceDays ?? 0),
       maxAdvanceDays:      +(page.maxAdvanceDays ?? 30),
       pixKey:              page.pixKey ?? '',
@@ -419,8 +423,12 @@ function BookingSettings({ page }: { page: any }) {
       toast.error('A duração precisa ficar entre 15 e 240 minutos.')
       return false
     }
-    if (form.slotInterval < 15 || form.slotInterval > 240) {
-      toast.error('O intervalo precisa ficar entre 15 e 240 minutos.')
+    if (form.presencialSlotInterval < 15 || form.presencialSlotInterval > 240) {
+      toast.error('O intervalo presencial precisa ficar entre 15 e 240 minutos.')
+      return false
+    }
+    if (form.onlineSlotInterval < 15 || form.onlineSlotInterval > 240) {
+      toast.error('O intervalo online precisa ficar entre 15 e 240 minutos.')
       return false
     }
     if (form.minAdvanceDays < 0 || form.minAdvanceDays > 30) {
@@ -458,7 +466,11 @@ function BookingSettings({ page }: { page: any }) {
     try {
       // Salva configurações gerais
       if (!validateSettings()) return
-      await saveBookingPage.mutateAsync({ ...form, slug: normalizeSlug(form.slug) })
+      await saveBookingPage.mutateAsync({
+        ...form,
+        slug: normalizeSlug(form.slug),
+        slotInterval: form.onlineSlotInterval,
+      })
       // Salva horários de disponibilidade
       const slots = MODALITIES.flatMap(({ key }) =>
         WEEKDAYS
@@ -653,8 +665,28 @@ function BookingSettings({ page }: { page: any }) {
             <input type="number" min={15} max={240} value={form.sessionDuration} onChange={e => set('sessionDuration', +e.target.value)} className="input-field" />
           </div>
           <div>
-            <label className="label">Intervalo entre slots (min)</label>
-            <input type="number" min={15} max={240} value={form.slotInterval} onChange={e => set('slotInterval', +e.target.value)} className="input-field" />
+            <label className="label">Intervalo presencial (min)</label>
+            <input
+              type="number"
+              min={15}
+              max={240}
+              value={form.presencialSlotInterval}
+              onChange={e => set('presencialSlotInterval', +e.target.value)}
+              className="input-field"
+            />
+            <p className="text-xs text-neutral-400 mt-1">Use um intervalo maior se precisar de deslocamento ou preparo da sala.</p>
+          </div>
+          <div>
+            <label className="label">Intervalo online (min)</label>
+            <input
+              type="number"
+              min={15}
+              max={240}
+              value={form.onlineSlotInterval}
+              onChange={e => set('onlineSlotInterval', +e.target.value)}
+              className="input-field"
+            />
+            <p className="text-xs text-neutral-400 mt-1">Pode ser menor quando não houver intervalo físico entre atendimentos.</p>
           </div>
           <div>
             <label className="label">Antecedência mínima (dias)</label>

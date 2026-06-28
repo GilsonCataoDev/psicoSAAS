@@ -27,6 +27,8 @@ export class BookingPage {
 
   @Column({ default: 50 }) sessionDuration: number   // minutos
   @Column({ default: 30 }) slotInterval: number      // intervalo entre slots
+  @Column({ default: 60 }) presencialSlotInterval: number
+  @Column({ default: 60 }) onlineSlotInterval: number
 
   // Modalidades disponíveis
   @Column({ default: true }) allowPresencial: boolean

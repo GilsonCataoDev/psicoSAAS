@@ -176,7 +176,8 @@ export class BookingService {
     if (!page) throw new NotFoundException()
     if (modality === 'presencial' && !page.allowPresencial) return []
     if (modality === 'online' && !page.allowOnline) return []
-    if (page.sessionDuration <= 0 || page.slotInterval <= 0) return []
+    const slotInterval = this.getSlotInterval(page, modality)
+    if (page.sessionDuration <= 0 || slotInterval <= 0) return []
 
     const date = parseISO(dateStr)
     const weekday = getDay(date)
@@ -237,7 +238,7 @@ export class BookingService {
         if (!occupiedTimes.has(timeStr) && isAfter(startsAt, now)) {
           available.push(timeStr)
         }
-        current = addMinutes(current, page.slotInterval)
+        current = addMinutes(current, slotInterval)
       }
     }
 
@@ -262,7 +263,8 @@ export class BookingService {
     if (!page) throw new NotFoundException()
     if (modality === 'presencial' && !page.allowPresencial) return []
     if (modality === 'online' && !page.allowOnline) return []
-    if (page.sessionDuration <= 0 || page.slotInterval <= 0) return []
+    const slotInterval = this.getSlotInterval(page, modality)
+    if (page.sessionDuration <= 0 || slotInterval <= 0) return []
 
     const timeZone = this.config.get<string>('GOOGLE_CALENDAR_TIMEZONE') ?? 'America/Sao_Paulo'
     const now = new Date()
@@ -328,7 +330,7 @@ export class BookingService {
           const offset = this.config.get<string>('APPOINTMENT_TIMEZONE_OFFSET') ?? '-03:00'
           const startsAt = new Date(`${dateStr}T${timeStr}:00${offset}`)
           if (!occupiedTimes.has(timeStr) && isAfter(startsAt, now)) return true
-          current = addMinutes(current, page.slotInterval)
+          current = addMinutes(current, slotInterval)
         }
         return false
       })
@@ -574,6 +576,8 @@ export class BookingService {
         sessionPrice: 150,
         sessionDuration: 50,
         slotInterval: 60,
+        presencialSlotInterval: 60,
+        onlineSlotInterval: 60,
         isActive: true,
       })
       page = await this.pages.save(page)
@@ -757,6 +761,12 @@ export class BookingService {
     ).catch(() => {})  // não derruba o fluxo se a coluna ainda não existir em prod
 
     return appointment
+  }
+
+  private getSlotInterval(page: BookingPage, modality?: 'presencial' | 'online'): number {
+    if (modality === 'presencial') return Number(page.presencialSlotInterval ?? page.slotInterval ?? 60)
+    if (modality === 'online') return Number(page.onlineSlotInterval ?? page.slotInterval ?? 60)
+    return Number(page.slotInterval ?? page.onlineSlotInterval ?? page.presencialSlotInterval ?? 60)
   }
 
   private async findOne(id: string, psychologistId: string) {
