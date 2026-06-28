@@ -18,6 +18,7 @@ const NewAppointmentModal = lazy(() => import('@/components/features/agenda/NewA
 const NewSessionModal = lazy(() => import('@/components/features/sessions/NewSessionModal'))
 
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 7) // 7h–19h
+const DAYS_IN_WEEK = 7
 const VIDEO_LINK_RE = /https?:\/\/[^\s)]+/i
 
 export default function AgendaPage() {
@@ -28,7 +29,7 @@ export default function AgendaPage() {
   const [appointmentToRemove, setAppointmentToRemove] = useState<any | null>(null)
   const [appointmentToEvolve, setAppointmentToEvolve] = useState<any | null>(null)
   const [deleteScope, setDeleteScope] = useState<'single' | 'future'>('single')
-  const weekEnd = addDays(weekStart, 4)
+  const weekEnd = addDays(weekStart, DAYS_IN_WEEK - 1)
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
   const { data: appointments = [] } = useAppointments({
     from: format(weekStart, 'yyyy-MM-dd'),
@@ -66,7 +67,7 @@ export default function AgendaPage() {
   // Mobile: só mostra o dia atual
   const [mobileDay, setMobileDay] = useState(new Date())
   const mobileDays = useMemo(
-    () => eachDayOfInterval({ start: weekStart, end: addDays(weekStart, 4) }),
+    () => eachDayOfInterval({ start: weekStart, end: addDays(weekStart, DAYS_IN_WEEK - 1) }),
     [weekStart],
   )
   const mobileDayKey = format(mobileDay, 'yyyy-MM-dd')
@@ -321,7 +322,7 @@ export default function AgendaPage() {
 
       {/* ── Desktop: grade semanal ─────────────────────────────────── */}
       <div className="agenda-grid hidden lg:block card overflow-hidden p-0">
-        <div className="agenda-grid-header agenda-grid-line grid grid-cols-[64px_repeat(5,1fr)] border-b border-neutral-100">
+        <div className="agenda-grid-header agenda-grid-line grid grid-cols-[64px_repeat(7,1fr)] border-b border-neutral-100">
           <div className="p-3" />
           {days.map(day => (
             <div key={day.toISOString()}
@@ -335,7 +336,7 @@ export default function AgendaPage() {
         </div>
         <div className="overflow-y-auto max-h-[480px]">
           {visibleHours.map(hour => (
-            <div key={hour} className="agenda-grid-line grid grid-cols-[64px_repeat(5,1fr)] border-b border-neutral-50 min-h-[72px]">
+            <div key={hour} className="agenda-grid-line grid grid-cols-[64px_repeat(7,1fr)] border-b border-neutral-50 min-h-[72px]">
               <div className="p-2 text-xs text-neutral-400 dark:text-neutral-300 text-right pr-3 pt-2">{hour}:00</div>
               {days.map(day => {
                 const dayKey = format(day, 'yyyy-MM-dd')
