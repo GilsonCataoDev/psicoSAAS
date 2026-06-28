@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react'
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { useAuthStore } from '@/store/auth'
 import { useSubscriptionStore } from '@/store/subscription'
@@ -93,6 +94,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
+    <ErrorBoundary>
     <Suspense fallback={<PageLoader />}>
       <Routes>
         <Route path="/plataforma" element={<LandingPage />} />
@@ -152,5 +154,6 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
+    </ErrorBoundary>
   )
 }
