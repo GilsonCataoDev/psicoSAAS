@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
 import { ChurnService } from './churn.service'
+import { AdvisoryLockService, JOB_LOCK_KEYS } from '../../common/advisory-lock/advisory-lock.service'
 
 const INTERVAL_MS = 24 * 60 * 60 * 1000   // once per day
 const INITIAL_DELAY_MS = 60 * 1000         // 60s after boot
@@ -11,7 +12,10 @@ export class ChurnScoreJob implements OnModuleInit, OnModuleDestroy {
   private initialTimer?: NodeJS.Timeout
   private running = false
 
-  constructor(private readonly churn: ChurnService) {}
+  constructor(
+    private readonly churn: ChurnService,
+    private readonly lock: AdvisoryLockService,
+  ) {}
 
   onModuleInit(): void {
     this.timer = setInterval(
@@ -32,14 +36,18 @@ export class ChurnScoreJob implements OnModuleInit, OnModuleDestroy {
   async run(): Promise<void> {
     if (this.running) return
     this.running = true
-    const start = Date.now()
     try {
-      const result = await this.churn.recalculateAll()
-      const nudges = await this.churn.sendActivationNudges()
-      const elapsed = Date.now() - start
-      this.logger.log(`Churn scores recalculados: processed=${result.processed} errors=${result.errors} nudges=${JSON.stringify(nudges)} elapsed=${elapsed}ms`)
+      await this.lock.withLock(JOB_LOCK_KEYS.CHURN_SCORE, () => this.runLocked())
     } finally {
       this.running = false
     }
+  }
+
+  private async runLocked(): Promise<void> {
+    const start = Date.now()
+    const result = await this.churn.recalculateAll()
+    const nudges = await this.churn.sendActivationNudges()
+    const elapsed = Date.now() - start
+    this.logger.log(`Churn scores recalculados: processed=${result.processed} errors=${result.errors} nudges=${JSON.stringify(nudges)} elapsed=${elapsed}ms`)
   }
 }

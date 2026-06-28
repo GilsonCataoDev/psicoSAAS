@@ -6,6 +6,7 @@ import { Appointment } from './entities/appointment.entity'
 import { NotificationsService, WhatsAppDeliveryResult, PushDeliveryResult } from '../notifications/notifications.service'
 import { EmailService } from '../email/email.service'
 import { User } from '../auth/entities/user.entity'
+import { AdvisoryLockService, JOB_LOCK_KEYS } from '../../common/advisory-lock/advisory-lock.service'
 
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000
@@ -25,6 +26,7 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
     private readonly notifications: NotificationsService,
     private readonly config: ConfigService,
     private readonly email: EmailService,
+    private readonly lock: AdvisoryLockService,
   ) {}
 
   onModuleInit(): void {
@@ -39,8 +41,14 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
   async run(): Promise<void> {
     if (this.running) return
     this.running = true
-
     try {
+      await this.lock.withLock(JOB_LOCK_KEYS.APPOINTMENT_REMINDER, () => this.runLocked())
+    } finally {
+      this.running = false
+    }
+  }
+
+  private async runLocked(): Promise<void> {
       const now = new Date()
       const upcoming = await this.appointments.find({
         where: {
@@ -142,9 +150,6 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
       if (sent > 0) {
         this.logger.log(`Enviados ${sent} lembrete(s) de sessao`)
       }
-    } finally {
-      this.running = false
-    }
   }
 
   private appointmentStartsAt(appointment: Appointment): Date {

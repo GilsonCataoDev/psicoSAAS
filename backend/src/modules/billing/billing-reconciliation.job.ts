@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { In, Repository } from 'typeorm'
 import { AsaasService } from './asaas.service'
 import { Subscription } from './entities/subscription.entity'
+import { AdvisoryLockService, JOB_LOCK_KEYS } from '../../common/advisory-lock/advisory-lock.service'
 
 const RECONCILIATION_INTERVAL_MS = 30 * 60 * 1000
 const INITIAL_DELAY_MS = 15 * 1000
@@ -15,11 +16,13 @@ export class BillingReconciliationJob implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(BillingReconciliationJob.name)
   private timer?: NodeJS.Timeout
   private initialTimer?: NodeJS.Timeout
+  private running = false
 
   constructor(
     @InjectRepository(Subscription)
     private readonly subscriptions: Repository<Subscription>,
     private readonly asaas: AsaasService,
+    private readonly lock: AdvisoryLockService,
   ) {}
 
   onModuleInit(): void {
@@ -39,6 +42,16 @@ export class BillingReconciliationJob implements OnModuleInit, OnModuleDestroy {
   }
 
   async run(): Promise<void> {
+    if (this.running) return
+    this.running = true
+    try {
+      await this.lock.withLock(JOB_LOCK_KEYS.BILLING_RECONCILIATION, () => this.runLocked())
+    } finally {
+      this.running = false
+    }
+  }
+
+  private async runLocked(): Promise<void> {
     const subscriptions = await this.subscriptions.find({
       where: { status: In(['active', 'trialing', 'past_due']) },
     })

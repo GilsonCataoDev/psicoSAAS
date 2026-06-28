@@ -28,6 +28,7 @@ import { Subscription as BillingSubscription } from './modules/billing/entities/
 import { PlanGuard } from './common/guards/plan.guard'
 import { SubscriptionGuard } from './common/guards/subscription.guard'
 import { LastActiveInterceptor } from './common/interceptors/last-active.interceptor'
+import { AdvisoryLockModule } from './common/advisory-lock/advisory-lock.module'
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { LastActiveInterceptor } from './common/interceptors/last-active.interce
     // Disponibiliza Subscription repository para o PlanGuard global
     TypeOrmModule.forFeature([BillingSubscription]),
 
+    AdvisoryLockModule,
     AuthModule,
     PatientsModule,
     AppointmentsModule,

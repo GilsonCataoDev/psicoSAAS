@@ -4,6 +4,7 @@ import { Repository } from 'typeorm'
 import { EmailService } from '../email/email.service'
 import { EmailLog } from '../email/entities/email-log.entity'
 import { Subscription } from './entities/subscription.entity'
+import { AdvisoryLockService, JOB_LOCK_KEYS } from '../../common/advisory-lock/advisory-lock.service'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const TRIAL_ENDING_SUBJECT = 'Seu período grátis acaba em 2 dias — UseCognia'
@@ -13,6 +14,7 @@ const TRIAL_CHARGE_TODAY_SUBJECT = 'Vamos cobrar hoje — UseCognia'
 export class BillingTrialEmailJob implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(BillingTrialEmailJob.name)
   private timer?: NodeJS.Timeout
+  private running = false
 
   constructor(
     @InjectRepository(Subscription)
@@ -20,6 +22,7 @@ export class BillingTrialEmailJob implements OnModuleInit, OnModuleDestroy {
     @InjectRepository(EmailLog)
     private readonly emailLogs: Repository<EmailLog>,
     private readonly email: EmailService,
+    private readonly lock: AdvisoryLockService,
   ) {}
 
   onModuleInit(): void {
@@ -32,6 +35,16 @@ export class BillingTrialEmailJob implements OnModuleInit, OnModuleDestroy {
   }
 
   async run(): Promise<void> {
+    if (this.running) return
+    this.running = true
+    try {
+      await this.lock.withLock(JOB_LOCK_KEYS.BILLING_TRIAL_EMAIL, () => this.runLocked())
+    } finally {
+      this.running = false
+    }
+  }
+
+  private async runLocked(): Promise<void> {
     const trialing = await this.subscriptions.find({
       where: { status: 'trialing' },
       relations: ['user'],
