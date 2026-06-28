@@ -1,5 +1,6 @@
 import {
   Injectable, NotFoundException, BadRequestException, ConflictException,
+  Logger,
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Between, DataSource, In, Not, Repository } from 'typeorm'
@@ -63,6 +64,8 @@ function nextSaoPauloMidnight(date = new Date()): Date {
 
 @Injectable()
 export class BookingService {
+  private readonly logger = new Logger(BookingService.name)
+
   constructor(
     @InjectRepository(Booking)         private bookings:     Repository<Booking>,
     @InjectRepository(BookingPage)     private pages:        Repository<BookingPage>,
@@ -396,7 +399,7 @@ export class BookingService {
     })
 
     const appointment = await this.createSessionResources(saved, page.psychologistId)
-    if (appointment) this.googleCalendar.syncAppointment(appointment).catch(console.error)
+    if (appointment) this.googleCalendar.syncAppointment(appointment).catch(err => this.logCalendarError('sync', appointment.id, err))
 
     await this.notifications.sendBookingConfirmation(saved)
 
@@ -430,7 +433,7 @@ export class BookingService {
     await this.bookings.save(booking)
 
     const appointment = await this.createSessionResources(booking, booking.psychologistId)
-    if (appointment) this.googleCalendar.syncAppointment(appointment).catch(console.error)
+    if (appointment) this.googleCalendar.syncAppointment(appointment).catch(err => this.logCalendarError('sync', appointment.id, err))
 
     await this.notifications.sendBookingConfirmation(booking)
     return {
@@ -482,7 +485,7 @@ export class BookingService {
     await this.bookings.save(booking)
 
     const appointment = await this.createSessionResources(booking, psychologistId)
-    if (appointment) this.googleCalendar.syncAppointment(appointment).catch(console.error)
+    if (appointment) this.googleCalendar.syncAppointment(appointment).catch(err => this.logCalendarError('sync', appointment.id, err))
 
     await this.notifications.sendBookingConfirmation(booking)
     return booking
@@ -668,7 +671,7 @@ export class BookingService {
     for (const booking of confirmed) {
       if (booking.appointmentId) continue   // já processado
       const appointment = await this.createSessionResources(booking, psychologistId)
-      if (appointment) this.googleCalendar.syncAppointment(appointment).catch(console.error)
+      if (appointment) this.googleCalendar.syncAppointment(appointment).catch(err => this.logCalendarError('sync', appointment.id, err))
       created++
     }
 
@@ -763,7 +766,12 @@ export class BookingService {
 
     appointment.status = 'cancelled'
     await this.appointments.save(appointment)
-    this.googleCalendar.deleteAppointment(appointment).catch(console.error)
+    this.googleCalendar.deleteAppointment(appointment).catch(err => this.logCalendarError('delete', appointment.id, err))
+  }
+
+  private logCalendarError(action: 'sync' | 'delete', appointmentId: string, err: unknown): void {
+    const message = err instanceof Error ? err.message : 'erro desconhecido'
+    this.logger.warn(`google_calendar.${action}.failed appointmentId=${appointmentId} message=${message}`)
   }
 
   private toCalendarBooking(booking: Booking) {

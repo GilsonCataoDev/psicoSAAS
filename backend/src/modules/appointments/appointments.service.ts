@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common'
+import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { DataSource, Repository } from 'typeorm'
 import { randomUUID } from 'crypto'
@@ -15,6 +15,8 @@ import { encrypt } from '../../common/crypto/encrypt.util'
 
 @Injectable()
 export class AppointmentsService {
+  private readonly logger = new Logger(AppointmentsService.name)
+
   constructor(
     @InjectRepository(Appointment) private repo: Repository<Appointment>,
     @InjectRepository(Booking) private bookings: Repository<Booking>,
@@ -109,7 +111,7 @@ export class AppointmentsService {
     if (dto.meetingUrl !== undefined) dto.meetingUrl = this.cleanMeetingUrl(dto.meetingUrl)
     Object.assign(appointment, dto)
     const saved = await this.repo.save(appointment)
-    this.googleCalendar.syncAppointment(saved).catch(console.error)
+    this.googleCalendar.syncAppointment(saved).catch(err => this.logCalendarError('sync', saved.id, err))
     return this.findOne(saved.id, psychologistId)
   }
 
@@ -119,9 +121,9 @@ export class AppointmentsService {
     const saved = await this.repo.save(appointment)
 
     if (['cancelled', 'no_show'].includes(status)) {
-      this.googleCalendar.deleteAppointment(saved).catch(console.error)
+      this.googleCalendar.deleteAppointment(saved).catch(err => this.logCalendarError('delete', saved.id, err))
     } else {
-      this.googleCalendar.syncAppointment(saved).catch(console.error)
+      this.googleCalendar.syncAppointment(saved).catch(err => this.logCalendarError('sync', saved.id, err))
     }
 
     // Registra falta no prontuário automaticamente
@@ -151,7 +153,7 @@ export class AppointmentsService {
 
   async remove(id: string, psychologistId: string) {
     const appointment = await this.findOne(id, psychologistId)
-    this.googleCalendar.deleteAppointment(appointment).catch(console.error)
+    this.googleCalendar.deleteAppointment(appointment).catch(err => this.logCalendarError('delete', appointment.id, err))
     return this.repo.remove(appointment)
   }
 
@@ -172,7 +174,7 @@ export class AppointmentsService {
     for (const appt of toUpdate) Object.assign(appt, dto)
     const saved = await this.repo.save(toUpdate)
     for (const appt of saved) {
-      this.googleCalendar.syncAppointment(appt).catch(console.error)
+      this.googleCalendar.syncAppointment(appt).catch(err => this.logCalendarError('sync', appt.id, err))
     }
     return { updated: toUpdate.length }
   }
@@ -182,7 +184,7 @@ export class AppointmentsService {
     if (!all.length) throw new NotFoundException()
     const toRemove = all.filter(a => a.date >= fromDate)
     for (const appt of toRemove) {
-      this.googleCalendar.deleteAppointment(appt).catch(console.error)
+      this.googleCalendar.deleteAppointment(appt).catch(err => this.logCalendarError('delete', appt.id, err))
     }
     await this.repo.remove(toRemove)
     return { removed: toRemove.length }
@@ -217,8 +219,13 @@ export class AppointmentsService {
       })
     })
 
-    this.googleCalendar.syncAppointment(saved).catch(console.error)
+    this.googleCalendar.syncAppointment(saved).catch(err => this.logCalendarError('sync', saved.id, err))
     return saved
+  }
+
+  private logCalendarError(action: 'sync' | 'delete', appointmentId: string, err: unknown): void {
+    const message = err instanceof Error ? err.message : 'erro desconhecido'
+    this.logger.warn(`google_calendar.${action}.failed appointmentId=${appointmentId} message=${message}`)
   }
 
   private async assertSlotAvailable(

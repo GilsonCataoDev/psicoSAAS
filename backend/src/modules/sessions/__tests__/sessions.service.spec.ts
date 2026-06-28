@@ -1,4 +1,4 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common'
+import { NotFoundException } from '@nestjs/common'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { Test } from '@nestjs/testing'
 import { Session } from '../entities/session.entity'
@@ -151,9 +151,13 @@ describe('SessionsService', () => {
       await expect(service.findOne('missing', PSY_ID)).rejects.toThrow(NotFoundException)
     })
 
-    it('lança ForbiddenException quando sessão pertence a outro psicólogo', async () => {
-      sessionRepo.findOne.mockResolvedValue(makeSession({ psychologistId: 'outro-psy' }))
-      await expect(service.findOne('sess-1', PSY_ID)).rejects.toThrow(ForbiddenException)
+    it('busca sessão já filtrando pelo psicólogo dono', async () => {
+      sessionRepo.findOne.mockResolvedValue(null)
+      await expect(service.findOne('sess-1', PSY_ID)).rejects.toThrow(NotFoundException)
+      expect(sessionRepo.findOne).toHaveBeenCalledWith({
+        where: { id: 'sess-1', psychologistId: PSY_ID },
+        relations: ['patient'],
+      })
     })
 
     it('retorna sessão quando encontrada e autorizada', async () => {

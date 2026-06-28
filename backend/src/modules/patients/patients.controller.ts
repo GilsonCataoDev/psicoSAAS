@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Request, Res, UseGuards } from '@nestjs/common'
+import { Throttle } from '@nestjs/throttler'
 import { Response } from 'express'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
@@ -20,6 +21,7 @@ export class PatientsController {
 
   @Get(':id/prontuario/export')
   @UseGuards(JwtAuthGuard)
+  @Throttle({ long: { limit: 5, ttl: 60 * 60 * 1000 } })
   async exportProntuario(@Param('id') id: string, @Request() req: any, @Res() res: Response) {
     const { filename, buffer } = await this.svc.exportProntuario(
       id,

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common'
+import { Injectable, NotFoundException, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { Session } from './entities/session.entity'
@@ -47,9 +47,8 @@ export class SessionsService {
   // ─── Finder interno (retorna entidade bruta para operações de escrita) ───────
 
   private async findRaw(id: string, psychologistId: string): Promise<Session> {
-    const s = await this.repo.findOne({ where: { id }, relations: ['patient'] })
+    const s = await this.repo.findOne({ where: { id, psychologistId }, relations: ['patient'] })
     if (!s) throw new NotFoundException()
-    if (s.psychologistId !== psychologistId) throw new ForbiddenException()
     return s
   }
 
