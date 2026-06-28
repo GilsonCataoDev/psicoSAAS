@@ -44,7 +44,7 @@ function BetaAccessPage() {
                 Cadastrar primeiro paciente
               </Link>
               <Link to="/planos?comparar=1" className="inline-flex h-12 items-center justify-center rounded-xl border border-neutral-200 px-5 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 dark:border-white/10 dark:text-neutral-100 dark:hover:bg-white/5">
-                Ver outros planos
+                Contratar um plano
               </Link>
             </div>
           </div>

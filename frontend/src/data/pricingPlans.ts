@@ -28,9 +28,9 @@ export type PricingPlan = {
 }
 
 export const PRICING_HERO = {
-  title: 'Beta gratuito para organizar sua rotina clinica',
-  subtitle: 'Teste agenda, pacientes, prontuario e historico clinico sem cartao enquanto ajudamos a construir o UseCognia com usuarios reais.',
-  context: 'O foco desta fase e validar o que mais reduz retrabalho para psicologos e estagiarios clinicos.',
+  title: 'Escolha como quer usar o UseCognia',
+  subtitle: 'Comece no Beta gratuito ou contrate um plano para liberar mais recursos na rotina clinica.',
+  context: 'Os planos pagos liberam limites maiores e recursos avancados. O Beta gratuito continua disponivel para testar o essencial.',
   trialCta: 'Acesso Beta gratuito',
   trialSubtext: 'Sem cartao nesta fase. Feedback direto com a equipe.',
 }
@@ -79,8 +79,8 @@ export const PRICING_PLANS: PricingPlan[] = [
       ],
       note: 'Seu investimento se paga em 1 dia',
     },
-    cta: 'Entrar no Beta',
-    ctaSubtext: 'Beta gratuito nesta fase',
+    cta: 'Contratar Essencial',
+    ctaSubtext: 'Cartao necessario. Cobranca conforme o plano.',
   },
   {
     id: 'pro',
@@ -110,8 +110,8 @@ export const PRICING_PLANS: PricingPlan[] = [
       ],
       note: 'Seu investimento se paga em 3 atendimentos',
     },
-    cta: 'Entrar no Beta',
-    ctaSubtext: 'Beta gratuito nesta fase',
+    cta: 'Contratar Pro',
+    ctaSubtext: 'Cartao necessario. Cobranca conforme o plano.',
   },
 ]
 
