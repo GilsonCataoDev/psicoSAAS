@@ -177,7 +177,8 @@ export class BookingService {
     if (modality === 'presencial' && !page.allowPresencial) return []
     if (modality === 'online' && !page.allowOnline) return []
     const slotInterval = this.getSlotInterval(page, modality)
-    if (page.sessionDuration <= 0 || slotInterval <= 0) return []
+    const sessionDuration = this.getSessionDuration(page, modality)
+    if (sessionDuration <= 0 || slotInterval <= 0) return []
 
     const date = parseISO(dateStr)
     const weekday = getDay(date)
@@ -230,8 +231,8 @@ export class BookingService {
       let current = setMinutes(setHours(date, startH), startM)
       const end = setMinutes(setHours(date, endH), endM)
 
-      while (isBefore(addMinutes(current, page.sessionDuration), end)
-          || +addMinutes(current, page.sessionDuration) === +end) {
+      while (isBefore(addMinutes(current, sessionDuration), end)
+          || +addMinutes(current, sessionDuration) === +end) {
         const timeStr = format(current, 'HH:mm')
         const offset = this.config.get<string>('APPOINTMENT_TIMEZONE_OFFSET') ?? '-03:00'
         const startsAt = new Date(`${dateStr}T${timeStr}:00${offset}`)
@@ -264,7 +265,8 @@ export class BookingService {
     if (modality === 'presencial' && !page.allowPresencial) return []
     if (modality === 'online' && !page.allowOnline) return []
     const slotInterval = this.getSlotInterval(page, modality)
-    if (page.sessionDuration <= 0 || slotInterval <= 0) return []
+    const sessionDuration = this.getSessionDuration(page, modality)
+    if (sessionDuration <= 0 || slotInterval <= 0) return []
 
     const timeZone = this.config.get<string>('GOOGLE_CALENDAR_TIMEZONE') ?? 'America/Sao_Paulo'
     const now = new Date()
@@ -324,8 +326,8 @@ export class BookingService {
         let current = setMinutes(setHours(day, startH), startM)
         const dayEnd = setMinutes(setHours(day, endH), endM)
 
-        while (isBefore(addMinutes(current, page.sessionDuration), dayEnd)
-            || +addMinutes(current, page.sessionDuration) === +dayEnd) {
+        while (isBefore(addMinutes(current, sessionDuration), dayEnd)
+            || +addMinutes(current, sessionDuration) === +dayEnd) {
           const timeStr = format(current, 'HH:mm')
           const offset = this.config.get<string>('APPOINTMENT_TIMEZONE_OFFSET') ?? '-03:00'
           const startsAt = new Date(`${dateStr}T${timeStr}:00${offset}`)
@@ -387,7 +389,7 @@ export class BookingService {
         ...dto,
         modality: dto.modality ?? (page.allowOnline ? 'online' : 'presencial'),
         psychologistId: page.psychologistId,
-        duration: page.sessionDuration,
+        duration: this.getSessionDuration(page, dto.modality),
         amount: page.sessionPrice,
         confirmationToken,
         cancellationCode,
@@ -575,6 +577,8 @@ export class BookingService {
         title: 'Agende sua sessão',
         sessionPrice: 150,
         sessionDuration: 50,
+        presencialSessionDuration: 50,
+        onlineSessionDuration: 50,
         slotInterval: 60,
         presencialSlotInterval: 60,
         onlineSlotInterval: 60,
@@ -767,6 +771,12 @@ export class BookingService {
     if (modality === 'presencial') return Number(page.presencialSlotInterval ?? page.slotInterval ?? 60)
     if (modality === 'online') return Number(page.onlineSlotInterval ?? page.slotInterval ?? 60)
     return Number(page.slotInterval ?? page.onlineSlotInterval ?? page.presencialSlotInterval ?? 60)
+  }
+
+  private getSessionDuration(page: BookingPage, modality?: 'presencial' | 'online'): number {
+    if (modality === 'presencial') return Number(page.presencialSessionDuration ?? page.sessionDuration ?? 50)
+    if (modality === 'online') return Number(page.onlineSessionDuration ?? page.sessionDuration ?? 50)
+    return Number(page.sessionDuration ?? page.onlineSessionDuration ?? page.presencialSessionDuration ?? 50)
   }
 
   private async findOne(id: string, psychologistId: string) {

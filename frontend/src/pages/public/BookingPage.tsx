@@ -165,6 +165,9 @@ export default function BookingPage() {
   )
 
   const waNumber = formatWhatsApp((page as any).psychologistPhone)
+  const selectedDuration = selectedModality === 'presencial'
+    ? (page.presencialSessionDuration ?? page.sessionDuration)
+    : (page.onlineSessionDuration ?? page.sessionDuration)
 
   // ── LANDING ──────────────────────────────────────────────────────────────────
   if (step === 'landing') {
@@ -292,7 +295,7 @@ export default function BookingPage() {
                 </p>
                 <p className="flex items-center justify-between gap-4">
                   <span className="text-neutral-400 dark:text-neutral-400">Duração</span>
-                  <strong className="font-medium">{page.sessionDuration} minutos</strong>
+                  <strong className="font-medium">{selectedDuration} minutos</strong>
                 </p>
                 <p className="flex items-center justify-between gap-4 border-t border-neutral-100 dark:border-white/10 pt-3">
                   <span className="text-neutral-400 dark:text-neutral-400">Valor</span>
@@ -324,7 +327,7 @@ export default function BookingPage() {
                 <p className="text-neutral-500 leading-relaxed">{page.description}</p>
               )}
               <div className="flex flex-wrap gap-3 mt-4 text-sm text-neutral-500">
-                <span className="flex items-center gap-1.5"><Clock className="w-4 h-4 text-sage-500" />{page.sessionDuration} min</span>
+                <span className="flex items-center gap-1.5"><Clock className="w-4 h-4 text-sage-500" />{selectedDuration} min</span>
                 <span className="flex items-center gap-1.5"><DollarSign className="w-4 h-4 text-sage-500" />{formatCurrency(page.sessionPrice)}</span>
                 {page.allowPresencial && <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-sage-500" />Presencial</span>}
                 {page.allowOnline && <span className="flex items-center gap-1.5"><Video className="w-4 h-4 text-mist-500" />Online</span>}
@@ -535,7 +538,7 @@ export default function BookingPage() {
                   <div className="bg-sage-50 rounded-2xl p-4 text-sm text-sage-700 space-y-1">
                     <p className="font-medium">Resumo da sessão</p>
                     <p>{selectedDate && format(parseISO(selectedDate), "EEEE, dd 'de' MMMM", { locale: ptBR })}</p>
-                    <p>{selectedTime} · {page.sessionDuration} minutos</p>
+                    <p>{selectedTime} · {selectedDuration} minutos</p>
                     <p>{formatCurrency(page.sessionPrice)}</p>
                   </div>
 

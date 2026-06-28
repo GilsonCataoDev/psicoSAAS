@@ -10,6 +10,8 @@ export interface BookingPage {
   specialty?: string
   sessionPrice: number
   sessionDuration: number
+  presencialSessionDuration: number
+  onlineSessionDuration: number
   slotInterval: number
   presencialSlotInterval: number
   onlineSlotInterval: number

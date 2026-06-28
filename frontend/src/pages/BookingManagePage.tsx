@@ -329,6 +329,8 @@ function BookingSettings({ page }: { page: any }) {
     // +() converte string "150.00" do PostgreSQL decimal para número
     sessionPrice:        +(page?.sessionPrice ?? 150),
     sessionDuration:     +(page?.sessionDuration ?? 50),
+    presencialSessionDuration: +(page?.presencialSessionDuration ?? page?.sessionDuration ?? 50),
+    onlineSessionDuration:     +(page?.onlineSessionDuration ?? page?.sessionDuration ?? 50),
     slotInterval:        +(page?.slotInterval ?? 60),
     presencialSlotInterval: +(page?.presencialSlotInterval ?? page?.slotInterval ?? 60),
     onlineSlotInterval:     +(page?.onlineSlotInterval ?? page?.slotInterval ?? 60),
@@ -349,6 +351,8 @@ function BookingSettings({ page }: { page: any }) {
       description:         page.description ?? '',
       sessionPrice:        +(page.sessionPrice ?? 150),
       sessionDuration:     +(page.sessionDuration ?? 50),
+      presencialSessionDuration: +(page.presencialSessionDuration ?? page.sessionDuration ?? 50),
+      onlineSessionDuration:     +(page.onlineSessionDuration ?? page.sessionDuration ?? 50),
       slotInterval:        +(page.slotInterval ?? 60),
       presencialSlotInterval: +(page.presencialSlotInterval ?? page.slotInterval ?? 60),
       onlineSlotInterval:     +(page.onlineSlotInterval ?? page.slotInterval ?? 60),
@@ -419,8 +423,12 @@ function BookingSettings({ page }: { page: any }) {
       toast.error('A URL precisa ter pelo menos 3 caracteres.')
       return false
     }
-    if (form.sessionDuration < 15 || form.sessionDuration > 240) {
-      toast.error('A duração precisa ficar entre 15 e 240 minutos.')
+    if (form.presencialSessionDuration < 15 || form.presencialSessionDuration > 240) {
+      toast.error('A duração presencial precisa ficar entre 15 e 240 minutos.')
+      return false
+    }
+    if (form.onlineSessionDuration < 15 || form.onlineSessionDuration > 240) {
+      toast.error('A duração online precisa ficar entre 15 e 240 minutos.')
       return false
     }
     if (form.presencialSlotInterval < 15 || form.presencialSlotInterval > 240) {
@@ -448,10 +456,11 @@ function BookingSettings({ page }: { page: any }) {
       WEEKDAYS
         .filter(({ d }) => schedules[key][d]?.enabled)
         .map(({ d, label }) => ({ modality: key, label, slot: schedules[key][d] })),
-    ).find(({ slot }) => {
+    ).find(({ modality, slot }) => {
       const start = minutes(slot.startTime)
       const end = minutes(slot.endTime)
-      return start >= end || end - start < form.sessionDuration
+      const duration = modality === 'presencial' ? form.presencialSessionDuration : form.onlineSessionDuration
+      return start >= end || end - start < duration
     })
 
     if (invalidSlot) {
@@ -469,6 +478,7 @@ function BookingSettings({ page }: { page: any }) {
       await saveBookingPage.mutateAsync({
         ...form,
         slug: normalizeSlug(form.slug),
+        sessionDuration: form.onlineSessionDuration,
         slotInterval: form.onlineSlotInterval,
       })
       // Salva horários de disponibilidade
@@ -661,8 +671,26 @@ function BookingSettings({ page }: { page: any }) {
             <input type="number" value={form.sessionPrice} onChange={e => set('sessionPrice', +e.target.value)} className="input-field" />
           </div>
           <div>
-            <label className="label">Duração da sessão (min)</label>
-            <input type="number" min={15} max={240} value={form.sessionDuration} onChange={e => set('sessionDuration', +e.target.value)} className="input-field" />
+            <label className="label">Duração presencial (min)</label>
+            <input
+              type="number"
+              min={15}
+              max={240}
+              value={form.presencialSessionDuration}
+              onChange={e => set('presencialSessionDuration', +e.target.value)}
+              className="input-field"
+            />
+          </div>
+          <div>
+            <label className="label">Duração online (min)</label>
+            <input
+              type="number"
+              min={15}
+              max={240}
+              value={form.onlineSessionDuration}
+              onChange={e => set('onlineSessionDuration', +e.target.value)}
+              className="input-field"
+            />
           </div>
           <div>
             <label className="label">Intervalo presencial (min)</label>
