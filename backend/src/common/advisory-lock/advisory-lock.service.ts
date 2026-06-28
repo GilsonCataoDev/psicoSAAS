@@ -25,9 +25,10 @@ export class AdvisoryLockService {
     const runner = this.dataSource.createQueryRunner()
     await runner.connect()
     try {
-      const [row] = await runner.query<[{ acquired: boolean }]>(
+      const result = await runner.query(
         'SELECT pg_try_advisory_lock($1::bigint) AS acquired', [key],
-      )
+      ) as Array<{ acquired: boolean }>
+      const [row] = result
       if (!row.acquired) {
         this.logger.debug(`job_lock key=${key} skipped=already_held`)
         return undefined
