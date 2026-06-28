@@ -29,8 +29,8 @@ export type PricingPlan = {
 
 export const PRICING_HERO = {
   title: 'Escolha como quer usar o UseCognia',
-  subtitle: 'Comece no Beta gratuito ou contrate um plano para liberar mais recursos na rotina clinica.',
-  context: 'Os planos pagos liberam limites maiores e recursos avancados. O Beta gratuito continua disponivel para testar o essencial.',
+  subtitle: 'Organize agenda, pacientes, prontuario e financeiro sem transformar a rotina clinica em planilha.',
+  context: 'Comece gratis, evolua para uma rotina profissional no Essencial ou automatize comunicacao, cobrancas e IA no Pro.',
   trialCta: 'Acesso Beta gratuito',
   trialSubtext: 'Sem cartao nesta fase. Feedback direto com a equipe.',
 }
@@ -41,7 +41,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     name: 'Grátis',
     price: 'Grátis',
     pricePeriod: 'Sem prazo para expirar',
-    description: 'Experimente como voce esta perdendo horas por semana',
+    description: 'Para estagiarios e profissionais testarem a rotina sem custo',
     badge: null,
     features: [
       { type: 'included', title: 'Veja todos os seus atendimentos de uma vez', subtitle: 'Agenda basica' },
@@ -62,22 +62,22 @@ export const PRICING_PLANS: PricingPlan[] = [
     price: '79',
     pricePeriod: '/mes',
     priceAnnual: 'R$ 63/mes, cobrado por ano',
-    description: 'Reduza faltas com lembretes automaticos e organize sua rotina',
+    description: 'Para organizar agenda, pacientes, prontuario, documentos e financeiro sem automacao',
     badge: null,
     features: [
       { type: 'included', title: 'Gerencie ate 50 pacientes sem perder ninguem', subtitle: 'Ate 50 pacientes' },
       { type: 'included', title: 'Pacientes confirmam presenca em 1 clique', subtitle: 'Link publico de agendamento' },
-      { type: 'included', title: 'Documentos que o CFP reconhece sem gasto extra', subtitle: 'Documentos e PDF com verificacao' },
+      { type: 'included', title: 'Gere documentos e PDFs com verificacao', subtitle: 'Ate 200 documentos' },
       { type: 'included', title: 'Saiba quanto faturou e quanto falta receber', subtitle: 'Financeiro basico' },
-      { type: 'included', title: 'Mensagem pronta no WhatsApp em 1 clique', subtitle: 'WhatsApp com template' },
+      { type: 'included', title: 'Abra mensagens prontas no WhatsApp em 1 clique', subtitle: 'WhatsApp manual com template' },
     ],
     roi: {
       items: [
-        { type: 'time', text: 'Economize 5+ horas por semana' },
-        { type: 'attendance', text: 'Evite 2-3 faltas por mes' },
-        { type: 'revenue', text: 'Proteja R$ 500-750/mes em receita' },
+        { type: 'time', text: 'Economize tempo centralizando a rotina' },
+        { type: 'attendance', text: 'Reduza esquecimentos com agenda e link publico' },
+        { type: 'revenue', text: 'Acompanhe valores em aberto sem planilha solta' },
       ],
-      note: 'Seu investimento se paga em 1 dia',
+      note: 'Ideal para sair do caderno, WhatsApp solto e planilhas',
     },
     cta: 'Contratar Essencial',
     ctaSubtext: 'Cartao necessario. Cobranca conforme o plano.',
@@ -88,7 +88,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     price: '149',
     pricePeriod: '/mes',
     priceAnnual: 'R$ 119/mes, cobrado por ano',
-    description: 'Reduza 40% de faltas e cresca sem deixar paciente cair',
+    description: 'Para automatizar lembretes, cobrancas, instrumentos e apoio por IA',
     badge: 'Mais escolhido',
     featured: true,
     features: [
@@ -99,14 +99,15 @@ export const PRICING_PLANS: PricingPlan[] = [
       { type: 'included', title: 'Mensagens podem soar como voce', subtitle: 'Modelos WhatsApp personalizados' },
       { type: 'included', title: 'Envie link de cobranca para o paciente pagar em 1 clique', subtitle: 'Financeiro Pro com links' },
       { type: 'included', title: 'Lembretes automaticos 24h e 1h antes', subtitle: 'Lembretes automaticos' },
+      { type: 'included', title: 'Grave e transcreva sessoes com IA, com limite mensal', subtitle: 'IA clinica assistiva' },
       { type: 'included', title: 'Dashboard mostrando faltas evitadas e receita protegida', subtitle: 'Relatorios avancados' },
     ],
     roi: {
       items: [
-        { type: 'time', text: 'Economize 10+ horas por semana' },
-        { type: 'attendance', text: 'Evite 5-8 faltas por mes' },
-        { type: 'revenue', text: 'Proteja R$ 1.250-2.000/mes em receita' },
-        { type: 'collection', text: 'Reduza inadimplencia em 30%' },
+        { type: 'time', text: 'Automatize lembretes, cobrancas e follow-up' },
+        { type: 'attendance', text: 'Diminua faltas com mensagens 24h e 1h antes' },
+        { type: 'revenue', text: 'Recupere pagamentos pendentes com menos trabalho manual' },
+        { type: 'collection', text: 'Use IA como apoio para transcricao e resumo' },
       ],
       note: 'Seu investimento se paga em 3 atendimentos',
     },
@@ -118,10 +119,10 @@ export const PRICING_PLANS: PricingPlan[] = [
 export const PRICING_COMPARISON = {
   title: 'QUAL A DIFERENCA REAL?',
   sections: [
-    { title: 'WhatsApp', essencial: 'Voce digita cada confirmacao com template pronto', pro: '100% automatico. Voce nao faz nada' },
-    { title: 'Lembretes', essencial: 'Voce lembra quando quiser', pro: '24h e 1h antes, automatico' },
-    { title: 'Cobranca', essencial: 'Voce cria documento e envia', pro: 'Link automatico. Paciente clica e paga' },
-    { title: 'Relatorios', essencial: 'Voce conta na mao', pro: 'Dashboard em tempo real' },
+    { title: 'WhatsApp', essencial: 'Voce abre mensagens prontas manualmente', pro: 'O sistema envia automaticamente' },
+    { title: 'Lembretes', essencial: 'Controle manual pela agenda', pro: '24h e 1h antes, automatico' },
+    { title: 'Cobranca', essencial: 'Controle financeiro manual', pro: 'Link e mensagem de cobranca em 1 clique' },
+    { title: 'IA', essencial: 'Sem gravacao/transcricao por IA', pro: 'Gravacao, transcricao e rascunho de evolucao' },
     { title: 'Escalabilidade', essencial: 'Ate 50 pacientes', pro: '50+, 100+. O sistema aguenta' },
   ],
 }
@@ -131,7 +132,7 @@ export const PRICING_FAQ = [
   { question: 'Preciso de cartao para testar?', answer: 'Nao durante o Beta. O objetivo desta fase e validar o produto com psicologos e estagiarios clinicos.' },
   { question: 'Meus dados estao seguros?', answer: 'Sim. Dados criptografados, backup automatico e exportacao em 1 clique.' },
   { question: 'Posso mudar de plano depois?', answer: 'Sim. Voce pode fazer upgrade ou downgrade a qualquer momento.' },
-  { question: 'Qual e a diferenca entre Essencial e Pro?', answer: 'Essencial ajuda voce a operar com templates. Pro automatiza lembretes, mensagens, cobrancas e relatorios.' },
+  { question: 'Qual e a diferenca entre Essencial e Pro?', answer: 'Essencial organiza a rotina com agenda, pacientes, documentos e financeiro. Pro automatiza WhatsApp, lembretes, cobrancas, instrumentos e IA.' },
   { question: 'E se eu tiver 50+ pacientes?', answer: 'Ate 50 pacientes, Essencial funciona bem. Acima disso, Pro e o plano indicado.' },
   { question: 'Voces oferecem suporte?', answer: 'Free tem suporte por email. Essencial tem prioridade maior. Pro tem atendimento mais rapido e suporte por WhatsApp.' },
   { question: 'Posso usar em mais de um dispositivo?', answer: 'Sim. Celular, tablet e computador sincronizados.' },
