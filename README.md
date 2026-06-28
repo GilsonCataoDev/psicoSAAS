@@ -183,6 +183,10 @@ psicosaas/
             └── decorators/      # @RequirePlan()
 ```
 
+## Arquitetura
+
+![Arquitetura UseCognia](docs/architecture.svg)
+
 ---
 
 ## Rodando localmente
