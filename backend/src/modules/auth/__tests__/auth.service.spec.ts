@@ -10,6 +10,7 @@ import { RefreshToken } from '../entities/refresh-token.entity'
 import { LoginAttempt } from '../entities/login-attempt.entity'
 import { EmailService } from '../../email/email.service'
 import { ReferralService } from '../../referral/referral.service'
+import { AsaasService } from '../../billing/asaas.service'
 
 const makeUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-1',
@@ -100,6 +101,7 @@ describe('AuthService', () => {
         { provide: JwtService,     useValue: { sign: jest.fn().mockReturnValue('access-token') } },
         { provide: EmailService,   useValue: { sendEmailVerification: jest.fn().mockResolvedValue(undefined), sendWelcome: jest.fn().mockResolvedValue(undefined), sendPasswordReset: jest.fn().mockResolvedValue(undefined) } },
         { provide: ReferralService, useValue: { applyReferral: jest.fn() } },
+        { provide: AsaasService, useValue: { cancelSubscription: jest.fn().mockResolvedValue(undefined) } },
         {
           provide: DataSource,
           useValue: {

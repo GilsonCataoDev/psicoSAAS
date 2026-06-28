@@ -19,6 +19,7 @@ import { UpdatePreferencesDto } from './dto/update-preferences.dto'
 import { UpdateOnboardingDto }  from './dto/update-onboarding.dto'
 import { EmailService }   from '../email/email.service'
 import { ReferralService } from '../referral/referral.service'
+import { AsaasService } from '../billing/asaas.service'
 
 // ── Tipagem de retorno ─────────────────────────────────────────────────────────
 export interface AuthTokens {
@@ -58,6 +59,7 @@ export class AuthService {
     private jwt:      JwtService,
     private email:    EmailService,
     private referral: ReferralService,
+    private asaas:    AsaasService,
   ) {}
 
   // ── Registro ───────────────────────────────────────────────────────────────
@@ -278,6 +280,19 @@ export class AuthService {
 
     const valid = await bcrypt.compare(password, user.passwordHash)
     if (!valid) throw new UnauthorizedException('Senha invalida')
+
+    const subscriptions = await this.dataSource.query(
+      `SELECT "gatewaySubscriptionId"
+         FROM "billing_subscriptions"
+        WHERE "userId" = $1
+          AND "gatewaySubscriptionId" IS NOT NULL
+          AND "status" <> 'canceled'`,
+      [id],
+    )
+
+    for (const subscription of subscriptions) {
+      await this.asaas.cancelSubscription(subscription.gatewaySubscriptionId)
+    }
 
     await this.dataSource.transaction(async (manager) => {
       await manager.query('DELETE FROM "referrals" WHERE "referrerId"::text = $1::text OR "referredId"::text = $1::text', [id])

@@ -1311,8 +1311,9 @@ export default function SettingsPage() {
                     <div>
                       <h3 className="text-sm font-semibold text-rose-800 dark:text-rose-200">Excluir conta definitivamente</h3>
                       <p className="mt-1 text-sm text-rose-700 dark:text-rose-200/80">
-                        Remove sua conta, pacientes, prontuários, sessões, agenda, financeiro, documentos, preferências,
-                        tokens de acesso e assinaturas salvas no banco de dados. Esta ação não pode ser desfeita.
+                        Se voce apenas testou e nao quiser manter cadastro, remova sua conta aqui. Isso apaga pacientes,
+                        prontuarios, sessoes, agenda, financeiro, documentos, preferencias e tokens de acesso. Assinaturas
+                        ativas tambem sao canceladas antes da exclusao. Esta acao nao pode ser desfeita.
                       </p>
                     </div>
 
