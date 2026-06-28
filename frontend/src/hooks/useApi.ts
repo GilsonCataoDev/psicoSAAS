@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, type AuthAxiosRequestConfig } from '@/lib/api'
 import { Patient, Appointment, Session, FinancialRecord } from '@/types'
 import { DocumentoListItem } from '@/types/prontuario'
+import { Booking, BookingPage } from '@/types/booking'
+import { type User } from '@/store/auth'
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 
@@ -64,7 +66,7 @@ export function useUpdatePatient() {
 }
 
 export function useMe() {
-  return useQuery<any>({
+  return useQuery<User>({
     queryKey: ['me'],
     queryFn: () => api.get('/auth/me').then(r => r.data),
     staleTime: 5 * 60 * 1000,
@@ -315,14 +317,14 @@ export function useSaveAvailability() {
 // ── Booking (authenticated) ───────────────────────────────────────────────────
 
 export function useBookings() {
-  return useQuery<any[]>({
+  return useQuery<Booking[]>({
     queryKey: ['bookings'],
     queryFn: () => api.get('/booking').then(r => r.data),
   })
 }
 
 export function useBookingPage() {
-  return useQuery<any>({
+  return useQuery<BookingPage | null>({
     queryKey: ['booking-page'],
     queryFn: () => api.get('/booking/page').then(r => r.data).catch(() => null),
     retry: false,
@@ -388,7 +390,7 @@ export function useDailyBookingLink() {
 export function useSaveBookingPage() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: any) => api.post('/booking/page', data).then(r => r.data),
+    mutationFn: (data: Partial<BookingPage>) => api.post('/booking/page', data).then(r => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['booking-page'] }),
   })
 }
@@ -443,7 +445,7 @@ export function useSyncBookingAppointments() {
 // ── Booking (public) ──────────────────────────────────────────────────────────
 
 export function usePublicBookingPage(slug: string) {
-  return useQuery<any>({
+  return useQuery<BookingPage>({
     queryKey: ['public-booking', slug],
     queryFn: () => api.get(`/public/booking/${slug}`, { skipAuthRedirect: true } as AuthAxiosRequestConfig).then(r => r.data),
     enabled: !!slug,
@@ -473,9 +475,19 @@ export function usePublicBookingDates(slug: string, month: string, modality?: st
   })
 }
 
+export interface CreateBookingInput {
+  patientName: string
+  patientEmail: string
+  patientPhone?: string
+  modality: 'presencial' | 'online'
+  patientNotes?: string
+  date: string
+  time: string
+}
+
 export function useCreateBooking(slug: string) {
   return useMutation({
-    mutationFn: (data: any) => api.post(`/public/booking/${slug}`, data, { skipAuthRedirect: true } as AuthAxiosRequestConfig).then(r => r.data),
+    mutationFn: (data: CreateBookingInput) => api.post(`/public/booking/${slug}`, data, { skipAuthRedirect: true } as AuthAxiosRequestConfig).then(r => r.data),
   })
 }
 

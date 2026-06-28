@@ -18,6 +18,7 @@ export interface User {
   firstLogin?: boolean
   onboardingStep?: number
   isAdmin?: boolean
+  preferences?: Record<string, any>
 }
 
 function toPersistedUser(user: User | null): User | null {
