@@ -49,107 +49,107 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
   }
 
   private async runLocked(): Promise<void> {
-      const now = new Date()
-      const upcoming = await this.appointments.find({
-        where: {
-          date: Between(this.dateOnly(now), this.dateOnly(this.addDays(now, 2))),
-          status: Not(In(['cancelled', 'no_show', 'completed'])),
-        },
-        relations: ['patient', 'psychologist'],
-        order: { date: 'ASC', time: 'ASC' },
-      })
+    const now = new Date()
+    const upcoming = await this.appointments.find({
+      where: {
+        date: Between(this.dateOnly(now), this.dateOnly(this.addDays(now, 2))),
+        status: Not(In(['cancelled', 'no_show', 'completed'])),
+      },
+      relations: ['patient', 'psychologist'],
+      order: { date: 'ASC', time: 'ASC' },
+    })
 
-      await this.sendDailyAgendaDigests(upcoming, now)
+    await this.sendDailyAgendaDigests(upcoming, now)
 
-      let sent = 0
-      const planCache = new Map<string, boolean>()
-      for (const appointment of upcoming) {
-        if (this.email.isRateLimited()) {
-          this.logger.warn(
-            `Lembretes por e-mail pausados por limite do provedor. Retry em ${Math.ceil(this.email.getRateLimitRetryAfterMs() / 1000)}s.`,
-          )
-          break
-        }
+    let sent = 0
+    const planCache = new Map<string, boolean>()
+    for (const appointment of upcoming) {
+      if (this.email.isRateLimited()) {
+        this.logger.warn(
+          `Lembretes por e-mail pausados por limite do provedor. Retry em ${Math.ceil(this.email.getRateLimitRetryAfterMs() / 1000)}s.`,
+        )
+        break
+      }
 
-        const prefs = (appointment.psychologist?.preferences ?? {}) as Record<string, any>
-        const startsAt = this.appointmentStartsAt(appointment)
-        const diff = startsAt.getTime() - now.getTime()
+      const prefs = (appointment.psychologist?.preferences ?? {}) as Record<string, any>
+      const startsAt = this.appointmentStartsAt(appointment)
+      const diff = startsAt.getTime() - now.getTime()
 
-        if (!planCache.has(appointment.psychologistId)) {
-          planCache.set(appointment.psychologistId, await this.notifications.canUseWhatsAppAutomation(appointment.psychologistId))
-        }
-        const canUseWhatsApp = planCache.get(appointment.psychologistId)!
+      if (!planCache.has(appointment.psychologistId)) {
+        planCache.set(appointment.psychologistId, await this.notifications.canUseWhatsAppAutomation(appointment.psychologistId))
+      }
+      const canUseWhatsApp = planCache.get(appointment.psychologistId)!
 
-        if (!appointment.reminder24hSentAt && prefs.reminder24h !== false && diff <= DAY_MS && diff > TWO_HOURS_MS) {
-          const result = canUseWhatsApp
-            ? await this.notifications.sendAppointmentReminder(appointment, '24h')
-            : await this.notifications.sendAppointmentPushReminder(appointment, '24h')
-          const delivered = Number(result.sent) > 0
-          if (delivered) {
+      if (!appointment.reminder24hSentAt && prefs.reminder24h !== false && diff <= DAY_MS && diff > TWO_HOURS_MS) {
+        const result = canUseWhatsApp
+          ? await this.notifications.sendAppointmentReminder(appointment, '24h')
+          : await this.notifications.sendAppointmentPushReminder(appointment, '24h')
+        const delivered = Number(result.sent) > 0
+        if (delivered) {
+          appointment.reminder24hSentAt = new Date()
+          await this.appointments.save(appointment)
+          sent++
+        } else if (appointment.patient?.email) {
+          try {
+            const psychologistName = (appointment.psychologist as any)?.name ?? 'seu psicólogo(a)'
+            await this.email.sendSessionReminder({
+              patientName: appointment.patient.name,
+              patientEmail: appointment.patient.email,
+              date: appointment.date,
+              time: appointment.time,
+              psychologistName,
+            })
             appointment.reminder24hSentAt = new Date()
             await this.appointments.save(appointment)
             sent++
-          } else if (appointment.patient?.email) {
-            try {
-              const psychologistName = (appointment.psychologist as any)?.name ?? 'seu psicólogo(a)'
-              await this.email.sendSessionReminder({
-                patientName: appointment.patient.name,
-                patientEmail: appointment.patient.email,
-                date: appointment.date,
-                time: appointment.time,
-                psychologistName,
-              })
-              appointment.reminder24hSentAt = new Date()
-              await this.appointments.save(appointment)
-              sent++
-            } catch (err: any) {
-              this.logger.warn(`Falha ao enviar lembrete por e-mail para appointment ${appointment.id}: ${err?.message}`)
-              if (this.email.isRateLimited()) break
-            }
-          } else if (this.shouldStopRetrying(result)) {
-            appointment.reminder24hSentAt = new Date()
-            await this.appointments.save(appointment)
-            this.logger.warn(`Lembrete 24h marcado como processado apos falha nao retentavel: appointment ${appointment.id}`)
+          } catch (err: any) {
+            this.logger.warn(`Falha ao enviar lembrete por e-mail para appointment ${appointment.id}: ${err?.message}`)
+            if (this.email.isRateLimited()) break
           }
+        } else if (this.shouldStopRetrying(result)) {
+          appointment.reminder24hSentAt = new Date()
+          await this.appointments.save(appointment)
+          this.logger.warn(`Lembrete 24h marcado como processado apos falha nao retentavel: appointment ${appointment.id}`)
         }
+      }
 
-        if (!appointment.reminder2hSentAt && prefs.reminder2h !== false && diff <= TWO_HOURS_MS && diff > 0) {
-          const result = canUseWhatsApp
-            ? await this.notifications.sendAppointmentReminder(appointment, '2h')
-            : await this.notifications.sendAppointmentPushReminder(appointment, '2h')
-          const delivered = Number(result.sent) > 0
-          if (delivered) {
+      if (!appointment.reminder2hSentAt && prefs.reminder2h !== false && diff <= TWO_HOURS_MS && diff > 0) {
+        const result = canUseWhatsApp
+          ? await this.notifications.sendAppointmentReminder(appointment, '2h')
+          : await this.notifications.sendAppointmentPushReminder(appointment, '2h')
+        const delivered = Number(result.sent) > 0
+        if (delivered) {
+          appointment.reminder2hSentAt = new Date()
+          await this.appointments.save(appointment)
+          sent++
+        } else if (appointment.patient?.email) {
+          try {
+            const psychologistName = (appointment.psychologist as any)?.name ?? 'seu psicólogo(a)'
+            await this.email.sendSessionReminder({
+              patientName: appointment.patient.name,
+              patientEmail: appointment.patient.email,
+              date: appointment.date,
+              time: appointment.time,
+              psychologistName,
+            })
             appointment.reminder2hSentAt = new Date()
             await this.appointments.save(appointment)
             sent++
-          } else if (appointment.patient?.email) {
-            try {
-              const psychologistName = (appointment.psychologist as any)?.name ?? 'seu psicólogo(a)'
-              await this.email.sendSessionReminder({
-                patientName: appointment.patient.name,
-                patientEmail: appointment.patient.email,
-                date: appointment.date,
-                time: appointment.time,
-                psychologistName,
-              })
-              appointment.reminder2hSentAt = new Date()
-              await this.appointments.save(appointment)
-              sent++
-            } catch (err: any) {
-              this.logger.warn(`Falha ao enviar lembrete 2h por e-mail para appointment ${appointment.id}: ${err?.message}`)
-              if (this.email.isRateLimited()) break
-            }
-          } else if (this.shouldStopRetrying(result)) {
-            appointment.reminder2hSentAt = new Date()
-            await this.appointments.save(appointment)
-            this.logger.warn(`Lembrete 2h marcado como processado apos falha nao retentavel: appointment ${appointment.id}`)
+          } catch (err: any) {
+            this.logger.warn(`Falha ao enviar lembrete 2h por e-mail para appointment ${appointment.id}: ${err?.message}`)
+            if (this.email.isRateLimited()) break
           }
+        } else if (this.shouldStopRetrying(result)) {
+          appointment.reminder2hSentAt = new Date()
+          await this.appointments.save(appointment)
+          this.logger.warn(`Lembrete 2h marcado como processado apos falha nao retentavel: appointment ${appointment.id}`)
         }
       }
+    }
 
-      if (sent > 0) {
-        this.logger.log(`Enviados ${sent} lembrete(s) de sessao`)
-      }
+    if (sent > 0) {
+      this.logger.log(`Enviados ${sent} lembrete(s) de sessao`)
+    }
   }
 
   private appointmentStartsAt(appointment: Appointment): Date {
