@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { BadgeDollarSign, CheckCircle2, Clock3, CreditCard, Loader2, Target, TrendingUp, XCircle } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -43,6 +43,9 @@ function BetaAccessPage() {
               <Link to="/pacientes" className="inline-flex h-12 items-center justify-center rounded-xl border border-sage-200 px-5 text-sm font-semibold text-sage-800 hover:bg-sage-50 dark:border-sage-400/30 dark:text-sage-100 dark:hover:bg-white/5">
                 Cadastrar primeiro paciente
               </Link>
+              <Link to="/planos?comparar=1" className="inline-flex h-12 items-center justify-center rounded-xl border border-neutral-200 px-5 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 dark:border-white/10 dark:text-neutral-100 dark:hover:bg-white/5">
+                Ver outros planos
+              </Link>
             </div>
           </div>
 
@@ -73,7 +76,15 @@ function BetaAccessPage() {
 }
 
 export default function PricingPage() {
-  if (BETA_MODE) return <BetaAccessPage />
+  const [searchParams] = useSearchParams()
+  const subscription = useSubscriptionStore((s) => s.subscription)
+  const currentPlanId = String(subscription.planId ?? subscription.plan ?? 'free')
+  const showBetaAccess = BETA_MODE
+    && searchParams.get('comparar') !== '1'
+    && subscription.status === 'active'
+    && currentPlanId === 'free'
+
+  if (showBetaAccess) return <BetaAccessPage />
 
   return <PaidPricingPage />
 }
