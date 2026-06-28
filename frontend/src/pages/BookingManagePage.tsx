@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Link2, Check, X, Wallet, Settings, Clock, RefreshCw, Trash2, MessageCircle } from 'lucide-react'
+import { Link2, Check, X, Wallet, Settings, Clock, RefreshCw, Trash2, MessageCircle, ExternalLink } from 'lucide-react'
 import { copyText, formatCurrency, formatDateRelative } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
@@ -48,11 +48,6 @@ export default function BookingManagePage() {
   const rejectBooking = useRejectBooking()
   const payBooking = usePayBooking()
   const syncAppointments = useSyncBookingAppointments()
-
-  // Sincroniza retroativamente bookings confirmados sem Appointment ao montar
-  useEffect(() => {
-    syncAppointments.mutate()
-  }, [])
 
   const appBaseUrl = new URL(import.meta.env.BASE_URL || '/', window.location.origin).toString()
   const bookingUrl = dailyLink?.url
@@ -121,7 +116,7 @@ export default function BookingManagePage() {
             </a>
           )}
           <button onClick={() => refetchLink()}
-            title="Atualizar link"
+            title="Recarregar link"
             className="bg-white/20 hover:bg-white/30 text-white p-2 rounded-xl transition-colors">
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -157,6 +152,24 @@ export default function BookingManagePage() {
                 {l}
               </button>
             ))}
+          </div>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await syncAppointments.mutateAsync()
+                  toast.success('Agendamentos sincronizados.')
+                } catch {
+                  toast.error('Não foi possível sincronizar agora.')
+                }
+              }}
+              disabled={syncAppointments.isPending}
+              className="btn-secondary flex items-center gap-2 text-sm"
+            >
+              <RefreshCw className={cn('w-4 h-4', syncAppointments.isPending && 'animate-spin')} />
+              Sincronizar confirmados
+            </button>
           </div>
 
           {/* Lista */}
@@ -289,6 +302,16 @@ function createEmptySchedule(): Record<number, DaySlot> {
   return base
 }
 
+function normalizeSlug(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60)
+}
+
 function BookingSettings({ page }: { page: any }) {
   const saveBookingPage = useSaveBookingPage()
   const { data: savedSlots = [] } = useAvailability()
@@ -299,12 +322,15 @@ function BookingSettings({ page }: { page: any }) {
   const [blockedForm, setBlockedForm] = useState({ date: '', reason: '' })
 
   const [form, setForm] = useState({
+    isActive:           page?.isActive ?? true,
+    slug:               page?.slug ?? '',
     title:               page?.title ?? 'Agende sua sessão',
     description:         page?.description ?? '',
     // +() converte string "150.00" do PostgreSQL decimal para número
     sessionPrice:        +(page?.sessionPrice ?? 150),
     sessionDuration:     +(page?.sessionDuration ?? 50),
     slotInterval:        +(page?.slotInterval ?? 60),
+    minAdvanceDays:      +(page?.minAdvanceDays ?? 0),
     maxAdvanceDays:      +(page?.maxAdvanceDays ?? 30),
     pixKey:              page?.pixKey ?? '',
     confirmationMessage: page?.confirmationMessage ?? '',
@@ -315,11 +341,14 @@ function BookingSettings({ page }: { page: any }) {
   useEffect(() => {
     if (!page) return
     setForm({
+      isActive:           page.isActive ?? true,
+      slug:               page.slug ?? '',
       title:               page.title ?? 'Agende sua sessão',
       description:         page.description ?? '',
       sessionPrice:        +(page.sessionPrice ?? 150),
       sessionDuration:     +(page.sessionDuration ?? 50),
       slotInterval:        +(page.slotInterval ?? 60),
+      minAdvanceDays:      +(page.minAdvanceDays ?? 0),
       maxAdvanceDays:      +(page.maxAdvanceDays ?? 30),
       pixKey:              page.pixKey ?? '',
       confirmationMessage: page.confirmationMessage ?? '',
@@ -382,12 +411,28 @@ function BookingSettings({ page }: { page: any }) {
       toast.error('Ative pelo menos uma modalidade.')
       return false
     }
-    if (form.sessionDuration <= 0 || form.slotInterval <= 0) {
-      toast.error('Duração e intervalo precisam ser maiores que zero.')
+    if (form.slug && normalizeSlug(form.slug).length < 3) {
+      toast.error('A URL precisa ter pelo menos 3 caracteres.')
       return false
     }
-    if (form.maxAdvanceDays < 1) {
-      toast.error('O limite de agendamento precisa ser de pelo menos 1 dia.')
+    if (form.sessionDuration < 15 || form.sessionDuration > 240) {
+      toast.error('A duração precisa ficar entre 15 e 240 minutos.')
+      return false
+    }
+    if (form.slotInterval < 15 || form.slotInterval > 240) {
+      toast.error('O intervalo precisa ficar entre 15 e 240 minutos.')
+      return false
+    }
+    if (form.minAdvanceDays < 0 || form.minAdvanceDays > 30) {
+      toast.error('A antecedência mínima precisa ficar entre 0 e 30 dias.')
+      return false
+    }
+    if (form.maxAdvanceDays < 1 || form.maxAdvanceDays > 180) {
+      toast.error('A antecedência máxima precisa ficar entre 1 e 180 dias.')
+      return false
+    }
+    if (form.maxAdvanceDays < form.minAdvanceDays) {
+      toast.error('A antecedência máxima precisa ser maior que a mínima.')
       return false
     }
 
@@ -413,7 +458,7 @@ function BookingSettings({ page }: { page: any }) {
     try {
       // Salva configurações gerais
       if (!validateSettings()) return
-      await saveBookingPage.mutateAsync(form)
+      await saveBookingPage.mutateAsync({ ...form, slug: normalizeSlug(form.slug) })
       // Salva horários de disponibilidade
       const slots = MODALITIES.flatMap(({ key }) =>
         WEEKDAYS
@@ -454,9 +499,62 @@ function BookingSettings({ page }: { page: any }) {
 
   const currentSchedule = schedules[scheduleTab]
   const enabledCount = WEEKDAYS.filter(({ d }) => currentSchedule[d]?.enabled).length
+  const normalizedSlug = normalizeSlug(form.slug || page?.slug || '')
+  const publicUrl = normalizedSlug ? `${window.location.origin}/agendar/${normalizedSlug}` : ''
 
   return (
     <div className="space-y-5">
+      <div className="card space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="section-title mb-1">Status do link público</h2>
+            <p className="text-sm text-neutral-500">
+              {form.isActive
+                ? 'Pacientes conseguem acessar e solicitar horários pelo seu link.'
+                : 'O link fica pausado e pacientes não conseguem agendar.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => set('isActive', !form.isActive)}
+            className={cn(
+              'h-10 rounded-xl px-4 text-sm font-semibold transition-colors',
+              form.isActive
+                ? 'bg-sage-600 text-white hover:bg-sage-700'
+                : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200',
+            )}
+          >
+            {form.isActive ? 'Link ativo' : 'Link pausado'}
+          </button>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+          <div>
+            <label className="label">URL pública</label>
+            <div className="flex overflow-hidden rounded-xl border border-neutral-200 bg-white focus-within:border-sage-300">
+              <span className="hidden items-center border-r border-neutral-100 bg-neutral-50 px-3 text-sm text-neutral-400 sm:flex">
+                usecognia.com.br/agendar/
+              </span>
+              <input
+                value={form.slug}
+                onChange={e => set('slug', normalizeSlug(e.target.value))}
+                className="min-w-0 flex-1 px-3 py-2.5 text-sm outline-none"
+                placeholder="nicolle-paes"
+              />
+            </div>
+            <p className="mt-1 text-xs text-neutral-400">Use letras, números e hífens. Ex: nicolle-paes.</p>
+          </div>
+          <a
+            href={publicUrl || undefined}
+            target="_blank"
+            rel="noreferrer"
+            className={cn('btn-secondary flex items-center justify-center gap-2 text-sm', !publicUrl && 'pointer-events-none opacity-50')}
+          >
+            <ExternalLink className="h-4 w-4" />
+            Visualizar como paciente
+          </a>
+        </div>
+      </div>
+
       {/* ── Horários de atendimento ─────────────────── */}
       <div className="card space-y-4">
         <div className="flex items-center justify-between">
@@ -539,11 +637,11 @@ function BookingSettings({ page }: { page: any }) {
         <h2 className="section-title">Sua página de agendamento</h2>
         <div>
           <label className="label">Título da página</label>
-          <input value={form.title} onChange={e => set('title', e.target.value)} className="input-field" />
+          <input maxLength={90} value={form.title} onChange={e => set('title', e.target.value)} className="input-field" />
         </div>
         <div>
           <label className="label">Mensagem de boas-vindas</label>
-          <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={3} className="input-field resize-none" />
+          <textarea maxLength={600} value={form.description} onChange={e => set('description', e.target.value)} rows={3} className="input-field resize-none" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
@@ -552,15 +650,20 @@ function BookingSettings({ page }: { page: any }) {
           </div>
           <div>
             <label className="label">Duração da sessão (min)</label>
-            <input type="number" value={form.sessionDuration} onChange={e => set('sessionDuration', +e.target.value)} className="input-field" />
+            <input type="number" min={15} max={240} value={form.sessionDuration} onChange={e => set('sessionDuration', +e.target.value)} className="input-field" />
           </div>
           <div>
             <label className="label">Intervalo entre slots (min)</label>
-            <input type="number" value={form.slotInterval} onChange={e => set('slotInterval', +e.target.value)} className="input-field" />
+            <input type="number" min={15} max={240} value={form.slotInterval} onChange={e => set('slotInterval', +e.target.value)} className="input-field" />
+          </div>
+          <div>
+            <label className="label">Antecedência mínima (dias)</label>
+            <input type="number" min={0} max={30} value={form.minAdvanceDays} onChange={e => set('minAdvanceDays', +e.target.value)} className="input-field" />
+            <p className="text-xs text-neutral-400 mt-1">Ex: 1 impede agendamento para hoje.</p>
           </div>
           <div>
             <label className="label">Agendar ate quantos dias a frente</label>
-            <input type="number" min={1} value={form.maxAdvanceDays} onChange={e => set('maxAdvanceDays', +e.target.value)} className="input-field" />
+            <input type="number" min={1} max={180} value={form.maxAdvanceDays} onChange={e => set('maxAdvanceDays', +e.target.value)} className="input-field" />
             <p className="text-xs text-neutral-400 mt-1">Ex: 15 impede que alguem marque para daqui dois meses.</p>
           </div>
         </div>
@@ -648,12 +751,12 @@ function BookingSettings({ page }: { page: any }) {
         <h2 className="section-title">Pagamento</h2>
         <div>
           <label className="label">Chave PIX</label>
-          <input value={form.pixKey} onChange={e => set('pixKey', e.target.value)} className="input-field"
+          <input maxLength={180} value={form.pixKey} onChange={e => set('pixKey', e.target.value)} className="input-field"
             placeholder="CPF, e-mail, telefone ou chave aleatória" />
         </div>
         <div>
           <label className="label">Mensagem de confirmação</label>
-          <textarea value={form.confirmationMessage} onChange={e => set('confirmationMessage', e.target.value)} rows={2}
+          <textarea maxLength={500} value={form.confirmationMessage} onChange={e => set('confirmationMessage', e.target.value)} rows={2}
             className="input-field resize-none"
             placeholder="Mensagem enviada após o agendamento..." />
         </div>

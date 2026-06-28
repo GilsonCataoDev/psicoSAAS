@@ -42,6 +42,7 @@ export interface AvailabilitySlot {
   weekday: number
   startTime: string
   endTime: string
+  modality?: 'presencial' | 'online'
 }
 
 export const WEEKDAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']

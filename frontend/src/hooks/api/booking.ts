@@ -32,7 +32,10 @@ export function useSaveBookingPage() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data: Partial<BookingPage>) => api.post('/booking/page', data).then(r => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['booking-page'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['booking-page'] })
+      qc.invalidateQueries({ queryKey: ['booking-daily-link'] })
+    },
   })
 }
 

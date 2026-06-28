@@ -586,6 +586,19 @@ export class BookingService {
 
   async saveMyPage(psychologistId: string, dto: SaveBookingPageDto) {
     let page = await this.pages.findOne({ where: { psychologistId } })
+    if (dto.maxAdvanceDays !== undefined && dto.minAdvanceDays !== undefined && dto.maxAdvanceDays < dto.minAdvanceDays) {
+      throw new BadRequestException('A antecedencia maxima deve ser maior que a minima')
+    }
+    if (dto.slug !== undefined) {
+      dto.slug = slugifyName(dto.slug)
+      if (!dto.slug || dto.slug.length < 3) {
+        throw new BadRequestException('Informe uma URL com pelo menos 3 caracteres')
+      }
+      const existing = await this.pages.findOne({ where: { slug: dto.slug } })
+      if (existing && existing.psychologistId !== psychologistId) {
+        throw new BadRequestException('Esta URL ja esta em uso')
+      }
+    }
     if (dto.avatarUrl !== undefined) {
       const avatarUrl = dto.avatarUrl.trim()
       if (avatarUrl) {
