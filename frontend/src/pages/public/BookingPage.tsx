@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
   ChevronLeft, ChevronRight, Check,
-  MapPin, Video, Heart, Clock, DollarSign, ShieldCheck, ExternalLink,
+  MapPin, Video, Clock, DollarSign, ShieldCheck, ExternalLink,
   Calendar,
 } from 'lucide-react'
 import {
@@ -168,6 +168,12 @@ export default function BookingPage() {
   const selectedDuration = selectedModality === 'presencial'
     ? (page.presencialSessionDuration ?? page.sessionDuration)
     : (page.onlineSessionDuration ?? page.sessionDuration)
+  const initials = page.psychologistName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part[0]?.toUpperCase())
+    .join('')
 
   // ── LANDING ──────────────────────────────────────────────────────────────────
   if (step === 'landing') {
@@ -180,8 +186,8 @@ export default function BookingPage() {
             {page.avatarUrl ? (
               <img src={page.avatarUrl} alt={page.psychologistName} className="w-full h-full object-cover object-center" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <Heart className="w-10 h-10 text-sage-400" fill="currentColor" />
+              <div className="w-full h-full flex items-center justify-center bg-sage-100 text-2xl font-semibold text-sage-700 dark:bg-sage-500/20 dark:text-sage-100">
+                {initials || 'UC'}
               </div>
             )}
           </div>
@@ -249,7 +255,7 @@ export default function BookingPage() {
             {page.avatarUrl ? (
               <img src={page.avatarUrl} alt={page.psychologistName} className="w-full h-full object-cover object-center" />
             ) : (
-              <Heart className="w-5 h-5 text-sage-500" fill="currentColor" />
+              <span className="text-xs font-semibold text-sage-700 dark:text-sage-100">{initials || 'UC'}</span>
             )}
           </button>
           <div className="flex-1 min-w-0">
