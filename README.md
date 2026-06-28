@@ -4,7 +4,11 @@
 
 UseCognia é um SaaS completo para psicólogos brasileiros que reduz a carga operacional do consultório — gestão de pacientes, agenda, sessões clínicas, financeiro e agendamento online — para que o profissional foque no que importa: o cuidado humano.
 
-**Documentação técnica:** [docs/PROJECT_DOCUMENTATION.md](docs/PROJECT_DOCUMENTATION.md)
+**Documentação técnica:** [docs/PROJECT_DOCUMENTATION.md](docs/PROJECT_DOCUMENTATION.md)  
+**Referência da API:** [docs/API.md](docs/API.md)  
+**Modelo de dados (ERD):** [docs/erd.svg](docs/erd.svg)  
+**Decisões de arquitetura:** [docs/decisions.md](docs/decisions.md)  
+**Changelog:** [CHANGELOG.md](CHANGELOG.md)
 
 **Demo:** [gilsoncataodev.github.io/psicoSAAS](https://gilsoncataodev.github.io/psicoSAAS)
 
