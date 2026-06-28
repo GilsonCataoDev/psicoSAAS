@@ -77,29 +77,29 @@ export default function RegisterPage() {
       setAuth(res.data.user)
       if (res.data.csrfToken) setCsrfToken(res.data.csrfToken)
 
-      let betaActivated = false
+      let freePlanActivated = false
       try {
         const billing = await api.post('/billing/free')
         setSubscription(billing.data)
-        betaActivated = true
+        freePlanActivated = true
       } catch {
         try {
           const { data: billing } = await api.get('/billing/me')
           if (billing?.status) {
             setSubscription(billing)
-            betaActivated = true
+            freePlanActivated = true
           }
         } catch {
-          // Se a ativação do Beta falhar momentaneamente, o AppLayout tenta
+          // Se a ativacao do plano gratis falhar momentaneamente, o AppLayout tenta
           // carregar/gerar a assinatura gratuita ao entrar no painel.
         }
       }
 
       track(EVENTS.REGISTER)
       toast.success(
-        betaActivated
-          ? 'Acesso Beta liberado! Seja bem-vindo(a)'
-          : 'Conta criada! Vamos terminar a ativação do Beta no painel.',
+        freePlanActivated
+          ? 'Plano gratis liberado! Seja bem-vindo(a)'
+          : 'Conta criada! Vamos terminar a ativacao do plano gratis no painel.',
       )
       navigate('/')
     } catch (err: any) {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { BadgeDollarSign, CheckCircle2, Clock3, CreditCard, Loader2, Target, TrendingUp, XCircle } from 'lucide-react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -19,73 +19,7 @@ function statusMessage(status: string) {
   return 'Escolha um plano para continuar'
 }
 
-const BETA_MODE = import.meta.env.VITE_BETA_MODE !== 'false'
-
-function BetaAccessPage() {
-  return (
-    <div className="mx-auto max-w-5xl space-y-8 pb-12">
-      <section className="overflow-hidden rounded-[2rem] border border-sage-100 bg-white shadow-card dark:border-white/10 dark:bg-cognia-panel">
-        <div className="grid gap-0 lg:grid-cols-[1fr_0.82fr]">
-          <div className="px-6 py-10 sm:px-10 lg:py-14">
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700 dark:text-sage-200">
-              UseCognia Beta gratuito
-            </p>
-            <h1 className="mt-4 max-w-3xl font-display text-3xl font-semibold leading-tight text-neutral-900 dark:text-white sm:text-5xl">
-              Seu acesso Beta está liberado. Comece organizando a rotina clínica pelo essencial.
-            </h1>
-            <p className="mt-5 max-w-2xl text-lg leading-8 text-neutral-600 dark:text-neutral-300">
-              Durante o Beta, psicólogos e estagiários clínicos podem testar o UseCognia sem cartão. O objetivo é validar agenda, pacientes, prontuário e histórico clínico com uso real.
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link to="/" className="inline-flex h-12 items-center justify-center rounded-xl bg-sage-700 px-5 text-sm font-bold text-white hover:bg-sage-800">
-                Ir para o painel
-              </Link>
-              <Link to="/pacientes" className="inline-flex h-12 items-center justify-center rounded-xl border border-sage-200 px-5 text-sm font-semibold text-sage-800 hover:bg-sage-50 dark:border-sage-400/30 dark:text-sage-100 dark:hover:bg-white/5">
-                Cadastrar primeiro paciente
-              </Link>
-              <Link to="/planos?comparar=1" className="inline-flex h-12 items-center justify-center rounded-xl border border-neutral-200 px-5 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 dark:border-white/10 dark:text-neutral-100 dark:hover:bg-white/5">
-                Contratar um plano
-              </Link>
-            </div>
-          </div>
-
-          <div className="bg-[#1D352D] px-6 py-10 text-white sm:px-10 lg:py-14">
-            <p className="text-sm font-semibold text-sage-200">O que está incluído nesta fase</p>
-            <div className="mt-6 space-y-4">
-              {[
-                'Acesso gratuito durante o programa Beta',
-                'Agenda online com link público',
-                'Cadastro de pacientes e histórico clínico',
-                'Prontuário digital para organizar evoluções',
-                'Feedback próximo para priorizar novas funcionalidades',
-              ].map((item) => (
-                <div key={item} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/6 p-4">
-                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-sage-200" />
-                  <p className="text-sm font-medium text-white/90">{item}</p>
-                </div>
-              ))}
-            </div>
-            <p className="mt-6 rounded-2xl bg-sage-200/10 p-4 text-sm leading-6 text-white/70">
-              Lembretes automáticos, automações de WhatsApp e financeiro avançado continuam evoluindo conforme o feedback dos primeiros usuários.
-            </p>
-          </div>
-        </div>
-      </section>
-    </div>
-  )
-}
-
 export default function PricingPage() {
-  const [searchParams] = useSearchParams()
-  const subscription = useSubscriptionStore((s) => s.subscription)
-  const currentPlanId = String(subscription.planId ?? subscription.plan ?? 'free')
-  const showBetaAccess = BETA_MODE
-    && searchParams.get('comparar') !== '1'
-    && subscription.status === 'active'
-    && currentPlanId === 'free'
-
-  if (showBetaAccess) return <BetaAccessPage />
-
   return <PaidPricingPage />
 }
 

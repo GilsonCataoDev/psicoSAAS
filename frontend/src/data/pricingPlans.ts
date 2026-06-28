@@ -31,8 +31,8 @@ export const PRICING_HERO = {
   title: 'Escolha como quer usar o UseCognia',
   subtitle: 'Organize agenda, pacientes, prontuario e financeiro sem transformar a rotina clinica em planilha.',
   context: 'Comece gratis, evolua para uma rotina profissional no Essencial ou automatize comunicacao, cobrancas e IA no Pro.',
-  trialCta: 'Acesso Beta gratuito',
-  trialSubtext: 'Sem cartao nesta fase. Feedback direto com a equipe.',
+  trialCta: 'Comecar no plano gratis',
+  trialSubtext: 'Sem cartao. Ideal para testar a rotina com ate 10 pacientes.',
 }
 
 export const PRICING_PLANS: PricingPlan[] = [
@@ -129,13 +129,13 @@ export const PRICING_COMPARISON = {
 
 export const PRICING_FAQ = [
   { question: 'Posso cancelar a qualquer hora?', answer: 'Sim. Sem multa, sem aviso previo. Basta cancelar em 1 clique.' },
-  { question: 'Preciso de cartao para testar?', answer: 'Nao durante o Beta. O objetivo desta fase e validar o produto com psicologos e estagiarios clinicos.' },
+  { question: 'Preciso de cartao para começar?', answer: 'Nao. O plano Gratis nao exige cartao e permite organizar ate 10 pacientes.' },
   { question: 'Meus dados estao seguros?', answer: 'Sim. Dados criptografados, backup automatico e exportacao em 1 clique.' },
   { question: 'Posso mudar de plano depois?', answer: 'Sim. Voce pode fazer upgrade ou downgrade a qualquer momento.' },
   { question: 'Qual e a diferenca entre Essencial e Pro?', answer: 'Essencial organiza a rotina com agenda, pacientes, documentos e financeiro. Pro automatiza WhatsApp, lembretes, cobrancas, instrumentos e IA.' },
   { question: 'E se eu tiver 50+ pacientes?', answer: 'Ate 50 pacientes, Essencial funciona bem. Acima disso, Pro e o plano indicado.' },
   { question: 'Voces oferecem suporte?', answer: 'Free tem suporte por email. Essencial tem prioridade maior. Pro tem atendimento mais rapido e suporte por WhatsApp.' },
   { question: 'Posso usar em mais de um dispositivo?', answer: 'Sim. Celular, tablet e computador sincronizados.' },
-  { question: 'E se eu sair do Beta?', answer: 'Voce pode parar de usar quando quiser. Antes de uma futura cobranca, a politica comercial sera comunicada com clareza.' },
+  { question: 'Posso ficar no plano Gratis?', answer: 'Sim. Voce pode continuar no Gratis enquanto os limites atenderem sua rotina.' },
   { question: 'Voces tem plano anual com desconto?', answer: 'Sim. Essencial e Pro exibem o valor mensal equivalente no anual.' },
 ]

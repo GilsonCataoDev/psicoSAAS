@@ -14,9 +14,9 @@ import {
 import BrandLogo from '@/components/ui/BrandLogo'
 
 const trustSignals = [
-  'Beta gratuito',
+  'Plano gratis',
   'Para psicólogos e estagiários clínicos',
-  'Sem cartão nesta fase',
+  'Sem cartão para começar',
 ]
 
 const pains = [
@@ -57,21 +57,21 @@ const features = [
   },
 ]
 
-const betaItems = [
-  'Acesso gratuito durante o programa Beta',
-  'Participação nas decisões de novas funcionalidades',
-  'Suporte próximo da equipe UseCognia',
-  'Prioridade para recursos de agenda, prontuário e lembretes',
-  'Ideal para psicólogos e estagiários que atendem na clínica',
+const freeItems = [
+  'Acesso gratuito sem cartao',
+  'Agenda online com link publico',
+  'Cadastro de ate 10 pacientes',
+  'Prontuario e evolucoes em um so lugar',
+  'Ideal para estagiarios e psicologos no inicio da rotina',
 ]
 
 const faqs = [
   {
     question: 'Preciso configurar tudo antes de usar?',
-    answer: 'Não. A ideia do Beta é começar pelo essencial: cadastrar pacientes, organizar agenda e testar a rotina clínica aos poucos.',
+    answer: 'Não. Você pode começar pelo essencial: cadastrar pacientes, organizar agenda e registrar evoluções aos poucos.',
   },
   {
-    question: 'Quem pode participar do Beta?',
+    question: 'Quem pode usar o UseCognia?',
     answer: 'Psicólogos e estagiários clínicos no Brasil que querem organizar agenda, pacientes, prontuário e rotina de atendimento.',
   },
   {
@@ -91,12 +91,12 @@ const faqs = [
     answer: 'Sim. A agenda e os agendamentos públicos permitem configurar modalidades separadas — presencial e online — com disponibilidades e horários distintos para cada uma.',
   },
   {
-    question: 'O Beta é realmente gratuito?',
-    answer: 'Sim. Nesta fase, o objetivo é validar a rotina com psicólogos e estagiários clínicos, coletar feedback e priorizar as funcionalidades certas.',
+    question: 'O plano grátis é realmente gratuito?',
+    answer: 'Sim. O plano grátis permite começar sem cartão, com recursos essenciais e limite de até 10 pacientes.',
   },
   {
     question: 'Preciso cadastrar cartão?',
-    answer: 'Não para o programa Beta. A página de cadastro pode ser usada para solicitar acesso e iniciar os testes gratuitos.',
+    answer: 'Não para começar no plano grátis. Cartão só é necessário ao contratar um plano pago.',
   },
   {
     question: 'A plataforma é compatível com as normas do CFP?',
@@ -114,9 +114,9 @@ function ProductPreview() {
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-white/5 px-4 py-3">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sage-200">Painel UseCognia</p>
-          <p className="mt-1 text-sm text-white/70">Beta clínico</p>
+          <p className="mt-1 text-sm text-white/70">Rotina clinica</p>
         </div>
-        <span className="shrink-0 rounded-full bg-sage-200 px-3 py-1 text-xs font-semibold text-sage-900">Beta gratuito</span>
+        <span className="shrink-0 rounded-full bg-sage-200 px-3 py-1 text-xs font-semibold text-sage-900">Plano gratis</span>
       </div>
 
       <div className="grid gap-0 md:grid-cols-[180px_1fr]">
@@ -178,7 +178,7 @@ export default function LandingPage() {
           </Link>
           <nav className="hidden items-center gap-6 text-sm font-medium text-[#5F5A51] md:flex">
             <a href="#produto" className="hover:text-sage-700">Produto</a>
-            <a href="#beta" className="hover:text-sage-700">Beta</a>
+            <a href="#gratis" className="hover:text-sage-700">Plano gratis</a>
             <button onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-sage-700">Dúvidas</button>
             <Link to="/seguranca" className="hover:text-sage-700">Segurança</Link>
           </nav>
@@ -199,7 +199,7 @@ export default function LandingPage() {
           <div className="w-full min-w-0 max-w-full sm:max-w-2xl">
             <p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-3 py-1 text-sm font-semibold text-sage-200">
               <Sparkles className="h-4 w-4" />
-              Beta gratuito para psicólogos e estagiários
+              Plano gratis para psicólogos e estagiários
             </p>
 
             <h1 className="mt-6 max-w-[21rem] text-[2.1rem] font-bold leading-[1.06] tracking-normal text-white sm:max-w-2xl sm:text-5xl lg:text-6xl">
@@ -215,7 +215,7 @@ export default function LandingPage() {
                 to="/cadastro"
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-sage-200 px-5 text-sm font-bold text-sage-900 shadow-lg shadow-sage-200/15 hover:bg-sage-100"
               >
-                Quero testar o Beta <ArrowRight className="h-4 w-4" />
+                Começar gratis <ArrowRight className="h-4 w-4" />
               </Link>
               <a
                 href="#produto"
@@ -259,7 +259,7 @@ export default function LandingPage() {
             <WalletCards className="mt-0.5 h-5 w-5 text-sage-600" />
             <div>
               <p className="text-sm font-semibold text-[#211F1C]">Construído com usuários reais</p>
-              <p className="mt-1 text-sm text-[#7C776B]">O Beta prioriza feedback de psicólogos e estagiários clínicos.</p>
+              <p className="mt-1 text-sm text-[#7C776B]">Criado para a rotina de psicólogos e estagiários clínicos.</p>
             </div>
           </div>
         </div>
@@ -306,27 +306,27 @@ export default function LandingPage() {
 
       <section className="mx-auto max-w-6xl px-5 py-16">
         <div className="text-center mb-10">
-          <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Por que entrar cedo</p>
-          <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">O Beta é para construir com quem vive a rotina clínica.</h2>
+          <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Por que começar agora</p>
+          <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Uma rotina clínica mais organizada desde o primeiro paciente.</h2>
         </div>
         <div className="grid gap-5 md:grid-cols-3">
           {[
             {
-              quote: 'Você testa primeiro os fluxos de agenda, pacientes e prontuário — e ajuda a mostrar o que realmente precisa ficar mais simples.',
-              name: 'Acesso antecipado',
-              role: 'Use antes do lançamento amplo',
+              quote: 'Você começa pelo que mais pesa na rotina: agenda, pacientes, prontuário e documentos em um só lugar.',
+              name: 'Começo simples',
+              role: 'Sem precisar configurar tudo de uma vez',
               initial: 'A',
             },
             {
-              quote: 'Seu feedback entra na priorização do produto, principalmente em lembretes, agenda pública e organização de histórico clínico.',
-              name: 'Produto com sua rotina',
-              role: 'Funcionalidades guiadas por uso real',
+              quote: 'O sistema ajuda a reduzir a dependência de caderno, planilha e mensagens soltas no WhatsApp.',
+              name: 'Menos retrabalho',
+              role: 'Mais clareza para operar a clínica',
               initial: 'P',
             },
             {
-              quote: 'Você fala com a equipe de perto, sem formulário perdido. O objetivo é entender onde a gestão clínica ainda pesa.',
-              name: 'Suporte próximo',
-              role: 'Contato direto durante o Beta',
+              quote: 'Quando a rotina crescer, os planos pagos liberam documentos, automações, instrumentos e IA.',
+              name: 'Cresce com você',
+              role: 'Do plano grátis ao Pro',
               initial: 'S',
             },
           ].map(({ quote, name, role, initial }) => (
@@ -346,25 +346,25 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="beta" className="mx-auto grid max-w-6xl gap-8 px-5 py-16 lg:grid-cols-[0.9fr_1fr]">
+      <section id="gratis" className="mx-auto grid max-w-6xl gap-8 px-5 py-16 lg:grid-cols-[0.9fr_1fr]">
         <div>
-          <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Beta gratuito</p>
-          <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Entre antes e ajude a construir o sistema clínico que você realmente usaria.</h2>
+          <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Plano gratis</p>
+          <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Comece sem cartão e organize os primeiros pacientes.</h2>
           <p className="mt-4 max-w-xl leading-relaxed text-[#5F5A51]">
-            Estamos selecionando psicólogos e estagiários clínicos para testar o UseCognia gratuitamente, validar a rotina e priorizar as funcionalidades que mais reduzem retrabalho.
+            O plano grátis foi pensado para quem quer sair da bagunça inicial sem assumir custo de imediato. Quando precisar de mais limite ou automação, escolha Essencial ou Pro.
           </p>
         </div>
 
         <div className="rounded-lg border border-sage-200 bg-[#FFFFFF] p-6 shadow-card">
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-sage-700">UseCognia Beta</p>
+              <p className="text-sm font-semibold text-sage-700">UseCognia Gratis</p>
               <p className="mt-1 text-3xl font-bold text-[#211F1C]">Gratuito</p>
             </div>
-            <span className="rounded-full bg-sage-100 px-3 py-1 text-xs font-semibold text-sage-700">vagas limitadas</span>
+            <span className="rounded-full bg-sage-100 px-3 py-1 text-xs font-semibold text-sage-700">sem cartao</span>
           </div>
           <ul className="space-y-3">
-            {betaItems.map((item) => (
+            {freeItems.map((item) => (
               <li key={item} className="flex items-start gap-3 text-sm font-medium text-[#49443D]">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-sage-600" />
                 {item}
@@ -375,9 +375,9 @@ export default function LandingPage() {
             to="/cadastro"
             className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-md bg-sage-800 text-sm font-bold text-white hover:bg-sage-900"
           >
-            Quero testar o Beta
+            Começar gratis
           </Link>
-          <p className="mt-3 text-center text-xs text-[#A9A394]">Sem cartão nesta fase. Feedback direto com a equipe.</p>
+          <p className="mt-3 text-center text-xs text-[#A9A394]">Sem cartão. Você pode mudar de plano depois.</p>
         </div>
       </section>
 
@@ -405,13 +405,13 @@ export default function LandingPage() {
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-3xl font-bold">Pronto para deixar o consultório com cara de operação profissional?</h2>
           <p className="mx-auto mt-4 max-w-2xl text-white/70">
-            Participe do Beta gratuito e ajude a criar uma rotina mais simples para agenda, pacientes e prontuário.
+            Comece gratis e organize agenda, pacientes e prontuário em uma rotina mais simples.
           </p>
           <Link
             to="/cadastro"
             className="mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-md bg-sage-200 px-6 text-sm font-bold text-sage-900 hover:bg-sage-100"
           >
-            Quero testar o Beta <ArrowRight className="h-4 w-4" />
+            Começar gratis <ArrowRight className="h-4 w-4" />
           </Link>
           <div className="mt-6 flex justify-center gap-4 text-sm text-white/60">
             <Link to="/acessibilidade" className="hover:text-white">Acessibilidade</Link>
