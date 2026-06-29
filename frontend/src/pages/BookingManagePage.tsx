@@ -52,8 +52,13 @@ export default function BookingManagePage() {
   const appBaseUrl = new URL(import.meta.env.BASE_URL || '/', window.location.origin).toString()
   const bookingUrl = dailyLink?.url
     ?? (bookingPage?.slug ? `${appBaseUrl}agendar/${bookingPage.slug}` : '...')
+  const bookingLinkIsActive = bookingPage?.isActive ?? true
 
   async function copyLink() {
+    if (!bookingLinkIsActive) {
+      toast('O link público está pausado.')
+      return
+    }
     try {
       await copyText(bookingUrl)
       toast.success('Link copiado!')
@@ -106,13 +111,17 @@ export default function BookingManagePage() {
         <p className="font-mono text-sm break-all mb-3">{bookingUrl}</p>
         <div className="flex gap-2 flex-wrap">
           <button onClick={copyLink}
-            className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2">
+            disabled={!bookingLinkIsActive}
+            className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-60">
             <Link2 className="w-4 h-4" />Copiar
           </button>
           {dailyLink?.url && (
-            <a href={bookingUrl} target="_blank" rel="noreferrer"
-              className="bg-white text-sage-700 hover:bg-sage-50 px-4 py-2 rounded-xl text-sm font-medium transition-colors">
-              Visualizar
+            <a href={bookingLinkIsActive ? bookingUrl : undefined} target="_blank" rel="noreferrer"
+              className={cn(
+                'bg-white text-sage-700 hover:bg-sage-50 px-4 py-2 rounded-xl text-sm font-medium transition-colors',
+                !bookingLinkIsActive && 'pointer-events-none opacity-60',
+              )}>
+              {bookingLinkIsActive ? 'Visualizar' : 'Link pausado'}
             </a>
           )}
           <button onClick={() => refetchLink()}
@@ -531,6 +540,19 @@ function BookingSettings({ page }: { page: any }) {
   const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }))
   const isSaving = saveBookingPage.isPending || saveAvailability.isPending
 
+  async function togglePublicLink() {
+    const nextIsActive = !form.isActive
+    const previousIsActive = form.isActive
+    set('isActive', nextIsActive)
+    try {
+      await saveBookingPage.mutateAsync({ isActive: nextIsActive })
+      toast.success(nextIsActive ? 'Link público ativado.' : 'Link público pausado.')
+    } catch {
+      set('isActive', previousIsActive)
+      toast.error('Não foi possível alterar o status do link.')
+    }
+  }
+
   const currentSchedule = schedules[scheduleTab]
   const enabledCount = WEEKDAYS.filter(({ d }) => currentSchedule[d]?.enabled).length
   const normalizedSlug = normalizeSlug(form.slug || page?.slug || '')
@@ -550,15 +572,16 @@ function BookingSettings({ page }: { page: any }) {
           </div>
           <button
             type="button"
-            onClick={() => set('isActive', !form.isActive)}
+            onClick={togglePublicLink}
+            disabled={saveBookingPage.isPending}
             className={cn(
-              'h-10 rounded-xl px-4 text-sm font-semibold transition-colors',
+              'h-10 rounded-xl px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60',
               form.isActive
                 ? 'bg-sage-600 text-white hover:bg-sage-700'
                 : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200',
             )}
           >
-            {form.isActive ? 'Link ativo' : 'Link pausado'}
+            {saveBookingPage.isPending ? 'Salvando...' : form.isActive ? 'Link ativo' : 'Link pausado'}
           </button>
         </div>
         <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
@@ -578,13 +601,13 @@ function BookingSettings({ page }: { page: any }) {
             <p className="mt-1 text-xs text-neutral-400">Use letras, números e hífens. Ex: nicolle-paes.</p>
           </div>
           <a
-            href={publicUrl || undefined}
+            href={form.isActive && publicUrl ? publicUrl : undefined}
             target="_blank"
             rel="noreferrer"
-            className={cn('btn-secondary flex items-center justify-center gap-2 text-sm', !publicUrl && 'pointer-events-none opacity-50')}
+            className={cn('btn-secondary flex items-center justify-center gap-2 text-sm', (!publicUrl || !form.isActive) && 'pointer-events-none opacity-50')}
           >
             <ExternalLink className="h-4 w-4" />
-            Visualizar como paciente
+            {form.isActive ? 'Visualizar como paciente' : 'Link pausado'}
           </a>
         </div>
       </div>
