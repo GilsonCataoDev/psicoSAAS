@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config'
 import {
   addDays, format, parseISO, setHours, setMinutes,
   addMinutes, isBefore, isAfter, getDay, eachDayOfInterval,
+  addMonths, endOfMonth, startOfMonth,
 } from 'date-fns'
 import { Booking } from './entities/booking.entity'
 import { BookingPage } from './entities/booking-page.entity'
@@ -60,6 +61,14 @@ function saoPauloDateKey(date = new Date()): string {
 function nextSaoPauloMidnight(date = new Date()): Date {
   const [year, month, day] = saoPauloDateKey(date).split('-').map(Number)
   return new Date(Date.UTC(year, month - 1, day + 1, 3, 0, 0))
+}
+
+function getMaxAdvanceDate(today: Date, maxAdvanceDays: number): Date {
+  const days = Number(maxAdvanceDays)
+  if (days > 0 && days % 30 === 0) {
+    return endOfMonth(addMonths(startOfMonth(today), days / 30))
+  }
+  return addDays(today, days)
 }
 
 @Injectable()
@@ -199,7 +208,7 @@ export class BookingService {
     }).format(now)
     const today = parseISO(todayStr)
     const minDate = addDays(today, page.minAdvanceDays ?? 0)
-    const maxDate = addDays(today, page.maxAdvanceDays)
+    const maxDate = getMaxAdvanceDate(today, page.maxAdvanceDays)
     if (isBefore(date, minDate) || isAfter(date, maxDate)) return []
 
     const [existingBookings, existingAppointments] = await Promise.all([
@@ -278,7 +287,7 @@ export class BookingService {
     }).format(now)
     const today = parseISO(todayStr)
     const minDate = addDays(today, page.minAdvanceDays ?? 0)
-    const maxDate = addDays(today, page.maxAdvanceDays)
+    const maxDate = getMaxAdvanceDate(today, page.maxAdvanceDays)
 
     const [slots, blockedDates, existingBookings, existingAppointments] = await Promise.all([
       this.availability.findAll(page.psychologistId),

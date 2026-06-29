@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { useAuthStore } from '@/store/auth'
 
 export type TemplateType = 'patient_form' | 'session_note' | 'document' | 'whatsapp_message' | 'receipt'
 
@@ -13,16 +14,20 @@ export type Template = {
 }
 
 export function useTemplates(type?: TemplateType) {
+  const userId = useAuthStore(s => s.user?.id)
   return useQuery<Template[]>({
-    queryKey: ['templates', type],
+    queryKey: ['templates', userId, type],
     queryFn: () => api.get('/templates', { params: type ? { type } : undefined }).then(r => r.data),
+    enabled: !!userId,
   })
 }
 
 export function useDefaultTemplate(type: TemplateType) {
+  const userId = useAuthStore(s => s.user?.id)
   return useQuery<Template | null>({
-    queryKey: ['templates', type, 'default'],
+    queryKey: ['templates', userId, type, 'default'],
     queryFn: () => api.get(`/templates/${type}`).then(r => r.data),
+    enabled: !!userId,
   })
 }
 

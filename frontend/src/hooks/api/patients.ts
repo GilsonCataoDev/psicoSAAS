@@ -1,20 +1,23 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { useAuthStore } from '@/store/auth'
 import { Patient } from '@/types'
 
 export function usePatients(options?: { enabled?: boolean }) {
+  const userId = useAuthStore(s => s.user?.id)
   return useQuery<Patient[]>({
-    queryKey: ['patients'],
+    queryKey: ['patients', userId],
     queryFn: () => api.get('/patients').then(r => r.data),
-    enabled: options?.enabled ?? true,
+    enabled: (options?.enabled ?? true) && !!userId,
   })
 }
 
 export function usePatient(id: string) {
+  const userId = useAuthStore(s => s.user?.id)
   return useQuery<Patient>({
-    queryKey: ['patients', id],
+    queryKey: ['patients', userId, id],
     queryFn: () => api.get(`/patients/${id}`).then(r => r.data),
-    enabled: !!id,
+    enabled: !!userId && !!id,
   })
 }
 

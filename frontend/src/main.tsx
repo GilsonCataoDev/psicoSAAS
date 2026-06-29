@@ -7,6 +7,8 @@ import toast from 'react-hot-toast'
 import App from './App'
 import { initAnalytics } from '@/lib/analytics'
 import { readPersistedStorage } from '@/lib/storageMigration'
+import { useAuthStore } from '@/store/auth'
+import { useSubscriptionStore } from '@/store/subscription'
 import { applyTheme, ThemeMode } from '@/store/theme'
 import './index.css'
 
@@ -136,6 +138,13 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
     },
   },
+})
+
+useAuthStore.subscribe((state, previousState) => {
+  if (state.user?.id !== previousState.user?.id || state.isAuthenticated !== previousState.isAuthenticated) {
+    queryClient.clear()
+    useSubscriptionStore.getState().resetSubscription()
+  }
 })
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

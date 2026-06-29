@@ -54,6 +54,15 @@ export function NotifyTab({
             <p className="text-xs text-neutral-400 pt-1">
               Os lembretes podem sair por WhatsApp e por notificacao push do navegador. Configure o WhatsApp na aba <strong>Mensagens</strong>.
             </p>
+            <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Exemplo de lembrete</p>
+              <p className="text-sm text-neutral-700">
+                Ola, Marina! Passando para lembrar da nossa sessao em terça-feira, 14 de julho as 15:00.
+              </p>
+              <p className="mt-2 text-xs text-neutral-400">
+                O texto pode ser ajustado na aba Mensagens.
+              </p>
+            </div>
           </>
         )}
       </div>

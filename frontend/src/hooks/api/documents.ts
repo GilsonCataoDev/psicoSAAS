@@ -1,11 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { useAuthStore } from '@/store/auth'
 import { DocumentoListItem } from '@/types/prontuario'
 
 export function useDocuments() {
+  const userId = useAuthStore(s => s.user?.id)
   return useQuery<DocumentoListItem[]>({
-    queryKey: ['documents'],
+    queryKey: ['documents', userId],
     queryFn: () => api.get('/documents').then(r => r.data),
+    enabled: !!userId,
   })
 }
 

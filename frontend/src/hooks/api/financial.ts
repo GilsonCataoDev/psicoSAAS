@@ -1,11 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { useAuthStore } from '@/store/auth'
 import { FinancialRecord } from '@/types'
 
 export function useFinancial(params?: { patientId?: string; status?: string }) {
+  const userId = useAuthStore(s => s.user?.id)
   return useQuery<FinancialRecord[]>({
-    queryKey: ['financial', params],
+    queryKey: ['financial', userId, params],
     queryFn: () => api.get('/financial', { params }).then(r => r.data),
+    enabled: !!userId,
   })
 }
 

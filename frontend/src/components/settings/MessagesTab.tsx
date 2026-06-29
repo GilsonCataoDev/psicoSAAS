@@ -23,6 +23,13 @@ interface Props {
   saveTemplate: (type: 'whatsapp_message' | 'receipt', name: string, content: string) => void
 }
 
+function previewMessage(template: string) {
+  return template
+    .split('{{nome}}').join('Marina')
+    .split('{{data}}').join('terça-feira, 14 de julho')
+    .split('{{hora}}').join('15:00')
+}
+
 export function MessagesTab({
   prefs, setPref, savingPrefs, hasProAutomation,
   whatsappConnected, whatsappConfigured, whatsappStatus, whatsappQr, whatsappBusy, whatsappLogs,
@@ -157,6 +164,10 @@ export function MessagesTab({
           disabled={!hasProAutomation}
           value={prefs.confirmationTemplate}
           onChange={e => setPref('confirmationTemplate', e.target.value)} />
+        <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Prévia para paciente</p>
+          <p className="whitespace-pre-line text-sm text-neutral-700">{previewMessage(prefs.confirmationTemplate)}</p>
+        </div>
         <button type="button" className="btn-secondary text-xs w-fit"
           disabled={!hasProAutomation || createTemplate.isPending}
           onClick={() => saveTemplate('whatsapp_message', 'Confirmacao personalizada', prefs.confirmationTemplate)}>
@@ -189,6 +200,10 @@ export function MessagesTab({
           disabled={!hasProAutomation}
           value={prefs.reminderTemplate}
           onChange={e => setPref('reminderTemplate', e.target.value)} />
+        <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Prévia para paciente</p>
+          <p className="whitespace-pre-line text-sm text-neutral-700">{previewMessage(prefs.reminderTemplate)}</p>
+        </div>
         <button type="button" className="btn-secondary text-xs w-fit"
           disabled={!hasProAutomation || createTemplate.isPending}
           onClick={() => saveTemplate('whatsapp_message', 'Lembrete personalizado', prefs.reminderTemplate)}>

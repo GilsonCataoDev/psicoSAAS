@@ -41,6 +41,12 @@ export function PrivacyTab({
         <Download className="w-4 h-4" />
         {exportingData ? 'Exportando...' : 'Exportar meus dados'}
       </button>
+      <div className="rounded-2xl border border-sage-100 bg-sage-50 px-4 py-3 text-sm text-sage-800">
+        <p className="font-medium">O arquivo de exportação inclui</p>
+        <p className="mt-1 text-sage-700">
+          Pacientes, agenda, sessões, registros financeiros, documentos, preferências e histórico disponível da conta.
+        </p>
+      </div>
 
       <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
         <div className="flex items-center justify-between gap-3">

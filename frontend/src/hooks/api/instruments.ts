@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type AuthAxiosRequestConfig } from '@/lib/api'
+import { useAuthStore } from '@/store/auth'
 
 export type InstrumentField = {
   id: string
@@ -36,9 +37,11 @@ export type PublicInstrumentData = {
 }
 
 export function useInstrumentAssignments(patientId?: string) {
+  const userId = useAuthStore(s => s.user?.id)
   return useQuery<InstrumentAssignment[]>({
-    queryKey: ['instrument-assignments', patientId],
+    queryKey: ['instrument-assignments', userId, patientId],
     queryFn: () => api.get('/instrument-assignments', { params: { patientId } }).then(r => r.data),
+    enabled: !!userId,
   })
 }
 

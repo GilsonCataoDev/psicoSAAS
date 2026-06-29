@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
 import { useCreateTemplate, useTemplates } from '@/hooks/useApi'
 import {
-  Bell, CalendarDays, Lock, User, MessageSquare, Shield, Zap, Wallet,
+  Bell, CalendarDays, Lock, User, MessageSquare, Shield, Zap, Wallet, ExternalLink,
 } from 'lucide-react'
 import { isValidCrpFormat, getCrpRegion, formatCrpInput } from '@/lib/crp'
 import { useSubscriptionStore, PLANS } from '@/store/subscription'
@@ -26,16 +26,17 @@ import { SecurityTab } from '@/components/settings/SecurityTab'
 const GOOGLE_CALENDAR_ENABLED = true
 
 const tabs = [
-  { id: 'profile',  icon: User,          label: 'Perfil'     },
-  { id: 'plan',     icon: Zap,           label: 'Plano'      },
-  { id: 'notify',   icon: Bell,          label: 'Lembretes'  },
-  { id: 'messages', icon: MessageSquare, label: 'Mensagens'  },
-  ...(GOOGLE_CALENDAR_ENABLED ? [{ id: 'integrations', icon: CalendarDays, label: 'Integrações' }] : []),
-  { id: 'payment',  icon: Wallet,        label: 'Pagamentos' },
-  { id: 'privacy',  icon: Lock,          label: 'Privacidade'},
-  { id: 'security', icon: Shield,        label: 'Segurança'  },
+  { id: 'profile',  icon: User,          label: 'Perfil',       group: 'Conta' },
+  { id: 'plan',     icon: Zap,           label: 'Plano',        group: 'Conta' },
+  { id: 'notify',   icon: Bell,          label: 'Lembretes',    group: 'Rotina clínica' },
+  { id: 'messages', icon: MessageSquare, label: 'Mensagens',    group: 'Rotina clínica' },
+  ...(GOOGLE_CALENDAR_ENABLED ? [{ id: 'integrations', icon: CalendarDays, label: 'Integrações', group: 'Rotina clínica' }] : []),
+  { id: 'payment',  icon: Wallet,        label: 'Pagamentos',   group: 'Rotina clínica' },
+  { id: 'privacy',  icon: Lock,          label: 'Privacidade',  group: 'Dados e segurança' },
+  { id: 'security', icon: Shield,        label: 'Segurança',    group: 'Dados e segurança' },
 ]
 const TAB_IDS = new Set(tabs.map(tab => tab.id))
+const tabGroups = Array.from(new Set(tabs.map(tab => tab.group)))
 
 export default function SettingsPage() {
   const user = useAuthStore(s => s.user)
@@ -491,26 +492,50 @@ export default function SettingsPage() {
     <div className="animate-slide-up space-y-6 max-w-4xl">
       <div>
         <h1 className="page-title">Ajustes</h1>
-        <p className="page-subtitle">Personalize a plataforma ao seu jeito de trabalhar</p>
+        <p className="page-subtitle">Conta, rotina clínica, privacidade e integrações em um só lugar</p>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
         <nav className="lg:w-48 lg:shrink-0">
-          <div className="flex lg:flex-col gap-1 overflow-x-auto pb-1 -mx-4 px-4 lg:mx-0 lg:px-0 scrollbar-none">
-            {tabs.map(({ id, icon: Icon, label }) => (
-              <button key={id} onClick={() => selectTab(id)}
-                className={`flex-none lg:w-full flex items-center gap-2 lg:gap-3 px-3 py-2 lg:py-2.5 rounded-xl text-sm transition-all whitespace-nowrap ${
-                  tab === id ? 'bg-sage-50 text-sage-700 font-medium' : 'text-neutral-500 hover:bg-neutral-100'
-                }`}>
-                <Icon className="w-4 h-4 shrink-0" />
-                {label}
-              </button>
+          <div className="flex lg:flex-col gap-2 overflow-x-auto pb-1 -mx-4 px-4 lg:mx-0 lg:px-0 scrollbar-none">
+            {tabGroups.map(group => (
+              <div key={group} className="flex flex-none gap-1 lg:flex-col">
+                <p className="hidden px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-400 lg:block">
+                  {group}
+                </p>
+                {tabs.filter(item => item.group === group).map(({ id, icon: Icon, label }) => (
+                  <button key={id} onClick={() => selectTab(id)}
+                    className={`flex-none lg:w-full flex items-center gap-2 lg:gap-3 px-3 py-2 lg:py-2.5 rounded-xl text-sm transition-all whitespace-nowrap ${
+                      tab === id ? 'bg-sage-50 text-sage-700 font-medium' : 'text-neutral-500 hover:bg-neutral-100'
+                    }`}>
+                    <Icon className="w-4 h-4 shrink-0" />
+                    {label}
+                  </button>
+                ))}
+              </div>
             ))}
           </div>
           <div className="lg:hidden h-px bg-neutral-100 mt-2" />
         </nav>
 
         <div className="flex-1 space-y-5">
+          {['notify', 'messages', 'integrations', 'payment'].includes(tab) && (
+            <div className="rounded-2xl border border-sage-100 bg-sage-50 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-sage-800">Agenda pública e horários</p>
+                  <p className="mt-1 text-sm text-sage-700">
+                    Configure disponibilidade, bloqueios, duração, pausas e o link que o paciente usa para agendar.
+                  </p>
+                </div>
+                <Link to="/agendamentos?tab=settings" className="btn-secondary inline-flex w-fit items-center gap-2 bg-white text-sm">
+                  Abrir agenda pública
+                  <ExternalLink className="h-4 w-4" />
+                </Link>
+              </div>
+            </div>
+          )}
+
           {tab === 'profile' && (
             <ProfileTab
               user={user}

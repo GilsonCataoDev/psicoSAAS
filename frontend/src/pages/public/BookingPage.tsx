@@ -11,7 +11,7 @@ import {
 import {
   format, addDays, startOfMonth, endOfMonth,
   eachDayOfInterval, getDay, isBefore, isToday,
-  startOfDay, parseISO,
+  startOfDay, parseISO, addMonths,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn, formatCurrency } from '@/lib/utils'
@@ -78,6 +78,13 @@ function formatWhatsApp(raw?: string | null) {
   if (digits.startsWith('55') && digits.length >= 12) return digits
   // acrescenta DDI Brasil
   return `55${digits}`
+}
+
+function getMaxAdvanceDate(today: Date, maxAdvanceDays: number): Date {
+  if (maxAdvanceDays > 0 && maxAdvanceDays % 30 === 0) {
+    return endOfMonth(addMonths(startOfMonth(today), maxAdvanceDays / 30))
+  }
+  return addDays(today, maxAdvanceDays)
 }
 
 export default function BookingPage() {
@@ -161,7 +168,7 @@ export default function BookingPage() {
   function isDisabled(date: Date) {
     const today = startOfDay(new Date())
     const min = addDays(today, page?.minAdvanceDays ?? 0)
-    const max = addDays(today, page?.maxAdvanceDays ?? 60)
+    const max = getMaxAdvanceDate(today, page?.maxAdvanceDays ?? 60)
     const dateStr = format(date, 'yyyy-MM-dd')
     return isBefore(date, min) || isBefore(max, date) || !availableDateSet.has(dateStr)
   }

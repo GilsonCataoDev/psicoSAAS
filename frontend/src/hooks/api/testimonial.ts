@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { useAuthStore } from '@/store/auth'
 
 export interface AdminTestimonial {
   id: string
@@ -14,9 +15,11 @@ export interface AdminTestimonial {
 }
 
 export function useFeedbackStatus() {
+  const userId = useAuthStore(s => s.user?.id)
   return useQuery<{ shouldShow: boolean }>({
-    queryKey: ['feedback', 'status'],
+    queryKey: ['feedback', 'status', userId],
     queryFn: () => api.get('/feedback/status').then(r => r.data),
+    enabled: !!userId,
     staleTime: Infinity,
     retry: false,
   })
@@ -24,18 +27,20 @@ export function useFeedbackStatus() {
 
 export function useSubmitTestimonial() {
   const qc = useQueryClient()
+  const userId = useAuthStore(s => s.user?.id)
   return useMutation({
     mutationFn: ({ rating, text, publicConsent }: { rating: number; text?: string; publicConsent?: boolean }) =>
       api.post('/feedback', { rating, text, publicConsent }).then(r => r.data),
-    onSuccess: () => qc.setQueryData(['feedback', 'status'], { shouldShow: false }),
+    onSuccess: () => qc.setQueryData(['feedback', 'status', userId], { shouldShow: false }),
   })
 }
 
 export function useDismissTestimonial() {
   const qc = useQueryClient()
+  const userId = useAuthStore(s => s.user?.id)
   return useMutation({
     mutationFn: () => api.post('/feedback', { dismissed: true }).then(r => r.data),
-    onSuccess: () => qc.setQueryData(['feedback', 'status'], { shouldShow: false }),
+    onSuccess: () => qc.setQueryData(['feedback', 'status', userId], { shouldShow: false }),
   })
 }
 

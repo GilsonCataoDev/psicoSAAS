@@ -30,6 +30,12 @@ export function ProfileTab({
   return (
     <div className="card space-y-4">
       <h2 className="section-title">Seus dados</h2>
+      <div className="rounded-2xl border border-sage-100 bg-sage-50 px-4 py-3 text-sm text-sage-800">
+        <p className="font-medium">Dados exibidos ao paciente</p>
+        <p className="mt-1 text-sage-700">
+          Nome, CRP, especialidade, telefone e foto podem aparecer no link público de agendamento e em mensagens operacionais.
+        </p>
+      </div>
       <div className="flex flex-col gap-3 rounded-2xl border border-neutral-100 bg-neutral-50 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Avatar name={name || user?.name || 'Perfil'} src={user?.avatarUrl ?? user?.avatar} size="lg" />
@@ -72,6 +78,9 @@ export function ProfileTab({
                 Verificar no CFP <ExternalLink className="w-3 h-3" />
               </button>
             </div>
+          )}
+          {crp && !crpValid && (
+            <p className="mt-1.5 text-xs text-rose-500">Revise o formato do CRP antes de salvar.</p>
           )}
         </div>
         <div>

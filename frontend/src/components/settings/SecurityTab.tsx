@@ -1,4 +1,4 @@
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, ShieldCheck } from 'lucide-react'
 
 interface Props {
   currentPw: string
@@ -20,6 +20,17 @@ export function SecurityTab({
   return (
     <div className="card space-y-5">
       <h2 className="section-title">Alterar senha</h2>
+      <div className="rounded-2xl border border-sage-100 bg-sage-50 px-4 py-3 text-sm text-sage-800">
+        <div className="flex gap-3">
+          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
+          <div>
+            <p className="font-medium">Proteja o acesso ao prontuário</p>
+            <p className="mt-1 text-sage-700">
+              Use uma senha única. Se suspeitar de acesso indevido, altere a senha e saia da conta nos dispositivos compartilhados.
+            </p>
+          </div>
+        </div>
+      </div>
       <div className="space-y-3">
         <div>
           <label className="label">Senha atual</label>
@@ -66,6 +77,9 @@ export function SecurityTab({
           </div>
           <span className="text-xs bg-sage-100 text-sage-700 px-2 py-0.5 rounded-full">Ativa</span>
         </div>
+        <p className="text-xs text-neutral-400">
+          A listagem completa de dispositivos e o comando para sair de todos entram quando o backend expuser sessões reais.
+        </p>
       </div>
     </div>
   )

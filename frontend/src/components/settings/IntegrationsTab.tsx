@@ -70,6 +70,19 @@ export function IntegrationsTab({
           </div>
         )}
 
+        <div className="grid gap-3 sm:grid-cols-3">
+          {[
+            ['Sincroniza', 'Sessões criadas, remarcadas ou confirmadas.'],
+            ['Não importa', 'Eventos pessoais já existentes no Google.'],
+            ['Remove', 'Eventos da UseCognia quando uma sessão é cancelada.'],
+          ].map(([title, text]) => (
+            <div key={title} className="rounded-xl border border-neutral-100 bg-neutral-50 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">{title}</p>
+              <p className="mt-1 text-sm text-neutral-600">{text}</p>
+            </div>
+          ))}
+        </div>
+
         <div className="flex flex-wrap gap-3">
           {prefs.googleCalendarConnected ? (
             <button

@@ -15,6 +15,14 @@ interface Props {
   saveTemplate: (type: 'whatsapp_message' | 'receipt', name: string, content: string) => void
 }
 
+function previewCharge(template: string, pixKey: string) {
+  return template
+    .split('{{nome}}').join('Marina')
+    .split('{{valor}}').join('R$ 180,00')
+    .split('{{pix}}').join(pixKey || '11999990000')
+    .split('{{comprovante}}').join('Pode enviar o comprovante por aqui.')
+}
+
 export function PaymentTab({
   prefs, setPref, togglePref, savingPrefs, hasProAutomation,
   receiptTemplates, createTemplate, savePrefs, saveTemplate,
@@ -96,6 +104,10 @@ export function PaymentTab({
           disabled={!hasProAutomation}
           value={prefs.chargeTemplate}
           onChange={e => setPref('chargeTemplate', e.target.value)} />
+        <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Prévia para paciente</p>
+          <p className="whitespace-pre-line text-sm text-neutral-700">{previewCharge(prefs.chargeTemplate, prefs.pixKey)}</p>
+        </div>
         <button type="button" className="btn-secondary text-xs w-fit"
           disabled={!hasProAutomation || createTemplate.isPending}
           onClick={() => saveTemplate('receipt', 'Cobranca personalizada', prefs.chargeTemplate)}>

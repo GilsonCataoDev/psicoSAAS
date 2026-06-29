@@ -1,13 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { useAuthStore } from '@/store/auth'
 import { Appointment } from '@/types'
 
 export function useAppointments(params?: { patientId?: string; from?: string; to?: string; enabled?: boolean }) {
   const { enabled, ...apiParams } = params ?? {}
+  const userId = useAuthStore(s => s.user?.id)
   return useQuery<Appointment[]>({
-    queryKey: ['appointments', apiParams],
+    queryKey: ['appointments', userId, apiParams],
     queryFn: () => api.get('/appointments', { params: apiParams }).then(r => r.data),
-    enabled: enabled ?? true,
+    enabled: (enabled ?? true) && !!userId,
   })
 }
 

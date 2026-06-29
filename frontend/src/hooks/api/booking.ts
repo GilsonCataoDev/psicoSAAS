@@ -1,28 +1,35 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type AuthAxiosRequestConfig } from '@/lib/api'
+import { useAuthStore } from '@/store/auth'
 import { Booking, BookingPage } from '@/types/booking'
 
 // ── Autenticado ───────────────────────────────────────────────────────────────
 
 export function useBookings() {
+  const userId = useAuthStore(s => s.user?.id)
   return useQuery<Booking[]>({
-    queryKey: ['bookings'],
+    queryKey: ['bookings', userId],
     queryFn: () => api.get('/booking').then(r => r.data),
+    enabled: !!userId,
   })
 }
 
 export function useBookingPage() {
+  const userId = useAuthStore(s => s.user?.id)
   return useQuery<BookingPage | null>({
-    queryKey: ['booking-page'],
+    queryKey: ['booking-page', userId],
     queryFn: () => api.get('/booking/page').then(r => r.data).catch(() => null),
+    enabled: !!userId,
     retry: false,
   })
 }
 
 export function useDailyBookingLink() {
+  const userId = useAuthStore(s => s.user?.id)
   return useQuery<{ slug: string; url: string; token?: string; expiresAt?: string }>({
-    queryKey: ['booking-daily-link'],
+    queryKey: ['booking-daily-link', userId],
     queryFn: () => api.get('/booking/daily-link').then(r => r.data),
+    enabled: !!userId,
     staleTime: 60 * 60 * 1000,
     retry: false,
   })

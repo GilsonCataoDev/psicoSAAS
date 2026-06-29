@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { useAuthStore } from '@/store/auth'
 import { Session } from '@/types'
 
 export function useSessions(params?: {
@@ -11,10 +12,11 @@ export function useSessions(params?: {
   enabled?: boolean
 }) {
   const { search, enabled, ...apiParams } = params ?? {}
+  const userId = useAuthStore(s => s.user?.id)
   return useQuery<Session[]>({
-    queryKey: ['sessions', apiParams, search],
+    queryKey: ['sessions', userId, apiParams, search],
     queryFn: () => api.get('/sessions', { params: apiParams }).then(r => r.data),
-    enabled: enabled ?? true,
+    enabled: (enabled ?? true) && !!userId,
     select: search
       ? (data) => data.filter(s => s.patient?.name?.toLowerCase().includes(search.toLowerCase()))
       : undefined,
