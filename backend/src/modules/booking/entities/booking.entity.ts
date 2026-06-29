@@ -15,7 +15,7 @@ export class Booking {
 
   // Dados do paciente (pode ser novo ou existente)
   @Column() patientName: string
-  @Column() patientEmail: string
+  @Column({ nullable: true }) patientEmail?: string
   @Column({ nullable: true }) patientPhone?: string
 
   @Column({ type: 'date' }) date: string

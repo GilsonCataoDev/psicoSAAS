@@ -8,12 +8,19 @@ export class CreateBookingDto {
   patientName: string
 
   @IsEmail()
+  @IsOptional()
   @MaxLength(254)
-  @Transform(({ value }) => typeof value === 'string' ? value.toLowerCase().trim() : value)
-  patientEmail: string
+  @Transform(({ value }) => {
+    if (typeof value !== 'string') return value
+    const trimmed = value.toLowerCase().trim()
+    return trimmed || undefined
+  })
+  patientEmail?: string
 
   @IsString() @IsOptional()
   @MaxLength(20)
+  @Matches(/^\d{10,15}$/, { message: 'WhatsApp inválido' })
+  @Transform(({ value }) => typeof value === 'string' ? value.replace(/\D/g, '') || undefined : value)
   patientPhone?: string
 
   @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'Data inválida (use YYYY-MM-DD)' })

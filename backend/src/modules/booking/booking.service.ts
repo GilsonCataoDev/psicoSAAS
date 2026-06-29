@@ -344,6 +344,10 @@ export class BookingService {
   }
 
   async createBooking(slugOrToken: string, dto: CreateBookingDto) {
+    if (!dto.patientEmail && !dto.patientPhone) {
+      throw new BadRequestException('Informe e-mail ou WhatsApp para contato')
+    }
+
     let page: BookingPage | null = null
     if (/^[0-9a-f]{16}$/.test(slugOrToken)) {
       page = await this.resolveDailyToken(slugOrToken)
@@ -714,6 +718,11 @@ export class BookingService {
     if (booking.patientEmail) {
       patient = await this.patients.findOne({
         where: { email: booking.patientEmail, psychologistId },
+      })
+    }
+    if (!patient && booking.patientPhone) {
+      patient = await this.patients.findOne({
+        where: { phone: booking.patientPhone, psychologistId },
       })
     }
     if (!patient) {

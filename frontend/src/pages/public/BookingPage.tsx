@@ -31,11 +31,40 @@ function WhatsAppIcon({ className }: { className?: string }) {
 
 const schema = z.object({
   patientName:     z.string().min(2, 'Nome obrigatório'),
-  patientEmail:    z.string().email('E-mail inválido'),
-  patientPhone:    z.string().optional(),
+  patientEmail:    z.string().trim().optional().or(z.literal('')),
+  patientPhone:    z.string().trim().optional().or(z.literal('')),
   modality:        z.enum(['presencial', 'online']),
   patientNotes:    z.string().optional(),
   privacyAccepted: z.boolean().refine(Boolean, 'Voce precisa autorizar o uso dos dados para agendamento.'),
+}).superRefine((data, ctx) => {
+  const hasEmail = !!data.patientEmail?.trim()
+  const phoneDigits = data.patientPhone?.replace(/\D/g, '') ?? ''
+  if (!hasEmail && !phoneDigits) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['patientEmail'],
+      message: 'Informe e-mail ou WhatsApp.',
+    })
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['patientPhone'],
+      message: 'Informe e-mail ou WhatsApp.',
+    })
+  }
+  if (hasEmail && !z.string().email().safeParse(data.patientEmail).success) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['patientEmail'],
+      message: 'E-mail inválido.',
+    })
+  }
+  if (phoneDigits && phoneDigits.length < 10) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['patientPhone'],
+      message: 'WhatsApp inválido.',
+    })
+  }
 })
 type FormData = z.infer<typeof schema>
 
@@ -140,7 +169,13 @@ export default function BookingPage() {
     }
     try {
       const { privacyAccepted: _privacyAccepted, ...bookingData } = data
-      await createBooking.mutateAsync({ ...bookingData, date: selectedDate, time: selectedTime })
+      await createBooking.mutateAsync({
+        ...bookingData,
+        patientEmail: bookingData.patientEmail?.trim() || undefined,
+        patientPhone: bookingData.patientPhone?.replace(/\D/g, '') || undefined,
+        date: selectedDate,
+        time: selectedTime,
+      })
       track(EVENTS.BOOKING_CONFIRMED)
       setStep('success')
     } catch (err: any) {
@@ -489,15 +524,19 @@ export default function BookingPage() {
                     <input {...register('patientName')} className="input-field" placeholder="Como você se chama?" />
                     {errors.patientName && <p className="text-rose-500 text-xs mt-1">{errors.patientName.message}</p>}
                   </div>
+                  <div>
+                    <p className="text-xs text-neutral-500">Informe pelo menos uma forma de contato: e-mail ou WhatsApp.</p>
+                  </div>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div>
-                      <label className="label">E-mail *</label>
-                      <input {...register('patientEmail')} type="email" className="input-field" />
+                      <label className="label">E-mail</label>
+                      <input {...register('patientEmail')} type="email" className="input-field" placeholder="voce@email.com" />
                       {errors.patientEmail && <p className="text-rose-500 text-xs mt-1">{errors.patientEmail.message}</p>}
                     </div>
                     <div>
                       <label className="label">WhatsApp</label>
                       <input {...register('patientPhone')} className="input-field" placeholder="(11) 99999-9999" />
+                      {errors.patientPhone && <p className="text-rose-500 text-xs mt-1">{errors.patientPhone.message}</p>}
                     </div>
                   </div>
 

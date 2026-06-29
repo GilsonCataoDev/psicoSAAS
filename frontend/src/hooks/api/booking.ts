@@ -120,7 +120,7 @@ export function usePublicBookingDates(slug: string, month: string, modality?: st
 
 export interface CreateBookingInput {
   patientName: string
-  patientEmail: string
+  patientEmail?: string
   patientPhone?: string
   modality: 'presencial' | 'online'
   patientNotes?: string
