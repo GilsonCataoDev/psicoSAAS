@@ -179,7 +179,7 @@ export default function BookingPage() {
       track(EVENTS.BOOKING_CONFIRMED)
       setStep('success')
     } catch (err: any) {
-      toast.error(err?.response?.data?.message ?? 'Erro ao enviar solicitacao. Tente novamente.')
+      toast.error(err?.response?.data?.message ?? 'Erro ao confirmar agendamento. Tente novamente.')
     }
   }
 
@@ -596,7 +596,7 @@ export default function BookingPage() {
                   </button>
 
                   <p className="text-xs text-neutral-400 text-center">
-                    Ao solicitar, você concorda com o uso dos seus dados para agendamento e comunicação sobre a sessão.
+                    Ao agendar, voce concorda com o uso dos seus dados para agendamento e comunicacao sobre a sessao.
                   </p>
                 </form>
               </div>

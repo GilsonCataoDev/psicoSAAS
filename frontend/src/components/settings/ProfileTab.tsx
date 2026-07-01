@@ -35,7 +35,7 @@ export function ProfileTab({
           <Avatar name={name || user?.name || 'Perfil'} src={user?.avatarUrl ?? user?.avatar} size="lg" />
           <div>
             <p className="text-sm font-medium text-neutral-800">Foto do perfil</p>
-            <p className="text-xs text-neutral-400">Use um arquivo JPG de ate 1 MB.</p>
+            <p className="text-xs text-neutral-400">Aparece no seu link publico de agendamento. Use JPG de ate 1 MB.</p>
           </div>
         </div>
         <label className="btn-secondary inline-flex w-fit cursor-pointer items-center gap-2 text-sm">

@@ -10,7 +10,7 @@ UseCognia é um SaaS completo para psicólogos brasileiros que reduz a carga ope
 **Decisões de arquitetura:** [docs/decisions.md](docs/decisions.md)  
 **Changelog:** [CHANGELOG.md](CHANGELOG.md)
 
-**Demo:** [gilsoncataodev.github.io/psicoSAAS](https://gilsoncataodev.github.io/psicoSAAS)
+**Site:** [usecognia.com.br](https://usecognia.com.br)
 
 ---
 
@@ -96,11 +96,11 @@ UseCognia é um SaaS completo para psicólogos brasileiros que reduz a carga ope
 | Asaas | Billing real, tokenizacao de cartao, subscriptions e webhooks |
 
 ### Infraestrutura
-| Serviço | Uso |
+| Servico | Uso |
 |---|---|
-| Railway | Backend + PostgreSQL em produção |
-| GitHub Pages | Hospedagem do frontend (SPA) |
-| GitHub Actions | CI/CD automático |
+| Vercel | Hospedagem do frontend (SPA/PWA) e rewrite `/api` |
+| Railway | Backend + PostgreSQL em producao |
+| GitHub Actions | Backups e E2E agendado |
 
 ---
 
@@ -292,7 +292,7 @@ Cobertura atual: brute-force de login, rotação/replay de refresh token, expira
 | `ENCRYPTION_KEY` | Chave AES-256 em hex (64 chars hex = 32 bytes) |
 | `SIGN_SECRET` | Segredo para tokens públicos de agendamento |
 | `NODE_ENV` | `production` |
-| `FRONTEND_URL` | URL do frontend (ex: `https://gilsoncataodev.github.io/psicoSAAS`) |
+| `FRONTEND_URL` | URL do frontend (ex: `https://usecognia.com.br`) |
 | `ASAAS_API_KEY` | Token privado da API Asaas |
 | `ASAAS_BASE_URL` | `https://sandbox.asaas.com/api/v3` em sandbox ou URL de producao |
 | `ASAAS_WEBHOOK_TOKEN` | Token usado para validar origem dos webhooks Asaas |

@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages (disabled)
+name: Legacy frontend build check
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -7,10 +7,10 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: pages
+  group: legacy-frontend-build
   cancel-in-progress: false
 
 jobs:
@@ -43,9 +43,5 @@ jobs:
           VITE_POSTHOG_HOST: ${{ secrets.VITE_POSTHOG_HOST }}
         run: npm run build
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: frontend/dist
-          cname: usecognia.com.br
+      - name: Deployment note
+        run: echo "Frontend production deploy runs on Vercel. This workflow only checks the legacy Pages build manually."

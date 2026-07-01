@@ -296,6 +296,12 @@ export class AuthService {
 
     await this.dataSource.transaction(async (manager) => {
       await manager.query('DELETE FROM "referrals" WHERE "referrerId"::text = $1::text OR "referredId"::text = $1::text', [id])
+      await manager.query('DELETE FROM "tenant_alerts" WHERE "userId" = $1', [id])
+      await manager.query('DELETE FROM "tenant_health" WHERE "userId" = $1', [id])
+      await manager.query('DELETE FROM "tenant_activations" WHERE "userId" = $1', [id])
+      await manager.query('DELETE FROM "testimonials" WHERE "userId" = $1', [id])
+      await manager.query('DELETE FROM "ai_usage" WHERE "userId" = $1', [id])
+      await manager.query('DELETE FROM "whatsapp_delivery_logs" WHERE "userId" = $1', [id])
       await manager.query('DELETE FROM "documents" WHERE "userId" = $1', [id])
       await manager.query('DELETE FROM "instrument_assignments" WHERE "psychologistId" = $1', [id])
       await manager.query('DELETE FROM "push_subscriptions" WHERE "userId" = $1', [id])
@@ -311,6 +317,7 @@ export class AuthService {
       await manager.query('DELETE FROM "refresh_tokens" WHERE "userId" = $1', [id])
       await manager.query('DELETE FROM "audit_logs" WHERE "userId"::text = $1::text', [id])
       await manager.query('DELETE FROM "login_attempts" WHERE "email" = $1', [user.email])
+      await manager.query('DELETE FROM "email_logs" WHERE "to" = $1', [user.email])
       await manager.query('DELETE FROM "users" WHERE "id" = $1', [id])
     })
 

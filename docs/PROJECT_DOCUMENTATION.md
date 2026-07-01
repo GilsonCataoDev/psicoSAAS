@@ -56,8 +56,9 @@ URLs principais:
 
 ### Infraestrutura
 
+- Vercel: frontend SPA/PWA em `usecognia.com.br`, com rewrite `/api`
 - Railway: backend, PostgreSQL, Redis e Evolution API
-- GitHub: repositorio e deploy automatizado
+- GitHub: repositorio, backups e E2E agendado
 - Dominio: `usecognia.com.br`
 
 ## 3. Estrutura do Repositorio
@@ -243,9 +244,9 @@ frontend/src/
 
 1. Paciente abre link publico.
 2. Sistema exibe datas e horarios disponiveis.
-3. Paciente solicita agendamento.
-4. Psicologo confirma ou rejeita.
-5. Confirmacao pode criar paciente, appointment e lancamento financeiro.
+3. Paciente confirma o agendamento no proprio link publico.
+4. Sistema cria paciente, appointment e lancamento financeiro pendente.
+5. Psicologo recebe a notificacao e pode cancelar, remarcar ou registrar pagamento.
 
 ### WhatsApp
 
@@ -427,7 +428,10 @@ Depois verificar no Railway se o deploy ficou `SUCCESS`.
 
 ### Frontend
 
+Deploy atual pela Vercel, a partir da branch `main`.
+
 O frontend e gerado por Vite e servido como SPA/PWA. O build gera assets versionados em `frontend/dist`.
+O `vercel.json` usa `VITE_API_URL=/api` e reescreve `/api/*` para a API no Railway.
 
 Comando:
 

@@ -47,7 +47,7 @@ if (
   window.location.replace(`https://${window.location.host}${window.location.pathname}${window.location.search}${window.location.hash}`)
 }
 
-// Silencia rejeições não tratadas do registro do SW (ex: erro de cert SSL temporário no GitHub Pages)
+// Silencia rejeicoes nao tratadas do registro do SW (ex: certificado SSL temporario no host)
 window.addEventListener('unhandledrejection', (e) => {
   if (isStaleChunkError(e.reason)) {
     e.preventDefault()

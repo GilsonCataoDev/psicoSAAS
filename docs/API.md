@@ -107,7 +107,7 @@ Campos criptografados: `summary`, `privateNotes`, `nextSteps`.
 
 | Método | Rota | Proteção | Descrição |
 |---|---|---|---|
-| GET | `/booking` | 🔑✍ | Solicitações recebidas |
+| GET | `/booking` | 🔑✍ | Agendamentos recebidos pelo link publico |
 | GET | `/booking/page` | 🔑✍ | Config da página pública (slug, ativo) |
 | POST | `/booking/page` | 🔑✍ | Salva config |
 | GET | `/booking/daily-link` | 🔑✍ | Link diário rotativo (token HMAC, muda à meia-noite) |
@@ -116,16 +116,16 @@ Campos criptografados: `summary`, `privateNotes`, `nextSteps`.
 | PATCH | `/booking/:id/pay` | 🔑✍ | Marca pago |
 | POST | `/booking/sync-appointments` | 🔑✍ | Sincroniza com agenda interna |
 
-## Booking Público — `/public-booking` 🔓
+## Booking Publico — `/public/booking` 🔓
 
 | Método | Rota | Descrição |
 |---|---|---|
-| GET | `/public-booking/:slug` | Perfil público (nome, especialidade, avatar, WhatsApp) |
-| GET | `/public-booking/:slug/dates` | Datas disponíveis no mês |
-| GET | `/public-booking/:slug/slots` | Horários disponíveis numa data |
-| POST | `/public-booking/:slug` | Solicita agendamento; envia e-mail com token de confirmação/cancelamento |
-| GET | `/public-booking/confirm/:token` | Paciente confirma pelo link no e-mail |
-| GET | `/public-booking/cancel/:token` | Paciente cancela pelo link no e-mail |
+| GET | `/public/booking/:slug` | Perfil publico (nome, especialidade, avatar, WhatsApp) |
+| GET | `/public/booking/:slug/dates` | Datas disponiveis no mes |
+| GET | `/public/booking/:slug/slots` | Horarios disponiveis numa data |
+| POST | `/public/booking/:slug` | Confirma agendamento automaticamente; cria paciente, appointment e financeiro pendente |
+| GET | `/public/booking/confirm/:token` | Compatibilidade: retorna agendamento ja confirmado quando aplicavel |
+| GET | `/public/booking/cancel/:token` | Paciente cancela pelo link |
 
 ---
 

@@ -13,7 +13,7 @@ import {
 } from '@/hooks/useApi'
 
 const STATUS_CONFIG = {
-  pending:   { label: 'Aguardando',     className: 'bg-amber-100 text-amber-700'      },
+  pending:   { label: 'Pendente',       className: 'bg-amber-100 text-amber-700'      },
   confirmed: { label: 'Confirmado',     className: 'bg-sage-100 text-sage-700'        },
   cancelled: { label: 'Cancelado',      className: 'bg-neutral-100 text-neutral-500'  },
   completed: { label: 'Realizado',      className: 'bg-mist-100 text-mist-700'        },
@@ -29,7 +29,7 @@ const PAY_CONFIG = {
 
 const BOOKING_FILTERS = [
   { v: 'all',       l: 'Todos'      },
-  { v: 'pending',   l: 'Aguardando' },
+  { v: 'pending',   l: 'Pendentes'   },
   { v: 'confirmed', l: 'Confirmados'},
   { v: 'cancelled', l: 'Cancelados' },
 ] as const
@@ -74,7 +74,7 @@ export default function BookingManagePage() {
 
   async function reject(id: string) {
     await rejectBooking.mutateAsync(id)
-    toast('Solicitacao recusada.')
+    toast('Agendamento cancelado.')
   }
 
   async function markPaid(id: string) {
@@ -89,12 +89,12 @@ export default function BookingManagePage() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="page-title">Agendamentos Online</h1>
-          <p className="page-subtitle">Gerencie as solicitações do seu link público</p>
+          <p className="page-subtitle">Gerencie os horarios confirmados pelo seu link publico</p>
         </div>
         <button onClick={() => setTab(t => t === 'requests' ? 'settings' : 'requests')}
           className="btn-secondary flex items-center gap-2 text-sm shrink-0">
           <Settings className="w-4 h-4" />
-          <span className="hidden sm:inline">{tab === 'requests' ? 'Configurações' : 'Solicitações'}</span>
+          <span className="hidden sm:inline">{tab === 'requests' ? 'Configuracoes' : 'Agendamentos'}</span>
         </button>
       </div>
 
@@ -137,7 +137,7 @@ export default function BookingManagePage() {
           {/* Stats */}
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: 'Aguardando',     value: bookings.filter((b: any) => b.status === 'pending').length,        icon: <Clock className="w-4 h-4 text-amber-500" /> },
+              { label: 'Pendentes',      value: bookings.filter((b: any) => b.status === 'pending').length,        icon: <Clock className="w-4 h-4 text-amber-500" /> },
               { label: 'Confirmados',    value: bookings.filter((b: any) => b.status === 'confirmed').length,      icon: <Check className="w-4 h-4 text-sage-500" />  },
               { label: 'Pag. pendentes', value: bookings.filter((b: any) => b.paymentStatus === 'pending').length, icon: <Wallet className="w-4 h-4 text-amber-500" /> },
             ].map(s => (
@@ -189,7 +189,7 @@ export default function BookingManagePage() {
           ) : (
             <div className="space-y-3">
               {filtered.length === 0
-                ? <div className="card text-center py-10 text-neutral-400 text-sm">Nenhuma solicitação aqui.</div>
+                ? <div className="card text-center py-10 text-neutral-400 text-sm">Nenhum agendamento aqui.</div>
                 : filtered.map((b: any) => (
                   <BookingCard key={b.id} booking={b}
                     onConfirm={confirm} onReject={reject} onMarkPaid={markPaid} />
@@ -205,7 +205,7 @@ export default function BookingManagePage() {
   )
 }
 
-// ─── Card de solicitação ──────────────────────────────────────────────────────
+// ─── Card de agendamento ──────────────────────────────────────────────────────
 function BookingCard({ booking, onConfirm, onReject, onMarkPaid }: {
   booking: any
   onConfirm: (id: string) => void
@@ -224,7 +224,7 @@ function BookingCard({ booking, onConfirm, onReject, onMarkPaid }: {
     const first = booking.patientName?.split(' ')[0] ?? ''
     const text = booking.status === 'confirmed'
       ? `Olá, ${first}! Sua sessão está confirmada para ${formatDateRelative(booking.date)} às ${booking.time}. Até lá!`
-      : `Olá, ${first}! Recebi sua solicitação para ${formatDateRelative(booking.date)} às ${booking.time}. Já retorno para confirmar.`
+      : `Ola, ${first}! Recebi seu agendamento para ${formatDateRelative(booking.date)} as ${booking.time}. Ja retorno com os detalhes.`
     openWhatsApp(booking.patientPhone, text)
   }
 
@@ -566,7 +566,7 @@ function BookingSettings({ page }: { page: any }) {
             <h2 className="section-title mb-1">Status do link público</h2>
             <p className="text-sm text-neutral-500">
               {form.isActive
-                ? 'Pacientes conseguem acessar e solicitar horários pelo seu link.'
+                ? 'Pacientes conseguem acessar e reservar horarios pelo seu link.'
                 : 'O link fica pausado e pacientes não conseguem agendar.'}
             </p>
           </div>
