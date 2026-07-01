@@ -11,6 +11,7 @@ import { Booking } from '../booking/entities/booking.entity'
 import { GoogleCalendarService } from '../google-calendar/google-calendar.service'
 import { Patient } from '../patients/entities/patient.entity'
 import { Session } from '../sessions/entities/session.entity'
+import { FinancialRecord } from '../financial/entities/financial-record.entity'
 import { encrypt } from '../../common/crypto/encrypt.util'
 
 @Injectable()
@@ -22,6 +23,7 @@ export class AppointmentsService {
     @InjectRepository(Booking) private bookings: Repository<Booking>,
     @InjectRepository(Patient) private patients: Repository<Patient>,
     @InjectRepository(Session) private sessions: Repository<Session>,
+    @InjectRepository(FinancialRecord) private financial: Repository<FinancialRecord>,
     private dataSource: DataSource,
     private notifications: NotificationsService,
     private googleCalendar: GoogleCalendarService,
@@ -111,6 +113,7 @@ export class AppointmentsService {
     if (dto.meetingUrl !== undefined) dto.meetingUrl = this.cleanMeetingUrl(dto.meetingUrl)
     Object.assign(appointment, dto)
     const saved = await this.repo.save(appointment)
+    await this.syncLinkedBookingFromAppointment(saved)
     this.googleCalendar.syncAppointment(saved).catch(err => this.logCalendarError('sync', saved.id, err))
     return this.findOne(saved.id, psychologistId)
   }
@@ -119,6 +122,7 @@ export class AppointmentsService {
     const appointment = await this.findOne(id, psychologistId)
     appointment.status = status
     const saved = await this.repo.save(appointment)
+    await this.syncLinkedBookingStatus(saved, status)
 
     if (['cancelled', 'no_show'].includes(status)) {
       this.googleCalendar.deleteAppointment(saved).catch(err => this.logCalendarError('delete', saved.id, err))
@@ -153,6 +157,7 @@ export class AppointmentsService {
 
   async remove(id: string, psychologistId: string) {
     const appointment = await this.findOne(id, psychologistId)
+    await this.syncLinkedBookingStatus(appointment, 'cancelled')
     this.googleCalendar.deleteAppointment(appointment).catch(err => this.logCalendarError('delete', appointment.id, err))
     return this.repo.remove(appointment)
   }
@@ -174,6 +179,7 @@ export class AppointmentsService {
     for (const appt of toUpdate) Object.assign(appt, dto)
     const saved = await this.repo.save(toUpdate)
     for (const appt of saved) {
+      await this.syncLinkedBookingFromAppointment(appt)
       this.googleCalendar.syncAppointment(appt).catch(err => this.logCalendarError('sync', appt.id, err))
     }
     return { updated: toUpdate.length }
@@ -184,6 +190,7 @@ export class AppointmentsService {
     if (!all.length) throw new NotFoundException()
     const toRemove = all.filter(a => a.date >= fromDate)
     for (const appt of toRemove) {
+      await this.syncLinkedBookingStatus(appt, 'cancelled')
       this.googleCalendar.deleteAppointment(appt).catch(err => this.logCalendarError('delete', appt.id, err))
     }
     await this.repo.remove(toRemove)
@@ -194,7 +201,7 @@ export class AppointmentsService {
     const saved = await this.dataSource.transaction(async (manager) => {
       await manager.query(
         'SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))',
-        ['appointment-slot', `${psychologistId}:${dto.date}:${dto.time}`],
+        ['appointment-day', `${psychologistId}:${dto.date}`],
       )
 
       await this.assertSlotAvailable(psychologistId, dto.date, dto.time, dto.duration)
@@ -276,6 +283,42 @@ export class AppointmentsService {
   private timeToMinutes(time: string): number {
     const [hours, minutes] = time.slice(0, 5).split(':').map(Number)
     return (hours * 60) + (minutes || 0)
+  }
+
+  private async findLinkedBooking(appointment: Appointment): Promise<Booking | null> {
+    return this.bookings.findOne({
+      where: {
+        appointmentId: appointment.id,
+        psychologistId: appointment.psychologistId,
+      },
+    })
+  }
+
+  private async syncLinkedBookingFromAppointment(appointment: Appointment): Promise<void> {
+    const booking = await this.findLinkedBooking(appointment)
+    if (!booking || booking.status === 'cancelled') return
+
+    booking.date = appointment.date
+    booking.time = appointment.time
+    booking.duration = appointment.duration
+    booking.modality = appointment.modality === 'presencial' ? 'presencial' : 'online'
+    await this.bookings.save(booking)
+
+    await this.financial.update(
+      { sessionId: appointment.id, psychologistId: appointment.psychologistId },
+      { dueDate: appointment.date },
+    )
+  }
+
+  private async syncLinkedBookingStatus(appointment: Appointment, status: string): Promise<void> {
+    const booking = await this.findLinkedBooking(appointment)
+    if (!booking) return
+
+    if (status === 'cancelled' || status === 'no_show' || status === 'completed') {
+      booking.status = status as Booking['status']
+      if (status === 'cancelled') booking.cancelledAt = new Date()
+      await this.bookings.save(booking)
+    }
   }
 
   private buildOccurrenceDates(date: string, recurrence?: string, repeatUntil?: string): string[] {

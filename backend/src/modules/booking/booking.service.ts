@@ -227,10 +227,7 @@ export class BookingService {
         },
       }),
     ])
-    const occupiedTimes = new Set([
-      ...existingBookings.map(b => this.normalizeTime(b.time)),
-      ...existingAppointments.map(a => this.normalizeTime(a.time)),
-    ])
+    const occupiedIntervals = this.toOccupiedIntervals([...existingBookings, ...existingAppointments])
 
     const available: string[] = []
     for (const slot of slots) {
@@ -245,7 +242,7 @@ export class BookingService {
         const timeStr = format(current, 'HH:mm')
         const offset = this.config.get<string>('APPOINTMENT_TIMEZONE_OFFSET') ?? '-03:00'
         const startsAt = new Date(`${dateStr}T${timeStr}:00${offset}`)
-        if (!occupiedTimes.has(timeStr) && isAfter(startsAt, now)) {
+        if (!this.hasOverlap(this.timeToMinutes(timeStr), sessionDuration, occupiedIntervals) && isAfter(startsAt, now)) {
           available.push(timeStr)
         }
         current = addMinutes(current, stepMinutes)
@@ -298,7 +295,7 @@ export class BookingService {
           date: Between(format(start, 'yyyy-MM-dd'), format(end, 'yyyy-MM-dd')),
           status: In(OCCUPYING_BOOKING_STATUSES),
         },
-        select: ['date', 'time'],
+        select: ['date', 'time', 'duration'],
       }),
       this.appointments.find({
         where: {
@@ -306,16 +303,17 @@ export class BookingService {
           date: Between(format(start, 'yyyy-MM-dd'), format(end, 'yyyy-MM-dd')),
           status: Not(In(FREE_APPOINTMENT_STATUSES)),
         },
-        select: ['date', 'time'],
+        select: ['date', 'time', 'duration'],
       }),
     ])
 
     const activeSlots = slots.filter(slot => !modality || slot.modality === modality)
     const blocked = new Set(blockedDates.map(item => item.date))
-    const occupiedByDate = new Map<string, Set<string>>()
+    const occupiedByDate = new Map<string, Array<{ start: number; end: number }>>()
     for (const item of [...existingBookings, ...existingAppointments]) {
-      const occupied = occupiedByDate.get(item.date) ?? new Set<string>()
-      occupied.add(this.normalizeTime(item.time))
+      const occupied = occupiedByDate.get(item.date) ?? []
+      const startMinute = this.timeToMinutes(item.time)
+      occupied.push({ start: startMinute, end: startMinute + Number(item.duration || 50) })
       occupiedByDate.set(item.date, occupied)
     }
 
@@ -328,7 +326,7 @@ export class BookingService {
       const daySlots = activeSlots.filter(slot => slot.weekday === getDay(day))
       if (!daySlots.length) continue
 
-      const occupiedTimes = occupiedByDate.get(dateStr) ?? new Set<string>()
+      const occupiedIntervals = occupiedByDate.get(dateStr) ?? []
       const hasAvailableTime = daySlots.some(slot => {
         const [startH, startM] = slot.startTime.slice(0, 5).split(':').map(Number)
         const [endH, endM] = slot.endTime.slice(0, 5).split(':').map(Number)
@@ -340,7 +338,7 @@ export class BookingService {
           const timeStr = format(current, 'HH:mm')
           const offset = this.config.get<string>('APPOINTMENT_TIMEZONE_OFFSET') ?? '-03:00'
           const startsAt = new Date(`${dateStr}T${timeStr}:00${offset}`)
-          if (!occupiedTimes.has(timeStr) && isAfter(startsAt, now)) return true
+          if (!this.hasOverlap(this.timeToMinutes(timeStr), sessionDuration, occupiedIntervals) && isAfter(startsAt, now)) return true
           current = addMinutes(current, stepMinutes)
         }
         return false
@@ -390,7 +388,7 @@ export class BookingService {
     const saved = await this.dataSource.transaction(async (manager) => {
       await manager.query(
         'SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))',
-        ['appointment-slot', `${page.psychologistId}:${dto.date}:${dto.time}`],
+        ['appointment-day', `${page.psychologistId}:${dto.date}`],
       )
 
       const availableSlots = await this.getAvailableSlots(slugOrToken, dto.date, dto.modality)
@@ -916,28 +914,47 @@ export class BookingService {
   }
 
   private async ensureScheduleIsFree(booking: Booking, psychologistId: string) {
+    const startMinute = this.timeToMinutes(booking.time)
+    const endMinute = startMinute + Number(booking.duration || 50)
     const [bookingConflict, appointmentConflict] = await Promise.all([
-      this.bookings.findOne({
-        where: {
-          id: Not(booking.id),
-          psychologistId,
-          date: booking.date,
-          time: booking.time,
-          status: 'confirmed',
-        },
-      }),
-      this.appointments.findOne({
-        where: {
-          psychologistId,
-          date: booking.date,
-          time: booking.time,
-          status: Not(In(FREE_APPOINTMENT_STATUSES)),
-        },
-      }),
+      this.bookings
+        .createQueryBuilder('b')
+        .where('b.id <> :bookingId', { bookingId: booking.id })
+        .andWhere('b.psychologistId = :psychologistId', { psychologistId })
+        .andWhere('b.date = :date', { date: booking.date })
+        .andWhere('b.status IN (:...statuses)', { statuses: OCCUPYING_BOOKING_STATUSES })
+        .andWhere('(EXTRACT(EPOCH FROM b.time::time) / 60) < :endMinute', { endMinute })
+        .andWhere('((EXTRACT(EPOCH FROM b.time::time) / 60) + COALESCE(b.duration, 50)) > :startMinute', { startMinute })
+        .getOne(),
+      this.appointments
+        .createQueryBuilder('a')
+        .where('a.psychologistId = :psychologistId', { psychologistId })
+        .andWhere('a.date = :date', { date: booking.date })
+        .andWhere('a.status NOT IN (:...ignoredStatuses)', { ignoredStatuses: FREE_APPOINTMENT_STATUSES })
+        .andWhere('(EXTRACT(EPOCH FROM a.time::time) / 60) < :endMinute', { endMinute })
+        .andWhere('((EXTRACT(EPOCH FROM a.time::time) / 60) + COALESCE(a.duration, 50)) > :startMinute', { startMinute })
+        .getOne(),
     ])
 
     if (bookingConflict || appointmentConflict) {
       throw new ConflictException('Este horario nao esta mais disponivel')
     }
+  }
+
+  private toOccupiedIntervals(items: Array<{ time: string; duration?: number }>): Array<{ start: number; end: number }> {
+    return items.map(item => {
+      const start = this.timeToMinutes(item.time)
+      return { start, end: start + Number(item.duration || 50) }
+    })
+  }
+
+  private hasOverlap(startMinute: number, duration: number, occupied: Array<{ start: number; end: number }>): boolean {
+    const endMinute = startMinute + Number(duration || 50)
+    return occupied.some(item => item.start < endMinute && item.end > startMinute)
+  }
+
+  private timeToMinutes(time: string): number {
+    const [hours, minutes] = time.slice(0, 5).split(':').map(Number)
+    return (hours * 60) + (minutes || 0)
   }
 }
