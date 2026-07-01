@@ -19,7 +19,7 @@ import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
 import { track, EVENTS } from '@/lib/analytics'
-import { LineChart, Line, XAxis, YAxis, Tooltip as RechartTooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
+import LightweightChart from '@/components/ui/LightweightChart'
 
 const MOODS = ['', '1', '2', '3', '4', '5']
 const WEEKDAYS = ['Domingo', 'Segunda', 'Terca', 'Quarta', 'Quinta', 'Sexta', 'Sabado']
@@ -679,18 +679,18 @@ export default function PatientDetailPage() {
           {moodChartData.length >= 2 && (
             <div className="card">
               <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-3">Humor por sessão</p>
-              <ResponsiveContainer width="100%" height={100}>
-                <LineChart data={moodChartData} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#a3a3a3' }} axisLine={false} tickLine={false} />
-                  <YAxis domain={[1, 5]} ticks={[1, 2, 3, 4, 5]} tick={{ fontSize: 10, fill: '#a3a3a3' }} axisLine={false} tickLine={false} />
-                  <RechartTooltip
-                    formatter={(v: number) => [['Muito difícil', 'Difícil', 'Neutro', 'Positivo', 'Muito positivo'][v - 1], 'Humor']}
-                    contentStyle={{ borderRadius: 10, border: '1px solid #f0f0f0', fontSize: 12 }}
-                  />
-                  <Line type="monotone" dataKey="humor" stroke="#2F7657" strokeWidth={2} dot={{ r: 3, fill: '#2F7657' }} activeDot={{ r: 5 }} />
-                </LineChart>
-              </ResponsiveContainer>
+              <div className="h-[100px]">
+                <LightweightChart
+                  data={moodChartData.map(item => ({ label: item.label, value: Number(item.humor) || 0 }))}
+                  height={100}
+                  color="#2F7657"
+                  fillOpacity={0.08}
+                  min={1}
+                  max={5}
+                  showYAxis
+                  formatValue={value => ['Muito dificil', 'Dificil', 'Neutro', 'Positivo', 'Muito positivo'][Math.round(value) - 1] ?? String(value)}
+                />
+              </div>
             </div>
           )}
 

@@ -6,7 +6,6 @@ import BottomNav from './BottomNav'
 import TopBar from './TopBar'
 import PWAInstallBanner from '@/components/ui/PWAInstallBanner'
 import { api, USE_MOCK, type AuthAxiosRequestConfig } from '@/lib/api'
-import { setNativeTokens } from '@/lib/nativeAuth'
 import { useAuthStore } from '@/store/auth'
 import { useSubscriptionStore } from '@/store/subscription'
 import { useFeedbackStatus } from '@/hooks/useApi'
@@ -20,17 +19,25 @@ function useCoreRoutePreload() {
     const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection
     if (connection?.saveData) return
 
-    const timer = window.setTimeout(() => {
+    const preload = () => {
       void Promise.allSettled([
-        import('@/pages/DashboardPage'),
         import('@/pages/PatientsPage'),
         import('@/pages/AgendaPage'),
         import('@/pages/SessionsPage'),
-        import('@/pages/DocumentosPage'),
       ])
-    }, 1200)
+    }
 
-    return () => window.clearTimeout(timer)
+    const requestIdle = window.requestIdleCallback
+    let idleId: number | undefined
+    const timer = window.setTimeout(() => {
+      if (requestIdle) idleId = requestIdle(preload, { timeout: 5000 })
+      else preload()
+    }, 3000)
+
+    return () => {
+      window.clearTimeout(timer)
+      if (idleId !== undefined) window.cancelIdleCallback?.(idleId)
+    }
   }, [])
 }
 
@@ -95,7 +102,10 @@ function useSessionKeepAlive() {
       api.post('/auth/refresh', undefined, { skipAuthRedirect: true } as AuthAxiosRequestConfig)
         .then(async ({ data }) => {
           if (data?.csrfToken) setCsrfToken(data.csrfToken)
-          if (data?.tokens) await setNativeTokens(data.tokens)
+          if (data?.tokens) {
+            const { setNativeTokens } = await import('@/lib/nativeAuth')
+            await setNativeTokens(data.tokens)
+          }
           if (data?.user) setAuth(data.user)
         })
         .catch((err) => {

@@ -7,7 +7,7 @@ import StatCard from '@/components/ui/StatCard'
 import Avatar from '@/components/ui/Avatar'
 import { StatusBadge } from '@/components/ui/Badge'
 import { formatCurrency, formatDateRelative, formatTime } from '@/lib/utils'
-import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
+import LightweightChart from '@/components/ui/LightweightChart'
 import { useAuthStore } from '@/store/auth'
 import { useDashboard, useSessions } from '@/hooks/useApi'
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard'
@@ -428,23 +428,13 @@ export default function DashboardPage() {
           })()}
 
           <div className="flex-1 min-h-[100px]">
-            <ResponsiveContainer width="100%" height={110}>
-              <AreaChart data={s?.revenueChart ?? []} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorCogniaBlue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#4DA8DA" stopOpacity={0.22} />
-                    <stop offset="95%" stopColor="#4DA8DA" stopOpacity={0}   />
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="mes" tick={{ fontSize: 10, fill: '#a8a89e' }} axisLine={false} tickLine={false} />
-                <Tooltip
-                  contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 24px rgba(0,0,0,0.10)', fontSize: 12 }}
-                  formatter={(v: number) => [formatCurrency(v), 'Receita']}
-                />
-                <Area type="monotone" dataKey="valor" stroke="#4DA8DA" strokeWidth={2}
-                  fill="url(#colorCogniaBlue)" dot={false} activeDot={{ r: 4, fill: '#4DA8DA' }} />
-              </AreaChart>
-            </ResponsiveContainer>
+            <LightweightChart
+              data={(s?.revenueChart ?? []).map((item: any) => ({ label: item.mes, value: Number(item.valor) || 0 }))}
+              height={110}
+              color="#4DA8DA"
+              fillOpacity={0.22}
+              formatValue={formatCurrency}
+            />
           </div>
 
           <Link to="/financeiro"

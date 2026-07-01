@@ -1,9 +1,9 @@
 import { lazy, Suspense, useMemo, useRef, useState } from 'react'
 import { Wallet, TrendingUp, Clock, CheckCircle, Plus, Download, Trash2, Percent, ReceiptText, AlertCircle } from 'lucide-react'
-import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import StatCard from '@/components/ui/StatCard'
 import Avatar from '@/components/ui/Avatar'
 import { StatusBadge } from '@/components/ui/Badge'
+import LightweightChart from '@/components/ui/LightweightChart'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { useFinancial, useMarkFinancialPaid, useDeleteFinancial } from '@/hooks/useApi'
 import { FinancialRecord } from '@/types'
@@ -285,25 +285,14 @@ export default function FinancialPage() {
           <span className="text-xs text-neutral-400">Ultimos 6 meses</span>
         </div>
         <div className="h-40">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={revenueData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-              <defs>
-                <linearGradient id="colorValor" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#4DA8DA" stopOpacity={0.18} />
-                  <stop offset="95%" stopColor="#4DA8DA" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="mes" tick={{ fontSize: 11, fill: '#a3a3a3' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: '#a3a3a3' }} axisLine={false} tickLine={false}
-                tickFormatter={v => `R$${(v / 1000).toFixed(0)}k`} />
-              <Tooltip
-                formatter={(v: number) => [formatCurrency(v), 'Receita']}
-                contentStyle={{ borderRadius: 12, border: '1px solid #f0f0f0', fontSize: 12 }}
-              />
-              <Area type="monotone" dataKey="valor" stroke="#4DA8DA" strokeWidth={2}
-                fill="url(#colorValor)" dot={false} />
-            </AreaChart>
-          </ResponsiveContainer>
+          <LightweightChart
+            data={revenueData.map(item => ({ label: item.mes, value: item.valor }))}
+            height={160}
+            color="#4DA8DA"
+            fillOpacity={0.18}
+            showYAxis
+            formatValue={value => value >= 1000 ? `R$${(value / 1000).toFixed(0)}k` : formatCurrency(value)}
+          />
         </div>
         {/* Mini resumo */}
         {(() => {
