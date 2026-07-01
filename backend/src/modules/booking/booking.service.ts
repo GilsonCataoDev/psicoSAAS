@@ -3,7 +3,7 @@ import {
   Logger,
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Between, DataSource, In, Not, Repository } from 'typeorm'
+import { Between, DataSource, In, IsNull, Not, Repository } from 'typeorm'
 import { randomBytes, createHmac } from 'crypto'
 import { ConfigService } from '@nestjs/config'
 import {
@@ -467,14 +467,7 @@ export class BookingService {
   }
 
   async cancelByToken(token: string, reason?: string) {
-    const booking = await this.bookings.findOne({
-      where: [
-        { cancellationCode: token },
-        { confirmationToken: token },
-      ],
-      relations: ['psychologist'],
-    })
-    if (!booking) throw new NotFoundException('Link inválido')
+    const booking = await this.findByCancellationToken(token)
     if (booking.status === 'cancelled')
       return { message: 'Sessão já cancelada anteriormente.' }
 
@@ -486,6 +479,16 @@ export class BookingService {
     await this.notifications.sendBookingCancellation(booking)
 
     return { message: 'Sessão cancelada. Esperamos te ver em breve.' }
+  }
+
+  async getCancellationPreview(token: string) {
+    const booking = await this.findByCancellationToken(token)
+    return {
+      message: booking.status === 'cancelled'
+        ? 'Esta sessão já foi cancelada anteriormente.'
+        : 'Link de cancelamento válido. Confirme para cancelar a sessão.',
+      booking: this.toCalendarBooking(booking),
+    }
   }
 
   // ─── Psicólogo (autenticado) ────────────────────────────────────────────────
@@ -860,6 +863,21 @@ export class BookingService {
     const b = await this.bookings.findOne({ where: { id, psychologistId } })
     if (!b) throw new NotFoundException()
     return b
+  }
+
+  private async findByCancellationToken(token: string): Promise<Booking> {
+    const booking = await this.bookings.findOne({
+      where: { cancellationCode: token },
+      relations: ['psychologist'],
+    })
+    if (booking) return booking
+
+    const legacyBooking = await this.bookings.findOne({
+      where: { confirmationToken: token, cancellationCode: IsNull() },
+      relations: ['psychologist'],
+    })
+    if (!legacyBooking) throw new NotFoundException('Link inválido')
+    return legacyBooking
   }
 
   private normalizeTime(time: string) {

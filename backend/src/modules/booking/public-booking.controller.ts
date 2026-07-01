@@ -59,8 +59,15 @@ export class PublicBookingController {
     return this.svc.confirmByToken(token)
   }
 
-  /** GET /api/public/booking/cancel/:token — paciente cancela via link */
+  /** GET /api/public/booking/cancel/:token — valida link sem cancelar */
   @Get('cancel/:token')
+  @Throttle({ short: { limit: 10, ttl: 60000 } })
+  getCancel(@Param('token') token: string) {
+    return this.svc.getCancellationPreview(token)
+  }
+
+  /** POST /api/public/booking/cancel/:token — paciente confirma cancelamento */
+  @Post('cancel/:token')
   @Throttle({ short: { limit: 10, ttl: 60000 } })
   cancel(@Param('token') token: string, @Query('reason') reason?: string) {
     return this.svc.cancelByToken(token, reason)

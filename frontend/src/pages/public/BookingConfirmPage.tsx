@@ -48,6 +48,8 @@ export default function BookingConfirmPage({ fixedAction }: { fixedAction?: Conf
   const resolvedAction = fixedAction ?? action
   const isConfirm = resolvedAction === 'confirmar'
   const [loading, setLoading] = useState(true)
+  const [submittingCancel, setSubmittingCancel] = useState(false)
+  const [cancelSubmitted, setCancelSubmitted] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<BookingActionResponse | null>(null)
 
@@ -81,6 +83,21 @@ export default function BookingConfirmPage({ fixedAction }: { fixedAction?: Conf
     }
   }, [isConfirm, resolvedAction, token])
 
+  async function confirmCancellation() {
+    if (!token) return
+    setSubmittingCancel(true)
+    setError('')
+    try {
+      const { data } = await api.post<BookingActionResponse>(`/public/booking/cancel/${token}`)
+      setResult(data)
+      setCancelSubmitted(true)
+    } catch (err) {
+      setError(getErrorMessage(err))
+    } finally {
+      setSubmittingCancel(false)
+    }
+  }
+
   const calendarEvent = useMemo<CalendarEvent | null>(() => {
     if (!isConfirm || !result?.booking) return null
 
@@ -101,6 +118,7 @@ export default function BookingConfirmPage({ fixedAction }: { fixedAction?: Conf
 
   const googleCalendarUrl = calendarEvent ? createGoogleCalendarUrl(calendarEvent) : ''
   const iconState = error ? 'error' : isConfirm ? 'confirm' : 'cancel'
+  const actionCompleted = isConfirm || cancelSubmitted
 
   return (
     <div className="min-h-screen cognia-surface flex flex-col items-center justify-center p-6">
@@ -129,7 +147,9 @@ export default function BookingConfirmPage({ fixedAction }: { fixedAction?: Conf
               ? 'Link não processado'
               : isConfirm
                 ? 'Sessão confirmada'
-                : 'Sessão cancelada'}
+                : cancelSubmitted
+                  ? 'Sessão cancelada'
+                  : 'Cancelar sessão?'}
         </h1>
 
         <p className="text-neutral-500 dark:text-neutral-300 leading-relaxed">
@@ -137,14 +157,38 @@ export default function BookingConfirmPage({ fixedAction }: { fixedAction?: Conf
             ? 'Estamos validando seu link com seguranca.'
             : error
               ? error
-              : result?.message ?? (
+              : !isConfirm && !cancelSubmitted
+                ? 'Para evitar cancelamentos por engano, confirme abaixo que deseja cancelar esta sessão.'
+                : result?.message ?? (
                   isConfirm
                     ? 'Sua sessão está confirmada. Você receberá um lembrete antes do encontro.'
                     : 'Sua sessão foi cancelada. Quando quiser remarcar, use o link de agendamento novamente.'
                 )}
         </p>
 
-        {calendarEvent && (
+        {!loading && !error && !isConfirm && !cancelSubmitted && result?.booking && (
+          <div className="mt-6 rounded-2xl border border-neutral-100 bg-neutral-50 p-4 text-left text-sm text-neutral-700 dark:border-white/10 dark:bg-white/5 dark:text-neutral-200">
+            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">Sessão</p>
+            <p className="mt-2 font-medium">{result.booking.date} às {result.booking.time}</p>
+            <p className="mt-1 text-neutral-500 dark:text-neutral-300">
+              {result.booking.modality === 'online' ? 'Online' : 'Presencial'} · {result.booking.duration || 50} min
+            </p>
+          </div>
+        )}
+
+        {!loading && !error && !isConfirm && !cancelSubmitted && (
+          <button
+            type="button"
+            onClick={confirmCancellation}
+            disabled={submittingCancel}
+            className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {submittingCancel && <Loader2 className="h-4 w-4 animate-spin" />}
+            {submittingCancel ? 'Cancelando...' : 'Confirmar cancelamento'}
+          </button>
+        )}
+
+        {actionCompleted && calendarEvent && (
           <div className="mt-7 space-y-3">
             <a
               href={googleCalendarUrl}
