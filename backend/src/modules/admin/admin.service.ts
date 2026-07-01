@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { InjectRepository } from '@nestjs/typeorm'
 import { DataSource, MoreThan, Repository } from 'typeorm'
@@ -92,6 +92,10 @@ export class AdminService {
   }
 
   async overrideSubscription(userId: string, dto: OverrideSubscriptionDto) {
+    if (!dto.plan && !dto.status) {
+      throw new BadRequestException('Informe plano ou status para atualizar')
+    }
+
     const user = await this.users.findOneBy({ id: userId })
     if (!user) throw new NotFoundException('Usuário não encontrado')
 
@@ -136,6 +140,7 @@ export class AdminService {
     const since7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
     const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
 
+    const latestSubscriptionId = this.latestSubscriptionIdSql('u')
     const [database, emailSent, emailFailed, recentFailures, webhookEvents, subsByStatus, pastDueUsers] =
       await Promise.all([
         this.checkDatabase(),
@@ -156,13 +161,16 @@ export class AdminService {
           .createQueryBuilder('s')
           .select('s.status', 'status')
           .addSelect('COUNT(*)', 'count')
+          .innerJoin(User, 'u', `s.id = (${latestSubscriptionId})`)
           .groupBy('s.status')
           .getRawMany<{ status: string; count: string }>(),
         this.subs
           .createQueryBuilder('s')
           .innerJoinAndSelect('s.user', 'u')
           .select(['s.id', 's.plan', 's.status', 's.createdAt', 'u.id', 'u.name', 'u.email'])
-          .where('s.status = :status', { status: 'past_due' })
+          .where(`s.id = (${latestSubscriptionId})`)
+          .andWhere('u.isActive = true')
+          .andWhere('s.status = :status', { status: 'past_due' })
           .andWhere('s.createdAt > :since', { since: since30d })
           .orderBy('s.createdAt', 'DESC')
           .take(20)
@@ -363,6 +371,7 @@ export class AdminService {
   }
 
   async getStats() {
+    const latestSubscriptionId = this.latestSubscriptionIdSql('u')
     const [totalUsers, activeUsers] = await Promise.all([
       this.users.count(),
       this.users.count({ where: { isActive: true } }),
@@ -373,6 +382,7 @@ export class AdminService {
       .select('s.plan', 'plan')
       .addSelect('s.status', 'status')
       .addSelect('COUNT(*)', 'count')
+      .innerJoin(User, 'u', `s.id = (${latestSubscriptionId})`)
       .groupBy('s.plan')
       .addGroupBy('s.status')
       .getRawMany<{ plan: string; status: string; count: string }>()
@@ -385,10 +395,22 @@ export class AdminService {
   }
 
   async cleanupTestUsers(): Promise<{ deleted: number; emails: string[] }> {
+    const adminEmails = (this.cfg.get<string>('ADMIN_EMAILS') ?? 'gilsonfilho96@outlook.com')
+      .split(',')
+      .map(email => email.trim().toLowerCase())
+      .filter(Boolean)
     const targets: { id: string; email: string }[] = await this.dataSource.query(
       `SELECT id, email FROM users
-       WHERE (email LIKE '%@example.com' OR email LIKE '%+test%' OR name ILIKE '%teste%')
+       WHERE (
+           email ILIKE '%@example.com'
+           OR email ILIKE '%@example.test'
+           OR email ILIKE '%@test.com'
+           OR email ILIKE '%+test@%'
+           OR email ILIKE '%+teste@%'
+         )
+         AND LOWER(email) <> ALL($1::text[])
          AND "createdAt" < NOW() - INTERVAL '1 hour'`,
+      [adminEmails],
     )
     if (!targets.length) return { deleted: 0, emails: [] }
 
@@ -413,5 +435,15 @@ export class AdminService {
 
     this.logger.log(`admin:cleanup-test-users deleted=${targets.length}`)
     return { deleted: targets.length, emails: targets.map(t => t.email) }
+  }
+
+  private latestSubscriptionIdSql(userAlias: string): string {
+    return this.subs
+      .createQueryBuilder('latest')
+      .select('latest.id')
+      .where(`latest.userId = ${userAlias}.id`)
+      .orderBy('latest.createdAt', 'DESC')
+      .limit(1)
+      .getQuery()
   }
 }

@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common'
+import { ConflictException, Injectable, NotFoundException, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { Not, Repository } from 'typeorm'
 import { Session } from './entities/session.entity'
 import { CreateSessionDto } from './dto/create-session.dto'
 import { FinancialService } from '../financial/financial.service'
@@ -9,6 +9,7 @@ import { Patient } from '../patients/entities/patient.entity'
 import { User } from '../auth/entities/user.entity'
 import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
 import { Appointment } from '../appointments/entities/appointment.entity'
+import { Booking } from '../booking/entities/booking.entity'
 
 @Injectable()
 export class SessionsService {
@@ -19,6 +20,7 @@ export class SessionsService {
     @InjectRepository(Patient) private patients: Repository<Patient>,
     @InjectRepository(User) private users: Repository<User>,
     @InjectRepository(Appointment) private appointments: Repository<Appointment>,
+    @InjectRepository(Booking) private bookings: Repository<Booking>,
     private financial: FinancialService,
     private notifications: NotificationsService,
   ) {}
@@ -109,7 +111,8 @@ export class SessionsService {
   async create(dto: CreateSessionDto, psychologistId: string): Promise<Session & { firstSession: boolean }> {
     await this.assertPatientBelongsToPsychologist(dto.patientId, psychologistId)
     if (dto.appointmentId) {
-      await this.assertAppointmentBelongsToPsychologist(dto.appointmentId, psychologistId)
+      await this.assertAppointmentBelongsToPsychologist(dto.appointmentId, psychologistId, dto.patientId)
+      await this.assertAppointmentHasNoSession(dto.appointmentId, psychologistId)
     }
 
     const previousSessions = await this.repo.count({ where: { psychologistId } })
@@ -120,7 +123,7 @@ export class SessionsService {
     const saved     = await this.repo.save(session)
 
     if (dto.appointmentId) {
-      await this.appointments.update({ id: dto.appointmentId, psychologistId }, { status: 'completed' })
+      await this.completeLinkedAppointment(dto.appointmentId, psychologistId)
     }
 
     // Auto-cria FinancialRecord para sessões pagas ou pendentes
@@ -135,20 +138,32 @@ export class SessionsService {
           const amount  = Number(patient.sessionPrice) || 0
           const isPaid  = dto.paymentStatus === 'paid'
 
-          await this.financial.create(
-            {
-              type: 'income',
-              amount,
-              description: `Sessão — ${dto.date}`,
-              status: isPaid ? 'paid' : 'pending',
-              dueDate: dto.date,
-              paidAt: isPaid ? dto.date : undefined,
-              method: isPaid ? 'manual' : undefined,
-              sessionId: saved.id,
-              patientId: dto.patientId,
-            },
-            psychologistId,
-          )
+          const existingFinancial = dto.appointmentId
+            ? await this.financial.findBySessionId(dto.appointmentId, psychologistId)
+            : null
+
+          if (existingFinancial) {
+            if (isPaid && existingFinancial.status !== 'paid') {
+              await this.financial.markPaid(existingFinancial.id, 'manual', psychologistId)
+            } else if (!isPaid && existingFinancial.status === 'paid') {
+              await this.financial.resetToPending(existingFinancial.id, psychologistId)
+            }
+          } else {
+            await this.financial.create(
+              {
+                type: 'income',
+                amount,
+                description: `Sessão — ${dto.date}`,
+                status: isPaid ? 'paid' : 'pending',
+                dueDate: dto.date,
+                paidAt: isPaid ? dto.date : undefined,
+                method: isPaid ? 'manual' : undefined,
+                sessionId: saved.id,
+                patientId: dto.patientId,
+              },
+              psychologistId,
+            )
+          }
 
           if (!isPaid && patient.phone) {
             const user  = await this.users.findOneBy({ id: psychologistId })
@@ -181,7 +196,8 @@ export class SessionsService {
       await this.assertPatientBelongsToPsychologist(dto.patientId, psychologistId)
     }
     if (dto.appointmentId) {
-      await this.assertAppointmentBelongsToPsychologist(dto.appointmentId, psychologistId)
+      await this.assertAppointmentBelongsToPsychologist(dto.appointmentId, psychologistId, dto.patientId ?? s.patientId)
+      await this.assertAppointmentHasNoSession(dto.appointmentId, psychologistId, id)
     }
 
     // Criptografa os campos que estão sendo atualizados; campos não enviados permanecem intactos
@@ -189,8 +205,12 @@ export class SessionsService {
     Object.assign(s, encrypted)
     const updated = await this.repo.save(s)
 
-    // Sincroniza o registro financeiro quando o status de pagamento muda
-    if (dto.paymentStatus && dto.paymentStatus !== oldPaymentStatus) {
+    if (dto.appointmentId) {
+      await this.completeLinkedAppointment(dto.appointmentId, psychologistId)
+    }
+
+    // Sincroniza o financeiro quando status, data ou paciente mudam.
+    if ((dto.paymentStatus && dto.paymentStatus !== oldPaymentStatus) || dto.date || dto.patientId) {
       this.syncFinancialRecord(updated, psychologistId).catch(err =>
         this.logger.warn(`Falha ao sincronizar financeiro da sessão ${id}: ${err?.message ?? 'erro desconhecido'}`)
       )
@@ -204,6 +224,7 @@ export class SessionsService {
     const s = await this.findRaw(id, psychologistId)
     const financialRecord = await this.financial.findBySessionId(s.id, psychologistId)
     if (financialRecord) await this.financial.remove(financialRecord.id, psychologistId)
+    if (s.appointmentId) await this.restoreLinkedAppointment(s.appointmentId, psychologistId)
     await this.repo.remove(s)
     return { deleted: true }
   }
@@ -212,7 +233,7 @@ export class SessionsService {
 
   /** Sincroniza o registro financeiro vinculado a uma sessão após mudança de status */
   private async syncFinancialRecord(session: Session, psychologistId: string): Promise<void> {
-    const existing = await this.financial.findBySessionId(session.id, psychologistId)
+    const existing = await this.findFinancialForSession(session, psychologistId)
 
     if (session.paymentStatus === 'waived') {
       if (existing) await this.financial.remove(existing.id, psychologistId)
@@ -220,6 +241,10 @@ export class SessionsService {
     }
 
     if (existing) {
+      await this.financial.updateLinkedRecord(existing.id, psychologistId, {
+        dueDate: session.date,
+        patientId: session.patientId,
+      })
       if (session.paymentStatus === 'paid' && existing.status !== 'paid') {
         await this.financial.markPaid(existing.id, 'manual', psychologistId)
       } else if (session.paymentStatus === 'pending' && existing.status === 'paid') {
@@ -270,8 +295,41 @@ export class SessionsService {
     if (!patient) throw new NotFoundException('Pessoa não encontrada')
   }
 
-  private async assertAppointmentBelongsToPsychologist(appointmentId: string, psychologistId: string): Promise<void> {
+  private async assertAppointmentBelongsToPsychologist(appointmentId: string, psychologistId: string, patientId?: string): Promise<void> {
     const appointment = await this.appointments.findOne({ where: { id: appointmentId, psychologistId } })
     if (!appointment) throw new NotFoundException('Agendamento não encontrado')
+    if (patientId && appointment.patientId !== patientId) throw new NotFoundException('Agendamento não encontrado para esta pessoa')
+  }
+
+  private async assertAppointmentHasNoSession(appointmentId: string, psychologistId: string, ignoreSessionId?: string): Promise<void> {
+    const existing = await this.repo.findOne({
+      where: {
+        appointmentId,
+        psychologistId,
+        ...(ignoreSessionId ? { id: Not(ignoreSessionId) } : {}),
+      },
+    })
+    if (existing) throw new ConflictException('Este agendamento já possui sessão registrada')
+  }
+
+  private async completeLinkedAppointment(appointmentId: string, psychologistId: string): Promise<void> {
+    await this.appointments.update({ id: appointmentId, psychologistId }, { status: 'completed' })
+    await this.bookings.update(
+      { appointmentId, psychologistId },
+      { status: 'completed' as Booking['status'] },
+    )
+  }
+
+  private async restoreLinkedAppointment(appointmentId: string, psychologistId: string): Promise<void> {
+    await this.appointments.update({ id: appointmentId, psychologistId }, { status: 'scheduled' })
+    await this.bookings.update(
+      { appointmentId, psychologistId, status: 'completed' as Booking['status'] },
+      { status: 'confirmed' as Booking['status'] },
+    )
+  }
+
+  private async findFinancialForSession(session: Session, psychologistId: string) {
+    return (await this.financial.findBySessionId(session.id, psychologistId))
+      ?? (session.appointmentId ? await this.financial.findBySessionId(session.appointmentId, psychologistId) : null)
   }
 }

@@ -135,7 +135,7 @@ function UsersTab() {
   const [copiedEmail, setCopiedEmail] = useState<string | null>(null)
   const { data: users, isLoading } = useAdminUsers({ page, search: search.trim() || undefined, plan: plan || undefined, status: status || undefined })
 
-  const totalPages = users ? Math.ceil(users.total / users.limit) : 1
+  const totalPages = users ? Math.max(1, Math.ceil(users.total / users.limit)) : 1
   const hasFilters = !!search.trim() || !!plan || !!status
 
   function resetFilters() {

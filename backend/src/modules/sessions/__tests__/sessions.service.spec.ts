@@ -8,6 +8,7 @@ import { NotificationsService } from '../../notifications/notifications.service'
 import { Patient } from '../../patients/entities/patient.entity'
 import { User } from '../../auth/entities/user.entity'
 import { Appointment } from '../../appointments/entities/appointment.entity'
+import { Booking } from '../../booking/entities/booking.entity'
 
 const PSY_ID = 'psy-1'
 const PAT_ID = 'pat-1'
@@ -79,7 +80,8 @@ describe('SessionsService', () => {
         { provide: getRepositoryToken(Patient),     useValue: patientRepo },
         { provide: getRepositoryToken(User),        useValue: makeRepo() },
         { provide: getRepositoryToken(Appointment), useValue: makeRepo() },
-        { provide: FinancialService,       useValue: { create: jest.fn() } },
+        { provide: getRepositoryToken(Booking),     useValue: makeRepo() },
+        { provide: FinancialService,       useValue: { create: jest.fn(), findBySessionId: jest.fn(), remove: jest.fn(), updateLinkedRecord: jest.fn(), markPaid: jest.fn(), resetToPending: jest.fn() } },
         { provide: NotificationsService,   useValue: { sendPaymentRequest: jest.fn() } },
       ],
     }).compile()

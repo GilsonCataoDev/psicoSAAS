@@ -10,10 +10,11 @@ import { NotificationsModule } from '../notifications/notifications.module'
 import { Patient } from '../patients/entities/patient.entity'
 import { User } from '../auth/entities/user.entity'
 import { Appointment } from '../appointments/entities/appointment.entity'
+import { Booking } from '../booking/entities/booking.entity'
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Session, Patient, User, Appointment, AiUsage]),
+    TypeOrmModule.forFeature([Session, Patient, User, Appointment, Booking, AiUsage]),
     FinancialModule,
     NotificationsModule,
   ],

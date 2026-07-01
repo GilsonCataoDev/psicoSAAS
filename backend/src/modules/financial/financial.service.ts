@@ -87,6 +87,16 @@ export class FinancialService {
     return this.repo.findOne({ where: { sessionId, psychologistId } })
   }
 
+  async updateLinkedRecord(
+    id: string,
+    psychologistId: string,
+    patch: Partial<Pick<FinancialRecord, 'dueDate' | 'patientId' | 'status' | 'paidAt' | 'method'>>,
+  ) {
+    const record = await this.findOne(id, psychologistId)
+    Object.assign(record, patch)
+    return this.repo.save(record)
+  }
+
   async create(dto: CreateFinancialDto & { status?: string; paidAt?: string }, psychologistId: string) {
     if (dto.patientId) {
       await this.assertPatientBelongsToPsychologist(dto.patientId, psychologistId)
