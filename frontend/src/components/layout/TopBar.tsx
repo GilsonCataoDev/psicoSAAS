@@ -8,7 +8,7 @@ import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import BrandLogo from '@/components/ui/BrandLogo'
 import Avatar from '@/components/ui/Avatar'
-import { usePatients } from '@/hooks/useApi'
+import { usePatients } from '@/hooks/api/patients'
 import { patientMatchesSearch } from '@/lib/patientSearch'
 import { useThemeStore } from '@/store/theme'
 
@@ -74,7 +74,7 @@ export default function TopBar() {
   const [panelOpen, setPanelOpen] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
-  const { data: patients = [] } = usePatients()
+  const { data: patients = [] } = usePatients({ enabled: searchOpen })
   const themeMode = useThemeStore(s => s.mode)
   const toggleTheme = useThemeStore(s => s.toggleMode)
   const isDark = themeMode === 'dark' || document.documentElement.classList.contains('dark')

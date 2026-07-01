@@ -1,12 +1,5 @@
 import axios, { AxiosRequestConfig } from 'axios'
 import { useAuthStore } from '@/store/auth'
-import {
-  clearNativeTokens,
-  getNativeAccessToken,
-  getNativeRefreshToken,
-  isNativeApp,
-  setNativeTokens,
-} from '@/lib/nativeAuth'
 
 export const USE_MOCK = false
 
@@ -21,9 +14,15 @@ export const api = axios.create({
   withCredentials: true,
 })
 
+function isNativeRuntime(): boolean {
+  const capacitor = (window as any).Capacitor
+  return Boolean(capacitor?.isNativePlatform?.())
+}
+
 api.interceptors.request.use(async config => {
   const csrfToken = useAuthStore.getState().csrfToken
-  if (isNativeApp()) {
+  if (isNativeRuntime()) {
+    const { getNativeAccessToken, getNativeRefreshToken } = await import('@/lib/nativeAuth')
     config.headers['X-UseCognia-Client'] = 'native'
 
     const accessToken = await getNativeAccessToken()
@@ -60,7 +59,9 @@ function processQueue(error: unknown): void {
 
 function redirectToLogin(): void {
   useAuthStore.getState().logout()
-  void clearNativeTokens()
+  if (isNativeRuntime()) {
+    void import('@/lib/nativeAuth').then(({ clearNativeTokens }) => clearNativeTokens())
+  }
   const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '')
   window.location.href = `${base}/login`
 }
@@ -117,6 +118,7 @@ api.interceptors.response.use(
         useAuthStore.getState().setCsrfToken(data.csrfToken)
       }
       if (data.tokens) {
+        const { setNativeTokens } = await import('@/lib/nativeAuth')
         await setNativeTokens(data.tokens)
       }
       if (data.user) {

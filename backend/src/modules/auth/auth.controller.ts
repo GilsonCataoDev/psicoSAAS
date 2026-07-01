@@ -6,6 +6,7 @@ import { FileInterceptor } from '@nestjs/platform-express'
 import { Throttle, SkipThrottle } from '@nestjs/throttler'
 import type { CookieOptions, Request as Req, Response as Res } from 'express'
 import { AuthService } from './auth.service'
+import { BillingService } from '../billing/billing.service'
 import { JwtAuthGuard } from './guards/jwt-auth.guard'
 import { CsrfGuard }    from './guards/csrf.guard'
 import { RegisterDto }          from './dto/register.dto'
@@ -77,7 +78,10 @@ function authResponse(req: Req, result: { user: unknown; csrfToken: string; toke
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly billing: BillingService,
+  ) {}
 
   // ── Cadastro ────────────────────────────────────────────────────────────────
 
@@ -162,6 +166,19 @@ export class AuthController {
     return {
       ...req.user,
       csrfToken: this.auth.generateCsrfToken(req.user.id),
+    }
+  }
+
+  @Get('bootstrap')
+  @UseGuards(JwtAuthGuard)
+  @SkipThrottle()
+  async bootstrap(@Request() req: any) {
+    return {
+      user: {
+        ...req.user,
+        csrfToken: this.auth.generateCsrfToken(req.user.id),
+      },
+      subscription: await this.billing.getMine(req.user),
     }
   }
 

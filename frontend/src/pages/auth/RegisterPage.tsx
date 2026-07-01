@@ -7,7 +7,6 @@ import { ExternalLink, CheckCircle2, AlertCircle } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { useSubscriptionStore } from '@/store/subscription'
 import { api } from '@/lib/api'
-import { setNativeTokens } from '@/lib/nativeAuth'
 import { isValidCrpFormat, getCrpRegion, openCfpVerification, formatCrpInput } from '@/lib/crp'
 import toast from 'react-hot-toast'
 import { track, EVENTS } from '@/lib/analytics'
@@ -73,7 +72,10 @@ export default function RegisterPage() {
         termsVersion: TERMS_VERSION,
         ...(referralCode ? { referralCode } : {}),
       })
-      await setNativeTokens(res.data.tokens)
+      if (res.data.tokens) {
+        const { setNativeTokens } = await import('@/lib/nativeAuth')
+        await setNativeTokens(res.data.tokens)
+      }
       setAuth(res.data.user)
       if (res.data.csrfToken) setCsrfToken(res.data.csrfToken)
 

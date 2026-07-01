@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { Users, CalendarCheck, Wallet, Clock, ArrowRight, Video, MapPin, AlertTriangle, Sparkles, MessageSquareText, Ban, TimerReset, CheckCircle2, ShieldCheck, NotebookPen, AlertCircle, ExternalLink } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
@@ -9,11 +9,13 @@ import { StatusBadge } from '@/components/ui/Badge'
 import { formatCurrency, formatDateRelative, formatTime } from '@/lib/utils'
 import LightweightChart from '@/components/ui/LightweightChart'
 import { useAuthStore } from '@/store/auth'
-import { useDashboard, useSessions } from '@/hooks/useApi'
-import OnboardingWizard from '@/components/onboarding/OnboardingWizard'
+import { useDashboard } from '@/hooks/api/dashboard'
+import { useSessions } from '@/hooks/api/sessions'
 import ReferralCard from '@/components/features/referral/ReferralCard'
 import { useOnboardingStore } from '@/store/onboarding'
-import NewSessionModal from '@/components/features/sessions/NewSessionModal'
+
+const OnboardingWizard = lazy(() => import('@/components/onboarding/OnboardingWizard'))
+const NewSessionModal = lazy(() => import('@/components/features/sessions/NewSessionModal'))
 
 function greeting() {
   const h = new Date().getHours()
@@ -75,7 +77,11 @@ export default function DashboardPage() {
 
   return (
     <div className="animate-slide-up space-y-5">
-      {!onboardingCompleted && <OnboardingWizard />}
+      {!onboardingCompleted && (
+        <Suspense fallback={null}>
+          <OnboardingWizard />
+        </Suspense>
+      )}
 
       {/* ── Hero: saudação ──────────────────────────────────────────── */}
       <div className="hero-gradient rounded-2xl p-7 text-white shadow-soft">
@@ -491,11 +497,15 @@ export default function DashboardPage() {
         <ReferralCard />
       )}
 
-      <NewSessionModal
-        open={!!sessionDefaults}
-        onClose={() => setSessionDefaults(null)}
-        defaults={sessionDefaults ?? undefined}
-      />
+      {sessionDefaults && (
+        <Suspense fallback={null}>
+          <NewSessionModal
+            open
+            onClose={() => setSessionDefaults(null)}
+            defaults={sessionDefaults}
+          />
+        </Suspense>
+      )}
     </div>
   )
 }

@@ -6,7 +6,6 @@ import { z } from 'zod'
 import { Eye, EyeOff, LogIn, ShieldCheck } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
-import { setNativeTokens } from '@/lib/nativeAuth'
 import toast from 'react-hot-toast'
 import { track, EVENTS } from '@/lib/analytics'
 
@@ -37,7 +36,10 @@ export default function LoginPage() {
     try {
       const res = await api.post('/auth/login', { email: data.email, password: data.password })
       loginAccepted = true
-      await setNativeTokens(res.data.tokens)
+      if (res.data.tokens) {
+        const { setNativeTokens } = await import('@/lib/nativeAuth')
+        await setNativeTokens(res.data.tokens)
+      }
       setAuth(res.data.user)
       if (res.data.csrfToken) setCsrfToken(res.data.csrfToken)
       track(EVENTS.LOGIN)

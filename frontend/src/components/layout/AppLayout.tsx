@@ -8,7 +8,7 @@ import PWAInstallBanner from '@/components/ui/PWAInstallBanner'
 import { api, USE_MOCK, type AuthAxiosRequestConfig } from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 import { useSubscriptionStore } from '@/store/subscription'
-import { useFeedbackStatus } from '@/hooks/useApi'
+import { useFeedbackStatus } from '@/hooks/api/testimonial'
 
 const OnboardingTour = lazy(() => import('@/components/onboarding/OnboardingTour'))
 const FirstSessionCelebration = lazy(() => import('@/components/onboarding/FirstSessionCelebration'))
@@ -52,12 +52,14 @@ function daysUntil(date?: string | null) {
 }
 
 function useCsrfBoot() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const setCsrfToken = useAuthStore((s) => s.setCsrfToken)
   const setAuth = useAuthStore((s) => s.setAuth)
   const logout = useAuthStore((s) => s.logout)
   const setSubscription = useSubscriptionStore((s) => s.setSubscription)
   const resetSubscription = useSubscriptionStore((s) => s.resetSubscription)
-  const [booting, setBooting] = useState(true)
+  const isSubscriptionLoaded = useSubscriptionStore((s) => s.isLoaded)
+  const [booting, setBooting] = useState(() => !(isAuthenticated && isSubscriptionLoaded))
 
   useEffect(() => {
     if (USE_MOCK) {
@@ -66,16 +68,14 @@ function useCsrfBoot() {
       return
     }
 
-    Promise.all([
-      api.get('/auth/me'),
-      api.get('/billing/me'),
-    ])
-      .then(([authResponse, billingResponse]) => {
-        if (authResponse.data?.csrfToken) setCsrfToken(authResponse.data.csrfToken)
-        if (authResponse.data?.id) setAuth(authResponse.data)
+    api.get('/auth/bootstrap')
+      .then(({ data }) => {
+        const authUser = data?.user
+        if (authUser?.csrfToken) setCsrfToken(authUser.csrfToken)
+        if (authUser?.id) setAuth(authUser)
         setSubscription(
-          billingResponse.data?.status
-            ? billingResponse.data
+          data?.subscription?.status
+            ? data.subscription
             : { plan: 'free', planId: 'free', status: 'none' },
         )
       })
