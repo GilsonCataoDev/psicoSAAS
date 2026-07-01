@@ -409,7 +409,7 @@ export class BookingService {
     const appointment = await this.createSessionResources(saved, page.psychologistId)
     if (appointment) this.googleCalendar.syncAppointment(appointment).catch(err => this.logCalendarError('sync', appointment.id, err))
 
-    await this.notifications.sendBookingConfirmation(saved)
+    await this.notifications.sendBookingConfirmation(saved, page)
     await this.notifications.sendBookingCreatedToPsychologist(saved, page)
 
     return {
@@ -444,7 +444,11 @@ export class BookingService {
     const appointment = await this.createSessionResources(booking, booking.psychologistId)
     if (appointment) this.googleCalendar.syncAppointment(appointment).catch(err => this.logCalendarError('sync', appointment.id, err))
 
-    await this.notifications.sendBookingConfirmation(booking)
+    const page = await this.pages.findOne({
+      where: { psychologistId: booking.psychologistId },
+      relations: ['psychologist'],
+    })
+    await this.notifications.sendBookingConfirmation(booking, page)
     return {
       message: 'Sessao confirmada com sucesso!',
       booking: this.toCalendarBooking(booking),
@@ -496,7 +500,11 @@ export class BookingService {
     const appointment = await this.createSessionResources(booking, psychologistId)
     if (appointment) this.googleCalendar.syncAppointment(appointment).catch(err => this.logCalendarError('sync', appointment.id, err))
 
-    await this.notifications.sendBookingConfirmation(booking)
+    const page = await this.pages.findOne({
+      where: { psychologistId },
+      relations: ['psychologist'],
+    })
+    await this.notifications.sendBookingConfirmation(booking, page)
     return booking
   }
 

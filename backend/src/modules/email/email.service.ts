@@ -245,16 +245,27 @@ export class EmailService {
     })
   }
 
-  async sendBookingConfirmation(patientName: string, patientEmail: string, date: string, time: string, cancelUrl: string) {
+  async sendBookingConfirmation(
+    patientName: string,
+    patientEmail: string,
+    date: string,
+    time: string,
+    cancelUrl: string,
+    customMessage?: string | null,
+  ) {
+    const messageHtml = customMessage?.trim()
+      ? `<p style="color:#555;font-size:16px;line-height:1.6;white-space:pre-line">${this.escapeHtml(customMessage.trim())}</p>`
+      : `<p style="color:#555;font-size:16px;line-height:1.6">
+          Ola, ${patientName.split(' ')[0]}! Sua sessao para
+          <strong>${date}</strong> as <strong>${time}</strong> foi confirmada.
+        </p>`
+
     await this.send({
       to: patientEmail,
       subject: 'Sessão confirmada',
       html: this.wrap(`
         <h1 style="color:#2F7657;font-weight:300;font-size:24px">Sua sessão foi confirmada</h1>
-        <p style="color:#555;font-size:16px;line-height:1.6">
-          Olá, ${patientName.split(' ')[0]}! Sua sessão para
-          <strong>${date}</strong> às <strong>${time}</strong> foi confirmada.
-        </p>
+        ${messageHtml}
         <p style="color:#888;font-size:14px">
           Precisa cancelar? <a href="${cancelUrl}" style="color:#2F7657">Clique aqui</a> com pelo menos 24h de antecedência.
         </p>

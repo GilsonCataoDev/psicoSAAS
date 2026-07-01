@@ -734,16 +734,18 @@ export class NotificationsService {
     this.logger.log(`[Booking] Nova solicitação: ${booking.patientName} — ${booking.date} ${booking.time}`)
   }
 
-  async sendBookingConfirmation(booking: any): Promise<void> {
+  async sendBookingConfirmation(booking: any, page?: any): Promise<void> {
     const cancelUrl = this.getCancellationUrl(booking)
     const first = booking.patientName.split(' ')[0]
+    const customMessage = this.renderBookingConfirmationMessage(booking, page)
 
     // WhatsApp para o paciente
     if (booking.patientPhone) {
-      const msg =
-        `Ola, ${first}!\n\n` +
-        `Sua sessao foi confirmada para *${booking.date}* as *${String(booking.time).slice(0, 5)}*.\n\n` +
-        `Precisando cancelar: ${cancelUrl}\n\nNos vemos la.`
+      const msg = customMessage
+        ? `${customMessage}\n\nPrecisando cancelar: ${cancelUrl}`
+        : `Ola, ${first}!\n\n` +
+          `Sua sessao foi confirmada para *${booking.date}* as *${String(booking.time).slice(0, 5)}*.\n\n` +
+          `Precisando cancelar: ${cancelUrl}\n\nNos vemos la.`
       await this.sendWhatsApp(booking.patientPhone, msg, booking.psychologistId, {
         type: 'Confirmacao de agenda',
         patientName: booking.patientName,
@@ -758,10 +760,32 @@ export class NotificationsService {
         booking.date,
         booking.time,
         cancelUrl,
+        customMessage,
       )
     }
 
     this.logger.log(`[Booking] Confirmação enviada: ${booking.patientName}`)
+  }
+
+  private renderBookingConfirmationMessage(booking: any, page?: any): string | null {
+    const template = String(page?.confirmationMessage ?? '').trim()
+    if (!template) return null
+
+    const first = String(booking.patientName ?? '').split(' ')[0] ?? ''
+    const time = String(booking.time ?? '').slice(0, 5)
+    const modality = booking.modality === 'presencial'
+      ? 'presencial'
+      : booking.modality === 'online'
+        ? 'online'
+        : ''
+
+    return template
+      .replace(/{{\s*nome\s*}}/gi, String(booking.patientName ?? ''))
+      .replace(/{{\s*primeiro_nome\s*}}/gi, first)
+      .replace(/{{\s*data\s*}}/gi, String(booking.date ?? ''))
+      .replace(/{{\s*hora\s*}}/gi, time)
+      .replace(/{{\s*profissional\s*}}/gi, String(page?.psychologist?.name ?? page?.psychologistName ?? ''))
+      .replace(/{{\s*modalidade\s*}}/gi, modality)
   }
 
   async sendBookingCreatedToPsychologist(booking: any, page: any): Promise<void> {
