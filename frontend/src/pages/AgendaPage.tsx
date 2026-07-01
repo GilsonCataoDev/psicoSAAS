@@ -29,6 +29,7 @@ export default function AgendaPage() {
   const [appointmentToRemove, setAppointmentToRemove] = useState<any | null>(null)
   const [appointmentToEvolve, setAppointmentToEvolve] = useState<any | null>(null)
   const [deleteScope, setDeleteScope] = useState<'single' | 'future'>('single')
+  const [listDay, setListDay] = useState(new Date())
   const weekEnd = addDays(weekStart, DAYS_IN_WEEK - 1)
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
   const { data: appointments = [] } = useAppointments({
@@ -54,6 +55,14 @@ export default function AgendaPage() {
       byDateHour.set(hourKey, hourItems)
     }
 
+    for (const items of byDate.values()) {
+      items.sort((a, b) => String(a.time).localeCompare(String(b.time)))
+    }
+
+    for (const items of byDateHour.values()) {
+      items.sort((a, b) => String(a.time).localeCompare(String(b.time)))
+    }
+
     return {
       appointmentsByDate: byDate,
       appointmentsByDateHour: byDateHour,
@@ -72,6 +81,8 @@ export default function AgendaPage() {
   )
   const mobileDayKey = format(mobileDay, 'yyyy-MM-dd')
   const mobileAppointments = appointmentsByDate.get(mobileDayKey) ?? []
+  const listDayKey = format(listDay, 'yyyy-MM-dd')
+  const dayListAppointments = appointmentsByDate.get(listDayKey) ?? []
 
   useEffect(() => {
     if (searchParams.get('new') === '1') {
@@ -84,6 +95,13 @@ export default function AgendaPage() {
       setMobileDay(weekStart)
     }
   }, [mobileDays, mobileDay, weekStart])
+
+  useEffect(() => {
+    if (!days.some(day => isSameDay(day, listDay))) {
+      const todayInWeek = days.find(day => isToday(day))
+      setListDay(todayInWeek ?? weekStart)
+    }
+  }, [days, listDay, weekStart])
 
   async function removeAppointment() {
     if (!appointmentToRemove) return
@@ -182,6 +200,93 @@ export default function AgendaPage() {
             <span className="hidden sm:inline">Agendar</span>
           </button>
         </div>
+      </div>
+
+      {/* ── Desktop: lista do dia em ordem ─────────────────────────── */}
+      <div className="hidden lg:block card space-y-4">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <h2 className="section-title">Pacientes do dia</h2>
+            <p className="text-sm text-neutral-500 capitalize">
+              {format(listDay, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {days.map(day => {
+              const dayKey = format(day, 'yyyy-MM-dd')
+              const count = appointmentsByDate.get(dayKey)?.length ?? 0
+              const selected = isSameDay(day, listDay)
+              return (
+                <button
+                  key={dayKey}
+                  type="button"
+                  onClick={() => setListDay(day)}
+                  className={`min-w-[56px] rounded-xl border px-3 py-2 text-center transition-colors ${
+                    selected
+                      ? 'border-sage-500 bg-sage-500 text-white'
+                      : isToday(day)
+                      ? 'border-sage-200 bg-sage-50 text-sage-700 hover:bg-sage-100'
+                      : 'border-neutral-100 bg-white text-neutral-600 hover:bg-neutral-50'
+                  }`}
+                >
+                  <span className="block text-[10px] uppercase leading-none opacity-80">
+                    {format(day, 'EEE', { locale: ptBR })}
+                  </span>
+                  <span className="mt-1 block text-base font-semibold leading-none">{format(day, 'd')}</span>
+                  <span className="mt-1 block text-[10px] leading-none opacity-70">
+                    {count} {count === 1 ? 'sessao' : 'sessoes'}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {dayListAppointments.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-neutral-200 py-8 text-center text-sm text-neutral-400">
+            Nenhuma sessao neste dia.
+          </div>
+        ) : (
+          <div className="divide-y divide-neutral-100 overflow-hidden rounded-2xl border border-neutral-100">
+            {dayListAppointments.map(appt => (
+              <div key={appt.id} className="grid grid-cols-[72px_1fr_auto] items-center gap-3 bg-white px-4 py-3">
+                <div className="text-center">
+                  <p className="text-base font-bold text-neutral-800">{formatTime(appt.time)}</p>
+                  <p className="text-[11px] text-neutral-400">{appt.duration}min</p>
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-3">
+                    <Avatar name={appt.patient?.name ?? 'Paciente removido'} colorClass={appt.patient?.avatarColor} size="sm" />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-neutral-800">{appt.patient?.name ?? 'Paciente removido'}</p>
+                      <p className="mt-0.5 flex items-center gap-1 text-xs text-neutral-400">
+                        {appt.modality === 'online'
+                          ? <><Video className="h-3 w-3 text-mist-500" />Online</>
+                          : <><MapPin className="h-3 w-3 text-sage-500" />Presencial</>}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={appt.status} />
+                  {appt.patientId && (
+                    <Link to={`/prontuario/${appt.patientId}`} className="btn-secondary px-3 py-2 text-xs">
+                      Prontuario
+                    </Link>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => messageAppointment(appt)}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-100 text-neutral-400 hover:bg-sage-50 hover:text-sage-600"
+                    title="Enviar WhatsApp"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── Mobile: dias em scroll horizontal + lista ──────────────── */}
