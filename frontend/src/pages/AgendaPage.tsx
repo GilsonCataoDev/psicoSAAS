@@ -3,13 +3,20 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Plus, Video, MapPin, Trash2, MessageCircle, Pencil, CheckCircle2, XCircle, FileText, ExternalLink } from 'lucide-react'
 import {
   format, addDays, startOfWeek, eachDayOfInterval, addWeeks,
-  subWeeks, isSameDay, parseISO, isToday,
+  subWeeks, isSameDay, parseISO, isToday, getDay,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import Avatar from '@/components/ui/Avatar'
 import { StatusBadge } from '@/components/ui/Badge'
 import { formatTime } from '@/lib/utils'
-import { useAppointments, useDeleteAppointment, useDeleteAppointmentGroup, useUpdateAppointmentStatus } from '@/hooks/useApi'
+import {
+  useAppointments,
+  useAvailability,
+  useBlockedDates,
+  useDeleteAppointment,
+  useDeleteAppointmentGroup,
+  useUpdateAppointmentStatus,
+} from '@/hooks/useApi'
 import toast from 'react-hot-toast'
 import { openWhatsApp } from '@/lib/whatsapp'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
@@ -20,6 +27,42 @@ const NewSessionModal = lazy(() => import('@/components/features/sessions/NewSes
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 7) // 7h–19h
 const DAYS_IN_WEEK = 7
 const VIDEO_LINK_RE = /https?:\/\/[^\s)]+/i
+const FREE_APPOINTMENT_STATUSES = new Set(['cancelled', 'no_show'])
+const MIN_FREE_RANGE_MINUTES = 30
+
+function timeToMinutes(time?: string | null) {
+  const [hour, minute] = String(time ?? '').slice(0, 5).split(':').map(Number)
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null
+  return hour * 60 + minute
+}
+
+function minutesToTime(minutes: number) {
+  const hour = Math.floor(minutes / 60)
+  const minute = minutes % 60
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+}
+
+function roundUpMinutes(minutes: number, step = 15) {
+  return Math.ceil(minutes / step) * step
+}
+
+function mergeMinuteRanges(ranges: { start: number; end: number }[]) {
+  const sorted = ranges
+    .filter(range => range.end > range.start)
+    .sort((a, b) => a.start - b.start)
+  const merged: { start: number; end: number }[] = []
+
+  for (const range of sorted) {
+    const last = merged[merged.length - 1]
+    if (last && range.start <= last.end) {
+      last.end = Math.max(last.end, range.end)
+    } else {
+      merged.push({ ...range })
+    }
+  }
+
+  return merged
+}
 
 export default function AgendaPage() {
   const [searchParams] = useSearchParams()
@@ -36,6 +79,8 @@ export default function AgendaPage() {
     from: format(weekStart, 'yyyy-MM-dd'),
     to: format(weekEnd, 'yyyy-MM-dd'),
   })
+  const { data: availability = [] } = useAvailability()
+  const { data: blockedDates = [] } = useBlockedDates()
   const { appointmentsByDate, appointmentsByDateHour, visibleHours } = useMemo(() => {
     const byDate = new Map<string, typeof appointments>()
     const byDateHour = new Map<string, typeof appointments>()
@@ -83,6 +128,59 @@ export default function AgendaPage() {
   const mobileAppointments = appointmentsByDate.get(mobileDayKey) ?? []
   const listDayKey = format(listDay, 'yyyy-MM-dd')
   const dayListAppointments = appointmentsByDate.get(listDayKey) ?? []
+  const weeklyAvailabilitySummary = useMemo(() => {
+    const blocked = new Set(blockedDates.map(item => item.date))
+    const todayKey = format(new Date(), 'yyyy-MM-dd')
+    const now = new Date()
+    const nowMinutes = roundUpMinutes(now.getHours() * 60 + now.getMinutes())
+
+    return days.flatMap(day => {
+      const dateKey = format(day, 'yyyy-MM-dd')
+      if (blocked.has(dateKey)) return []
+
+      const daySlots = mergeMinuteRanges(availability
+        .filter(slot => slot.weekday === getDay(day))
+        .map(slot => {
+          const start = timeToMinutes(slot.startTime)
+          const end = timeToMinutes(slot.endTime)
+          if (start === null || end === null || end <= start) return null
+          return { start, end }
+        })
+        .filter((slot): slot is { start: number; end: number } => Boolean(slot)))
+
+      if (!daySlots.length) return []
+
+      const busyRanges = mergeMinuteRanges((appointmentsByDate.get(dateKey) ?? [])
+        .filter(appt => !FREE_APPOINTMENT_STATUSES.has(appt.status))
+        .map(appt => {
+          const start = timeToMinutes(appt.time)
+          if (start === null) return null
+          return { start, end: start + Number(appt.duration || 50) }
+        })
+        .filter((range): range is { start: number; end: number } => Boolean(range)))
+
+      const ranges: { start: string; end: string }[] = []
+
+      for (const slot of daySlots) {
+        let freeStart = dateKey === todayKey ? Math.max(slot.start, nowMinutes) : slot.start
+
+        for (const busy of busyRanges) {
+          if (busy.end <= freeStart || busy.start >= slot.end) continue
+          const freeEnd = Math.min(busy.start, slot.end)
+          if (freeEnd - freeStart >= MIN_FREE_RANGE_MINUTES) {
+            ranges.push({ start: minutesToTime(freeStart), end: minutesToTime(freeEnd) })
+          }
+          freeStart = Math.max(freeStart, busy.end)
+        }
+
+        if (slot.end - freeStart >= MIN_FREE_RANGE_MINUTES) {
+          ranges.push({ start: minutesToTime(freeStart), end: minutesToTime(slot.end) })
+        }
+      }
+
+      return ranges.length ? [{ day, dateKey, ranges }] : []
+    })
+  }, [appointmentsByDate, availability, blockedDates, days])
 
   useEffect(() => {
     if (searchParams.get('new') === '1') {
@@ -282,6 +380,58 @@ export default function AgendaPage() {
                   >
                     <MessageCircle className="h-4 w-4" />
                   </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="card space-y-4">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="section-title">Horarios disponiveis</h2>
+            <p className="text-sm text-neutral-500">
+              Dias desta semana com espaco livre para marcar alguem.
+            </p>
+          </div>
+          <span className="text-xs font-medium text-neutral-400">
+            {weeklyAvailabilitySummary.length} {weeklyAvailabilitySummary.length === 1 ? 'dia livre' : 'dias livres'}
+          </span>
+        </div>
+
+        {weeklyAvailabilitySummary.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-neutral-200 py-7 text-center text-sm text-neutral-400">
+            Nenhum horario livre nesta semana.
+          </div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {weeklyAvailabilitySummary.map(item => (
+              <div key={item.dateKey} className="rounded-2xl border border-neutral-100 bg-white p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold capitalize text-neutral-800">
+                      {format(item.day, 'EEEE', { locale: ptBR })}
+                    </p>
+                    <p className="text-xs text-neutral-400">
+                      {format(item.day, "dd 'de' MMMM", { locale: ptBR })}
+                    </p>
+                  </div>
+                  {isToday(item.day) && (
+                    <span className="rounded-full bg-sage-50 px-2 py-1 text-[10px] font-semibold uppercase text-sage-700">
+                      hoje
+                    </span>
+                  )}
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {item.ranges.map(range => (
+                    <span
+                      key={`${item.dateKey}-${range.start}-${range.end}`}
+                      className="rounded-lg bg-mist-50 px-2.5 py-1.5 text-xs font-semibold text-mist-700"
+                    >
+                      {range.start}-{range.end}
+                    </span>
+                  ))}
                 </div>
               </div>
             ))}
