@@ -408,6 +408,7 @@ export class BookingService {
 
     const appointment = await this.createSessionResources(saved, page.psychologistId)
     if (appointment) this.googleCalendar.syncAppointment(appointment).catch(err => this.logCalendarError('sync', appointment.id, err))
+    await this.maybeSendUpfrontCharge(saved, page, appointment)
 
     await this.notifications.sendBookingConfirmation(saved, page)
     await this.notifications.sendBookingCreatedToPsychologist(saved, page)
@@ -448,6 +449,7 @@ export class BookingService {
       where: { psychologistId: booking.psychologistId },
       relations: ['psychologist'],
     })
+    await this.maybeSendUpfrontCharge(booking, page, appointment)
     await this.notifications.sendBookingConfirmation(booking, page)
     return {
       message: 'Sessao confirmada com sucesso!',
@@ -504,6 +506,7 @@ export class BookingService {
       where: { psychologistId },
       relations: ['psychologist'],
     })
+    await this.maybeSendUpfrontCharge(booking, page, appointment)
     await this.notifications.sendBookingConfirmation(booking, page)
     return booking
   }
@@ -783,6 +786,44 @@ export class BookingService {
     ).catch(() => {})  // não derruba o fluxo se a coluna ainda não existir em prod
 
     return appointment
+  }
+
+  private async maybeSendUpfrontCharge(
+    booking: Booking,
+    page: BookingPage | null,
+    appointment: Appointment | null,
+  ): Promise<void> {
+    if (!appointment || !page?.requirePaymentUpfront) return
+
+    const amount = Number(booking.amount) || 0
+    if (amount <= 0) return
+
+    try {
+      const user = await this.users.findOneBy({ id: booking.psychologistId })
+      const prefs = (user?.preferences ?? {}) as Record<string, any>
+      if (prefs.autoCharge === false) return
+
+      const pixKey = String(prefs.pixKey ?? page.pixKey ?? '').trim()
+      if (!pixKey) return
+
+      const patient = appointment.patient ?? await this.patients.findOne({
+        where: { id: appointment.patientId, psychologistId: booking.psychologistId },
+      })
+      if (!patient) return
+
+      const result = await this.notifications.sendPaymentRequest(
+        patient,
+        amount,
+        pixKey,
+        typeof prefs.chargeTemplate === 'string' ? prefs.chargeTemplate : undefined,
+        Boolean(prefs.includeReceipt),
+      )
+      if (!result.sent) {
+        this.logger.warn(`Cobranca antecipada nao enviada para booking ${booking.id}: ${result.error ?? 'erro desconhecido'}`)
+      }
+    } catch (err: any) {
+      this.logger.warn(`Falha ao enviar cobranca antecipada para booking ${booking.id}: ${err?.message ?? 'erro desconhecido'}`)
+    }
   }
 
   private getStepMinutes(page: BookingPage, modality?: 'presencial' | 'online'): number {
