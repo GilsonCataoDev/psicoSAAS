@@ -103,6 +103,11 @@ export default function BookingPage() {
   )
   const { data: slots = [], isFetching: slotsLoading } = usePublicBookingSlots(slug ?? '', selectedDate, selectedModality)
   const createBooking = useCreateBooking(slug ?? '')
+  const availableDateSet = new Set(availableDates)
+  const availableDatesInMonth = availableDates
+    .map(date => parseISO(date))
+    .filter(date => format(date, 'yyyy-MM') === monthKey)
+    .sort((a, b) => a.getTime() - b.getTime())
 
   useEffect(() => { track(EVENTS.BOOKING_PAGE_VIEWED) }, [])
 
@@ -158,7 +163,7 @@ export default function BookingPage() {
     const min = addDays(today, page?.minAdvanceDays ?? 0)
     const max = addDays(today, page?.maxAdvanceDays ?? 60)
     const dateStr = format(date, 'yyyy-MM-dd')
-    return isBefore(date, min) || isBefore(max, date) || !availableDates.includes(dateStr)
+    return isBefore(date, min) || isBefore(max, date) || !availableDateSet.has(dateStr)
   }
 
   // ─── Envio ───────────────────────────────────────────────────────────────────
@@ -440,6 +445,27 @@ export default function BookingPage() {
                     Buscando datas disponiveis...
                   </div>
                 )}
+                {!datesLoading && (
+                  <div className="mb-4 rounded-2xl border border-sage-100 bg-sage-50 px-4 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-medium text-sage-800">
+                        {availableDatesInMonth.length > 0
+                          ? `${availableDatesInMonth.length} ${availableDatesInMonth.length === 1 ? 'data disponivel' : 'datas disponiveis'} neste mes`
+                          : 'Nenhuma data disponivel neste mes'}
+                      </p>
+                      <div className="flex items-center gap-3 text-xs text-sage-700">
+                        <span className="inline-flex items-center gap-1">
+                          <span className="h-2 w-2 rounded-full bg-sage-500" />
+                          Disponivel
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-neutral-400">
+                          <span className="h-2 w-2 rounded-full bg-neutral-200" />
+                          Indisponivel
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-7 mb-2">
                   {['D','S','T','Q','Q','S','S'].map((d, i) => (
@@ -453,22 +479,60 @@ export default function BookingPage() {
                     const disabled = isDisabled(day)
                     const today = isToday(day)
                     const dateStr = format(day, 'yyyy-MM-dd')
+                    const available = availableDateSet.has(dateStr)
                     const selected = selectedDate === dateStr
                     return (
                       <button key={dateStr} disabled={disabled}
                         onClick={() => selectDate(day)}
                         className={cn(
-                          'aspect-square rounded-xl text-sm font-medium transition-all',
+                          'relative aspect-square rounded-xl text-sm font-medium transition-all',
                           disabled ? 'text-neutral-200 cursor-not-allowed' :
                           selected ? 'bg-sage-500 text-white shadow-sm' :
-                          today ? 'bg-sage-50 text-sage-700 hover:bg-sage-100' :
-                          'text-neutral-700 hover:bg-sage-50'
+                          available ? 'bg-sage-50 text-sage-800 ring-1 ring-sage-200 hover:bg-sage-100 hover:ring-sage-300' :
+                          today ? 'bg-neutral-50 text-neutral-500 hover:bg-neutral-100' :
+                          'text-neutral-700 hover:bg-neutral-50'
                         )}>
                         {format(day, 'd')}
+                        {available && !disabled && (
+                          <span className={cn(
+                            'absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full',
+                            selected ? 'bg-white' : 'bg-sage-500',
+                          )} />
+                        )}
                       </button>
                     )
                   })}
                 </div>
+
+                {!datesLoading && availableDatesInMonth.length > 0 && (
+                  <div className="mt-6 border-t border-neutral-100 pt-4">
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-400">
+                      Proximas datas disponiveis
+                    </p>
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      {availableDatesInMonth.slice(0, 8).map(date => {
+                        const dateStr = format(date, 'yyyy-MM-dd')
+                        const selected = selectedDate === dateStr
+                        return (
+                          <button
+                            key={dateStr}
+                            type="button"
+                            onClick={() => selectDate(date)}
+                            className={cn(
+                              'flex-none rounded-xl border px-3 py-2 text-left text-sm transition-colors',
+                              selected
+                                ? 'border-sage-500 bg-sage-500 text-white'
+                                : 'border-sage-200 bg-white text-sage-800 hover:bg-sage-50',
+                            )}
+                          >
+                            <span className="block text-xs opacity-75">{format(date, 'EEE', { locale: ptBR })}</span>
+                            <span className="font-semibold">{format(date, 'dd/MM')}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
