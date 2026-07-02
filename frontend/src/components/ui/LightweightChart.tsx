@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { useId, useLayoutEffect, useRef, useState } from 'react'
 
 type ChartDatum = {
   label: string
@@ -16,9 +16,9 @@ type LightweightChartProps = {
   formatValue?: (value: number) => string
 }
 
-const VIEWBOX_WIDTH = 640
+const FALLBACK_WIDTH = 320
 
-function buildPoints(data: ChartDatum[], height: number, min?: number, max?: number) {
+function buildPoints(data: ChartDatum[], width: number, height: number, min?: number, max?: number) {
   const values = data.map(item => Number(item.value) || 0)
   const minValue = min ?? Math.min(0, ...values)
   const maxValue = max ?? Math.max(1, ...values)
@@ -27,11 +27,11 @@ function buildPoints(data: ChartDatum[], height: number, min?: number, max?: num
   const right = 12
   const top = 8
   const bottom = 24
-  const width = VIEWBOX_WIDTH - left - right
+  const plotWidth = width - left - right
   const chartHeight = height - top - bottom
 
   return data.map((item, index) => {
-    const x = left + (data.length === 1 ? width / 2 : (index / (data.length - 1)) * width)
+    const x = left + (data.length === 1 ? plotWidth / 2 : (index / (data.length - 1)) * plotWidth)
     const y = top + (1 - ((Number(item.value) || 0) - minValue) / range) * chartHeight
     return { ...item, x, y }
   })
@@ -49,6 +49,32 @@ function smoothPath(points: ReturnType<typeof buildPoints>) {
   }, '')
 }
 
+/** Mede a largura real do container em pixels CSS, evitando esticar o viewBox
+ * (preserveAspectRatio="none" com largura fixa distorce texto/traços). */
+function useContainerWidth(): [React.RefObject<HTMLDivElement>, number] {
+  const ref = useRef<HTMLDivElement>(null)
+  const [width, setWidth] = useState(FALLBACK_WIDTH)
+
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+
+    // Medição síncrona imediata — não depende do primeiro callback do
+    // ResizeObserver, que pode não disparar em abas em background/inativas.
+    const initial = el.getBoundingClientRect().width
+    if (initial > 0) setWidth(initial)
+
+    const observer = new ResizeObserver(entries => {
+      const measured = entries[0]?.contentRect.width
+      if (measured && measured > 0) setWidth(measured)
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  return [ref, width]
+}
+
 export default function LightweightChart({
   data,
   height = 140,
@@ -60,8 +86,9 @@ export default function LightweightChart({
   formatValue = value => String(value),
 }: LightweightChartProps) {
   const gradientId = useId().replace(/:/g, '')
+  const [containerRef, width] = useContainerWidth()
   const safeData = data.length > 0 ? data : [{ label: '', value: 0 }]
-  const points = buildPoints(safeData, height, min, max)
+  const points = buildPoints(safeData, width, height, min, max)
   const linePath = smoothPath(points)
   const areaPath = points.length
     ? `${linePath} L ${points[points.length - 1].x} ${height - 24} L ${points[0].x} ${height - 24} Z`
@@ -71,50 +98,51 @@ export default function LightweightChart({
   const minValue = min ?? Math.min(0, ...values)
 
   return (
-    <svg
-      viewBox={`0 0 ${VIEWBOX_WIDTH} ${height}`}
-      width="100%"
-      height="100%"
-      role="img"
-      aria-label="Grafico de tendencia"
-      preserveAspectRatio="none"
-    >
-      <defs>
-        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="5%" stopColor={color} stopOpacity={fillOpacity} />
-          <stop offset="95%" stopColor={color} stopOpacity="0" />
-        </linearGradient>
-      </defs>
+    <div ref={containerRef} style={{ width: '100%', height: '100%' }}>
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        width="100%"
+        height="100%"
+        role="img"
+        aria-label="Grafico de tendencia"
+      >
+        <defs>
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor={color} stopOpacity={fillOpacity} />
+            <stop offset="95%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+        </defs>
 
-      {showYAxis && [maxValue, (maxValue + minValue) / 2, minValue].map((tick, index) => (
-        <g key={`${tick}-${index}`}>
-          <line
-            x1="36"
-            x2={VIEWBOX_WIDTH - 12}
-            y1={8 + index * ((height - 32) / 2)}
-            y2={8 + index * ((height - 32) / 2)}
-            stroke="#f0f0f0"
-            strokeWidth="1"
-          />
-          <text x="0" y={12 + index * ((height - 32) / 2)} fill="#a3a3a3" fontSize="11">
-            {formatValue(tick)}
-          </text>
-        </g>
-      ))}
+        {showYAxis && [maxValue, (maxValue + minValue) / 2, minValue].map((tick, index) => (
+          <g key={`${tick}-${index}`}>
+            <line
+              x1="36"
+              x2={width - 12}
+              y1={8 + index * ((height - 32) / 2)}
+              y2={8 + index * ((height - 32) / 2)}
+              stroke="#f0f0f0"
+              strokeWidth="1"
+            />
+            <text x="0" y={12 + index * ((height - 32) / 2)} fill="#a3a3a3" fontSize="11">
+              {formatValue(tick)}
+            </text>
+          </g>
+        ))}
 
-      <path d={areaPath} fill={`url(#${gradientId})`} />
-      <path d={linePath} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+        <path d={areaPath} fill={`url(#${gradientId})`} />
+        <path d={linePath} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
 
-      {points.map((point, index) => (
-        <g key={`${point.label}-${index}`}>
-          <circle cx={point.x} cy={point.y} r="3" fill={color}>
-            <title>{`${point.label}: ${formatValue(point.value)}`}</title>
-          </circle>
-          <text x={point.x} y={height - 7} textAnchor="middle" fill="#a3a3a3" fontSize="11">
-            {point.label}
-          </text>
-        </g>
-      ))}
-    </svg>
+        {points.map((point, index) => (
+          <g key={`${point.label}-${index}`}>
+            <circle cx={point.x} cy={point.y} r="3" fill={color}>
+              <title>{`${point.label}: ${formatValue(point.value)}`}</title>
+            </circle>
+            <text x={point.x} y={height - 7} textAnchor="middle" fill="#a3a3a3" fontSize="11">
+              {point.label}
+            </text>
+          </g>
+        ))}
+      </svg>
+    </div>
   )
 }
