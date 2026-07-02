@@ -3,7 +3,7 @@ import {
   ArrowLeft, Phone, Mail, Calendar, Plus, Lock,
   ClipboardList, MessageCircle, CheckCircle2, Save,
   CalendarDays, Banknote, Clock, FileText, Pencil,
-  BookOpenText, BarChart3, Copy,
+  BookOpenText, BarChart3, Copy, Paperclip, Download, Trash2,
 } from 'lucide-react'
 import { SCALE_CONFIGS, getCriticalResponses, interpretScaleResult } from '@/lib/scale-scoring'
 import Avatar from '@/components/ui/Avatar'
@@ -14,6 +14,8 @@ import {
   usePatient, useSessions, useFinancial,
   useMarkFinancialPaid, useSendCharge, useUpdatePatient,
   useInstrumentAssignments, useUpdateInstrumentAnswers, useCreatePatientPortalLink, type InstrumentAssignment,
+  usePatientAttachments, useUploadPatientAttachment, useDeletePatientAttachment,
+  downloadPatientAttachment, type PatientAttachment,
 } from '@/hooks/useApi'
 import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 import Modal from '@/components/ui/Modal'
@@ -51,7 +53,50 @@ export default function PatientDetailPage() {
   const { data: instrumentAssignments = [] } = useInstrumentAssignments(id)
   const updateInstrumentAnswers = useUpdateInstrumentAnswers()
   const createPortalLink = useCreatePatientPortalLink()
+  const { data: attachments = [] } = usePatientAttachments(id)
+  const uploadAttachment = useUploadPatientAttachment(id)
+  const deleteAttachment = useDeletePatientAttachment(id)
+  const [downloadingAttachmentId, setDownloadingAttachmentId] = useState<string | null>(null)
   const [note, setNote] = useState('')
+
+  async function handleAttachmentUpload(file?: File) {
+    if (!file) return
+    if (!['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'].includes(file.type)) {
+      toast.error('Envie um arquivo PDF, JPG ou PNG.')
+      return
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('O arquivo deve ter no máximo 10 MB.')
+      return
+    }
+    try {
+      await uploadAttachment.mutateAsync(file)
+      toast.success('Documento anexado ao prontuário')
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? 'Não foi possível anexar o documento.')
+    }
+  }
+
+  async function handleAttachmentDownload(attachment: PatientAttachment) {
+    setDownloadingAttachmentId(attachment.id)
+    try {
+      await downloadPatientAttachment(id!, attachment)
+    } catch {
+      toast.error('Não foi possível baixar o documento.')
+    } finally {
+      setDownloadingAttachmentId(null)
+    }
+  }
+
+  async function handleAttachmentDelete(attachment: PatientAttachment) {
+    if (!window.confirm(`Excluir "${attachment.filename}"? Essa ação não pode ser desfeita.`)) return
+    try {
+      await deleteAttachment.mutateAsync(attachment.id)
+      toast.success('Documento excluído')
+    } catch {
+      toast.error('Não foi possível excluir o documento.')
+    }
+  }
   const [tab, setTab] = useState<'record' | 'timeline' | 'responses' | 'notes' | 'financial'>('record')
   const [showSessionModal, setShowSessionModal] = useState(false)
   const [editingResponse, setEditingResponse] = useState<InstrumentAssignment | null>(null)
@@ -665,6 +710,74 @@ export default function PatientDetailPage() {
                         {session.nextSteps}
                       </p>
                     )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ── Documentos anexados ─────────────────────────────────── */}
+          <div className="card">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Paperclip className="h-4 w-4 text-sage-600" />
+                  <h2 className="section-title mb-0">Documentos</h2>
+                </div>
+                <p className="mt-1 text-sm text-neutral-400">
+                  Material anterior de evolução, laudos e outros documentos deste paciente. PDF, JPG ou PNG até 10 MB.
+                </p>
+              </div>
+              <label className={`btn-secondary shrink-0 cursor-pointer text-sm ${uploadAttachment.isPending ? 'pointer-events-none opacity-60' : ''}`}>
+                {uploadAttachment.isPending ? 'Enviando...' : 'Anexar arquivo'}
+                <input
+                  type="file"
+                  accept="application/pdf,image/jpeg,image/png"
+                  className="hidden"
+                  disabled={uploadAttachment.isPending}
+                  onChange={event => {
+                    handleAttachmentUpload(event.target.files?.[0])
+                    event.target.value = ''
+                  }}
+                />
+              </label>
+            </div>
+
+            {attachments.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-8 text-center">
+                <Paperclip className="mx-auto h-8 w-8 text-neutral-300" />
+                <p className="mt-3 font-medium text-neutral-600">Nenhum documento anexado</p>
+                <p className="mt-1 text-sm text-neutral-400">Anexe PDFs de evoluções antigas para concentrar o histórico aqui.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-neutral-100">
+                {attachments.map(attachment => (
+                  <div key={attachment.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-neutral-700">{attachment.filename}</p>
+                      <p className="text-xs text-neutral-400">
+                        {(attachment.size / 1024 / 1024) >= 1
+                          ? `${(attachment.size / 1024 / 1024).toFixed(1)} MB`
+                          : `${Math.max(1, Math.round(attachment.size / 1024))} KB`}
+                        {' · '}{formatDate(attachment.createdAt)}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <button
+                        onClick={() => handleAttachmentDownload(attachment)}
+                        disabled={downloadingAttachmentId === attachment.id}
+                        className="rounded-lg p-2 text-neutral-400 transition-colors hover:bg-sage-50 hover:text-sage-600 disabled:opacity-50"
+                        title="Baixar">
+                        <Download className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleAttachmentDelete(attachment)}
+                        disabled={deleteAttachment.isPending}
+                        className="rounded-lg p-2 text-neutral-400 transition-colors hover:bg-rose-50 hover:text-rose-500 disabled:opacity-50"
+                        title="Excluir">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

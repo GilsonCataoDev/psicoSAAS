@@ -1,6 +1,7 @@
 // Barrel re-export — todos os hooks estão organizados por domínio em hooks/api/
 export * from './api/auth'
 export * from './api/patients'
+export * from './api/attachments'
 export * from './api/appointments'
 export * from './api/sessions'
 export * from './api/financial'
