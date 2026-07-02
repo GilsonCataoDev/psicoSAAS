@@ -145,6 +145,10 @@ export class AnalyticsService {
       ),
 
       // ── Receita do mês ──────────────────────────────────────────────────────
+      // paidAt é armazenado como ISO datetime (ex: '2026-07-31T23:00:00.000Z').
+      // BETWEEN com string de data ('2026-07-31') excluiria pagamentos do último dia
+      // pois '2026-07-31T...' > '2026-07-31' lexicograficamente.
+      // Usar >= start e < início do próximo mês garante cobertura total.
       safe('monthRevenue', log, () =>
         this.financial
           .createQueryBuilder('f')
@@ -152,7 +156,10 @@ export class AnalyticsService {
           .where('f.psychologistId = :userId', { userId })
           .andWhere('f.type = :type', { type: 'income' })
           .andWhere('f.status = :status', { status: 'paid' })
-          .andWhere('f.paidAt BETWEEN :start AND :end', { start: monthStart, end: monthEnd })
+          .andWhere('f.paidAt >= :start AND f.paidAt < :nextStart', {
+            start: monthStart,
+            nextStart: format(startOfMonth(subMonths(now, -1)), 'yyyy-MM-dd'),
+          })
           .getRawOne(),
         null,
       ),
@@ -161,17 +168,17 @@ export class AnalyticsService {
       safe('revenueChart', log, () =>
         Promise.all(
           Array.from({ length: 6 }, (_, i) => {
-            const d      = subMonths(now, 5 - i)
-            const mStart = format(startOfMonth(d), 'yyyy-MM-dd')
-            const mEnd   = format(endOfMonth(d), 'yyyy-MM-dd')
-            const label  = PT_MONTHS[d.getMonth()]
+            const d          = subMonths(now, 5 - i)
+            const mStart     = format(startOfMonth(d), 'yyyy-MM-dd')
+            const mNextStart = format(startOfMonth(subMonths(d, -1)), 'yyyy-MM-dd')
+            const label      = PT_MONTHS[d.getMonth()]
             return this.financial
               .createQueryBuilder('f')
               .select('SUM(f.amount)', 'total')
               .where('f.psychologistId = :userId', { userId })
               .andWhere('f.type = :type', { type: 'income' })
               .andWhere('f.status = :status', { status: 'paid' })
-              .andWhere('f.paidAt BETWEEN :start AND :end', { start: mStart, end: mEnd })
+              .andWhere('f.paidAt >= :start AND f.paidAt < :nextStart', { start: mStart, nextStart: mNextStart })
               .getRawOne()
               .then(r => ({ mes: label, valor: Number(r?.total ?? 0) }))
           }),
