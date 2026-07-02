@@ -143,7 +143,7 @@ const queryClient = new QueryClient({
 useAuthStore.subscribe((state, previousState) => {
   if (state.user?.id !== previousState.user?.id || state.isAuthenticated !== previousState.isAuthenticated) {
     queryClient.clear()
-    useSubscriptionStore.getState().resetSubscription()
+    useSubscriptionStore.getState().invalidateSubscription()
   }
 })
 

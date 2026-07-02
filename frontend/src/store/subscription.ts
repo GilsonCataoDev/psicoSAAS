@@ -105,6 +105,7 @@ interface SubscriptionState {
   setSubscription: (s: Subscription) => void
   setSubscriptionStatus: (status: SubscriptionStatus) => void
   resetSubscription: () => void
+  invalidateSubscription: () => void
 }
 
 const emptySubscription: Subscription = {
@@ -131,13 +132,20 @@ export const useSubscriptionStore = create<SubscriptionState>()(
         set((state) => ({ subscription: { ...state.subscription, status }, isLoaded: true })),
 
       resetSubscription: () => set({ subscription: emptySubscription, isLoaded: true }),
+
+      // Usado ao trocar de identidade (login/logout/impersonation): limpa o
+      // cache SEM marcar como "carregado" — isLoaded:true aqui faria as rotas
+      // protegidas confiarem no status vazio e redirecionar para /planos antes
+      // do /auth/bootstrap real responder.
+      invalidateSubscription: () => set({ subscription: emptySubscription, isLoaded: false }),
     }),
     {
       name: 'usecognia-subscription',
+      // isLoaded NUNCA vem do rehydrate — só vira true após setSubscription real
+      // (via /auth/bootstrap). Caso contrário, o valor em cache local (possivelmente
+      // desatualizado ou o default 'none') é tratado como definitivo e o usuário
+      // é redirecionado para /planos antes da resposta real do servidor chegar.
       partialize: (state) => ({ subscription: state.subscription }),
-      onRehydrateStorage: () => (state) => {
-        if (state) state.isLoaded = true
-      },
     },
   ),
 )
