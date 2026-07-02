@@ -3,7 +3,7 @@ import {
   ArrowLeft, Phone, Mail, Calendar, Plus, Lock,
   ClipboardList, MessageCircle, CheckCircle2, Save,
   CalendarDays, Banknote, Clock, FileText, Pencil,
-  BookOpenText, BarChart3, Copy, Paperclip, Download, Trash2,
+  BookOpenText, BarChart3, Copy, Paperclip, Download, Trash2, Eye,
 } from 'lucide-react'
 import { SCALE_CONFIGS, getCriticalResponses, interpretScaleResult } from '@/lib/scale-scoring'
 import Avatar from '@/components/ui/Avatar'
@@ -15,7 +15,7 @@ import {
   useMarkFinancialPaid, useSendCharge, useUpdatePatient,
   useInstrumentAssignments, useUpdateInstrumentAnswers, useCreatePatientPortalLink, type InstrumentAssignment,
   usePatientAttachments, useUploadPatientAttachment, useDeletePatientAttachment,
-  downloadPatientAttachment, type PatientAttachment,
+  downloadPatientAttachment, previewPatientAttachment, type PatientAttachment,
 } from '@/hooks/useApi'
 import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 import Modal from '@/components/ui/Modal'
@@ -57,6 +57,9 @@ export default function PatientDetailPage() {
   const uploadAttachment = useUploadPatientAttachment(id)
   const deleteAttachment = useDeletePatientAttachment(id)
   const [downloadingAttachmentId, setDownloadingAttachmentId] = useState<string | null>(null)
+  const [previewAttachment, setPreviewAttachment] = useState<PatientAttachment | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
   const [note, setNote] = useState('')
 
   async function handleAttachmentUpload(file?: File) {
@@ -96,6 +99,26 @@ export default function PatientDetailPage() {
     } catch {
       toast.error('Não foi possível excluir o documento.')
     }
+  }
+
+  async function handleAttachmentPreview(attachment: PatientAttachment) {
+    setPreviewAttachment(attachment)
+    setPreviewLoading(true)
+    try {
+      const url = await previewPatientAttachment(id!, attachment)
+      setPreviewUrl(url)
+    } catch {
+      toast.error('Não foi possível abrir o documento.')
+      setPreviewAttachment(null)
+    } finally {
+      setPreviewLoading(false)
+    }
+  }
+
+  function closeAttachmentPreview() {
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    setPreviewUrl(null)
+    setPreviewAttachment(null)
   }
   const [tab, setTab] = useState<'record' | 'timeline' | 'responses' | 'notes' | 'financial'>('record')
   const [showSessionModal, setShowSessionModal] = useState(false)
@@ -763,6 +786,14 @@ export default function PatientDetailPage() {
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
+                      {['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'].includes(attachment.mimeType) && (
+                        <button
+                          onClick={() => handleAttachmentPreview(attachment)}
+                          className="rounded-lg p-2 text-neutral-400 transition-colors hover:bg-sage-50 hover:text-sage-600"
+                          title="Visualizar">
+                          <Eye className="h-4 w-4" />
+                        </button>
+                      )}
                       <button
                         onClick={() => handleAttachmentDownload(attachment)}
                         disabled={downloadingAttachmentId === attachment.id}
@@ -1020,6 +1051,29 @@ export default function PatientDetailPage() {
         onClose={() => setShowSessionModal(false)}
         defaultPatientId={patient.id}
       />
+
+      <Modal
+        open={!!previewAttachment}
+        onClose={closeAttachmentPreview}
+        title={previewAttachment?.filename ?? 'Documento'}
+        size="lg">
+        {previewLoading ? (
+          <div className="flex h-[60vh] items-center justify-center text-sm text-neutral-400">Carregando...</div>
+        ) : previewUrl && previewAttachment ? (
+          previewAttachment.mimeType === 'application/pdf' ? (
+            <iframe src={previewUrl} title={previewAttachment.filename} className="h-[75vh] w-full rounded-xl border border-neutral-100" />
+          ) : (
+            <img src={previewUrl} alt={previewAttachment.filename} className="max-h-[75vh] w-full rounded-xl object-contain" />
+          )
+        ) : null}
+        {previewAttachment && (
+          <div className="mt-4 flex justify-end">
+            <button onClick={() => handleAttachmentDownload(previewAttachment)} className="btn-secondary text-sm">
+              <Download className="mr-1.5 inline h-4 w-4" /> Baixar
+            </button>
+          </div>
+        )}
+      </Modal>
 
       <Modal open={!!editingResponse} onClose={() => setEditingResponse(null)} title={editingResponse?.title ?? 'Respostas'} size="lg">
         {criticalResponses(editingResponse).length > 0 && (

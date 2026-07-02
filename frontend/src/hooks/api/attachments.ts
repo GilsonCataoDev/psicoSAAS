@@ -40,15 +40,26 @@ export function useDeletePatientAttachment(patientId?: string) {
   })
 }
 
-export async function downloadPatientAttachment(patientId: string, attachment: PatientAttachment) {
+async function fetchPatientAttachmentBlob(patientId: string, attachmentId: string): Promise<Blob> {
   const response = await api.get(
-    `/patients/${patientId}/attachments/${attachment.id}/download`,
+    `/patients/${patientId}/attachments/${attachmentId}/download`,
     { responseType: 'blob' },
   )
-  const url = URL.createObjectURL(response.data)
+  return response.data
+}
+
+export async function downloadPatientAttachment(patientId: string, attachment: PatientAttachment) {
+  const blob = await fetchPatientAttachmentBlob(patientId, attachment.id)
+  const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
   link.download = attachment.filename
   link.click()
   URL.revokeObjectURL(url)
+}
+
+/** Retorna uma object URL para exibir o documento inline. Chame URL.revokeObjectURL(url) ao fechar o preview. */
+export async function previewPatientAttachment(patientId: string, attachment: PatientAttachment): Promise<string> {
+  const blob = await fetchPatientAttachmentBlob(patientId, attachment.id)
+  return URL.createObjectURL(blob)
 }
