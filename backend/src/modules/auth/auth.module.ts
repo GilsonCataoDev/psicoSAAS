@@ -11,6 +11,7 @@ import { RefreshToken }    from './entities/refresh-token.entity'
 import { LoginAttempt }    from './entities/login-attempt.entity'
 import { ReferralModule }  from '../referral/referral.module'
 import { BillingModule }   from '../billing/billing.module'
+import { AuditModule }     from '../audit/audit.module'
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { BillingModule }   from '../billing/billing.module'
     }),
     forwardRef(() => ReferralModule),
     BillingModule,
+    AuditModule,
   ],
   controllers: [AuthController],
   providers:   [AuthService, JwtStrategy],

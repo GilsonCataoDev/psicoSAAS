@@ -18,6 +18,8 @@ export interface User {
   onboardingStep?: number
   isAdmin?: boolean
   preferences?: Record<string, any>
+  impersonatedBy?: string
+  impersonatedByEmail?: string
 }
 
 function toPersistedUser(user: User | null): User | null {

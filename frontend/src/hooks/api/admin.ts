@@ -114,6 +114,13 @@ export function useAdminHealthScores() {
   })
 }
 
+export function useImpersonateUser() {
+  return useMutation({
+    mutationFn: (userId: string) =>
+      api.post(`/auth/impersonate/${userId}`).then(r => r.data as { user: any; csrfToken: string }),
+  })
+}
+
 export function useCleanupTestUsers() {
   const qc = useQueryClient()
   return useMutation({

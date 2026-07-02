@@ -1,6 +1,6 @@
 import {
   BadRequestException, Body, Controller, Delete, Get, HttpCode, HttpStatus,
-  Patch, Post, Query, Request, Response, UploadedFile, UseGuards, UseInterceptors,
+  Param, Patch, Post, Query, Request, Response, UploadedFile, UseGuards, UseInterceptors,
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { Throttle, SkipThrottle } from '@nestjs/throttler'
@@ -9,6 +9,8 @@ import { AuthService } from './auth.service'
 import { BillingService } from '../billing/billing.service'
 import { JwtAuthGuard } from './guards/jwt-auth.guard'
 import { CsrfGuard }    from './guards/csrf.guard'
+import { AdminGuard } from '../../common/guards/admin.guard'
+import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
 import { RegisterDto }          from './dto/register.dto'
 import { LoginDto }             from './dto/login.dto'
 import { UpdateProfileDto }     from './dto/update-profile.dto'
@@ -153,6 +155,28 @@ export class AuthController {
     return { message: 'Sessão encerrada com segurança 🔒' }
   }
 
+  // ── Impersonação (admin "ver como") ─────────────────────────────────────────
+
+  /**
+   * Emite um access token de curta duração para o usuário alvo, SEM tocar no
+   * refresh token do admin. Isso garante que a sessão original do admin
+   * continua íntegra: ao expirar (15 min) ou ao chamar /auth/refresh
+   * explicitamente, o admin volta automaticamente para a própria conta.
+   */
+  @Post('impersonate/:userId')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, CsrfGuard, AdminGuard)
+  @Throttle({ short: { limit: 10, ttl: 60000 } })
+  async impersonate(
+    @Param('userId') userId: string,
+    @Request() req: any,
+    @Response({ passthrough: true }) res: Res,
+  ) {
+    const result = await this.auth.impersonate({ id: req.user.id, email: req.user.email }, userId, getIp(req))
+    res.cookie(ACCESS_COOKIE, result.accessToken, accessCookieOpts())
+    return { user: result.user, csrfToken: result.csrfToken }
+  }
+
   // ── Perfil autenticado ──────────────────────────────────────────────────────
 
   /**
@@ -183,14 +207,14 @@ export class AuthController {
   }
 
   @Patch('profile')
-  @UseGuards(JwtAuthGuard, CsrfGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
   @SkipThrottle()
   updateProfile(@Request() req: any, @Body() dto: UpdateProfileDto) {
     return this.auth.updateProfile(req.user.id, dto)
   }
 
   @Post('avatar')
-  @UseGuards(JwtAuthGuard, CsrfGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
   @UseInterceptors(FileInterceptor('avatar', {
     limits: {
       fileSize: 1024 * 1024,
@@ -228,14 +252,14 @@ export class AuthController {
   }
 
   @Patch('password')
-  @UseGuards(JwtAuthGuard, CsrfGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
   changePassword(@Request() req: any, @Body() dto: ChangePasswordDto) {
     return this.auth.changePassword(req.user.id, dto.currentPassword, dto.newPassword)
   }
 
   @Delete('account')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard, CsrfGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
   async deleteAccount(
     @Request() req: any,
     @Body() dto: DeleteAccountDto,

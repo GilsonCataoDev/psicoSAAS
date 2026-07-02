@@ -20,7 +20,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     })
   }
 
-  async validate(payload: { sub: string; email: string }) {
+  async validate(payload: { sub: string; email: string; impersonatedBy?: string; impersonatedByEmail?: string }) {
     const user = await this.auth.findById(payload.sub)
     if (!user) throw new UnauthorizedException('Sessão inválida')
     const {
@@ -35,6 +35,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       safe.preferences = this.cleanPreferences(safe.preferences)
     }
     safe.isAdmin = getAdminEmails().includes((safe.email ?? '').toLowerCase())
+    if (payload.impersonatedBy) {
+      safe.impersonatedBy = payload.impersonatedBy
+      safe.impersonatedByEmail = payload.impersonatedByEmail
+    }
     return safe
   }
 

@@ -1,5 +1,5 @@
 import { Fragment, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import {
   Activity,
@@ -12,6 +12,7 @@ import {
   Copy,
   CreditCard,
   Database,
+  Eye,
   Mail,
   MessageCircle,
   Search,
@@ -22,8 +23,9 @@ import {
   Webhook,
   X,
 } from 'lucide-react'
-import { useAdminStats, useAdminUsers, useAdminOverrideSubscription, useAdminMonitor, useAdminHealthScores, useCleanupTestUsers, AdminUser, HealthScore } from '@/hooks/useApi'
+import { useAdminStats, useAdminUsers, useAdminOverrideSubscription, useAdminMonitor, useAdminHealthScores, useCleanupTestUsers, useImpersonateUser, AdminUser, HealthScore } from '@/hooks/useApi'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import { useAuthStore } from '@/store/auth'
 
 const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
 
@@ -134,6 +136,10 @@ function UsersTab() {
   const [selected, setSelected] = useState<AdminUser | null>(null)
   const [copiedEmail, setCopiedEmail] = useState<string | null>(null)
   const { data: users, isLoading } = useAdminUsers({ page, search: search.trim() || undefined, plan: plan || undefined, status: status || undefined })
+  const impersonate = useImpersonateUser()
+  const setAuth = useAuthStore(s => s.setAuth)
+  const setCsrfToken = useAuthStore(s => s.setCsrfToken)
+  const navigate = useNavigate()
 
   const totalPages = users ? Math.max(1, Math.ceil(users.total / users.limit)) : 1
   const hasFilters = !!search.trim() || !!plan || !!status
@@ -149,6 +155,18 @@ function UsersTab() {
     await navigator.clipboard.writeText(email)
     setCopiedEmail(email)
     window.setTimeout(() => setCopiedEmail(null), 1600)
+  }
+
+  async function viewAs(user: AdminUser) {
+    try {
+      const result = await impersonate.mutateAsync(user.id)
+      setAuth(result.user)
+      setCsrfToken(result.csrfToken)
+      toast.success(`Visualizando como ${user.name}`)
+      navigate('/dashboard')
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? 'Não foi possível visualizar como este usuário.')
+    }
   }
 
   return (
@@ -266,12 +284,22 @@ function UsersTab() {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <button
-                    onClick={() => setSelected(u)}
-                    className="rounded-lg border border-neutral-200 px-2 py-1 text-xs text-neutral-500 hover:border-sage-300 hover:text-sage-700"
-                  >
-                    Override
-                  </button>
+                  <div className="flex items-center justify-end gap-1.5">
+                    <button
+                      onClick={() => viewAs(u)}
+                      disabled={impersonate.isPending}
+                      title="Ver como este usuário"
+                      className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-2 py-1 text-xs text-neutral-500 hover:border-sage-300 hover:text-sage-700 disabled:opacity-40"
+                    >
+                      <Eye className="h-3.5 w-3.5" /> Ver como
+                    </button>
+                    <button
+                      onClick={() => setSelected(u)}
+                      className="rounded-lg border border-neutral-200 px-2 py-1 text-xs text-neutral-500 hover:border-sage-300 hover:text-sage-700"
+                    >
+                      Override
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

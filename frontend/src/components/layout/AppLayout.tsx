@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { Link, Outlet } from 'react-router-dom'
+import { Link, Outlet, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
+import { Eye } from 'lucide-react'
 import Sidebar from './Sidebar'
 import BottomNav from './BottomNav'
 import TopBar from './TopBar'
@@ -227,6 +228,49 @@ function EmailVerificationBanner() {
   )
 }
 
+function ImpersonationBanner() {
+  const user = useAuthStore((s) => s.user)
+  const setAuth = useAuthStore((s) => s.setAuth)
+  const setCsrfToken = useAuthStore((s) => s.setCsrfToken)
+  const navigate = useNavigate()
+  const [exiting, setExiting] = useState(false)
+
+  if (!user?.impersonatedBy) return null
+
+  async function exitImpersonation() {
+    setExiting(true)
+    try {
+      // /auth/refresh usa o refresh_token do admin (nunca tocado durante a
+      // impersonação) e restaura automaticamente a sessão original.
+      const { data } = await api.post('/auth/refresh')
+      if (data?.csrfToken) setCsrfToken(data.csrfToken)
+      if (data?.user) setAuth(data.user)
+      navigate('/admin')
+    } catch {
+      toast.error('Não foi possível voltar para a conta de admin. Faça login novamente.')
+    } finally {
+      setExiting(false)
+    }
+  }
+
+  return (
+    <div className="sticky top-0 z-50 flex items-center justify-between gap-3 bg-amber-500 px-4 py-2 text-sm font-medium text-white shadow-md">
+      <span className="flex items-center gap-2">
+        <Eye className="h-4 w-4" />
+        Você está vendo como <strong>{user.name}</strong> ({user.email})
+      </span>
+      <button
+        type="button"
+        onClick={exitImpersonation}
+        disabled={exiting}
+        className="rounded-lg bg-white/20 px-3 py-1 text-xs font-semibold hover:bg-white/30 disabled:opacity-60"
+      >
+        {exiting ? 'Voltando...' : 'Voltar para admin'}
+      </button>
+    </div>
+  )
+}
+
 function useTestimonialTrigger() {
   const { data } = useFeedbackStatus()
   const [open, setOpen] = useState(false)
@@ -256,7 +300,9 @@ export default function AppLayout() {
   }
 
   return (
-    <div className="flex h-dvh cognia-surface overflow-hidden">
+    <div className="flex h-dvh cognia-surface overflow-hidden flex-col">
+      <ImpersonationBanner />
+      <div className="flex flex-1 overflow-hidden">
       <a href="#main-content" className="skip-link">Ir para o conteúdo</a>
       <a href="#main-navigation" className="skip-link left-44">Ir para o menu</a>
       <a href="#patient-search" className="skip-link left-80">Ir para a busca</a>
@@ -284,6 +330,7 @@ export default function AppLayout() {
         <FirstSessionCelebration />
         <TestimonialModal open={testimonial.open} onDone={testimonial.close} />
       </Suspense>
+      </div>
     </div>
   )
 }

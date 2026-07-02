@@ -1,5 +1,5 @@
 import {
-  BadRequestException, ConflictException, HttpException, HttpStatus,
+  BadRequestException, ConflictException, ForbiddenException, HttpException, HttpStatus,
   Injectable, Logger, NotFoundException, UnauthorizedException,
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -20,6 +20,7 @@ import { UpdateOnboardingDto }  from './dto/update-onboarding.dto'
 import { EmailService }   from '../email/email.service'
 import { ReferralService } from '../referral/referral.service'
 import { AsaasService } from '../billing/asaas.service'
+import { AuditService } from '../audit/audit.service'
 
 // ── Tipagem de retorno ─────────────────────────────────────────────────────────
 export interface AuthTokens {
@@ -32,6 +33,14 @@ export interface SafeUser extends Omit<
   'passwordHash' | 'resetPasswordToken' | 'resetPasswordExpiry' | 'emailVerificationToken' | 'emailVerificationExpiry'
 > {
   isAdmin?: boolean
+  impersonatedBy?: string
+  impersonatedByEmail?: string
+}
+
+export interface ImpersonationResult {
+  accessToken: string
+  csrfToken: string
+  user: SafeUser
 }
 
 export interface AuthResult {
@@ -60,6 +69,7 @@ export class AuthService {
     private email:    EmailService,
     private referral: ReferralService,
     private asaas:    AsaasService,
+    private auditService: AuditService,
   ) {}
 
   // ── Registro ───────────────────────────────────────────────────────────────
@@ -210,6 +220,55 @@ export class AuthService {
   async revokeAllTokens(userId: string, ip?: string): Promise<void> {
     await this.rtRepo.update({ userId, revoked: false }, { revoked: true })
     this.audit('LOGOUT', { userId, ip })
+  }
+
+  // ── Impersonação (admin "ver como") ─────────────────────────────────────────
+
+  /**
+   * Emite um access token de curta duração (15 min) para o admin visualizar
+   * a plataforma como outro usuário. NÃO cria/rotaciona refresh token — a
+   * sessão original do admin permanece intacta e é restaurada automaticamente
+   * quando o access token expirar (ou via /auth/refresh explícito), pois o
+   * refresh_token continua sendo o do admin.
+   */
+  async impersonate(admin: { id: string; email: string }, targetUserId: string, ip?: string): Promise<ImpersonationResult> {
+    if (targetUserId === admin.id) {
+      throw new BadRequestException('Você já está autenticado como você mesmo')
+    }
+
+    const target = await this.users.findOneBy({ id: targetUserId })
+    if (!target) throw new NotFoundException('Usuário não encontrado')
+
+    if (getAdminEmails().includes(target.email.toLowerCase())) {
+      throw new ForbiddenException('Não é possível visualizar como outro administrador')
+    }
+
+    const accessToken = this.jwt.sign(
+      {
+        sub: target.id,
+        email: target.email,
+        impersonatedBy: admin.id,
+        impersonatedByEmail: admin.email,
+      },
+      { expiresIn: '15m' },
+    )
+    const csrfToken = generateCsrfToken(target.id)
+
+    await this.auditService.record({
+      userId: admin.id,
+      action: 'admin.impersonation_started',
+      resource: 'user',
+      resourceId: target.id,
+      metadata: { targetEmail: target.email },
+      ip,
+    })
+    this.audit('ADMIN_IMPERSONATION_STARTED', { adminId: admin.id, targetUserId: target.id, ip })
+
+    const user = this.toSafeUser(target)
+    user.impersonatedBy = admin.id
+    user.impersonatedByEmail = admin.email
+
+    return { accessToken, csrfToken, user }
   }
 
   // ── Perfil ─────────────────────────────────────────────────────────────────

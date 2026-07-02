@@ -2,6 +2,7 @@ import { Body, Controller, ForbiddenException, Get, Headers, HttpCode, Logger, P
 import { Throttle } from '@nestjs/throttler'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
+import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
 import { AsaasService, TokenizeCreditCardInput } from './asaas.service'
 import { BillingWebhookService } from './billing-webhook.service'
 import { BillingService } from './billing.service'
@@ -17,7 +18,7 @@ export class BillingController {
   ) {}
 
   @Post('tokenize')
-  @UseGuards(JwtAuthGuard, CsrfGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
   async tokenize(@Request() req: any, @Body() body: TokenizeCreditCardInput) {
     const payload = body as TokenizeCreditCardInput & Record<string, any>
     const card = payload.creditCard ?? payload
@@ -56,7 +57,7 @@ export class BillingController {
   }
 
   @Post('subscribe')
-  @UseGuards(JwtAuthGuard, CsrfGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
   subscribe(
     @Request() req: any,
     @Body('plan') plan?: string,
@@ -72,7 +73,7 @@ export class BillingController {
   }
 
   @Post('update-card')
-  @UseGuards(JwtAuthGuard, CsrfGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
   updateCard(
     @Request() req: any,
     @Body('creditCardToken') creditCardToken?: string,
@@ -82,13 +83,13 @@ export class BillingController {
   }
 
   @Post('change-plan')
-  @UseGuards(JwtAuthGuard, CsrfGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
   changePlan(@Request() req: any, @Body('plan') plan?: string) {
     return this.billing.changePlan(req.user, plan)
   }
 
   @Post('cancel')
-  @UseGuards(JwtAuthGuard, CsrfGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
   cancel(@Request() req: any) {
     return this.billing.cancel(req.user)
   }
