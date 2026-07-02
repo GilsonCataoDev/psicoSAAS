@@ -141,6 +141,10 @@ export default function SettingsPage() {
   const { data: messageTemplates = [] } = useTemplates('whatsapp_message')
   const { data: receiptTemplates = [] } = useTemplates('receipt')
   const createTemplate = useCreateTemplate()
+  const { subscription, setSubscription, resetSubscription } = useSubscriptionStore()
+  const currentPlan    = PLANS.find(p => p.id === subscription.planId)
+  const currentPlanId  = String(subscription.planId ?? subscription.plan ?? '')
+  const hasProAutomation   = currentPlanId === 'pro'
 
   useEffect(() => {
     const userPrefs = (user as any)?.preferences ?? {}
@@ -173,7 +177,7 @@ export default function SettingsPage() {
   }, [isAuthenticated])
 
   useEffect(() => {
-    if (!isAuthenticated || tab !== 'messages') return
+    if (!isAuthenticated || tab !== 'messages' || !hasProAutomation) return
     const loadStatus = () => api.get('/notifications/whatsapp/status')
       .then(({ data }) => {
         setWhatsappStatus(data)
@@ -188,14 +192,17 @@ export default function SettingsPage() {
     loadStatus()
     const timer = window.setInterval(loadStatus, whatsappConnected ? 60_000 : 15_000)
     return () => window.clearInterval(timer)
-  }, [isAuthenticated, tab, whatsappConnected])
+  }, [hasProAutomation, isAuthenticated, tab, whatsappConnected])
 
   useEffect(() => {
-    if (!isAuthenticated || tab !== 'messages') return
+    if (!isAuthenticated || tab !== 'messages' || !hasProAutomation) {
+      setWhatsappLogs([])
+      return
+    }
     api.get('/notifications/whatsapp/logs')
       .then(({ data }) => setWhatsappLogs(Array.isArray(data) ? data : []))
       .catch(() => setWhatsappLogs([]))
-  }, [isAuthenticated, tab, whatsappConnected])
+  }, [hasProAutomation, isAuthenticated, tab, whatsappConnected])
 
   useEffect(() => {
     if (!isAuthenticated || tab !== 'notify') return
@@ -404,7 +411,6 @@ export default function SettingsPage() {
   }
 
   // ── Plano ──────────────────────────────────────────────────────────────────
-  const { subscription, setSubscription, resetSubscription } = useSubscriptionStore()
   const navigate = useNavigate()
   const [cancelingPlan, setCancelingPlan] = useState(false)
   const [exportingData, setExportingData] = useState(false)
@@ -413,9 +419,6 @@ export default function SettingsPage() {
   const [deletingAccount, setDeletingAccount] = useState(false)
   const [confirmCancelPlan, setConfirmCancelPlan] = useState(false)
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false)
-  const currentPlan    = PLANS.find(p => p.id === subscription.planId)
-  const currentPlanId  = String(subscription.planId ?? subscription.plan ?? '')
-  const hasProAutomation   = currentPlanId === 'pro'
   const hasCancelablePlan  = subscription.status === 'active' || subscription.status === 'trialing'
   const isTrialing     = subscription.status === 'trialing'
   const daysLeft       = subscription.trialEndsAt

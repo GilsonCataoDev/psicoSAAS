@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, CalendarDays, CalendarPlus, Check, Link2, MessageCircle, Sparkles, Users, X } from 'lucide-react'
-import { useAppointments, useBookingPage, usePatients, useWhatsAppStatus } from '@/hooks/useApi'
+import { useAppointments } from '@/hooks/api/appointments'
+import { useBookingPage } from '@/hooks/api/booking'
+import { usePatients } from '@/hooks/api/patients'
+import { useWhatsAppStatus } from '@/hooks/api/notifications'
 import { useOnboardingStore } from '@/store/onboarding'
+import { useSubscriptionStore } from '@/store/subscription'
 import { track, EVENTS } from '@/lib/analytics'
 import { cn } from '@/lib/utils'
 
@@ -18,12 +22,15 @@ type ChecklistItem = {
 
 export default function OnboardingWizard() {
   const { complete, skip } = useOnboardingStore()
+  const subscription = useSubscriptionStore(s => s.subscription)
+  const plan = String(subscription.planId ?? subscription.plan ?? 'free')
+  const hasProAutomation = plan === 'pro'
   const [closing, setClosing] = useState(false)
 
   const { data: patients = [] } = usePatients()
   const { data: appointments = [] } = useAppointments()
   const { data: bookingPage } = useBookingPage()
-  const { data: whatsappStatus } = useWhatsAppStatus()
+  const { data: whatsappStatus } = useWhatsAppStatus({ enabled: hasProAutomation })
 
   const items = useMemo<ChecklistItem[]>(() => [
     {

@@ -47,9 +47,11 @@ export class AnalyticsService {
     const [
       activePatients,
       sessionsThisMonth,
+      completedSessionsThisMonth,
       sessionsThisWeek,
       todayAppointments,
-      pendingPayments,
+      pendingPaymentsSummary,
+      pendingPaymentsDetail,
       monthRevenue,
       revenueChart,
       inactivePatients,
@@ -75,6 +77,16 @@ export class AnalyticsService {
 
       // ── Sessões do mês ──────────────────────────────────────────────────────
       safe('sessionsThisMonth', log, () =>
+        this.appointments
+          .createQueryBuilder('a')
+          .where('a.psychologistId = :userId', { userId })
+          .andWhere('a.status IN (:...statuses)', { statuses: ['scheduled', 'completed', 'no_show'] })
+          .andWhere('a.date BETWEEN :start AND :end', { start: monthStart, end: monthEnd })
+          .getCount(),
+        0,
+      ),
+
+      safe('completedSessionsThisMonth', log, () =>
         this.appointments
           .createQueryBuilder('a')
           .where('a.psychologistId = :userId', { userId })
@@ -106,12 +118,26 @@ export class AnalyticsService {
       ),
 
       // ── Pagamentos pendentes ────────────────────────────────────────────────
-      safe('pendingPayments', log, () =>
+      safe('pendingPaymentsSummary', log, () =>
+        this.financial
+          .createQueryBuilder('f')
+          .select('COUNT(*)', 'count')
+          .addSelect('COALESCE(SUM(f.amount), 0)', 'amount')
+          .where('f.psychologistId = :userId', { userId })
+          .andWhere('f.status IN (:...statuses)', { statuses: ['pending', 'overdue'] })
+          .andWhere("(f.type IS NULL OR f.type = 'income')")
+          .andWhere('f.amount > 0')
+          .getRawOne(),
+        { count: 0, amount: 0 },
+      ),
+
+      safe('pendingPaymentsDetail', log, () =>
         this.financial
           .createQueryBuilder('f')
           .where('f.psychologistId = :userId', { userId })
           .andWhere('f.status IN (:...statuses)', { statuses: ['pending', 'overdue'] })
           .andWhere("(f.type IS NULL OR f.type = 'income')")
+          .andWhere('f.amount > 0')
           .orderBy('f.dueDate', 'ASC', 'NULLS LAST')
           .take(10)
           .getMany(),
@@ -159,10 +185,14 @@ export class AnalyticsService {
           .createQueryBuilder('p')
           .where('p.psychologistId = :userId', { userId })
           .andWhere("(p.status IS NULL OR p.status NOT IN ('paused', 'discharged'))")
-          .andWhere(`COALESCE((
+          .andWhere(`(
             SELECT MAX(a.date) FROM appointments a
             WHERE a."patientId" = p.id AND a.status = 'completed'
-          ), '1970-01-01') < :thirtyDaysAgo`, { thirtyDaysAgo })
+          ) IS NOT NULL`)
+          .andWhere(`(
+            SELECT MAX(a.date) FROM appointments a
+            WHERE a."patientId" = p.id AND a.status = 'completed'
+          ) < :thirtyDaysAgo`, { thirtyDaysAgo })
           .getCount(),
         0,
       ),
@@ -242,6 +272,7 @@ export class AnalyticsService {
           .createQueryBuilder('a')
           .where('a.psychologistId = :userId', { userId })
           .andWhere('a.modality = :modality', { modality: 'online' })
+          .andWhere('a.status IN (:...statuses)', { statuses: ['scheduled', 'completed', 'no_show'] })
           .andWhere('a.date BETWEEN :start AND :end', { start: monthStart, end: monthEnd })
           .getCount(),
         0,
@@ -260,25 +291,30 @@ export class AnalyticsService {
     const absenceCount = Number((earlyCancellations as any)?.count ?? 0)
     const absencesAmount = Number((earlyCancellations as any)?.amount ?? 0)
     const totalMonthAppointments = Number(monthAppointments ?? 0)
-    const completedMonthAppointments = Number(sessionsThisMonth ?? 0)
+    const scheduledMonthAppointments = Number(sessionsThisMonth ?? 0)
+    const completedMonthAppointments = Number(completedSessionsThisMonth ?? 0)
     const noShowCount = Number(noShowsThisMonth ?? 0)
     const cancelledCount = Number(cancelledThisMonth ?? 0)
     const onlineCount = Number(onlineThisMonth ?? 0)
     const activePatientCount = Number(activePatients ?? 0)
+    const attendanceBase = completedMonthAppointments + noShowCount
+    const pendingPaymentCount = Number((pendingPaymentsSummary as any)?.count ?? 0)
+    const pendingPaymentAmount = Number((pendingPaymentsSummary as any)?.amount ?? 0)
 
     this.logger.log(
-      `dashboard OK: active=${activePatients} sessMonth=${sessionsThisMonth} pending=${(pendingPayments as any[]).length}`,
+      `dashboard OK: active=${activePatients} sessMonth=${sessionsThisMonth} pending=${pendingPaymentCount}`,
     )
 
     return {
       activePatients,
-      sessionsThisMonth,
+      sessionsThisMonth: scheduledMonthAppointments,
+      completedSessionsThisMonth: completedMonthAppointments,
       sessionsThisWeek,
       registeredSessions,
       monthRevenue: Number((monthRevenue as any)?.total ?? 0),
-      pendingPayments: (pendingPayments as any[]).length,
-      pendingAmount: (pendingPayments as any[]).reduce((s: number, p: any) => s + Number(p.amount), 0),
-      pendingPaymentsDetail: pendingPayments,
+      pendingPayments: pendingPaymentCount,
+      pendingAmount: pendingPaymentAmount,
+      pendingPaymentsDetail,
       inactivePatients,
       todayAppointments,
       revenueChart,
@@ -288,9 +324,10 @@ export class AnalyticsService {
         noShows: noShowCount,
         cancelled: cancelledCount,
         onlineAppointments: onlineCount,
-        attendanceRate: totalMonthAppointments > 0 ? Math.round((completedMonthAppointments / totalMonthAppointments) * 100) : 0,
-        noShowRate: totalMonthAppointments > 0 ? Math.round((noShowCount / totalMonthAppointments) * 100) : 0,
-        onlineRate: totalMonthAppointments > 0 ? Math.round((onlineCount / totalMonthAppointments) * 100) : 0,
+        scheduledAppointments: scheduledMonthAppointments,
+        attendanceRate: attendanceBase > 0 ? Math.round((completedMonthAppointments / attendanceBase) * 100) : 0,
+        noShowRate: attendanceBase > 0 ? Math.round((noShowCount / attendanceBase) * 100) : 0,
+        onlineRate: scheduledMonthAppointments > 0 ? Math.round((onlineCount / scheduledMonthAppointments) * 100) : 0,
         avgSessionsPerActivePatient: activePatientCount > 0
           ? Math.round((completedMonthAppointments / activePatientCount) * 10) / 10
           : 0,
