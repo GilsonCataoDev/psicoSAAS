@@ -237,7 +237,7 @@ export default function DashboardPage() {
           <div className="mt-5 flex items-center gap-3 pt-4 border-t border-white/10">
             <div className="flex items-center gap-1.5 text-xs text-sage-100">
               <CalendarCheck className="w-3.5 h-3.5 text-sage-300" />
-              <span>{sessionsToday} sessão{sessionsToday !== 1 ? 'ões' : ''} hoje</span>
+              <span>{sessionsToday} {sessionsToday === 1 ? 'sessão' : 'sessões'} hoje</span>
             </div>
             {(s?.pendingPayments ?? 0) > 0 && (
               <>
