@@ -214,18 +214,48 @@ function BookingCard({ booking, onConfirm, onReject, onMarkPaid }: {
 }) {
   const s = STATUS_CONFIG[booking.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.pending
   const p = PAY_CONFIG[booking.paymentStatus as keyof typeof PAY_CONFIG] ?? PAY_CONFIG.pending
+  const [messageModalOpen, setMessageModalOpen] = useState(false)
+  const [messageDraft, setMessageDraft] = useState('')
+
+  function getCancellationUrl() {
+    const token = booking.cancellationCode ?? booking.confirmationToken
+    if (!token) return ''
+
+    const appBaseUrl = new URL(import.meta.env.BASE_URL || '/', window.location.origin).toString()
+    return booking.cancellationCode
+      ? `${appBaseUrl}c/${token}`
+      : `${appBaseUrl}agendar/cancelar/${token}`
+  }
+
+  function defaultPatientMessage() {
+    const first = booking.patientName?.split(' ')[0] ?? ''
+    const cancelUrl = getCancellationUrl()
+    const cancelLine = cancelUrl ? `\n\nSe precisar cancelar, use este link:\n${cancelUrl}` : ''
+
+    return booking.status === 'confirmed'
+      ? `Ola, ${first}! Sua sessao esta confirmada para ${formatDateRelative(booking.date)} as ${booking.time}.${cancelLine}`
+      : `Ola, ${first}! Recebi seu agendamento para ${formatDateRelative(booking.date)} as ${booking.time}. Ja retorno com os detalhes.${cancelLine}`
+  }
 
   function messagePatient() {
     if (!booking.patientPhone) {
-      toast.error('Essa pessoa não informou WhatsApp.')
+      toast.error('Essa pessoa nao informou WhatsApp.')
       return
     }
 
-    const first = booking.patientName?.split(' ')[0] ?? ''
-    const text = booking.status === 'confirmed'
-      ? `Olá, ${first}! Sua sessão está confirmada para ${formatDateRelative(booking.date)} às ${booking.time}. Até lá!`
-      : `Ola, ${first}! Recebi seu agendamento para ${formatDateRelative(booking.date)} as ${booking.time}. Ja retorno com os detalhes.`
-    openWhatsApp(booking.patientPhone, text)
+    setMessageDraft(defaultPatientMessage())
+    setMessageModalOpen(true)
+  }
+
+  function insertCancellationLink() {
+    const cancelUrl = getCancellationUrl()
+    if (!cancelUrl) {
+      toast.error('Este agendamento ainda nao tem link de cancelamento.')
+      return
+    }
+    setMessageDraft(current => current.includes(cancelUrl)
+      ? current
+      : `${current.trim()}\n\nLink de cancelamento:\n${cancelUrl}`)
   }
 
   return (
@@ -279,6 +309,65 @@ function BookingCard({ booking, onConfirm, onReject, onMarkPaid }: {
           </span>
         )}
       </div>
+
+      {messageModalOpen && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/35 px-4 backdrop-blur-[1px]">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-neutral-800">Enviar mensagem</h2>
+                <p className="text-sm text-neutral-400">Revise antes de abrir no WhatsApp.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMessageModalOpen(false)}
+                className="rounded-lg p-2 text-neutral-300 hover:bg-neutral-50 hover:text-neutral-500"
+                aria-label="Fechar"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <label className="label">Mensagem para {booking.patientName}</label>
+            <textarea
+              value={messageDraft}
+              onChange={e => setMessageDraft(e.target.value)}
+              rows={7}
+              className="input-field min-h-[160px]"
+            />
+
+            <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+              <button
+                type="button"
+                onClick={insertCancellationLink}
+                className="btn-secondary text-sm"
+              >
+                Inserir link de cancelamento
+              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMessageModalOpen(false)}
+                  className="btn-secondary text-sm"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    openWhatsApp(booking.patientPhone, messageDraft)
+                    setMessageModalOpen(false)
+                  }}
+                  disabled={!messageDraft.trim()}
+                  className="btn-primary text-sm disabled:opacity-50"
+                >
+                  Abrir WhatsApp
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

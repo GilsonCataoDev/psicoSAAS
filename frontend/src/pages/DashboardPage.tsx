@@ -12,7 +12,7 @@ import { useAuthStore } from '@/store/auth'
 import { useDashboard } from '@/hooks/api/dashboard'
 import { useSessions } from '@/hooks/api/sessions'
 import ReferralCard from '@/components/features/referral/ReferralCard'
-import { useOnboardingStore } from '@/store/onboarding'
+import { OnboardingProfile, useOnboardingStore } from '@/store/onboarding'
 
 const OnboardingWizard = lazy(() => import('@/components/onboarding/OnboardingWizard'))
 const NewSessionModal = lazy(() => import('@/components/features/sessions/NewSessionModal'))
@@ -35,11 +35,130 @@ function contextMessage(sessionsToday: number, pendingPayments: number): string 
 const MOODS = ['', '1', '2', '3', '4', '5']
 const VIDEO_LINK_RE = /https?:\/\/[^\s)]+/i
 
+type SuggestedAction = {
+  id: string
+  title: string
+  text: string
+  href: string
+  cta: string
+  icon: typeof Users
+}
+
+function onboardingSummary(profile: OnboardingProfile) {
+  const usage = {
+    solo: 'uso individual',
+    assistant: 'uso com atendente',
+    clinic: 'rotina de clinica',
+  }[profile.usageMode]
+  const volume = {
+    '0_5': '0 a 5 pacientes',
+    '6_10': '6 a 10 pacientes',
+    more_10: 'mais de 10 pacientes',
+    student: 'estudante',
+  }[profile.patientVolume]
+  return `${usage} · ${volume}`
+}
+
+function suggestedActions(profile?: OnboardingProfile, stats?: any): SuggestedAction[] {
+  if (!profile) return []
+
+  const actions: SuggestedAction[] = []
+  const add = (action: SuggestedAction) => {
+    if (!actions.some(item => item.id === action.id)) actions.push(action)
+  }
+
+  if ((stats?.activePatients ?? 0) === 0 || profile.patientVolume === 'student' || profile.patientVolume === '0_5') {
+    add({
+      id: 'patient',
+      title: 'Cadastre sua primeira pessoa',
+      text: 'Comece com nome e WhatsApp; os detalhes podem entrar depois.',
+      href: '/pacientes?new=1',
+      cta: 'Adicionar pessoa',
+      icon: Users,
+    })
+  }
+
+  for (const objective of profile.objectives) {
+    if (objective === 'reminders') {
+      add({
+        id: 'whatsapp',
+        title: 'Prepare lembretes pelo WhatsApp',
+        text: 'Conecte ou configure mensagens para reduzir faltas e esquecimentos.',
+        href: '/configuracoes?tab=messages',
+        cta: 'Configurar mensagens',
+        icon: MessageSquareText,
+      })
+    }
+    if (objective === 'agenda') {
+      add({
+        id: 'agenda',
+        title: 'Monte sua agenda base',
+        text: 'Defina horarios de atendimento e veja seus espacos livres.',
+        href: '/agenda',
+        cta: 'Abrir agenda',
+        icon: CalendarCheck,
+      })
+      add({
+        id: 'booking',
+        title: 'Ative o link publico',
+        text: 'Permita que pacientes escolham horarios disponiveis sem troca de mensagens.',
+        href: '/agendamentos?tab=settings',
+        cta: 'Configurar link',
+        icon: ExternalLink,
+      })
+    }
+    if (objective === 'records') {
+      add({
+        id: 'records',
+        title: 'Organize prontuario e evolucao',
+        text: 'Depois da primeira sessao, registre a evolucao em um fluxo simples.',
+        href: '/pacientes',
+        cta: 'Ver pacientes',
+        icon: NotebookPen,
+      })
+    }
+    if (objective === 'financial') {
+      add({
+        id: 'financial',
+        title: 'Configure cobrancas e recebimentos',
+        text: 'Acompanhe pendencias e deixe sua chave PIX pronta.',
+        href: '/configuracoes?tab=payment',
+        cta: 'Ajustar financeiro',
+        icon: Wallet,
+      })
+    }
+    if (objective === 'documents') {
+      add({
+        id: 'documents',
+        title: 'Prepare documentos recorrentes',
+        text: 'Recibos, declaracoes e arquivos ficam reunidos na area de documentos.',
+        href: '/documentos',
+        cta: 'Abrir documentos',
+        icon: NotebookPen,
+      })
+    }
+  }
+
+  if (profile.usageMode !== 'solo') {
+    add({
+      id: 'settings',
+      title: 'Padronize a rotina da equipe',
+      text: 'Comece por agenda, mensagens e preferencias para reduzir retrabalho.',
+      href: '/configuracoes',
+      cta: 'Abrir configuracoes',
+      icon: ShieldCheck,
+    })
+  }
+
+  return actions.slice(0, 3)
+}
+
 export default function DashboardPage() {
   const { data: stats, isLoading: loading } = useDashboard()
   const { data: recentSessions = [] } = useSessions()
   const user = useAuthStore(s => s.user)
   const onboardingCompleted = useOnboardingStore(s => s.completed)
+  const onboardingProfile = useOnboardingStore(s => s.profile)
   const firstName = user?.name?.split(' ')[0] ?? 'Psicólogo(a)'
   const [sessionDefaults, setSessionDefaults] = useState<{ patientId: string; date: string; appointmentId: string } | null>(null)
 
@@ -53,6 +172,7 @@ export default function DashboardPage() {
   const sessionsToday = s?.todayAppointments?.length ?? 0
   const registeredSessions = Number(s?.registeredSessions ?? 0)
   const estimatedSavedMinutes = Math.max(registeredSessions * 30, s?.roi?.estimatedMinutesSaved ?? 0)
+  const nextActions = suggestedActions(onboardingProfile, s)
 
   function openVideoAppointment(appt: any) {
     const link = appt.meetingUrl || String(appt.notes ?? '').match(VIDEO_LINK_RE)?.[0]
@@ -163,6 +283,46 @@ export default function DashboardPage() {
       )}
 
       {/* ── Stats ───────────────────────────────────────────────────── */}
+      {onboardingCompleted && onboardingProfile && nextActions.length > 0 && (
+        <div className="card">
+          <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-sage-700">
+                Proximos passos
+              </p>
+              <h2 className="mt-1 text-lg font-semibold text-neutral-800">
+                Sugestoes para o seu perfil
+              </h2>
+              <p className="text-xs text-neutral-400">
+                {onboardingSummary(onboardingProfile)}
+              </p>
+            </div>
+            <Link to="/configuracoes" className="text-xs font-semibold text-sage-600 hover:text-sage-700">
+              Ajustar depois
+            </Link>
+          </div>
+          <div className="grid gap-3 md:grid-cols-3">
+            {nextActions.map(action => {
+              const Icon = action.icon
+              return (
+                <Link
+                  key={action.id}
+                  to={action.href}
+                  className="rounded-2xl border border-neutral-100 bg-white p-4 transition-colors hover:border-sage-200 hover:bg-sage-50/40"
+                >
+                  <Icon className="mb-3 h-5 w-5 text-sage-600" />
+                  <p className="text-sm font-semibold text-neutral-800">{action.title}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-neutral-400">{action.text}</p>
+                  <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-sage-700">
+                    {action.cta} <ArrowRight className="h-3 w-3" />
+                  </span>
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard
           label="Pacientes ativos"
