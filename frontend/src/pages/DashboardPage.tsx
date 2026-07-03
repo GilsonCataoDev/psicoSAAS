@@ -254,11 +254,11 @@ export default function DashboardPage() {
 
       {/* Alerta de pagamentos em atraso */}
       {overduePayments.length > 0 && (
-        <div className="bg-rose-50 border border-rose-200/70 rounded-2xl px-4 py-3 flex items-center gap-3">
-          <div className="w-8 h-8 bg-rose-100 rounded-xl flex items-center justify-center shrink-0">
-            <AlertCircle className="w-4 h-4 text-rose-500" />
+        <div className="bg-rose-50 border border-rose-200/70 rounded-2xl px-4 py-3 flex items-center gap-3 dark:border-rose-400/20 dark:bg-rose-500/10">
+          <div className="w-8 h-8 bg-rose-100 rounded-xl flex items-center justify-center shrink-0 dark:bg-rose-400/15">
+            <AlertCircle className="w-4 h-4 text-rose-500 dark:text-rose-200" />
           </div>
-          <p className="text-sm text-rose-800">
+          <p className="text-sm text-rose-800 dark:text-rose-100">
             <strong>{overduePayments.length} pagamento{overduePayments.length !== 1 ? 's' : ''} em atraso</strong> — {formatCurrency(overduePayments.reduce((s: number, p: any) => s + Number(p.amount), 0))} aguardando.{' '}
             <Link to="/financeiro" className="underline underline-offset-2 hover:no-underline font-medium">
               Ver lançamentos →
@@ -269,11 +269,11 @@ export default function DashboardPage() {
 
       {/* Alerta de pacientes inativos */}
       {(s?.inactivePatients ?? 0) > 0 && (
-        <div className="bg-amber-50 border border-amber-200/70 rounded-2xl px-4 py-3 flex items-center gap-3">
-          <div className="w-8 h-8 bg-amber-100 rounded-xl flex items-center justify-center shrink-0">
-            <AlertTriangle className="w-4 h-4 text-amber-500" />
+        <div className="bg-amber-50 border border-amber-200/70 rounded-2xl px-4 py-3 flex items-center gap-3 dark:border-amber-400/20 dark:bg-amber-500/10">
+          <div className="w-8 h-8 bg-amber-100 rounded-xl flex items-center justify-center shrink-0 dark:bg-amber-400/15">
+            <AlertTriangle className="w-4 h-4 text-amber-500 dark:text-amber-200" />
           </div>
-          <p className="text-sm text-amber-800">
+          <p className="text-sm text-amber-800 dark:text-amber-100">
             <strong>{s.inactivePatients} pessoa{s.inactivePatients !== 1 ? 's' : ''}</strong> sem sessão há mais de 30 dias.{' '}
             <Link to="/pacientes" className="underline underline-offset-2 hover:no-underline font-medium">
               Ver quem são →
@@ -287,17 +287,17 @@ export default function DashboardPage() {
         <div className="card">
           <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-sage-700">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-sage-700 dark:text-sage-300">
                 Proximos passos
               </p>
-              <h2 className="mt-1 text-lg font-semibold text-neutral-800">
+              <h2 className="mt-1 text-lg font-semibold text-neutral-800 dark:text-white">
                 Sugestoes para o seu perfil
               </h2>
-              <p className="text-xs text-neutral-400">
+              <p className="text-xs text-neutral-400 dark:text-neutral-300">
                 {onboardingSummary(onboardingProfile)}
               </p>
             </div>
-            <Link to="/configuracoes" className="text-xs font-semibold text-sage-600 hover:text-sage-700">
+            <Link to="/configuracoes" className="text-xs font-semibold text-sage-600 hover:text-sage-700 dark:text-sage-300 dark:hover:text-sage-200">
               Ajustar depois
             </Link>
           </div>
@@ -308,12 +308,12 @@ export default function DashboardPage() {
                 <Link
                   key={action.id}
                   to={action.href}
-                  className="rounded-2xl border border-neutral-100 bg-white p-4 transition-colors hover:border-sage-200 hover:bg-sage-50/40"
+                  className="rounded-2xl border border-neutral-100 bg-white p-4 transition-colors hover:border-sage-200 hover:bg-sage-50/40 dark:border-white/10 dark:bg-white/5 dark:hover:border-sage-300/30 dark:hover:bg-white/10"
                 >
-                  <Icon className="mb-3 h-5 w-5 text-sage-600" />
-                  <p className="text-sm font-semibold text-neutral-800">{action.title}</p>
-                  <p className="mt-1 text-xs leading-relaxed text-neutral-400">{action.text}</p>
-                  <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-sage-700">
+                  <Icon className="mb-3 h-5 w-5 text-sage-600 dark:text-sage-200" />
+                  <p className="text-sm font-semibold text-neutral-800 dark:text-white">{action.title}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-neutral-400 dark:text-neutral-300">{action.text}</p>
+                  <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-sage-700 dark:text-sage-200">
                     {action.cta} <ArrowRight className="h-3 w-3" />
                   </span>
                 </Link>
@@ -360,34 +360,34 @@ export default function DashboardPage() {
               <h2 className="section-title mb-0">Indicadores da clinica</h2>
               <p className="text-xs text-neutral-400">Resumo operacional do mes atual.</p>
             </div>
-            <Link to="/agenda" className="text-xs font-semibold text-sage-600 hover:text-sage-700">
+            <Link to="/agenda" className="text-xs font-semibold text-sage-600 hover:text-sage-700 dark:text-sage-300 dark:hover:text-sage-200">
               Ver agenda
             </Link>
           </div>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <div className="rounded-xl bg-sage-50 px-4 py-3">
-              <CalendarCheck className="mb-2 h-4 w-4 text-sage-700" />
-              <p className="text-xl font-semibold text-neutral-800">{s.clinicIndicators.attendanceRate}%</p>
-              <p className="text-xs text-neutral-500">comparecimento</p>
+            <div className="rounded-xl bg-sage-50 px-4 py-3 dark:bg-white/5">
+              <CalendarCheck className="mb-2 h-4 w-4 text-sage-700 dark:text-sage-200" />
+              <p className="text-xl font-semibold text-neutral-800 dark:text-white">{s.clinicIndicators.attendanceRate}%</p>
+              <p className="text-xs text-neutral-500 dark:text-neutral-300">comparecimento</p>
             </div>
-            <div className="rounded-xl bg-amber-50 px-4 py-3">
-              <Ban className="mb-2 h-4 w-4 text-amber-700" />
-              <p className="text-xl font-semibold text-neutral-800">{s.clinicIndicators.noShowRate}%</p>
-              <p className="text-xs text-neutral-500">faltas no mes</p>
+            <div className="rounded-xl bg-amber-50 px-4 py-3 dark:bg-white/5">
+              <Ban className="mb-2 h-4 w-4 text-amber-700 dark:text-amber-200" />
+              <p className="text-xl font-semibold text-neutral-800 dark:text-white">{s.clinicIndicators.noShowRate}%</p>
+              <p className="text-xs text-neutral-500 dark:text-neutral-300">faltas no mes</p>
             </div>
-            <div className="rounded-xl bg-mist-50 px-4 py-3">
-              <Video className="mb-2 h-4 w-4 text-mist-700" />
-              <p className="text-xl font-semibold text-neutral-800">{s.clinicIndicators.onlineRate}%</p>
-              <p className="text-xs text-neutral-500">online</p>
+            <div className="rounded-xl bg-mist-50 px-4 py-3 dark:bg-white/5">
+              <Video className="mb-2 h-4 w-4 text-mist-700 dark:text-mist-200" />
+              <p className="text-xl font-semibold text-neutral-800 dark:text-white">{s.clinicIndicators.onlineRate}%</p>
+              <p className="text-xs text-neutral-500 dark:text-neutral-300">online</p>
             </div>
-            <div className="rounded-xl bg-neutral-50 px-4 py-3">
-              <Users className="mb-2 h-4 w-4 text-neutral-600" />
-              <p className="text-xl font-semibold text-neutral-800">{s.clinicIndicators.avgSessionsPerActivePatient}</p>
-              <p className="text-xs text-neutral-500">sessoes por paciente</p>
+            <div className="rounded-xl bg-neutral-50 px-4 py-3 dark:bg-white/5">
+              <Users className="mb-2 h-4 w-4 text-neutral-600 dark:text-neutral-200" />
+              <p className="text-xl font-semibold text-neutral-800 dark:text-white">{s.clinicIndicators.avgSessionsPerActivePatient}</p>
+              <p className="text-xs text-neutral-500 dark:text-neutral-300">sessoes por paciente</p>
             </div>
           </div>
           {(s.clinicIndicators.noShows ?? 0) + (s.clinicIndicators.cancelled ?? 0) > 0 && (
-            <p className="mt-3 text-xs text-neutral-500">
+            <p className="mt-3 text-xs text-neutral-500 dark:text-neutral-300">
               {s.clinicIndicators.noShows} falta{s.clinicIndicators.noShows === 1 ? '' : 's'} e {s.clinicIndicators.cancelled} cancelamento{s.clinicIndicators.cancelled === 1 ? '' : 's'} registrados no mes.
             </p>
           )}
@@ -459,30 +459,30 @@ export default function DashboardPage() {
       )}
 
       {(s?.roi?.remindersSent ?? 0) + (s?.roi?.earlyCancellations ?? 0) > 0 && (
-        <div className="grid gap-3 rounded-2xl border border-sage-100 bg-white p-4 shadow-card md:grid-cols-4">
+        <div className="grid gap-3 rounded-2xl border border-sage-100 bg-white p-4 shadow-card dark:border-white/10 dark:bg-cognia-panel md:grid-cols-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-sage-700">ROI do mes</p>
-            <p className="mt-1 text-sm text-neutral-500">Automacoes que viraram economia operacional.</p>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-sage-700 dark:text-sage-300">ROI do mes</p>
+            <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-300">Automacoes que viraram economia operacional.</p>
           </div>
-          <div className="flex items-center gap-3 rounded-xl bg-sage-50 px-4 py-3">
-            <MessageSquareText className="h-4 w-4 text-sage-700" />
+          <div className="flex items-center gap-3 rounded-xl bg-sage-50 px-4 py-3 dark:bg-white/5">
+            <MessageSquareText className="h-4 w-4 text-sage-700 dark:text-sage-200" />
             <div>
-              <p className="text-lg font-semibold text-neutral-800">{s.roi.remindersSent}</p>
-              <p className="text-xs text-neutral-500">lembretes enviados</p>
+              <p className="text-lg font-semibold text-neutral-800 dark:text-white">{s.roi.remindersSent}</p>
+              <p className="text-xs text-neutral-500 dark:text-neutral-300">lembretes enviados</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 rounded-xl bg-amber-50 px-4 py-3">
-            <Ban className="h-4 w-4 text-amber-700" />
+          <div className="flex items-center gap-3 rounded-xl bg-amber-50 px-4 py-3 dark:bg-white/5">
+            <Ban className="h-4 w-4 text-amber-700 dark:text-amber-200" />
             <div>
-              <p className="text-lg font-semibold text-neutral-800">{s.roi.absencesCount ?? s.roi.earlyCancellations ?? 0}</p>
-              <p className="text-xs text-neutral-500">{formatCurrency(s.roi.absencesAmount ?? 0)} em faltas e cancelamentos</p>
+              <p className="text-lg font-semibold text-neutral-800 dark:text-white">{s.roi.absencesCount ?? s.roi.earlyCancellations ?? 0}</p>
+              <p className="text-xs text-neutral-500 dark:text-neutral-300">{formatCurrency(s.roi.absencesAmount ?? 0)} em faltas e cancelamentos</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 rounded-xl bg-mist-50 px-4 py-3">
-            <TimerReset className="h-4 w-4 text-mist-700" />
+          <div className="flex items-center gap-3 rounded-xl bg-mist-50 px-4 py-3 dark:bg-white/5">
+            <TimerReset className="h-4 w-4 text-mist-700 dark:text-mist-200" />
             <div>
-              <p className="text-lg font-semibold text-neutral-800">{Math.round(((s.roi.estimatedMinutesSaved ?? 0) / 60) * 10) / 10}h</p>
-              <p className="text-xs text-neutral-500">tempo estimado salvo</p>
+              <p className="text-lg font-semibold text-neutral-800 dark:text-white">{Math.round(((s.roi.estimatedMinutesSaved ?? 0) / 60) * 10) / 10}h</p>
+              <p className="text-xs text-neutral-500 dark:text-neutral-300">tempo estimado salvo</p>
             </div>
           </div>
         </div>
@@ -500,18 +500,18 @@ export default function DashboardPage() {
               </p>
             </div>
             <Link to="/agenda"
-              className="flex items-center gap-1 text-xs font-medium text-sage-600 hover:text-sage-700 transition-colors">
+              className="flex items-center gap-1 text-xs font-medium text-sage-600 hover:text-sage-700 transition-colors dark:text-sage-300 dark:hover:text-sage-200">
               Ver agenda <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
 
           {sessionsToday === 0 ? (
             <div className="py-10 text-center">
-              <div className="w-12 h-12 bg-sage-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                <Sparkles className="w-5 h-5 text-sage-400" />
+              <div className="w-12 h-12 bg-sage-50 rounded-2xl flex items-center justify-center mx-auto mb-3 dark:bg-white/5">
+                <Sparkles className="w-5 h-5 text-sage-400 dark:text-sage-200" />
               </div>
-              <p className="text-sm font-medium text-neutral-600 mb-1">Nenhuma sessão hoje</p>
-              <p className="text-xs text-neutral-400 mb-4">Um bom dia para organizar seus registros.</p>
+              <p className="text-sm font-medium text-neutral-600 mb-1 dark:text-neutral-100">Nenhuma sessão hoje</p>
+              <p className="text-xs text-neutral-400 mb-4 dark:text-neutral-300">Um bom dia para organizar seus registros.</p>
               <Link to="/agenda" className="btn-secondary text-xs px-4 py-2">
                 Agendar sessão
               </Link>
@@ -520,29 +520,29 @@ export default function DashboardPage() {
             <div className="space-y-2">
               {s.todayAppointments.map((appt: any) => (
                 <div key={appt.id}
-                  className="flex items-center gap-3 p-3 rounded-2xl hover:bg-neutral-50 transition-colors cursor-pointer group">
+                  className="flex items-center gap-3 p-3 rounded-2xl hover:bg-neutral-50 transition-colors cursor-pointer group dark:hover:bg-white/5">
                   {/* Horário */}
                   <div className="text-center w-10 shrink-0">
-                    <p className="text-sm font-bold text-neutral-700 leading-none tabular-nums">
+                    <p className="text-sm font-bold text-neutral-700 leading-none tabular-nums dark:text-neutral-100">
                       {appt.time?.slice(0, 5) ?? formatTime(appt.time)}
                     </p>
-                    <p className="text-[10px] text-neutral-400 mt-0.5">{appt.duration ?? 50}m</p>
+                    <p className="text-[10px] text-neutral-400 mt-0.5 dark:text-neutral-300">{appt.duration ?? 50}m</p>
                   </div>
 
-                  <div className="w-px h-8 bg-neutral-100 shrink-0" />
+                  <div className="w-px h-8 bg-neutral-100 shrink-0 dark:bg-white/10" />
 
                   <Avatar name={appt.patient?.name ?? appt.patientName ?? '?'} size="sm"
                     colorClass={appt.patient?.avatarColor} />
 
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-neutral-700 truncate leading-tight">
+                    <p className="text-sm font-semibold text-neutral-700 truncate leading-tight dark:text-neutral-100">
                       {appt.patient?.name ?? appt.patientName}
                     </p>
                     <div className="flex items-center gap-1 mt-0.5">
                       {appt.modality === 'online'
                         ? <Video className="w-3 h-3 text-mist-400" />
                         : <MapPin className="w-3 h-3 text-sage-400" />}
-                      <span className="text-xs text-neutral-400">
+                      <span className="text-xs text-neutral-400 dark:text-neutral-300">
                         {appt.modality === 'online' ? 'Online' : 'Presencial'}
                       </span>
                     </div>
@@ -554,7 +554,7 @@ export default function DashboardPage() {
                       <button
                         onClick={() => openVideoAppointment(appt)}
                         title="Entrar na chamada"
-                        className="opacity-100 transition-opacity flex items-center gap-1 rounded-xl bg-mist-50 border border-mist-200 px-2 py-1 text-xs font-medium text-mist-700 hover:bg-mist-100 sm:opacity-0 sm:group-hover:opacity-100"
+                        className="opacity-100 transition-opacity flex items-center gap-1 rounded-xl bg-mist-50 border border-mist-200 px-2 py-1 text-xs font-medium text-mist-700 hover:bg-mist-100 dark:border-mist-300/20 dark:bg-mist-400/10 dark:text-mist-100 dark:hover:bg-mist-400/15 sm:opacity-0 sm:group-hover:opacity-100"
                       >
                         <ExternalLink className="w-3 h-3" /> Chamada
                       </button>
@@ -563,7 +563,7 @@ export default function DashboardPage() {
                       <button
                         onClick={() => setSessionDefaults({ patientId: appt.patientId, date: appt.date, appointmentId: appt.id })}
                         title="Registrar sessão"
-                        className="opacity-100 transition-opacity flex items-center gap-1 rounded-xl bg-sage-50 border border-sage-200 px-2 py-1 text-xs font-medium text-sage-700 hover:bg-sage-100 sm:opacity-0 sm:group-hover:opacity-100"
+                        className="opacity-100 transition-opacity flex items-center gap-1 rounded-xl bg-sage-50 border border-sage-200 px-2 py-1 text-xs font-medium text-sage-700 hover:bg-sage-100 dark:border-sage-300/20 dark:bg-sage-400/10 dark:text-sage-100 dark:hover:bg-sage-400/15 sm:opacity-0 sm:group-hover:opacity-100"
                       >
                         <NotebookPen className="w-3 h-3" /> Registrar
                       </button>
@@ -578,7 +578,7 @@ export default function DashboardPage() {
         {/* Receita */}
         <div className="card flex flex-col">
           <h2 className="section-title">Receita mensal</h2>
-          <p className="text-3xl font-semibold text-neutral-800 leading-none tracking-tight mb-1">
+          <p className="text-3xl font-semibold text-neutral-800 leading-none tracking-tight mb-1 dark:text-white">
             {formatCurrency(s?.monthRevenue ?? 0)}
           </p>
 
@@ -604,7 +604,7 @@ export default function DashboardPage() {
           </div>
 
           <Link to="/financeiro"
-            className="mt-3 pt-3 border-t border-neutral-50 flex items-center justify-between text-xs text-neutral-400 hover:text-sage-600 transition-colors">
+            className="mt-3 pt-3 border-t border-neutral-50 flex items-center justify-between text-xs text-neutral-400 hover:text-sage-600 transition-colors dark:border-white/10 dark:text-neutral-300 dark:hover:text-sage-200">
             <span>Ver lançamentos</span>
             <ArrowRight className="w-3 h-3" />
           </Link>
@@ -617,14 +617,14 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="section-title mb-0">Sessões recentes</h2>
             <Link to="/sessoes"
-              className="flex items-center gap-1 text-xs font-medium text-sage-600 hover:text-sage-700 transition-colors">
+              className="flex items-center gap-1 text-xs font-medium text-sage-600 hover:text-sage-700 transition-colors dark:text-sage-300 dark:hover:text-sage-200">
               Ver todas <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
           <div className="space-y-1">
             {recentSessions.slice(0, 5).map((session: any) => (
               <div key={session.id}
-                className="flex items-center gap-3 p-3 rounded-xl hover:bg-neutral-50 transition-colors cursor-pointer group">
+                className="flex items-center gap-3 p-3 rounded-xl hover:bg-neutral-50 transition-colors cursor-pointer group dark:hover:bg-white/5">
                 <Avatar
                   name={session.patient?.name ?? '?'}
                   colorClass={session.patient?.avatarColor}
@@ -632,15 +632,15 @@ export default function DashboardPage() {
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-neutral-700 truncate leading-tight">
+                    <p className="text-sm font-semibold text-neutral-700 truncate leading-tight dark:text-neutral-100">
                       {session.patient?.name ?? '—'}
                     </p>
-                    <span className="text-xs text-neutral-400 shrink-0 tabular-nums">
+                    <span className="text-xs text-neutral-400 shrink-0 tabular-nums dark:text-neutral-300">
                       {formatDateRelative(session.date)}
                     </span>
                   </div>
                   {session.summary && (
-                    <p className="text-xs text-neutral-400 mt-0.5 line-clamp-1">Evolução registrada</p>
+                    <p className="text-xs text-neutral-400 mt-0.5 line-clamp-1 dark:text-neutral-300">Evolução registrada</p>
                   )}
                 </div>
                 {session.mood && (
