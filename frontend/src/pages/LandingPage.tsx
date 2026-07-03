@@ -15,7 +15,7 @@ import BrandLogo from '@/components/ui/BrandLogo'
 
 const trustSignals = [
   'Plano gratis',
-  'Para psicólogos e estagiários clínicos',
+  'Para psicólogos, terapeutas e estagiários clínicos',
   'Sem cartão para começar',
 ]
 
@@ -62,7 +62,7 @@ const freeItems = [
   'Agenda online com link publico',
   'Cadastro de ate 10 pacientes',
   'Prontuario e evolucoes em um so lugar',
-  'Ideal para estagiarios e psicologos no inicio da rotina',
+  'Ideal para estagiarios, psicologos e terapeutas no inicio da rotina',
 ]
 
 const faqs = [
@@ -72,7 +72,7 @@ const faqs = [
   },
   {
     question: 'Quem pode usar o UseCognia?',
-    answer: 'Psicólogos e estagiários clínicos no Brasil que querem organizar agenda, pacientes, prontuário e rotina de atendimento.',
+    answer: 'Psicólogos, terapeutas e estagiários clínicos no Brasil que querem organizar agenda, pacientes, prontuário e rotina de atendimento.',
   },
   {
     question: 'Meus dados e os dos meus pacientes ficam seguros?',
@@ -199,7 +199,7 @@ export default function LandingPage() {
           <div className="w-full min-w-0 max-w-full sm:max-w-2xl">
             <p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-3 py-1 text-sm font-semibold text-sage-200">
               <Sparkles className="h-4 w-4" />
-              Plano gratis para psicólogos e estagiários
+              Plano gratis para psicólogos, terapeutas e estagiários
             </p>
 
             <h1 className="mt-6 max-w-[21rem] text-[2.1rem] font-bold leading-[1.06] tracking-normal text-white sm:max-w-2xl sm:text-5xl lg:text-6xl">
@@ -259,7 +259,7 @@ export default function LandingPage() {
             <WalletCards className="mt-0.5 h-5 w-5 text-sage-600" />
             <div>
               <p className="text-sm font-semibold text-[#211F1C]">Construído com usuários reais</p>
-              <p className="mt-1 text-sm text-[#7C776B]">Criado para a rotina de psicólogos e estagiários clínicos.</p>
+              <p className="mt-1 text-sm text-[#7C776B]">Criado para a rotina de psicólogos, terapeutas e estagiários clínicos.</p>
             </div>
           </div>
         </div>
@@ -269,7 +269,7 @@ export default function LandingPage() {
         <div className="grid gap-8 lg:grid-cols-[0.9fr_1fr]">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Por que agora</p>
-            <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Você não estudou psicologia para virar administrador de agenda.</h2>
+            <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Você não estudou para virar administrador de agenda.</h2>
             <p className="mt-4 leading-relaxed text-[#5F5A51]">
               A clínica exige presença. Mas a rotina ao redor dela costuma virar uma mistura de WhatsApp, planilha, agenda, caderno e lembretes soltos. É exatamente essa dor que queremos resolver com os primeiros usuários.
             </p>

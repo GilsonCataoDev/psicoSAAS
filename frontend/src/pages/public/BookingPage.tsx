@@ -130,8 +130,8 @@ export default function BookingPage() {
       `Agende sua sessão com ${name}, ${specialty.toLowerCase()}${city ? ` em ${city}` : ''}. Agendamento online rápido e seguro via UseCognia.`
     )
     return () => {
-      document.title = 'UseCognia | Agenda, prontuário e documentos para psicólogos'
-      meta?.setAttribute('content', 'Plataforma de gestão para psicólogos autônomos.')
+      document.title = 'UseCognia | Agenda, prontuário e documentos para psicólogos e terapeutas'
+      meta?.setAttribute('content', 'Plataforma de gestão para psicólogos e terapeutas autônomos.')
     }
   }, [page])
 

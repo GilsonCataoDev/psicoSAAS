@@ -2,7 +2,7 @@
 
 ## 1. Visao Geral
 
-UseCognia e um SaaS para psicologos que centraliza agenda, pacientes, prontuario, evolucoes, documentos, instrumentos clinicos, financeiro, agendamento publico e notificacoes.
+UseCognia e um SaaS para psicologos e terapeutas que centraliza agenda, pacientes, prontuario, evolucoes, documentos, instrumentos clinicos, financeiro, agendamento publico e notificacoes.
 
 O produto lida com dados sensiveis de saude mental, entao as decisoes tecnicas priorizam:
 

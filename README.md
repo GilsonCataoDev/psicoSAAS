@@ -1,8 +1,8 @@
 # UseCognia
 
-> Plataforma humanizada para psicólogos — menos burocracia, mais presença.
+> Plataforma humanizada para psicólogos e terapeutas — menos burocracia, mais presença.
 
-UseCognia é um SaaS completo para psicólogos brasileiros que reduz a carga operacional do consultório — gestão de pacientes, agenda, sessões clínicas, financeiro e agendamento online — para que o profissional foque no que importa: o cuidado humano.
+UseCognia é um SaaS completo para psicólogos e terapeutas brasileiros que reduz a carga operacional do consultório — gestão de pacientes, agenda, sessões clínicas, financeiro e agendamento online — para que o profissional foque no que importa: o cuidado humano.
 
 **Documentação técnica:** [docs/PROJECT_DOCUMENTATION.md](docs/PROJECT_DOCUMENTATION.md)  
 **Referência da API:** [docs/API.md](docs/API.md)  
