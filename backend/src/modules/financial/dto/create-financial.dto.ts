@@ -9,6 +9,8 @@ export class CreateFinancialDto {
   @IsString() @MaxLength(180) description: string
   @IsIn(['paid','pending','overdue']) @IsOptional() status?: string
   @IsString() @IsOptional() sessionId?: string
+  @IsString() @IsOptional() appointmentId?: string
+  @IsString() @IsOptional() bookingId?: string
   @IsDateString() @IsOptional() dueDate?: string
   @IsDateString() @IsOptional() paidAt?: string
   @IsIn(['pix','credit_card','debit_card','cash','transfer','manual']) @IsOptional() method?: string

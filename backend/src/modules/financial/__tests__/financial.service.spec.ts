@@ -8,6 +8,7 @@ import { Patient } from '../../patients/entities/patient.entity'
 import { User } from '../../auth/entities/user.entity'
 import { Session } from '../../sessions/entities/session.entity'
 import { Booking } from '../../booking/entities/booking.entity'
+import { Appointment } from '../../appointments/entities/appointment.entity'
 
 const PSY_ID = 'psy-1'
 
@@ -75,6 +76,7 @@ describe('FinancialService', () => {
         { provide: getRepositoryToken(User),            useValue: makeRepo() },
         { provide: getRepositoryToken(Session),         useValue: sessionRepo },
         { provide: getRepositoryToken(Booking),         useValue: bookingRepo },
+        { provide: getRepositoryToken(Appointment),     useValue: makeRepo() },
         { provide: NotificationsService, useValue: notifications },
       ],
     }).compile()

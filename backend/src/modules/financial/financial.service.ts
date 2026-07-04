@@ -8,6 +8,7 @@ import { User } from '../auth/entities/user.entity'
 import { Patient } from '../patients/entities/patient.entity'
 import { Session } from '../sessions/entities/session.entity'
 import { Booking } from '../booking/entities/booking.entity'
+import { Appointment } from '../appointments/entities/appointment.entity'
 
 @Injectable()
 export class FinancialService {
@@ -19,6 +20,7 @@ export class FinancialService {
     @InjectRepository(Patient) private patients: Repository<Patient>,
     @InjectRepository(Session) private sessions: Repository<Session>,
     @InjectRepository(Booking) private bookings: Repository<Booking>,
+    @InjectRepository(Appointment) private appointments: Repository<Appointment>,
     private notifications: NotificationsService,
   ) {}
 
@@ -40,6 +42,8 @@ export class FinancialService {
         paidAt: true,
         method: true,
         sessionId: true,
+        appointmentId: true,
+        bookingId: true,
         receiptUrl: true,
         patientId: true,
         psychologistId: true,
@@ -67,6 +71,8 @@ export class FinancialService {
         paidAt: true,
         method: true,
         sessionId: true,
+        appointmentId: true,
+        bookingId: true,
         receiptUrl: true,
         asaasPaymentId: true,
         paymentLinkUrl: true,
@@ -89,6 +95,19 @@ export class FinancialService {
     return this.repo.findOne({ where: { sessionId, psychologistId } })
   }
 
+  findByAppointmentId(appointmentId: string, psychologistId: string) {
+    return this.repo.findOne({
+      where: [
+        { appointmentId, psychologistId },
+        { sessionId: appointmentId, psychologistId },
+      ],
+    })
+  }
+
+  findByBookingId(bookingId: string, psychologistId: string) {
+    return this.repo.findOne({ where: { bookingId, psychologistId } })
+  }
+
   async updateLinkedRecord(
     id: string,
     psychologistId: string,
@@ -105,6 +124,12 @@ export class FinancialService {
     }
     if (dto.sessionId) {
       await this.assertSessionBelongsToPsychologist(dto.sessionId, psychologistId)
+    }
+    if (dto.appointmentId) {
+      await this.assertAppointmentBelongsToPsychologist(dto.appointmentId, psychologistId)
+    }
+    if (dto.bookingId) {
+      await this.assertBookingBelongsToPsychologist(dto.bookingId, psychologistId)
     }
 
     const record = this.repo.create({ ...dto, psychologistId })
@@ -232,20 +257,35 @@ export class FinancialService {
     if (!session) throw new NotFoundException('Sessão não encontrada')
   }
 
+  private async assertAppointmentBelongsToPsychologist(appointmentId: string, psychologistId: string): Promise<void> {
+    const appointment = await this.appointments.findOne({ where: { id: appointmentId, psychologistId } })
+    if (!appointment) throw new NotFoundException('Agendamento não encontrado')
+  }
+
+  private async assertBookingBelongsToPsychologist(bookingId: string, psychologistId: string): Promise<void> {
+    const booking = await this.bookings.findOne({ where: { id: bookingId, psychologistId } })
+    if (!booking) throw new NotFoundException('Agendamento público não encontrado')
+  }
+
   private async syncLinkedPaymentStatus(
     record: FinancialRecord,
     psychologistId: string,
     status: 'paid' | 'pending' | 'waived',
     method?: string,
   ): Promise<void> {
-    if (!record.sessionId) return
+    const appointmentId = record.appointmentId ?? record.sessionId
+    if (!record.sessionId && !appointmentId && !record.bookingId) return
 
     const sessionPatch = status === 'paid'
       ? { paymentStatus: 'paid', paymentId: record.id }
       : { paymentStatus: status, paymentId: null }
 
-    await this.sessions.update({ id: record.sessionId, psychologistId }, sessionPatch as any)
-    await this.sessions.update({ appointmentId: record.sessionId, psychologistId }, sessionPatch as any)
+    if (record.sessionId) {
+      await this.sessions.update({ id: record.sessionId, psychologistId }, sessionPatch as any)
+    }
+    if (appointmentId) {
+      await this.sessions.update({ appointmentId, psychologistId }, sessionPatch as any)
+    }
 
     const bookingPatch = status === 'paid'
       ? {
@@ -259,9 +299,11 @@ export class FinancialService {
           paidAt: null,
         }
 
-    await this.bookings.update(
-      { appointmentId: record.sessionId, psychologistId },
-      bookingPatch,
-    )
+    if (record.bookingId) {
+      await this.bookings.update({ id: record.bookingId, psychologistId }, bookingPatch)
+    }
+    if (appointmentId) {
+      await this.bookings.update({ appointmentId, psychologistId }, bookingPatch)
+    }
   }
 }

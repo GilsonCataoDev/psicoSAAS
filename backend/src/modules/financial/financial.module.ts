@@ -8,11 +8,12 @@ import { User } from '../auth/entities/user.entity'
 import { Patient } from '../patients/entities/patient.entity'
 import { Session } from '../sessions/entities/session.entity'
 import { Booking } from '../booking/entities/booking.entity'
+import { Appointment } from '../appointments/entities/appointment.entity'
 import { PaymentReminderJob } from './payment-reminder.job'
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([FinancialRecord, User, Patient, Session, Booking]),
+    TypeOrmModule.forFeature([FinancialRecord, User, Patient, Session, Booking, Appointment]),
     NotificationsModule,
   ],
   controllers: [FinancialController, AsaasWebhookController],

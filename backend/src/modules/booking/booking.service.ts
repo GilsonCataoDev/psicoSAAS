@@ -544,13 +544,18 @@ export class BookingService {
     await this.bookings.save(booking)
 
     // ── Atualiza ou cria o FinancialRecord ──────────────────────────────────
-    // Tenta achar pelo appointmentId (salvo em sessionId no confirm)
     let record: FinancialRecord | null = null
-    if (booking.appointmentId) {
-      record = await this.financial.findOne({
-        where: { sessionId: booking.appointmentId, psychologistId },
-      })
-    }
+    record = await this.financial.findOne({
+      where: [
+        { bookingId: booking.id, psychologistId },
+        ...(booking.appointmentId
+          ? [
+              { appointmentId: booking.appointmentId, psychologistId },
+              { sessionId: booking.appointmentId, psychologistId },
+            ]
+          : []),
+      ],
+    })
 
     if (record) {
       // Marca o existente como pago
@@ -578,7 +583,8 @@ export class BookingService {
           paidAt:        today,
           method,
           psychologistId,
-          sessionId:     booking.appointmentId ?? undefined,
+          appointmentId: booking.appointmentId ?? undefined,
+          bookingId:     booking.id,
         }),
       )
     }
@@ -800,7 +806,8 @@ export class BookingService {
         dueDate:       booking.date,
         patientId:     patient.id,
         psychologistId,
-        sessionId:     appointment.id,   // referência para markPaid encontrar o registro
+        appointmentId: appointment.id,
+        bookingId:     booking.id,
       }),
     )
 
