@@ -70,6 +70,37 @@ type FormData = z.infer<typeof schema>
 
 type Step = 'landing' | 'date' | 'time' | 'form' | 'success'
 
+type SavedPatientContact = Pick<FormData, 'patientName' | 'patientEmail' | 'patientPhone'>
+
+function contactStorageKey(slug?: string) {
+  return `usecognia:booking-contact:${slug || 'default'}`
+}
+
+function loadSavedPatientContact(slug?: string): Partial<SavedPatientContact> | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.localStorage.getItem(contactStorageKey(slug))
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Partial<SavedPatientContact>
+    return {
+      patientName: typeof parsed.patientName === 'string' ? parsed.patientName : undefined,
+      patientEmail: typeof parsed.patientEmail === 'string' ? parsed.patientEmail : undefined,
+      patientPhone: typeof parsed.patientPhone === 'string' ? parsed.patientPhone : undefined,
+    }
+  } catch {
+    return null
+  }
+}
+
+function savePatientContact(slug: string | undefined, data: SavedPatientContact) {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(contactStorageKey(slug), JSON.stringify(data))
+  } catch {
+    // localStorage pode estar indisponivel em modo privado; o agendamento deve continuar.
+  }
+}
+
 function formatWhatsApp(raw?: string | null) {
   if (!raw) return null
   const digits = raw.replace(/\D/g, '')
@@ -98,7 +129,11 @@ export default function BookingPage() {
 
   const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { modality: 'presencial', privacyAccepted: false },
+    defaultValues: {
+      modality: 'presencial',
+      privacyAccepted: false,
+      ...loadSavedPatientContact(slug),
+    },
   })
   const selectedModality = watch('modality')
   const monthKey = format(month, 'yyyy-MM')
@@ -140,6 +175,14 @@ export default function BookingPage() {
     if (page.allowOnline && !page.allowPresencial) setValue('modality', 'online')
     if (page.allowPresencial && !page.allowOnline) setValue('modality', 'presencial')
   }, [page, setValue])
+
+  useEffect(() => {
+    const saved = loadSavedPatientContact(slug)
+    if (!saved) return
+    if (saved.patientName) setValue('patientName', saved.patientName)
+    if (saved.patientEmail) setValue('patientEmail', saved.patientEmail)
+    if (saved.patientPhone) setValue('patientPhone', saved.patientPhone)
+  }, [slug, setValue])
 
   function startBooking() {
     setStep('date')
@@ -187,6 +230,11 @@ export default function BookingPage() {
         patientPhone: bookingData.patientPhone?.replace(/\D/g, '') || undefined,
         date: selectedDate,
         time: selectedTime,
+      })
+      savePatientContact(slug, {
+        patientName: bookingData.patientName.trim(),
+        patientEmail: bookingData.patientEmail?.trim() ?? '',
+        patientPhone: bookingData.patientPhone?.replace(/\D/g, '') ?? '',
       })
       track(EVENTS.BOOKING_CONFIRMED)
       setStep('success')
