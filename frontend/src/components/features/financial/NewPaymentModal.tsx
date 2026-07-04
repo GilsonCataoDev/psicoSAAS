@@ -27,12 +27,18 @@ export default function NewPaymentModal({ open, onClose }: { open: boolean; onCl
 
   async function onSubmit(data: FormData) {
     try {
-      await createFinancial.mutateAsync({
-        ...data,
+      const payload = {
+        patientId: data.patientId || undefined,
+        description: data.description,
+        amount: data.amount,
+        type: data.type,
+        dueDate: data.dueDate || undefined,
         status: data.paidNow ? 'paid' : 'pending',
         paidAt: data.paidNow ? new Date().toISOString() : undefined,
-        patientId: data.patientId || undefined,
-      } as any)
+        method: data.paidNow ? data.method : undefined,
+      }
+
+      await createFinancial.mutateAsync(payload as any)
       toast.success('Lancamento registrado')
       reset(); onClose()
     } catch {

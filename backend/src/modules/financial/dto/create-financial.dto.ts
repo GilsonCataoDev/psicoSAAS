@@ -7,7 +7,9 @@ export class CreateFinancialDto {
   @IsIn(['income','expense']) type: 'income' | 'expense'
   @IsNumber() @Min(0) @Type(() => Number) amount: number
   @IsString() description: string
+  @IsIn(['paid','pending','overdue']) @IsOptional() status?: string
   @IsString() @IsOptional() sessionId?: string
   @IsString() @IsOptional() dueDate?: string
+  @IsString() @IsOptional() paidAt?: string
   @IsIn(['pix','credit_card','debit_card','cash','transfer','manual']) @IsOptional() method?: string
 }
