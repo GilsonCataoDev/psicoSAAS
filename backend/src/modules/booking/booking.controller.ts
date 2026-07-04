@@ -5,6 +5,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { BookingService } from './booking.service'
 import { SaveBookingPageDto } from './dto/save-booking-page.dto'
+import { MarkBookingPaidDto } from './dto/mark-booking-paid.dto'
 
 /**
  * Rotas autenticadas — painel do psicólogo.
@@ -49,9 +50,9 @@ export class BookingController {
   markPaid(
     @Param('id') id: string,
     @Request() req: any,
-    @Body('method') method: string,
+    @Body() dto: MarkBookingPaidDto,
   ) {
-    return this.svc.markPaid(id, req.user.id, method)
+    return this.svc.markPaid(id, req.user.id, dto.method)
   }
 
   /**

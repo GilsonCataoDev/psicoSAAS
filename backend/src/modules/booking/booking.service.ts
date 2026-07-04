@@ -17,6 +17,7 @@ import { Patient } from '../patients/entities/patient.entity'
 import { Appointment } from '../appointments/entities/appointment.entity'
 import { FinancialRecord } from '../financial/entities/financial-record.entity'
 import { User } from '../auth/entities/user.entity'
+import { Session } from '../sessions/entities/session.entity'
 import { AvailabilityService } from '../availability/availability.service'
 import { NotificationsService } from '../notifications/notifications.service'
 import { CreateBookingDto } from './dto/create-booking.dto'
@@ -82,6 +83,7 @@ export class BookingService {
     @InjectRepository(Appointment)     private appointments: Repository<Appointment>,
     @InjectRepository(FinancialRecord) private financial:    Repository<FinancialRecord>,
     @InjectRepository(User)            private users:        Repository<User>,
+    @InjectRepository(Session)         private sessions:     Repository<Session>,
     private availability:  AvailabilityService,
     private notifications: NotificationsService,
     private googleCalendar: GoogleCalendarService,
@@ -566,7 +568,7 @@ export class BookingService {
         })
         patientName = appt?.patient?.name ?? booking.patientName ?? 'Paciente'
       }
-      await this.financial.save(
+      record = await this.financial.save(
         this.financial.create({
           type:          'income',
           amount:        Number(booking.amount) || 0,
@@ -578,6 +580,13 @@ export class BookingService {
           psychologistId,
           sessionId:     booking.appointmentId ?? undefined,
         }),
+      )
+    }
+
+    if (booking.appointmentId) {
+      await this.sessions.update(
+        { appointmentId: booking.appointmentId, psychologistId },
+        { paymentStatus: 'paid', paymentId: record?.id ?? undefined },
       )
     }
 
@@ -793,7 +802,7 @@ export class BookingService {
         psychologistId,
         sessionId:     appointment.id,   // referência para markPaid encontrar o registro
       }),
-    ).catch(() => {})  // não derruba o fluxo se a coluna ainda não existir em prod
+    )
 
     return appointment
   }

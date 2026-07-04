@@ -12,10 +12,11 @@ import { Appointment } from '../appointments/entities/appointment.entity'
 import { FinancialRecord } from '../financial/entities/financial-record.entity'
 import { GoogleCalendarModule } from '../google-calendar/google-calendar.module'
 import { User } from '../auth/entities/user.entity'
+import { Session } from '../sessions/entities/session.entity'
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Booking, BookingPage, Patient, Appointment, FinancialRecord, User]),
+    TypeOrmModule.forFeature([Booking, BookingPage, Patient, Appointment, FinancialRecord, User, Session]),
     AvailabilityModule,
     NotificationsModule,
     GoogleCalendarModule,

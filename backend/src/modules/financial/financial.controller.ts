@@ -7,6 +7,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { FinancialService } from './financial.service'
 import { CreateFinancialDto } from './dto/create-financial.dto'
+import { MarkPaidDto } from './dto/mark-paid.dto'
 import { RequirePlan } from '../../common/decorators/require-plan.decorator'
 
 @Controller('financial')
@@ -39,10 +40,10 @@ export class FinancialController {
   @Patch(':id/pay')
   markPaid(
     @Param('id') id: string,
-    @Body('method') method: string,
+    @Body() dto: MarkPaidDto,
     @Request() req: any,
   ) {
-    return this.svc.markPaid(id, method, req.user.id)
+    return this.svc.markPaid(id, dto.method, req.user.id)
   }
 
   @Post(':id/send-charge')
