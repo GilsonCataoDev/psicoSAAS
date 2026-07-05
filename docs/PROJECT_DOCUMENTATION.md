@@ -144,10 +144,13 @@ frontend/src/
 ### Agendamento Publico
 
 - Pagina publica por profissional.
-- Link publico de agendamento.
-- Horarios disponiveis conforme configuracao.
+- Link publico de agendamento com foto/perfil do profissional.
+- Datas disponiveis no mes e horarios disponiveis por data, conforme configuracao.
+- Limite de antecedencia minima e maxima para evitar agendamentos longe demais.
 - Confirmacao/cancelamento por token.
 - Criacao automatica de paciente, agendamento e lancamento financeiro quando aplicavel.
+- Preenchimento automatico de nome, e-mail e celular no mesmo navegador quando o paciente ja agendou antes.
+- Cobranca antecipada automatica quando `requirePaymentUpfront`, `autoCharge` e PIX estiverem configurados.
 
 ### Sessoes e Evolucoes
 
@@ -178,6 +181,8 @@ frontend/src/
 - Resumo financeiro.
 - Link de cobranca via Asaas.
 - Criacao automatica de lancamentos em alguns fluxos.
+- Vinculos explicitos entre lancamento financeiro, sessao, appointment e booking publico (`sessionId`, `appointmentId`, `bookingId`).
+- Sincronizacao de status de pagamento entre financeiro, sessoes e agendamentos publicos.
 
 ### Planos e Billing
 
@@ -243,10 +248,11 @@ frontend/src/
 ### Agendamento Publico
 
 1. Paciente abre link publico.
-2. Sistema exibe datas e horarios disponiveis.
+2. Sistema exibe datas disponiveis no mes e horarios disponiveis na data escolhida.
 3. Paciente confirma o agendamento no proprio link publico.
-4. Sistema cria paciente, appointment e lancamento financeiro pendente.
-5. Psicologo recebe a notificacao e pode cancelar, remarcar ou registrar pagamento.
+4. Sistema cria paciente, appointment e lancamento financeiro pendente com vinculo ao booking.
+5. Se cobranca antecipada estiver habilitada, o sistema envia a cobranca automaticamente.
+6. Psicologo recebe a notificacao e pode cancelar, remarcar ou registrar pagamento.
 
 ### WhatsApp
 
@@ -458,6 +464,8 @@ Regras:
 - Nao usar `synchronize=true` em producao.
 - Alteracao estrutural de entidade deve ter migration.
 - Cuidado extra com campos criptografados: mudancas podem exigir migracao de dados.
+- Depois de deploys com migration nova no backend, rodar `npm run migration:run` no Railway.
+- `financial_records` usa `sessionId`, `appointmentId` e `bookingId` para evitar vinculos ambiguos entre sessoes, agenda interna e booking publico.
 
 ## 12. Operacao e Suporte
 

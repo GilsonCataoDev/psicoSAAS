@@ -28,14 +28,17 @@ UseCognia é um SaaS completo para psicólogos e terapeutas brasileiros que redu
 ### Agenda e agendamento
 - **Agenda semanal** — grade visual com sessões presenciais e online
 - **Agendamentos recorrentes** — séries semanais com edição/exclusão "deste em diante" (`recurringGroupId`)
-- **Agendamento online** — link público com disponibilidade em tempo real, confirmação por e-mail e link diário rotativo (token HMAC que muda à meia-noite)
+- **Agendamento online** — link público com datas disponíveis no mês, horários em tempo real, confirmação por e-mail e link diário rotativo (token HMAC que muda à meia-noite)
 - **Página pública de perfil** — landing com avatar, especialidade e botões "Agende agora" / WhatsApp
 - **Google Calendar** — sincronização bidirecional via OAuth 2.0 (tokens criptografados)
 - **Confirmação automática** — ao confirmar um agendamento, cria paciente, appointment e lançamento financeiro pendente automaticamente
+- **Cobrança antecipada opcional** — quando `requirePaymentUpfront`, autoCharge e PIX estão configurados, o sistema envia cobrança no fluxo público
+- **Repreenchimento no link público** — nome, e-mail e celular podem ser lembrados no navegador do paciente para reduzir retrabalho
 
 ### Financeiro
 - **Lançamentos** — controle de receitas e despesas com status (pendente / pago / em atraso)
-- **Registro automático** — sessões confirmadas via link público geram lançamentos automaticamente
+- **Registro automático** — sessões confirmadas via link público geram lançamentos automaticamente vinculados a booking e appointment
+- **Vínculos consistentes** — lançamentos podem apontar explicitamente para `sessionId`, `appointmentId` e `bookingId`
 - **Link de pagamento** — integração com Asaas para cobrar por cartão, PIX ou boleto
 - **Dashboard financeiro** — receita do mês, gráfico dos últimos 6 meses, pendências
 

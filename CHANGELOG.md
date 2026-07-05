@@ -12,6 +12,43 @@ Todas as mudanças significativas do projeto. Formato: [Keep a Changelog](https:
 
 ---
 
+## [0.10.0] - 2026-07-04
+
+### Adicionado
+- Onboarding simples com 3 blocos: objetivo principal, forma de uso e quantidade de pacientes.
+- Proximos passos personalizados no dashboard com base nas respostas do onboarding.
+- Posicionamento do produto ampliado para psicologos e terapeutas.
+- Link publico de agendamento com exibicao de datas disponiveis no mes.
+- Resumo de disponibilidade para o profissional ver dias e horarios livres.
+- Lista de pacientes do dia na agenda, ordenada por horario.
+- Perfil/foto do profissional para aparecer no link publico de agendamento.
+- Preenchimento automatico de nome, e-mail e celular no agendamento publico quando o paciente ja agendou antes no mesmo navegador.
+- Migration `NormalizeFinancialLinks1782600000000` para normalizar vinculos financeiros com `sessionId`, `appointmentId` e `bookingId`.
+- Indices de performance para financeiro, agenda, bookings, disponibilidade e bloqueios.
+- Checks no banco para tipo, status e metodo de pagamento em `financial_records`.
+
+### Melhorado
+- Fluxo financeiro agora diferencia sessao, appointment e booking, mantendo fallback para registros antigos.
+- Marcacao de pagamento sincroniza sessao, booking publico e lancamento financeiro de forma consistente.
+- Agendamento publico cria lancamento financeiro com vinculo explicito ao booking e ao appointment.
+- `requirePaymentUpfront` passa a ser considerado no fluxo publico para envio de cobranca antecipada quando autoCharge e PIX estao configurados.
+- Mensagens de confirmacao/cancelamento podem ser editadas antes do envio com link gerado pelo sistema.
+- Dashboard e selects receberam ajustes de dark mode.
+- Receita e graficos financeiros passaram a considerar apenas receitas, sem misturar despesas.
+
+### Corrigido
+- Lancamento manual no financeiro deixava de funcionar quando o frontend enviava campos nao aceitos pelo DTO.
+- Cobranca de booking publico podia usar mensagem generica ou nao sincronizar corretamente com status de pagamento.
+- Plural incorreto de "sessoes" no dashboard.
+- Redirecionamento indevido para `/planos` apos login.
+- Responsividade e contraste de cards no dashboard em dark mode.
+- Link publico de agendamento com problemas de navegacao/confirmacao.
+
+### Operacao
+- Apos deploy do backend, rodar `npm run migration:run` no ambiente Railway para aplicar as colunas e indices novos.
+
+---
+
 ## [0.9.0] — 2026-06-27
 
 ### Adicionado
