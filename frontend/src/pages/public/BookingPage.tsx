@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
   ChevronLeft, ChevronRight, Check,
-  MapPin, Video, Clock, DollarSign, ShieldCheck, ExternalLink,
+  MapPin, Video, ShieldCheck, ExternalLink,
   Calendar,
 } from 'lucide-react'
 import {
@@ -14,7 +14,7 @@ import {
   startOfDay, parseISO, addMonths,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { cn, formatCurrency } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { track, EVENTS } from '@/lib/analytics'
 import { usePublicBookingPage, usePublicBookingSlots, useCreateBooking, usePublicBookingDates } from '@/hooks/useApi'
@@ -260,9 +260,6 @@ export default function BookingPage() {
   )
 
   const waNumber = formatWhatsApp((page as any).psychologistPhone)
-  const selectedDuration = selectedModality === 'presencial'
-    ? (page.presencialSessionDuration ?? page.sessionDuration)
-    : (page.onlineSessionDuration ?? page.sessionDuration)
   const initials = page.psychologistName
     .split(' ')
     .filter(Boolean)
@@ -311,17 +308,7 @@ export default function BookingPage() {
             {profileDescription}
           </p>
 
-          <div className="mt-6 grid w-full grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-            <div className="rounded-2xl border border-neutral-100 bg-neutral-50 px-3 py-3 text-center dark:border-white/10 dark:bg-white/5">
-              <Clock className="mx-auto mb-1 h-4 w-4 text-sage-500" />
-              <strong className="block text-neutral-800 dark:text-neutral-100">{selectedDuration} min</strong>
-              <span className="text-neutral-400">duração</span>
-            </div>
-            <div className="rounded-2xl border border-neutral-100 bg-neutral-50 px-3 py-3 text-center dark:border-white/10 dark:bg-white/5">
-              <DollarSign className="mx-auto mb-1 h-4 w-4 text-sage-500" />
-              <strong className="block text-neutral-800 dark:text-neutral-100">{formatCurrency(page.sessionPrice)}</strong>
-              <span className="text-neutral-400">valor</span>
-            </div>
+          <div className="mt-6 grid w-full grid-cols-1 gap-2 text-xs sm:grid-cols-2">
             {page.allowPresencial && (
               <div className="rounded-2xl border border-neutral-100 bg-neutral-50 px-3 py-3 text-center dark:border-white/10 dark:bg-white/5">
                 <MapPin className="mx-auto mb-1 h-4 w-4 text-sage-500" />
@@ -455,14 +442,6 @@ export default function BookingPage() {
                   <span className="text-neutral-400 dark:text-neutral-400">Horário</span>
                   <strong className="font-medium">{selectedTime}</strong>
                 </p>
-                <p className="flex items-center justify-between gap-4">
-                  <span className="text-neutral-400 dark:text-neutral-400">Duração</span>
-                  <strong className="font-medium">{selectedDuration} minutos</strong>
-                </p>
-                <p className="flex items-center justify-between gap-4 border-t border-neutral-100 dark:border-white/10 pt-3">
-                  <span className="text-neutral-400 dark:text-neutral-400">Valor</span>
-                  <strong className="font-semibold text-sage-700 dark:text-sage-300">{formatCurrency(page.sessionPrice)}</strong>
-                </p>
               </div>
             </div>
             <button
@@ -489,8 +468,6 @@ export default function BookingPage() {
                 <p className="text-neutral-500 leading-relaxed">{page.description}</p>
               )}
               <div className="flex flex-wrap gap-3 mt-4 text-sm text-neutral-500">
-                <span className="flex items-center gap-1.5"><Clock className="w-4 h-4 text-sage-500" />{selectedDuration} min</span>
-                <span className="flex items-center gap-1.5"><DollarSign className="w-4 h-4 text-sage-500" />{formatCurrency(page.sessionPrice)}</span>
                 {page.allowPresencial && <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-sage-500" />Presencial</span>}
                 {page.allowOnline && <span className="flex items-center gap-1.5"><Video className="w-4 h-4 text-mist-500" />Online</span>}
               </div>
@@ -763,8 +740,7 @@ export default function BookingPage() {
                   <div className="bg-sage-50 rounded-2xl p-4 text-sm text-sage-700 space-y-1">
                     <p className="font-medium">Resumo da sessão</p>
                     <p>{selectedDate && format(parseISO(selectedDate), "EEEE, dd 'de' MMMM", { locale: ptBR })}</p>
-                    <p>{selectedTime} · {selectedDuration} minutos</p>
-                    <p>{formatCurrency(page.sessionPrice)}</p>
+                    <p>{selectedTime}</p>
                   </div>
 
                   <button type="submit" disabled={isSubmitting || createBooking.isPending}
