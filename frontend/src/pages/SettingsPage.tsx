@@ -37,6 +37,23 @@ const tabs = [
 ]
 const TAB_IDS = new Set(tabs.map(tab => tab.id))
 const tabGroups = Array.from(new Set(tabs.map(tab => tab.group)))
+const EDITABLE_PREF_KEYS = [
+  'reminder24h',
+  'reminder2h',
+  'dailyAgendaDigest',
+  'chargeAfterSession',
+  'bookingConfirmation',
+  'pixKeyType',
+  'pixKey',
+  'pixName',
+  'autoCharge',
+  'lateReminder',
+  'includeReceipt',
+  'chargeTemplate',
+  'whatsapp',
+  'confirmationTemplate',
+  'reminderTemplate',
+] as const
 
 export default function SettingsPage() {
   const user = useAuthStore(s => s.user)
@@ -244,8 +261,10 @@ export default function SettingsPage() {
   }
 
   function buildPrefsPayload() {
-    const { googleCalendarConnected: _a, googleCalendarEmail: _b, ...editablePrefs } = prefs
-    return editablePrefs
+    return EDITABLE_PREF_KEYS.reduce((payload, key) => {
+      payload[key] = prefs[key]
+      return payload
+    }, {} as Record<string, string | boolean>)
   }
 
   async function savePrefs(section?: string) {
@@ -254,8 +273,8 @@ export default function SettingsPage() {
       const saved = await api.patch('/auth/preferences', buildPrefsPayload()).then(r => r.data)
       setPrefs(prev => ({ ...prev, ...saved }))
       toast.success(section ? `${section} salvo` : 'Preferencias salvas')
-    } catch {
-      toast.error('Erro ao salvar. Tente novamente.')
+    } catch (err: any) {
+      toast.error(userSafeError(err, 'Erro ao salvar. Tente novamente.'))
     } finally {
       setSavingPrefs(false)
     }
