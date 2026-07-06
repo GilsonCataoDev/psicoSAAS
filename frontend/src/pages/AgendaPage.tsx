@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Plus, Video, MapPin, Trash2, MessageCircle, Pencil, CheckCircle2, XCircle, FileText, ExternalLink } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Video, MapPin, Trash2, MessageCircle, Pencil, CheckCircle2, XCircle, FileText, ExternalLink, Search } from 'lucide-react'
 import {
   format, addDays, startOfWeek, eachDayOfInterval, addWeeks,
   subWeeks, isSameDay, parseISO, isToday, getDay,
@@ -9,6 +9,7 @@ import { ptBR } from 'date-fns/locale'
 import Avatar from '@/components/ui/Avatar'
 import { StatusBadge } from '@/components/ui/Badge'
 import { formatTime } from '@/lib/utils'
+import { patientMatchesSearch } from '@/lib/patientSearch'
 import {
   useAppointments,
   useAvailability,
@@ -29,6 +30,14 @@ const DAYS_IN_WEEK = 7
 const VIDEO_LINK_RE = /https?:\/\/[^\s)]+/i
 const FREE_APPOINTMENT_STATUSES = new Set(['cancelled', 'no_show'])
 const MIN_FREE_RANGE_MINUTES = 30
+
+function normalizeAgendaSearch(value: string | number | null | undefined) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+}
 
 function timeToMinutes(time?: string | null) {
   const [hour, minute] = String(time ?? '').slice(0, 5).split(':').map(Number)
@@ -64,6 +73,26 @@ function mergeMinuteRanges(ranges: { start: number; end: number }[]) {
   return merged
 }
 
+function appointmentMatchesSearch(appt: any, query: string) {
+  const normalizedQuery = normalizeAgendaSearch(query)
+  if (!normalizedQuery) return true
+
+  const patientMatch = appt.patient ? patientMatchesSearch(appt.patient, query) : false
+  if (patientMatch) return true
+
+  const searchable = [
+    appt.notes,
+    appt.date,
+    formatTime(appt.time ?? ''),
+    appt.modality === 'online' ? 'online' : 'presencial',
+    appt.status,
+  ]
+
+  return searchable
+    .map(normalizeAgendaSearch)
+    .some(value => value.includes(normalizedQuery))
+}
+
 export default function AgendaPage() {
   const [searchParams] = useSearchParams()
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }))
@@ -73,6 +102,7 @@ export default function AgendaPage() {
   const [appointmentToEvolve, setAppointmentToEvolve] = useState<any | null>(null)
   const [deleteScope, setDeleteScope] = useState<'single' | 'future'>('single')
   const [listDay, setListDay] = useState(new Date())
+  const [patientSearch, setPatientSearch] = useState('')
   const weekEnd = addDays(weekStart, DAYS_IN_WEEK - 1)
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
   const { data: appointments = [] } = useAppointments({
@@ -128,6 +158,13 @@ export default function AgendaPage() {
   const mobileAppointments = appointmentsByDate.get(mobileDayKey) ?? []
   const listDayKey = format(listDay, 'yyyy-MM-dd')
   const dayListAppointments = appointmentsByDate.get(listDayKey) ?? []
+  const patientSearchResults = useMemo(() => {
+    const query = patientSearch.trim()
+    if (!query) return []
+    return appointments
+      .filter(appt => appointmentMatchesSearch(appt, query))
+      .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`))
+  }, [appointments, patientSearch])
   const weeklyAvailabilitySummary = useMemo(() => {
     const blocked = new Set(blockedDates.map(item => item.date))
     const todayKey = format(new Date(), 'yyyy-MM-dd')
@@ -298,6 +335,115 @@ export default function AgendaPage() {
             <span className="hidden sm:inline">Agendar</span>
           </button>
         </div>
+      </div>
+
+      <div className="card space-y-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h2 className="section-title">Pesquisar pacientes na agenda</h2>
+            <p className="text-sm text-neutral-500 dark:text-neutral-300">
+              Encontre atendimentos desta semana por nome, telefone, email, modalidade ou observacao.
+            </p>
+          </div>
+          <div className="relative w-full lg:max-w-md">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+            <input
+              type="search"
+              value={patientSearch}
+              onChange={e => setPatientSearch(e.target.value)}
+              className="input-field h-11 pl-9"
+              placeholder="Buscar paciente na semana..."
+            />
+          </div>
+        </div>
+
+        {patientSearch.trim() && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+                {patientSearchResults.length} {patientSearchResults.length === 1 ? 'resultado' : 'resultados'}
+              </p>
+              <button
+                type="button"
+                onClick={() => setPatientSearch('')}
+                className="text-xs font-medium text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-100"
+              >
+                Limpar
+              </button>
+            </div>
+
+            {patientSearchResults.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-neutral-200 py-7 text-center text-sm text-neutral-400 dark:border-white/10">
+                Nenhum atendimento encontrado nesta semana.
+              </div>
+            ) : (
+              <div className="grid gap-2 lg:grid-cols-2">
+                {patientSearchResults.map(appt => {
+                  const appointmentDay = parseISO(appt.date)
+                  return (
+                    <div
+                      key={appt.id}
+                      className="rounded-2xl border border-neutral-100 bg-white p-3 dark:border-white/10 dark:bg-white/[0.04]"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="min-w-[56px] rounded-xl bg-sage-50 px-2 py-2 text-center text-sage-700 dark:bg-sage-500/15 dark:text-sage-100">
+                          <p className="text-sm font-bold">{formatTime(appt.time)}</p>
+                          <p className="text-[10px] capitalize">{format(appointmentDay, 'EEE dd', { locale: ptBR })}</p>
+                        </div>
+                        <Avatar name={appt.patient?.name ?? 'Paciente removido'} colorClass={appt.patient?.avatarColor} size="sm" />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="truncate text-sm font-semibold text-neutral-800 dark:text-neutral-100">
+                              {appt.patient?.name ?? 'Paciente removido'}
+                            </p>
+                            <StatusBadge status={appt.status} />
+                          </div>
+                          <p className="mt-1 flex items-center gap-1 text-xs text-neutral-400 dark:text-neutral-300">
+                            {appt.modality === 'online'
+                              ? <><Video className="h-3 w-3 text-mist-500" />Online</>
+                              : <><MapPin className="h-3 w-3 text-sage-500" />Presencial</>}
+                          </p>
+                          {appt.patient?.phone && (
+                            <p className="mt-1 truncate text-xs text-neutral-400 dark:text-neutral-300">{appt.patient.phone}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="mt-3 flex flex-wrap justify-end gap-2 border-t border-neutral-100 pt-3 dark:border-white/10">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setListDay(appointmentDay)
+                            setMobileDay(appointmentDay)
+                          }}
+                          className="btn-secondary px-3 py-2 text-xs"
+                        >
+                          Ver no dia
+                        </button>
+                        {appt.patientId && (
+                          <>
+                            <Link to={`/pacientes/${appt.patientId}`} className="btn-secondary px-3 py-2 text-xs">
+                              Perfil
+                            </Link>
+                            <Link to={`/prontuario/${appt.patientId}`} className="btn-secondary px-3 py-2 text-xs">
+                              Prontuario
+                            </Link>
+                          </>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => editAppointment(appt)}
+                          className="btn-secondary px-3 py-2 text-xs"
+                        >
+                          Editar
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Desktop: lista do dia em ordem ─────────────────────────── */}
