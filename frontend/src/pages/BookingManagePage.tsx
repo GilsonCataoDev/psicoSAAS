@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Link2, Check, X, Wallet, Settings, Clock, RefreshCw, Trash2, MessageCircle, ExternalLink } from 'lucide-react'
+import { Link2, Check, X, Wallet, Settings, Clock, RefreshCw, Trash2, MessageCircle, ExternalLink, Image, AlertCircle } from 'lucide-react'
 import { copyText, formatCurrency, formatDateRelative } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
@@ -435,6 +435,7 @@ function BookingSettings({ page }: { page: any }) {
     isActive:           page?.isActive ?? true,
     slug:               page?.slug ?? '',
     title:               page?.title ?? 'Agende sua sessão',
+    avatarUrl:           page?.avatarUrl ?? '',
     description:         page?.description ?? '',
     // +() converte string "150.00" do PostgreSQL decimal para número
     sessionPrice:        +(page?.sessionPrice ?? 150),
@@ -458,6 +459,7 @@ function BookingSettings({ page }: { page: any }) {
       isActive:           page.isActive ?? true,
       slug:               page.slug ?? '',
       title:               page.title ?? 'Agende sua sessão',
+      avatarUrl:           page.avatarUrl ?? '',
       description:         page.description ?? '',
       sessionPrice:        +(page.sessionPrice ?? 150),
       sessionDuration:     +(page.sessionDuration ?? 50),
@@ -533,6 +535,14 @@ function BookingSettings({ page }: { page: any }) {
       toast.error('A URL precisa ter pelo menos 3 caracteres.')
       return false
     }
+    if (form.avatarUrl.trim()) {
+      try {
+        new URL(form.avatarUrl.trim())
+      } catch {
+        toast.error('Informe uma URL valida para a foto do perfil publico.')
+        return false
+      }
+    }
     if (form.presencialSessionDuration < 15 || form.presencialSessionDuration > 240) {
       toast.error('A duração presencial precisa ficar entre 15 e 240 minutos.')
       return false
@@ -588,6 +598,7 @@ function BookingSettings({ page }: { page: any }) {
       await saveBookingPage.mutateAsync({
         ...form,
         slug: normalizeSlug(form.slug),
+        avatarUrl: form.avatarUrl.trim() || undefined,
         sessionDuration: form.onlineSessionDuration,
         slotInterval: form.onlineSessionDuration + form.onlineSlotInterval,
       })
@@ -644,11 +655,89 @@ function BookingSettings({ page }: { page: any }) {
 
   const currentSchedule = schedules[scheduleTab]
   const enabledCount = WEEKDAYS.filter(({ d }) => currentSchedule[d]?.enabled).length
+  const totalEnabledSlots = MODALITIES.reduce(
+    (total, { key }) => total + WEEKDAYS.filter(({ d }) => schedules[key][d]?.enabled).length,
+    0,
+  )
   const normalizedSlug = normalizeSlug(form.slug || page?.slug || '')
   const publicUrl = normalizedSlug ? `${window.location.origin}/agendar/${normalizedSlug}` : ''
+  const displayName = page?.psychologistName || page?.name || 'Seu perfil'
+  const profileInitial = displayName.trim().charAt(0).toUpperCase() || 'U'
+  const setupItems = [
+    {
+      label: 'Link publico ativo',
+      done: form.isActive,
+      hint: form.isActive ? 'Pacientes conseguem acessar.' : 'Ative quando quiser receber agendamentos.',
+    },
+    {
+      label: 'URL personalizada',
+      done: normalizedSlug.length >= 3,
+      hint: normalizedSlug ? `/agendar/${normalizedSlug}` : 'Crie um link facil de compartilhar.',
+    },
+    {
+      label: 'Perfil com foto ou texto',
+      done: Boolean(form.avatarUrl.trim() || form.description.trim()),
+      hint: 'Ajuda o paciente a reconhecer o profissional.',
+    },
+    {
+      label: 'Modalidade escolhida',
+      done: form.allowPresencial || form.allowOnline,
+      hint: [form.allowPresencial && 'presencial', form.allowOnline && 'online'].filter(Boolean).join(' e ') || 'Escolha pelo menos uma.',
+    },
+    {
+      label: 'Horarios cadastrados',
+      done: totalEnabledSlots > 0,
+      hint: totalEnabledSlots > 0 ? `${totalEnabledSlots} dias/modalidades ativos.` : 'Sem horarios, o link nao mostra datas.',
+    },
+  ]
+  const isSetupReady = setupItems.every(item => item.done)
 
   return (
     <div className="space-y-5">
+      <div className="card space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="section-title mb-1">Preparar link publico</h2>
+            <p className="text-sm text-neutral-500 dark:text-neutral-300">
+              Mantemos suas configuracoes atuais e mostramos apenas o que pode melhorar antes de enviar o link para pacientes.
+            </p>
+          </div>
+          <span className={cn(
+            'inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold',
+            isSetupReady
+              ? 'bg-sage-100 text-sage-700 dark:bg-sage-500/20 dark:text-sage-100'
+              : 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-100',
+          )}>
+            {isSetupReady ? <Check className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />}
+            {isSetupReady ? 'Pronto para compartilhar' : 'Revise os pontos pendentes'}
+          </span>
+        </div>
+        <div className="grid gap-3 md:grid-cols-5">
+          {setupItems.map(item => (
+            <div
+              key={item.label}
+              className={cn(
+                'rounded-xl border p-3 transition-colors',
+                item.done
+                  ? 'border-sage-200 bg-sage-50 dark:border-sage-400/30 dark:bg-sage-500/10'
+                  : 'border-amber-200 bg-amber-50 dark:border-amber-400/30 dark:bg-amber-500/10',
+              )}
+            >
+              <div className="mb-2 flex items-center gap-2">
+                <span className={cn(
+                  'flex h-5 w-5 items-center justify-center rounded-full',
+                  item.done ? 'bg-sage-500 text-white' : 'bg-amber-500 text-white',
+                )}>
+                  {item.done ? <Check className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
+                </span>
+                <p className="text-xs font-semibold text-neutral-700 dark:text-neutral-100">{item.label}</p>
+              </div>
+              <p className="text-xs text-neutral-500 dark:text-neutral-300">{item.hint}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="card space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -786,6 +875,26 @@ function BookingSettings({ page }: { page: any }) {
           <input maxLength={90} value={form.title} onChange={e => set('title', e.target.value)} className="input-field" />
         </div>
         <div>
+          <label className="label">Foto do perfil publico</label>
+          <div className="flex gap-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-neutral-200 bg-neutral-50 text-sm font-semibold text-neutral-500 dark:border-white/10 dark:bg-black/20 dark:text-neutral-200">
+              {form.avatarUrl.trim()
+                ? <img src={form.avatarUrl.trim()} alt="" className="h-full w-full object-cover" />
+                : <Image className="h-5 w-5" />}
+            </div>
+            <div className="min-w-0 flex-1">
+              <input
+                maxLength={500}
+                value={form.avatarUrl}
+                onChange={e => set('avatarUrl', e.target.value)}
+                className="input-field"
+                placeholder="https://..."
+              />
+              <p className="mt-1 text-xs text-neutral-400">Opcional. Use uma URL publica da foto profissional que vai aparecer no link de agendamento.</p>
+            </div>
+          </div>
+        </div>
+        <div>
           <label className="label">Mensagem de boas-vindas</label>
           <textarea maxLength={600} value={form.description} onChange={e => set('description', e.target.value)} rows={3} className="input-field resize-none" />
         </div>
@@ -849,6 +958,36 @@ function BookingSettings({ page }: { page: any }) {
             <label className="label">Agendar ate quantos dias a frente</label>
             <input type="number" min={1} max={180} value={form.maxAdvanceDays} onChange={e => set('maxAdvanceDays', +e.target.value)} className="input-field" />
             <p className="text-xs text-neutral-400 mt-1">Ex: 15 impede que alguem marque para daqui dois meses.</p>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4 dark:border-white/10 dark:bg-black/15">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-400">Previa do link publico</p>
+          <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-neutral-950">
+            <div className="flex items-start gap-3">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-sage-100 text-lg font-bold text-sage-700 dark:bg-sage-500/20 dark:text-sage-100">
+                {form.avatarUrl.trim()
+                  ? <img src={form.avatarUrl.trim()} alt="" className="h-full w-full object-cover" />
+                  : profileInitial}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">{displayName}</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-300">{form.title || 'Agende sua sessão'}</p>
+                {form.description.trim() && (
+                  <p className="mt-2 line-clamp-3 text-xs text-neutral-500 dark:text-neutral-300">{form.description.trim()}</p>
+                )}
+              </div>
+            </div>
+            <div className="mt-4 grid gap-2 sm:grid-cols-3">
+              <div className="rounded-xl bg-neutral-50 px-3 py-2 text-xs text-neutral-500 dark:bg-white/5 dark:text-neutral-300">
+                {formatCurrency(form.sessionPrice)}
+              </div>
+              <div className="rounded-xl bg-neutral-50 px-3 py-2 text-xs text-neutral-500 dark:bg-white/5 dark:text-neutral-300">
+                {form.maxAdvanceDays} dias abertos
+              </div>
+              <div className="rounded-xl bg-neutral-50 px-3 py-2 text-xs text-neutral-500 dark:bg-white/5 dark:text-neutral-300">
+                {[form.allowPresencial && 'Presencial', form.allowOnline && 'Online'].filter(Boolean).join(' / ') || 'Sem modalidade'}
+              </div>
+            </div>
           </div>
         </div>
       </div>
