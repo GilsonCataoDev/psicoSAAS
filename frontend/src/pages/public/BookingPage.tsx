@@ -141,7 +141,7 @@ export default function BookingPage() {
     slug ?? '',
     monthKey,
     selectedModality,
-    step !== 'landing',
+    !!slug && step !== 'success',
   )
   const { data: slots = [], isFetching: slotsLoading } = usePublicBookingSlots(slug ?? '', selectedDate, selectedModality)
   const createBooking = useCreateBooking(slug ?? '')
@@ -269,12 +269,15 @@ export default function BookingPage() {
     .slice(0, 2)
     .map(part => part[0]?.toUpperCase())
     .join('')
+  const profileDescription = page.description?.trim()
+    || 'Escolha uma data disponível e reserve seu horário de forma simples e segura.'
+  const nextAvailableDates = availableDatesInMonth.slice(0, 4)
 
   // ── LANDING ──────────────────────────────────────────────────────────────────
   if (step === 'landing') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-sage-50 via-white to-mist-50 dark:from-[#0d1713] dark:via-[#101d18] dark:to-[#12231d] flex flex-col items-center justify-center px-6 py-12 relative">
-        <div className="w-full max-w-md flex flex-col items-center bg-white/90 dark:bg-[#17251f]/90 backdrop-blur-xl rounded-3xl border border-white dark:border-sage-200/15 shadow-lifted px-7 py-9 sm:px-10 sm:py-11">
+        <div className="w-full max-w-lg flex flex-col items-center bg-white/90 dark:bg-[#17251f]/90 backdrop-blur-xl rounded-3xl border border-white dark:border-sage-200/15 shadow-lifted px-7 py-9 sm:px-10 sm:py-11">
 
           {/* Avatar */}
           <div className="w-28 h-28 rounded-full overflow-hidden bg-neutral-100 dark:bg-sage-500/15 mb-6 ring-4 ring-white dark:ring-sage-300/20 shadow-md shrink-0">
@@ -299,13 +302,71 @@ export default function BookingPage() {
             </p>
           )}
           {page.psychologistCrp && (
-            <p className="text-xs text-neutral-400 dark:text-neutral-400 text-center mb-8">
+            <p className="text-xs text-neutral-400 dark:text-neutral-400 text-center mb-4">
               CRP {page.psychologistCrp}
             </p>
           )}
 
+          <p className="max-w-sm text-center text-sm leading-relaxed text-neutral-500 dark:text-neutral-300">
+            {profileDescription}
+          </p>
+
+          <div className="mt-6 grid w-full grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+            <div className="rounded-2xl border border-neutral-100 bg-neutral-50 px-3 py-3 text-center dark:border-white/10 dark:bg-white/5">
+              <Clock className="mx-auto mb-1 h-4 w-4 text-sage-500" />
+              <strong className="block text-neutral-800 dark:text-neutral-100">{selectedDuration} min</strong>
+              <span className="text-neutral-400">duração</span>
+            </div>
+            <div className="rounded-2xl border border-neutral-100 bg-neutral-50 px-3 py-3 text-center dark:border-white/10 dark:bg-white/5">
+              <DollarSign className="mx-auto mb-1 h-4 w-4 text-sage-500" />
+              <strong className="block text-neutral-800 dark:text-neutral-100">{formatCurrency(page.sessionPrice)}</strong>
+              <span className="text-neutral-400">valor</span>
+            </div>
+            {page.allowPresencial && (
+              <div className="rounded-2xl border border-neutral-100 bg-neutral-50 px-3 py-3 text-center dark:border-white/10 dark:bg-white/5">
+                <MapPin className="mx-auto mb-1 h-4 w-4 text-sage-500" />
+                <strong className="block text-neutral-800 dark:text-neutral-100">Presencial</strong>
+                <span className="text-neutral-400">modalidade</span>
+              </div>
+            )}
+            {page.allowOnline && (
+              <div className="rounded-2xl border border-neutral-100 bg-neutral-50 px-3 py-3 text-center dark:border-white/10 dark:bg-white/5">
+                <Video className="mx-auto mb-1 h-4 w-4 text-mist-500" />
+                <strong className="block text-neutral-800 dark:text-neutral-100">Online</strong>
+                <span className="text-neutral-400">modalidade</span>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6 w-full rounded-2xl border border-sage-100 bg-sage-50 p-4 text-left dark:border-sage-300/20 dark:bg-sage-500/10">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-sm font-semibold text-sage-900 dark:text-sage-100">Próximas datas disponíveis</p>
+              {datesLoading && <span className="h-3 w-3 rounded-full border-2 border-sage-300 border-t-transparent animate-spin" />}
+            </div>
+            {!datesLoading && nextAvailableDates.length === 0 && (
+              <p className="text-xs leading-relaxed text-sage-700 dark:text-sage-200">
+                Nenhuma data disponível neste mês. Abra a agenda para consultar outros meses.
+              </p>
+            )}
+            {nextAvailableDates.length > 0 && (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {nextAvailableDates.map(date => (
+                  <button
+                    key={format(date, 'yyyy-MM-dd')}
+                    type="button"
+                    onClick={() => selectDate(date)}
+                    className="rounded-xl bg-white px-3 py-2 text-left text-sm text-sage-900 shadow-sm transition-colors hover:bg-sage-100 dark:bg-white/10 dark:text-sage-50 dark:hover:bg-white/15"
+                  >
+                    <span className="block text-xs capitalize opacity-70">{format(date, 'EEE', { locale: ptBR })}</span>
+                    <strong>{format(date, 'dd/MM')}</strong>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Botões */}
-          <div className="w-full space-y-3">
+          <div className="mt-6 w-full space-y-3">
             <button
               onClick={startBooking}
               className="w-full flex items-center justify-center gap-2 bg-sage-500 hover:bg-sage-600 text-white rounded-xl py-3.5 text-sm font-semibold shadow-sm hover:shadow-md transition-all"
