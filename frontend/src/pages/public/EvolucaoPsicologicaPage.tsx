@@ -574,7 +574,7 @@ export default function EvolucaoPsicologicaPage() {
             {[
               { icon: '🔒', label: 'Dados não armazenados' },
               { icon: '🇧🇷', label: 'Desenvolvido no Brasil' },
-              { icon: '⚕️', label: 'Para psicólogos' },
+              { icon: '⚕️', label: 'Para psicólogos e terapeutas' },
               { icon: '✅', label: 'Em conformidade com a LGPD' },
             ].map(t => (
               <div key={t.label} className="flex flex-col items-center gap-1">

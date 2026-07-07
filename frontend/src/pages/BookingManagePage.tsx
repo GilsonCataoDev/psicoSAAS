@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Link2, Check, X, Wallet, Settings, Clock, RefreshCw, Trash2, MessageCircle, ExternalLink } from 'lucide-react'
+import { Link2, Check, X, Wallet, Settings, Clock, RefreshCw, Trash2, MessageCircle, ExternalLink, Image, AlertCircle } from 'lucide-react'
 import { copyText, formatCurrency, formatDateRelative } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
@@ -214,18 +214,48 @@ function BookingCard({ booking, onConfirm, onReject, onMarkPaid }: {
 }) {
   const s = STATUS_CONFIG[booking.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.pending
   const p = PAY_CONFIG[booking.paymentStatus as keyof typeof PAY_CONFIG] ?? PAY_CONFIG.pending
+  const [messageModalOpen, setMessageModalOpen] = useState(false)
+  const [messageDraft, setMessageDraft] = useState('')
+
+  function getCancellationUrl() {
+    const token = booking.cancellationCode ?? booking.confirmationToken
+    if (!token) return ''
+
+    const appBaseUrl = new URL(import.meta.env.BASE_URL || '/', window.location.origin).toString()
+    return booking.cancellationCode
+      ? `${appBaseUrl}c/${token}`
+      : `${appBaseUrl}agendar/cancelar/${token}`
+  }
+
+  function defaultPatientMessage() {
+    const first = booking.patientName?.split(' ')[0] ?? ''
+    const cancelUrl = getCancellationUrl()
+    const cancelLine = cancelUrl ? `\n\nSe precisar cancelar, use este link:\n${cancelUrl}` : ''
+
+    return booking.status === 'confirmed'
+      ? `Ola, ${first}! Sua sessao esta confirmada para ${formatDateRelative(booking.date)} as ${booking.time}.${cancelLine}`
+      : `Ola, ${first}! Recebi seu agendamento para ${formatDateRelative(booking.date)} as ${booking.time}. Ja retorno com os detalhes.${cancelLine}`
+  }
 
   function messagePatient() {
     if (!booking.patientPhone) {
-      toast.error('Essa pessoa não informou WhatsApp.')
+      toast.error('Essa pessoa nao informou WhatsApp.')
       return
     }
 
-    const first = booking.patientName?.split(' ')[0] ?? ''
-    const text = booking.status === 'confirmed'
-      ? `Olá, ${first}! Sua sessão está confirmada para ${formatDateRelative(booking.date)} às ${booking.time}. Até lá!`
-      : `Ola, ${first}! Recebi seu agendamento para ${formatDateRelative(booking.date)} as ${booking.time}. Ja retorno com os detalhes.`
-    openWhatsApp(booking.patientPhone, text)
+    setMessageDraft(defaultPatientMessage())
+    setMessageModalOpen(true)
+  }
+
+  function insertCancellationLink() {
+    const cancelUrl = getCancellationUrl()
+    if (!cancelUrl) {
+      toast.error('Este agendamento ainda nao tem link de cancelamento.')
+      return
+    }
+    setMessageDraft(current => current.includes(cancelUrl)
+      ? current
+      : `${current.trim()}\n\nLink de cancelamento:\n${cancelUrl}`)
   }
 
   return (
@@ -279,6 +309,65 @@ function BookingCard({ booking, onConfirm, onReject, onMarkPaid }: {
           </span>
         )}
       </div>
+
+      {messageModalOpen && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/35 px-4 backdrop-blur-[1px]">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-neutral-800">Enviar mensagem</h2>
+                <p className="text-sm text-neutral-400">Revise antes de abrir no WhatsApp.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMessageModalOpen(false)}
+                className="rounded-lg p-2 text-neutral-300 hover:bg-neutral-50 hover:text-neutral-500"
+                aria-label="Fechar"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <label className="label">Mensagem para {booking.patientName}</label>
+            <textarea
+              value={messageDraft}
+              onChange={e => setMessageDraft(e.target.value)}
+              rows={7}
+              className="input-field min-h-[160px]"
+            />
+
+            <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+              <button
+                type="button"
+                onClick={insertCancellationLink}
+                className="btn-secondary text-sm"
+              >
+                Inserir link de cancelamento
+              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMessageModalOpen(false)}
+                  className="btn-secondary text-sm"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    openWhatsApp(booking.patientPhone, messageDraft)
+                    setMessageModalOpen(false)
+                  }}
+                  disabled={!messageDraft.trim()}
+                  className="btn-primary text-sm disabled:opacity-50"
+                >
+                  Abrir WhatsApp
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -346,6 +435,7 @@ function BookingSettings({ page }: { page: any }) {
     isActive:           page?.isActive ?? true,
     slug:               page?.slug ?? '',
     title:               page?.title ?? 'Agende sua sessão',
+    avatarUrl:           page?.avatarUrl ?? '',
     description:         page?.description ?? '',
     // +() converte string "150.00" do PostgreSQL decimal para número
     sessionPrice:        +(page?.sessionPrice ?? 150),
@@ -369,6 +459,7 @@ function BookingSettings({ page }: { page: any }) {
       isActive:           page.isActive ?? true,
       slug:               page.slug ?? '',
       title:               page.title ?? 'Agende sua sessão',
+      avatarUrl:           page.avatarUrl ?? '',
       description:         page.description ?? '',
       sessionPrice:        +(page.sessionPrice ?? 150),
       sessionDuration:     +(page.sessionDuration ?? 50),
@@ -444,6 +535,14 @@ function BookingSettings({ page }: { page: any }) {
       toast.error('A URL precisa ter pelo menos 3 caracteres.')
       return false
     }
+    if (form.avatarUrl.trim()) {
+      try {
+        new URL(form.avatarUrl.trim())
+      } catch {
+        toast.error('Informe uma URL valida para a foto do perfil publico.')
+        return false
+      }
+    }
     if (form.presencialSessionDuration < 15 || form.presencialSessionDuration > 240) {
       toast.error('A duração presencial precisa ficar entre 15 e 240 minutos.')
       return false
@@ -499,6 +598,7 @@ function BookingSettings({ page }: { page: any }) {
       await saveBookingPage.mutateAsync({
         ...form,
         slug: normalizeSlug(form.slug),
+        avatarUrl: form.avatarUrl.trim() || undefined,
         sessionDuration: form.onlineSessionDuration,
         slotInterval: form.onlineSessionDuration + form.onlineSlotInterval,
       })
@@ -555,11 +655,89 @@ function BookingSettings({ page }: { page: any }) {
 
   const currentSchedule = schedules[scheduleTab]
   const enabledCount = WEEKDAYS.filter(({ d }) => currentSchedule[d]?.enabled).length
+  const totalEnabledSlots = MODALITIES.reduce(
+    (total, { key }) => total + WEEKDAYS.filter(({ d }) => schedules[key][d]?.enabled).length,
+    0,
+  )
   const normalizedSlug = normalizeSlug(form.slug || page?.slug || '')
   const publicUrl = normalizedSlug ? `${window.location.origin}/agendar/${normalizedSlug}` : ''
+  const displayName = page?.psychologistName || page?.name || 'Seu perfil'
+  const profileInitial = displayName.trim().charAt(0).toUpperCase() || 'U'
+  const setupItems = [
+    {
+      label: 'Link publico ativo',
+      done: form.isActive,
+      hint: form.isActive ? 'Pacientes conseguem acessar.' : 'Ative quando quiser receber agendamentos.',
+    },
+    {
+      label: 'URL personalizada',
+      done: normalizedSlug.length >= 3,
+      hint: normalizedSlug ? `/agendar/${normalizedSlug}` : 'Crie um link facil de compartilhar.',
+    },
+    {
+      label: 'Perfil com foto ou texto',
+      done: Boolean(form.avatarUrl.trim() || form.description.trim()),
+      hint: 'Ajuda o paciente a reconhecer o profissional.',
+    },
+    {
+      label: 'Modalidade escolhida',
+      done: form.allowPresencial || form.allowOnline,
+      hint: [form.allowPresencial && 'presencial', form.allowOnline && 'online'].filter(Boolean).join(' e ') || 'Escolha pelo menos uma.',
+    },
+    {
+      label: 'Horarios cadastrados',
+      done: totalEnabledSlots > 0,
+      hint: totalEnabledSlots > 0 ? `${totalEnabledSlots} dias/modalidades ativos.` : 'Sem horarios, o link nao mostra datas.',
+    },
+  ]
+  const isSetupReady = setupItems.every(item => item.done)
 
   return (
     <div className="space-y-5">
+      <div className="card space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="section-title mb-1">Preparar link publico</h2>
+            <p className="text-sm text-neutral-500 dark:text-neutral-300">
+              Mantemos suas configuracoes atuais e mostramos apenas o que pode melhorar antes de enviar o link para pacientes.
+            </p>
+          </div>
+          <span className={cn(
+            'inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold',
+            isSetupReady
+              ? 'bg-sage-100 text-sage-700 dark:bg-sage-500/20 dark:text-sage-100'
+              : 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-100',
+          )}>
+            {isSetupReady ? <Check className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />}
+            {isSetupReady ? 'Pronto para compartilhar' : 'Revise os pontos pendentes'}
+          </span>
+        </div>
+        <div className="grid gap-3 md:grid-cols-5">
+          {setupItems.map(item => (
+            <div
+              key={item.label}
+              className={cn(
+                'rounded-xl border p-3 transition-colors',
+                item.done
+                  ? 'border-sage-200 bg-sage-50 dark:border-sage-400/30 dark:bg-sage-500/10'
+                  : 'border-amber-200 bg-amber-50 dark:border-amber-400/30 dark:bg-amber-500/10',
+              )}
+            >
+              <div className="mb-2 flex items-center gap-2">
+                <span className={cn(
+                  'flex h-5 w-5 items-center justify-center rounded-full',
+                  item.done ? 'bg-sage-500 text-white' : 'bg-amber-500 text-white',
+                )}>
+                  {item.done ? <Check className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
+                </span>
+                <p className="text-xs font-semibold text-neutral-700 dark:text-neutral-100">{item.label}</p>
+              </div>
+              <p className="text-xs text-neutral-500 dark:text-neutral-300">{item.hint}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="card space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -697,6 +875,26 @@ function BookingSettings({ page }: { page: any }) {
           <input maxLength={90} value={form.title} onChange={e => set('title', e.target.value)} className="input-field" />
         </div>
         <div>
+          <label className="label">Foto do perfil publico</label>
+          <div className="flex gap-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-neutral-200 bg-neutral-50 text-sm font-semibold text-neutral-500 dark:border-white/10 dark:bg-black/20 dark:text-neutral-200">
+              {form.avatarUrl.trim()
+                ? <img src={form.avatarUrl.trim()} alt="" className="h-full w-full object-cover" />
+                : <Image className="h-5 w-5" />}
+            </div>
+            <div className="min-w-0 flex-1">
+              <input
+                maxLength={500}
+                value={form.avatarUrl}
+                onChange={e => set('avatarUrl', e.target.value)}
+                className="input-field"
+                placeholder="https://..."
+              />
+              <p className="mt-1 text-xs text-neutral-400">Opcional. Use uma URL publica da foto profissional que vai aparecer no link de agendamento.</p>
+            </div>
+          </div>
+        </div>
+        <div>
           <label className="label">Mensagem de boas-vindas</label>
           <textarea maxLength={600} value={form.description} onChange={e => set('description', e.target.value)} rows={3} className="input-field resize-none" />
         </div>
@@ -760,6 +958,36 @@ function BookingSettings({ page }: { page: any }) {
             <label className="label">Agendar ate quantos dias a frente</label>
             <input type="number" min={1} max={180} value={form.maxAdvanceDays} onChange={e => set('maxAdvanceDays', +e.target.value)} className="input-field" />
             <p className="text-xs text-neutral-400 mt-1">Ex: 15 impede que alguem marque para daqui dois meses.</p>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4 dark:border-white/10 dark:bg-black/15">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-400">Previa do link publico</p>
+          <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-neutral-950">
+            <div className="flex items-start gap-3">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-sage-100 text-lg font-bold text-sage-700 dark:bg-sage-500/20 dark:text-sage-100">
+                {form.avatarUrl.trim()
+                  ? <img src={form.avatarUrl.trim()} alt="" className="h-full w-full object-cover" />
+                  : profileInitial}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">{displayName}</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-300">{form.title || 'Agende sua sessão'}</p>
+                {form.description.trim() && (
+                  <p className="mt-2 line-clamp-3 text-xs text-neutral-500 dark:text-neutral-300">{form.description.trim()}</p>
+                )}
+              </div>
+            </div>
+            <div className="mt-4 grid gap-2 sm:grid-cols-3">
+              <div className="rounded-xl bg-neutral-50 px-3 py-2 text-xs text-neutral-500 dark:bg-white/5 dark:text-neutral-300">
+                {formatCurrency(form.sessionPrice)}
+              </div>
+              <div className="rounded-xl bg-neutral-50 px-3 py-2 text-xs text-neutral-500 dark:bg-white/5 dark:text-neutral-300">
+                {form.maxAdvanceDays} dias abertos
+              </div>
+              <div className="rounded-xl bg-neutral-50 px-3 py-2 text-xs text-neutral-500 dark:bg-white/5 dark:text-neutral-300">
+                {[form.allowPresencial && 'Presencial', form.allowOnline && 'Online'].filter(Boolean).join(' / ') || 'Sem modalidade'}
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -16,7 +16,10 @@ export function useCreateFinancial() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data: Partial<FinancialRecord>) => api.post('/financial', data).then(r => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['financial'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['financial'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+    },
   })
 }
 

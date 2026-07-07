@@ -21,6 +21,16 @@ E2E_API_URL=https://psicosaas-production-2d6c.up.railway.app/api
 E2E_SKIP_CLEANUP=true
 ```
 
+## 1.1. Banco e migrations
+
+Antes de divulgar ou apos deploy com mudanca estrutural:
+
+1. Fazer backup do banco de producao.
+2. Rodar `npm run build` no backend.
+3. Conferir migrations pendentes com `npm run migration:show`.
+4. Aplicar com `npm run migration:run` no ambiente do Railway.
+5. Testar login, agenda, link publico, criacao de lancamento financeiro e marcacao de pagamento.
+
 ## 2. Pagamento real controlado
 
 Não automatizar cobrança real no smoke test.

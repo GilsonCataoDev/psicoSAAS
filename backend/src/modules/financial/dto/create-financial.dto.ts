@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional, IsIn, Min } from 'class-validator'
+import { IsString, IsNumber, IsOptional, IsIn, Min, IsDateString, MaxLength } from 'class-validator'
 import { Type } from 'class-transformer'
 
 export class CreateFinancialDto {
@@ -6,8 +6,12 @@ export class CreateFinancialDto {
   @IsString() @IsOptional() patientId?: string
   @IsIn(['income','expense']) type: 'income' | 'expense'
   @IsNumber() @Min(0) @Type(() => Number) amount: number
-  @IsString() description: string
+  @IsString() @MaxLength(180) description: string
+  @IsIn(['paid','pending','overdue']) @IsOptional() status?: string
   @IsString() @IsOptional() sessionId?: string
-  @IsString() @IsOptional() dueDate?: string
+  @IsString() @IsOptional() appointmentId?: string
+  @IsString() @IsOptional() bookingId?: string
+  @IsDateString() @IsOptional() dueDate?: string
+  @IsDateString() @IsOptional() paidAt?: string
   @IsIn(['pix','credit_card','debit_card','cash','transfer','manual']) @IsOptional() method?: string
 }

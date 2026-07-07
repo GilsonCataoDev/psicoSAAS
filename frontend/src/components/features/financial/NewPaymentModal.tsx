@@ -27,12 +27,23 @@ export default function NewPaymentModal({ open, onClose }: { open: boolean; onCl
 
   async function onSubmit(data: FormData) {
     try {
-      await createFinancial.mutateAsync({
-        ...data,
+      if (!Number.isFinite(data.amount) || data.amount <= 0) {
+        toast.error('Informe um valor maior que zero.')
+        return
+      }
+
+      const payload = {
+        patientId: data.patientId || undefined,
+        description: data.description,
+        amount: data.amount,
+        type: data.type,
+        dueDate: data.dueDate || undefined,
         status: data.paidNow ? 'paid' : 'pending',
         paidAt: data.paidNow ? new Date().toISOString() : undefined,
-        patientId: data.patientId || undefined,
-      } as any)
+        method: data.paidNow ? data.method : undefined,
+      }
+
+      await createFinancial.mutateAsync(payload as any)
       toast.success('Lancamento registrado')
       reset(); onClose()
     } catch {
@@ -74,7 +85,7 @@ export default function NewPaymentModal({ open, onClose }: { open: boolean; onCl
           </div>
           <div>
             <label className="label">Valor (R$)</label>
-            <input {...register('amount', { required: true, valueAsNumber: true })} type="number" step="0.01" min="0" className="input-field" placeholder="0,00" />
+            <input {...register('amount', { required: true, valueAsNumber: true, min: 0.01 })} type="number" step="0.01" min="0.01" className="input-field" placeholder="0,00" />
           </div>
           <div>
             <label className="label">Vencimento</label>

@@ -5,7 +5,7 @@ import BrandLogo from '@/components/ui/BrandLogo'
 const controls = [
   'HTTPS/TLS em toda comunicacao',
   'Senhas protegidas com hash seguro',
-  'Isolamento de dados por conta de psicologo',
+  'Isolamento de dados por conta de profissional',
   'Campos sensiveis criptografados em repouso',
   'Protecao contra CSRF e limitacao de requisicoes',
   'Logs de auditoria para acoes sensiveis',
@@ -48,7 +48,7 @@ export default function SecurityPage() {
             Protecao clara para dados clinicos sensiveis.
           </h1>
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-[#5F5A51]">
-            O UseCognia foi desenhado para psicologos que precisam organizar a rotina sem abrir mao de sigilo,
+            O UseCognia foi desenhado para psicologos e terapeutas que precisam organizar a rotina sem abrir mao de sigilo,
             portabilidade e controles tecnicos de seguranca.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">

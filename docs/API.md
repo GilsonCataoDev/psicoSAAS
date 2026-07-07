@@ -294,3 +294,28 @@ Protegido por `AdminGuard` (e-mail em `ADMIN_EMAILS`).
 - DTOs com `whitelist: true, forbidNonWhitelisted: true`.
 - Erros em pt-BR no body: `{ statusCode, message }`.
 - Rate limits específicos sobrepõem o global via `@Throttle()` na rota.
+
+---
+
+## Notas recentes - financeiro e agendamento publico
+
+Booking interno:
+
+- A configuracao da pagina publica inclui foto/avatar, modalidade, duracoes por modalidade, intervalos, `minAdvanceDays`, `maxAdvanceDays`, `requirePaymentUpfront`, `pixKey` e mensagens personalizadas.
+- Ao confirmar um booking, o backend cria ou reaproveita paciente, cria appointment interno e cria lancamento financeiro vinculado ao `bookingId` e `appointmentId`.
+- `PATCH /booking/:id/pay` sincroniza o lancamento financeiro e sessoes vinculadas quando existirem.
+
+Booking publico:
+
+- `/public/booking/:slug/dates?month=YYYY-MM&modality=online|presencial`
+- `/public/booking/:slug/slots?date=YYYY-MM-DD&modality=online|presencial`
+- O frontend do link publico guarda localmente nome, e-mail e celular preenchidos para facilitar novos agendamentos no mesmo navegador.
+
+Financeiro:
+
+- `POST /financial` aceita `sessionId`, `appointmentId` e `bookingId`.
+- `sessionId` deve apontar para uma sessao clinica.
+- `appointmentId` deve apontar para um agendamento interno.
+- `bookingId` deve apontar para um agendamento publico.
+- Registros antigos que usavam `sessionId` como appointment continuam sendo reconhecidos por fallback.
+- Ao marcar como pago, o backend sincroniza status de pagamento em financeiro, sessao e booking vinculado.

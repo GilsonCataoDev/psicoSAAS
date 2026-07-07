@@ -15,30 +15,30 @@ import BrandLogo from '@/components/ui/BrandLogo'
 
 const trustSignals = [
   'Plano gratis',
-  'Para psicólogos e estagiários clínicos',
+  'Para psicólogos, terapeutas e estagiários clínicos',
   'Sem cartão para começar',
 ]
 
 const pains = [
   {
-    title: 'Paciente esquece sessão',
-    text: 'Quando a agenda depende da memória e do WhatsApp, faltas e desencontros começam a aparecer.',
+    title: 'Paciente fica perguntando horário',
+    text: 'Quando tudo depende de conversa no WhatsApp, o profissional perde tempo oferecendo datas até encontrar uma opção.',
   },
   {
-    title: 'Prontuário fica espalhado',
-    text: 'Histórico, evoluções, documentos e observações clínicas não deveriam morar em lugares diferentes.',
+    title: 'Faltas e cobranças viram constrangimento',
+    text: 'Lembretes, confirmações e cobranças manuais quebram o ritmo da clínica e desgastam a relação.',
   },
   {
-    title: 'Rotina manual demais',
-    text: 'Confirmar horário, organizar paciente e registrar sessão consome energia que deveria ir para a clínica.',
+    title: 'Prontuário e financeiro ficam espalhados',
+    text: 'Sessões, histórico, documentos e recebimentos precisam conversar entre si para a rotina não depender de planilhas soltas.',
   },
 ]
 
 const features = [
   {
     icon: CalendarCheck2,
-    title: 'Agenda online com link público',
-    text: 'Crie horários, organize sessões e compartilhe uma página simples para agendamento.',
+    title: 'Link público com datas disponíveis',
+    text: 'O paciente escolhe uma data real da sua agenda, sem ficar testando dia por dia ou esperando resposta.',
   },
   {
     icon: FileSignature,
@@ -47,13 +47,13 @@ const features = [
   },
   {
     icon: WalletCards,
-    title: 'Organização de pacientes',
-    text: 'Tenha pacientes, sessões, documentos e informações importantes sem depender de planilhas soltas.',
+    title: 'Cobranças e recebimentos organizados',
+    text: 'Acompanhe pendências, registre pagamentos e envie cobranças de forma mais profissional.',
   },
   {
     icon: MessageSquareText,
-    title: 'Lembretes em evolução',
-    text: 'Estamos construindo lembretes automáticos para reduzir esquecimentos e confirmações manuais.',
+    title: 'Mensagens e lembretes',
+    text: 'Padronize comunicações importantes e reduza trabalho repetitivo antes e depois das sessões.',
   },
 ]
 
@@ -62,7 +62,7 @@ const freeItems = [
   'Agenda online com link publico',
   'Cadastro de ate 10 pacientes',
   'Prontuario e evolucoes em um so lugar',
-  'Ideal para estagiarios e psicologos no inicio da rotina',
+  'Ideal para estagiarios, psicologos e terapeutas no inicio da rotina',
 ]
 
 const faqs = [
@@ -72,7 +72,7 @@ const faqs = [
   },
   {
     question: 'Quem pode usar o UseCognia?',
-    answer: 'Psicólogos e estagiários clínicos no Brasil que querem organizar agenda, pacientes, prontuário e rotina de atendimento.',
+    answer: 'Psicólogos, terapeutas e estagiários clínicos no Brasil que querem organizar agenda, pacientes, prontuário e rotina de atendimento.',
   },
   {
     question: 'Meus dados e os dos meus pacientes ficam seguros?',
@@ -199,15 +199,15 @@ export default function LandingPage() {
           <div className="w-full min-w-0 max-w-full sm:max-w-2xl">
             <p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-3 py-1 text-sm font-semibold text-sage-200">
               <Sparkles className="h-4 w-4" />
-              Plano gratis para psicólogos e estagiários
+              Plano gratis para psicólogos, terapeutas e estagiários
             </p>
 
             <h1 className="mt-6 max-w-[21rem] text-[2.1rem] font-bold leading-[1.06] tracking-normal text-white sm:max-w-2xl sm:text-5xl lg:text-6xl">
-              Menos bagunça na rotina clínica. Mais tempo para cuidar dos seus pacientes.
+              Agenda, prontuário e cobranças para psicólogos e terapeutas trabalharem com menos sobrecarga.
             </h1>
 
             <p className="mt-6 max-w-[22rem] text-base leading-relaxed text-white/76 sm:max-w-xl sm:text-lg">
-              UseCognia organiza agenda, pacientes, prontuário e histórico clínico em uma plataforma simples para quem atende na clínica e quer construir uma rotina mais profissional.
+              Organize pacientes, mostre datas disponíveis no link público, registre sessões e acompanhe pagamentos em uma rotina simples de colocar para funcionar.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -259,7 +259,7 @@ export default function LandingPage() {
             <WalletCards className="mt-0.5 h-5 w-5 text-sage-600" />
             <div>
               <p className="text-sm font-semibold text-[#211F1C]">Construído com usuários reais</p>
-              <p className="mt-1 text-sm text-[#7C776B]">Criado para a rotina de psicólogos e estagiários clínicos.</p>
+              <p className="mt-1 text-sm text-[#7C776B]">Criado para a rotina de psicólogos, terapeutas e estagiários clínicos.</p>
             </div>
           </div>
         </div>
@@ -269,9 +269,9 @@ export default function LandingPage() {
         <div className="grid gap-8 lg:grid-cols-[0.9fr_1fr]">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Por que agora</p>
-            <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Você não estudou psicologia para virar administrador de agenda.</h2>
+            <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Você não estudou para virar administrador de agenda.</h2>
             <p className="mt-4 leading-relaxed text-[#5F5A51]">
-              A clínica exige presença. Mas a rotina ao redor dela costuma virar uma mistura de WhatsApp, planilha, agenda, caderno e lembretes soltos. É exatamente essa dor que queremos resolver com os primeiros usuários.
+              A clínica exige presença. Mas a rotina ao redor dela costuma virar uma mistura de WhatsApp, planilha, agenda, caderno, cobranças e lembretes soltos. O UseCognia começa pelo que mais pesa no dia a dia.
             </p>
           </div>
           <div className="grid gap-3">

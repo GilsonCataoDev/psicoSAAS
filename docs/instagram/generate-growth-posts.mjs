@@ -124,7 +124,7 @@ const posts = [
     file: '02-psicologo-nao-e-secretaria',
     bg: colors.bg,
     light: false,
-    eyebrow: 'PARA PSICÓLOGOS E ESTAGIÁRIOS',
+    eyebrow: 'PARA PSICÓLOGOS, TERAPEUTAS E ESTAGIÁRIOS',
     title: 'Você estudou para atender. Não para virar secretaria.',
     subtitle: 'Agenda, prontuário, pacientes e confirmações não precisam ficar espalhados.',
     art: `

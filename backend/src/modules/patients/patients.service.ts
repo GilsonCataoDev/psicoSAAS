@@ -415,7 +415,7 @@ export class PatientsService {
 
     pdf.rect(0, 8, W, 100).fill('#F4F8F5')
     pdf.fillColor(sageDark).font('Helvetica-Bold').fontSize(10).text('UseCognia', L, 24, { lineBreak: false })
-    pdf.fillColor(muted).font('Helvetica').fontSize(7).text('Plataforma para psicólogos', L, 38, { lineBreak: false })
+    pdf.fillColor(muted).font('Helvetica').fontSize(7).text('Plataforma para psicólogos e terapeutas', L, 38, { lineBreak: false })
 
     pdf.fillColor(ink).font('Helvetica-Bold').fontSize(18).text('Prontuário Clínico', L, 56, { width: CW })
     pdf.fillColor(sage).font('Helvetica-Bold').fontSize(12).text(p.name, L, 78, { width: CW })

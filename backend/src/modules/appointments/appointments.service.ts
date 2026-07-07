@@ -305,7 +305,10 @@ export class AppointmentsService {
     await this.bookings.save(booking)
 
     await this.financial.update(
-      { sessionId: appointment.id, psychologistId: appointment.psychologistId },
+      [
+        { appointmentId: appointment.id, psychologistId: appointment.psychologistId },
+        { sessionId: appointment.id, psychologistId: appointment.psychologistId },
+      ] as any,
       { dueDate: appointment.date },
     )
   }

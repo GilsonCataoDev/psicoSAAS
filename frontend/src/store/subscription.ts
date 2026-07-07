@@ -52,7 +52,7 @@ export const PLANS: Plan[] = [
     priceYearly: 63,
     maxPatients: 50,
     maxStorage: 10,
-    audience: 'Para psicólogo solo organizar agenda, pacientes, documentos e financeiro',
+    audience: 'Para psicólogo ou terapeuta solo organizar agenda, pacientes, documentos e financeiro',
     features: [
       'Agenda, pacientes e sessões',
       'Link público de agendamento',
@@ -70,7 +70,7 @@ export const PLANS: Plan[] = [
     priceYearly: 119,
     maxPatients: -1,
     maxStorage: 50,
-    audience: 'Para psicólogos que querem automação, instrumentos, WhatsApp e IA',
+    audience: 'Para psicólogos e terapeutas que querem automação, instrumentos, WhatsApp e IA',
     highlight: true,
     features: [
       'Tudo do Essencial',

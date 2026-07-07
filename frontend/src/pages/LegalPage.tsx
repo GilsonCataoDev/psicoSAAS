@@ -14,7 +14,7 @@ const termsSections: Array<{ title: string; content: string | string[] }> = [
   },
   {
     title: '2. Objeto',
-    content: 'A UseCognia oferece plataforma SaaS para psicólogos, psicanalistas, psiquiatras e clínicas de saúde mental, com ferramentas de gestão de agenda, pacientes, prontuários, documentos clínicos, financeiro, comunicação e relatórios. A plataforma não presta atendimento psicológico ou clínico e não substitui a responsabilidade profissional do usuário.',
+    content: 'A UseCognia oferece plataforma SaaS para psicólogos, terapeutas, psicanalistas, psiquiatras e clínicas de saúde mental, com ferramentas de gestão de agenda, pacientes, prontuários, documentos clínicos, financeiro, comunicação e relatórios. A plataforma não presta atendimento psicológico ou clínico e não substitui a responsabilidade profissional do usuário.',
   },
   {
     title: '3. Elegibilidade',

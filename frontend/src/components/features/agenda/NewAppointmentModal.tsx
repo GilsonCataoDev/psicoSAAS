@@ -67,6 +67,17 @@ function timeToMinutes(time?: string): number {
   return (hours * 60) + (minutes || 0)
 }
 
+function buildAppointmentUpdatePayload(data: FormData) {
+  return {
+    date: data.date,
+    time: data.time,
+    duration: Number(data.duration),
+    modality: data.modality,
+    meetingUrl: data.meetingUrl || undefined,
+    notes: data.notes || undefined,
+  }
+}
+
 export default function NewAppointmentModal({ open, onClose, appointment }: Props) {
   const { data: patients = [] } = usePatients()
   const [editScope, setEditScope] = useState<'single' | 'future'>('single')
@@ -172,17 +183,24 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
     try {
       const duration = Number(data.duration)
       if (isEditing && appointment) {
+        const updatePayload = buildAppointmentUpdatePayload(data)
         if (editScope === 'future' && appointment.recurringGroupId) {
           const result = await updateGroup.mutateAsync({
             groupId: appointment.recurringGroupId,
             fromDate: appointment.date,
-            data: { time: data.time, duration, modality: data.modality, meetingUrl: data.meetingUrl, notes: data.notes },
+            data: {
+              time: updatePayload.time,
+              duration: updatePayload.duration,
+              modality: updatePayload.modality,
+              meetingUrl: updatePayload.meetingUrl,
+              notes: updatePayload.notes,
+            },
           })
           toast.success(`${result.updated} sessoes atualizadas`)
         } else {
           await updateAppointment.mutateAsync({
             id: appointment.id,
-            data: { ...data, duration, recurrence: 'none' } as any,
+            data: updatePayload,
           })
           toast.success(appointment.isRecurring ? 'Alteracao pontual salva' : 'Sessao atualizada')
         }

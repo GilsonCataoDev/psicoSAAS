@@ -43,10 +43,12 @@ export default function FinancialPage() {
   const financialSummary = useMemo(() => {
     return records.reduce((summary, record) => {
       const amount = Number(record.amount)
-      if (record.type === 'income') summary.total += amount
-      if (record.status === 'paid') summary.paid += amount
-      if (record.status === 'pending') summary.pending += amount
-      if (record.status === 'overdue') summary.overdue += amount
+      if (record.type === 'income') {
+        summary.total += amount
+        if (record.status === 'paid') summary.paid += amount
+        if (record.status === 'pending') summary.pending += amount
+        if (record.status === 'overdue') summary.overdue += amount
+      }
       summary.counts[record.status] = (summary.counts[record.status] ?? 0) + 1
       return summary
     }, {
@@ -95,7 +97,7 @@ export default function FinancialPage() {
       const valor = records
         .filter(r => {
           const rDate = new Date(r.paidAt ?? r.dueDate ?? r.createdAt)
-          return r.status === 'paid' && rDate.getFullYear() === d.getFullYear() && rDate.getMonth() === d.getMonth()
+          return r.type === 'income' && r.status === 'paid' && rDate.getFullYear() === d.getFullYear() && rDate.getMonth() === d.getMonth()
         })
         .reduce((s, r) => s + Number(r.amount), 0)
       return { mes, valor }

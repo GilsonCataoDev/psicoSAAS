@@ -41,6 +41,26 @@ pg_dump "$env:DATABASE_PUBLIC_URL" --format=custom --file="usecognia-backup-YYYY
 
 Nunca commitar arquivos `.dump`, `.sql`, `.backup` ou exports com dados reais.
 
+## Deploy com migrations
+
+Quando o backend tiver migration nova:
+
+1. Fazer backup do banco antes do deploy, principalmente em migrations de dados.
+2. Confirmar que o build do backend passa localmente.
+3. Fazer push para `main` e aguardar o deploy do Railway.
+4. Rodar no ambiente do backend:
+
+```bash
+npm run migration:show
+npm run migration:run
+```
+
+5. Conferir logs do Railway e testar login, agenda, link publico e financeiro.
+
+Migration mais recente:
+
+- `NormalizeFinancialLinks1782600000000`: adiciona `appointmentId` e `bookingId` em `financial_records`, faz backfill de registros antigos, cria indices de performance e checks de consistencia para tipo/status/metodo de pagamento.
+
 ## Teste de restauracao
 
 Um backup so e confiavel quando ja foi restaurado pelo menos uma vez.

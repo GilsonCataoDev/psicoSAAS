@@ -87,3 +87,15 @@ getDashboard() {}
 @Get(':id')         // parâmetro — deve vir DEPOIS
 findOne() {}
 ```
+
+---
+
+## ADR-008 - Vinculos financeiros explicitos
+
+**Decisao:** `financial_records` deve armazenar vinculos separados para `sessionId`, `appointmentId` e `bookingId`.
+
+**Por que:** O campo `sessionId` estava sendo usado como referencia ambigua: as vezes apontava para uma sessao clinica real, as vezes para um appointment criado a partir do agendamento publico. Isso dificultava sincronizar pagamento, booking e sessao sem efeitos colaterais.
+
+**Compatibilidade:** Registros antigos continuam sendo reconhecidos por fallback quando `sessionId` contem um `appointmentId`. A migration `NormalizeFinancialLinks1782600000000` faz backfill para preencher `appointmentId` e `bookingId` quando possivel.
+
+**Consequencia:** Novos fluxos devem preencher o campo correto. Fluxos de booking publico gravam `bookingId` e `appointmentId`; fluxos de sessao clinica gravam `sessionId` e, se houver, `appointmentId`.

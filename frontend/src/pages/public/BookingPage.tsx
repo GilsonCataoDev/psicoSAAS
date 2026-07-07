@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
   ChevronLeft, ChevronRight, Check,
-  MapPin, Video, Clock, DollarSign, ShieldCheck, ExternalLink,
+  MapPin, Video, ShieldCheck, ExternalLink,
   Calendar,
 } from 'lucide-react'
 import {
@@ -14,7 +14,7 @@ import {
   startOfDay, parseISO, addMonths,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { cn, formatCurrency } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { track, EVENTS } from '@/lib/analytics'
 import { usePublicBookingPage, usePublicBookingSlots, useCreateBooking, usePublicBookingDates } from '@/hooks/useApi'
@@ -70,6 +70,37 @@ type FormData = z.infer<typeof schema>
 
 type Step = 'landing' | 'date' | 'time' | 'form' | 'success'
 
+type SavedPatientContact = Pick<FormData, 'patientName' | 'patientEmail' | 'patientPhone'>
+
+function contactStorageKey(slug?: string) {
+  return `usecognia:booking-contact:${slug || 'default'}`
+}
+
+function loadSavedPatientContact(slug?: string): Partial<SavedPatientContact> | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.localStorage.getItem(contactStorageKey(slug))
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Partial<SavedPatientContact>
+    return {
+      patientName: typeof parsed.patientName === 'string' ? parsed.patientName : undefined,
+      patientEmail: typeof parsed.patientEmail === 'string' ? parsed.patientEmail : undefined,
+      patientPhone: typeof parsed.patientPhone === 'string' ? parsed.patientPhone : undefined,
+    }
+  } catch {
+    return null
+  }
+}
+
+function savePatientContact(slug: string | undefined, data: SavedPatientContact) {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(contactStorageKey(slug), JSON.stringify(data))
+  } catch {
+    // localStorage pode estar indisponivel em modo privado; o agendamento deve continuar.
+  }
+}
+
 function formatWhatsApp(raw?: string | null) {
   if (!raw) return null
   const digits = raw.replace(/\D/g, '')
@@ -98,7 +129,11 @@ export default function BookingPage() {
 
   const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { modality: 'presencial', privacyAccepted: false },
+    defaultValues: {
+      modality: 'presencial',
+      privacyAccepted: false,
+      ...loadSavedPatientContact(slug),
+    },
   })
   const selectedModality = watch('modality')
   const monthKey = format(month, 'yyyy-MM')
@@ -106,7 +141,7 @@ export default function BookingPage() {
     slug ?? '',
     monthKey,
     selectedModality,
-    step !== 'landing',
+    !!slug && step !== 'success',
   )
   const { data: slots = [], isFetching: slotsLoading } = usePublicBookingSlots(slug ?? '', selectedDate, selectedModality)
   const createBooking = useCreateBooking(slug ?? '')
@@ -130,8 +165,8 @@ export default function BookingPage() {
       `Agende sua sessão com ${name}, ${specialty.toLowerCase()}${city ? ` em ${city}` : ''}. Agendamento online rápido e seguro via UseCognia.`
     )
     return () => {
-      document.title = 'UseCognia | Agenda, prontuário e documentos para psicólogos'
-      meta?.setAttribute('content', 'Plataforma de gestão para psicólogos autônomos.')
+      document.title = 'UseCognia | Agenda, prontuário e documentos para psicólogos e terapeutas'
+      meta?.setAttribute('content', 'Plataforma de gestão para psicólogos e terapeutas autônomos.')
     }
   }, [page])
 
@@ -140,6 +175,14 @@ export default function BookingPage() {
     if (page.allowOnline && !page.allowPresencial) setValue('modality', 'online')
     if (page.allowPresencial && !page.allowOnline) setValue('modality', 'presencial')
   }, [page, setValue])
+
+  useEffect(() => {
+    const saved = loadSavedPatientContact(slug)
+    if (!saved) return
+    if (saved.patientName) setValue('patientName', saved.patientName)
+    if (saved.patientEmail) setValue('patientEmail', saved.patientEmail)
+    if (saved.patientPhone) setValue('patientPhone', saved.patientPhone)
+  }, [slug, setValue])
 
   function startBooking() {
     setStep('date')
@@ -188,6 +231,11 @@ export default function BookingPage() {
         date: selectedDate,
         time: selectedTime,
       })
+      savePatientContact(slug, {
+        patientName: bookingData.patientName.trim(),
+        patientEmail: bookingData.patientEmail?.trim() ?? '',
+        patientPhone: bookingData.patientPhone?.replace(/\D/g, '') ?? '',
+      })
       track(EVENTS.BOOKING_CONFIRMED)
       setStep('success')
     } catch (err: any) {
@@ -212,21 +260,21 @@ export default function BookingPage() {
   )
 
   const waNumber = formatWhatsApp((page as any).psychologistPhone)
-  const selectedDuration = selectedModality === 'presencial'
-    ? (page.presencialSessionDuration ?? page.sessionDuration)
-    : (page.onlineSessionDuration ?? page.sessionDuration)
   const initials = page.psychologistName
     .split(' ')
     .filter(Boolean)
     .slice(0, 2)
     .map(part => part[0]?.toUpperCase())
     .join('')
+  const profileDescription = page.description?.trim()
+    || 'Escolha uma data disponível e reserve seu horário de forma simples e segura.'
+  const nextAvailableDates = availableDatesInMonth.slice(0, 4)
 
   // ── LANDING ──────────────────────────────────────────────────────────────────
   if (step === 'landing') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-sage-50 via-white to-mist-50 dark:from-[#0d1713] dark:via-[#101d18] dark:to-[#12231d] flex flex-col items-center justify-center px-6 py-12 relative">
-        <div className="w-full max-w-md flex flex-col items-center bg-white/90 dark:bg-[#17251f]/90 backdrop-blur-xl rounded-3xl border border-white dark:border-sage-200/15 shadow-lifted px-7 py-9 sm:px-10 sm:py-11">
+        <div className="w-full max-w-lg flex flex-col items-center bg-white/90 dark:bg-[#17251f]/90 backdrop-blur-xl rounded-3xl border border-white dark:border-sage-200/15 shadow-lifted px-7 py-9 sm:px-10 sm:py-11">
 
           {/* Avatar */}
           <div className="w-28 h-28 rounded-full overflow-hidden bg-neutral-100 dark:bg-sage-500/15 mb-6 ring-4 ring-white dark:ring-sage-300/20 shadow-md shrink-0">
@@ -251,13 +299,61 @@ export default function BookingPage() {
             </p>
           )}
           {page.psychologistCrp && (
-            <p className="text-xs text-neutral-400 dark:text-neutral-400 text-center mb-8">
+            <p className="text-xs text-neutral-400 dark:text-neutral-400 text-center mb-4">
               CRP {page.psychologistCrp}
             </p>
           )}
 
+          <p className="max-w-sm text-center text-sm leading-relaxed text-neutral-500 dark:text-neutral-300">
+            {profileDescription}
+          </p>
+
+          <div className="mt-6 grid w-full grid-cols-1 gap-2 text-xs sm:grid-cols-2">
+            {page.allowPresencial && (
+              <div className="rounded-2xl border border-neutral-100 bg-neutral-50 px-3 py-3 text-center dark:border-white/10 dark:bg-white/5">
+                <MapPin className="mx-auto mb-1 h-4 w-4 text-sage-500" />
+                <strong className="block text-neutral-800 dark:text-neutral-100">Presencial</strong>
+                <span className="text-neutral-400">modalidade</span>
+              </div>
+            )}
+            {page.allowOnline && (
+              <div className="rounded-2xl border border-neutral-100 bg-neutral-50 px-3 py-3 text-center dark:border-white/10 dark:bg-white/5">
+                <Video className="mx-auto mb-1 h-4 w-4 text-mist-500" />
+                <strong className="block text-neutral-800 dark:text-neutral-100">Online</strong>
+                <span className="text-neutral-400">modalidade</span>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6 w-full rounded-2xl border border-sage-100 bg-sage-50 p-4 text-left dark:border-sage-300/20 dark:bg-sage-500/10">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-sm font-semibold text-sage-900 dark:text-sage-100">Próximas datas disponíveis</p>
+              {datesLoading && <span className="h-3 w-3 rounded-full border-2 border-sage-300 border-t-transparent animate-spin" />}
+            </div>
+            {!datesLoading && nextAvailableDates.length === 0 && (
+              <p className="text-xs leading-relaxed text-sage-700 dark:text-sage-200">
+                Nenhuma data disponível neste mês. Abra a agenda para consultar outros meses.
+              </p>
+            )}
+            {nextAvailableDates.length > 0 && (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {nextAvailableDates.map(date => (
+                  <button
+                    key={format(date, 'yyyy-MM-dd')}
+                    type="button"
+                    onClick={() => selectDate(date)}
+                    className="rounded-xl bg-white px-3 py-2 text-left text-sm text-sage-900 shadow-sm transition-colors hover:bg-sage-100 dark:bg-white/10 dark:text-sage-50 dark:hover:bg-white/15"
+                  >
+                    <span className="block text-xs capitalize opacity-70">{format(date, 'EEE', { locale: ptBR })}</span>
+                    <strong>{format(date, 'dd/MM')}</strong>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Botões */}
-          <div className="w-full space-y-3">
+          <div className="mt-6 w-full space-y-3">
             <button
               onClick={startBooking}
               className="w-full flex items-center justify-center gap-2 bg-sage-500 hover:bg-sage-600 text-white rounded-xl py-3.5 text-sm font-semibold shadow-sm hover:shadow-md transition-all"
@@ -346,14 +442,6 @@ export default function BookingPage() {
                   <span className="text-neutral-400 dark:text-neutral-400">Horário</span>
                   <strong className="font-medium">{selectedTime}</strong>
                 </p>
-                <p className="flex items-center justify-between gap-4">
-                  <span className="text-neutral-400 dark:text-neutral-400">Duração</span>
-                  <strong className="font-medium">{selectedDuration} minutos</strong>
-                </p>
-                <p className="flex items-center justify-between gap-4 border-t border-neutral-100 dark:border-white/10 pt-3">
-                  <span className="text-neutral-400 dark:text-neutral-400">Valor</span>
-                  <strong className="font-semibold text-sage-700 dark:text-sage-300">{formatCurrency(page.sessionPrice)}</strong>
-                </p>
               </div>
             </div>
             <button
@@ -380,8 +468,6 @@ export default function BookingPage() {
                 <p className="text-neutral-500 leading-relaxed">{page.description}</p>
               )}
               <div className="flex flex-wrap gap-3 mt-4 text-sm text-neutral-500">
-                <span className="flex items-center gap-1.5"><Clock className="w-4 h-4 text-sage-500" />{selectedDuration} min</span>
-                <span className="flex items-center gap-1.5"><DollarSign className="w-4 h-4 text-sage-500" />{formatCurrency(page.sessionPrice)}</span>
                 {page.allowPresencial && <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-sage-500" />Presencial</span>}
                 {page.allowOnline && <span className="flex items-center gap-1.5"><Video className="w-4 h-4 text-mist-500" />Online</span>}
               </div>
@@ -654,8 +740,7 @@ export default function BookingPage() {
                   <div className="bg-sage-50 rounded-2xl p-4 text-sm text-sage-700 space-y-1">
                     <p className="font-medium">Resumo da sessão</p>
                     <p>{selectedDate && format(parseISO(selectedDate), "EEEE, dd 'de' MMMM", { locale: ptBR })}</p>
-                    <p>{selectedTime} · {selectedDuration} minutos</p>
-                    <p>{formatCurrency(page.sessionPrice)}</p>
+                    <p>{selectedTime}</p>
                   </div>
 
                   <button type="submit" disabled={isSubmitting || createBooking.isPending}

@@ -17,6 +17,7 @@ import { Patient } from '../patients/entities/patient.entity'
 import { Appointment } from '../appointments/entities/appointment.entity'
 import { FinancialRecord } from '../financial/entities/financial-record.entity'
 import { User } from '../auth/entities/user.entity'
+import { Session } from '../sessions/entities/session.entity'
 import { AvailabilityService } from '../availability/availability.service'
 import { NotificationsService } from '../notifications/notifications.service'
 import { CreateBookingDto } from './dto/create-booking.dto'
@@ -82,6 +83,7 @@ export class BookingService {
     @InjectRepository(Appointment)     private appointments: Repository<Appointment>,
     @InjectRepository(FinancialRecord) private financial:    Repository<FinancialRecord>,
     @InjectRepository(User)            private users:        Repository<User>,
+    @InjectRepository(Session)         private sessions:     Repository<Session>,
     private availability:  AvailabilityService,
     private notifications: NotificationsService,
     private googleCalendar: GoogleCalendarService,
@@ -542,13 +544,18 @@ export class BookingService {
     await this.bookings.save(booking)
 
     // ── Atualiza ou cria o FinancialRecord ──────────────────────────────────
-    // Tenta achar pelo appointmentId (salvo em sessionId no confirm)
     let record: FinancialRecord | null = null
-    if (booking.appointmentId) {
-      record = await this.financial.findOne({
-        where: { sessionId: booking.appointmentId, psychologistId },
-      })
-    }
+    record = await this.financial.findOne({
+      where: [
+        { bookingId: booking.id, psychologistId },
+        ...(booking.appointmentId
+          ? [
+              { appointmentId: booking.appointmentId, psychologistId },
+              { sessionId: booking.appointmentId, psychologistId },
+            ]
+          : []),
+      ],
+    })
 
     if (record) {
       // Marca o existente como pago
@@ -566,7 +573,7 @@ export class BookingService {
         })
         patientName = appt?.patient?.name ?? booking.patientName ?? 'Paciente'
       }
-      await this.financial.save(
+      record = await this.financial.save(
         this.financial.create({
           type:          'income',
           amount:        Number(booking.amount) || 0,
@@ -576,8 +583,16 @@ export class BookingService {
           paidAt:        today,
           method,
           psychologistId,
-          sessionId:     booking.appointmentId ?? undefined,
+          appointmentId: booking.appointmentId ?? undefined,
+          bookingId:     booking.id,
         }),
+      )
+    }
+
+    if (booking.appointmentId) {
+      await this.sessions.update(
+        { appointmentId: booking.appointmentId, psychologistId },
+        { paymentStatus: 'paid', paymentId: record?.id ?? undefined },
       )
     }
 
@@ -791,9 +806,10 @@ export class BookingService {
         dueDate:       booking.date,
         patientId:     patient.id,
         psychologistId,
-        sessionId:     appointment.id,   // referência para markPaid encontrar o registro
+        appointmentId: appointment.id,
+        bookingId:     booking.id,
       }),
-    ).catch(() => {})  // não derruba o fluxo se a coluna ainda não existir em prod
+    )
 
     return appointment
   }

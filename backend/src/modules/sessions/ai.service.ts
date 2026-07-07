@@ -51,7 +51,7 @@ export class AiService {
 
   async generateSessionSummary(transcription: string, patientName?: string): Promise<string> {
     const patient = patientName ? `Paciente: ${patientName}.\n` : ''
-    const prompt = `Você é um assistente de apoio clínico para psicólogos. Com base na transcrição abaixo de uma sessão psicológica, elabore um rascunho conciso de nota de evolução clínica. Escreva em linguagem técnica, primeira pessoa do profissional, sem diagnóstico. Inclua: demanda trabalhada, intervenções realizadas, resposta observada e próximos passos sugeridos. Máximo 250 palavras. O psicólogo revisará e editará antes de salvar.
+    const prompt = `Você é um assistente de apoio clínico para psicólogos e terapeutas. Com base na transcrição abaixo de uma sessão clínica, elabore um rascunho conciso de nota de evolução clínica. Escreva em linguagem técnica, primeira pessoa do profissional, sem diagnóstico. Inclua: demanda trabalhada, intervenções realizadas, resposta observada e próximos passos sugeridos. Máximo 250 palavras. O profissional revisará e editará antes de salvar.
 
 ${patient}Transcrição:
 ${transcription.slice(0, 6000)}`

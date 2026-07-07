@@ -61,7 +61,9 @@ export class PaymentReminderJob implements OnModuleInit, OnModuleDestroy {
           Number(record.amount),
           prefs.pixKey,
         )
-        if (!result.sent) continue
+        if (!result.sent) {
+          this.logger.warn(`Lembrete de atraso nao enviado para financeiro ${record.id}: ${result.error ?? 'erro desconhecido'}`)
+        }
       }
 
       record.status = 'overdue'

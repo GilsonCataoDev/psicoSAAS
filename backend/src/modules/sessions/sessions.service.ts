@@ -139,7 +139,7 @@ export class SessionsService {
           const isPaid  = dto.paymentStatus === 'paid'
 
           const existingFinancial = dto.appointmentId
-            ? await this.financial.findBySessionId(dto.appointmentId, psychologistId)
+            ? await this.financial.findByAppointmentId(dto.appointmentId, psychologistId)
             : null
 
           if (existingFinancial) {
@@ -159,6 +159,7 @@ export class SessionsService {
                 paidAt: isPaid ? dto.date : undefined,
                 method: isPaid ? 'manual' : undefined,
                 sessionId: saved.id,
+                appointmentId: dto.appointmentId,
                 patientId: dto.patientId,
               },
               psychologistId,
@@ -270,6 +271,7 @@ export class SessionsService {
           paidAt: isPaid ? session.date : undefined,
           method: isPaid ? 'manual' : undefined,
           sessionId: session.id,
+          appointmentId: session.appointmentId,
           patientId: session.patientId,
         },
         psychologistId,
@@ -330,6 +332,6 @@ export class SessionsService {
 
   private async findFinancialForSession(session: Session, psychologistId: string) {
     return (await this.financial.findBySessionId(session.id, psychologistId))
-      ?? (session.appointmentId ? await this.financial.findBySessionId(session.appointmentId, psychologistId) : null)
+      ?? (session.appointmentId ? await this.financial.findByAppointmentId(session.appointmentId, psychologistId) : null)
   }
 }

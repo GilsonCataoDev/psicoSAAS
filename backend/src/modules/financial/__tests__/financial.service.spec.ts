@@ -7,6 +7,8 @@ import { NotificationsService } from '../../notifications/notifications.service'
 import { Patient } from '../../patients/entities/patient.entity'
 import { User } from '../../auth/entities/user.entity'
 import { Session } from '../../sessions/entities/session.entity'
+import { Booking } from '../../booking/entities/booking.entity'
+import { Appointment } from '../../appointments/entities/appointment.entity'
 
 const PSY_ID = 'psy-1'
 
@@ -45,6 +47,7 @@ function makeRepo(overrides: Partial<Record<string, jest.Mock>> = {}) {
     create: jest.fn(),
     save: jest.fn(),
     remove: jest.fn(),
+    update: jest.fn(),
     createQueryBuilder: jest.fn(),
     ...overrides,
   }
@@ -54,10 +57,16 @@ describe('FinancialService', () => {
   let service: FinancialService
   let repo: ReturnType<typeof makeRepo>
   let patientRepo: ReturnType<typeof makeRepo>
+  let sessionRepo: ReturnType<typeof makeRepo>
+  let bookingRepo: ReturnType<typeof makeRepo>
+  let notifications: { sendPaymentRequest: jest.Mock }
 
   beforeEach(async () => {
     repo = makeRepo()
     patientRepo = makeRepo()
+    sessionRepo = makeRepo({ update: jest.fn().mockResolvedValue({ affected: 0 }) })
+    bookingRepo = makeRepo({ update: jest.fn().mockResolvedValue({ affected: 0 }) })
+    notifications = { sendPaymentRequest: jest.fn() }
 
     const module = await Test.createTestingModule({
       providers: [
@@ -65,8 +74,10 @@ describe('FinancialService', () => {
         { provide: getRepositoryToken(FinancialRecord), useValue: repo },
         { provide: getRepositoryToken(Patient),         useValue: patientRepo },
         { provide: getRepositoryToken(User),            useValue: makeRepo() },
-        { provide: getRepositoryToken(Session),         useValue: makeRepo() },
-        { provide: NotificationsService, useValue: { sendPaymentRequest: jest.fn() } },
+        { provide: getRepositoryToken(Session),         useValue: sessionRepo },
+        { provide: getRepositoryToken(Booking),         useValue: bookingRepo },
+        { provide: getRepositoryToken(Appointment),     useValue: makeRepo() },
+        { provide: NotificationsService, useValue: notifications },
       ],
     }).compile()
 
@@ -108,9 +119,39 @@ describe('FinancialService', () => {
       expect(result.paidAt).toBeTruthy()
     })
 
+    it('sincroniza sessao e booking vinculados ao marcar como pago', async () => {
+      const record = makeRecord({ sessionId: 'appt-1' })
+      repo.findOne.mockResolvedValue(record)
+      repo.save.mockImplementation(async (r) => r)
+
+      await service.markPaid('rec-1', 'pix', PSY_ID)
+
+      expect(sessionRepo.update).toHaveBeenCalledWith(
+        { id: 'appt-1', psychologistId: PSY_ID },
+        expect.objectContaining({ paymentStatus: 'paid', paymentId: 'rec-1' }),
+      )
+      expect(sessionRepo.update).toHaveBeenCalledWith(
+        { appointmentId: 'appt-1', psychologistId: PSY_ID },
+        expect.objectContaining({ paymentStatus: 'paid', paymentId: 'rec-1' }),
+      )
+      expect(bookingRepo.update).toHaveBeenCalledWith(
+        { appointmentId: 'appt-1', psychologistId: PSY_ID },
+        expect.objectContaining({ paymentStatus: 'paid', paymentMethod: 'pix' }),
+      )
+    })
+
     it('lança NotFoundException quando registro não existe', async () => {
       repo.findOne.mockResolvedValue(null)
       await expect(service.markPaid('missing', 'pix', PSY_ID)).rejects.toThrow(NotFoundException)
+    })
+  })
+
+  describe('sendChargeMessage', () => {
+    it('falha com mensagem clara quando lancamento nao tem paciente', async () => {
+      repo.findOne.mockResolvedValue(makeRecord({ patient: undefined }))
+
+      await expect(service.sendChargeMessage('rec-1', PSY_ID)).rejects.toThrow(BadRequestException)
+      expect(notifications.sendPaymentRequest).not.toHaveBeenCalled()
     })
   })
 
