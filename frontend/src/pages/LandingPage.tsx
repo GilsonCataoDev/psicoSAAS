@@ -330,7 +330,7 @@ export default function LandingPage() {
               initial: 'S',
             },
           ].map(({ quote, name, role, initial }) => (
-            <figure key={name} className="rounded-xl border border-[#DCE6DE] bg-white p-6 shadow-sm">
+            <figure key={name} className="rounded-xl border border-[#DCE6DE] bg-[#FFFFFF] p-6 shadow-sm">
               <blockquote className="text-sm leading-relaxed text-[#445148]">"{quote}"</blockquote>
               <figcaption className="mt-4 flex items-center gap-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sage-100 text-sm font-bold text-sage-700">
