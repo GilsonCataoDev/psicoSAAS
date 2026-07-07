@@ -110,13 +110,13 @@ const faqs = [
 
 function ProductPreview() {
   return (
-    <div className="relative mx-auto w-full min-w-0 max-w-[calc(100vw-40px)] overflow-hidden rounded-lg border border-white/15 bg-[#17211D] shadow-2xl sm:max-w-[560px]">
+    <div className="relative mx-auto w-full min-w-0 max-w-[calc(100vw-40px)] overflow-hidden rounded-lg border border-[#24483B] bg-[#13231C] shadow-[0_28px_70px_rgba(20,37,29,0.38)] sm:max-w-[560px]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-white/5 px-4 py-3">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sage-200">Painel UseCognia</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#BDE7D2]">Painel UseCognia</p>
           <p className="mt-1 text-sm text-white/70">Rotina clinica</p>
         </div>
-        <span className="shrink-0 rounded-full bg-sage-200 px-3 py-1 text-xs font-semibold text-sage-900">Plano gratis</span>
+        <span className="shrink-0 rounded-full bg-[#DDEFE6] px-3 py-1 text-xs font-semibold text-[#1D352D]">Plano gratis</span>
       </div>
 
       <div className="grid gap-0 md:grid-cols-[180px_1fr]">
@@ -155,8 +155,8 @@ function ProductPreview() {
             ))}
           </div>
 
-          <div className="rounded-md border border-sage-200/25 bg-sage-200/10 p-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sage-200">Documento pronto</p>
+          <div className="rounded-md border border-[#BDE7D2]/25 bg-[#BDE7D2]/10 p-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#BDE7D2]">Documento pronto</p>
             <p className="mt-1 text-sm text-white">Declaração com QR de autenticidade gerada em uma página.</p>
           </div>
         </div>
@@ -167,23 +167,23 @@ function ProductPreview() {
 
 export default function LandingPage() {
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#F7F8F5] text-[#211F1C]">
-      <header className="sticky top-0 z-20 border-b border-[#E7E4DA] bg-[#F7F8F5]/95 backdrop-blur">
+    <main className="min-h-screen overflow-x-hidden bg-[#F7F8F5] text-[#14251D]">
+      <header className="sticky top-0 z-20 border-b border-[#DCE6DE] bg-[#F7F8F5]/95 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-5">
           <Link to="/inicio" className="flex min-w-0 items-center gap-2.5">
             <BrandLogo compact className="shrink-0" />
-            <span className="text-xl font-bold tracking-tight text-[#211F1C]">
+            <span className="text-xl font-bold tracking-tight text-[#14251D]">
               Use<span className="text-[#2F7657]">Cognia</span>
             </span>
           </Link>
-          <nav className="hidden items-center gap-6 text-sm font-medium text-[#5F5A51] md:flex">
+          <nav className="hidden items-center gap-6 text-sm font-medium text-[#5F6B62] md:flex">
             <a href="#produto" className="hover:text-sage-700">Produto</a>
             <a href="#gratis" className="hover:text-sage-700">Plano gratis</a>
             <button onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-sage-700">Dúvidas</button>
             <Link to="/seguranca" className="hover:text-sage-700">Segurança</Link>
           </nav>
           <div className="flex items-center gap-2">
-            <Link to="/login" className="hidden px-3 py-2 text-sm font-semibold text-[#49443D] hover:text-sage-700 sm:inline-flex">
+            <Link to="/login" className="hidden px-3 py-2 text-sm font-semibold text-[#445148] hover:text-sage-700 sm:inline-flex">
               Entrar
             </Link>
             <Link to="/cadastro" className="hidden rounded-md bg-sage-800 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sage-900 sm:inline-flex">
@@ -197,7 +197,7 @@ export default function LandingPage() {
         <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
         <div className="mx-auto grid w-full max-w-6xl min-w-0 grid-cols-[minmax(0,1fr)] items-center gap-10 px-5 py-16 sm:py-20 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:py-24">
           <div className="w-full min-w-0 max-w-full sm:max-w-2xl">
-            <p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-3 py-1 text-sm font-semibold text-sage-200">
+            <p className="inline-flex items-center gap-2 rounded-full border border-[#BDE7D2]/25 bg-[#BDE7D2]/10 px-3 py-1 text-sm font-semibold text-[#BDE7D2]">
               <Sparkles className="h-4 w-4" />
               Plano gratis para psicólogos, terapeutas e estagiários
             </p>
@@ -213,7 +213,7 @@ export default function LandingPage() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
                 to="/cadastro"
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-sage-200 px-5 text-sm font-bold text-sage-900 shadow-lg shadow-sage-200/15 hover:bg-sage-100"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[#DDEFE6] px-5 text-sm font-bold text-[#1D352D] shadow-[0_12px_28px_rgba(47,118,87,0.22)] hover:bg-[#C9E5D7]"
               >
                 Começar gratis <ArrowRight className="h-4 w-4" />
               </Link>
@@ -228,7 +228,7 @@ export default function LandingPage() {
             <div className="mt-8 flex flex-col gap-2 text-sm text-white/70 sm:flex-row sm:flex-wrap">
               {trustSignals.map((item) => (
                 <span key={item} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
-                  <CheckCircle2 className="h-4 w-4 text-sage-200" />
+                  <CheckCircle2 className="h-4 w-4 text-[#BDE7D2]" />
                   {item}
                 </span>
               ))}
@@ -239,27 +239,27 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="border-b border-[#E7E4DA] bg-[#FFFFFF]">
+      <section className="border-b border-[#DCE6DE] bg-[#FFFFFF]">
         <div className="mx-auto grid max-w-6xl gap-4 px-5 py-8 md:grid-cols-3">
           <div className="flex items-start gap-3">
             <ShieldCheck className="mt-0.5 h-5 w-5 text-sage-600" />
             <div>
-              <p className="text-sm font-semibold text-[#211F1C]">Privacidade visível</p>
-              <p className="mt-1 text-sm text-[#7C776B]">Dados clínicos tratados com cuidado desde a base do produto.</p>
+              <p className="text-sm font-semibold text-[#14251D]">Privacidade visível</p>
+              <p className="mt-1 text-sm text-[#5F6B62]">Dados clínicos tratados com cuidado desde a base do produto.</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <LockKeyhole className="mt-0.5 h-5 w-5 text-sage-600" />
             <div>
-              <p className="text-sm font-semibold text-[#211F1C]">Verificação pública</p>
-              <p className="mt-1 text-sm text-[#7C776B]">Cada documento pode ser validado por link e código único.</p>
+              <p className="text-sm font-semibold text-[#14251D]">Verificação pública</p>
+              <p className="mt-1 text-sm text-[#5F6B62]">Cada documento pode ser validado por link e código único.</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <WalletCards className="mt-0.5 h-5 w-5 text-sage-600" />
             <div>
-              <p className="text-sm font-semibold text-[#211F1C]">Construído com usuários reais</p>
-              <p className="mt-1 text-sm text-[#7C776B]">Criado para a rotina de psicólogos, terapeutas e estagiários clínicos.</p>
+              <p className="text-sm font-semibold text-[#14251D]">Construído com usuários reais</p>
+              <p className="mt-1 text-sm text-[#5F6B62]">Criado para a rotina de psicólogos, terapeutas e estagiários clínicos.</p>
             </div>
           </div>
         </div>
@@ -269,35 +269,35 @@ export default function LandingPage() {
         <div className="grid gap-8 lg:grid-cols-[0.9fr_1fr]">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Por que agora</p>
-            <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Você não estudou para virar administrador de agenda.</h2>
-            <p className="mt-4 leading-relaxed text-[#5F5A51]">
+            <h2 className="mt-3 text-3xl font-bold text-[#14251D]">Você não estudou para virar administrador de agenda.</h2>
+            <p className="mt-4 leading-relaxed text-[#5F6B62]">
               A clínica exige presença. Mas a rotina ao redor dela costuma virar uma mistura de WhatsApp, planilha, agenda, caderno, cobranças e lembretes soltos. O UseCognia começa pelo que mais pesa no dia a dia.
             </p>
           </div>
           <div className="grid gap-3">
             {pains.map((item) => (
-              <article key={item.title} className="rounded-lg border border-[#E7E4DA] bg-[#FFFFFF] p-5 shadow-sm">
-                <h3 className="font-semibold text-[#211F1C]">{item.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-[#7C776B]">{item.text}</p>
+              <article key={item.title} className="rounded-lg border border-[#DCE6DE] bg-[#FFFFFF] p-5 shadow-sm">
+                <h3 className="font-semibold text-[#14251D]">{item.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-[#5F6B62]">{item.text}</p>
               </article>
             ))}
           </div>
         </div>
       </section>
 
-      <section id="produto" className="border-y border-[#E7E4DA] bg-[#FFFFFF]">
+      <section id="produto" className="border-y border-[#DCE6DE] bg-[#FFFFFF]">
         <div className="mx-auto max-w-6xl px-5 py-16">
           <div className="max-w-2xl">
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Produto</p>
-            <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">O essencial da rotina clínica em um só lugar.</h2>
+            <h2 className="mt-3 text-3xl font-bold text-[#14251D]">O essencial da rotina clínica em um só lugar.</h2>
           </div>
 
           <div className="mt-8 grid gap-4 md:grid-cols-4">
             {features.map(({ icon: Icon, title, text }) => (
-              <article key={title} className="rounded-lg border border-[#E7E4DA] bg-[#F7F8F5] p-5">
+              <article key={title} className="rounded-lg border border-[#DCE6DE] bg-[#F7F8F5] p-5">
                 <Icon className="mb-4 h-5 w-5 text-sage-600" />
-                <h3 className="font-semibold text-[#211F1C]">{title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-[#7C776B]">{text}</p>
+                <h3 className="font-semibold text-[#14251D]">{title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-[#5F6B62]">{text}</p>
               </article>
             ))}
           </div>
@@ -307,7 +307,7 @@ export default function LandingPage() {
       <section className="mx-auto max-w-6xl px-5 py-16">
         <div className="text-center mb-10">
           <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Por que começar agora</p>
-          <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Uma rotina clínica mais organizada desde o primeiro paciente.</h2>
+          <h2 className="mt-3 text-3xl font-bold text-[#14251D]">Uma rotina clínica mais organizada desde o primeiro paciente.</h2>
         </div>
         <div className="grid gap-5 md:grid-cols-3">
           {[
@@ -330,15 +330,15 @@ export default function LandingPage() {
               initial: 'S',
             },
           ].map(({ quote, name, role, initial }) => (
-            <figure key={name} className="rounded-xl border border-[#E7E4DA] bg-white p-6 shadow-sm">
-              <blockquote className="text-sm leading-relaxed text-[#49443D]">"{quote}"</blockquote>
+            <figure key={name} className="rounded-xl border border-[#DCE6DE] bg-white p-6 shadow-sm">
+              <blockquote className="text-sm leading-relaxed text-[#445148]">"{quote}"</blockquote>
               <figcaption className="mt-4 flex items-center gap-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sage-100 text-sm font-bold text-sage-700">
                   {initial}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-[#211F1C]">{name}</p>
-                  <p className="text-xs text-[#7C776B]">{role}</p>
+                  <p className="text-sm font-semibold text-[#14251D]">{name}</p>
+                  <p className="text-xs text-[#5F6B62]">{role}</p>
                 </div>
               </figcaption>
             </figure>
@@ -349,8 +349,8 @@ export default function LandingPage() {
       <section id="gratis" className="mx-auto grid max-w-6xl gap-8 px-5 py-16 lg:grid-cols-[0.9fr_1fr]">
         <div>
           <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Plano gratis</p>
-          <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Comece sem cartão e organize os primeiros pacientes.</h2>
-          <p className="mt-4 max-w-xl leading-relaxed text-[#5F5A51]">
+          <h2 className="mt-3 text-3xl font-bold text-[#14251D]">Comece sem cartão e organize os primeiros pacientes.</h2>
+          <p className="mt-4 max-w-xl leading-relaxed text-[#5F6B62]">
             O plano grátis foi pensado para quem quer sair da bagunça inicial sem assumir custo de imediato. Quando precisar de mais limite ou automação, escolha Essencial ou Pro.
           </p>
         </div>
@@ -359,13 +359,13 @@ export default function LandingPage() {
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
               <p className="text-sm font-semibold text-sage-700">UseCognia Gratis</p>
-              <p className="mt-1 text-3xl font-bold text-[#211F1C]">Gratuito</p>
+              <p className="mt-1 text-3xl font-bold text-[#14251D]">Gratuito</p>
             </div>
             <span className="rounded-full bg-sage-100 px-3 py-1 text-xs font-semibold text-sage-700">sem cartao</span>
           </div>
           <ul className="space-y-3">
             {freeItems.map((item) => (
-              <li key={item} className="flex items-start gap-3 text-sm font-medium text-[#49443D]">
+              <li key={item} className="flex items-start gap-3 text-sm font-medium text-[#445148]">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-sage-600" />
                 {item}
               </li>
@@ -377,24 +377,24 @@ export default function LandingPage() {
           >
             Começar gratis
           </Link>
-          <p className="mt-3 text-center text-xs text-[#A9A394]">Sem cartão. Você pode mudar de plano depois.</p>
+          <p className="mt-3 text-center text-xs text-[#7C877D]">Sem cartão. Você pode mudar de plano depois.</p>
         </div>
       </section>
 
-      <section id="faq" className="border-y border-[#E7E4DA] bg-[#FFFFFF]">
+      <section id="faq" className="border-y border-[#DCE6DE] bg-[#FFFFFF]">
         <div className="mx-auto max-w-3xl px-5 py-16">
           <div className="text-center mb-10">
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Dúvidas frequentes</p>
-            <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Perguntas antes de começar</h2>
+            <h2 className="mt-3 text-3xl font-bold text-[#14251D]">Perguntas antes de começar</h2>
           </div>
-          <div className="divide-y divide-[#E7E4DA]">
+          <div className="divide-y divide-[#DCE6DE]">
             {faqs.map((item) => (
               <details key={item.question} className="group py-5">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
-                  <span className="font-semibold text-[#211F1C] group-open:text-sage-700">{item.question}</span>
-                  <span className="shrink-0 text-[#7C776B] text-lg leading-none group-open:rotate-45 transition-transform duration-200">+</span>
+                  <span className="font-semibold text-[#14251D] group-open:text-sage-700">{item.question}</span>
+                  <span className="shrink-0 text-[#5F6B62] text-lg leading-none group-open:rotate-45 transition-transform duration-200">+</span>
                 </summary>
-                <p className="mt-3 text-sm leading-relaxed text-[#7C776B]">{item.answer}</p>
+                <p className="mt-3 text-sm leading-relaxed text-[#5F6B62]">{item.answer}</p>
               </details>
             ))}
           </div>
@@ -409,7 +409,7 @@ export default function LandingPage() {
           </p>
           <Link
             to="/cadastro"
-            className="mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-md bg-sage-200 px-6 text-sm font-bold text-sage-900 hover:bg-sage-100"
+            className="mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[#DDEFE6] px-6 text-sm font-bold text-[#1D352D] hover:bg-[#C9E5D7]"
           >
             Começar gratis <ArrowRight className="h-4 w-4" />
           </Link>
