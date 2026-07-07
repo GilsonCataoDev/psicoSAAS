@@ -4,7 +4,7 @@ import { Plus, Search, UsersRound } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
-import { formatDate } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
 import { Patient } from '@/types'
 import NewPatientModal from '@/components/features/patients/NewPatientModal'
 import { usePatients } from '@/hooks/useApi'
@@ -126,7 +126,7 @@ export default function PatientsPage() {
             search || filter !== 'all'
               ? 'Tente ajustar a busca ou os filtros.'
               : reachedPatientLimit
-                ? `Seu plano ${currentPlan.name} permite ate ${patientLimit} pacientes ativos.`
+                ? `Seu plano ${currentPlan.name} permite até ${patientLimit} pacientes ativos.`
                 : 'Adicione sua primeira pessoa para começar a acompanhar o processo.'
           }
           action={
@@ -180,7 +180,7 @@ function PatientCard({ patient }: { patient: Patient }) {
           <StatusBadge status={patient.status} />
         </div>
         <p className="text-xs text-neutral-400 mt-0.5 truncate">
-          Desde {formatDate(patient.startDate ?? patient.createdAt)} · R$ {patient.sessionPrice}/sessão
+          Desde {formatDate(patient.startDate ?? patient.createdAt)} · {formatCurrency(Number(patient.sessionPrice ?? 0))}/sessão
         </p>
         {patient.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1.5">

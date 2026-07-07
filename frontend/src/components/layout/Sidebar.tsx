@@ -7,10 +7,10 @@ import BrandLogo from '@/components/ui/BrandLogo'
 import UseCogniaIcon, { UseCogniaIconName } from '@/components/ui/UseCogniaIcon'
 
 const navItems: Array<{ to: string; icon: UseCogniaIconName; label: string; proOnly?: boolean }> = [
-  { to: '/',              icon: 'dashboard',   label: 'Inicio'       },
+  { to: '/dashboard',     icon: 'dashboard',   label: 'Início'       },
   { to: '/pacientes',     icon: 'patients',    label: 'Pacientes'    },
   { to: '/agenda',        icon: 'calendar',    label: 'Agenda'       },
-  { to: '/agendamentos',  icon: 'public-link', label: 'Link público' },
+  { to: '/agendamentos',  icon: 'public-link', label: 'Agenda pública' },
   { to: '/sessoes',       icon: 'sessions',    label: 'Sessões'      },
   { to: '/documentos',    icon: 'documents',    label: 'Documentos'   },
   { to: '/instrumentos',  icon: 'instruments',  label: 'Instrumentos', proOnly: true },
@@ -41,7 +41,7 @@ export default function Sidebar() {
 
       <nav id="main-navigation" aria-label="Navegação principal" className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
         {navItems.filter(item => !item.proOnly || isPro).map(({ to, icon, label }) => (
-          <NavLink key={to} to={to} end={to === '/'}>
+          <NavLink key={to} to={to} end={to === '/dashboard'}>
             {({ isActive }) => (
               <div className={cn(
                 'relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 cursor-pointer select-none',

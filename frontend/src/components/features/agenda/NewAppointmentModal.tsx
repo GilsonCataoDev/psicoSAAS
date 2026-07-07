@@ -196,13 +196,13 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
               notes: updatePayload.notes,
             },
           })
-          toast.success(`${result.updated} sessoes atualizadas`)
+          toast.success(`${result.updated} sessões atualizadas`)
         } else {
           await updateAppointment.mutateAsync({
             id: appointment.id,
             data: updatePayload,
           })
-          toast.success(appointment.isRecurring ? 'Alteracao pontual salva' : 'Sessao atualizada')
+          toast.success(appointment.isRecurring ? 'Alteração pontual salva' : 'Sessão atualizada')
         }
       } else {
         const payload = {
@@ -212,7 +212,7 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
           repeatUntil: data.recurrence === 'none' ? undefined : data.repeatUntil || undefined,
         }
         const created = await createAppointment.mutateAsync(payload as any)
-        toast.success(Array.isArray(created) ? `${created.length} sessoes agendadas` : 'Sessao agendada')
+        toast.success(Array.isArray(created) ? `${created.length} sessões agendadas` : 'Sessão agendada')
       }
       reset()
       onClose()
@@ -225,10 +225,10 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
     <Modal
       open={open}
       onClose={onClose}
-      title={isEditing ? 'Alterar atendimento' : 'Agendar nova sessao'}
+      title={isEditing ? 'Alterar atendimento' : 'Agendar nova sessão'}
       description={isEditing
-        ? 'Escolha se a mudanca vale so para este atendimento ou para a serie.'
-        : 'Crie um atendimento unico, semanal ou de 15 em 15 dias.'}
+        ? 'Escolha se a mudança vale só para este atendimento ou para a série.'
+        : 'Crie um atendimento único, semanal ou de 15 em 15 dias.'}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
@@ -286,13 +286,13 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
             <div>
               <label className="label">Recorrencia</label>
               <select {...register('recurrence')} className="input-field">
-                <option value="none">Nao repetir</option>
+                <option value="none">Não repetir</option>
                 <option value="weekly">Toda semana</option>
                 <option value="biweekly">De 15 em 15 dias</option>
               </select>
             </div>
             <div>
-              <label className="label">Repetir ate</label>
+              <label className="label">Repetir até</label>
               <input
                 {...register('repeatUntil')}
                 type="date"
@@ -304,32 +304,32 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
         )}
 
         {sessionPreview && (
-          <div className="rounded-2xl border border-sage-200 bg-sage-50 px-4 py-3">
+          <div className="rounded-2xl border border-sage-200 bg-sage-50 px-4 py-3 dark:border-sage-400/30 dark:bg-sage-500/15">
             <div className="flex items-start gap-3">
               <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-sage-600">
                 <Repeat2 className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-sage-900">Previsao da recorrencia</p>
+                <p className="text-sm font-semibold text-sage-900 dark:text-sage-100">Previsão da recorrência</p>
                 <div className="mt-2 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-                  <div className="rounded-xl bg-white px-3 py-2">
-                    <p className="text-sage-500">Criara</p>
-                    <p className="font-semibold text-sage-900">{sessionPreview.count} sessoes</p>
+                  <div className="rounded-xl bg-white px-3 py-2 dark:bg-white/5">
+                    <p className="text-sage-500 dark:text-sage-300">Criará</p>
+                    <p className="font-semibold text-sage-900 dark:text-white">{sessionPreview.count} sessões</p>
                   </div>
-                  <div className="rounded-xl bg-white px-3 py-2">
-                    <p className="text-sage-500">Frequencia</p>
-                    <p className="font-semibold text-sage-900">{recurrence === 'weekly' ? 'Semanal' : '15 em 15 dias'}</p>
+                  <div className="rounded-xl bg-white px-3 py-2 dark:bg-white/5">
+                    <p className="text-sage-500 dark:text-sage-300">Frequência</p>
+                    <p className="font-semibold text-sage-900 dark:text-white">{recurrence === 'weekly' ? 'Semanal' : '15 em 15 dias'}</p>
                   </div>
-                  <div className="rounded-xl bg-white px-3 py-2">
-                    <p className="text-sage-500">Inicio</p>
-                    <p className="font-semibold text-sage-900">{format(parseISO(date), 'dd/MM/yyyy')}</p>
+                  <div className="rounded-xl bg-white px-3 py-2 dark:bg-white/5">
+                    <p className="text-sage-500 dark:text-sage-300">Início</p>
+                    <p className="font-semibold text-sage-900 dark:text-white">{format(parseISO(date), 'dd/MM/yyyy')}</p>
                   </div>
-                  <div className="rounded-xl bg-white px-3 py-2">
-                    <p className="text-sage-500">Ultima</p>
-                    <p className="font-semibold text-sage-900">{format(sessionPreview.lastDate, 'dd/MM/yyyy')}</p>
+                  <div className="rounded-xl bg-white px-3 py-2 dark:bg-white/5">
+                    <p className="text-sage-500 dark:text-sage-300">Última</p>
+                    <p className="font-semibold text-sage-900 dark:text-white">{format(sessionPreview.lastDate, 'dd/MM/yyyy')}</p>
                   </div>
                 </div>
-                <p className="mt-2 text-xs text-sage-700">
+                <p className="mt-2 text-xs text-sage-700 dark:text-sage-200">
                   {time ? `Sempre as ${time}. ` : ''}
                   {!repeatUntil ? 'Como a data final nao foi informada, o sistema usa o limite padrao de 3 meses.' : 'A serie termina na data informada.'}
                 </p>
@@ -339,13 +339,13 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
         )}
 
         {scheduleConflict && (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-400/30 dark:bg-amber-500/15">
             <div className="flex items-start gap-3">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
               <div>
-                <p className="text-sm font-semibold text-amber-900">Horario em conflito</p>
-                <p className="mt-1 text-xs leading-relaxed text-amber-800">
-                  Ja existe atendimento para {scheduleConflict.patient?.name ?? 'outro paciente'} as {scheduleConflict.time?.slice(0, 5)}. Escolha outro horario para salvar.
+                <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">Horário em conflito</p>
+                <p className="mt-1 text-xs leading-relaxed text-amber-800 dark:text-amber-100/80">
+                  Já existe atendimento para {scheduleConflict.patient?.name ?? 'outro paciente'} às {scheduleConflict.time?.slice(0, 5)}. Escolha outro horário para salvar.
                 </p>
               </div>
             </div>
@@ -353,12 +353,12 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
         )}
 
         {isEditing && appointment?.isRecurring && (
-          <div className="overflow-hidden rounded-2xl border border-neutral-200">
+          <div className="overflow-hidden rounded-2xl border border-neutral-200 dark:border-white/10">
             <button
               type="button"
               onClick={() => setEditScope('single')}
               className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors ${
-                editScope === 'single' ? 'bg-sage-50' : 'hover:bg-neutral-50'
+                editScope === 'single' ? 'bg-sage-50 dark:bg-sage-500/15' : 'hover:bg-neutral-50 dark:hover:bg-white/5'
               }`}
             >
               <span className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${
@@ -367,8 +367,8 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
                 {editScope === 'single' && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
               </span>
               <div>
-                <p className="text-sm font-medium text-neutral-800">Alterar apenas esta sessao</p>
-                <p className="text-xs text-neutral-400">As demais sessoes da serie nao serao afetadas. Esta vira uma alteracao pontual.</p>
+                <p className="text-sm font-medium text-neutral-800 dark:text-white">Alterar apenas esta sessão</p>
+                <p className="text-xs text-neutral-400 dark:text-neutral-300">As demais sessões da série não serão afetadas. Esta vira uma alteração pontual.</p>
               </div>
             </button>
             <div className="border-t border-neutral-100" />
@@ -376,7 +376,7 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
               type="button"
               onClick={() => setEditScope('future')}
               className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors ${
-                editScope === 'future' ? 'bg-sage-50' : 'hover:bg-neutral-50'
+                editScope === 'future' ? 'bg-sage-50 dark:bg-sage-500/15' : 'hover:bg-neutral-50 dark:hover:bg-white/5'
               }`}
             >
               <span className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${
@@ -385,8 +385,8 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
                 {editScope === 'future' && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
               </span>
               <div>
-                <p className="text-sm font-medium text-neutral-800">Alterar esta e as proximas</p>
-                <p className="text-xs text-neutral-400">Aplica horario, duracao e modalidade a todas as sessoes futuras desta serie.</p>
+                <p className="text-sm font-medium text-neutral-800 dark:text-white">Alterar esta e as próximas</p>
+                <p className="text-xs text-neutral-400 dark:text-neutral-300">Aplica horário, duração e modalidade a todas as sessões futuras desta série.</p>
               </div>
             </button>
           </div>

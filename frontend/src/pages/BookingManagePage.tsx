@@ -88,13 +88,13 @@ export default function BookingManagePage() {
     <div className="animate-slide-up space-y-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="page-title">Agendamentos Online</h1>
-          <p className="page-subtitle">Gerencie os horarios confirmados pelo seu link publico</p>
+          <h1 className="page-title">Agenda pública</h1>
+          <p className="page-subtitle">Gerencie solicitações, horários e o link público de agendamento</p>
         </div>
         <button onClick={() => setTab(t => t === 'requests' ? 'settings' : 'requests')}
           className="btn-secondary flex items-center gap-2 text-sm shrink-0">
           <Settings className="w-4 h-4" />
-          <span className="hidden sm:inline">{tab === 'requests' ? 'Configuracoes' : 'Agendamentos'}</span>
+          <span className="hidden sm:inline">{tab === 'requests' ? 'Configurações' : 'Solicitações'}</span>
         </button>
       </div>
 
@@ -143,8 +143,8 @@ export default function BookingManagePage() {
             ].map(s => (
               <div key={s.label} className="card text-center p-3 lg:p-6 dark:border-sage-200/15">
                 <div className="flex justify-center mb-1">{s.icon}</div>
-                <p className="text-2xl font-bold text-neutral-800">{s.value}</p>
-                <p className="text-xs text-neutral-500 mt-0.5 leading-tight">{s.label}</p>
+                <p className="text-2xl font-bold text-neutral-800 dark:text-white">{s.value}</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-300 mt-0.5 leading-tight">{s.label}</p>
               </div>
             ))}
           </div>
@@ -262,15 +262,15 @@ function BookingCard({ booking, onConfirm, onReject, onMarkPaid }: {
     <div className="card space-y-3 p-4 dark:border-sage-200/15">
       <div>
         <div className="flex items-center gap-2 flex-wrap">
-          <h3 className="font-medium text-neutral-800">{booking.patientName}</h3>
+          <h3 className="font-medium text-neutral-800 dark:text-white">{booking.patientName}</h3>
           <span className={cn('badge', s.className)}>{s.label}</span>
           <span className={cn('badge', p.className)}>{p.label}</span>
         </div>
-        <p className="text-xs text-neutral-500 mt-0.5">
+        <p className="text-xs text-neutral-500 dark:text-neutral-300 mt-0.5">
           {booking.patientEmail}
           {booking.patientPhone && ` · ${booking.patientPhone}`}
         </p>
-        <p className="text-sm font-medium text-neutral-700 mt-1.5">
+        <p className="text-sm font-medium text-neutral-700 dark:text-neutral-200 mt-1.5">
           {formatDateRelative(booking.date)} às {booking.time} · {booking.duration}min · {formatCurrency(booking.amount)}
         </p>
         {booking.patientNotes && (
@@ -614,7 +614,7 @@ function BookingSettings({ page }: { page: any }) {
           })),
       )
       await saveAvailability.mutateAsync(slots)
-      toast.success('Configuracoes salvas')
+      toast.success('Configurações salvas')
     } catch {
       toast.error('Erro ao salvar. Tente novamente.')
     }
@@ -742,9 +742,9 @@ function BookingSettings({ page }: { page: any }) {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="section-title mb-1">Status do link público</h2>
-            <p className="text-sm text-neutral-500">
+            <p className="text-sm text-neutral-500 dark:text-neutral-300">
               {form.isActive
-                ? 'Pacientes conseguem acessar e reservar horarios pelo seu link.'
+                ? 'Pacientes conseguem acessar e reservar horários pelo seu link.'
                 : 'O link fica pausado e pacientes não conseguem agendar.'}
             </p>
           </div>
@@ -765,14 +765,14 @@ function BookingSettings({ page }: { page: any }) {
         <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
           <div>
             <label className="label">URL pública</label>
-            <div className="flex overflow-hidden rounded-xl border border-neutral-200 bg-white focus-within:border-sage-300">
-              <span className="hidden items-center border-r border-neutral-100 bg-neutral-50 px-3 text-sm text-neutral-400 sm:flex">
+            <div className="flex overflow-hidden rounded-xl border border-neutral-200 bg-white focus-within:border-sage-300 dark:border-white/10 dark:bg-white/5 dark:focus-within:border-sage-400/60">
+              <span className="hidden items-center border-r border-neutral-100 bg-neutral-50 px-3 text-sm text-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-300 sm:flex">
                 usecognia.com.br/agendar/
               </span>
               <input
                 value={form.slug}
                 onChange={e => set('slug', normalizeSlug(e.target.value))}
-                className="min-w-0 flex-1 px-3 py-2.5 text-sm outline-none"
+                className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm text-neutral-800 outline-none placeholder:text-neutral-400 dark:text-white dark:placeholder:text-neutral-500"
                 placeholder="nicolle-paes"
               />
             </div>
@@ -834,14 +834,14 @@ function BookingSettings({ page }: { page: any }) {
                 <button type="button" onClick={() => toggleDay(d)}
                   className={cn(
                     'w-11 h-6 rounded-full transition-colors shrink-0',
-                    slot.enabled ? 'bg-sage-500' : 'bg-neutral-200'
+                    slot.enabled ? 'bg-sage-500' : 'bg-neutral-200 dark:bg-white/20'
                   )}>
                   <div className={cn(
                     'w-5 h-5 bg-white rounded-full shadow transition-transform mt-0.5 mx-0.5',
                     slot.enabled ? 'translate-x-5' : ''
                   )} />
                 </button>
-                <span className={cn('w-8 text-sm font-medium shrink-0', slot.enabled ? 'text-sage-700' : 'text-neutral-400')}>
+                <span className={cn('w-8 text-sm font-medium shrink-0', slot.enabled ? 'text-sage-700 dark:text-sage-200' : 'text-neutral-400 dark:text-neutral-300')}>
                   {label}
                 </span>
                 {slot.enabled ? (
@@ -955,7 +955,7 @@ function BookingSettings({ page }: { page: any }) {
             <p className="text-xs text-neutral-400 mt-1">Ex: 1 impede agendamento para hoje.</p>
           </div>
           <div>
-            <label className="label">Agendar ate quantos dias a frente</label>
+            <label className="label">Agendar até quantos dias à frente</label>
             <input type="number" min={1} max={180} value={form.maxAdvanceDays} onChange={e => set('maxAdvanceDays', +e.target.value)} className="input-field" />
             <p className="text-xs text-neutral-400 mt-1">Ex: 15 impede que alguem marque para daqui dois meses.</p>
           </div>
@@ -996,7 +996,7 @@ function BookingSettings({ page }: { page: any }) {
       <div className="card space-y-4">
         <h2 className="section-title">Modalidades</h2>
         <div>
-          <label className="label">Modalidades aceitas no link publico</label>
+          <label className="label">Modalidades aceitas no link público</label>
           <div className="grid grid-cols-2 gap-2">
             {[
               { key: 'allowPresencial', label: 'Presencial' },

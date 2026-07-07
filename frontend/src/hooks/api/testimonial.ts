@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { api } from '@/lib/api'
+import { api, type AuthAxiosRequestConfig } from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 
 export interface AdminTestimonial {
@@ -14,12 +14,18 @@ export interface AdminTestimonial {
   createdAt: string
 }
 
-export function useFeedbackStatus() {
+export function useFeedbackStatus(enabled = true) {
   const userId = useAuthStore(s => s.user?.id)
   return useQuery<{ shouldShow: boolean }>({
     queryKey: ['feedback', 'status', userId],
-    queryFn: () => api.get('/feedback/status').then(r => r.data),
-    enabled: !!userId,
+    queryFn: () =>
+      api.get('/feedback/status', { skipAuthRedirect: true } as AuthAxiosRequestConfig)
+        .then(r => r.data)
+        .catch((err) => {
+          if (err?.response?.status === 401) return { shouldShow: false }
+          throw err
+        }),
+    enabled: enabled && !!userId,
     staleTime: Infinity,
     retry: false,
   })

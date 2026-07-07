@@ -55,6 +55,17 @@ function roundUpMinutes(minutes: number, step = 15) {
   return Math.ceil(minutes / step) * step
 }
 
+function formatWeekRange(start: Date, end: Date) {
+  const sameMonth = format(start, 'yyyy-MM') === format(end, 'yyyy-MM')
+  const sameYear = format(start, 'yyyy') === format(end, 'yyyy')
+
+  if (sameMonth) return format(start, "MMMM 'de' yyyy", { locale: ptBR })
+  if (sameYear) {
+    return `${format(start, 'dd MMM', { locale: ptBR })} - ${format(end, "dd MMM 'de' yyyy", { locale: ptBR })}`
+  }
+  return `${format(start, 'dd/MM/yyyy')} - ${format(end, 'dd/MM/yyyy')}`
+}
+
 function mergeMinuteRanges(ranges: { start: number; end: number }[]) {
   const sorted = ranges
     .filter(range => range.end > range.start)
@@ -316,7 +327,7 @@ export default function AgendaPage() {
         <div>
           <h1 className="page-title">Agenda</h1>
           <p className="page-subtitle capitalize">
-            {format(weekStart, "MMMM 'de' yyyy", { locale: ptBR })}
+            {formatWeekRange(weekStart, weekEnd)}
           </p>
         </div>
         <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
@@ -469,8 +480,8 @@ export default function AgendaPage() {
                     selected
                       ? 'border-sage-500 bg-sage-500 text-white'
                       : isToday(day)
-                      ? 'border-sage-200 bg-sage-50 text-sage-700 hover:bg-sage-100'
-                      : 'border-neutral-100 bg-white text-neutral-600 hover:bg-neutral-50'
+                      ? 'border-sage-200 bg-sage-50 text-sage-700 hover:bg-sage-100 dark:border-sage-400/30 dark:bg-sage-500/15 dark:text-sage-200 dark:hover:bg-sage-500/25'
+                      : 'border-neutral-100 bg-white text-neutral-600 hover:bg-neutral-50 dark:border-white/10 dark:bg-white/5 dark:text-neutral-300 dark:hover:bg-white/10'
                   }`}
                 >
                   <span className="block text-[10px] uppercase leading-none opacity-80">
@@ -478,7 +489,7 @@ export default function AgendaPage() {
                   </span>
                   <span className="mt-1 block text-base font-semibold leading-none">{format(day, 'd')}</span>
                   <span className="mt-1 block text-[10px] leading-none opacity-70">
-                    {count} {count === 1 ? 'sessao' : 'sessoes'}
+                    {count} {count === 1 ? 'sessão' : 'sessões'}
                   </span>
                 </button>
               )
@@ -491,18 +502,18 @@ export default function AgendaPage() {
             Nenhuma sessao neste dia.
           </div>
         ) : (
-          <div className="divide-y divide-neutral-100 overflow-hidden rounded-2xl border border-neutral-100">
+          <div className="divide-y divide-neutral-100 overflow-hidden rounded-2xl border border-neutral-100 dark:divide-white/5 dark:border-white/10">
             {dayListAppointments.map(appt => (
-              <div key={appt.id} className="grid grid-cols-[72px_1fr_auto] items-center gap-3 bg-white px-4 py-3">
+              <div key={appt.id} className="grid grid-cols-[72px_1fr_auto] items-center gap-3 bg-white px-4 py-3 dark:bg-white/5">
                 <div className="text-center">
-                  <p className="text-base font-bold text-neutral-800">{formatTime(appt.time)}</p>
+                  <p className="text-base font-bold text-neutral-800 dark:text-white">{formatTime(appt.time)}</p>
                   <p className="text-[11px] text-neutral-400">{appt.duration}min</p>
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-3">
                     <Avatar name={appt.patient?.name ?? 'Paciente removido'} colorClass={appt.patient?.avatarColor} size="sm" />
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-neutral-800">{appt.patient?.name ?? 'Paciente removido'}</p>
+                      <p className="truncate text-sm font-semibold text-neutral-800 dark:text-white">{appt.patient?.name ?? 'Paciente removido'}</p>
                       <p className="mt-0.5 flex items-center gap-1 text-xs text-neutral-400">
                         {appt.modality === 'online'
                           ? <><Video className="h-3 w-3 text-mist-500" />Online</>
@@ -515,13 +526,13 @@ export default function AgendaPage() {
                   <StatusBadge status={appt.status} />
                   {appt.patientId && (
                     <Link to={`/prontuario/${appt.patientId}`} className="btn-secondary px-3 py-2 text-xs">
-                      Prontuario
+                      Prontuário
                     </Link>
                   )}
                   <button
                     type="button"
                     onClick={() => messageAppointment(appt)}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-100 text-neutral-400 hover:bg-sage-50 hover:text-sage-600"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-100 text-neutral-400 hover:bg-sage-50 hover:text-sage-600 dark:border-white/10 dark:hover:bg-white/10 dark:hover:text-sage-200"
                     title="Enviar WhatsApp"
                   >
                     <MessageCircle className="h-4 w-4" />
@@ -553,10 +564,10 @@ export default function AgendaPage() {
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {weeklyAvailabilitySummary.map(item => (
-              <div key={item.dateKey} className="rounded-2xl border border-neutral-100 bg-white p-4">
+              <div key={item.dateKey} className="rounded-2xl border border-neutral-100 bg-white p-4 dark:border-white/10 dark:bg-white/5">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold capitalize text-neutral-800">
+                    <p className="text-sm font-semibold capitalize text-neutral-800 dark:text-white">
                       {format(item.day, 'EEEE', { locale: ptBR })}
                     </p>
                     <p className="text-xs text-neutral-400">
@@ -564,7 +575,7 @@ export default function AgendaPage() {
                     </p>
                   </div>
                   {isToday(item.day) && (
-                    <span className="rounded-full bg-sage-50 px-2 py-1 text-[10px] font-semibold uppercase text-sage-700">
+                    <span className="rounded-full bg-sage-50 px-2 py-1 text-[10px] font-semibold uppercase text-sage-700 dark:bg-sage-500/20 dark:text-sage-200">
                       hoje
                     </span>
                   )}
@@ -573,7 +584,7 @@ export default function AgendaPage() {
                   {item.ranges.map(range => (
                     <span
                       key={`${item.dateKey}-${range.start}-${range.end}`}
-                      className="rounded-lg bg-mist-50 px-2.5 py-1.5 text-xs font-semibold text-mist-700"
+                      className="rounded-lg bg-mist-50 px-2.5 py-1.5 text-xs font-semibold text-mist-700 dark:bg-mist-500/20 dark:text-mist-200"
                     >
                       {range.start}-{range.end}
                     </span>
@@ -596,7 +607,7 @@ export default function AgendaPage() {
                   ? 'bg-sage-500 text-white'
                   : isToday(day)
                   ? 'bg-sage-50 text-sage-700'
-                  : 'bg-white border border-neutral-100 text-neutral-600'
+                  : 'bg-white border border-neutral-100 text-neutral-600 dark:border-white/10 dark:bg-white/5 dark:text-neutral-300'
               }`}>
               <span className="text-[10px] uppercase font-medium capitalize">
                 {format(day, 'EEE', { locale: ptBR })}
@@ -613,13 +624,13 @@ export default function AgendaPage() {
                 className="card space-y-3 py-3 px-4">
                 <div className="flex items-center gap-3">
                   <div className="text-center min-w-12 shrink-0">
-                    <p className="text-base font-bold text-neutral-700">{formatTime(appt.time)}</p>
+                    <p className="text-base font-bold text-neutral-700 dark:text-white">{formatTime(appt.time)}</p>
                     <p className="text-[10px] text-neutral-400">{appt.duration}min</p>
                   </div>
                   <div className="w-px h-10 bg-neutral-100 shrink-0" />
                   <Avatar name={appt.patient?.name ?? 'Paciente removido'} colorClass={appt.patient?.avatarColor} size="sm" />
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm text-neutral-800 truncate">{appt.patient?.name ?? 'Paciente removido'}</p>
+                    <p className="font-medium text-sm text-neutral-800 dark:text-white truncate">{appt.patient?.name ?? 'Paciente removido'}</p>
                     <div className="flex items-center gap-1 mt-0.5 text-xs text-neutral-400">
                       {appt.modality === 'online'
                         ? <><Video className="w-3 h-3 text-mist-500" />Online</>
@@ -631,18 +642,18 @@ export default function AgendaPage() {
                 {(appt.isRecurring || appt.isFixedScheduleException) && (
                   <div className="flex flex-wrap gap-1.5">
                     {appt.isRecurring && (
-                      <span className="text-[10px] px-2 py-1 rounded-full bg-mist-50 text-mist-700">
+                      <span className="text-[10px] px-2 py-1 rounded-full bg-mist-50 text-mist-700 dark:bg-mist-500/20 dark:text-mist-200">
                         {appt.recurringFrequency === 'biweekly' ? '15 em 15' : 'semanal'}
                       </span>
                     )}
                     {appt.isFixedScheduleException && (
-                      <span className="text-[10px] px-2 py-1 rounded-full bg-amber-50 text-amber-700">
+                      <span className="text-[10px] px-2 py-1 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-500/20 dark:text-amber-200">
                         pontual
                       </span>
                     )}
                   </div>
                 )}
-                <div className={`grid gap-2 border-t border-neutral-100 pt-3 ${appt.modality === 'online' ? 'grid-cols-4' : 'grid-cols-3'}`}>
+                <div className={`grid gap-2 border-t border-neutral-100 pt-3 dark:border-white/10 ${appt.modality === 'online' ? 'grid-cols-4' : 'grid-cols-3'}`}>
                   {appt.modality === 'online' && (
                     <button
                       type="button"

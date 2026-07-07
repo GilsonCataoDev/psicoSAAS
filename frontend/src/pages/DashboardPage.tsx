@@ -357,8 +357,8 @@ export default function DashboardPage() {
         <div className="card">
           <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="section-title mb-0">Indicadores da clinica</h2>
-              <p className="text-xs text-neutral-400">Resumo operacional do mes atual.</p>
+              <h2 className="section-title mb-0">Indicadores da clínica</h2>
+              <p className="text-xs text-neutral-400">Resumo operacional do mês atual.</p>
             </div>
             <Link to="/agenda" className="text-xs font-semibold text-sage-600 hover:text-sage-700 dark:text-sage-300 dark:hover:text-sage-200">
               Ver agenda
@@ -383,7 +383,7 @@ export default function DashboardPage() {
             <div className="rounded-xl bg-neutral-50 px-4 py-3 dark:bg-white/5">
               <Users className="mb-2 h-4 w-4 text-neutral-600 dark:text-neutral-200" />
               <p className="text-xl font-semibold text-neutral-800 dark:text-white">{s.clinicIndicators.avgSessionsPerActivePatient}</p>
-              <p className="text-xs text-neutral-500 dark:text-neutral-300">sessoes por paciente</p>
+              <p className="text-xs text-neutral-500 dark:text-neutral-300">sessões por paciente</p>
             </div>
           </div>
           {(s.clinicIndicators.noShows ?? 0) + (s.clinicIndicators.cancelled ?? 0) > 0 && (
@@ -403,10 +403,10 @@ export default function DashboardPage() {
                 {registeredSessions >= 5 ? 'Status: em crescimento' : 'Primeira prova de valor'}
               </p>
               <h2 className="mt-1 text-lg font-semibold text-neutral-800 dark:text-white">
-                Seu fluxo clinico ja esta registrado no UseCognia.
+                Seu fluxo clínico já está registrado no UseCognia.
               </h2>
               <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-300">
-                Proximo ganho: ativar lembretes automaticos para reduzir faltas.
+                Próximo ganho: ativar lembretes automáticos para reduzir faltas.
               </p>
             </div>
 
@@ -414,7 +414,7 @@ export default function DashboardPage() {
               <div className="rounded-xl bg-sage-50 px-3 py-3 dark:bg-white/5">
                 <CheckCircle2 className="mb-1 h-4 w-4 text-sage-700 dark:text-sage-200" />
                 <p className="text-base font-semibold text-neutral-800 dark:text-white">{registeredSessions}</p>
-                <p className="text-xs text-neutral-500 dark:text-neutral-300">sessoes registradas</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-300">sessões registradas</p>
               </div>
               <div className="rounded-xl bg-mist-50 px-3 py-3 dark:bg-white/5">
                 <Ban className="mb-1 h-4 w-4 text-mist-700 dark:text-mist-200" />
@@ -438,7 +438,7 @@ export default function DashboardPage() {
 
           {registeredSessions >= 5 && (
             <div className="mt-4 grid gap-2 border-t border-neutral-100 pt-4 text-sm text-neutral-600 dark:border-white/10 dark:text-neutral-300 sm:grid-cols-3">
-              <span>Ultima semana: {s?.sessionsThisWeek ?? 0} sessoes</span>
+              <span>Última semana: {s?.sessionsThisWeek ?? 0} sessões</span>
               <span>Proxima semana: tendencia de crescimento</span>
               <span>Pacientes em inadimplencia: {s?.pendingPayments ?? 0}</span>
             </div>

@@ -164,6 +164,10 @@ export default function BookingPage() {
     if (meta) meta.setAttribute('content',
       `Agende sua sessão com ${name}, ${specialty.toLowerCase()}${city ? ` em ${city}` : ''}. Agendamento online rápido e seguro via UseCognia.`
     )
+    document.querySelector('meta[property="og:title"]')?.setAttribute('content', `Agende sua consulta com ${name}`)
+    document.querySelector('meta[property="og:description"]')?.setAttribute('content', `Escolha um horário disponível para atendimento com ${name}.`)
+    document.querySelector('meta[name="twitter:title"]')?.setAttribute('content', `Agende sua consulta com ${name}`)
+    document.querySelector('meta[name="twitter:description"]')?.setAttribute('content', `Escolha um horário disponível para atendimento com ${name}.`)
     return () => {
       document.title = 'UseCognia | Agenda, prontuário e documentos para psicólogos e terapeutas'
       meta?.setAttribute('content', 'Plataforma de gestão para psicólogos e terapeutas autônomos.')
@@ -287,15 +291,18 @@ export default function BookingPage() {
             )}
           </div>
 
-          {/* Nome */}
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-sage-600 dark:text-sage-300">
+            Agendamento online
+          </p>
+
           <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-neutral-800 dark:text-neutral-100 text-center leading-tight mb-2">
-            {page.psychologistName}
+            Agende sua consulta com {page.psychologistName}
           </h1>
 
-          {/* Especialidade / título */}
-          {((page as any).specialty || page.title) && (
+          {/* Especialidade */}
+          {(page as any).specialty && (
             <p className="text-sm text-neutral-500 dark:text-neutral-300 text-center mb-2">
-              {(page as any).specialty ?? page.title}
+              {(page as any).specialty}
             </p>
           )}
           {page.psychologistCrp && (
@@ -359,7 +366,7 @@ export default function BookingPage() {
               className="w-full flex items-center justify-center gap-2 bg-sage-500 hover:bg-sage-600 text-white rounded-xl py-3.5 text-sm font-semibold shadow-sm hover:shadow-md transition-all"
             >
               <Calendar className="w-4 h-4" />
-              Agende agora
+              Escolher horário
             </button>
 
             {waNumber && (
@@ -462,7 +469,7 @@ export default function BookingPage() {
             {/* Intro */}
             <div className="mb-8">
               <h1 className="font-display text-2xl font-light text-neutral-800 mb-2">
-                {page.title ?? 'Agende sua sessão'}
+                Agende sua consulta com {page.psychologistName}
               </h1>
               {page.description && (
                 <p className="text-neutral-500 leading-relaxed">{page.description}</p>

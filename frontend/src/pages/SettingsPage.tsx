@@ -528,7 +528,7 @@ export default function SettingsPage() {
                 {tabs.filter(item => item.group === group).map(({ id, icon: Icon, label }) => (
                   <button key={id} onClick={() => selectTab(id)}
                     className={`flex-none lg:w-full flex items-center gap-2 lg:gap-3 px-3 py-2 lg:py-2.5 rounded-xl text-sm transition-all whitespace-nowrap ${
-                      tab === id ? 'bg-sage-50 text-sage-700 font-medium' : 'text-neutral-500 hover:bg-neutral-100'
+                      tab === id ? 'bg-sage-50 text-sage-700 font-medium dark:bg-sage-500/20 dark:text-sage-100' : 'text-neutral-500 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-white/10'
                     }`}>
                     <Icon className="w-4 h-4 shrink-0" />
                     {label}
@@ -542,15 +542,15 @@ export default function SettingsPage() {
 
         <div className="flex-1 space-y-5">
           {['notify', 'messages', 'integrations', 'payment'].includes(tab) && (
-            <div className="rounded-2xl border border-sage-100 bg-sage-50 p-4">
+            <div className="rounded-2xl border border-sage-100 bg-sage-50 p-4 dark:border-sage-400/30 dark:bg-sage-500/15">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-sage-800">Agenda pública e horários</p>
-                  <p className="mt-1 text-sm text-sage-700">
+                  <p className="text-sm font-semibold text-sage-800 dark:text-sage-100">Agenda pública e horários</p>
+                  <p className="mt-1 text-sm text-sage-700 dark:text-sage-200">
                     Configure disponibilidade, bloqueios, duração, pausas e o link que o paciente usa para agendar.
                   </p>
                 </div>
-                <Link to="/agendamentos?tab=settings" className="btn-secondary inline-flex w-fit items-center gap-2 bg-white text-sm">
+                <Link to="/agendamentos?tab=settings" className="btn-secondary inline-flex w-fit items-center gap-2 bg-white text-sm dark:bg-white/10">
                   Abrir agenda pública
                   <ExternalLink className="h-4 w-4" />
                 </Link>

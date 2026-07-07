@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link, Outlet, useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { Eye } from 'lucide-react'
 import Sidebar from './Sidebar'
@@ -92,12 +93,14 @@ function useCsrfBoot() {
 
 function useSessionKeepAlive() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const isImpersonating = useAuthStore((s) => Boolean(s.user?.impersonatedBy))
   const setCsrfToken = useAuthStore((s) => s.setCsrfToken)
   const setAuth = useAuthStore((s) => s.setAuth)
   const logout = useAuthStore((s) => s.logout)
 
   useEffect(() => {
     if (USE_MOCK || !isAuthenticated) return
+    if (isImpersonating) return
 
     const refresh = () => {
       api.post('/auth/refresh', undefined, { skipAuthRedirect: true } as AuthAxiosRequestConfig)
@@ -120,7 +123,7 @@ function useSessionKeepAlive() {
       window.clearInterval(timer)
       window.removeEventListener('online', refresh)
     }
-  }, [isAuthenticated, logout, setAuth, setCsrfToken])
+  }, [isAuthenticated, isImpersonating, logout, setAuth, setCsrfToken])
 }
 
 function useSubscriptionPolling() {
@@ -149,7 +152,7 @@ function SubscriptionBanner() {
 
   if (subscription.status === 'active' && plan === 'free') {
     return (
-      <div className="mb-4 rounded-xl border border-sage-200 bg-sage-50 px-4 py-3 text-sm text-sage-800">
+      <div className="mb-4 rounded-xl border border-sage-200 bg-sage-50 px-4 py-3 text-sm text-sage-800 dark:border-sage-400/30 dark:bg-sage-500/15 dark:text-sage-100">
         <p className="font-medium">Plano Gratis ativo</p>
         <p className="mt-1">
           Use o UseCognia sem cartão para organizar sua rotina com até 10 pacientes.
@@ -162,7 +165,7 @@ function SubscriptionBanner() {
     const remaining = daysUntil(subscription.trialEndsAt)
 
     return (
-      <div className="mb-4 rounded-xl border border-sage-200 bg-sage-50 px-4 py-3 text-sm text-sage-800">
+      <div className="mb-4 rounded-xl border border-sage-200 bg-sage-50 px-4 py-3 text-sm text-sage-800 dark:border-sage-400/30 dark:bg-sage-500/15 dark:text-sage-100">
         <p className="font-medium">Voce esta em periodo de teste</p>
         <p className="mt-1">
           Cobranca em: {formatDate(subscription.trialEndsAt)}. Faltam {remaining} dia{remaining === 1 ? '' : 's'} para a cobranca.
@@ -173,7 +176,7 @@ function SubscriptionBanner() {
 
   if (subscription.status === 'past_due') {
     return (
-      <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+      <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-400/30 dark:bg-amber-500/15 dark:text-amber-100">
         <p className="font-medium">Seu teste terminou e o pagamento falhou.</p>
         <Link to="/planos" className="mt-2 inline-flex h-9 items-center rounded-lg bg-amber-600 px-3 text-white">
           Pagar agora
@@ -208,7 +211,7 @@ function EmailVerificationBanner() {
   }
 
   return (
-    <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+    <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-400/30 dark:bg-amber-500/15 dark:text-amber-100">
       <p className="font-medium">Confirme seu e-mail para proteger sua conta.</p>
       <p className="mt-1">Enviamos um link para {user.email}. Confira tambem spam ou lixo eletronico.</p>
       <button
@@ -232,6 +235,9 @@ function ImpersonationBanner() {
   const user = useAuthStore((s) => s.user)
   const setAuth = useAuthStore((s) => s.setAuth)
   const setCsrfToken = useAuthStore((s) => s.setCsrfToken)
+  const setSubscription = useSubscriptionStore((s) => s.setSubscription)
+  const invalidateSubscription = useSubscriptionStore((s) => s.invalidateSubscription)
+  const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [exiting, setExiting] = useState(false)
 
@@ -240,12 +246,21 @@ function ImpersonationBanner() {
   async function exitImpersonation() {
     setExiting(true)
     try {
+      await queryClient.cancelQueries()
+      queryClient.clear()
+      invalidateSubscription()
       // /auth/refresh usa o refresh_token do admin (nunca tocado durante a
       // impersonação) e restaura automaticamente a sessão original.
-      const { data } = await api.post('/auth/refresh')
+      const { data } = await api.post('/auth/refresh', undefined, { skipAuthRedirect: true } as AuthAxiosRequestConfig)
       if (data?.csrfToken) setCsrfToken(data.csrfToken)
       if (data?.user) setAuth(data.user)
-      navigate('/admin')
+      const { data: subscription } = await api.get('/billing/me')
+      setSubscription(
+        subscription?.status
+          ? subscription
+          : { plan: 'free', planId: 'free', status: 'none' },
+      )
+      navigate('/admin', { replace: true })
     } catch {
       toast.error('Não foi possível voltar para a conta de admin. Faça login novamente.')
     } finally {
@@ -271,8 +286,8 @@ function ImpersonationBanner() {
   )
 }
 
-function useTestimonialTrigger() {
-  const { data } = useFeedbackStatus()
+function useTestimonialTrigger(enabled: boolean) {
+  const { data } = useFeedbackStatus(enabled)
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
@@ -289,7 +304,7 @@ export default function AppLayout() {
   useSessionKeepAlive()
   useSubscriptionPolling()
   useCoreRoutePreload()
-  const testimonial = useTestimonialTrigger()
+  const testimonial = useTestimonialTrigger(!booting)
 
   if (booting) {
     return (

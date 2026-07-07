@@ -10,6 +10,10 @@
       "destination": "https://psicosaas-production-2d6c.up.railway.app/api/$1"
     },
     {
+      "source": "/agendar/:slug",
+      "destination": "/api/booking-og?slug=:slug"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

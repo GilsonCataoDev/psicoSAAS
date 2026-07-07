@@ -1,5 +1,6 @@
 import { Fragment, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import {
   Activity,
@@ -26,6 +27,8 @@ import {
 import { useAdminStats, useAdminUsers, useAdminOverrideSubscription, useAdminMonitor, useAdminHealthScores, useCleanupTestUsers, useImpersonateUser, AdminUser, HealthScore } from '@/hooks/useApi'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { useAuthStore } from '@/store/auth'
+import { useSubscriptionStore } from '@/store/subscription'
+import { api } from '@/lib/api'
 
 const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
 
@@ -139,6 +142,9 @@ function UsersTab() {
   const impersonate = useImpersonateUser()
   const setAuth = useAuthStore(s => s.setAuth)
   const setCsrfToken = useAuthStore(s => s.setCsrfToken)
+  const setSubscription = useSubscriptionStore(s => s.setSubscription)
+  const invalidateSubscription = useSubscriptionStore(s => s.invalidateSubscription)
+  const queryClient = useQueryClient()
   const navigate = useNavigate()
 
   const totalPages = users ? Math.max(1, Math.ceil(users.total / users.limit)) : 1
@@ -159,11 +165,20 @@ function UsersTab() {
 
   async function viewAs(user: AdminUser) {
     try {
+      await queryClient.cancelQueries()
+      queryClient.clear()
+      invalidateSubscription()
       const result = await impersonate.mutateAsync(user.id)
       setAuth(result.user)
       setCsrfToken(result.csrfToken)
+      const { data: subscription } = await api.get('/billing/me')
+      setSubscription(
+        subscription?.status
+          ? subscription
+          : { plan: 'free', planId: 'free', status: 'none' },
+      )
       toast.success(`Visualizando como ${user.name}`)
-      navigate('/dashboard')
+      navigate('/dashboard', { replace: true })
     } catch (e: any) {
       toast.error(e?.response?.data?.message ?? 'Não foi possível visualizar como este usuário.')
     }

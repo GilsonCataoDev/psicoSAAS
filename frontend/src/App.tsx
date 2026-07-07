@@ -46,9 +46,9 @@ const PatientPortalPage   = lazy(() => import('@/pages/public/PatientPortalPage'
 function PageLoader() {
   return (
     <div className="flex min-h-[240px] items-center justify-center">
-      <div className="rounded-2xl border border-sage-100 bg-white px-5 py-4 shadow-card">
+      <div className="rounded-2xl border border-sage-100 bg-white px-5 py-4 shadow-card dark:border-white/10 dark:bg-cognia-panel">
         <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-sage-200 border-t-sage-600" />
-        <p className="mt-3 text-sm font-medium text-neutral-500">Carregando...</p>
+        <p className="mt-3 text-sm font-medium text-neutral-500 dark:text-neutral-300">Carregando...</p>
       </div>
     </div>
   )
@@ -84,12 +84,17 @@ function ProOnlyRoute({ children }: { children: React.ReactNode }) {
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const isAdmin = useAuthStore(state => state.user?.isAdmin === true)
-  return isAdmin ? <>{children}</> : <Navigate to="/" replace />
+  return isAdmin ? <>{children}</> : <Navigate to="/dashboard" replace />
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  return isAuthenticated ? <Navigate to="/" replace /> : <>{children}</>
+  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <>{children}</>
+}
+
+function HomeRoute() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <LandingPage />
 }
 
 export default function App() {
@@ -97,6 +102,7 @@ export default function App() {
     <ErrorBoundary>
     <Suspense fallback={<PageLoader />}>
       <Routes>
+        <Route index element={<HomeRoute />} />
         <Route path="/plataforma" element={<LandingPage />} />
         <Route path="/inicio" element={<Navigate to="/plataforma" replace />} />
         <Route path="/venda" element={<Navigate to="/plataforma" replace />} />
@@ -137,7 +143,7 @@ export default function App() {
           <Route path="admin/depoimentos" element={<AdminRoute><TestimonialsPage /></AdminRoute>} />
           <Route path="admin/churn" element={<AdminRoute><ChurnPage /></AdminRoute>} />
           <Route element={<SubscriptionRoute />}>
-            <Route index element={<DashboardPage />} />
+            <Route path="dashboard" element={<DashboardPage />} />
             <Route path="pacientes" element={<PatientsPage />} />
             <Route path="pacientes/:id" element={<PatientDetailPage />} />
             <Route path="prontuario/:id" element={<ProntuarioPage />} />
