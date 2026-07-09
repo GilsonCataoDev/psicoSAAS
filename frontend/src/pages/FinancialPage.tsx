@@ -351,8 +351,10 @@ export default function FinancialPage() {
 
         <div className="space-y-1">
           {isLoading ? (
-            <div className="py-8 text-center">
-              <div className="w-6 h-6 border-2 border-sage-400 border-t-transparent rounded-full animate-spin mx-auto" />
+            <div className="space-y-2">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-16 bg-neutral-100 rounded-xl animate-pulse" />
+              ))}
             </div>
           ) : filtered.length === 0 ? (
             <p className="text-neutral-400 text-sm text-center py-8">
