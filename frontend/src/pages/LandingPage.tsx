@@ -1,4 +1,6 @@
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { motion, useReducedMotion, type Variants } from 'framer-motion'
 import {
   ArrowRight,
   CalendarCheck2,
@@ -108,6 +110,30 @@ const faqs = [
   },
 ]
 
+// Curva expo-out — entrada rápida no início, assentamento suave no final.
+// É a mesma sensação usada em produtos como Linear/Vercel para reveals de marketing.
+const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
+
+function useLandingMotion() {
+  const reduce = useReducedMotion()
+
+  const fadeUp: Variants = {
+    hidden: { opacity: 0, y: reduce ? 0 : 16 },
+    show: { opacity: 1, y: 0, transition: { duration: reduce ? 0.01 : 0.55, ease: EASE } },
+  }
+
+  const stagger: Variants = {
+    hidden: {},
+    show: {
+      transition: { staggerChildren: reduce ? 0 : 0.09, delayChildren: reduce ? 0 : 0.04 },
+    },
+  }
+
+  return { fadeUp, stagger, reduce }
+}
+
+const MotionLink = motion(Link)
+
 function ProductPreview() {
   return (
     <div className="relative mx-auto w-full min-w-0 max-w-[calc(100vw-40px)] overflow-hidden rounded-lg border border-white/15 bg-[#17211D] shadow-2xl sm:max-w-[560px]">
@@ -166,6 +192,16 @@ function ProductPreview() {
 }
 
 export default function LandingPage() {
+  const { fadeUp, stagger, reduce } = useLandingMotion()
+
+  useEffect(() => {
+    if (document.querySelector('script[src*="js.hsforms.net"]')) return
+    const script = document.createElement('script')
+    script.src = 'https://js.hsforms.net/forms/embed/51719933.js'
+    script.defer = true
+    document.head.appendChild(script)
+  }, [])
+
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#F7F8F5] text-[#211F1C]">
       <header className="sticky top-0 z-20 border-b border-[#E7E4DA] bg-[#F7F8F5]/95 backdrop-blur">
@@ -186,9 +222,14 @@ export default function LandingPage() {
             <Link to="/login" className="hidden px-3 py-2 text-sm font-semibold text-[#49443D] hover:text-sage-700 sm:inline-flex">
               Entrar
             </Link>
-            <Link to="/cadastro" className="hidden rounded-md bg-sage-800 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sage-900 sm:inline-flex">
+            <MotionLink
+              to="/cadastro"
+              whileHover={reduce ? undefined : { scale: 1.03 }}
+              whileTap={reduce ? undefined : { scale: 0.97 }}
+              className="hidden rounded-md bg-sage-800 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sage-900 sm:inline-flex"
+            >
               Quero testar
-            </Link>
+            </MotionLink>
           </div>
         </div>
       </header>
@@ -196,120 +237,188 @@ export default function LandingPage() {
       <section className="relative overflow-hidden bg-[#1D352D] text-white">
         <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
         <div className="mx-auto grid w-full max-w-6xl min-w-0 grid-cols-[minmax(0,1fr)] items-center gap-10 px-5 py-16 sm:py-20 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:py-24">
-          <div className="w-full min-w-0 max-w-full sm:max-w-2xl">
-            <p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-3 py-1 text-sm font-semibold text-sage-200">
+          <motion.div
+            className="w-full min-w-0 max-w-full sm:max-w-2xl"
+            initial="hidden"
+            animate="show"
+            variants={stagger}
+          >
+            <motion.p variants={fadeUp} className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-3 py-1 text-sm font-semibold text-sage-200">
               <Sparkles className="h-4 w-4" />
               Plano gratis para psicólogos, terapeutas e estagiários
-            </p>
+            </motion.p>
 
-            <h1 className="mt-6 max-w-[21rem] text-[2.1rem] font-bold leading-[1.06] tracking-normal text-white sm:max-w-2xl sm:text-5xl lg:text-6xl">
+            <motion.h1 variants={fadeUp} className="mt-6 max-w-[21rem] text-[2.1rem] font-bold leading-[1.06] tracking-normal text-white sm:max-w-2xl sm:text-5xl lg:text-6xl">
               Agenda, prontuário e cobranças para psicólogos e terapeutas trabalharem com menos sobrecarga.
-            </h1>
+            </motion.h1>
 
-            <p className="mt-6 max-w-[22rem] text-base leading-relaxed text-white/76 sm:max-w-xl sm:text-lg">
+            <motion.p variants={fadeUp} className="mt-6 max-w-[22rem] text-base leading-relaxed text-white/76 sm:max-w-xl sm:text-lg">
               Organize pacientes, mostre datas disponíveis no link público, registre sessões e acompanhe pagamentos em uma rotina simples de colocar para funcionar.
-            </p>
+            </motion.p>
 
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link
+            <motion.div variants={fadeUp} className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <MotionLink
                 to="/cadastro"
+                whileHover={reduce ? undefined : { scale: 1.025 }}
+                whileTap={reduce ? undefined : { scale: 0.975 }}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-sage-200 px-5 text-sm font-bold text-sage-900 shadow-lg shadow-sage-200/15 hover:bg-sage-100"
               >
                 Começar gratis <ArrowRight className="h-4 w-4" />
-              </Link>
-              <a
+              </MotionLink>
+              <motion.a
                 href="#produto"
+                whileHover={reduce ? undefined : { scale: 1.025 }}
+                whileTap={reduce ? undefined : { scale: 0.975 }}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-md border border-white/14 bg-white/6 px-5 text-sm font-semibold text-white hover:bg-white/10"
               >
                 Ver como funciona <ChevronRight className="h-4 w-4" />
-              </a>
-            </div>
+              </motion.a>
+            </motion.div>
 
-            <div className="mt-8 flex flex-col gap-2 text-sm text-white/70 sm:flex-row sm:flex-wrap">
+            <motion.div variants={fadeUp} className="mt-8 flex flex-col gap-2 text-sm text-white/70 sm:flex-row sm:flex-wrap">
               {trustSignals.map((item) => (
                 <span key={item} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
                   <CheckCircle2 className="h-4 w-4 text-sage-200" />
                   {item}
                 </span>
               ))}
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
-          <ProductPreview />
+          <motion.div
+            initial={{ opacity: 0, x: reduce ? 0 : 28 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: reduce ? 0.01 : 0.7, delay: reduce ? 0 : 0.22, ease: EASE }}
+          >
+            <ProductPreview />
+          </motion.div>
         </div>
       </section>
 
-      <section className="border-b border-[#E7E4DA] bg-[#FFFFFF]">
+      <motion.section
+        className="border-b border-[#E7E4DA] bg-[#FFFFFF]"
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, margin: '-80px' }}
+        variants={stagger}
+      >
         <div className="mx-auto grid max-w-6xl gap-4 px-5 py-8 md:grid-cols-3">
-          <div className="flex items-start gap-3">
+          <motion.div variants={fadeUp} className="flex items-start gap-3">
             <ShieldCheck className="mt-0.5 h-5 w-5 text-sage-600" />
             <div>
               <p className="text-sm font-semibold text-[#211F1C]">Privacidade visível</p>
               <p className="mt-1 text-sm text-[#7C776B]">Dados clínicos tratados com cuidado desde a base do produto.</p>
             </div>
-          </div>
-          <div className="flex items-start gap-3">
+          </motion.div>
+          <motion.div variants={fadeUp} className="flex items-start gap-3">
             <LockKeyhole className="mt-0.5 h-5 w-5 text-sage-600" />
             <div>
               <p className="text-sm font-semibold text-[#211F1C]">Verificação pública</p>
               <p className="mt-1 text-sm text-[#7C776B]">Cada documento pode ser validado por link e código único.</p>
             </div>
-          </div>
-          <div className="flex items-start gap-3">
+          </motion.div>
+          <motion.div variants={fadeUp} className="flex items-start gap-3">
             <WalletCards className="mt-0.5 h-5 w-5 text-sage-600" />
             <div>
               <p className="text-sm font-semibold text-[#211F1C]">Construído com usuários reais</p>
               <p className="mt-1 text-sm text-[#7C776B]">Criado para a rotina de psicólogos, terapeutas e estagiários clínicos.</p>
             </div>
-          </div>
+          </motion.div>
         </div>
-      </section>
+      </motion.section>
 
       <section className="mx-auto max-w-6xl px-5 py-16">
         <div className="grid gap-8 lg:grid-cols-[0.9fr_1fr]">
-          <div>
+          <motion.div
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '-80px' }}
+            variants={fadeUp}
+          >
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Por que agora</p>
             <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Você não estudou para virar administrador de agenda.</h2>
             <p className="mt-4 leading-relaxed text-[#5F5A51]">
               A clínica exige presença. Mas a rotina ao redor dela costuma virar uma mistura de WhatsApp, planilha, agenda, caderno, cobranças e lembretes soltos. O UseCognia começa pelo que mais pesa no dia a dia.
             </p>
-          </div>
-          <div className="grid gap-3">
+          </motion.div>
+          <motion.div
+            className="grid gap-3"
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '-80px' }}
+            variants={stagger}
+          >
             {pains.map((item) => (
-              <article key={item.title} className="rounded-lg border border-[#E7E4DA] bg-[#FFFFFF] p-5 shadow-sm">
+              <motion.article
+                key={item.title}
+                variants={fadeUp}
+                whileHover={reduce ? undefined : { y: -3 }}
+                transition={{ duration: 0.2 }}
+                className="rounded-lg border border-[#E7E4DA] bg-[#FFFFFF] p-5 shadow-sm transition-shadow hover:shadow-md"
+              >
                 <h3 className="font-semibold text-[#211F1C]">{item.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-[#7C776B]">{item.text}</p>
-              </article>
+              </motion.article>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 
       <section id="produto" className="border-y border-[#E7E4DA] bg-[#FFFFFF]">
         <div className="mx-auto max-w-6xl px-5 py-16">
-          <div className="max-w-2xl">
+          <motion.div
+            className="max-w-2xl"
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '-80px' }}
+            variants={fadeUp}
+          >
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Produto</p>
             <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">O essencial da rotina clínica em um só lugar.</h2>
-          </div>
+          </motion.div>
 
-          <div className="mt-8 grid gap-4 md:grid-cols-4">
+          <motion.div
+            className="mt-8 grid gap-4 md:grid-cols-4"
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '-80px' }}
+            variants={stagger}
+          >
             {features.map(({ icon: Icon, title, text }) => (
-              <article key={title} className="rounded-lg border border-[#E7E4DA] bg-[#F7F8F5] p-5">
+              <motion.article
+                key={title}
+                variants={fadeUp}
+                whileHover={reduce ? undefined : { y: -3 }}
+                transition={{ duration: 0.2 }}
+                className="rounded-lg border border-[#E7E4DA] bg-[#F7F8F5] p-5 transition-shadow hover:shadow-md"
+              >
                 <Icon className="mb-4 h-5 w-5 text-sage-600" />
                 <h3 className="font-semibold text-[#211F1C]">{title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-[#7C776B]">{text}</p>
-              </article>
+              </motion.article>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 
       <section className="mx-auto max-w-6xl px-5 py-16">
-        <div className="text-center mb-10">
+        <motion.div
+          className="text-center mb-10"
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: '-80px' }}
+          variants={fadeUp}
+        >
           <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Por que começar agora</p>
           <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Uma rotina clínica mais organizada desde o primeiro paciente.</h2>
-        </div>
-        <div className="grid gap-5 md:grid-cols-3">
+        </motion.div>
+        <motion.div
+          className="grid gap-5 md:grid-cols-3"
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: '-80px' }}
+          variants={stagger}
+        >
           {[
             {
               quote: 'Você começa pelo que mais pesa na rotina: agenda, pacientes, prontuário e documentos em um só lugar.',
@@ -330,7 +439,13 @@ export default function LandingPage() {
               initial: 'S',
             },
           ].map(({ quote, name, role, initial }) => (
-            <figure key={name} className="rounded-xl border border-[#E7E4DA] bg-[#FFFFFF] p-6 shadow-sm">
+            <motion.figure
+              key={name}
+              variants={fadeUp}
+              whileHover={reduce ? undefined : { y: -3 }}
+              transition={{ duration: 0.2 }}
+              className="rounded-xl border border-[#E7E4DA] bg-[#FFFFFF] p-6 shadow-sm transition-shadow hover:shadow-md"
+            >
               <blockquote className="text-sm leading-relaxed text-[#49443D]">"{quote}"</blockquote>
               <figcaption className="mt-4 flex items-center gap-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sage-100 text-sm font-bold text-sage-700">
@@ -341,21 +456,32 @@ export default function LandingPage() {
                   <p className="text-xs text-[#7C776B]">{role}</p>
                 </div>
               </figcaption>
-            </figure>
+            </motion.figure>
           ))}
-        </div>
+        </motion.div>
       </section>
 
       <section id="gratis" className="mx-auto grid max-w-6xl gap-8 px-5 py-16 lg:grid-cols-[0.9fr_1fr]">
-        <div>
+        <motion.div
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: '-80px' }}
+          variants={fadeUp}
+        >
           <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Plano gratis</p>
           <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Comece sem cartão e organize os primeiros pacientes.</h2>
           <p className="mt-4 max-w-xl leading-relaxed text-[#5F5A51]">
             O plano grátis foi pensado para quem quer sair da bagunça inicial sem assumir custo de imediato. Quando precisar de mais limite ou automação, escolha Essencial ou Pro.
           </p>
-        </div>
+        </motion.div>
 
-        <div className="rounded-lg border border-sage-200 bg-[#FFFFFF] p-6 shadow-card">
+        <motion.div
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: '-80px' }}
+          variants={fadeUp}
+          className="rounded-lg border border-sage-200 bg-[#FFFFFF] p-6 shadow-card"
+        >
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
               <p className="text-sm font-semibold text-sage-700">UseCognia Gratis</p>
@@ -371,54 +497,82 @@ export default function LandingPage() {
               </li>
             ))}
           </ul>
-          <Link
+          <MotionLink
             to="/cadastro"
+            whileHover={reduce ? undefined : { scale: 1.02 }}
+            whileTap={reduce ? undefined : { scale: 0.98 }}
             className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-md bg-sage-800 text-sm font-bold text-white hover:bg-sage-900"
           >
             Começar gratis
-          </Link>
+          </MotionLink>
           <p className="mt-3 text-center text-xs text-[#A9A394]">Sem cartão. Você pode mudar de plano depois.</p>
-        </div>
+        </motion.div>
       </section>
 
       <section id="faq" className="border-y border-[#E7E4DA] bg-[#FFFFFF]">
         <div className="mx-auto max-w-3xl px-5 py-16">
-          <div className="text-center mb-10">
+          <motion.div
+            className="text-center mb-10"
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '-80px' }}
+            variants={fadeUp}
+          >
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Dúvidas frequentes</p>
             <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Perguntas antes de começar</h2>
-          </div>
-          <div className="divide-y divide-[#E7E4DA]">
+          </motion.div>
+          <motion.div
+            className="divide-y divide-[#E7E4DA]"
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '-80px' }}
+            variants={stagger}
+          >
             {faqs.map((item) => (
-              <details key={item.question} className="group py-5">
+              <motion.details key={item.question} variants={fadeUp} className="group py-5">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
                   <span className="font-semibold text-[#211F1C] group-open:text-sage-700">{item.question}</span>
                   <span className="shrink-0 text-[#7C776B] text-lg leading-none group-open:rotate-45 transition-transform duration-200">+</span>
                 </summary>
                 <p className="mt-3 text-sm leading-relaxed text-[#7C776B]">{item.answer}</p>
-              </details>
+              </motion.details>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 
       <section className="bg-[#1D352D] px-5 py-16 text-white">
-        <div className="mx-auto max-w-3xl text-center">
+        <motion.div
+          className="mx-auto max-w-3xl text-center"
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: '-80px' }}
+          variants={fadeUp}
+        >
           <h2 className="text-3xl font-bold">Pronto para deixar o consultório com cara de operação profissional?</h2>
           <p className="mx-auto mt-4 max-w-2xl text-white/70">
-            Comece gratis e organize agenda, pacientes e prontuário em uma rotina mais simples.
+            Preencha o formulário e entraremos em contato para apresentar a plataforma.
           </p>
-          <Link
-            to="/cadastro"
-            className="mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-md bg-sage-200 px-6 text-sm font-bold text-sage-900 hover:bg-sage-100"
-          >
-            Começar gratis <ArrowRight className="h-4 w-4" />
-          </Link>
+          <div className="mt-8 rounded-xl bg-white p-6 text-left">
+            <div
+              className="hs-form-frame"
+              data-region="na1"
+              data-form-id="f14df2cf-6509-4c6a-ac71-7d110ac0568e"
+              data-portal-id="51719933"
+            />
+          </div>
+          <p className="mt-4 text-sm text-white/50">
+            Prefere começar direto?{' '}
+            <Link to="/cadastro" className="underline hover:text-white">
+              Crie sua conta gratis <ArrowRight className="inline h-3 w-3" />
+            </Link>
+          </p>
           <div className="mt-6 flex justify-center gap-4 text-sm text-white/60">
             <Link to="/acessibilidade" className="hover:text-white">Acessibilidade</Link>
             <Link to="/privacidade" className="hover:text-white">Privacidade</Link>
             <Link to="/termos" className="hover:text-white">Termos</Link>
           </div>
-        </div>
+        </motion.div>
       </section>
     </main>
   )
