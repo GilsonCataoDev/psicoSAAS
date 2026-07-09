@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { InjectRepository } from '@nestjs/typeorm'
-import { DataSource, MoreThan, Repository } from 'typeorm'
+import { DataSource, EntityManager, MoreThan, Repository } from 'typeorm'
 import { User } from '../auth/entities/user.entity'
 import { Subscription, BillingSubscriptionStatus } from '../billing/entities/subscription.entity'
 import { WebhookEvent } from '../billing/entities/webhook-event.entity'
@@ -405,6 +405,13 @@ export class AdminService {
            email ILIKE '%@example.com'
            OR email ILIKE '%@example.test'
            OR email ILIKE '%@test.com'
+           OR email ILIKE '%@teste.com'
+           OR email ILIKE '%@mailinator.com'
+           OR email ILIKE '%@yopmail.com'
+           OR email ILIKE 'test@%'
+           OR email ILIKE 'teste@%'
+           OR email ILIKE 'teste.%@%'
+           OR email ILIKE 'test.%@%'
            OR email ILIKE '%+test@%'
            OR email ILIKE '%+teste@%'
          )
@@ -416,25 +423,82 @@ export class AdminService {
 
     const ids = targets.map(t => t.id)
 
-    const fks: { table_name: string; column_name: string }[] = await this.dataSource.query(`
-      SELECT tc.table_name, kcu.column_name
-      FROM information_schema.table_constraints tc
-      JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name
-      JOIN information_schema.constraint_column_usage ccu ON ccu.constraint_name = tc.constraint_name
-      WHERE tc.constraint_type = 'FOREIGN KEY'
-        AND ccu.table_name = 'users'
-        AND tc.table_name <> 'users'
-    `)
-
     await this.dataSource.transaction(async tx => {
+      await this.deleteTenantData(tx, ids, targets.map(t => t.email))
+
+      const fks: { table_name: string; column_name: string }[] = await tx.query(`
+        SELECT tc.table_name, kcu.column_name
+        FROM information_schema.table_constraints tc
+        JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name
+        JOIN information_schema.constraint_column_usage ccu ON ccu.constraint_name = tc.constraint_name
+        WHERE tc.constraint_type = 'FOREIGN KEY'
+          AND ccu.table_name = 'users'
+          AND tc.table_name <> 'users'
+      `)
+
       for (const fk of fks) {
-        await tx.query(`DELETE FROM "${fk.table_name}" WHERE "${fk.column_name}" = ANY($1::uuid[])`, [ids])
+        await tx.query(`DELETE FROM "${fk.table_name}" WHERE "${fk.column_name}"::text = ANY($1::text[])`, [ids])
       }
       await tx.query(`DELETE FROM users WHERE id = ANY($1::uuid[])`, [ids])
     })
 
     this.logger.log(`admin:cleanup-test-users deleted=${targets.length}`)
     return { deleted: targets.length, emails: targets.map(t => t.email) }
+  }
+
+  private async deleteTenantData(tx: EntityManager, userIds: string[], emails: string[]): Promise<void> {
+    const textIds = userIds
+    const patientIds = await this.selectIds(tx, 'patients', '"psychologistId"::text = ANY($1::text[])', [userIds])
+    const appointmentIds = await this.selectIds(tx, 'appointments', '"psychologistId"::text = ANY($1::text[]) OR "patientId"::text = ANY($2::text[])', [userIds, patientIds])
+    const sessionIds = await this.selectIds(tx, 'sessions', '"psychologistId"::text = ANY($1::text[]) OR "patientId"::text = ANY($2::text[]) OR "appointmentId"::text = ANY($3::text[])', [userIds, patientIds, appointmentIds])
+    const bookingIds = await this.selectIds(tx, 'bookings', '"psychologistId"::text = ANY($1::text[]) OR "appointmentId"::text = ANY($2::text[])', [userIds, appointmentIds])
+
+    await this.deleteFrom(tx, 'financial_records', `
+      "psychologistId"::text = ANY($1::text[])
+      OR "patientId"::text = ANY($2::text[])
+      OR "appointmentId"::text = ANY($3::text[])
+      OR "sessionId"::text = ANY($4::text[])
+      OR "bookingId"::text = ANY($5::text[])
+    `, [userIds, patientIds, appointmentIds, sessionIds, bookingIds])
+    await this.deleteFrom(tx, 'patient_attachments', '"psychologistId"::text = ANY($1::text[]) OR "patientId"::text = ANY($2::text[])', [userIds, patientIds])
+    await this.deleteFrom(tx, 'instrument_assignments', '"psychologistId"::text = ANY($1::text[]) OR "patientId"::text = ANY($2::text[])', [userIds, patientIds])
+    await this.deleteFrom(tx, 'documents', '"userId"::text = ANY($1::text[]) OR "patientId"::text = ANY($2::text[])', [userIds, patientIds])
+    await this.deleteFrom(tx, 'sessions', '"psychologistId"::text = ANY($1::text[]) OR "patientId"::text = ANY($2::text[]) OR "appointmentId"::text = ANY($3::text[])', [userIds, patientIds, appointmentIds])
+    await this.deleteFrom(tx, 'bookings', '"psychologistId"::text = ANY($1::text[]) OR "appointmentId"::text = ANY($2::text[])', [userIds, appointmentIds])
+    await this.deleteFrom(tx, 'appointments', '"psychologistId"::text = ANY($1::text[]) OR "patientId"::text = ANY($2::text[])', [userIds, patientIds])
+    await this.deleteFrom(tx, 'patients', '"psychologistId"::text = ANY($1::text[])', [userIds])
+
+    await this.deleteFrom(tx, 'booking_pages', '"psychologistId"::text = ANY($1::text[])', [userIds])
+    await this.deleteFrom(tx, 'availability_slots', '"psychologistId"::text = ANY($1::text[])', [userIds])
+    await this.deleteFrom(tx, 'blocked_dates', '"psychologistId"::text = ANY($1::text[])', [userIds])
+    await this.deleteFrom(tx, 'billing_subscriptions', '"userId"::text = ANY($1::text[])', [userIds])
+    await this.deleteFrom(tx, 'refresh_tokens', '"userId"::text = ANY($1::text[])', [userIds])
+    await this.deleteFrom(tx, 'push_subscriptions', '"userId"::text = ANY($1::text[])', [userIds])
+    await this.deleteFrom(tx, 'whatsapp_delivery_logs', '"userId"::text = ANY($1::text[])', [userIds])
+    await this.deleteFrom(tx, 'audit_logs', '"userId" = ANY($1::text[])', [textIds])
+    await this.deleteFrom(tx, 'tenant_health', '"userId"::text = ANY($1::text[])', [userIds])
+    await this.deleteFrom(tx, 'tenant_activations', '"userId"::text = ANY($1::text[])', [userIds])
+    await this.deleteFrom(tx, 'tenant_alerts', '"userId"::text = ANY($1::text[])', [userIds])
+    await this.deleteFrom(tx, 'ai_usage', '"userId"::text = ANY($1::text[])', [userIds])
+    await this.deleteFrom(tx, 'testimonials', '"userId"::text = ANY($1::text[])', [userIds])
+    await this.deleteFrom(tx, 'referrals', '"referrerId"::text = ANY($1::text[]) OR "referredId"::text = ANY($1::text[])', [userIds])
+    await this.deleteFrom(tx, 'login_attempts', 'LOWER(email) = ANY($1::text[])', [emails.map(email => email.toLowerCase())])
+  }
+
+  private async selectIds(tx: EntityManager, table: string, where: string, params: unknown[]): Promise<string[]> {
+    if (!await this.tableExists(tx, table)) return []
+    const rows: { id: string }[] = await tx.query(`SELECT id FROM "${table}" WHERE ${where}`, params)
+    return rows.map(row => row.id)
+  }
+
+  private async deleteFrom(tx: EntityManager, table: string, where: string, params: unknown[]): Promise<void> {
+    if (!await this.tableExists(tx, table)) return
+    await tx.query(`DELETE FROM "${table}" WHERE ${where}`, params)
+  }
+
+  private async tableExists(tx: EntityManager, table: string): Promise<boolean> {
+    const rows: { name: string | null }[] = await tx.query('SELECT to_regclass($1) AS name', [`public.${table}`])
+    return Boolean(rows[0]?.name)
   }
 
   private latestSubscriptionIdSql(userAlias: string): string {
