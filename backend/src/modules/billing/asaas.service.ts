@@ -129,8 +129,9 @@ export class AsaasService {
     externalReference: string,
     creditCardToken: string,
     nextDueDate = this.addDays(7),
+    options?: { valueOverride?: number; descriptionSuffix?: string },
   ): Promise<string> {
-    const value = PLAN_PRICES[plan]
+    const value = options?.valueOverride ?? PLAN_PRICES[plan]
     if (!value) throw new BadRequestException('Plano invalido')
 
     try {
@@ -140,7 +141,7 @@ export class AsaasService {
         value,
         nextDueDate,
         cycle: 'MONTHLY',
-        description: `UseCognia - Plano ${plan}`,
+        description: `UseCognia - Plano ${plan}${options?.descriptionSuffix ? ` (${options.descriptionSuffix})` : ''}`,
         externalReference,
         creditCardToken,
       })
@@ -182,6 +183,45 @@ export class AsaasService {
       this.logger.warn('[Asaas] Falha ao atualizar plano da assinatura', this.safeAsaasError(err))
       throw new BadRequestException(
         err?.response?.data?.errors?.[0]?.description ?? 'Nao foi possivel trocar o plano',
+      )
+    }
+  }
+
+  async updateSubscriptionNextDueDate(subscriptionId: string, nextDueDate: string): Promise<void> {
+    try {
+      await this.api.put(`/subscriptions/${subscriptionId}`, {
+        nextDueDate,
+      })
+    } catch (err: any) {
+      this.logger.warn('[Asaas] Falha ao prorrogar proxima cobranca da assinatura', this.safeAsaasError(err))
+      throw new BadRequestException(
+        err?.response?.data?.errors?.[0]?.description ?? 'Nao foi possivel prorrogar a assinatura',
+      )
+    }
+  }
+
+  async postponeSubscriptionOpenPayments(subscriptionId: string, dueDate: string): Promise<number> {
+    try {
+      const { data } = await this.api.get(`/subscriptions/${subscriptionId}/payments`, {
+        params: { limit: 20, offset: 0 },
+      })
+      const openPayments = (data?.data ?? []).filter((payment: any) =>
+        payment?.id
+        && ['PENDING', 'OVERDUE'].includes(String(payment.status ?? ''))
+        && payment.dueDate !== dueDate,
+      )
+
+      await Promise.all(
+        openPayments.map((payment: any) =>
+          this.api.put(`/payments/${payment.id}`, { dueDate }),
+        ),
+      )
+
+      return openPayments.length
+    } catch (err: any) {
+      this.logger.warn('[Asaas] Falha ao prorrogar cobrancas pendentes da assinatura', this.safeAsaasError(err))
+      throw new BadRequestException(
+        err?.response?.data?.errors?.[0]?.description ?? 'Nao foi possivel prorrogar as cobrancas pendentes',
       )
     }
   }

@@ -11,10 +11,11 @@ import { Patient } from '../patients/entities/patient.entity'
 import { User } from '../auth/entities/user.entity'
 import { Appointment } from '../appointments/entities/appointment.entity'
 import { Booking } from '../booking/entities/booking.entity'
+import { Subscription } from '../billing/entities/subscription.entity'
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Session, Patient, User, Appointment, Booking, AiUsage]),
+    TypeOrmModule.forFeature([Session, Patient, User, Appointment, Booking, AiUsage, Subscription]),
     FinancialModule,
     NotificationsModule,
   ],

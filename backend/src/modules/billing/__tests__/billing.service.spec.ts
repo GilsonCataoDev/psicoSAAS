@@ -1,6 +1,7 @@
 import { BadRequestException } from '@nestjs/common'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { Test } from '@nestjs/testing'
+import { DataSource } from 'typeorm'
 import { BillingService } from '../billing.service'
 import { Subscription } from '../entities/subscription.entity'
 import { AsaasService } from '../asaas.service'
@@ -36,15 +37,40 @@ function makeRepo() {
 describe('BillingService', () => {
   let service: BillingService
   let repo: ReturnType<typeof makeRepo>
+  let dataSource: { query: jest.Mock }
 
   beforeEach(async () => {
     repo = makeRepo()
+    dataSource = {
+      query: jest.fn((sql: string) => {
+        if (sql.includes('"referralCode"')) {
+          return Promise.resolve([{ referralCode: null }])
+        }
+
+        return Promise.resolve([{ daysSinceSignup: '0', patients: '0', sessions: '0' }])
+      }),
+    }
 
     const module = await Test.createTestingModule({
       providers: [
         BillingService,
         { provide: getRepositoryToken(Subscription), useValue: repo },
-        { provide: AsaasService, useValue: { createCustomer: jest.fn().mockResolvedValue('cus_123'), createSubscription: jest.fn().mockResolvedValue('sub_gw_123'), cancelSubscription: jest.fn().mockResolvedValue(undefined), addDays: jest.fn((n: number) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10) }) } },
+        {
+          provide: AsaasService,
+          useValue: {
+            createCustomer: jest.fn().mockResolvedValue('cus_123'),
+            createSubscription: jest.fn().mockResolvedValue('sub_gw_123'),
+            cancelSubscription: jest.fn().mockResolvedValue(undefined),
+            updateSubscriptionNextDueDate: jest.fn().mockResolvedValue(undefined),
+            postponeSubscriptionOpenPayments: jest.fn().mockResolvedValue(0),
+            addDays: jest.fn((n: number) => {
+              const d = new Date()
+              d.setDate(d.getDate() + n)
+              return d.toISOString().slice(0, 10)
+            }),
+          },
+        },
+        { provide: DataSource, useValue: dataSource },
       ],
     }).compile()
 

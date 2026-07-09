@@ -1,11 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { IsNull, Not, Repository } from 'typeorm'
-import { addMonths } from 'date-fns'
+import { addDays } from 'date-fns'
 import { Referral } from './entities/referral.entity'
 import { Subscription } from '../billing/entities/subscription.entity'
 import { User } from '../auth/entities/user.entity'
 import { EmailService } from '../email/email.service'
+import { Patient } from '../patients/entities/patient.entity'
+import { Session } from '../sessions/entities/session.entity'
+import { AsaasService } from '../billing/asaas.service'
+
+const REQUIRED_PATIENTS = 3
+const REQUIRED_SESSIONS = 2
+const REQUIRED_DAYS_ACTIVE = 3
+const REWARD_DAYS = 30
 
 @Injectable()
 export class ReferralService {
@@ -14,7 +22,11 @@ export class ReferralService {
   constructor(
     @InjectRepository(Referral)     private refs: Repository<Referral>,
     @InjectRepository(Subscription) private subs: Repository<Subscription>,
+    @InjectRepository(Patient)      private patients: Repository<Patient>,
+    @InjectRepository(Session)      private sessions: Repository<Session>,
+    @InjectRepository(User)         private users: Repository<User>,
     private email: EmailService,
+    private asaas: AsaasService,
   ) {}
 
   /**
@@ -62,27 +74,22 @@ export class ReferralService {
       rewardGranted: false,
     })
     await this.refs.save(use)
+    await this.users.update(newUser.id, { referralCode: master.code })
 
     this.logger.log(`[Referral] indicacao registrada referrer=${master.referrerId} referred=${newUser.id}`)
   }
 
-  /**
-   * Chamado quando o indicado ativa uma assinatura paga.
-   * Estende a assinatura do indicador em 1 mês.
-   */
   async grantRewardIfEligible(newUserId: string): Promise<void> {
     const use = await this.refs.findOne({
       where: { referredId: newUserId, rewardGranted: false },
-      relations: ['referrer'],
+      relations: ['referrer', 'referred'],
     })
     if (!use) return
 
-    const sub = await this.subs.findOne({ where: { userId: use.referrerId } })
-    if (sub && (sub.status === 'active' || sub.status === 'trialing')) {
-      const currentEnd = sub.currentPeriodEnd ?? new Date()
-      sub.currentPeriodEnd = addMonths(currentEnd, 1)
-      await this.subs.save(sub)
-    }
+    const progress = await this.getProgressForReferral(use)
+    if (!progress.qualified) return
+
+    await this.grantProReward(use.referrerId)
 
     use.rewardGranted = true
     use.rewardGrantedAt = new Date()
@@ -91,7 +98,7 @@ export class ReferralService {
     await this.email.sendReferralReward(
       use.referrer.name,
       use.referrer.email,
-      newUserId,
+      use.referred?.name ?? 'seu colega',
     ).catch(() => {})
 
     this.logger.log(`[Referral] recompensa concedida referrer=${use.referrerId}`)
@@ -104,12 +111,115 @@ export class ReferralService {
 
     const uses = await this.refs.find({
       where: { referrerId: userId, referredId: Not(IsNull()) },
+      relations: ['referred'],
+      order: { createdAt: 'DESC' },
     })
 
-    return {
-      code:          master?.code ?? null,
-      totalInvited:  uses.length,
-      totalRewarded: uses.filter(r => r.rewardGranted).length,
+    for (const use of uses) {
+      if (!use.rewardGranted && use.referredId) {
+        await this.grantRewardIfEligible(use.referredId)
+      }
     }
+
+    const refreshedUses = await this.refs.find({
+      where: { referrerId: userId, referredId: Not(IsNull()) },
+      relations: ['referred'],
+      order: { createdAt: 'DESC' },
+    })
+
+    const invited = await Promise.all(refreshedUses.map(async (ref) => {
+      const progress = await this.getProgressForReferral(ref)
+      return {
+        id: ref.id,
+        name: ref.referred?.name ?? 'Colega indicado',
+        createdAt: ref.createdAt,
+        rewardGranted: ref.rewardGranted,
+        rewardGrantedAt: ref.rewardGrantedAt,
+        progress,
+      }
+    }))
+
+    return {
+      code: master?.code ?? null,
+      totalInvited: refreshedUses.length,
+      totalRewarded: refreshedUses.filter(r => r.rewardGranted).length,
+      pendingQualified: invited.filter(item => item.progress.qualified && !item.rewardGranted).length,
+      rewardLabel: `${REWARD_DAYS} dias de beneficio`,
+      criteria: {
+        patients: REQUIRED_PATIENTS,
+        sessions: REQUIRED_SESSIONS,
+        daysActive: REQUIRED_DAYS_ACTIVE,
+        emailVerified: true,
+      },
+      invited,
+    }
+  }
+
+  private async getProgressForReferral(referral: Referral) {
+    if (!referral.referredId) {
+      return {
+        patients: 0,
+        sessions: 0,
+        daysActive: 0,
+        emailVerified: false,
+        qualified: false,
+      }
+    }
+
+    const user = referral.referred ?? await this.users.findOneBy({ id: referral.referredId })
+    const [patients, sessions] = await Promise.all([
+      this.patients.count({ where: { psychologistId: referral.referredId } }),
+      this.sessions.count({ where: { psychologistId: referral.referredId } }),
+    ])
+    const daysActive = Math.max(0, Math.floor((Date.now() - new Date(referral.createdAt).getTime()) / 86400000))
+    const emailVerified = Boolean(user?.emailVerified)
+
+    return {
+      patients,
+      sessions,
+      daysActive,
+      emailVerified,
+      qualified:
+        patients >= REQUIRED_PATIENTS
+        && sessions >= REQUIRED_SESSIONS
+        && daysActive >= REQUIRED_DAYS_ACTIVE
+        && emailVerified,
+    }
+  }
+
+  private async grantProReward(userId: string): Promise<void> {
+    const current = await this.subs.findOne({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+    })
+    const baseDate = current?.currentPeriodEnd && new Date(current.currentPeriodEnd).getTime() > Date.now()
+      ? new Date(current.currentPeriodEnd)
+      : new Date()
+    const rewardEnd = addDays(baseDate, REWARD_DAYS)
+
+    const sub = current ?? this.subs.create({ userId })
+    if (current?.gatewaySubscriptionId) {
+      const rewardEndDate = rewardEnd.toISOString().slice(0, 10)
+      await this.asaas.updateSubscriptionNextDueDate(current.gatewaySubscriptionId, rewardEndDate)
+      await this.asaas.postponeSubscriptionOpenPayments(current.gatewaySubscriptionId, rewardEndDate)
+      current.currentPeriodEnd = rewardEnd
+      current.cancelAtPeriodEnd = false
+      if (current.status === 'past_due') current.status = 'active'
+      await this.subs.save(current)
+      return
+    }
+
+    Object.assign(sub, {
+      userId,
+      plan: 'pro',
+      status: 'trialing',
+      gatewayCustomerId: current?.gatewayCustomerId ?? null,
+      gatewaySubscriptionId: current?.gatewaySubscriptionId ?? null,
+      currentPeriodEnd: rewardEnd,
+      trialEndsAt: rewardEnd,
+      cancelAtPeriodEnd: false,
+      hasUsedTrial: current?.hasUsedTrial ?? true,
+    })
+    await this.subs.save(sub)
   }
 }

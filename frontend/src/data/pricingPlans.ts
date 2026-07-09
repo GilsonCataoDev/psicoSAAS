@@ -51,6 +51,7 @@ export const PRICING_PLANS: PricingPlan[] = [
       { type: 'excluded', title: 'Sem documentos e PDF', subtitle: 'Limitacao' },
       { type: 'excluded', title: 'Sem instrumentos clinicos', subtitle: 'Limitacao' },
       { type: 'excluded', title: 'Sem WhatsApp automatico', subtitle: 'Limitacao' },
+      { type: 'excluded', title: 'Sem transcricao de sessoes por IA', subtitle: 'Limitacao' },
     ],
     cta: 'Comece gratis agora',
     ctaSubtext: 'Sem cartao. Sem compromisso. 10 min de setup.',
@@ -70,6 +71,7 @@ export const PRICING_PLANS: PricingPlan[] = [
       { type: 'included', title: 'Gere documentos e PDFs com verificacao', subtitle: 'Ate 200 documentos' },
       { type: 'included', title: 'Saiba quanto faturou e quanto falta receber', subtitle: 'Financeiro basico' },
       { type: 'included', title: 'Abra mensagens prontas no WhatsApp em 1 clique', subtitle: 'WhatsApp manual com template' },
+      { type: 'included', title: 'Teste transcricao de sessoes com IA', subtitle: '10 min/mes incluidos' },
     ],
     roi: {
       items: [
@@ -99,7 +101,7 @@ export const PRICING_PLANS: PricingPlan[] = [
       { type: 'included', title: 'Mensagens podem soar como voce', subtitle: 'Modelos WhatsApp personalizados' },
       { type: 'included', title: 'Envie link de cobranca para o paciente pagar em 1 clique', subtitle: 'Financeiro Pro com links' },
       { type: 'included', title: 'Lembretes automaticos 24h e 1h antes', subtitle: 'Lembretes automaticos' },
-      { type: 'included', title: 'Grave e transcreva sessoes com IA, com limite mensal', subtitle: 'IA clinica assistiva' },
+      { type: 'included', title: 'Grave, transcreva e gere rascunhos com IA', subtitle: '120 min/mes de transcricao' },
       { type: 'included', title: 'Dashboard mostrando faltas evitadas e receita protegida', subtitle: 'Relatorios avancados' },
     ],
     roi: {
@@ -107,7 +109,7 @@ export const PRICING_PLANS: PricingPlan[] = [
         { type: 'time', text: 'Automatize lembretes, cobrancas e follow-up' },
         { type: 'attendance', text: 'Diminua faltas com mensagens 24h e 1h antes' },
         { type: 'revenue', text: 'Recupere pagamentos pendentes com menos trabalho manual' },
-        { type: 'collection', text: 'Use IA como apoio para transcricao e resumo' },
+        { type: 'collection', text: 'Use IA como apoio para transcricao e resumo clinico' },
       ],
       note: 'Seu investimento se paga em 3 atendimentos',
     },
@@ -122,7 +124,7 @@ export const PRICING_COMPARISON = {
     { title: 'WhatsApp', essencial: 'Voce abre mensagens prontas manualmente', pro: 'O sistema envia automaticamente' },
     { title: 'Lembretes', essencial: 'Controle manual pela agenda', pro: '24h e 1h antes, automatico' },
     { title: 'Cobranca', essencial: 'Controle financeiro manual', pro: 'Link e mensagem de cobranca em 1 clique' },
-    { title: 'IA', essencial: 'Sem gravacao/transcricao por IA', pro: 'Gravacao, transcricao e rascunho de evolucao' },
+    { title: 'IA', essencial: '10 min/mes para testar transcricao', pro: '120 min/mes, transcricao e rascunho de evolucao' },
     { title: 'Escalabilidade', essencial: 'Ate 50 pacientes', pro: '50+, 100+. O sistema aguenta' },
   ],
 }

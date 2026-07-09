@@ -18,7 +18,7 @@ export class AiService {
     if (openaiKey) {
       return { client: new OpenAI({ apiKey: openaiKey }), model: 'whisper-1' }
     }
-    throw new BadRequestException('Transcrição não configurada. Defina GROQ_API_KEY (gratuito) ou OPENAI_API_KEY no servidor.')
+    throw new BadRequestException('Transcrição não configurada. Defina GROQ_API_KEY no servidor. OPENAI_API_KEY fica apenas como fallback.')
   }
 
   private get anthropic(): Anthropic {

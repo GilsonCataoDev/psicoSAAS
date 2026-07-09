@@ -6,6 +6,7 @@ import { EmailService } from '../email/email.service'
 import { User } from '../auth/entities/user.entity'
 import { Subscription } from './entities/subscription.entity'
 import { WebhookEvent } from './entities/webhook-event.entity'
+import { AsaasService } from './asaas.service'
 
 @Injectable()
 export class BillingWebhookService {
@@ -20,6 +21,7 @@ export class BillingWebhookService {
     private readonly users: Repository<User>,
     private readonly cfg: ConfigService,
     private readonly email: EmailService,
+    private readonly asaas: AsaasService,
   ) {}
 
   isValidOrigin(headers: Record<string, any>, payload: any): boolean {
@@ -67,6 +69,7 @@ export class BillingWebhookService {
         subscription.trialEndsAt = null
         subscription.cancelAtPeriodEnd = false
         subscription.currentPeriodEnd = this.getCurrentPeriodEnd(payload)
+        await this.applyPromotionCycle(subscription, payload)
         break
       case 'PAYMENT_OVERDUE':
         subscription.status = 'past_due'
@@ -90,6 +93,38 @@ export class BillingWebhookService {
     this.logger.log(
       `[Asaas webhook] Subscription ${subscription.id} status ${previousStatus} -> ${subscription.status}`,
     )
+  }
+
+  private async applyPromotionCycle(subscription: Subscription, payload: any): Promise<void> {
+    if (!subscription.gatewaySubscriptionId) return
+    if (!subscription.promoCode || !subscription.promoCyclesTotal) return
+
+    const paymentId = payload?.payment?.id
+    if (!paymentId || subscription.lastPromoPaymentId === paymentId) return
+
+    const nextCycle = Math.min(
+      (subscription.promoCyclesUsed ?? 0) + 1,
+      subscription.promoCyclesTotal,
+    )
+
+    if (nextCycle < subscription.promoCyclesTotal) {
+      subscription.lastPromoPaymentId = paymentId
+      subscription.promoCyclesUsed = nextCycle
+      return
+    }
+
+    try {
+      await this.asaas.updateSubscriptionPlan(subscription.gatewaySubscriptionId, subscription.plan)
+      this.logger.log(`[Asaas webhook] Promo ${subscription.promoCode} encerrada; assinatura ${subscription.id} voltou ao valor cheio`)
+      subscription.lastPromoPaymentId = paymentId
+      subscription.promoCyclesUsed = nextCycle
+      subscription.promoCode = null
+      subscription.promoDiscountPercent = 0
+      subscription.promoCyclesTotal = 0
+      subscription.regularMonthlyValue = null
+    } catch (err: any) {
+      this.logger.error(`[Asaas webhook] Falha ao restaurar valor cheio da assinatura ${subscription.id}: ${err?.message ?? err}`)
+    }
   }
 
   private async logOnce(eventId: string, eventType: string, payload: any): Promise<boolean> {

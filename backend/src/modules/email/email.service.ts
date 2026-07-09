@@ -330,12 +330,12 @@ export class EmailService {
   async sendReferralReward(name: string, email: string, referredName: string) {
     await this.send({
       to: email,
-      subject: 'Você ganhou 1 mês grátis',
+      subject: 'Você ganhou 30 dias de benefício',
       html: this.wrap(`
-        <h1 style="color:#2F7657;font-weight:300;font-size:24px">Você ganhou 1 mês grátis</h1>
+        <h1 style="color:#2F7657;font-weight:300;font-size:24px">Você ganhou 30 dias de benefício</h1>
         <p style="color:#555;font-size:16px;line-height:1.6">
           Parabéns, ${name.split(' ')[0]}! <strong>${referredName}</strong> se cadastrou usando sua indicação.
-          Seu próximo mês de assinatura está por nossa conta!
+          Liberamos 30 dias de benefício na sua conta.
         </p>
         <a href="${this.frontendUrl}" style="display:inline-block;background:#2F7657;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:8px">
           Acessar minha conta

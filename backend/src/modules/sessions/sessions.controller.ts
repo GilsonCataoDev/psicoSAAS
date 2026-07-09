@@ -9,13 +9,18 @@ import { Repository } from 'typeorm'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { RequirePlan } from '../../common/decorators/require-plan.decorator'
+import { PLAN_LIMITS, KnownPlan, normalizePlan } from '../../common/plans'
+import { Subscription } from '../billing/entities/subscription.entity'
 import { SessionsService } from './sessions.service'
 import { AiService } from './ai.service'
 import { CreateSessionDto } from './dto/create-session.dto'
 import { AiUsage } from './entities/ai-usage.entity'
 
-const AI_TRANSCRIPTION_MONTHLY_SECONDS = 60 * 60
 const AI_TRANSCRIPTION_MAX_SECONDS = 15 * 60
+const COMPED_PRO_EMAILS = (process.env.COMPED_PRO_EMAILS ?? 'gilsonfilho96@outlook.com')
+  .split(',')
+  .map(email => email.trim().toLowerCase())
+  .filter(Boolean)
 
 @Controller('sessions')
 @UseGuards(JwtAuthGuard, CsrfGuard)
@@ -24,6 +29,7 @@ export class SessionsController {
     private svc: SessionsService,
     private ai: AiService,
     @InjectRepository(AiUsage) private readonly aiUsage: Repository<AiUsage>,
+    @InjectRepository(Subscription) private readonly subscriptions: Repository<Subscription>,
   ) {}
 
   @Get() findAll(
@@ -48,14 +54,14 @@ export class SessionsController {
   @Delete(':id') remove(@Param('id') id: string, @Request() req: any) { return this.svc.remove(id, req.user.id) }
 
   @Post('transcribe')
-  @RequirePlan('pro')
+  @RequirePlan('essencial')
   @Throttle({ default: { limit: 10, ttl: 60 * 1000 } })
   @UseInterceptors(FileInterceptor('audio', {
     limits: {
       fileSize: 25 * 1024 * 1024,
       files: 1,
-      fields: 1,
-      parts: 2,
+      fields: 2,
+      parts: 6,
       fieldNameSize: 32,
       fieldSize: 32,
     },
@@ -67,9 +73,15 @@ export class SessionsController {
   ) {
     if (!file?.buffer?.length) throw new BadRequestException('Arquivo de áudio ausente')
     const duration = this.parseDuration(durationSeconds)
-    await this.chargeTranscriptionQuota(req.user.id, duration)
-    const text = await this.ai.transcribeAudio(file.buffer, file.mimetype)
-    return { text }
+    const plan = await this.getCurrentPlan(req.user.id, req.user.email)
+    await this.chargeTranscriptionQuota(req.user.id, duration, plan)
+    try {
+      const text = await this.ai.transcribeAudio(file.buffer, file.mimetype)
+      return { text }
+    } catch (error) {
+      await this.releaseTranscriptionQuota(req.user.id, duration).catch(() => {})
+      throw error
+    }
   }
 
   @Post('ai-summary')
@@ -101,8 +113,29 @@ export class SessionsController {
     return new Date().toISOString().slice(0, 7)
   }
 
-  private async chargeTranscriptionQuota(userId: string, durationSeconds: number): Promise<void> {
+  private async getCurrentPlan(userId: string, email?: string): Promise<KnownPlan> {
+    if (email && COMPED_PRO_EMAILS.includes(String(email).toLowerCase())) return 'pro'
+
+    const sub = await this.subscriptions.findOne({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+    })
+    return normalizePlan(
+      (sub?.status === 'active' || sub?.status === 'trialing') ? sub.plan : 'free',
+    )
+  }
+
+  private async chargeTranscriptionQuota(userId: string, durationSeconds: number, plan: KnownPlan): Promise<void> {
     const month = this.currentMonth()
+    const limit = PLAN_LIMITS[plan].transcriptionMonthlySeconds
+    if (limit <= 0) {
+      throw new ForbiddenException({
+        message: 'Transcrição por IA está disponível a partir do plano Essencial.',
+        requiredPlan: 'essencial',
+        currentPlan: plan,
+        upgradeUrl: '/planos',
+      })
+    }
     // Garante que a linha existe (idempotente sob concorrência pelo ON CONFLICT DO NOTHING)
     await this.aiUsage
       .createQueryBuilder()
@@ -117,19 +150,34 @@ export class SessionsController {
       .set({ transcriptionSeconds: () => `"transcriptionSeconds" + ${durationSeconds}` })
       .where(
         '"userId" = :userId AND month = :month AND "transcriptionSeconds" + :duration <= :limit',
-        { userId, month, duration: durationSeconds, limit: AI_TRANSCRIPTION_MONTHLY_SECONDS },
+        { userId, month, duration: durationSeconds, limit },
       )
       .execute()
 
     if (!result.affected) {
       const usage = await this.aiUsage.findOne({ where: { userId, month } })
       const usedMinutes = Math.ceil((usage?.transcriptionSeconds ?? 0) / 60)
+      const limitMinutes = Math.floor(limit / 60)
       throw new ForbiddenException({
-        message: `Limite mensal de transcrição por IA atingido (${usedMinutes}/60 min).`,
-        limitMinutes: 60,
+        message: `Limite mensal de transcrição por IA atingido (${usedMinutes}/${limitMinutes} min).`,
+        limitMinutes,
         usedMinutes,
+        currentPlan: plan,
+        upgradeUrl: plan === 'pro' ? undefined : '/planos',
       })
     }
+  }
+
+  private async releaseTranscriptionQuota(userId: string, durationSeconds: number): Promise<void> {
+    const month = this.currentMonth()
+    await this.aiUsage
+      .createQueryBuilder()
+      .update()
+      .set({
+        transcriptionSeconds: () => `GREATEST("transcriptionSeconds" - ${durationSeconds}, 0)`,
+      })
+      .where('"userId" = :userId AND month = :month', { userId, month })
+      .execute()
   }
 
   private async incrementSummaryUsage(userId: string): Promise<void> {

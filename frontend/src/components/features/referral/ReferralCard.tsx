@@ -1,4 +1,4 @@
-import { Copy, CheckCircle2, Gift } from 'lucide-react'
+import { Copy, CheckCircle2, Gift, UserPlus, ClipboardList, MailCheck } from 'lucide-react'
 import { useReferral } from './useReferral'
 
 export default function ReferralCard() {
@@ -14,7 +14,7 @@ export default function ReferralCard() {
         </div>
         <div>
           <h2 className="section-title mb-0">Indique e ganhe</h2>
-          <p className="text-xs text-neutral-400">1 mes gratis por cada colega que assinar</p>
+          <p className="text-xs text-neutral-400">{stats.rewardLabel ?? '30 dias de beneficio'} por colega ativado</p>
         </div>
       </div>
 
@@ -25,7 +25,16 @@ export default function ReferralCard() {
         </div>
         <div className="bg-sage-50 rounded-2xl p-3 text-center">
           <p className="text-2xl font-bold text-sage-700">{stats.totalRewarded}</p>
-          <p className="text-xs text-sage-500 mt-0.5">meses gratuitos ganhos</p>
+          <p className="text-xs text-sage-500 mt-0.5">bonus liberados</p>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-sage-100 bg-sage-50 p-3">
+        <p className="mb-2 text-xs font-semibold text-sage-800">A indicação valida quando o colega:</p>
+        <div className="grid gap-2 text-xs text-sage-700 sm:grid-cols-3">
+          <span className="flex items-center gap-1.5"><UserPlus className="h-3.5 w-3.5" />3 pacientes</span>
+          <span className="flex items-center gap-1.5"><ClipboardList className="h-3.5 w-3.5" />2 sessões</span>
+          <span className="flex items-center gap-1.5"><MailCheck className="h-3.5 w-3.5" />e-mail + 3 dias</span>
         </div>
       </div>
 
@@ -49,8 +58,33 @@ export default function ReferralCard() {
       </button>
 
       <p className="text-xs text-neutral-400 text-center">
-        Valido quando a pessoa indicada assinar qualquer plano pago.
+        O bonus libera quando o colega usar o produto de verdade.
       </p>
+
+      {(stats.invited?.length ?? 0) > 0 && (
+        <div className="space-y-2 border-t border-neutral-100 pt-3">
+          <p className="text-xs font-semibold text-neutral-500">Ultimas indicações</p>
+          {stats.invited!.slice(0, 3).map(item => (
+            <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl bg-neutral-50 px-3 py-2">
+              <div className="min-w-0">
+                <p className="truncate text-xs font-semibold text-neutral-700">{item.name}</p>
+                <p className="text-[11px] text-neutral-400">
+                  {item.progress.patients}/3 pacientes · {item.progress.sessions}/2 sessões · {item.progress.daysActive}/3 dias
+                </p>
+              </div>
+              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                item.rewardGranted
+                  ? 'bg-sage-100 text-sage-700'
+                  : item.progress.qualified
+                    ? 'bg-amber-100 text-amber-700'
+                    : 'bg-neutral-100 text-neutral-500'
+              }`}>
+                {item.rewardGranted ? 'liberado' : item.progress.qualified ? 'validando' : 'em progresso'}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

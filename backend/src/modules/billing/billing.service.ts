@@ -1,12 +1,14 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { In, Repository } from 'typeorm'
+import { DataSource, In, Repository } from 'typeorm'
 import { User } from '../auth/entities/user.entity'
 import { AsaasService } from './asaas.service'
 import { Subscription } from './entities/subscription.entity'
 
 const TRIAL_DAYS = 7
 const PLAN_PRICES: Record<string, number> = { essencial: 79, pro: 149 }
+const ACTIVATION_OFFER_CODE = 'ROTINA20'
+const REFERRAL_OFFER_CODE = 'INDICACAO20'
 const BETA_FREE_ACCESS = process.env.BETA_FREE_ACCESS !== 'false'
 const DEFAULT_COMPED_PRO_EMAILS = ['gilsonfilho96@outlook.com']
 const COMPED_PRO_EMAILS = (process.env.COMPED_PRO_EMAILS ?? DEFAULT_COMPED_PRO_EMAILS.join(','))
@@ -20,6 +22,7 @@ export class BillingService {
     @InjectRepository(Subscription)
     private readonly repo: Repository<Subscription>,
     private readonly asaas: AsaasService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async getMine(user: Pick<User, 'id' | 'email'>) {
@@ -97,6 +100,7 @@ export class BillingService {
     const shouldStartTrial = !existing?.hasUsedTrial
     const trialEndsAt = shouldStartTrial ? new Date(Date.now() + TRIAL_DAYS * 86400000) : null
     const nextDueDate = shouldStartTrial ? this.asaas.addDays(TRIAL_DAYS) : this.asaas.addDays(1)
+    const promo = await this.getApplicablePromotion(user, plan, existing)
 
     const subscription = existing ?? this.repo.create({ userId: user.id })
     Object.assign(subscription, {
@@ -106,6 +110,12 @@ export class BillingService {
       trialEndsAt,
       hasUsedTrial: true,
       currentPeriodEnd: null,
+      promoCode: promo?.code ?? null,
+      promoDiscountPercent: promo?.discountPercent ?? 0,
+      promoCyclesTotal: promo?.cycles ?? 0,
+      promoCyclesUsed: 0,
+      regularMonthlyValue: promo ? String(PLAN_PRICES[plan].toFixed(2)) : null,
+      lastPromoPaymentId: null,
     })
 
     const saved = await this.repo.save(subscription)
@@ -120,6 +130,10 @@ export class BillingService {
         saved.id,
         creditCardToken,
         nextDueDate,
+        promo ? {
+          valueOverride: this.discountedValue(plan, promo.discountPercent),
+          descriptionSuffix: `${promo.code} ${promo.discountPercent}% por ${promo.cycles} meses`,
+        } : undefined,
       )
     } catch (err) {
       if (previousSubscription) {
@@ -132,6 +146,12 @@ export class BillingService {
           trialEndsAt: previousSubscription.trialEndsAt,
           cancelAtPeriodEnd: previousSubscription.cancelAtPeriodEnd,
           hasUsedTrial: previousSubscription.hasUsedTrial,
+          promoCode: previousSubscription.promoCode,
+          promoDiscountPercent: previousSubscription.promoDiscountPercent,
+          promoCyclesTotal: previousSubscription.promoCyclesTotal,
+          promoCyclesUsed: previousSubscription.promoCyclesUsed,
+          regularMonthlyValue: previousSubscription.regularMonthlyValue,
+          lastPromoPaymentId: previousSubscription.lastPromoPaymentId,
         })
         await this.repo.save(saved)
       } else {
@@ -171,8 +191,53 @@ export class BillingService {
       trialEndsAt: null,
       cancelAtPeriodEnd: false,
     })
+    this.clearPromotion(subscription)
 
     return this.toPublicSubscription(await this.repo.save(subscription))
+  }
+
+  async getFreeUpgradeOffer(user: Pick<User, 'id' | 'email'>) {
+    const subscription = await this.repo.findOne({
+      where: { userId: user.id },
+      order: { createdAt: 'DESC' },
+    })
+    const plan = subscription?.plan ?? 'free'
+    const activeFree = subscription?.status === 'active' && plan === 'free'
+
+    type Row = { daysSinceSignup: string; patients: string; sessions: string }
+    const [row] = await this.dataSource.query<Row[]>(`
+      SELECT
+        FLOOR(EXTRACT(EPOCH FROM (NOW() - u."createdAt")) / 86400)::int AS "daysSinceSignup",
+        (SELECT COUNT(*)::int FROM patients p WHERE p."psychologistId" = u.id) AS patients,
+        (SELECT COUNT(*)::int FROM sessions s WHERE s."psychologistId" = u.id) AS sessions
+      FROM users u
+      WHERE u.id = $1
+      LIMIT 1
+    `, [user.id])
+
+    const daysSinceSignup = Number(row?.daysSinceSignup ?? 0)
+    const patients = Number(row?.patients ?? 0)
+    const sessions = Number(row?.sessions ?? 0)
+    const activated = patients >= 2 || sessions >= 1
+    const eligible = activeFree && daysSinceSignup >= 7 && activated
+
+    return {
+      eligible,
+      daysSinceSignup,
+      patients,
+      sessions,
+      offerCode: eligible ? 'ROTINA20' : null,
+      discount: eligible ? {
+        essencial: '20% nos 3 primeiros meses',
+        pro: '30% nos 3 primeiros meses',
+      } : null,
+      title: 'Sua rotina ja comecou. Agora libere mais limite.',
+      message: 'Continue com documentos, mais pacientes, transcricao por IA e automacoes para reduzir retrabalho.',
+      benefits: [
+        'Essencial: 50 pacientes, documentos/PDF e 10 min de transcricao',
+        'Pro: pacientes ilimitados, WhatsApp automatico, instrumentos e 120 min de IA',
+      ],
+    }
   }
 
   async updateCard(userId: string, creditCardToken?: string, plan?: string) {
@@ -217,6 +282,7 @@ export class BillingService {
     if (!subscription.gatewaySubscriptionId) {
       subscription.plan = plan
       subscription.cancelAtPeriodEnd = false
+      this.clearPromotion(subscription)
       return this.toPublicSubscription(await this.repo.save(subscription))
     }
 
@@ -224,6 +290,7 @@ export class BillingService {
 
     subscription.plan = plan
     subscription.cancelAtPeriodEnd = false
+    this.clearPromotion(subscription)
     if (subscription.status === 'past_due') subscription.status = 'active'
 
     return this.toPublicSubscription(await this.repo.save(subscription))
@@ -284,6 +351,12 @@ export class BillingService {
       trialEndsAt: null,
       cancelAtPeriodEnd: false,
       hasUsedTrial: true,
+      promoCode: null,
+      promoDiscountPercent: 0,
+      promoCyclesTotal: 0,
+      promoCyclesUsed: 0,
+      regularMonthlyValue: null,
+      lastPromoPaymentId: null,
     })
 
     return this.toPublicSubscription(await this.repo.save(subscription))
@@ -305,6 +378,12 @@ export class BillingService {
       trialEndsAt: null,
       cancelAtPeriodEnd: false,
       hasUsedTrial: false,
+      promoCode: null,
+      promoDiscountPercent: 0,
+      promoCyclesTotal: 0,
+      promoCyclesUsed: 0,
+      regularMonthlyValue: null,
+      lastPromoPaymentId: null,
     })
 
     return this.toPublicSubscription(await this.repo.save(subscription))
@@ -315,6 +394,52 @@ export class BillingService {
     void gatewayCustomerId
     void gatewaySubscriptionId
     return safeSubscription
+  }
+
+  private async getApplicablePromotion(
+    user: Pick<User, 'id' | 'email'>,
+    plan: string,
+    existing?: Subscription | null,
+  ): Promise<{ code: string; discountPercent: number; cycles: number } | null> {
+    if (!PLAN_PRICES[plan]) return null
+    if (existing?.gatewaySubscriptionId) return null
+
+    const activationOffer = await this.getFreeUpgradeOffer(user)
+    if (activationOffer.eligible) {
+      return {
+        code: ACTIVATION_OFFER_CODE,
+        discountPercent: plan === 'pro' ? 30 : 20,
+        cycles: 3,
+      }
+    }
+
+    const [{ referralCode } = { referralCode: null }] = await this.dataSource.query<Array<{ referralCode: string | null }>>(
+      'SELECT "referralCode" FROM users WHERE id = $1 LIMIT 1',
+      [user.id],
+    )
+
+    if (referralCode) {
+      return {
+        code: REFERRAL_OFFER_CODE,
+        discountPercent: 20,
+        cycles: 1,
+      }
+    }
+
+    return null
+  }
+
+  private discountedValue(plan: string, discountPercent: number): number {
+    return Number((PLAN_PRICES[plan] * (1 - discountPercent / 100)).toFixed(2))
+  }
+
+  private clearPromotion(subscription: Subscription): void {
+    subscription.promoCode = null
+    subscription.promoDiscountPercent = 0
+    subscription.promoCyclesTotal = 0
+    subscription.promoCyclesUsed = 0
+    subscription.regularMonthlyValue = null
+    subscription.lastPromoPaymentId = null
   }
 
   async getMetrics() {

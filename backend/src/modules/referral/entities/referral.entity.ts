@@ -21,6 +21,10 @@ export class Referral {
   @Column({ nullable: true })
   referredId?: string
 
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'referredId' })
+  referred?: User
+
   @Column()
   code: string   // ex: CAROL123 — mesmo código para todas as indicações do mesmo usuário
 

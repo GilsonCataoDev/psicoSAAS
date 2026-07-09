@@ -414,7 +414,7 @@ Tipografia:
 - [x] Notificações push (Web Push API)
 
 ### Aguardando configuração de API
-- [ ] Transcrição de áudio de sessão — requer `OPENAI_API_KEY` (Whisper, ~R$0,17/sessão 50 min)
+- [ ] Transcrição de áudio de sessão — requer `GROQ_API_KEY` (Whisper Large v3 Turbo, ~US$0,033/sessão de 50 min). `OPENAI_API_KEY` fica como fallback opcional.
 - [ ] Resumo sugestivo por IA — requer `ANTHROPIC_API_KEY` (Claude Haiku, ~R$0,02/resumo)
 
 ### Próximas versões

@@ -97,7 +97,9 @@ export class AuthService {
     await this.users.save(user)
 
     if (referralCode) {
-      this.referral.applyReferral(referralCode, user).catch(() => {})
+      await this.referral.applyReferral(referralCode, user).catch((err) => {
+        this.logger.warn(`[Register] Falha ao aplicar indicação user=${user.id}: ${err?.message ?? err}`)
+      })
     }
 
     this.email.sendEmailVerification(user.name, user.email, verificationToken)

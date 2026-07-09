@@ -12,4 +12,4 @@ RUN npm run build
 
 EXPOSE 3001
 
-CMD ["sh", "-c", "npm run migration:run && node dist/main"]
+CMD ["npm", "start"]

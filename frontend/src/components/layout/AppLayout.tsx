@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link, Outlet, useNavigate } from 'react-router-dom'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { Eye } from 'lucide-react'
 import Sidebar from './Sidebar'
@@ -188,6 +188,71 @@ function SubscriptionBanner() {
   return null
 }
 
+type UpgradeOffer = {
+  eligible: boolean
+  offerCode: string | null
+  discount: { essencial: string; pro: string } | null
+  title: string
+  message: string
+  benefits: string[]
+}
+
+function FreeUpgradeOfferBanner() {
+  const subscription = useSubscriptionStore((s) => s.subscription)
+  const plan = String(subscription.planId ?? subscription.plan ?? 'free')
+  const [dismissed, setDismissed] = useState(() => localStorage.getItem('usecognia-free-upgrade-offer-dismissed') === 'true')
+  const enabled = subscription.status === 'active' && plan === 'free' && !dismissed
+  const { data } = useQuery({
+    queryKey: ['billing', 'upgrade-offer'],
+    queryFn: () => api.get<UpgradeOffer>('/billing/upgrade-offer').then(res => res.data),
+    enabled,
+    staleTime: 60 * 60 * 1000,
+  })
+
+  if (!enabled || !data?.eligible) return null
+
+  function dismiss() {
+    localStorage.setItem('usecognia-free-upgrade-offer-dismissed', 'true')
+    setDismissed(true)
+  }
+
+  return (
+    <div className="mb-4 rounded-2xl border border-sage-200 bg-white px-4 py-4 shadow-card dark:border-sage-400/20 dark:bg-cognia-panel">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-sage-700 dark:text-sage-300">
+            Oferta de ativação {data.offerCode ? `· ${data.offerCode}` : ''}
+          </p>
+          <h2 className="mt-1 text-base font-semibold text-neutral-900 dark:text-white">{data.title}</h2>
+          <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
+            {data.message} O desconto e aplicado automaticamente ao assinar.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs">
+            {data.discount && (
+              <>
+                <span className="rounded-full bg-sage-50 px-2.5 py-1 font-semibold text-sage-700 dark:bg-sage-400/10 dark:text-sage-200">
+                  Essencial: {data.discount.essencial}
+                </span>
+                <span className="rounded-full bg-purple-50 px-2.5 py-1 font-semibold text-purple-700 dark:bg-purple-400/10 dark:text-purple-200">
+                  Pro: {data.discount.pro}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="flex shrink-0 gap-2">
+          <button type="button" onClick={dismiss} className="btn-secondary text-xs">
+            Depois
+          </button>
+          <Link to="/planos" className="btn-primary text-xs">
+            Ver planos
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function EmailVerificationBanner() {
   const user = useAuthStore((s) => s.user)
   const [sending, setSending] = useState(false)
@@ -333,6 +398,7 @@ export default function AppLayout() {
           <div className="max-w-7xl mx-auto">
             <EmailVerificationBanner />
             <SubscriptionBanner />
+            <FreeUpgradeOfferBanner />
             <Outlet />
           </div>
         </main>

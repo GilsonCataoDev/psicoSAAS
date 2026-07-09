@@ -29,6 +29,7 @@ import { PlanGuard } from './common/guards/plan.guard'
 import { SubscriptionGuard } from './common/guards/subscription.guard'
 import { LastActiveInterceptor } from './common/interceptors/last-active.interceptor'
 import { AdvisoryLockModule } from './common/advisory-lock/advisory-lock.module'
+import { HealthController } from './health.controller'
 
 @Module({
   imports: [
@@ -82,6 +83,7 @@ import { AdvisoryLockModule } from './common/advisory-lock/advisory-lock.module'
     TestimonialModule,
     ChurnModule,
   ],
+  controllers: [HealthController],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: SubscriptionGuard },

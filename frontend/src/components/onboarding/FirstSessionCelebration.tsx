@@ -92,7 +92,7 @@ export default function FirstSessionCelebration() {
               <div>
                 <p className="text-sm font-semibold text-gray-800 dark:text-white">Indique e ganhe</p>
                 <p className="mt-1 text-xs leading-5 text-gray-500 dark:text-gray-300">
-                  Conhece outro psicólogo que também perde tempo com faltas? Indique e ganhe 1 mês grátis.
+                  Indique outro psicologo e ganhe 30 dias de beneficio quando ele ativar a conta.
                 </p>
               </div>
             </div>

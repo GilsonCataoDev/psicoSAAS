@@ -52,6 +52,24 @@ export class Subscription {
   @Column({ type: 'boolean', default: false })
   hasUsedTrial: boolean
 
+  @Column({ type: 'varchar', nullable: true })
+  promoCode?: string | null
+
+  @Column({ type: 'int', default: 0 })
+  promoDiscountPercent: number
+
+  @Column({ type: 'int', default: 0 })
+  promoCyclesTotal: number
+
+  @Column({ type: 'int', default: 0 })
+  promoCyclesUsed: number
+
+  @Column({ type: 'numeric', precision: 10, scale: 2, nullable: true })
+  regularMonthlyValue?: string | null
+
+  @Column({ type: 'varchar', nullable: true })
+  lastPromoPaymentId?: string | null
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date
 }

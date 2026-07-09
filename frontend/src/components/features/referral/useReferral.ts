@@ -9,13 +9,39 @@ export interface ReferralStats {
   code: string
   totalInvited: number
   totalRewarded: number
+  rewardLabel?: string
+  criteria?: {
+    patients: number
+    sessions: number
+    daysActive: number
+    emailVerified: boolean
+  }
+  invited?: Array<{
+    id: string
+    name: string
+    rewardGranted: boolean
+    progress: {
+      patients: number
+      sessions: number
+      daysActive: number
+      emailVerified: boolean
+      qualified: boolean
+    }
+  }>
 }
 
-const MOCK_STATS: ReferralStats = { code: 'CAROL3X7', totalInvited: 3, totalRewarded: 1 }
+const MOCK_STATS: ReferralStats = {
+  code: 'CAROL3X7',
+  totalInvited: 3,
+  totalRewarded: 1,
+  rewardLabel: '30 dias de beneficio',
+  criteria: { patients: 3, sessions: 2, daysActive: 3, emailVerified: true },
+  invited: [],
+}
 
 async function fetchReferralStats(): Promise<ReferralStats> {
   if (USE_MOCK) return MOCK_STATS
-  return api.get('/referral').then(response => response.data).catch(() => MOCK_STATS)
+  return api.get('/referral').then(response => response.data)
 }
 
 export function useReferral(enabled = true) {
@@ -50,7 +76,7 @@ export function useReferral(enabled = true) {
 
     const message = encodeURIComponent(
       `Estou usando o UseCognia para gerenciar meu consultorio e adorando!\n\n` +
-      `Experimente 7 dias gratis com meu link: ${referralUrl}`,
+      `Crie sua conta gratis com meu link. Quando voce cadastrar 3 pacientes e 2 sessoes, eu ganho 30 dias de beneficio e voce comeca com a rotina organizada: ${referralUrl}`,
     )
     window.open(`https://wa.me/?text=${message}`, '_blank', 'noopener,noreferrer')
     track(EVENTS.REFERRAL_SHARED)

@@ -73,7 +73,9 @@ export function useTranscribeAudio() {
       const form = new FormData()
       form.append('audio', blob, 'recording.webm')
       form.append('durationSeconds', String(Math.max(1, Math.ceil(durationSeconds))))
-      return api.post<{ text: string }>('/sessions/transcribe', form).then(r => r.data)
+      return api.post<{ text: string }>('/sessions/transcribe', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }).then(r => r.data)
     },
   })
 }
