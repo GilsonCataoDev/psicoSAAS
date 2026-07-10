@@ -184,6 +184,7 @@ export default function AgendaPage() {
 
     return days.flatMap(day => {
       const dateKey = format(day, 'yyyy-MM-dd')
+      if (dateKey < todayKey) return []
       if (blocked.has(dateKey)) return []
 
       const daySlots = mergeMinuteRanges(availability
