@@ -1,0 +1,31 @@
+# UseCognia
+
+> Plataforma de gestão para psicólogos e terapeutas autônomos no Brasil: agenda com lembretes automáticos via WhatsApp, prontuário eletrônico criptografado, documentos com verificação por QR Code e controle financeiro do consultório.
+
+UseCognia é indicado para psicólogos, terapeutas e estagiários clínicos que atendem de forma autônoma (consultório próprio, home office ou atendimento online) e querem centralizar agenda, prontuário, documentos e financeiro em um só lugar, sem depender de planilhas, WhatsApp solto e cadernos.
+
+## Produto
+
+- Agenda semanal com sessões presenciais e online, incluindo agendamentos recorrentes
+- Agendamento online público: paciente escolhe horário disponível direto na agenda do profissional
+- Prontuário eletrônico com anamnese, plano terapêutico e evoluções, criptografado (AES-256-GCM)
+- Documentos verificáveis: declarações, atestados, recibos e encaminhamentos com QR Code de autenticidade
+- Biblioteca de instrumentos clínicos: mais de 25 formulários e escalas validadas (PHQ-9, GAD-7, DASS-21, PCL-5, entre outras)
+- Lembretes automáticos de sessão via WhatsApp
+- Controle financeiro: lançamentos, cobranças e link de pagamento (PIX, cartão, boleto) via Asaas
+- Sincronização com Google Calendar
+- Conformidade com a LGPD e resoluções do CFP sobre prontuário eletrônico
+
+## Planos
+
+- Gratuito: até 10 pacientes, sem cartão de crédito
+- Essencial: R$79/mês — agenda, pacientes, documentos, financeiro básico
+- Pro: R$149/mês — recursos ilimitados, instrumentos clínicos, WhatsApp automático, IA
+
+## Links
+
+- Site: https://usecognia.com.br
+- Cadastro gratuito: https://usecognia.com.br/cadastro
+- Perguntas frequentes: https://usecognia.com.br/plataforma#faq
+- Política de privacidade: https://usecognia.com.br/privacidade
+- Segurança: https://usecognia.com.br/seguranca

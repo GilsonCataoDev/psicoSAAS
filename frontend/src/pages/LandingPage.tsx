@@ -11,9 +11,11 @@ import {
   MessageSquareText,
   ShieldCheck,
   Sparkles,
+  Star,
   WalletCards,
 } from 'lucide-react'
 import BrandLogo from '@/components/ui/BrandLogo'
+import { usePublicTestimonials } from '@/hooks/api/testimonial'
 
 const trustSignals = [
   'Plano gratis',
@@ -193,6 +195,8 @@ function ProductPreview() {
 
 export default function LandingPage() {
   const { fadeUp, stagger, reduce } = useLandingMotion()
+  const { data: publicFeedback } = usePublicTestimonials()
+  const realTestimonials = publicFeedback?.items ?? []
 
   useEffect(() => {
     if (document.querySelector('script[src*="js.hsforms.net"]')) return
@@ -409,8 +413,14 @@ export default function LandingPage() {
           viewport={{ once: true, margin: '-80px' }}
           variants={fadeUp}
         >
-          <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Por que começar agora</p>
-          <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Uma rotina clínica mais organizada desde o primeiro paciente.</h2>
+          <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">
+            {realTestimonials.length > 0 ? 'Quem usa recomenda' : 'Por que começar agora'}
+          </p>
+          <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">
+            {realTestimonials.length > 0
+              ? 'Psicólogos e terapeutas que já organizaram a rotina com o UseCognia.'
+              : 'Uma rotina clínica mais organizada desde o primeiro paciente.'}
+          </h2>
         </motion.div>
         <motion.div
           className="grid gap-5 md:grid-cols-3"
@@ -419,26 +429,38 @@ export default function LandingPage() {
           viewport={{ once: true, margin: '-80px' }}
           variants={stagger}
         >
-          {[
-            {
-              quote: 'Você começa pelo que mais pesa na rotina: agenda, pacientes, prontuário e documentos em um só lugar.',
-              name: 'Começo simples',
-              role: 'Sem precisar configurar tudo de uma vez',
-              initial: 'A',
-            },
-            {
-              quote: 'O sistema ajuda a reduzir a dependência de caderno, planilha e mensagens soltas no WhatsApp.',
-              name: 'Menos retrabalho',
-              role: 'Mais clareza para operar a clínica',
-              initial: 'P',
-            },
-            {
-              quote: 'Quando a rotina crescer, os planos pagos liberam documentos, automações, instrumentos e IA.',
-              name: 'Cresce com você',
-              role: 'Do plano grátis ao Pro',
-              initial: 'S',
-            },
-          ].map(({ quote, name, role, initial }) => (
+          {(realTestimonials.length > 0
+            ? realTestimonials.slice(0, 3).map(item => ({
+                quote: item.text ?? '',
+                name: item.firstName,
+                role: null,
+                initial: item.firstName.charAt(0).toUpperCase(),
+                rating: item.rating,
+              }))
+            : [
+                {
+                  quote: 'Você começa pelo que mais pesa na rotina: agenda, pacientes, prontuário e documentos em um só lugar.',
+                  name: 'Começo simples',
+                  role: 'Sem precisar configurar tudo de uma vez',
+                  initial: 'A',
+                  rating: null,
+                },
+                {
+                  quote: 'O sistema ajuda a reduzir a dependência de caderno, planilha e mensagens soltas no WhatsApp.',
+                  name: 'Menos retrabalho',
+                  role: 'Mais clareza para operar a clínica',
+                  initial: 'P',
+                  rating: null,
+                },
+                {
+                  quote: 'Quando a rotina crescer, os planos pagos liberam documentos, automações, instrumentos e IA.',
+                  name: 'Cresce com você',
+                  role: 'Do plano grátis ao Pro',
+                  initial: 'S',
+                  rating: null,
+                },
+              ]
+          ).map(({ quote, name, role, initial, rating }) => (
             <motion.figure
               key={name}
               variants={fadeUp}
@@ -446,6 +468,13 @@ export default function LandingPage() {
               transition={{ duration: 0.2 }}
               className="rounded-xl border border-[#E7E4DA] bg-[#FFFFFF] p-6 shadow-sm transition-shadow hover:shadow-md"
             >
+              {rating != null && (
+                <div className="mb-2 flex gap-0.5" aria-label={`Nota ${rating} de 5`}>
+                  {[1, 2, 3, 4, 5].map(n => (
+                    <Star key={n} className={`h-3.5 w-3.5 ${n <= rating ? 'fill-sage-500 text-sage-500' : 'text-[#E7E4DA]'}`} />
+                  ))}
+                </div>
+              )}
               <blockquote className="text-sm leading-relaxed text-[#49443D]">"{quote}"</blockquote>
               <figcaption className="mt-4 flex items-center gap-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sage-100 text-sm font-bold text-sage-700">
@@ -453,7 +482,7 @@ export default function LandingPage() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-[#211F1C]">{name}</p>
-                  <p className="text-xs text-[#7C776B]">{role}</p>
+                  {role && <p className="text-xs text-[#7C776B]">{role}</p>}
                 </div>
               </figcaption>
             </motion.figure>

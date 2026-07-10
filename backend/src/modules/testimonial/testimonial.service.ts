@@ -91,6 +91,28 @@ export class TestimonialService {
     `)
   }
 
+  async getPublic() {
+    type Row = { firstName: string; rating: number | null; text: string | null; createdAt: string }
+    const rows = await this.dataSource.query<Row[]>(`
+      SELECT
+        split_part(u.name, ' ', 1) AS "firstName",
+        t.rating,
+        t.text,
+        t."createdAt"
+      FROM testimonials t
+      JOIN users u ON u.id = t."userId"
+      WHERE t."approvedForPublic" = true
+      ORDER BY t."createdAt" DESC
+      LIMIT 12
+    `)
+    const ratings = rows.map(r => r.rating).filter((r): r is number => r != null)
+    return {
+      count: rows.length,
+      averageRating: ratings.length ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10 : null,
+      items: rows.map(r => ({ firstName: r.firstName, rating: r.rating, text: r.text, createdAt: r.createdAt })),
+    }
+  }
+
   async setApproved(id: string, approvedForPublic: boolean): Promise<void> {
     const testimonial = await this.repo.findOne({ where: { id } })
     if (!testimonial) throw new NotFoundException('Depoimento não encontrado')

@@ -14,6 +14,21 @@ export interface AdminTestimonial {
   createdAt: string
 }
 
+export interface PublicTestimonial {
+  firstName: string
+  rating: number | null
+  text: string | null
+  createdAt: string
+}
+
+export function usePublicTestimonials() {
+  return useQuery<{ count: number; averageRating: number | null; items: PublicTestimonial[] }>({
+    queryKey: ['feedback', 'public'],
+    queryFn: () => api.get('/feedback/public').then(r => r.data),
+    staleTime: 10 * 60 * 1000,
+  })
+}
+
 export function useFeedbackStatus(enabled = true) {
   const userId = useAuthStore(s => s.user?.id)
   return useQuery<{ shouldShow: boolean }>({
