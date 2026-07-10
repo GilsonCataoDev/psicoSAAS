@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { ConfigService } from '@nestjs/config'
 import { EmailLog } from './entities/email-log.entity'
+import { EmailSuppression } from './entities/email-suppression.entity'
 
 interface Attachment {
   filename: string
@@ -23,6 +24,7 @@ const DEFAULT_RATE_LIMIT_COOLDOWN_MS = 5 * 60 * 1000
 export class EmailService {
   private readonly logger = new Logger(EmailService.name)
   private readonly from: string
+  private readonly replyTo: string
   private readonly apiKey: string
   private readonly enabled: boolean
   private readonly frontendUrl: string
@@ -35,9 +37,11 @@ export class EmailService {
   constructor(
     private cfg: ConfigService,
     @Optional() @InjectRepository(EmailLog) private readonly logs?: Repository<EmailLog>,
+    @Optional() @InjectRepository(EmailSuppression) private readonly suppressions?: Repository<EmailSuppression>,
   ) {
     this.apiKey = cfg.get<string>('RESEND_API_KEY') ?? ''
     this.from = cfg.get<string>('RESEND_FROM') ?? 'UseCognia <noreply@usecognia.com.br>'
+    this.replyTo = cfg.get<string>('RESEND_REPLY_TO') ?? 'suporte@usecognia.com.br'
     this.enabled = !!this.apiKey
     this.frontendUrl = cfg.get('FRONTEND_URL') ?? 'http://localhost:3000'
     this.sendIntervalMs = this.positiveNumber(cfg.get<string>('EMAIL_SEND_INTERVAL_MS'), DEFAULT_SEND_INTERVAL_MS)
@@ -67,8 +71,15 @@ export class EmailService {
       throw new ServiceUnavailableException('Envio de e-mail nao configurado')
     }
 
+    if (await this.suppressions?.exist({ where: { email: opts.to.toLowerCase().trim() } })) {
+      this.logger.warn(`[Email] Envio bloqueado — endereco suprimido (bounce/spam previo)`)
+      this.writeLog(opts.to, opts.subject, 'suppressed', 'Endereco na lista de supressao')
+      return
+    }
+
     try {
       await this.waitForProviderWindow()
+      const unsubscribeUrl = this.appUrl('/configuracoes')
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -78,8 +89,16 @@ export class EmailService {
         body: JSON.stringify({
           from: this.from,
           to: opts.to,
+          reply_to: this.replyTo,
           subject: opts.subject,
           html: opts.html,
+          text: this.htmlToText(opts.html),
+          // Provedores como Gmail/Yahoo penalizam remetentes sem opcao de
+          // descadastro; o link aponta para a mesma pagina de preferencias
+          // ja linkada no rodape do e-mail.
+          headers: {
+            'List-Unsubscribe': `<${unsubscribeUrl}>, <mailto:${this.replyTo}?subject=descadastrar>`,
+          },
           ...(opts.attachments?.length ? { attachments: opts.attachments } : {}),
         }),
       })
@@ -436,7 +455,7 @@ export class EmailService {
 
   // ─── Layout base ─────────────────────────────────────────────────────────
 
-  private writeLog(to: string, subject: string, status: 'sent' | 'failed', error: string | null): void {
+  private writeLog(to: string, subject: string, status: 'sent' | 'failed' | 'suppressed', error: string | null): void {
     if (!this.logs) return
     this.logs.save(this.logs.create({ to, subject: subject.slice(0, 255), status, error }))
       .catch(e => this.logger.warn(`[EmailLog] Falha ao gravar log: ${e?.message}`))
@@ -474,6 +493,27 @@ export class EmailService {
   </table>
 </body>
 </html>`
+  }
+
+  /**
+   * Gera a versao texto-puro a partir do HTML. E-mails somente-HTML
+   * pontuam pior em vários filtros anti-spam (ex: regras do SpamAssassin
+   * que penalizam a ausência de multipart/alternative); um "text" simples
+   * ja e suficiente para evitar essa penalidade, mesmo sem formatação rica.
+   */
+  private htmlToText(html: string): string {
+    return html
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<\/(p|div|tr|h[1-6]|li)>/gi, '\n')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()
   }
 
   private appUrl(path: string): string {

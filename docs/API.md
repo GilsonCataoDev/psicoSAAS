@@ -284,6 +284,8 @@ Protegido por `AdminGuard` (e-mail em `ADMIN_EMAILS`).
 | GET `/data-export` | 🔑 | Exportação LGPD completa em PDF |
 | GET/POST `/templates(/:type)` | 🔑✍ | Templates de documentos e WhatsApp |
 | GET `/referral` | 🔑 | Dados do programa de indicação do usuário |
+| POST `/email/webhook` | 🔓 (svix) | Webhook do Resend — bounce/reclamação; assinatura verificada via `RESEND_WEBHOOK_SECRET` |
+| GET `/feedback/public` | 🔓 | Depoimentos aprovados para exibição pública (throttle 60/min) |
 
 ---
 

@@ -45,7 +45,11 @@ async function bootstrap() {
     })
   }
 
-  const app = await NestFactory.create(AppModule)
+  // rawBody: true expõe req.rawBody (Buffer) em toda requisição, necessário
+  // para verificar a assinatura Svix do webhook do Resend sobre os bytes
+  // exatos recebidos — o body-parser padrão já reconstrói o JSON, o que
+  // invalidaria a assinatura HMAC calculada sobre o payload original.
+  const app = await NestFactory.create(AppModule, { rawBody: true })
 
   // ── Headers de segurança HTTP (Helmet) ─────────────────────────────────────
   app.use(helmet({

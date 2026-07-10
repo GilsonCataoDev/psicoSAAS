@@ -14,7 +14,7 @@ export class EmailLog {
   subject: string
 
   @Column({ type: 'varchar', length: 10 })
-  status: 'sent' | 'failed'
+  status: 'sent' | 'failed' | 'suppressed'
 
   @Column({ type: 'text', nullable: true })
   error: string | null

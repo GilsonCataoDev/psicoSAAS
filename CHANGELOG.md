@@ -9,6 +9,16 @@ Todas as mudanças significativas do projeto. Formato: [Keep a Changelog](https:
 ### Adicionado
 - `AdvisoryLockService` com `pg_try_advisory_lock` para prevenir execução duplicada de jobs em múltiplas instâncias
 - Todos os 5 background jobs protegidos por advisory lock + flag intra-processo `this.running`
+- Webhook do Resend (`POST /email/webhook`, assinatura Svix) com lista de supressão (`email_suppressions`): bounce permanente e reclamação de spam bloqueiam envios futuros para o mesmo endereço
+- E-mails agora incluem versão texto-puro, `reply-to` e cabeçalho `List-Unsubscribe`, reduzindo pontuação de spam
+- Referral de mão dupla: quem se cadastra por link de indicação ganha 30 dias de Pro imediatamente, além da recompensa existente do indicador
+- Endpoint público `GET /feedback/public`: depoimentos aprovados exibidos na landing (antes eram fictícios)
+- `public/llms.txt` para motores de resposta de IA (ChatGPT, Claude, Perplexity)
+
+### Corrigido
+- Removido `aggregateRating` fabricado (4.9/47 reviews) do schema.org da landing — dado falso sem lastro real, risco de penalização do Google
+- Card de depoimentos ilegível em dark mode na landing (fundo herdava regra global do app autenticado)
+- "Horários disponíveis" na Agenda mostrava dias já passados da semana como livres para agendar
 
 ---
 

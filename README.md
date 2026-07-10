@@ -301,6 +301,8 @@ Cobertura atual: brute-force de login, rotação/replay de refresh token, expira
 | `ASAAS_WEBHOOK_TOKEN` | Token usado para validar origem dos webhooks Asaas |
 | `RESEND_API_KEY` | Chave Resend para emails transacionais |
 | `RESEND_FROM` | Remetente dos e-mails (domínio verificado no Resend) |
+| `RESEND_REPLY_TO` | Endereço de reply-to (padrão `suporte@usecognia.com.br`) |
+| `RESEND_WEBHOOK_SECRET` | Segredo do webhook do Resend (svix) — sem ele, bounces/reclamações não suprimem envios futuros |
 | `WEB_PUSH_PUBLIC_KEY` | Chave publica VAPID para notificacoes push |
 | `WEB_PUSH_PRIVATE_KEY` | Chave privada VAPID para notificacoes push |
 | `WEB_PUSH_SUBJECT` | Contato VAPID, ex: `mailto:suporte@usecognia.com.br` |

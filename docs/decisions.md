@@ -99,3 +99,17 @@ findOne() {}
 **Compatibilidade:** Registros antigos continuam sendo reconhecidos por fallback quando `sessionId` contem um `appointmentId`. A migration `NormalizeFinancialLinks1782600000000` faz backfill para preencher `appointmentId` e `bookingId` quando possivel.
 
 **Consequencia:** Novos fluxos devem preencher o campo correto. Fluxos de booking publico gravam `bookingId` e `appointmentId`; fluxos de sessao clinica gravam `sessionId` e, se houver, `appointmentId`.
+
+---
+
+## ADR-009 — Lista de supressão de e-mail via webhook do Resend (rawBody global)
+
+**Decisão:** `NestFactory.create(AppModule, { rawBody: true })` expõe `req.rawBody` em toda requisição. O webhook `POST /email/webhook` verifica a assinatura Svix sobre esses bytes crus e, em bounce permanente ou reclamação de spam, grava o endereço em `email_suppressions`. `EmailService.deliver()` consulta essa tabela antes de qualquer envio.
+
+**Por quê:** Reenviar e-mail para um endereço que já deu bounce permanente ou marcou uma mensagem anterior como spam derruba a reputação do domínio inteiro no Resend e nos provedores (Gmail/Yahoo), não só a entrega individual — isso é o principal fator de e-mails legítimos caírem em spam. Sem um mecanismo de supressão, o sistema continuaria batendo nos mesmos endereços ruins indefinidamente.
+
+**Por que `rawBody` global e não só na rota do webhook:** o body-parser do NestJS já teria reconstruído/reserializado o JSON antes do controller rodar, o que invalida a assinatura HMAC calculada pelo Resend sobre o payload original byte a byte. `rawBody: true` é a opção suportada nativamente pelo Nest para capturar os bytes crus sem precisar de um parser customizado por rota.
+
+**Tradeoff:** só bounce do tipo `Permanent` suprime — bounce `Transient` (caixa cheia, servidor temporariamente fora) é esperado se resolver sozinho e não deveria bloquear envios futuros.
+
+**Consequência:** sem `RESEND_WEBHOOK_SECRET` configurado, o endpoint rejeita todo payload (falha fechado) e a supressão simplesmente não acontece — não é um requisito para o app subir, mas sem ele bounces/reclamações nunca são registrados.
