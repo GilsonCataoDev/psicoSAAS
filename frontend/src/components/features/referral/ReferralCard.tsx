@@ -14,7 +14,7 @@ export default function ReferralCard() {
         </div>
         <div>
           <h2 className="section-title mb-0">Indique e ganhe</h2>
-          <p className="text-xs text-neutral-400">{stats.rewardLabel ?? '30 dias de beneficio'} por colega ativado</p>
+          <p className="text-xs text-neutral-400">Você e seu colega ganham {stats.rewardLabel ?? '30 dias de beneficio'}</p>
         </div>
       </div>
 
@@ -30,7 +30,8 @@ export default function ReferralCard() {
       </div>
 
       <div className="rounded-2xl border border-sage-100 bg-sage-50 p-3">
-        <p className="mb-2 text-xs font-semibold text-sage-800">A indicação valida quando o colega:</p>
+        <p className="mb-2 text-xs font-semibold text-sage-800">Seu colega ganha 30 dias de Pro assim que se cadastra pelo link.</p>
+        <p className="mb-2 text-xs font-semibold text-sage-800">Seu bônus libera quando o colega:</p>
         <div className="grid gap-2 text-xs text-sage-700 sm:grid-cols-3">
           <span className="flex items-center gap-1.5"><UserPlus className="h-3.5 w-3.5" />3 pacientes</span>
           <span className="flex items-center gap-1.5"><ClipboardList className="h-3.5 w-3.5" />2 sessões</span>
@@ -58,7 +59,7 @@ export default function ReferralCard() {
       </button>
 
       <p className="text-xs text-neutral-400 text-center">
-        O bonus libera quando o colega usar o produto de verdade.
+        Seu bônus libera quando o colega usar o produto de verdade.
       </p>
 
       {(stats.invited?.length ?? 0) > 0 && (

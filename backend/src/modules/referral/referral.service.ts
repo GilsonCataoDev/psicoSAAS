@@ -55,7 +55,11 @@ export class ReferralService {
 
   /**
    * Chamado no registro quando a URL contém ?ref=XXXX.
-   * Cria um registro de uso do código vinculando o novo usuário ao indicador.
+   * Cria um registro de uso do código vinculando o novo usuário ao indicador
+   * e concede o bônus de boas-vindas (via de mão dupla: quem indica e quem é
+   * indicado ganham). Diferente da recompensa do indicador — que só libera
+   * quando o indicado atinge os criterios de qualificação — o bonus do
+   * indicado é imediato, para reduzir o atrito de completar o cadastro.
    */
   async applyReferral(code: string, newUser: User): Promise<void> {
     // Encontra o registro master do código
@@ -76,7 +80,14 @@ export class ReferralService {
     await this.refs.save(use)
     await this.users.update(newUser.id, { referralCode: master.code })
 
-    this.logger.log(`[Referral] indicacao registrada referrer=${master.referrerId} referred=${newUser.id}`)
+    await this.grantProReward(newUser.id)
+    await this.email.sendReferralWelcomeBonus(
+      newUser.name,
+      newUser.email,
+      master.referrer?.name ?? 'um colega',
+    ).catch(() => {})
+
+    this.logger.log(`[Referral] indicacao registrada referrer=${master.referrerId} referred=${newUser.id} (bonus de boas-vindas concedido)`)
   }
 
   async grantRewardIfEligible(newUserId: string): Promise<void> {

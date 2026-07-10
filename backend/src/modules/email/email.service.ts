@@ -344,6 +344,23 @@ export class EmailService {
     })
   }
 
+  async sendReferralWelcomeBonus(name: string, email: string, referrerName: string) {
+    await this.send({
+      to: email,
+      subject: 'Você ganhou 30 dias de Pro de boas-vindas',
+      html: this.wrap(`
+        <h1 style="color:#2F7657;font-weight:300;font-size:24px">Você ganhou 30 dias de Pro</h1>
+        <p style="color:#555;font-size:16px;line-height:1.6">
+          Olá, ${name.split(' ')[0]}! Como você se cadastrou pelo convite de <strong>${referrerName}</strong>,
+          liberamos 30 dias do plano Pro na sua conta — automação de WhatsApp, instrumentos clínicos e mais, sem custo.
+        </p>
+        <a href="${this.frontendUrl}" style="display:inline-block;background:#2F7657;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:8px">
+          Acessar minha conta
+        </a>
+      `),
+    })
+  }
+
   async sendSessionReminder(opts: {
     patientName: string
     patientEmail: string
