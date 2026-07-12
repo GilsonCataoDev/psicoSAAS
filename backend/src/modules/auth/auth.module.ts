@@ -1,4 +1,4 @@
-import { Module, forwardRef } from '@nestjs/common'
+﻿import { Module, forwardRef } from '@nestjs/common'
 import { JwtModule } from '@nestjs/jwt'
 import { PassportModule } from '@nestjs/passport'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -21,14 +21,13 @@ import { AuditModule }     from '../audit/audit.module'
       inject: [ConfigService],
       useFactory: (cfg: ConfigService) => ({
         secret: cfg.get('JWT_SECRET'),
-        // Default expiresIn definido por segurança — o controller sobrescreve
-        // explicitamente em cada sign() call com '15m'
         signOptions: { expiresIn: '15m' },
       }),
     }),
     forwardRef(() => ReferralModule),
     BillingModule,
     AuditModule,
+    // SecurityModule e StorageModule sao @Global() — nao precisam ser importados aqui
   ],
   controllers: [AuthController],
   providers:   [AuthService, JwtStrategy],
