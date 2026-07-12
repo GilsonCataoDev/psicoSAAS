@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState } from 'react'
-import { Users, CalendarCheck, Wallet, Clock, ArrowRight, Video, MapPin, AlertTriangle, Sparkles, MessageSquareText, Ban, TimerReset, CheckCircle2, ShieldCheck, NotebookPen, AlertCircle, ExternalLink } from 'lucide-react'
+import { Users, CalendarCheck, Wallet, Clock, ArrowRight, Video, MapPin, AlertTriangle, Sparkles, MessageSquareText, Ban, TimerReset, CheckCircle2, ShieldCheck, NotebookPen, AlertCircle, ExternalLink, ListTodo } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -170,6 +170,12 @@ export default function DashboardPage() {
 
   const s = stats ?? {} as any
   const sessionsToday = s?.todayAppointments?.length ?? 0
+  const registeredAppointmentIds = new Set(recentSessions.map((session: any) => session.appointmentId).filter(Boolean))
+  const completedWithoutRecord = (s?.todayAppointments ?? []).filter((appointment: any) =>
+    appointment.status === 'completed' && !registeredAppointmentIds.has(appointment.id)
+  )
+  const scheduledToday = (s?.todayAppointments ?? []).filter((appointment: any) => appointment.status === 'scheduled')
+  const dailyPendingCount = completedWithoutRecord.length + overduePayments.length
   const registeredSessions = Number(s?.registeredSessions ?? 0)
   const estimatedSavedMinutes = Math.max(registeredSessions * 30, s?.roi?.estimatedMinutesSaved ?? 0)
   const nextActions = suggestedActions(onboardingProfile, s)
@@ -281,6 +287,50 @@ export default function DashboardPage() {
           </p>
         </div>
       )}
+
+      <section className="card border-sage-100 bg-gradient-to-br from-white to-sage-50/50 dark:border-white/10 dark:from-cognia-panel dark:to-cognia-panel">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sage-100 text-sage-700 dark:bg-white/10 dark:text-sage-200">
+              <ListTodo className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-neutral-800 dark:text-white">Meu dia</h2>
+              <p className="text-xs text-neutral-500 dark:text-neutral-300">
+                {dailyPendingCount === 0 ? 'Nenhuma pendência crítica. Você está em dia.' : `${dailyPendingCount} ação${dailyPendingCount === 1 ? '' : 'ões'} para encerrar o dia.`}
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-center sm:min-w-[360px]">
+            <div className="rounded-xl bg-white px-3 py-2 dark:bg-white/5">
+              <strong className="block text-lg text-neutral-800 dark:text-white">{scheduledToday.length}</strong>
+              <span className="text-[11px] text-neutral-500 dark:text-neutral-300">a atender</span>
+            </div>
+            <div className="rounded-xl bg-white px-3 py-2 dark:bg-white/5">
+              <strong className={`block text-lg ${completedWithoutRecord.length ? 'text-amber-600' : 'text-neutral-800 dark:text-white'}`}>{completedWithoutRecord.length}</strong>
+              <span className="text-[11px] text-neutral-500 dark:text-neutral-300">sem evolução</span>
+            </div>
+            <Link to="/financeiro" className="rounded-xl bg-white px-3 py-2 transition-colors hover:bg-amber-50 dark:bg-white/5 dark:hover:bg-white/10">
+              <strong className={`block text-lg ${overduePayments.length ? 'text-rose-600' : 'text-neutral-800 dark:text-white'}`}>{overduePayments.length}</strong>
+              <span className="text-[11px] text-neutral-500 dark:text-neutral-300">em atraso</span>
+            </Link>
+          </div>
+        </div>
+        {completedWithoutRecord.length > 0 && (
+          <div className="mt-4 border-t border-sage-100 pt-3 dark:border-white/10">
+            <p className="mb-2 text-xs font-semibold text-neutral-600 dark:text-neutral-200">Concluir registros de hoje</p>
+            <div className="flex flex-wrap gap-2">
+              {completedWithoutRecord.map((appointment: any) => (
+                <button key={appointment.id} type="button"
+                  onClick={() => setSessionDefaults({ patientId: appointment.patientId, date: appointment.date, appointmentId: appointment.id })}
+                  className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 hover:bg-amber-100 dark:border-amber-300/20 dark:bg-amber-400/10 dark:text-amber-100">
+                  <NotebookPen className="h-3.5 w-3.5" /> {appointment.patient?.name ?? appointment.patientName ?? 'Paciente'}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
 
       {/* ── Stats ───────────────────────────────────────────────────── */}
       {onboardingCompleted && onboardingProfile && nextActions.length > 0 && (
@@ -562,10 +612,10 @@ export default function DashboardPage() {
                     {appt.status !== 'completed' && (
                       <button
                         onClick={() => setSessionDefaults({ patientId: appt.patientId, date: appt.date, appointmentId: appt.id })}
-                        title="Registrar sessão"
+                        title="Preparar ou registrar sessão"
                         className="opacity-100 transition-opacity flex items-center gap-1 rounded-xl bg-sage-50 border border-sage-200 px-2 py-1 text-xs font-medium text-sage-700 hover:bg-sage-100 dark:border-sage-300/20 dark:bg-sage-400/10 dark:text-sage-100 dark:hover:bg-sage-400/15 sm:opacity-0 sm:group-hover:opacity-100"
                       >
-                        <NotebookPen className="w-3 h-3" /> Registrar
+                        <NotebookPen className="w-3 h-3" /> Preparar
                       </button>
                     )}
                   </div>
