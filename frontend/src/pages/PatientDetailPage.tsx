@@ -8,7 +8,7 @@ import {
 import { SCALE_CONFIGS, getCriticalResponses, interpretScaleResult } from '@/lib/scale-scoring'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
-import { formatDate, formatCurrency, formatDateRelative } from '@/lib/utils'
+import { formatDate, formatCurrency, formatDateRelative, patientStartDate } from '@/lib/utils'
 import { useState, useEffect } from 'react'
 import {
   usePatient, useSessions, useFinancial,
@@ -411,7 +411,7 @@ export default function PatientDetailPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-5 pt-5 border-t border-neutral-100">
           <div>
             <p className="text-xs text-neutral-400 mb-0.5">Em acompanhamento desde</p>
-            <p className="font-semibold text-neutral-700 text-sm">{formatDate(patient.startDate)}</p>
+            <p className="font-semibold text-neutral-700 text-sm">{formatDate(patientStartDate(patient.startDate, patient.createdAt))}</p>
           </div>
           <div>
             <p className="text-xs text-neutral-400 mb-0.5">Valor por sessão</p>

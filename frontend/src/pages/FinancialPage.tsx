@@ -19,6 +19,10 @@ const METHOD_LABELS: Record<string, string> = {
 
 const MONTH_NAMES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
 
+function displayDescription(description: string): string {
+  return description.replace(/(Sess(?:ão|ao)\s*[—-]\s*)(\d{4})-(\d{2})-(\d{2})/i, '$1$4/$3/$2')
+}
+
 const FILTERS = [
   { v: 'all',     l: 'Todos'     },
   { v: 'pending', l: 'Pendentes' },
@@ -64,7 +68,7 @@ export default function FinancialPage() {
     const incomes = records.filter(r => r.type === 'income')
     const paidRecords = incomes.filter(r => r.status === 'paid')
     const receivedMethods = paidRecords.reduce((acc, record) => {
-      const key = record.method ?? 'sem_metodo'
+      const key = !record.method || record.method === 'manual' ? 'sem_metodo' : record.method
       acc[key] = (acc[key] ?? 0) + Number(record.amount)
       return acc
     }, {} as Record<string, number>)
@@ -414,7 +418,7 @@ function FinancialRow({ record, onMarkPaid, onDelete }: {
       <Avatar name={patientName} colorClass={record.patient?.avatarColor} size="sm" />
 
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-neutral-700 truncate">{record.description}</p>
+        <p className="text-sm font-medium text-neutral-700 truncate">{displayDescription(record.description)}</p>
         <p className="text-xs text-neutral-400 mt-0.5">
           {record.paidAt
             ? `Pago em ${formatDate(record.paidAt)}`

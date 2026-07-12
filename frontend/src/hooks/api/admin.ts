@@ -36,7 +36,7 @@ export interface AdminMonitor {
     integrations: {
       resend: { configured: boolean; fromConfigured: boolean }
       asaas: { configured: boolean; webhookProtected: boolean }
-      whatsapp: { configured: boolean }
+      whatsapp: { configured: boolean; operational: boolean | null; last24h: { sent: number; failed: number } }
       webPush: { configured: boolean }
     }
   }

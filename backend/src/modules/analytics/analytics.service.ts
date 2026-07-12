@@ -294,12 +294,23 @@ export class AnalyticsService {
       ),
     ])
 
+    const unlinkedSessionsThisMonth = await safe('unlinkedSessionsThisMonth', log, () =>
+      this.sessions
+        .createQueryBuilder('s')
+        .where('s.psychologistId = :userId', { userId })
+        .andWhere('s.appointmentId IS NULL')
+        .andWhere('s.date BETWEEN :start AND :end', { start: monthStart, end: monthEnd })
+        .getCount(),
+      0,
+    )
+
     const reminderCount = Number(remindersSent ?? 0)
     const absenceCount = Number((earlyCancellations as any)?.count ?? 0)
     const absencesAmount = Number((earlyCancellations as any)?.amount ?? 0)
-    const totalMonthAppointments = Number(monthAppointments ?? 0)
-    const scheduledMonthAppointments = Number(sessionsThisMonth ?? 0)
-    const completedMonthAppointments = Number(completedSessionsThisMonth ?? 0)
+    const standaloneSessionCount = Number(unlinkedSessionsThisMonth ?? 0)
+    const totalMonthAppointments = Number(monthAppointments ?? 0) + standaloneSessionCount
+    const scheduledMonthAppointments = Number(sessionsThisMonth ?? 0) + standaloneSessionCount
+    const completedMonthAppointments = Number(completedSessionsThisMonth ?? 0) + standaloneSessionCount
     const noShowCount = Number(noShowsThisMonth ?? 0)
     const cancelledCount = Number(cancelledThisMonth ?? 0)
     const onlineCount = Number(onlineThisMonth ?? 0)

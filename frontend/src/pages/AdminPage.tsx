@@ -410,8 +410,14 @@ function MonitorTab() {
           <HealthItem
             icon={MessageCircle}
             label="WhatsApp"
-            ok={integrations.whatsapp.configured}
-            detail={integrations.whatsapp.configured ? 'Configurado' : 'Pendente'}
+            ok={integrations.whatsapp.configured && integrations.whatsapp.operational !== false}
+            detail={!integrations.whatsapp.configured
+              ? 'Não configurado'
+              : integrations.whatsapp.operational === false
+                ? `Falhando · ${integrations.whatsapp.last24h.failed} erro(s) em 24h`
+                : integrations.whatsapp.operational === true
+                  ? `${integrations.whatsapp.last24h.sent} envio(s) OK em 24h`
+                  : 'Configurado · sem envios em 24h'}
           />
           <HealthItem
             icon={Bell}

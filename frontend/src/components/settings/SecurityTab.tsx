@@ -77,9 +77,6 @@ export function SecurityTab({
           </div>
           <span className="text-xs bg-sage-100 text-sage-700 px-2 py-0.5 rounded-full">Ativa</span>
         </div>
-        <p className="text-xs text-neutral-400">
-          A listagem completa de dispositivos e o comando para sair de todos entram quando o backend expuser sessões reais.
-        </p>
       </div>
     </div>
   )

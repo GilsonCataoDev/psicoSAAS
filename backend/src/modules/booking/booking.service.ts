@@ -771,7 +771,7 @@ export class BookingService {
           status:          'active',
           sessionPrice:    Number(booking.amount) || 0,
           sessionDuration: booking.duration || 50,
-          startDate:       booking.date,
+          startDate:       new Date().toISOString().slice(0, 10),
           tags:            [],
         }),
       )

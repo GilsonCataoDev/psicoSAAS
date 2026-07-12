@@ -177,7 +177,7 @@ export class AdminService {
           .getMany(),
       ])
 
-    const integrations = this.getIntegrationStatus()
+    const integrations = await this.getIntegrationStatus()
 
     return {
       generatedAt: new Date().toISOString(),
@@ -218,7 +218,7 @@ export class AdminService {
     }
   }
 
-  private getIntegrationStatus() {
+  private async getIntegrationStatus() {
     const whatsappUrl = this.cfg.get<string>('WHATSAPP_API_URL') ?? ''
     const whatsappKey = this.cfg.get<string>('WHATSAPP_API_KEY') ?? ''
     const resendKey = this.cfg.get<string>('RESEND_API_KEY') ?? ''
@@ -227,6 +227,24 @@ export class AdminService {
     const asaasWebhookToken = this.cfg.get<string>('ASAAS_WEBHOOK_TOKEN') ?? ''
     const webPushPublic = this.cfg.get<string>('WEB_PUSH_PUBLIC_KEY') ?? ''
     const webPushPrivate = this.cfg.get<string>('WEB_PUSH_PRIVATE_KEY') ?? ''
+
+    let whatsappDeliveries: Array<{ status: string }> = []
+    try {
+      whatsappDeliveries = await this.dataSource.query(`
+        SELECT status FROM whatsapp_delivery_logs
+        WHERE "createdAt" > NOW() - INTERVAL '24 hours'
+        ORDER BY "createdAt" DESC LIMIT 20
+      `)
+    } catch {
+      // A migration pode ainda não ter sido aplicada em um ambiente novo.
+    }
+    const whatsappConfigured = Boolean(
+      whatsappUrl && whatsappKey
+      && !whatsappUrl.includes('your-evolution-api')
+      && whatsappKey !== 'your-api-key'
+    )
+    const whatsappFailures = whatsappDeliveries.filter(item => item.status === 'failed').length
+    const whatsappSent = whatsappDeliveries.filter(item => item.status === 'sent').length
 
     return {
       resend: {
@@ -238,12 +256,9 @@ export class AdminService {
         webhookProtected: Boolean(asaasWebhookToken),
       },
       whatsapp: {
-        configured: Boolean(
-          whatsappUrl
-          && whatsappKey
-          && !whatsappUrl.includes('your-evolution-api')
-          && whatsappKey !== 'your-api-key',
-        ),
+        configured: whatsappConfigured,
+        operational: whatsappDeliveries.length === 0 ? null : whatsappSent > 0 && whatsappFailures <= whatsappSent,
+        last24h: { sent: whatsappSent, failed: whatsappFailures },
       },
       webPush: {
         configured: Boolean(webPushPublic && webPushPrivate),
