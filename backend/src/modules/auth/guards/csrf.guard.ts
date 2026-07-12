@@ -29,7 +29,8 @@ export class CsrfGuard implements CanActivate {
     if (!user?.id) return true  // não autenticado — JwtAuthGuard trata isso
 
     const header  = req.headers['x-csrf-token'] as string | undefined
-    const expected = generateCsrfToken(user.id)
+    const csrfSeed = (user as any).csrfSeed as string | undefined
+    const expected = generateCsrfToken(user.id, csrfSeed)
 
     if (!header) throw new ForbiddenException('CSRF token ausente')
 

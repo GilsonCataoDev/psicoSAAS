@@ -124,7 +124,10 @@ export function hashToken(token: string): string {
  * - Utilizado no padrão Synchronizer Token: retornado no body do login/me,
  *   armazenado em memória no frontend e enviado via header X-CSRF-Token.
  */
-export function generateCsrfToken(userId: string): string {
+export function generateCsrfToken(userId: string, csrfSeed?: string): string {
   const secret = process.env.JWT_SECRET ?? ''
-  return createHmac('sha256', secret).update(`csrf:${userId}`).digest('hex')
+  // Tokens emitidos antes da introdução do csrfSeed não têm o campo no JWT.
+  // Nesses casos mantemos o formato legado para não invalidar sessões ativas no deploy.
+  const payload = csrfSeed ? `csrf:${userId}:${csrfSeed}` : `csrf:${userId}`
+  return createHmac('sha256', secret).update(payload).digest('hex')
 }

@@ -135,7 +135,6 @@ export class AuthController {
     const rawToken = req.cookies?.[REFRESH_COOKIE]
       ?? req.cookies?.[LEGACY_REFRESH_COOKIE]
       ?? (isNativeClient(req) ? req.headers['x-refresh-token'] as string | undefined : undefined)
-      ?? (isNativeClient(req) ? body?.refreshToken : undefined)
     const result   = await this.auth.refresh(rawToken, getIp(req), req.headers['user-agent'])
     this.setAuthCookies(res, result.tokens)
     return authResponse(req, result)
@@ -174,6 +173,7 @@ export class AuthController {
   ) {
     const result = await this.auth.impersonate({ id: req.user.id, email: req.user.email }, userId, getIp(req))
     res.cookie(ACCESS_COOKIE, result.accessToken, accessCookieOpts())
+    // csrfToken da impersonação já inclui csrfSeed via buildResult do impersonate
     return { user: result.user, csrfToken: result.csrfToken }
   }
 
@@ -189,7 +189,7 @@ export class AuthController {
   me(@Request() req: any) {
     return {
       ...req.user,
-      csrfToken: this.auth.generateCsrfToken(req.user.id),
+      csrfToken: this.auth.generateCsrfToken(req.user.id, req.user.csrfSeed),
     }
   }
 
@@ -200,7 +200,7 @@ export class AuthController {
     return {
       user: {
         ...req.user,
-        csrfToken: this.auth.generateCsrfToken(req.user.id),
+        csrfToken: this.auth.generateCsrfToken(req.user.id, req.user.csrfSeed),
       },
       subscription: await this.billing.getMine(req.user),
     }
