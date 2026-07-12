@@ -91,7 +91,7 @@ export interface FinancialRecord {
   status: 'paid' | 'pending' | 'overdue'
   dueDate?: string
   paidAt?: string
-  method?: 'pix' | 'credit_card' | 'debit_card' | 'cash' | 'transfer'
+  method?: 'pix' | 'credit_card' | 'debit_card' | 'cash' | 'transfer' | 'manual'
   receiptUrl?: string
   createdAt: string
 }

@@ -278,8 +278,8 @@ function DocCard({ doc, previewLoading, onPreview, onDownload, onCopyLink, onDel
         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
           <span className="text-xs text-neutral-400">{formatDate(doc.signedAt)}</span>
           <span className="text-neutral-200">·</span>
-          <span className="text-xs text-sage-600 flex items-center gap-1">
-            <Shield className="w-3 h-3" />Assinado
+          <span className={`text-xs flex items-center gap-1 ${doc.needsReview ? 'text-amber-600' : 'text-sage-600'}`}>
+            <Shield className="w-3 h-3" />{doc.needsReview ? 'Revisão necessária' : 'Assinado'}
           </span>
           <span className="text-neutral-200">·</span>
           <span className="text-xs font-mono text-neutral-400">{doc.signCode}</span>

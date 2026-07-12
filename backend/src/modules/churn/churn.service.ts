@@ -97,7 +97,18 @@ export class ChurnService {
     const activations = await this.activationRepo.find({ where: { activated: true } })
     const activationRate = total > 0 ? Math.round((activations.length / total) * 100) : 0
 
-    const pendingAlerts = await this.alertRepo.count({ where: { resolved: false } })
+    const pendingAlertRows = await this.ds.query<Array<{ count: string }>>(`
+      SELECT COUNT(*)::int AS count FROM (
+        SELECT DISTINCT a."userId", a.type
+        FROM tenant_alerts a
+        INNER JOIN users u ON u.id = a."userId"
+        WHERE a.resolved = false AND u."isActive" = true
+          AND u.email NOT ILIKE '%@example.com'
+          AND u.email NOT ILIKE '%+test%'
+          AND u.name NOT ILIKE '%e2e%'
+      ) pending
+    `)
+    const pendingAlerts = Number(pendingAlertRows[0]?.count ?? 0)
 
     return {
       summary: { total, healthy, atRisk, critical, activationRate, pendingAlerts },
@@ -174,10 +185,16 @@ export class ChurnService {
   }
 
   async getAlerts(filters: { userId?: string; resolved?: boolean } = {}) {
-    const where: Record<string, unknown> = {}
-    if (filters.userId) where.userId = filters.userId
-    if (filters.resolved !== undefined) where.resolved = filters.resolved
-    return this.alertRepo.find({ where, order: { createdAt: 'DESC' }, take: 100 })
+    const qb = this.alertRepo.createQueryBuilder('alert')
+      .innerJoin('users', 'user', 'user.id = alert."userId"')
+      .distinctOn(['alert."userId"', 'alert.type'])
+      .where('user."isActive" = true')
+      .andWhere("user.email NOT ILIKE '%@example.com'")
+      .andWhere("user.email NOT ILIKE '%+test%'")
+      .andWhere("user.name NOT ILIKE '%e2e%'")
+    if (filters.userId) qb.andWhere('alert."userId" = :userId', { userId: filters.userId })
+    if (filters.resolved !== undefined) qb.andWhere('alert.resolved = :resolved', { resolved: filters.resolved })
+    return qb.orderBy('alert."userId"').addOrderBy('alert.type').addOrderBy('alert."createdAt"', 'DESC').take(100).getMany()
   }
 
   async resolveAlert(alertId: string) {
@@ -210,17 +227,22 @@ export class ChurnService {
 
   async getAnalytics() {
     const [total, activated7d, activated30d, riskCounts] = await Promise.all([
-      this.ds.query<[{ count: string }]>('SELECT COUNT(*)::int as count FROM users WHERE "isActive" = true'),
+      this.ds.query<[{ count: string }]>(`SELECT COUNT(*)::int as count FROM users WHERE "isActive" = true AND email NOT ILIKE '%@example.com' AND email NOT ILIKE '%+test%' AND name NOT ILIKE '%e2e%'`),
       this.ds.query<[{ count: string }]>(`
-        SELECT COUNT(*)::int as count FROM tenant_activations
-        WHERE activated = true AND "activatedAt" > NOW() - INTERVAL '7 days'
+        SELECT COUNT(*)::int as count FROM tenant_activations ta INNER JOIN users u ON u.id = ta."userId"
+        WHERE ta.activated = true AND ta."activatedAt" > NOW() - INTERVAL '7 days'
+          AND u."isActive" = true AND u.email NOT ILIKE '%@example.com' AND u.email NOT ILIKE '%+test%' AND u.name NOT ILIKE '%e2e%'
       `),
       this.ds.query<[{ count: string }]>(`
-        SELECT COUNT(*)::int as count FROM tenant_activations
-        WHERE activated = true AND "activatedAt" > NOW() - INTERVAL '30 days'
+        SELECT COUNT(*)::int as count FROM tenant_activations ta INNER JOIN users u ON u.id = ta."userId"
+        WHERE ta.activated = true AND ta."activatedAt" > NOW() - INTERVAL '30 days'
+          AND u."isActive" = true AND u.email NOT ILIKE '%@example.com' AND u.email NOT ILIKE '%+test%' AND u.name NOT ILIKE '%e2e%'
       `),
       this.ds.query<Array<{ riskLevel: string; count: string }>>(`
-        SELECT "riskLevel", COUNT(*)::int as count FROM tenant_health GROUP BY "riskLevel"
+        SELECT th."riskLevel", COUNT(*)::int as count FROM tenant_health th
+        INNER JOIN users u ON u.id = th."userId"
+        WHERE u."isActive" = true AND u.email NOT ILIKE '%@example.com' AND u.email NOT ILIKE '%+test%' AND u.name NOT ILIKE '%e2e%'
+        GROUP BY th."riskLevel"
       `),
     ])
 
@@ -433,7 +455,12 @@ export class ChurnService {
 
   private async fetchAllStats(filters: { userId?: string; riskLevel?: RiskLevel; plan?: string; days?: number } = {}): Promise<TenantStatsRow[]> {
     const params: unknown[] = []
-    const conditions: string[] = [`u."isActive" = true`]
+    const conditions: string[] = [
+      `u."isActive" = true`,
+      `u.email NOT ILIKE '%@example.com'`,
+      `u.email NOT ILIKE '%+test%'`,
+      `u.name NOT ILIKE '%e2e%'`,
+    ]
 
     if (filters.userId) {
       params.push(filters.userId)

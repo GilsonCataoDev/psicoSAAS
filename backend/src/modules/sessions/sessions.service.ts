@@ -11,6 +11,11 @@ import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
 import { Appointment } from '../appointments/entities/appointment.entity'
 import { Booking } from '../booking/entities/booking.entity'
 
+const sessionDescription = (date: string) => {
+  const [year, month, day] = date.slice(0, 10).split('-')
+  return `Sessão — ${day}/${month}/${year}`
+}
+
 @Injectable()
 export class SessionsService {
   private readonly logger = new Logger(SessionsService.name)
@@ -153,7 +158,7 @@ export class SessionsService {
               {
                 type: 'income',
                 amount,
-                description: `Sessão — ${dto.date}`,
+                description: sessionDescription(dto.date),
                 status: isPaid ? 'paid' : 'pending',
                 dueDate: dto.date,
                 paidAt: isPaid ? dto.date : undefined,
@@ -265,7 +270,7 @@ export class SessionsService {
         {
           type: 'income',
           amount,
-          description: `Sessão — ${session.date}`,
+          description: sessionDescription(session.date),
           status: isPaid ? 'paid' : 'pending',
           dueDate: session.date,
           paidAt: isPaid ? session.date : undefined,

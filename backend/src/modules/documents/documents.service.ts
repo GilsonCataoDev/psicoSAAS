@@ -28,6 +28,8 @@ const DOC_TYPE_LABELS: Record<DocType, string> = {
   encaminhamento: 'Carta de Encaminhamento',
 }
 
+const UNFILLED_TEMPLATE_RE = /\[[^\]]+\]|_{3,}|00\/000000|R\$\s*_{2,}/
+
 @Injectable()
 export class DocumentsService {
   private readonly logger = new Logger(DocumentsService.name)
@@ -83,7 +85,8 @@ export class DocumentsService {
 
   private exposeDocument(doc: Document): Document {
     const { signHash: _signHash, signerIp: _signerIp, ...safeDoc } = doc as any
-    return { ...safeDoc, content: this.decryptContent(doc.content) } as Document
+    const content = this.decryptContent(doc.content)
+    return { ...safeDoc, content, needsReview: UNFILLED_TEMPLATE_RE.test(content) } as Document
   }
 
   private collectPdf(pdf: PDFKit.PDFDocument): Promise<Buffer> {
@@ -127,6 +130,9 @@ export class DocumentsService {
 
   async create(user: User, dto: CreateDocumentDto, signerIp?: string): Promise<Document> {
     await this.checkDocumentLimit(user.id)
+    if (UNFILLED_TEMPLATE_RE.test(dto.content)) {
+      throw new BadRequestException('Preencha todos os campos obrigatórios antes de assinar o documento.')
+    }
 
     const timestamp = Date.now()
     const { signCode, signHash } = this.generateSignature(dto.content, user.id, timestamp)
@@ -181,10 +187,9 @@ export class DocumentsService {
   async findByUser(userId: string, type?: DocType): Promise<Partial<Document>[]> {
     const where: any = { userId }
     if (type) where.type = type
-    return this.repo.find({
+    const documents = await this.repo.find({
       where,
       order: { createdAt: 'DESC' },
-      // Conteúdo criptografado, hash e IP não pertencem à listagem.
       select: [
         'id',
         'patientId',
@@ -196,7 +201,12 @@ export class DocumentsService {
         'psychologistName',
         'psychologistCrp',
         'createdAt',
+        'content',
       ],
+    })
+    return documents.map(doc => {
+      const { content: _content, ...summary } = doc as any
+      return { ...summary, needsReview: UNFILLED_TEMPLATE_RE.test(this.decryptContent(doc.content)) }
     })
   }
 
@@ -212,6 +222,9 @@ export class DocumentsService {
     if (stored.userId !== userId) throw new NotFoundException()
 
     const content = this.decryptContent(stored.content)
+    if (UNFILLED_TEMPLATE_RE.test(content)) {
+      throw new BadRequestException('Documento incompleto. Revise e gere uma nova versão antes de baixar.')
+    }
     const verificationUrl = this.getVerificationUrl(stored.signCode)
     const qrBuffer = await QRCode.toBuffer(verificationUrl, {
       errorCorrectionLevel: 'M',
@@ -451,7 +464,7 @@ export class DocumentsService {
     const content = this.decryptContent(doc.content)
     const data = `${content}:${doc.userId}:${timestamp}`
     const recomputedHash = createHmac('sha256', this.signSecret).update(data).digest('hex')
-    const valid = recomputedHash === doc.signHash
+    const valid = recomputedHash === doc.signHash && !UNFILLED_TEMPLATE_RE.test(content)
 
     if (!valid) {
       this.logger.warn(`[Verificação] Hash inválido para código ${signCode} — possível adulteração`)

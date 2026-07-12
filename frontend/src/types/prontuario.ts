@@ -47,6 +47,7 @@ export interface Documento {
   psychologistCrp?: string
   psychologistName: string
   createdAt: string
+  needsReview?: boolean
 }
 
 export type DocumentoListItem = Omit<Documento, 'content'>

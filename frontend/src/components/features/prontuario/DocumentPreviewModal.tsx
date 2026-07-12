@@ -150,11 +150,13 @@ export default function DocumentPreviewModal({
               </div>
             </div>
 
-            <div className="bg-sage-50 border border-sage-100 rounded-xl px-4 py-3 flex items-center gap-3">
-              <CheckCircle className="w-4 h-4 text-sage-600 shrink-0" />
+            <div className={`${doc.needsReview ? 'bg-amber-50 border-amber-200' : 'bg-sage-50 border-sage-100'} border rounded-xl px-4 py-3 flex items-center gap-3`}>
+              <CheckCircle className={`w-4 h-4 shrink-0 ${doc.needsReview ? 'text-amber-600' : 'text-sage-600'}`} />
               <div className="min-w-0 flex-1">
-                <p className="text-xs text-sage-700 font-medium">Documento com autenticidade verificável</p>
-                <p className="text-xs font-mono text-sage-600 mt-0.5">Código: {doc.signCode}</p>
+                <p className={`text-xs font-medium ${doc.needsReview ? 'text-amber-800' : 'text-sage-700'}`}>
+                  {doc.needsReview ? 'Documento incompleto: gere uma nova versão preenchida' : 'Documento com autenticidade verificável'}
+                </p>
+                <p className={`text-xs font-mono mt-0.5 ${doc.needsReview ? 'text-amber-700' : 'text-sage-600'}`}>Código: {doc.signCode}</p>
               </div>
               <a
                 href={verificationUrl}

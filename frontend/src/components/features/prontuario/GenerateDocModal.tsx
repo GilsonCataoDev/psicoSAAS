@@ -130,6 +130,23 @@ function numToWords(n: number): string {
   return words[n] ?? String(n)
 }
 
+function missingRequiredField(data: FormData, type: DocType): string | null {
+  const missing = (value?: string) => !value?.trim()
+  if (type !== 'recibo' && missing(data.purpose)) return 'Informe a finalidade do documento.'
+  if (type !== 'recibo' && missing(data.place)) return 'Informe o local de emissão.'
+  if (type === 'declaracao' && missing(data.attendanceSchedule) && (!data.startDate || !data.endDate || !data.sessionCount)) {
+    return 'Informe o comparecimento ou preencha período e número de sessões.'
+  }
+  if (type === 'recibo' && (!data.sessionValue || data.sessionValue <= 0)) return 'Informe o valor recebido.'
+  if ((type === 'relatorio' || type === 'atestado') && missing(data.demand)) return 'Preencha a descrição da demanda.'
+  if ((type === 'relatorio' || type === 'atestado') && missing(data.procedure)) return 'Preencha o procedimento.'
+  if ((type === 'relatorio' || type === 'atestado') && missing(data.conclusion)) return 'Preencha a conclusão.'
+  if (type === 'relatorio' && missing(data.extraText)) return 'Preencha o desenvolvimento clínico.'
+  if (type === 'encaminhamento' && missing(data.referralTo)) return 'Informe o profissional ou serviço de destino.'
+  if (type === 'encaminhamento' && missing(data.extraText)) return 'Informe a justificativa do encaminhamento.'
+  return null
+}
+
 export default function GenerateDocModal({
   open, onClose, onGenerate, patients, user, initialType,
 }: {
@@ -171,6 +188,8 @@ export default function GenerateDocModal({
 
   async function onSubmit(data: FormData) {
     if (!patient) { toast.error('Selecione uma pessoa'); return }
+    const validationError = missingRequiredField(data, selectedType)
+    if (validationError) { toast.error(validationError); return }
     const content = buildContent({ ...data, type: selectedType }, patient, selectedType, user)
     const title = `${DOC_TYPE_LABELS[selectedType]} — ${patient.name}`
     try {
