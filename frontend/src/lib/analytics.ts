@@ -63,6 +63,10 @@ export function resetAnalytics() {
 
 // Eventos padronizados — use estas constantes para consistência
 export const EVENTS = {
+  // Aquisição
+  LANDING_VIEWED:      'landing_page_viewed',
+  LANDING_CTA_CLICKED: 'landing_cta_clicked',
+
   // Auth
   REGISTER:           'user_registered',
   LOGIN:              'user_logged_in',

@@ -60,7 +60,7 @@ export default function OnboardingWizard() {
       done: Boolean(bookingPage?.isActive && bookingPage?.slug),
       icon: Link2,
     },
-    {
+    ...(hasProAutomation ? [{
       id: 'whatsapp',
       title: 'Conecte o WhatsApp',
       description: 'Prepare lembretes automáticos para reduzir faltas.',
@@ -68,8 +68,8 @@ export default function OnboardingWizard() {
       href: '/configuracoes?tab=messages',
       done: Boolean(whatsappStatus?.connected),
       icon: MessageCircle,
-    },
-  ], [appointments.length, bookingPage, patients.length, whatsappStatus?.connected])
+    } as ChecklistItem] : []),
+  ], [appointments.length, bookingPage, hasProAutomation, patients.length, whatsappStatus?.connected])
 
   const doneCount = items.filter(item => item.done).length
   const progress = Math.round((doneCount / items.length) * 100)
@@ -240,7 +240,7 @@ export default function OnboardingWizard() {
       <div className="border-t border-sage-50 bg-sage-50/55 px-5 py-3 dark:border-white/5 dark:bg-white/5">
         <p className="flex items-center gap-2 text-xs text-sage-800 dark:text-sage-200">
           <CalendarDays className="h-3.5 w-3.5 shrink-0" />
-          Meta: saia com paciente, sessão, link público e lembretes preparados.
+          Meta: saia com paciente, primeira sessão e seu link público preparados.
         </p>
       </div>
 

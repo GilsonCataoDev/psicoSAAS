@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import BrandLogo from '@/components/ui/BrandLogo'
 import { usePublicTestimonials } from '@/hooks/api/testimonial'
+import { track, EVENTS } from '@/lib/analytics'
 
 const trustSignals = [
   'Plano gratis',
@@ -197,8 +198,14 @@ export default function LandingPage() {
   const { fadeUp, stagger, reduce } = useLandingMotion()
   const { data: publicFeedback } = usePublicTestimonials()
   const realTestimonials = publicFeedback?.items ?? []
+  const signupPath = `/cadastro${window.location.search}`
 
   useEffect(() => {
+    track(EVENTS.LANDING_VIEWED, {
+      path: window.location.pathname,
+      source: new URLSearchParams(window.location.search).get('utm_source') ?? 'direct',
+    })
+
     if (document.querySelector('script[src*="js.hsforms.net"]')) return
     const script = document.createElement('script')
     script.src = 'https://js.hsforms.net/forms/embed/51719933.js'
@@ -227,7 +234,7 @@ export default function LandingPage() {
               Entrar
             </Link>
             <MotionLink
-              to="/cadastro"
+              to={signupPath}
               whileHover={reduce ? undefined : { scale: 1.03 }}
               whileTap={reduce ? undefined : { scale: 0.97 }}
               className="hidden rounded-md bg-sage-800 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sage-900 sm:inline-flex"
@@ -253,16 +260,17 @@ export default function LandingPage() {
             </motion.p>
 
             <motion.h1 variants={fadeUp} className="mt-6 max-w-[21rem] text-[2.1rem] font-bold leading-[1.06] tracking-normal text-white sm:max-w-2xl sm:text-5xl lg:text-6xl">
-              Agenda, prontuário e cobranças para psicólogos e terapeutas trabalharem com menos sobrecarga.
+              Terminou a sessão? Organize o prontuário e o restante da clínica sem voltar para planilhas.
             </motion.h1>
 
             <motion.p variants={fadeUp} className="mt-6 max-w-[22rem] text-base leading-relaxed text-white/76 sm:max-w-xl sm:text-lg">
-              Organize pacientes, mostre datas disponíveis no link público, registre sessões e acompanhe pagamentos em uma rotina simples de colocar para funcionar.
+              Registre evoluções, organize pacientes, agenda e pagamentos em um só fluxo — com plano grátis, sem cartão e sem prazo para expirar.
             </motion.p>
 
             <motion.div variants={fadeUp} className="mt-8 flex flex-col gap-3 sm:flex-row">
               <MotionLink
-                to="/cadastro"
+                to={signupPath}
+                onClick={() => track(EVENTS.LANDING_CTA_CLICKED, { location: 'hero', destination: 'signup' })}
                 whileHover={reduce ? undefined : { scale: 1.025 }}
                 whileTap={reduce ? undefined : { scale: 0.975 }}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-sage-200 px-5 text-sm font-bold text-sage-900 shadow-lg shadow-sage-200/15 hover:bg-sage-100"
@@ -277,6 +285,16 @@ export default function LandingPage() {
               >
                 Ver como funciona <ChevronRight className="h-4 w-4" />
               </motion.a>
+            </motion.div>
+
+            <motion.div variants={fadeUp} className="mt-3">
+              <Link
+                to="/ferramenta/evolucao"
+                onClick={() => track(EVENTS.LANDING_CTA_CLICKED, { location: 'hero', destination: 'free_tool' })}
+                className="text-sm font-semibold text-sage-200 underline decoration-sage-200/40 underline-offset-4 hover:text-white"
+              >
+                Prefere experimentar primeiro? Gere uma evolução psicológica grátis
+              </Link>
             </motion.div>
 
             <motion.div variants={fadeUp} className="mt-8 flex flex-col gap-2 text-sm text-white/70 sm:flex-row sm:flex-wrap">
@@ -527,7 +545,7 @@ export default function LandingPage() {
             ))}
           </ul>
           <MotionLink
-            to="/cadastro"
+            to={signupPath}
             whileHover={reduce ? undefined : { scale: 1.02 }}
             whileTap={reduce ? undefined : { scale: 0.98 }}
             className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-md bg-sage-800 text-sm font-bold text-white hover:bg-sage-900"
@@ -592,7 +610,7 @@ export default function LandingPage() {
           </div>
           <p className="mt-4 text-sm text-white/50">
             Prefere começar direto?{' '}
-            <Link to="/cadastro" className="underline hover:text-white">
+            <Link to={signupPath} className="underline hover:text-white">
               Crie sua conta gratis <ArrowRight className="inline h-3 w-3" />
             </Link>
           </p>

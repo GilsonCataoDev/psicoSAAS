@@ -97,7 +97,12 @@ export default function RegisterPage() {
         }
       }
 
-      track(EVENTS.REGISTER)
+      track(EVENTS.REGISTER, {
+        source: searchParams.get('utm_source') ?? (referralCode ? 'referral' : 'direct'),
+        medium: searchParams.get('utm_medium') ?? 'none',
+        campaign: searchParams.get('utm_campaign') ?? 'none',
+        has_referral: Boolean(referralCode),
+      })
       toast.success(
         freePlanActivated
           ? 'Plano gratis liberado! Seja bem-vindo(a)'
