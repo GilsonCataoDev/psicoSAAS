@@ -114,7 +114,7 @@ export class SessionsService {
   }
 
   async create(dto: CreateSessionDto, psychologistId: string): Promise<Session & { firstSession: boolean }> {
-    await this.assertPatientBelongsToPsychologist(dto.patientId, psychologistId)
+    const patient = await this.assertPatientBelongsToPsychologist(dto.patientId, psychologistId)
     if (dto.appointmentId) {
       await this.assertAppointmentBelongsToPsychologist(dto.appointmentId, psychologistId, dto.patientId)
       await this.assertAppointmentHasNoSession(dto.appointmentId, psychologistId)
@@ -123,7 +123,10 @@ export class SessionsService {
     const previousSessions = await this.repo.count({ where: { psychologistId } })
 
     // Criptografa campos clínicos antes de persistir
-    const encrypted = this.encryptFields(dto)
+    const effectiveDto = patient.billingType === 'monthly_package'
+      ? { ...dto, paymentStatus: 'included' }
+      : dto
+    const encrypted = this.encryptFields(effectiveDto)
     const session   = this.repo.create({ ...encrypted, psychologistId })
     const saved     = await this.repo.save(session)
 
@@ -133,7 +136,17 @@ export class SessionsService {
 
     // Auto-cria FinancialRecord para sessões pagas ou pendentes
     // Usa dto original (não criptografado) para paymentStatus, date, patientId
-    if (dto.paymentStatus !== 'waived' && dto.patientId) {
+    if (patient.billingType === 'monthly_package') {
+      try {
+        const existingFinancial = dto.appointmentId
+          ? await this.financial.findByAppointmentId(dto.appointmentId, psychologistId)
+          : null
+        if (existingFinancial) await this.financial.remove(existingFinancial.id, psychologistId)
+        await this.financial.ensureMonthlyPackageCharge(patient, new Date(`${dto.date}T12:00:00`))
+      } catch (err: any) {
+        this.logger.warn(`Falha ao criar pacote mensal para sessao ${saved.id}: ${err?.message ?? 'erro desconhecido'}`)
+      }
+    } else if (dto.paymentStatus !== 'waived' && dto.patientId) {
       try {
         const patient = await this.patients.findOne({
           where: { id: dto.patientId, psychologistId },
@@ -241,6 +254,20 @@ export class SessionsService {
   private async syncFinancialRecord(session: Session, psychologistId: string): Promise<void> {
     const existing = await this.findFinancialForSession(session, psychologistId)
 
+    const billingPatient = await this.patients.findOne({
+      where: { id: session.patientId, psychologistId },
+    })
+    if (!billingPatient) return
+
+    if (billingPatient.billingType === 'monthly_package') {
+      if (existing) await this.financial.remove(existing.id, psychologistId)
+      await this.financial.ensureMonthlyPackageCharge(billingPatient, new Date(`${session.date}T12:00:00`))
+      if (session.paymentStatus !== 'included') {
+        await this.repo.update({ id: session.id, psychologistId }, { paymentStatus: 'included' })
+      }
+      return
+    }
+
     if (session.paymentStatus === 'waived') {
       if (existing) await this.financial.remove(existing.id, psychologistId)
       return
@@ -258,12 +285,7 @@ export class SessionsService {
       }
     } else {
       // Sessão antiga sem registro financeiro — cria agora
-      const patient = await this.patients.findOne({
-        where: { id: session.patientId, psychologistId },
-      })
-      if (!patient) return
-
-      const amount = Number(patient.sessionPrice) || 0
+      const amount = Number(billingPatient.sessionPrice) || 0
       const isPaid = session.paymentStatus === 'paid'
 
       await this.financial.create(
@@ -297,9 +319,10 @@ export class SessionsService {
     }
   }
 
-  private async assertPatientBelongsToPsychologist(patientId: string, psychologistId: string): Promise<void> {
+  private async assertPatientBelongsToPsychologist(patientId: string, psychologistId: string): Promise<Patient> {
     const patient = await this.patients.findOne({ where: { id: patientId, psychologistId } })
     if (!patient) throw new NotFoundException('Pessoa não encontrada')
+    return patient
   }
 
   private async assertAppointmentBelongsToPsychologist(appointmentId: string, psychologistId: string, patientId?: string): Promise<void> {

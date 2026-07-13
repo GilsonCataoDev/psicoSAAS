@@ -180,7 +180,9 @@ function PatientCard({ patient }: { patient: Patient }) {
           <StatusBadge status={patient.status} />
         </div>
         <p className="text-xs text-neutral-400 mt-0.5 truncate">
-          Desde {formatDate(patientStartDate(patient.startDate, patient.createdAt))} · {formatCurrency(Number(patient.sessionPrice ?? 0))}/sessão
+          Desde {formatDate(patientStartDate(patient.startDate, patient.createdAt))} · {patient.billingType === 'monthly_package'
+            ? `${formatCurrency(Number(patient.monthlyPackagePrice ?? 0))}/mês · ${patient.monthlyIncludedSessions ?? 4} sessões`
+            : `${formatCurrency(Number(patient.sessionPrice ?? 0))}/sessão`}
         </p>
         {patient.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1.5">

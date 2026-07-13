@@ -68,10 +68,30 @@ describe('SessionsService', () => {
   let service: SessionsService
   let sessionRepo: ReturnType<typeof makeRepo>
   let patientRepo: ReturnType<typeof makeRepo>
+  let financial: {
+    create: jest.Mock
+    findBySessionId: jest.Mock
+    findByAppointmentId: jest.Mock
+    remove: jest.Mock
+    updateLinkedRecord: jest.Mock
+    markPaid: jest.Mock
+    resetToPending: jest.Mock
+    ensureMonthlyPackageCharge: jest.Mock
+  }
 
   beforeEach(async () => {
     sessionRepo = makeRepo()
     patientRepo = makeRepo()
+    financial = {
+      create: jest.fn(),
+      findBySessionId: jest.fn(),
+      findByAppointmentId: jest.fn(),
+      remove: jest.fn(),
+      updateLinkedRecord: jest.fn(),
+      markPaid: jest.fn(),
+      resetToPending: jest.fn(),
+      ensureMonthlyPackageCharge: jest.fn(),
+    }
 
     const module = await Test.createTestingModule({
       providers: [
@@ -81,7 +101,7 @@ describe('SessionsService', () => {
         { provide: getRepositoryToken(User),        useValue: makeRepo() },
         { provide: getRepositoryToken(Appointment), useValue: makeRepo() },
         { provide: getRepositoryToken(Booking),     useValue: makeRepo() },
-        { provide: FinancialService,       useValue: { create: jest.fn(), findBySessionId: jest.fn(), remove: jest.fn(), updateLinkedRecord: jest.fn(), markPaid: jest.fn(), resetToPending: jest.fn() } },
+        { provide: FinancialService,       useValue: financial },
         { provide: NotificationsService,   useValue: { sendPaymentRequest: jest.fn() } },
       ],
     }).compile()
@@ -166,6 +186,34 @@ describe('SessionsService', () => {
       sessionRepo.findOne.mockResolvedValue(makeSession())
       const result = await service.findOne('sess-1', PSY_ID)
       expect(result.id).toBe('sess-1')
+    })
+  })
+
+  describe('create', () => {
+    it('marca a sessao como incluida e gera apenas a mensalidade para paciente de pacote', async () => {
+      const patient = {
+        id: PAT_ID,
+        name: 'Joana',
+        psychologistId: PSY_ID,
+        status: 'active',
+        billingType: 'monthly_package',
+        monthlyPackagePrice: 600,
+        monthlyIncludedSessions: 4,
+        billingDay: 5,
+      } as Patient
+      patientRepo.findOne.mockResolvedValue(patient)
+      sessionRepo.create.mockImplementation((value) => ({ id: 'sess-1', ...value }))
+      sessionRepo.save.mockImplementation(async (value) => value)
+
+      const result = await service.create({
+        patientId: PAT_ID,
+        date: '2026-07-15',
+        paymentStatus: 'pending',
+      }, PSY_ID)
+
+      expect(result.paymentStatus).toBe('included')
+      expect(financial.ensureMonthlyPackageCharge).toHaveBeenCalledWith(patient, expect.any(Date))
+      expect(financial.create).not.toHaveBeenCalled()
     })
   })
 })

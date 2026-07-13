@@ -16,7 +16,11 @@ const schema = z.object({
   race: z.string().optional(),
   gender: z.string().optional(),
   sexualOrientation: z.string().optional(),
+  billingType: z.enum(['per_session', 'monthly_package']),
   sessionPrice: z.coerce.number().min(0),
+  monthlyPackagePrice: z.coerce.number().min(0),
+  monthlyIncludedSessions: z.coerce.number().int().min(1).max(31),
+  billingDay: z.coerce.number().int().min(1).max(31),
   sessionDuration: z.coerce.number().min(20).max(180),
   hasFixedSchedule: z.boolean().optional(),
   fixedScheduleWeekday: z.coerce.number().min(0).max(6).optional(),
@@ -28,6 +32,10 @@ const schema = z.object({
     .regex(/^\d{11}$|^\d{14}$/, 'CPF (11 dígitos) ou CNPJ (14 dígitos)')
     .optional()
     .or(z.literal('')),
+}).superRefine((data, ctx) => {
+  if (data.billingType === 'monthly_package' && data.monthlyPackagePrice <= 0) {
+    ctx.addIssue({ code: 'custom', path: ['monthlyPackagePrice'], message: 'Informe o valor do pacote' })
+  }
 })
 
 type FormData = z.infer<typeof schema>
@@ -38,7 +46,11 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
   const { register, handleSubmit, reset, watch, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
+      billingType: 'per_session',
       sessionPrice: 150,
+      monthlyPackagePrice: 600,
+      monthlyIncludedSessions: 4,
+      billingDay: 5,
       sessionDuration: 50,
       hasFixedSchedule: false,
       fixedScheduleWeekday: 1,
@@ -52,6 +64,7 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
   const { data: patientTemplate } = useDefaultTemplate('patient_form')
   const selectedTags = watch('tags') ?? []
   const hasFixedSchedule = watch('hasFixedSchedule')
+  const billingType = watch('billingType')
 
   function toggleTag(tag: EmotionalTag) {
     const current = selectedTags
@@ -61,6 +74,7 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
   function applyDefaultTemplate() {
     if (!patientTemplate) return
     setValue('sessionPrice', 150)
+    setValue('billingType', 'per_session')
     setValue('sessionDuration', 50)
     setValue('hasFixedSchedule', false)
     toast.success('Template simples aplicado')
@@ -144,10 +158,43 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
             />
             {errors.cpfCnpj && <p className="text-rose-500 text-xs mt-1">{errors.cpfCnpj.message}</p>}
           </div>
-          <div>
-            <label className="label">Valor da sessão (R$)</label>
-            <input {...register('sessionPrice')} type="number" className="input-field" />
+          <div className="col-span-2 rounded-xl border border-neutral-100 p-4">
+            <label className="label">Forma de cobrança</label>
+            <div className="grid grid-cols-2 gap-2">
+              <label className={`cursor-pointer rounded-xl border p-3 text-sm transition-colors ${billingType === 'per_session' ? 'border-sage-300 bg-sage-50 text-sage-800' : 'border-neutral-200 text-neutral-600'}`}>
+                <input {...register('billingType')} type="radio" value="per_session" className="sr-only" />
+                <span className="block font-semibold">Por sessão</span>
+                <span className="mt-0.5 block text-xs opacity-75">Gera uma cobrança a cada atendimento</span>
+              </label>
+              <label className={`cursor-pointer rounded-xl border p-3 text-sm transition-colors ${billingType === 'monthly_package' ? 'border-sage-300 bg-sage-50 text-sage-800' : 'border-neutral-200 text-neutral-600'}`}>
+                <input {...register('billingType')} type="radio" value="monthly_package" className="sr-only" />
+                <span className="block font-semibold">Pacote mensal</span>
+                <span className="mt-0.5 block text-xs opacity-75">Uma cobrança por mês, com sessões incluídas</span>
+              </label>
+            </div>
           </div>
+          {billingType === 'monthly_package' ? (
+            <>
+              <div>
+                <label className="label">Valor do pacote (R$)</label>
+                <input {...register('monthlyPackagePrice')} type="number" min={0} step="0.01" className="input-field" />
+                {errors.monthlyPackagePrice && <p className="mt-1 text-xs text-rose-500">{errors.monthlyPackagePrice.message}</p>}
+              </div>
+              <div>
+                <label className="label">Sessões incluídas por mês</label>
+                <input {...register('monthlyIncludedSessions')} type="number" min={1} max={31} className="input-field" />
+              </div>
+              <div>
+                <label className="label">Dia do vencimento</label>
+                <input {...register('billingDay')} type="number" min={1} max={31} className="input-field" />
+              </div>
+            </>
+          ) : (
+            <div>
+              <label className="label">Valor da sessão (R$)</label>
+              <input {...register('sessionPrice')} type="number" min={0} step="0.01" className="input-field" />
+            </div>
+          )}
           <div>
             <label className="label">Duração (minutos)</label>
             <input {...register('sessionDuration')} type="number" className="input-field" />

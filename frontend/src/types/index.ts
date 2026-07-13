@@ -11,6 +11,10 @@ export interface Patient {
   tags: EmotionalTag[]
   status: 'active' | 'paused' | 'discharged'
   sessionPrice: number
+  billingType: 'per_session' | 'monthly_package'
+  monthlyPackagePrice: number
+  monthlyIncludedSessions: number
+  billingDay: number
   sessionDuration: number
   startDate: string
   hasFixedSchedule?: boolean
@@ -74,7 +78,7 @@ export interface Session {
   privateNotes?: string
   tags: EmotionalTag[]
   nextSteps?: string
-  paymentStatus: 'paid' | 'pending' | 'waived'
+  paymentStatus: 'paid' | 'pending' | 'waived' | 'included'
   paymentId?: string
   createdAt: string
   updatedAt: string
@@ -85,6 +89,7 @@ export interface FinancialRecord {
   patientId: string
   patient?: Patient
   sessionId?: string
+  packageMonth?: string
   type: 'income' | 'expense'
   amount: number
   description: string

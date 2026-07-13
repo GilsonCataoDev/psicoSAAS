@@ -11,6 +11,7 @@ import { Subscription } from '../billing/entities/subscription.entity'
 import { Appointment } from '../appointments/entities/appointment.entity'
 import { PLAN_LIMITS, normalizePlan } from '../../common/plans'
 import { encrypt, hashToken, safeDecrypt } from '../../common/crypto/encrypt.util'
+import { FinancialService } from '../financial/financial.service'
 
 type EncryptedProntuario = {
   __encrypted: 'usecognia.prontuario.v1' | 'psicosaas.prontuario.v1'
@@ -29,6 +30,10 @@ export type PatientListItemDto = Pick<
   | 'gender'
   | 'sexualOrientation'
   | 'sessionPrice'
+  | 'billingType'
+  | 'monthlyPackagePrice'
+  | 'monthlyIncludedSessions'
+  | 'billingDay'
   | 'sessionDuration'
   | 'startDate'
   | 'hasFixedSchedule'
@@ -83,6 +88,7 @@ export class PatientsService {
     @InjectRepository(Patient) private repo: Repository<Patient>,
     @InjectRepository(Subscription) private subs: Repository<Subscription>,
     @InjectRepository(Appointment) private appointments: Repository<Appointment>,
+    private financial: FinancialService,
   ) {}
 
   // ─── Helpers de criptografia ────────────────────────────────────────────────
@@ -183,7 +189,8 @@ export class PatientsService {
       // Listagem nunca deve carregar prontuário, privateNotes nem ids internos de gateway.
       select: [
         'id', 'name', 'email', 'phone', 'birthDate', 'pronouns', 'race', 'gender',
-        'sexualOrientation', 'sessionPrice', 'sessionDuration', 'startDate',
+        'sexualOrientation', 'sessionPrice', 'billingType', 'monthlyPackagePrice',
+        'monthlyIncludedSessions', 'billingDay', 'sessionDuration', 'startDate',
         'hasFixedSchedule', 'fixedScheduleWeekday', 'fixedScheduleTime',
         'fixedScheduleFrequency', 'fixedScheduleModality', 'tags', 'status',
         'cpfCnpj', 'createdAt', 'updatedAt',
@@ -202,7 +209,9 @@ export class PatientsService {
     const encrypted = this.encryptFields(dto)
     // status 'active' definido explicitamente (não depende só do default DB)
     const patient   = this.repo.create({ status: 'active', ...encrypted, psychologistId })
-    return this.dec(await this.repo.save(patient))
+    const saved = await this.repo.save(patient)
+    await this.ensureCurrentMonthlyCharge(saved)
+    return this.dec(saved)
   }
 
   async update(id: string, dto: UpdatePatientDto, psychologistId: string): Promise<Patient> {
@@ -210,7 +219,14 @@ export class PatientsService {
     const patient   = await this.findRaw(id, psychologistId)
     const encrypted = this.encryptFields(dto)
     Object.assign(patient, encrypted)
-    return this.dec(await this.repo.save(patient))
+    const saved = await this.repo.save(patient)
+    await this.ensureCurrentMonthlyCharge(saved)
+    return this.dec(saved)
+  }
+
+  private async ensureCurrentMonthlyCharge(patient: Patient): Promise<void> {
+    if (patient.status !== 'active' || patient.billingType !== 'monthly_package') return
+    await this.financial.ensureMonthlyPackageCharge(patient, new Date()).catch(() => undefined)
   }
 
   async createPortalLink(id: string, psychologistId: string): Promise<{ url: string }> {

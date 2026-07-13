@@ -7,6 +7,7 @@ import { Session } from '../../sessions/entities/session.entity'
 import { Appointment } from '../../appointments/entities/appointment.entity'
 
 export type PatientStatus = 'active' | 'paused' | 'discharged'
+export type PatientBillingType = 'per_session' | 'monthly_package'
 
 @Entity('patients')
 export class Patient {
@@ -26,6 +27,18 @@ export class Patient {
 
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   sessionPrice: number
+
+  @Column({ type: 'text', default: 'per_session' })
+  billingType: PatientBillingType
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  monthlyPackagePrice: number
+
+  @Column({ type: 'int', default: 4 })
+  monthlyIncludedSessions: number
+
+  @Column({ type: 'int', default: 5 })
+  billingDay: number
 
   @Column({ default: 50 }) sessionDuration: number
   @Column({ nullable: true }) startDate?: string

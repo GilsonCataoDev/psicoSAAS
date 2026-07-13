@@ -87,6 +87,10 @@ export class CreatePatientDto {
   sexualOrientation?: string
 
   @IsNumber() @IsOptional() sessionPrice?: number
+  @IsIn(['per_session','monthly_package']) @IsOptional() billingType?: 'per_session' | 'monthly_package'
+  @IsNumber() @Min(0) @Type(() => Number) @IsOptional() monthlyPackagePrice?: number
+  @IsNumber() @Min(1) @Max(31) @Type(() => Number) @IsOptional() monthlyIncludedSessions?: number
+  @IsNumber() @Min(1) @Max(31) @Type(() => Number) @IsOptional() billingDay?: number
   @IsNumber() @IsOptional() sessionDuration?: number
   @IsString() @IsOptional() startDate?: string
   @IsBoolean() @IsOptional() hasFixedSchedule?: boolean

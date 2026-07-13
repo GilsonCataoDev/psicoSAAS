@@ -133,7 +133,11 @@ export default function PatientDetailPage() {
   })
   const [careSettings, setCareSettings] = useState({
     status: 'active' as 'active' | 'paused' | 'discharged',
+    billingType: 'per_session' as 'per_session' | 'monthly_package',
     sessionPrice: 0,
+    monthlyPackagePrice: 0,
+    monthlyIncludedSessions: 4,
+    billingDay: 5,
     sessionDuration: 50,
   })
   const [demographicSettings, setDemographicSettings] = useState({
@@ -157,7 +161,11 @@ export default function PatientDetailPage() {
     })
     setCareSettings({
       status: patient.status,
+      billingType: patient.billingType ?? 'per_session',
       sessionPrice: Number(patient.sessionPrice ?? 0),
+      monthlyPackagePrice: Number(patient.monthlyPackagePrice ?? 0),
+      monthlyIncludedSessions: patient.monthlyIncludedSessions ?? 4,
+      billingDay: patient.billingDay ?? 5,
       sessionDuration: patient.sessionDuration ?? 50,
     })
     setDemographicSettings({
@@ -168,7 +176,11 @@ export default function PatientDetailPage() {
   }, [
     patient?.id,
     patient?.status,
+    patient?.billingType,
     patient?.sessionPrice,
+    patient?.monthlyPackagePrice,
+    patient?.monthlyIncludedSessions,
+    patient?.billingDay,
     patient?.sessionDuration,
     patient?.race,
     patient?.gender,
@@ -212,7 +224,11 @@ export default function PatientDetailPage() {
         id,
         data: {
           status: careSettings.status,
+          billingType: careSettings.billingType,
           sessionPrice: careSettings.sessionPrice,
+          monthlyPackagePrice: careSettings.monthlyPackagePrice,
+          monthlyIncludedSessions: careSettings.monthlyIncludedSessions,
+          billingDay: careSettings.billingDay,
           sessionDuration: careSettings.sessionDuration,
         },
       })
@@ -306,6 +322,8 @@ export default function PatientDetailPage() {
   const totalPaid    = financialRecords.filter(r => r.status === 'paid').reduce((s, r) => s + Number(r.amount), 0)
   const totalPending = financialRecords.filter(r => r.status !== 'paid').reduce((s, r) => s + Number(r.amount), 0)
   const clinicalSessions = allSessions.filter(session => !session.tags?.some(tag => String(tag) === 'instrumento'))
+  const currentMonth = new Date().toISOString().slice(0, 7)
+  const monthlySessionsUsed = clinicalSessions.filter(session => String(session.date).startsWith(currentMonth)).length
   const prontuario = patient.prontuario ?? {}
 
   const moodChartData = (() => {
@@ -414,8 +432,13 @@ export default function PatientDetailPage() {
             <p className="font-semibold text-neutral-700 text-sm">{formatDate(patientStartDate(patient.startDate, patient.createdAt))}</p>
           </div>
           <div>
-            <p className="text-xs text-neutral-400 mb-0.5">Valor por sessão</p>
-            <p className="font-semibold text-neutral-700 text-sm">{formatCurrency(patient.sessionPrice)}</p>
+            <p className="text-xs text-neutral-400 mb-0.5">
+              {patient.billingType === 'monthly_package' ? 'Pacote mensal' : 'Valor por sessão'}
+            </p>
+            <p className="font-semibold text-neutral-700 text-sm">
+              {formatCurrency(patient.billingType === 'monthly_package' ? patient.monthlyPackagePrice : patient.sessionPrice)}
+              {patient.billingType === 'monthly_package' && <span className="font-normal text-neutral-400"> · {monthlySessionsUsed}/{patient.monthlyIncludedSessions} sessões</span>}
+            </p>
           </div>
           <div>
             <p className="text-xs text-neutral-400 mb-0.5">Duração</p>
@@ -509,15 +532,13 @@ export default function PatientDetailPage() {
             </select>
           </div>
           <div>
-            <label className="label">Valor da sessão (R$)</label>
-            <input
-              type="number"
-              min={0}
-              step="0.01"
-              value={careSettings.sessionPrice}
-              onChange={e => setCareSettings(s => ({ ...s, sessionPrice: Number(e.target.value) }))}
-              className="input-field"
-            />
+            <label className="label">Forma de cobrança</label>
+            <select value={careSettings.billingType}
+              onChange={e => setCareSettings(s => ({ ...s, billingType: e.target.value as typeof careSettings.billingType }))}
+              className="input-field">
+              <option value="per_session">Por sessão</option>
+              <option value="monthly_package">Pacote mensal</option>
+            </select>
           </div>
           <div>
             <label className="label">Duração (min)</label>
@@ -530,6 +551,38 @@ export default function PatientDetailPage() {
               className="input-field"
             />
           </div>
+          {careSettings.billingType === 'monthly_package' ? (
+            <>
+              <div>
+                <label className="label">Valor do pacote (R$)</label>
+                <input type="number" min={0} step="0.01" value={careSettings.monthlyPackagePrice}
+                  onChange={e => setCareSettings(s => ({ ...s, monthlyPackagePrice: Number(e.target.value) }))}
+                  className="input-field" />
+              </div>
+              <div>
+                <label className="label">Sessões incluídas/mês</label>
+                <input type="number" min={1} max={31} value={careSettings.monthlyIncludedSessions}
+                  onChange={e => setCareSettings(s => ({ ...s, monthlyIncludedSessions: Number(e.target.value) }))}
+                  className="input-field" />
+              </div>
+              <div>
+                <label className="label">Dia do vencimento</label>
+                <input type="number" min={1} max={31} value={careSettings.billingDay}
+                  onChange={e => setCareSettings(s => ({ ...s, billingDay: Number(e.target.value) }))}
+                  className="input-field" />
+              </div>
+              <div className="flex items-end text-xs text-neutral-500">
+                Uso neste mês: <strong className="ml-1 text-neutral-700">{monthlySessionsUsed}/{careSettings.monthlyIncludedSessions}</strong>
+              </div>
+            </>
+          ) : (
+            <div>
+              <label className="label">Valor da sessão (R$)</label>
+              <input type="number" min={0} step="0.01" value={careSettings.sessionPrice}
+                onChange={e => setCareSettings(s => ({ ...s, sessionPrice: Number(e.target.value) }))}
+                className="input-field" />
+            </div>
+          )}
           <div className="flex items-end">
             <button onClick={saveCareSettings} disabled={updatePatient.isPending} className="btn-primary text-sm w-full">
               {updatePatient.isPending ? 'Salvando...' : 'Salvar'}
