@@ -4,6 +4,8 @@ import { Repository } from 'typeorm'
 import { AvailabilitySlot } from './entities/availability-slot.entity'
 import { BlockedDate } from './entities/blocked-date.entity'
 import { ExtraAvailabilitySlot } from './entities/extra-availability-slot.entity'
+import { Appointment } from '../appointments/entities/appointment.entity'
+import { Booking } from '../booking/entities/booking.entity'
 
 @Injectable()
 export class AvailabilityService {
@@ -11,6 +13,8 @@ export class AvailabilityService {
     @InjectRepository(AvailabilitySlot) private slots: Repository<AvailabilitySlot>,
     @InjectRepository(BlockedDate) private blocked: Repository<BlockedDate>,
     @InjectRepository(ExtraAvailabilitySlot) private extraSlots: Repository<ExtraAvailabilitySlot>,
+    @InjectRepository(Appointment) private appointments: Repository<Appointment>,
+    @InjectRepository(Booking) private bookings: Repository<Booking>,
   ) {}
 
   findAll(psychologistId: string) {
@@ -46,12 +50,18 @@ export class AvailabilityService {
     data: { date: string; startTime: string; endTime: string; modality?: 'presencial' | 'online' },
   ) {
     this.validateDate(data.date)
-    this.validateSlots([{ weekday: 1, startTime: data.startTime, endTime: data.endTime, modality: data.modality }])
+    const modality = data.modality ?? 'online'
+    this.validateSlots([{ weekday: 1, startTime: data.startTime, endTime: data.endTime, modality }])
+    await this.ensureExtraSlotDoesNotConflict(psychologistId, {
+      date: data.date,
+      startTime: data.startTime,
+      endTime: data.endTime,
+    })
     const slot = this.extraSlots.create({
       date: data.date,
       startTime: data.startTime,
       endTime: data.endTime,
-      modality: data.modality ?? 'online',
+      modality,
       psychologistId,
     })
     return this.extraSlots.save(slot)
@@ -113,11 +123,69 @@ export class AvailabilityService {
     }
   }
 
+  private async ensureExtraSlotDoesNotConflict(
+    psychologistId: string,
+    data: { date: string; startTime: string; endTime: string },
+  ): Promise<void> {
+    const start = this.timeToMinutes(data.startTime)
+    const end = this.timeToMinutes(data.endTime)
+    const weekday = this.weekdayFromDate(data.date)
+
+    const [weeklySlots, extraSlots, appointments, bookings] = await Promise.all([
+      this.slots.find({ where: { psychologistId, weekday, isActive: true } }),
+      this.extraSlots.find({ where: { psychologistId, date: data.date, isActive: true } }),
+      this.appointments.find({ where: { psychologistId, date: data.date } }),
+      this.bookings.find({ where: { psychologistId, date: data.date } }),
+    ])
+
+    const hasWeeklyConflict = weeklySlots.some(slot =>
+      this.rangesOverlap(start, end, this.timeToMinutes(slot.startTime), this.timeToMinutes(slot.endTime)),
+    )
+    if (hasWeeklyConflict) {
+      throw new BadRequestException('Este horario ja existe na agenda semanal')
+    }
+
+    const hasExtraConflict = extraSlots.some(slot =>
+      this.rangesOverlap(start, end, this.timeToMinutes(slot.startTime), this.timeToMinutes(slot.endTime)),
+    )
+    if (hasExtraConflict) {
+      throw new BadRequestException('Ja existe um horario extra nesse periodo')
+    }
+
+    const busyAppointments = appointments.filter(appt => !['cancelled', 'no_show'].includes(appt.status))
+    const hasAppointmentConflict = busyAppointments.some(appt => {
+      const apptStart = this.timeToMinutes(appt.time)
+      return this.rangesOverlap(start, end, apptStart, apptStart + Number(appt.duration || 50))
+    })
+    if (hasAppointmentConflict) {
+      throw new BadRequestException('Ja existe um atendimento marcado nesse horario')
+    }
+
+    const busyBookings = bookings.filter(booking => !['cancelled', 'no_show'].includes(booking.status))
+    const hasBookingConflict = busyBookings.some(booking => {
+      const bookingStart = this.timeToMinutes(booking.time)
+      return this.rangesOverlap(start, end, bookingStart, bookingStart + Number(booking.duration || 50))
+    })
+    if (hasBookingConflict) {
+      throw new BadRequestException('Ja existe uma solicitacao de agendamento nesse horario')
+    }
+  }
+
+  private rangesOverlap(startA: number, endA: number, startB: number, endB: number): boolean {
+    return startA < endB && startB < endA
+  }
+
+  private weekdayFromDate(date: string): number {
+    const [year, month, day] = date.split('-').map(Number)
+    return new Date(Date.UTC(year, month - 1, day)).getUTCDay()
+  }
+
   private timeToMinutes(time: string): number {
-    if (!/^\d{2}:\d{2}$/.test(time)) {
+    const normalized = String(time ?? '').slice(0, 5)
+    if (!/^\d{2}:\d{2}$/.test(normalized)) {
       throw new BadRequestException('Horario invalido')
     }
-    const [hours, minutes] = time.split(':').map(Number)
+    const [hours, minutes] = normalized.split(':').map(Number)
     if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
       throw new BadRequestException('Horario invalido')
     }

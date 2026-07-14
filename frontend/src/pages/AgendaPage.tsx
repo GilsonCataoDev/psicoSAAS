@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Plus, Video, MapPin, Trash2, MessageCircle, Pencil, CheckCircle2, XCircle, FileText, ExternalLink, Search } from 'lucide-react'
 import {
   format, addDays, startOfWeek, eachDayOfInterval, addWeeks,
-  subWeeks, isSameDay, parseISO, isToday, getDay, isBefore,
+  subWeeks, isSameDay, parseISO, isToday, getDay,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import Avatar from '@/components/ui/Avatar'
@@ -85,6 +85,10 @@ function mergeMinuteRanges(ranges: { start: number; end: number }[]) {
   }
 
   return merged
+}
+
+function rangesOverlap(startA: number, endA: number, startB: number, endB: number) {
+  return startA < endB && startB < endA
 }
 
 function appointmentMatchesSearch(appt: any, query: string) {
@@ -244,6 +248,14 @@ export default function AgendaPage() {
       return ranges.length ? [{ day, dateKey, ranges }] : []
     })
   }, [appointmentsByDate, availability, blockedDates, days, extraAvailability])
+  const upcomingExtraAvailability = useMemo(() => {
+    const todayKey = format(new Date(), 'yyyy-MM-dd')
+    return [...extraAvailability]
+      .filter(slot => String(slot.date).slice(0, 10) >= todayKey)
+      .sort((a, b) =>
+        `${String(a.date).slice(0, 10)} ${a.startTime}`.localeCompare(`${String(b.date).slice(0, 10)} ${b.startTime}`),
+      )
+  }, [extraAvailability])
 
   useEffect(() => {
     if (searchParams.get('new') === '1') {
@@ -341,6 +353,39 @@ export default function AgendaPage() {
     const end = timeToMinutes(extraForm.endTime)
     if (!extraForm.date || start === null || end === null || start >= end) {
       toast.error('Confira data e horario.')
+      return
+    }
+    const weekday = getDay(parseISO(extraForm.date))
+    const hasWeeklyConflict = availability
+      .filter(slot => slot.weekday === weekday)
+      .some(slot => {
+        const slotStart = timeToMinutes(slot.startTime)
+        const slotEnd = timeToMinutes(slot.endTime)
+        return slotStart !== null && slotEnd !== null && rangesOverlap(start, end, slotStart, slotEnd)
+      })
+    if (hasWeeklyConflict) {
+      toast.error('Esse horario ja existe na agenda semanal.')
+      return
+    }
+    const hasExtraConflict = extraAvailability
+      .filter(slot => String(slot.date).slice(0, 10) === extraForm.date)
+      .some(slot => {
+        const slotStart = timeToMinutes(slot.startTime)
+        const slotEnd = timeToMinutes(slot.endTime)
+        return slotStart !== null && slotEnd !== null && rangesOverlap(start, end, slotStart, slotEnd)
+      })
+    if (hasExtraConflict) {
+      toast.error('Ja existe horario extra nesse periodo.')
+      return
+    }
+    const hasAppointmentConflict = (appointmentsByDate.get(extraForm.date) ?? [])
+      .filter(appt => !FREE_APPOINTMENT_STATUSES.has(appt.status))
+      .some(appt => {
+        const apptStart = timeToMinutes(appt.time)
+        return apptStart !== null && rangesOverlap(start, end, apptStart, apptStart + Number(appt.duration || 50))
+      })
+    if (hasAppointmentConflict) {
+      toast.error('Ja existe atendimento marcado nesse horario.')
       return
     }
     try {
@@ -617,32 +662,47 @@ export default function AgendaPage() {
             {addExtraAvailability.isPending ? 'Abrindo...' : 'Abrir horario'}
           </button>
         </div>
-        {extraAvailability.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {extraAvailability
-              .filter(slot => {
-                const date = parseISO(String(slot.date).slice(0, 10))
-                return !isBefore(date, weekStart) && !isBefore(weekEnd, date)
-              })
-              .map(slot => (
-                <span
+        <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-3 dark:border-white/10 dark:bg-white/5">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-300">
+              Horarios extras abertos
+            </p>
+            <span className="text-xs text-neutral-400">
+              {upcomingExtraAvailability.length} {upcomingExtraAvailability.length === 1 ? 'ativo' : 'ativos'}
+            </span>
+          </div>
+          {upcomingExtraAvailability.length === 0 ? (
+            <p className="text-sm text-neutral-400">Nenhum horario extra aberto.</p>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+              {upcomingExtraAvailability.map(slot => (
+                <div
                   key={slot.id}
-                  className="inline-flex items-center gap-2 rounded-full border border-sage-100 bg-sage-50 px-3 py-1.5 text-xs font-medium text-sage-700"
+                  className="flex items-center justify-between gap-3 rounded-xl border border-sage-100 bg-white px-3 py-2 text-sm text-neutral-700 dark:border-white/10 dark:bg-neutral-900 dark:text-neutral-100"
                 >
-                  {format(parseISO(String(slot.date).slice(0, 10)), 'dd/MM', { locale: ptBR })} {formatTime(slot.startTime)}-{formatTime(slot.endTime)} {slot.modality === 'online' ? 'online' : 'presencial'}
+                  <div className="min-w-0">
+                    <p className="font-semibold">
+                      {format(parseISO(String(slot.date).slice(0, 10)), 'dd/MM/yyyy', { locale: ptBR })}
+                    </p>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-300">
+                      {formatTime(slot.startTime)} - {formatTime(slot.endTime)} · {slot.modality === 'online' ? 'Online' : 'Presencial'}
+                    </p>
+                  </div>
                   <button
                     type="button"
                     onClick={() => removeExtraAvailability.mutateAsync(slot.id)}
                     disabled={removeExtraAvailability.isPending}
-                    className="text-sage-400 hover:text-rose-600"
-                    title="Remover horario extra"
+                    className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-rose-100 px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-60 dark:border-rose-400/30 dark:text-rose-200 dark:hover:bg-rose-400/10"
+                    title="Retirar horario extra"
                   >
                     <XCircle className="h-3.5 w-3.5" />
+                    Retirar
                   </button>
-                </span>
+                </div>
               ))}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="card space-y-4">
