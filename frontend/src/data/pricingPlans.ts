@@ -30,7 +30,7 @@ export type PricingPlan = {
 export const PRICING_HERO = {
   title: 'Escolha como quer usar o UseCognia',
   subtitle: 'Organize agenda, pacientes, prontuario e financeiro sem transformar a rotina clinica em planilha.',
-  context: 'Comece gratis, evolua para uma rotina profissional no Essencial ou automatize comunicacao, cobrancas e IA no Pro.',
+  context: 'Comece gratis, evolua para uma rotina profissional com IA no Essencial ou automatize comunicacao e cobrancas no Pro.',
   trialCta: 'Comecar no plano gratis',
   trialSubtext: 'Sem cartao. Ideal para testar a rotina com ate 10 pacientes.',
 }
@@ -71,7 +71,7 @@ export const PRICING_PLANS: PricingPlan[] = [
       { type: 'included', title: 'Gere documentos e PDFs com verificacao', subtitle: 'Ate 200 documentos' },
       { type: 'included', title: 'Saiba quanto faturou e quanto falta receber', subtitle: 'Financeiro basico' },
       { type: 'included', title: 'Abra mensagens prontas no WhatsApp em 1 clique', subtitle: 'WhatsApp manual com template' },
-      { type: 'included', title: 'Teste transcricao de sessoes com IA', subtitle: '10 min/mes incluidos' },
+      { type: 'included', title: 'Use IA para transcricao e rascunhos clinicos', subtitle: '10 min/mes de transcricao' },
     ],
     roi: {
       items: [
@@ -90,7 +90,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     price: '149',
     pricePeriod: '/mes',
     priceAnnual: 'R$ 119/mes, cobrado por ano',
-    description: 'Para automatizar lembretes, cobrancas, instrumentos e apoio por IA',
+    description: 'Para automatizar lembretes, cobrancas, instrumentos e ampliar o uso de IA',
     badge: 'Mais escolhido',
     featured: true,
     features: [
@@ -124,7 +124,7 @@ export const PRICING_COMPARISON = {
     { title: 'WhatsApp', essencial: 'Voce abre mensagens prontas manualmente', pro: 'O sistema envia automaticamente' },
     { title: 'Lembretes', essencial: 'Controle manual pela agenda', pro: '24h e 1h antes, automatico' },
     { title: 'Cobranca', essencial: 'Controle financeiro manual', pro: 'Link e mensagem de cobranca em 1 clique' },
-    { title: 'IA', essencial: '10 min/mes para testar transcricao', pro: '120 min/mes, transcricao e rascunho de evolucao' },
+    { title: 'IA', essencial: '10 min/mes de transcricao e rascunho de evolucao', pro: '120 min/mes de transcricao e rascunho de evolucao' },
     { title: 'Escalabilidade', essencial: 'Ate 50 pacientes', pro: '50+, 100+. O sistema aguenta' },
   ],
 }

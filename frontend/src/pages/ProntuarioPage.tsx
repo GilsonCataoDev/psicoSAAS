@@ -8,6 +8,7 @@ import { formatDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import DictationButton from '@/components/ui/DictationButton'
 import RecordingPanel from '@/components/ui/RecordingPanel'
+import { useHasPlan } from '@/store/subscription'
 
 const TABS = [
   { id: 'identificacao', label: 'Identificação' },
@@ -67,6 +68,7 @@ export default function ProntuarioPage() {
   const updatePatient = useUpdatePatient()
   const exportProntuario = useExportProntuario(id ?? '')
   const generateProntuarioDraft = useGenerateProntuarioDraft()
+  const hasEssencial = useHasPlan('essencial')
   const [evolText, setEvolText] = useState('')
   const [evolDate, setEvolDate] = useState(new Date().toISOString().split('T')[0])
   const [aiMode, setAiMode] = useState<AiProntuarioMode>('organizar')
@@ -131,6 +133,10 @@ export default function ProntuarioPage() {
   }
 
   async function generateAiDraft() {
+    if (!hasEssencial) {
+      toast.error('IA disponivel a partir do plano Essencial.')
+      return
+    }
     if (!evolText.trim()) {
       toast.error('Escreva a evolucao ou cole anotacoes antes de usar IA.')
       return
@@ -389,7 +395,7 @@ export default function ProntuarioPage() {
                     Apoio de IA no prontuario
                   </p>
                   <p className="text-xs text-sage-700 dark:text-sage-200">
-                    A IA gera um rascunho. Revise antes de salvar no prontuario.
+                    A IA gera um rascunho. Disponivel a partir do Essencial.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row">
@@ -405,11 +411,12 @@ export default function ProntuarioPage() {
                   <button
                     type="button"
                     onClick={generateAiDraft}
-                    disabled={generateProntuarioDraft.isPending}
+                    disabled={generateProntuarioDraft.isPending || !hasEssencial}
+                    title={!hasEssencial ? 'IA disponivel a partir do plano Essencial' : undefined}
                     className="btn-secondary flex items-center justify-center gap-2 text-sm"
                   >
                     <Sparkles className="h-4 w-4" />
-                    {generateProntuarioDraft.isPending ? 'Gerando...' : 'Gerar rascunho'}
+                    {!hasEssencial ? 'IA no Essencial' : generateProntuarioDraft.isPending ? 'Gerando...' : 'Gerar rascunho'}
                   </button>
                 </div>
               </div>

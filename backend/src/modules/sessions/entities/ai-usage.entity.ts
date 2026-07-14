@@ -18,6 +18,15 @@ export class AiUsage {
   @Column({ type: 'int', default: 0 })
   summaryRequests: number
 
+  @Column({ type: 'int', default: 0 })
+  aiInputTokens: number
+
+  @Column({ type: 'int', default: 0 })
+  aiOutputTokens: number
+
+  @Column({ type: 'int', default: 0 })
+  aiCostUsdMicros: number
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date
 

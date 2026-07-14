@@ -12,7 +12,7 @@ import { RequirePlan } from '../../common/decorators/require-plan.decorator'
 import { PLAN_LIMITS, KnownPlan, normalizePlan } from '../../common/plans'
 import { Subscription } from '../billing/entities/subscription.entity'
 import { SessionsService } from './sessions.service'
-import { AiService } from './ai.service'
+import { AiService, AiTextUsage } from './ai.service'
 import { CreateSessionDto } from './dto/create-session.dto'
 import { AiUsage } from './entities/ai-usage.entity'
 
@@ -85,7 +85,7 @@ export class SessionsController {
   }
 
   @Post('ai-summary')
-  @RequirePlan('pro')
+  @RequirePlan('essencial')
   @Throttle({ default: { limit: 20, ttl: 60 * 1000 } })
   async aiSummary(
     @Body('transcription') transcription: string,
@@ -93,13 +93,13 @@ export class SessionsController {
     @Request() req?: any,
   ) {
     if (!transcription?.trim()) throw new BadRequestException('Transcrição ausente')
-    const draft = await this.ai.generateSessionSummary(transcription, patientName)
-    if (req?.user?.id) await this.incrementSummaryUsage(req.user.id)
-    return { draft }
+    const result = await this.ai.generateSessionSummary(transcription, patientName)
+    if (req?.user?.id) await this.incrementSummaryUsage(req.user.id, result.usage)
+    return { draft: result.text }
   }
 
   @Post('ai-prontuario')
-  @RequirePlan('pro')
+  @RequirePlan('essencial')
   @Throttle({ default: { limit: 20, ttl: 60 * 1000 } })
   async aiProntuario(
     @Body('input') input: string,
@@ -111,9 +111,9 @@ export class SessionsController {
     if (!input?.trim()) throw new BadRequestException('Texto ausente')
     if (input.trim().length < 20) throw new BadRequestException('Informe mais detalhes para a IA organizar.')
 
-    const draft = await this.ai.generateProntuarioDraft(input, mode)
-    if (req?.user?.id) await this.incrementSummaryUsage(req.user.id)
-    return { draft }
+    const result = await this.ai.generateProntuarioDraft(input, mode)
+    if (req?.user?.id) await this.incrementSummaryUsage(req.user.id, result.usage)
+    return { draft: result.text }
   }
 
   private parseDuration(value?: string): number {
@@ -198,7 +198,7 @@ export class SessionsController {
       .execute()
   }
 
-  private async incrementSummaryUsage(userId: string): Promise<void> {
+  private async incrementSummaryUsage(userId: string, usage?: AiTextUsage): Promise<void> {
     const month = this.currentMonth()
     await this.aiUsage
       .createQueryBuilder()
@@ -206,6 +206,16 @@ export class SessionsController {
       .values({ userId, month })
       .orIgnore()
       .execute()
-    await this.aiUsage.increment({ userId, month }, 'summaryRequests', 1)
+    await this.aiUsage
+      .createQueryBuilder()
+      .update()
+      .set({
+        summaryRequests: () => '"summaryRequests" + 1',
+        aiInputTokens: () => `"aiInputTokens" + ${usage?.inputTokens ?? 0}`,
+        aiOutputTokens: () => `"aiOutputTokens" + ${usage?.outputTokens ?? 0}`,
+        aiCostUsdMicros: () => `"aiCostUsdMicros" + ${usage?.costUsdMicros ?? 0}`,
+      })
+      .where('"userId" = :userId AND month = :month', { userId, month })
+      .execute()
   }
 }

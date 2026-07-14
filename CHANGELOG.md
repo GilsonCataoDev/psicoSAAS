@@ -7,6 +7,8 @@ Todas as mudanças significativas do projeto. Formato: [Keep a Changelog](https:
 ## [Não lançado]
 
 ### Adicionado
+- Rascunho de prontuario por IA no fluxo de evolucao clinica, com preview antes de salvar.
+- Tracking mensal de custo de IA em `ai_usage`: tokens de entrada, tokens de saida e custo estimado em micros de dolar.
 - `AdvisoryLockService` com `pg_try_advisory_lock` para prevenir execução duplicada de jobs em múltiplas instâncias
 - Todos os 5 background jobs protegidos por advisory lock + flag intra-processo `this.running`
 - Webhook do Resend (`POST /email/webhook`, assinatura Svix) com lista de supressão (`email_suppressions`): bounce permanente e reclamação de spam bloqueiam envios futuros para o mesmo endereço
@@ -16,6 +18,7 @@ Todas as mudanças significativas do projeto. Formato: [Keep a Changelog](https:
 - `public/llms.txt` para motores de resposta de IA (ChatGPT, Claude, Perplexity)
 
 ### Corrigido
+- Resumo/rascunho de IA liberado a partir do plano Essencial, alinhando regra de backend com a proposta comercial.
 - Removido `aggregateRating` fabricado (4.9/47 reviews) do schema.org da landing — dado falso sem lastro real, risco de penalização do Google
 - Card de depoimentos ilegível em dark mode na landing (fundo herdava regra global do app autenticado)
 - "Horários disponíveis" na Agenda mostrava dias já passados da semana como livres para agendar

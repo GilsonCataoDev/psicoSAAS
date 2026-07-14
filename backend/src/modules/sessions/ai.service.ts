@@ -2,6 +2,22 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common'
 import OpenAI from 'openai'
 import Anthropic from '@anthropic-ai/sdk'
 
+const CLAUDE_TEXT_MODEL = 'claude-haiku-4-5-20251001'
+const CLAUDE_HAIKU_INPUT_USD_MICROS_PER_TOKEN = 1
+const CLAUDE_HAIKU_OUTPUT_USD_MICROS_PER_TOKEN = 5
+
+export type AiTextUsage = {
+  model: string
+  inputTokens: number
+  outputTokens: number
+  costUsdMicros: number
+}
+
+export type AiTextResult = {
+  text: string
+  usage: AiTextUsage
+}
+
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name)
@@ -49,7 +65,30 @@ export class AiService {
     }
   }
 
-  async generateSessionSummary(transcription: string, patientName?: string): Promise<string> {
+  private calculateClaudeCost(inputTokens: number, outputTokens: number): number {
+    return Math.round(
+      (inputTokens * CLAUDE_HAIKU_INPUT_USD_MICROS_PER_TOKEN)
+      + (outputTokens * CLAUDE_HAIKU_OUTPUT_USD_MICROS_PER_TOKEN),
+    )
+  }
+
+  private parseTextResult(msg: Anthropic.Messages.Message): AiTextResult {
+    const block = msg.content[0]
+    const inputTokens = msg.usage.input_tokens ?? 0
+    const outputTokens = msg.usage.output_tokens ?? 0
+
+    return {
+      text: block.type === 'text' ? block.text.trim() : '',
+      usage: {
+        model: CLAUDE_TEXT_MODEL,
+        inputTokens,
+        outputTokens,
+        costUsdMicros: this.calculateClaudeCost(inputTokens, outputTokens),
+      },
+    }
+  }
+
+  async generateSessionSummary(transcription: string, patientName?: string): Promise<AiTextResult> {
     const patient = patientName ? `Paciente: ${patientName}.\n` : ''
     const prompt = `Você é um assistente de apoio clínico para psicólogos e terapeutas. Com base na transcrição abaixo de uma sessão clínica, elabore um rascunho conciso de nota de evolução clínica. Escreva em linguagem técnica, primeira pessoa do profissional, sem diagnóstico. Inclua: demanda trabalhada, intervenções realizadas, resposta observada e próximos passos sugeridos. Máximo 250 palavras. O profissional revisará e editará antes de salvar.
 
@@ -58,19 +97,18 @@ ${transcription.slice(0, 6000)}`
 
     try {
       const msg = await this.anthropic.messages.create({
-        model: 'claude-haiku-4-5-20251001',
+        model: CLAUDE_TEXT_MODEL,
         max_tokens: 700,
         messages: [{ role: 'user', content: prompt }],
       })
-      const block = msg.content[0]
-      return block.type === 'text' ? block.text.trim() : ''
+      return this.parseTextResult(msg)
     } catch (err: any) {
       this.logger.error('Claude error', err?.message)
       throw new BadRequestException('Não foi possível gerar o resumo. Tente novamente.')
     }
   }
 
-  async generateProntuarioDraft(input: string, mode: 'resumo' | 'evolucao' | 'organizar'): Promise<string> {
+  async generateProntuarioDraft(input: string, mode: 'resumo' | 'evolucao' | 'organizar'): Promise<AiTextResult> {
     const cleanInput = input.trim().slice(0, 8000)
     const modeInstruction = {
       resumo: 'gere um resumo clinico conciso, em linguagem profissional, preservando apenas informacoes relevantes para acompanhamento.',
@@ -91,12 +129,11 @@ ${cleanInput}`
 
     try {
       const msg = await this.anthropic.messages.create({
-        model: 'claude-haiku-4-5-20251001',
+        model: CLAUDE_TEXT_MODEL,
         max_tokens: 900,
         messages: [{ role: 'user', content: prompt }],
       })
-      const block = msg.content[0]
-      return block.type === 'text' ? block.text.trim() : ''
+      return this.parseTextResult(msg)
     } catch (err: any) {
       this.logger.error('Claude prontuario error', err?.message)
       throw new BadRequestException('Nao foi possivel gerar o rascunho do prontuario. Tente novamente.')

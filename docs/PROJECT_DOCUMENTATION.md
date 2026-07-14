@@ -321,6 +321,13 @@ Principais:
 
 Referencia: `backend/.env.example`.
 
+### IA clinica
+
+- Transcricao de audio: disponivel a partir do plano Essencial, com cota mensal por plano.
+- Resumo e rascunho de prontuario: disponiveis a partir do plano Essencial via `ANTHROPIC_API_KEY`.
+- O uso mensal fica em `ai_usage`: `transcriptionSeconds`, `summaryRequests`, `aiInputTokens`, `aiOutputTokens` e `aiCostUsdMicros`.
+- Custo estimado para Claude Haiku 4.5: US$1 por 1M tokens de entrada e US$5 por 1M tokens de saida.
+
 ### Frontend
 
 Principais:
