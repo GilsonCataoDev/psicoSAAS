@@ -69,4 +69,37 @@ ${transcription.slice(0, 6000)}`
       throw new BadRequestException('Não foi possível gerar o resumo. Tente novamente.')
     }
   }
+
+  async generateProntuarioDraft(input: string, mode: 'resumo' | 'evolucao' | 'organizar'): Promise<string> {
+    const cleanInput = input.trim().slice(0, 8000)
+    const modeInstruction = {
+      resumo: 'gere um resumo clinico conciso, em linguagem profissional, preservando apenas informacoes relevantes para acompanhamento.',
+      evolucao: 'gere um rascunho de evolucao clinica com demanda trabalhada, intervencoes, resposta observada e proximos passos.',
+      organizar: 'organize as anotacoes em blocos: queixa/demanda, conteudo trabalhado, intervencoes, resposta observada e plano/proximos passos.',
+    }[mode]
+
+    const prompt = `Voce e um assistente de apoio clinico para psicologos e terapeutas.
+Use o texto abaixo somente para organizar um rascunho de prontuario.
+Nao invente fatos, nao feche diagnostico, nao prescreva condutas e nao substitua o julgamento clinico.
+Nao inclua dados pessoais identificaveis. Se houver nome, telefone, email, CPF, endereco ou identificadores, omita.
+Escreva em portugues do Brasil, tom tecnico e claro.
+Tarefa: ${modeInstruction}
+Finalize com a frase: "Rascunho gerado por IA, revisar antes de salvar."
+
+Texto:
+${cleanInput}`
+
+    try {
+      const msg = await this.anthropic.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 900,
+        messages: [{ role: 'user', content: prompt }],
+      })
+      const block = msg.content[0]
+      return block.type === 'text' ? block.text.trim() : ''
+    } catch (err: any) {
+      this.logger.error('Claude prontuario error', err?.message)
+      throw new BadRequestException('Nao foi possivel gerar o rascunho do prontuario. Tente novamente.')
+    }
+  }
 }

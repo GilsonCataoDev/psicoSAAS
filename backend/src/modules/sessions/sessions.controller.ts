@@ -98,6 +98,24 @@ export class SessionsController {
     return { draft }
   }
 
+  @Post('ai-prontuario')
+  @RequirePlan('pro')
+  @Throttle({ default: { limit: 20, ttl: 60 * 1000 } })
+  async aiProntuario(
+    @Body('input') input: string,
+    @Body('mode') mode: 'resumo' | 'evolucao' | 'organizar' = 'organizar',
+    @Request() req?: any,
+  ) {
+    const allowedModes = ['resumo', 'evolucao', 'organizar']
+    if (!allowedModes.includes(mode)) throw new BadRequestException('Modo de IA invalido')
+    if (!input?.trim()) throw new BadRequestException('Texto ausente')
+    if (input.trim().length < 20) throw new BadRequestException('Informe mais detalhes para a IA organizar.')
+
+    const draft = await this.ai.generateProntuarioDraft(input, mode)
+    if (req?.user?.id) await this.incrementSummaryUsage(req.user.id)
+    return { draft }
+  }
+
   private parseDuration(value?: string): number {
     const duration = Math.ceil(Number(value))
     if (!Number.isFinite(duration) || duration <= 0) {

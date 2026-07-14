@@ -86,3 +86,10 @@ export function useGenerateAiSummary() {
       api.post<{ draft: string }>('/sessions/ai-summary', data).then(r => r.data),
   })
 }
+
+export function useGenerateProntuarioDraft() {
+  return useMutation({
+    mutationFn: (data: { input: string; mode: 'resumo' | 'evolucao' | 'organizar' }) =>
+      api.post<{ draft: string }>('/sessions/ai-prontuario', data).then(r => r.data),
+  })
+}
