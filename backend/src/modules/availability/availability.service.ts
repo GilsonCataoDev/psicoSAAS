@@ -3,12 +3,14 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { AvailabilitySlot } from './entities/availability-slot.entity'
 import { BlockedDate } from './entities/blocked-date.entity'
+import { ExtraAvailabilitySlot } from './entities/extra-availability-slot.entity'
 
 @Injectable()
 export class AvailabilityService {
   constructor(
     @InjectRepository(AvailabilitySlot) private slots: Repository<AvailabilitySlot>,
     @InjectRepository(BlockedDate) private blocked: Repository<BlockedDate>,
+    @InjectRepository(ExtraAvailabilitySlot) private extraSlots: Repository<ExtraAvailabilitySlot>,
   ) {}
 
   findAll(psychologistId: string) {
@@ -23,6 +25,40 @@ export class AvailabilityService {
       where: { psychologistId, weekday, isActive: true, ...(modality ? { modality } : {}) },
       order: { startTime: 'ASC' },
     })
+  }
+
+  getExtraSlots(psychologistId: string) {
+    return this.extraSlots.find({
+      where: { psychologistId, isActive: true },
+      order: { date: 'ASC', startTime: 'ASC' },
+    })
+  }
+
+  getExtraSlotsForDate(psychologistId: string, date: string, modality?: 'presencial' | 'online') {
+    return this.extraSlots.find({
+      where: { psychologistId, date, isActive: true, ...(modality ? { modality } : {}) },
+      order: { startTime: 'ASC' },
+    })
+  }
+
+  async addExtraSlot(
+    psychologistId: string,
+    data: { date: string; startTime: string; endTime: string; modality?: 'presencial' | 'online' },
+  ) {
+    this.validateDate(data.date)
+    this.validateSlots([{ weekday: 1, startTime: data.startTime, endTime: data.endTime, modality: data.modality }])
+    const slot = this.extraSlots.create({
+      date: data.date,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      modality: data.modality ?? 'online',
+      psychologistId,
+    })
+    return this.extraSlots.save(slot)
+  }
+
+  async removeExtraSlot(id: string, psychologistId: string) {
+    await this.extraSlots.delete({ id, psychologistId })
   }
 
   async isDateBlocked(psychologistId: string, date: string): Promise<boolean> {
@@ -69,6 +105,12 @@ export class AvailabilityService {
         throw new BadRequestException('O horario inicial deve ser menor que o horario final')
       }
     })
+  }
+
+  private validateDate(date: string): void {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      throw new BadRequestException('Data invalida')
+    }
   }
 
   private timeToMinutes(time: string): number {

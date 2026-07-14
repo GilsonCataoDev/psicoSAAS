@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Plus, Video, MapPin, Trash2, MessageCircle, Pencil, CheckCircle2, XCircle, FileText, ExternalLink, Search } from 'lucide-react'
 import {
   format, addDays, startOfWeek, eachDayOfInterval, addWeeks,
-  subWeeks, isSameDay, parseISO, isToday, getDay,
+  subWeeks, isSameDay, parseISO, isToday, getDay, isBefore,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import Avatar from '@/components/ui/Avatar'
@@ -13,9 +13,12 @@ import { patientMatchesSearch } from '@/lib/patientSearch'
 import {
   useAppointments,
   useAvailability,
+  useAddExtraAvailability,
   useBlockedDates,
   useDeleteAppointment,
   useDeleteAppointmentGroup,
+  useExtraAvailability,
+  useRemoveExtraAvailability,
   useUpdateAppointmentStatus,
 } from '@/hooks/useApi'
 import toast from 'react-hot-toast'
@@ -114,13 +117,20 @@ export default function AgendaPage() {
   const [deleteScope, setDeleteScope] = useState<'single' | 'future'>('single')
   const [listDay, setListDay] = useState(new Date())
   const [patientSearch, setPatientSearch] = useState('')
-  const weekEnd = addDays(weekStart, DAYS_IN_WEEK - 1)
-  const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
+  const [extraForm, setExtraForm] = useState({
+    date: format(new Date(), 'yyyy-MM-dd'),
+    startTime: '18:00',
+    endTime: '19:00',
+    modality: 'online' as 'presencial' | 'online',
+  })
+  const weekEnd = useMemo(() => addDays(weekStart, DAYS_IN_WEEK - 1), [weekStart])
+  const days = useMemo(() => eachDayOfInterval({ start: weekStart, end: weekEnd }), [weekEnd, weekStart])
   const { data: appointments = [] } = useAppointments({
     from: format(weekStart, 'yyyy-MM-dd'),
     to: format(weekEnd, 'yyyy-MM-dd'),
   })
   const { data: availability = [] } = useAvailability()
+  const { data: extraAvailability = [] } = useExtraAvailability()
   const { data: blockedDates = [] } = useBlockedDates()
   const { appointmentsByDate, appointmentsByDateHour, visibleHours } = useMemo(() => {
     const byDate = new Map<string, typeof appointments>()
@@ -157,6 +167,8 @@ export default function AgendaPage() {
   }, [appointments])
   const deleteAppointment = useDeleteAppointment()
   const deleteGroup = useDeleteAppointmentGroup()
+  const addExtraAvailability = useAddExtraAvailability()
+  const removeExtraAvailability = useRemoveExtraAvailability()
   const updateStatus = useUpdateAppointmentStatus()
 
   // Mobile: só mostra o dia atual
@@ -187,8 +199,10 @@ export default function AgendaPage() {
       if (dateKey < todayKey) return []
       if (blocked.has(dateKey)) return []
 
-      const daySlots = mergeMinuteRanges(availability
-        .filter(slot => slot.weekday === getDay(day))
+      const daySlots = mergeMinuteRanges([
+        ...availability.filter(slot => slot.weekday === getDay(day)),
+        ...extraAvailability.filter(slot => String(slot.date).slice(0, 10) === dateKey),
+      ]
         .map(slot => {
           const start = timeToMinutes(slot.startTime)
           const end = timeToMinutes(slot.endTime)
@@ -229,7 +243,7 @@ export default function AgendaPage() {
 
       return ranges.length ? [{ day, dateKey, ranges }] : []
     })
-  }, [appointmentsByDate, availability, blockedDates, days])
+  }, [appointmentsByDate, availability, blockedDates, days, extraAvailability])
 
   useEffect(() => {
     if (searchParams.get('new') === '1') {
@@ -320,6 +334,21 @@ export default function AgendaPage() {
   function closeModal() {
     setShowModal(false)
     setEditingAppointment(null)
+  }
+
+  async function addExtraSlot() {
+    const start = timeToMinutes(extraForm.startTime)
+    const end = timeToMinutes(extraForm.endTime)
+    if (!extraForm.date || start === null || end === null || start >= end) {
+      toast.error('Confira data e horario.')
+      return
+    }
+    try {
+      await addExtraAvailability.mutateAsync(extraForm)
+      toast.success('Horario extra liberado no link publico.')
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'Erro ao liberar horario extra.')
+    }
   }
 
   return (
@@ -541,6 +570,77 @@ export default function AgendaPage() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      <div className="card space-y-4">
+        <div>
+          <h2 className="section-title">Horario extra</h2>
+          <p className="text-sm text-neutral-500 dark:text-neutral-300">
+            Libera um horario fora da agenda semanal no link publico.
+          </p>
+        </div>
+        <div className="grid gap-3 md:grid-cols-[1fr_120px_120px_150px_auto]">
+          <input
+            type="date"
+            value={extraForm.date}
+            onChange={e => setExtraForm(form => ({ ...form, date: e.target.value }))}
+            className="input-field"
+          />
+          <input
+            type="time"
+            value={extraForm.startTime}
+            onChange={e => setExtraForm(form => ({ ...form, startTime: e.target.value }))}
+            className="input-field"
+          />
+          <input
+            type="time"
+            value={extraForm.endTime}
+            onChange={e => setExtraForm(form => ({ ...form, endTime: e.target.value }))}
+            className="input-field"
+          />
+          <select
+            value={extraForm.modality}
+            onChange={e => setExtraForm(form => ({ ...form, modality: e.target.value as 'presencial' | 'online' }))}
+            className="input-field"
+          >
+            <option value="online">Online</option>
+            <option value="presencial">Presencial</option>
+          </select>
+          <button
+            type="button"
+            onClick={addExtraSlot}
+            disabled={addExtraAvailability.isPending}
+            className="btn-primary whitespace-nowrap"
+          >
+            {addExtraAvailability.isPending ? 'Abrindo...' : 'Abrir horario'}
+          </button>
+        </div>
+        {extraAvailability.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {extraAvailability
+              .filter(slot => {
+                const date = parseISO(String(slot.date).slice(0, 10))
+                return !isBefore(date, weekStart) && !isBefore(weekEnd, date)
+              })
+              .map(slot => (
+                <span
+                  key={slot.id}
+                  className="inline-flex items-center gap-2 rounded-full border border-sage-100 bg-sage-50 px-3 py-1.5 text-xs font-medium text-sage-700"
+                >
+                  {format(parseISO(String(slot.date).slice(0, 10)), 'dd/MM', { locale: ptBR })} {formatTime(slot.startTime)}-{formatTime(slot.endTime)} {slot.modality === 'online' ? 'online' : 'presencial'}
+                  <button
+                    type="button"
+                    onClick={() => removeExtraAvailability.mutateAsync(slot.id)}
+                    disabled={removeExtraAvailability.isPending}
+                    className="text-sage-400 hover:text-rose-600"
+                    title="Remover horario extra"
+                  >
+                    <XCircle className="h-3.5 w-3.5" />
+                  </button>
+                </span>
+              ))}
           </div>
         )}
       </div>

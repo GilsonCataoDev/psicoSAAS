@@ -194,11 +194,15 @@ export class BookingService {
     const date = parseISO(dateStr)
     const weekday = getDay(date)
 
-    const slots = await this.availability.getSlotsForDay(page.psychologistId, weekday, modality)
-    if (!slots.length) return []
-
     const isBlocked = await this.availability.isDateBlocked(page.psychologistId, dateStr)
     if (isBlocked) return []
+
+    const [weeklySlots, extraSlots] = await Promise.all([
+      this.availability.getSlotsForDay(page.psychologistId, weekday, modality),
+      this.availability.getExtraSlotsForDate(page.psychologistId, dateStr, modality),
+    ])
+    const slots = [...weeklySlots, ...extraSlots]
+    if (!slots.length) return []
 
     const now = new Date()
     const timeZone = this.config.get<string>('GOOGLE_CALENDAR_TIMEZONE') ?? 'America/Sao_Paulo'
@@ -288,8 +292,9 @@ export class BookingService {
     const minDate = addDays(today, page.minAdvanceDays ?? 0)
     const maxDate = getMaxAdvanceDate(today, page.maxAdvanceDays)
 
-    const [slots, blockedDates, existingBookings, existingAppointments] = await Promise.all([
+    const [slots, extraSlots, blockedDates, existingBookings, existingAppointments] = await Promise.all([
       this.availability.findAll(page.psychologistId),
+      this.availability.getExtraSlots(page.psychologistId),
       this.availability.getBlockedDates(page.psychologistId),
       this.bookings.find({
         where: {
@@ -310,6 +315,7 @@ export class BookingService {
     ])
 
     const activeSlots = slots.filter(slot => !modality || slot.modality === modality)
+    const activeExtraSlots = extraSlots.filter(slot => !modality || slot.modality === modality)
     const blocked = new Set(blockedDates.map(item => item.date))
     const occupiedByDate = new Map<string, Array<{ start: number; end: number }>>()
     for (const item of [...existingBookings, ...existingAppointments]) {
@@ -325,7 +331,10 @@ export class BookingService {
       const dateStr = format(day, 'yyyy-MM-dd')
       if (isBefore(day, minDate) || isAfter(day, maxDate) || blocked.has(dateStr)) continue
 
-      const daySlots = activeSlots.filter(slot => slot.weekday === getDay(day))
+      const daySlots = [
+        ...activeSlots.filter(slot => slot.weekday === getDay(day)),
+        ...activeExtraSlots.filter(slot => String(slot.date).slice(0, 10) === dateStr),
+      ]
       if (!daySlots.length) continue
 
       const occupiedIntervals = occupiedByDate.get(dateStr) ?? []
