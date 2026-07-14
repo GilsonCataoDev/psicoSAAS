@@ -4,13 +4,13 @@ const path = require('path')
 const configuredApiBaseUrl = process.env.BOOKING_API_URL || process.env.VITE_API_URL || ''
 const API_BASE_URL = /^https?:\/\//i.test(configuredApiBaseUrl)
   ? configuredApiBaseUrl.replace(/\/$/, '')
-  : 'https://usecognia.com.br/api'
+  : 'https://psicosaas-production-2d6c.up.railway.app/api'
 
 const SITE_URL = 'https://usecognia.com.br'
-const DEFAULT_TITLE = 'Agende sua consulta online'
+const DEFAULT_TITLE = 'Agende seu atendimento'
 const DEFAULT_DESCRIPTION =
-  'Escolha um horário disponível e confirme seu agendamento com segurança pelo UseCognia.'
-const DEFAULT_IMAGE = `${SITE_URL}/og-image.png`
+  'Consulte os horários disponíveis e escolha o melhor momento para seu atendimento.'
+const DEFAULT_IMAGE = `${SITE_URL}/booking-og-image.png`
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -95,12 +95,17 @@ module.exports = async function handler(req, res) {
 
   const pageFound = Boolean(page?.psychologistName?.trim())
   const name = page?.psychologistName?.trim()
-  const title = name ? `Agende sua consulta com ${name}` : DEFAULT_TITLE
+  const title = name ? `Agendamento com ${name}` : DEFAULT_TITLE
   const specialty = page?.specialty?.trim()
+  const modalities = [
+    page?.allowOnline ? 'online' : null,
+    page?.allowPresencial ? 'presencial' : null,
+  ].filter(Boolean)
+  const modalityText = modalities.length > 0 ? `Atendimento ${modalities.join(' e ')}. ` : ''
   const description = name
     ? specialty
-      ? `${specialty}. Escolha um horário disponível e confirme seu agendamento online.`
-      : `Escolha um horário disponível para atendimento com ${name}.`
+      ? `${specialty}. ${modalityText}Consulte os horários disponíveis e escolha o melhor para você.`
+      : `${modalityText}Consulte os horários disponíveis de ${name} e escolha o melhor para você.`
     : DEFAULT_DESCRIPTION
   const url = cleanSlug ? `${SITE_URL}/agendar/${encodeURIComponent(cleanSlug)}` : SITE_URL
   const image = absoluteUrl(page?.avatarUrl)
@@ -109,10 +114,12 @@ module.exports = async function handler(req, res) {
     .replace(/<title>.*?<\/title>/i, `<title>${escapeHtml(title)}</title>`)
 
   const metas = {
+    'description': description,
     'og:url': url,
     'og:title': title,
     'og:description': description,
     'og:image': image,
+    'og:image:alt': name ? `Agendamento com ${name}` : 'Agendamento de atendimento psicológico',
     'twitter:title': title,
     'twitter:description': description,
     'twitter:image': image,
@@ -121,6 +128,10 @@ module.exports = async function handler(req, res) {
   for (const [selector, content] of Object.entries(metas)) {
     html = setMeta(html, selector, content)
   }
+  html = html.replace(
+    /<link\s+rel="canonical"\s+href="[^"]*"\s*\/?>/i,
+    `<link rel="canonical" href="${escapeHtml(url)}" />`,
+  )
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8')
   res.setHeader('Cache-Control', pageFound

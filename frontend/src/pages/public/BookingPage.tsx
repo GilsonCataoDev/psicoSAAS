@@ -153,21 +153,25 @@ export default function BookingPage() {
 
   useEffect(() => { track(EVENTS.BOOKING_PAGE_VIEWED) }, [])
 
-  // SEO dinâmico — atualiza title e meta description com dados do psicólogo
+  // Mantém os metadados do navegador consistentes com o preview entregue pelo servidor.
   useEffect(() => {
     if (!page) return
     const name = page.psychologistName
     const specialty = (page as any).specialty ?? 'Psicólogo(a)'
-    const city = (page as any).city ?? ''
-    document.title = `Agendar consulta com ${name} — ${specialty}${city ? ` em ${city}` : ''} | UseCognia`
+    const title = `Agendamento com ${name}`
+    const modalities = [page.allowOnline ? 'online' : '', page.allowPresencial ? 'presencial' : ''].filter(Boolean).join(' e ')
+    const description = `${specialty}. ${modalities ? `Atendimento ${modalities}. ` : ''}Consulte os horários disponíveis e escolha o melhor para você.`
+    const image = page.avatarUrl || `${window.location.origin}/booking-og-image.png`
+    document.title = `${title} | UseCognia`
     const meta = document.querySelector('meta[name="description"]')
-    if (meta) meta.setAttribute('content',
-      `Agende sua sessão com ${name}, ${specialty.toLowerCase()}${city ? ` em ${city}` : ''}. Agendamento online rápido e seguro via UseCognia.`
-    )
-    document.querySelector('meta[property="og:title"]')?.setAttribute('content', `Agende sua consulta com ${name}`)
-    document.querySelector('meta[property="og:description"]')?.setAttribute('content', `Escolha um horário disponível para atendimento com ${name}.`)
-    document.querySelector('meta[name="twitter:title"]')?.setAttribute('content', `Agende sua consulta com ${name}`)
-    document.querySelector('meta[name="twitter:description"]')?.setAttribute('content', `Escolha um horário disponível para atendimento com ${name}.`)
+    if (meta) meta.setAttribute('content', description)
+    document.querySelector('meta[property="og:title"]')?.setAttribute('content', title)
+    document.querySelector('meta[property="og:description"]')?.setAttribute('content', description)
+    document.querySelector('meta[property="og:image"]')?.setAttribute('content', image)
+    document.querySelector('meta[property="og:url"]')?.setAttribute('content', window.location.href)
+    document.querySelector('meta[name="twitter:title"]')?.setAttribute('content', title)
+    document.querySelector('meta[name="twitter:description"]')?.setAttribute('content', description)
+    document.querySelector('meta[name="twitter:image"]')?.setAttribute('content', image)
     return () => {
       document.title = 'UseCognia | Agenda, prontuário e documentos para psicólogos e terapeutas'
       meta?.setAttribute('content', 'Plataforma de gestão para psicólogos e terapeutas autônomos.')
