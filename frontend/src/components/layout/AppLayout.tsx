@@ -387,8 +387,8 @@ export default function AppLayout() {
       <ImpersonationBanner />
       <div className="flex flex-1 overflow-hidden">
       <a href="#main-content" className="skip-link">Ir para o conteúdo</a>
-      <a href="#main-navigation" className="skip-link left-44">Ir para o menu</a>
-      <a href="#patient-search" className="skip-link left-80">Ir para a busca</a>
+      <a href="#main-navigation" className="skip-link left-44 max-lg:hidden">Ir para o menu</a>
+      <a href="#patient-search" className="skip-link left-80 max-md:hidden">Ir para a busca</a>
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">

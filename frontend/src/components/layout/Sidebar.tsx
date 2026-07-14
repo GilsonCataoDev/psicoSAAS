@@ -1,22 +1,11 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { LogOut, ShieldCheck, Zap } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
-import { useSubscriptionStore, PLANS } from '@/store/subscription'
+import { useHasPlan, useSubscriptionStore, PLANS } from '@/store/subscription'
 import { getInitials, cn } from '@/lib/utils'
 import BrandLogo from '@/components/ui/BrandLogo'
-import UseCogniaIcon, { UseCogniaIconName } from '@/components/ui/UseCogniaIcon'
-
-const navItems: Array<{ to: string; icon: UseCogniaIconName; label: string; proOnly?: boolean }> = [
-  { to: '/dashboard',     icon: 'dashboard',   label: 'Início'       },
-  { to: '/pacientes',     icon: 'patients',    label: 'Pacientes'    },
-  { to: '/agenda',        icon: 'calendar',    label: 'Agenda'       },
-  { to: '/agendamentos',  icon: 'public-link', label: 'Agenda pública' },
-  { to: '/sessoes',       icon: 'sessions',    label: 'Sessões'      },
-  { to: '/documentos',    icon: 'documents',    label: 'Documentos'   },
-  { to: '/instrumentos',  icon: 'instruments',  label: 'Instrumentos', proOnly: true },
-  { to: '/financeiro',    icon: 'financial',    label: 'Financeiro'   },
-  { to: '/configuracoes', icon: 'settings',    label: 'Ajustes'      },
-]
+import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
+import { NAVIGATION_ITEMS } from './navigation'
 
 const TRIAL_DAYS = 7
 
@@ -27,7 +16,7 @@ export default function Sidebar() {
   const { subscription } = useSubscriptionStore()
 
   const currentPlan = PLANS.find(p => p.id === subscription.planId)
-  const isPro = String(subscription.planId ?? subscription.plan ?? 'free') === 'pro'
+  const isPro = useHasPlan('pro')
   const isTrialing = subscription.status === 'trialing'
   const daysLeft = subscription.trialEndsAt
     ? Math.max(0, Math.ceil((new Date(subscription.trialEndsAt).getTime() - Date.now()) / 86400000))
@@ -40,7 +29,7 @@ export default function Sidebar() {
       </div>
 
       <nav id="main-navigation" aria-label="Navegação principal" className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
-        {navItems.filter(item => !item.proOnly || isPro).map(({ to, icon, label }) => (
+        {NAVIGATION_ITEMS.filter(item => !item.proOnly || isPro).map(({ to, icon, label }) => (
           <NavLink key={to} to={to} end={to === '/dashboard'}>
             {({ isActive }) => (
               <div className={cn(
@@ -89,7 +78,7 @@ export default function Sidebar() {
           <NavLink to="/planos" className="block hero-gradient text-white rounded-2xl p-3.5 hover:opacity-90 transition-opacity shadow-soft">
             <div className="flex items-center gap-2 mb-1.5">
               <Zap className="w-3.5 h-3.5" />
-              <p className="text-xs font-semibold">Periodo de teste</p>
+              <p className="text-xs font-semibold">Período de teste</p>
             </div>
             <p className="text-xs text-sage-100 mb-2.5">
               {daysLeft} dia{daysLeft !== 1 ? 's' : ''} restante{daysLeft !== 1 ? 's' : ''}.

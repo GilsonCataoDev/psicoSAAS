@@ -1,23 +1,22 @@
 import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useNotificationStore } from '@/store/notifications'
-import UseCogniaIcon, { UseCogniaIconName } from '@/components/ui/UseCogniaIcon'
+import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
+import { NAVIGATION_ITEMS } from './navigation'
 
-const items: Array<{ to: string; icon: UseCogniaIconName; label: string }> = [
-  { to: '/dashboard',     icon: 'dashboard', label: 'Início'     },
-  { to: '/pacientes',     icon: 'patients',  label: 'Pacientes'  },
-  { to: '/agenda',        icon: 'calendar',  label: 'Agenda'     },
-  { to: '/financeiro',    icon: 'financial', label: 'Financeiro' },
-  { to: '/configuracoes', icon: 'settings',  label: 'Ajustes'    },
-]
+const items = NAVIGATION_ITEMS.filter(item => item.mobile)
 
 export default function BottomNav() {
   const unread = useNotificationStore(s => s.notifications.filter(n => !n.read).length)
 
   return (
-    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-white/95 backdrop-blur-sm border-t border-neutral-100
+    <nav
+      id="mobile-navigation"
+      aria-label="Navegação principal"
+      className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-white/95 backdrop-blur-sm border-t border-neutral-100
                     dark:border-white/10 dark:bg-[#17211d]/95
-                    flex items-stretch h-16 safe-area-bottom shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+                    flex items-stretch h-16 safe-area-bottom shadow-[0_-4px_20px_rgba(0,0,0,0.06)]"
+    >
       {items.map(({ to, icon, label }) => (
         <NavLink key={to} to={to} end={to === '/dashboard'} className="flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors relative">
           {({ isActive }) => (
