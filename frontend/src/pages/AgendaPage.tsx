@@ -256,6 +256,10 @@ export default function AgendaPage() {
         `${String(a.date).slice(0, 10)} ${a.startTime}`.localeCompare(`${String(b.date).slice(0, 10)} ${b.startTime}`),
       )
   }, [extraAvailability])
+  const activeWeekAppointments = appointments.filter(appt => !FREE_APPOINTMENT_STATUSES.has(appt.status))
+  const onlineWeekAppointments = activeWeekAppointments.filter(appt => appt.modality === 'online').length
+  const todayAppointments = (appointmentsByDate.get(format(new Date(), 'yyyy-MM-dd')) ?? [])
+    .filter(appt => !FREE_APPOINTMENT_STATUSES.has(appt.status)).length
 
   useEffect(() => {
     if (searchParams.get('new') === '1') {
@@ -397,41 +401,55 @@ export default function AgendaPage() {
   }
 
   return (
-    <div className="animate-slide-up space-y-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="page-title">Agenda</h1>
-          <p className="page-subtitle capitalize">
-            {formatWeekRange(weekStart, weekEnd)}
-          </p>
-        </div>
-        <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
+    <div className="flex animate-slide-up flex-col gap-5">
+      <div className="order-1 overflow-hidden rounded-3xl border border-sage-100 bg-gradient-to-br from-white via-sage-50/70 to-mist-50/70 p-5 shadow-sm dark:border-white/10 dark:from-white/[0.06] dark:via-sage-500/10 dark:to-mist-500/5 sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-sage-600 dark:text-sage-300">Minha semana</p>
+            <h1 className="page-title">Agenda</h1>
+            <p className="page-subtitle capitalize">{formatWeekRange(weekStart, weekEnd)}</p>
+          </div>
+          <div className="flex w-full items-center justify-between gap-2 rounded-2xl border border-white/80 bg-white/75 p-1.5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-white/[0.06] sm:w-auto sm:justify-end">
           <button onClick={() => setWeekStart(w => subWeeks(w, 1))}
-            className="p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-white/10 text-neutral-500 dark:text-neutral-300 transition-colors">
+            className="rounded-xl p-2 text-neutral-500 transition-colors hover:bg-sage-50 hover:text-sage-700 dark:text-neutral-300 dark:hover:bg-white/10">
             <ChevronLeft className="w-5 h-5" />
           </button>
           <button onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
-            className="btn-secondary text-sm py-2 hidden sm:block">Hoje</button>
+            className="hidden rounded-xl px-3 py-2 text-sm font-semibold text-sage-700 transition-colors hover:bg-sage-50 dark:text-sage-200 dark:hover:bg-white/10 sm:block">Hoje</button>
           <button onClick={() => setWeekStart(w => addWeeks(w, 1))}
-            className="p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-white/10 text-neutral-500 dark:text-neutral-300 transition-colors">
+            className="rounded-xl p-2 text-neutral-500 transition-colors hover:bg-sage-50 hover:text-sage-700 dark:text-neutral-300 dark:hover:bg-white/10">
             <ChevronRight className="w-5 h-5" />
           </button>
           <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2" aria-label="Agendar">
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Agendar</span>
           </button>
+          </div>
+        </div>
+        <div className="mt-5 grid grid-cols-3 gap-2 border-t border-sage-100/80 pt-4 dark:border-white/10 sm:max-w-xl sm:gap-3">
+          {[
+            { label: 'Nesta semana', value: activeWeekAppointments.length, detail: 'atendimentos' },
+            { label: 'Hoje', value: todayAppointments, detail: todayAppointments === 1 ? 'sessão' : 'sessões' },
+            { label: 'Online', value: onlineWeekAppointments, detail: 'atendimentos' },
+          ].map(item => (
+            <div key={item.label} className="rounded-2xl border border-white/70 bg-white/60 px-3 py-2.5 dark:border-white/10 dark:bg-white/[0.04]">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">{item.label}</p>
+              <p className="mt-0.5 text-lg font-semibold text-neutral-800 dark:text-white">{item.value}</p>
+              <p className="text-[10px] text-neutral-400">{item.detail}</p>
+            </div>
+          ))}
         </div>
       </div>
 
-      <div className="card space-y-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+      <div className="order-5 card space-y-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h2 className="section-title">Pesquisar pacientes na agenda</h2>
-            <p className="text-sm text-neutral-500 dark:text-neutral-300">
-              Encontre atendimentos desta semana por nome, telefone, email, modalidade ou observacao.
+            <h2 className="text-sm font-semibold text-neutral-800 dark:text-white">Buscar na agenda</h2>
+            <p className="mt-0.5 text-xs text-neutral-400 dark:text-neutral-300">
+              Nome, telefone, e-mail ou modalidade nesta semana.
             </p>
           </div>
-          <div className="relative w-full lg:max-w-md">
+          <div className="relative w-full lg:max-w-lg">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
             <input
               type="search"
@@ -533,7 +551,7 @@ export default function AgendaPage() {
       </div>
 
       {/* ── Desktop: lista do dia em ordem ─────────────────────────── */}
-      <div className="hidden lg:block card space-y-4">
+      <div className="order-2 hidden lg:block card space-y-4">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div>
             <h2 className="section-title">Pacientes do dia</h2>
@@ -597,8 +615,25 @@ export default function AgendaPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <StatusBadge status={appt.status} />
+                  <button type="button" onClick={() => evolveAppointment(appt)}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-100 text-neutral-400 transition-colors hover:border-sage-200 hover:bg-sage-50 hover:text-sage-700 dark:border-white/10 dark:hover:bg-white/10"
+                    title="Evoluir sessão">
+                    <FileText className="h-4 w-4" />
+                  </button>
+                  <button type="button" onClick={() => changeAppointmentStatus(appt, 'completed')}
+                    disabled={updateStatus.isPending || appt.status === 'completed'}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-100 text-neutral-400 transition-colors hover:border-sage-200 hover:bg-sage-50 hover:text-sage-700 disabled:opacity-40 dark:border-white/10 dark:hover:bg-white/10"
+                    title="Marcar como finalizada">
+                    <CheckCircle2 className="h-4 w-4" />
+                  </button>
+                  <button type="button" onClick={() => changeAppointmentStatus(appt, 'no_show')}
+                    disabled={updateStatus.isPending || appt.status === 'no_show'}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-100 text-neutral-400 transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40 dark:border-white/10 dark:hover:bg-white/10"
+                    title="Registrar falta">
+                    <XCircle className="h-4 w-4" />
+                  </button>
                   {appt.patientId && (
                     <Link to={`/prontuario/${appt.patientId}`} className="btn-secondary px-3 py-2 text-xs">
                       Prontuário
@@ -612,6 +647,17 @@ export default function AgendaPage() {
                   >
                     <MessageCircle className="h-4 w-4" />
                   </button>
+                  <button type="button" onClick={() => editAppointment(appt)}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-100 text-neutral-400 transition-colors hover:border-mist-200 hover:bg-mist-50 hover:text-mist-700 dark:border-white/10 dark:hover:bg-white/10"
+                    title="Editar agendamento">
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button type="button" onClick={() => setAppointmentToRemove(appt)}
+                    disabled={deleteAppointment.isPending}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-100 text-neutral-300 transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40 dark:border-white/10 dark:hover:bg-white/10"
+                    title="Remover agendamento">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
             ))}
@@ -619,13 +665,17 @@ export default function AgendaPage() {
         )}
       </div>
 
-      <div className="card space-y-4">
-        <div>
-          <h2 className="section-title">Horario extra</h2>
-          <p className="text-sm text-neutral-500 dark:text-neutral-300">
-            Libera um horario fora da agenda semanal no link publico.
-          </p>
-        </div>
+      <details className="order-6 card group">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
+          <div>
+            <h2 className="section-title">Horário extra</h2>
+            <p className="text-sm text-neutral-500 dark:text-neutral-300">
+              Libere um horário pontual no link público quando precisar.
+            </p>
+          </div>
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sage-50 text-lg text-sage-700 transition-transform group-open:rotate-45 dark:bg-sage-500/15 dark:text-sage-200">+</span>
+        </summary>
+        <div className="mt-4 space-y-4 border-t border-neutral-100 pt-4 dark:border-white/10">
         <div className="grid gap-3 md:grid-cols-[1fr_120px_120px_150px_auto]">
           <input
             type="date"
@@ -703,9 +753,10 @@ export default function AgendaPage() {
             </div>
           )}
         </div>
-      </div>
+        </div>
+      </details>
 
-      <div className="card space-y-4">
+      <div className="order-4 card space-y-4">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="section-title">Horarios disponiveis</h2>
@@ -723,9 +774,9 @@ export default function AgendaPage() {
             Nenhum horario livre nesta semana.
           </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {weeklyAvailabilitySummary.map(item => (
-              <div key={item.dateKey} className="rounded-2xl border border-neutral-100 bg-white p-4 dark:border-white/10 dark:bg-white/5">
+              <div key={item.dateKey} className="rounded-2xl border border-neutral-100 bg-gradient-to-br from-white to-neutral-50/70 p-3 dark:border-white/10 dark:from-white/[0.06] dark:to-white/[0.03]">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold capitalize text-neutral-800 dark:text-white">
@@ -758,7 +809,7 @@ export default function AgendaPage() {
       </div>
 
       {/* ── Mobile: dias em scroll horizontal + lista ──────────────── */}
-      <div className="lg:hidden">
+      <div className="order-2 lg:hidden">
         {/* Seletor de dia */}
         <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-none">
           {mobileDays.map(day => (
@@ -894,12 +945,12 @@ export default function AgendaPage() {
       </div>
 
       {/* ── Desktop: grade semanal ─────────────────────────────────── */}
-      <div className="agenda-grid hidden lg:block card overflow-hidden p-0">
-        <div className="agenda-grid-header agenda-grid-line grid grid-cols-[64px_repeat(7,1fr)] border-b border-neutral-100">
+      <div className="agenda-grid order-3 hidden overflow-hidden rounded-3xl p-0 shadow-sm lg:block">
+        <div className="agenda-grid-header agenda-grid-line grid grid-cols-[64px_repeat(7,1fr)] border-b border-neutral-100 bg-white/95 backdrop-blur-sm dark:bg-[#18241f]">
           <div className="p-3" />
           {days.map(day => (
             <div key={day.toISOString()}
-              className={`agenda-grid-line p-3 text-center border-l border-neutral-100 ${isToday(day) ? 'agenda-today bg-sage-50' : ''}`}>
+              className={`agenda-grid-line border-l border-neutral-100 p-3 text-center ${isToday(day) ? 'agenda-today bg-sage-50' : ''}`}>
               <p className="text-xs text-neutral-400 dark:text-neutral-300 capitalize">{format(day, 'EEE', { locale: ptBR })}</p>
               <p className={`text-lg font-semibold mt-0.5 ${isToday(day) ? 'text-sage-600' : 'text-neutral-700'}`}>
                 {format(day, 'd')}
@@ -907,9 +958,9 @@ export default function AgendaPage() {
             </div>
           ))}
         </div>
-        <div className="overflow-y-auto max-h-[480px]">
+        <div className="max-h-[560px] overflow-y-auto">
           {visibleHours.map(hour => (
-            <div key={hour} className="agenda-grid-line grid grid-cols-[64px_repeat(7,1fr)] border-b border-neutral-50 min-h-[72px]">
+            <div key={hour} className="agenda-grid-line grid min-h-[76px] grid-cols-[64px_repeat(7,1fr)] border-b border-neutral-50">
               <div className="p-2 text-xs text-neutral-400 dark:text-neutral-300 text-right pr-3 pt-2">{hour}:00</div>
               {days.map(day => {
                 const dayKey = format(day, 'yyyy-MM-dd')
@@ -919,7 +970,7 @@ export default function AgendaPage() {
                     className={`agenda-grid-line border-l border-neutral-100 p-1 ${isToday(day) ? 'agenda-today bg-sage-50/40' : ''}`}>
                     {dayAppts.map(appt => (
                       <div key={appt.id}
-                        className="agenda-appointment rounded-xl border border-sage-200 bg-sage-50 p-2.5 shadow-sm transition-colors hover:bg-sage-100 dark:border-white/15 dark:bg-white/[0.07] dark:hover:bg-white/[0.11] mb-1">
+                        className="agenda-appointment group mb-1 rounded-xl border border-sage-200 border-l-[3px] bg-sage-50/80 p-2.5 shadow-sm transition-all hover:-translate-y-px hover:bg-sage-100 hover:shadow-md dark:border-white/15 dark:border-l-sage-400 dark:bg-white/[0.07] dark:hover:bg-white/[0.11]">
                         <div className="flex items-center gap-1.5">
                           {appt.modality === 'online'
                             ? <Video className="w-3 h-3 text-mist-500 shrink-0" />
@@ -930,7 +981,7 @@ export default function AgendaPage() {
                         <p className="text-sm text-sage-900 dark:text-neutral-50 font-semibold truncate mt-1.5">
                           {appt.patient?.name?.split(' ')[0] ?? 'Paciente'}
                         </p>
-                        <div className="mt-2 flex flex-wrap items-center gap-1">
+                        <div className="mt-2 flex items-center gap-1 border-t border-sage-200/60 pt-2 dark:border-white/10">
                           <button
                             type="button"
                             onClick={() => evolveAppointment(appt)}
@@ -951,24 +1002,6 @@ export default function AgendaPage() {
                           )}
                           <button
                             type="button"
-                            onClick={() => changeAppointmentStatus(appt, 'completed')}
-                            disabled={updateStatus.isPending || appt.status === 'completed'}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sage-200 bg-white text-sage-700 shadow-sm transition-colors hover:border-sage-300 hover:bg-sage-50 hover:text-sage-900 disabled:opacity-40 dark:border-white/10 dark:bg-white/10 dark:text-neutral-100 dark:hover:bg-white/20"
-                            title="Marcar como finalizada"
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => changeAppointmentStatus(appt, 'no_show')}
-                            disabled={updateStatus.isPending || appt.status === 'no_show'}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sage-200 bg-white text-sage-700 shadow-sm transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40 dark:border-white/10 dark:bg-white/10 dark:text-neutral-100 dark:hover:bg-rose-500/20 dark:hover:text-rose-200"
-                            title="Registrar falta"
-                          >
-                            <XCircle className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
                             onClick={() => messageAppointment(appt)}
                             className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sage-200 bg-white text-sage-700 shadow-sm transition-colors hover:border-sage-300 hover:bg-sage-50 hover:text-sage-900 dark:border-white/10 dark:bg-white/10 dark:text-neutral-100 dark:hover:bg-white/20"
                             title="Enviar WhatsApp"
@@ -983,24 +1016,7 @@ export default function AgendaPage() {
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => setAppointmentToRemove(appt)}
-                            disabled={deleteAppointment.isPending}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sage-200 bg-white text-sage-700 shadow-sm transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50 dark:border-white/10 dark:bg-white/10 dark:text-neutral-100 dark:hover:bg-rose-500/20 dark:hover:text-rose-200"
-                            title="Remover agendamento"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
                         </div>
-                        {appt.patientId && (
-                          <Link
-                            to={`/prontuario/${appt.patientId}`}
-                            className="mt-1.5 inline-flex h-7 w-full items-center justify-center rounded-lg border border-sage-200 bg-white text-[10px] font-semibold text-sage-800 shadow-sm transition-colors hover:border-sage-300 hover:bg-sage-50 hover:text-sage-950 dark:border-white/10 dark:bg-white/10 dark:text-neutral-100 dark:hover:bg-white/20"
-                          >
-                            Prontuário
-                          </Link>
-                        )}
                         {(appt.isRecurring || appt.isFixedScheduleException) && (
                           <p className="text-[10px] font-medium text-sage-700/80 dark:text-neutral-200/80 mt-1">
                             {appt.isFixedScheduleException
