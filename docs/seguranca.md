@@ -34,6 +34,13 @@ Esse isolamento é coberto por **testes automatizados** que simulam duas contas 
 - Documentos em PDF têm código único e QR de verificação pública de autenticidade.
 - Links públicos (agendamento, portal do paciente, instrumentos) usam tokens aleatórios longos, armazenados de forma irreversível (hash) e com limite de tentativas por IP.
 
+## Proteções do site público
+
+- A Vercel envia HSTS, `X-Content-Type-Options`, proteção contra incorporação em iframe, política de referência e restrições de permissões do navegador.
+- O uso do microfone fica disponível apenas para a própria origem, quando o profissional inicia voluntariamente uma gravação.
+- O canal padronizado de divulgação responsável fica publicado em `/.well-known/security.txt`.
+- A Política de Privacidade pública descreve papéis, finalidades, fornecedores, direitos, retenção e limitações atuais.
+
 ## Seus direitos sobre os dados (LGPD)
 
 - **Exportação**: você pode baixar todos os seus dados em PDF pela própria plataforma (`Configurações → Exportar dados`).
