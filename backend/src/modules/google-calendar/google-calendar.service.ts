@@ -4,7 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import axios from 'axios'
 import { createHmac } from 'crypto'
 import { Repository } from 'typeorm'
-import { encryptSecret, safeDecryptSecret } from '../../common/crypto/encrypt.util'
+import { encryptSecret, safeDecryptSecret, secretsMatch } from '../../common/crypto/encrypt.util'
 import { User } from '../auth/entities/user.entity'
 import { Appointment } from '../appointments/entities/appointment.entity'
 
@@ -287,7 +287,7 @@ export class GoogleCalendarService {
     if (Number(expiresAt) < Date.now()) throw new BadRequestException('Conexao expirada. Tente novamente.')
     const payload = `${userId}.${expiresAt}`
     const expected = createHmac('sha256', this.getRequiredConfig('JWT_SECRET')).update(payload).digest('hex')
-    if (signature !== expected) throw new BadRequestException('Estado OAuth invalido')
+    if (!secretsMatch(signature, expected)) throw new BadRequestException('Estado OAuth invalido')
     return userId
   }
 

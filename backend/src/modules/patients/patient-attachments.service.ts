@@ -42,6 +42,11 @@ export class PatientAttachmentsService {
       throw new BadRequestException(`Limite de ${MAX_ATTACHMENTS_PER_PATIENT} documentos por paciente atingido`)
     }
 
+    // O mimetype vem do cliente e pode mentir — valida a assinatura real do arquivo
+    if (!contentMatchesMime(file.buffer, file.mimetype)) {
+      throw new BadRequestException('Conteúdo do arquivo não corresponde ao formato declarado. Envie um PDF, JPG ou PNG válido.')
+    }
+
     const saved = await this.repo.save(this.repo.create({
       patientId,
       psychologistId,
@@ -90,6 +95,23 @@ export class PatientAttachmentsService {
 
 /** Remove caracteres problemáticos do nome do arquivo mantendo a extensão legível */
 function sanitizeFilename(name: string): string {
+  // eslint-disable-next-line no-control-regex -- caracteres de controle são removidos de propósito
   const trimmed = name.normalize('NFC').replace(/[\\/:*?"<>|\x00-\x1f]/g, '_').trim()
   return trimmed.slice(0, 180) || 'documento'
+}
+
+/** Verifica os magic bytes do buffer contra o MIME type declarado pelo cliente */
+export function contentMatchesMime(buffer: Buffer, mimetype: string): boolean {
+  if (!buffer || buffer.length < 8) return false
+  switch (mimetype) {
+    case 'application/pdf':
+      return buffer.subarray(0, 4).toString('latin1') === '%PDF'
+    case 'image/jpeg':
+    case 'image/jpg':
+      return buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff
+    case 'image/png':
+      return buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
+    default:
+      return false
+  }
 }

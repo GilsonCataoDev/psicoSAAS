@@ -330,6 +330,18 @@ export class PatientsService {
       ...(relations ? { relations } : {}),
     })
     if (!patient) throw new NotFoundException('Portal não encontrado')
+
+    // Expiração opcional do link do portal (LGPD: links vazados não valem para sempre).
+    // Só é aplicada quando PORTAL_TOKEN_TTL_DAYS está configurada — links antigos
+    // continuam funcionando em instalações que não definirem a variável.
+    const ttlDays = Number(process.env.PORTAL_TOKEN_TTL_DAYS)
+    if (ttlDays > 0 && patient.portalTokenCreatedAt) {
+      const ageMs = Date.now() - new Date(patient.portalTokenCreatedAt).getTime()
+      if (ageMs > ttlDays * 24 * 60 * 60 * 1000) {
+        throw new NotFoundException('Link expirado. Solicite um novo ao seu profissional.')
+      }
+    }
+
     return patient
   }
 

@@ -1,0 +1,18 @@
+# Configuração do gitleaks (detecção de segredos no CI)
+# Regras padrão + exceções para falsos positivos conhecidos.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Falsos positivos conhecidos"
+paths = [
+  # node_modules foi commitado por engano no início do projeto e removido em
+  # 63621c1d — as fixtures de teste das bibliotecas (chaves RSA de exemplo,
+  # AKIA de documentação da AWS) não são segredos reais.
+  '''node_modules/''',
+]
+regexes = [
+  # Placeholder de connection string na documentação
+  '''postgresql://user:pass@localhost''',
+]

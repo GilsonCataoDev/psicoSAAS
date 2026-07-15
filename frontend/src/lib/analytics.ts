@@ -50,7 +50,7 @@ function captureAttribution(): AnalyticsProps {
     if (current[field] && !next[firstField]) next[firstField] = current[field]
   }
 
-  try { window.localStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(next)) } catch {}
+  try { window.localStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(next)) } catch { /* storage indisponível (modo privado) */ }
   return next
 }
 
