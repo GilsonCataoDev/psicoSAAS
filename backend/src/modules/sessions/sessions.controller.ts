@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
+import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
 import { RequirePlan } from '../../common/decorators/require-plan.decorator'
 import { PLAN_LIMITS, KnownPlan, normalizePlan } from '../../common/plans'
 import { Subscription } from '../billing/entities/subscription.entity'
@@ -22,8 +23,10 @@ const COMPED_PRO_EMAILS = (process.env.COMPED_PRO_EMAILS ?? 'gilsonfilho96@outlo
   .map(email => email.trim().toLowerCase())
   .filter(Boolean)
 
+// NoImpersonationGuard roda após o JwtAuthGuard (mesmo array) e nega acesso a
+// conteúdo clínico enquanto um admin está "vendo como" outro usuário.
 @Controller('sessions')
-@UseGuards(JwtAuthGuard, CsrfGuard)
+@UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
 export class SessionsController {
   constructor(
     private svc: SessionsService,

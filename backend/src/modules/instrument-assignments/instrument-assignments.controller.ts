@@ -3,6 +3,7 @@ import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator'
 import { Throttle } from '@nestjs/throttler'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
+import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
 import { PublicRoute } from '../../common/decorators/public-route.decorator'
 import { RequirePlan } from '../../common/decorators/require-plan.decorator'
 import { InstrumentAssignmentsService } from './instrument-assignments.service'
@@ -22,7 +23,7 @@ export class InstrumentAssignmentsController {
   constructor(private readonly svc: InstrumentAssignmentsService) {}
 
   @Get('instrument-assignments')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, NoImpersonationGuard)
   @RequirePlan('pro')
   findMine(@Req() req: any, @Query('patientId') patientId?: string) {
     return this.svc.findMine(req.user.id, patientId)

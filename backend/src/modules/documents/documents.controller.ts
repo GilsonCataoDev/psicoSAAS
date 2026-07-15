@@ -6,6 +6,7 @@ import { IsEnum, IsString, IsNotEmpty, MaxLength } from 'class-validator'
 import { Response } from 'express'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
+import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
 import { RequirePlan } from '../../common/decorators/require-plan.decorator'
 import { PublicRoute } from '../../common/decorators/public-route.decorator'
 import { AuditService } from '../audit/audit.service'
@@ -42,21 +43,21 @@ export class DocumentsController {
 
   /** Listar meus documentos */
   @Get()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, NoImpersonationGuard)
   async findMine(@Req() req: any, @Query('type') type?: DocType) {
     return this.svc.findByUser(req.user.id, type)
   }
 
   /** Carrega o conteúdo somente quando o profissional abre um documento. */
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, NoImpersonationGuard)
   findOne(@Param('id') id: string, @Req() req: any) {
     return this.svc.findOneForUser(id, req.user.id)
   }
 
   /** Gerar PDF do documento proprio, com QR e codigo de verificacao */
   @Get(':id/pdf')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, NoImpersonationGuard)
   async pdf(@Param('id') id: string, @Req() req: any, @Res() res: Response) {
     const { filename, buffer } = await this.svc.generatePdf(id, req.user.id)
     await this.record(req, 'document.pdf_downloaded', 'document', id, { filename })

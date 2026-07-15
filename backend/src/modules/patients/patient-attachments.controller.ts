@@ -7,6 +7,7 @@ import { Throttle } from '@nestjs/throttler'
 import { Response } from 'express'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
+import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
 import { AuditService } from '../audit/audit.service'
 import { PatientAttachmentsService } from './patient-attachments.service'
 import { pdfAttachment } from '../../common/http/content-disposition.util'
@@ -14,8 +15,9 @@ import { pdfAttachment } from '../../common/http/content-disposition.util'
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
 const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
 
+// NoImpersonationGuard (após JwtAuthGuard) bloqueia arquivos clínicos durante impersonação.
 @Controller('patients/:patientId/attachments')
-@UseGuards(JwtAuthGuard, CsrfGuard)
+@UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
 export class PatientAttachmentsController {
   constructor(
     private readonly svc: PatientAttachmentsService,
