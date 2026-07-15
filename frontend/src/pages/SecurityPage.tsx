@@ -77,7 +77,7 @@ export default function SecurityPage() {
             <Link to="/cadastro" className="inline-flex h-12 items-center justify-center rounded-md bg-sage-800 px-5 text-sm font-bold text-white hover:bg-sage-900 dark:bg-sage-500 dark:hover:bg-sage-400">
               Testar a plataforma
             </Link>
-            <a href="mailto:contato@usecognia.com.br?subject=Segurança%20UseCognia" className="inline-flex h-12 items-center justify-center rounded-md border border-sage-200 bg-white px-5 text-sm font-bold text-sage-900 hover:bg-sage-50 dark:border-white/15 dark:bg-white/5 dark:text-sage-100 dark:hover:bg-white/10">
+            <a href="mailto:usecognia@gmail.com?subject=Segurança%20UseCognia" className="inline-flex h-12 items-center justify-center rounded-md border border-sage-200 bg-white px-5 text-sm font-bold text-sage-900 hover:bg-sage-50 dark:border-white/15 dark:bg-white/5 dark:text-sage-100 dark:hover:bg-white/10">
               Tirar uma dúvida
             </a>
           </div>
@@ -145,9 +145,9 @@ export default function SecurityPage() {
       <section className="mx-auto max-w-4xl px-5 py-14 text-center">
         <h2 className="text-2xl font-bold dark:text-white">Encontrou uma vulnerabilidade?</h2>
         <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-[#6F6A61] dark:text-neutral-300">
-          Relate de forma responsável, sem acessar dados de terceiros. Envie a descrição, impacto e passos mínimos de reprodução para contato@usecognia.com.br com o assunto “Segurança”.
+          Relate de forma responsável, sem acessar dados de terceiros. Envie a descrição, impacto e passos mínimos de reprodução para usecognia@gmail.com com o assunto “Segurança”.
         </p>
-        <a href="mailto:contato@usecognia.com.br?subject=Relato%20de%20segurança" className="mt-6 inline-flex h-11 items-center justify-center rounded-md bg-sage-800 px-5 text-sm font-bold text-white hover:bg-sage-900 dark:bg-sage-500 dark:hover:bg-sage-400">
+        <a href="mailto:usecognia@gmail.com?subject=Relato%20de%20segurança" className="mt-6 inline-flex h-11 items-center justify-center rounded-md bg-sage-800 px-5 text-sm font-bold text-white hover:bg-sage-900 dark:bg-sage-500 dark:hover:bg-sage-400">
           Relatar com responsabilidade
         </a>
         <p className="mt-6 text-xs text-[#817B72] dark:text-neutral-400">Última revisão técnica: julho de 2026.</p>
