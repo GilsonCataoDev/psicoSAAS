@@ -16,6 +16,7 @@ const controls = [
   'Senhas protegidas com Argon2id, nunca armazenadas em texto puro',
   'Sessões em cookies HttpOnly, com rotação e proteção CSRF',
   'Isolamento de pacientes e registros por conta no servidor',
+  'Acesso administrativo de suporte não alcança conteúdo clínico',
   'Campos clínicos e anexos criptografados com AES-256-GCM',
   'Limites contra força bruta e bloqueio de acessos suspeitos',
   'Validação de entradas e do conteúdo real de arquivos enviados',
@@ -31,7 +32,7 @@ const pillars = [
   {
     icon: EyeOff,
     title: 'Sigilo clínico',
-    text: 'Conteúdo clínico não é usado para publicidade, revenda ou analytics. Logs operacionais evitam registrar prontuários.',
+    text: 'Conteúdo clínico não é usado para publicidade, revenda ou analytics, e o acesso administrativo de suporte é bloqueado de alcançá-lo. Logs operacionais evitam registrar prontuários.',
   },
   {
     icon: Server,
