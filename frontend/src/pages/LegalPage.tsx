@@ -50,7 +50,7 @@ const privacySections: Array<{ title: string; content: string | string[] }> = [
   },
   {
     title: '11. Incidentes e contato',
-    content: 'Dúvidas, solicitações de privacidade ou relatos de vulnerabilidade podem ser enviados para contato@usecognia.com.br, com o assunto “Privacidade” ou “Segurança”. Incidentes confirmados serão avaliados e comunicados aos envolvidos e às autoridades quando exigido pela legislação aplicável.',
+    content: 'Dúvidas, solicitações de privacidade ou relatos de vulnerabilidade podem ser enviados para usecognia@gmail.com, com o assunto “Privacidade” ou “Segurança”. Incidentes confirmados serão avaliados e comunicados aos envolvidos e às autoridades quando exigido pela legislação aplicável.',
   },
   {
     title: '12. Atualizações',
@@ -168,7 +168,7 @@ export default function LegalPage({ type }: { type: 'privacy' | 'terms' }) {
 
         <div className="mt-6 flex flex-wrap gap-4 text-sm font-semibold text-sage-700 dark:text-sage-300">
           <Link to="/seguranca" className="hover:text-sage-900 dark:hover:text-sage-100">Conheça os controles de segurança</Link>
-          <a href="mailto:contato@usecognia.com.br" className="hover:text-sage-900 dark:hover:text-sage-100">Falar sobre privacidade</a>
+          <a href="mailto:usecognia@gmail.com" className="hover:text-sage-900 dark:hover:text-sage-100">Falar sobre privacidade</a>
         </div>
 
       </article>

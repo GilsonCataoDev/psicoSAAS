@@ -587,7 +587,7 @@ export default function LandingPage() {
               Criar conta grátis <ArrowRight className="h-4 w-4" />
             </MotionLink>
             <a
-              href="mailto:contato@usecognia.com.br"
+              href="mailto:usecognia@gmail.com"
               className="inline-flex h-12 items-center gap-2 rounded-md border border-white/20 px-6 text-sm font-semibold text-white hover:bg-white/10"
             >
               Falar com a equipe
@@ -609,8 +609,8 @@ export default function LandingPage() {
               <p className="mt-3 text-sm leading-relaxed text-[#7C776B]">
                 Agenda, prontuário e cobranças para psicólogos e terapeutas.
               </p>
-              <a href="mailto:contato@usecognia.com.br" className="mt-3 block text-sm text-sage-700 hover:underline">
-                contato@usecognia.com.br
+              <a href="mailto:usecognia@gmail.com" className="mt-3 block text-sm text-sage-700 hover:underline">
+                usecognia@gmail.com
               </a>
             </div>
 

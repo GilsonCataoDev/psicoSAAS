@@ -56,7 +56,7 @@ Esse isolamento é coberto por **testes automatizados** que simulam duas contas 
 ## Contato para privacidade e incidentes
 
 Solicitações de titulares de dados, dúvidas de privacidade ou relato de vulnerabilidade:
-**contato@usecognia.com.br** (assunto: "Privacidade" ou "Segurança").
+**usecognia@gmail.com** (assunto: "Privacidade" ou "Segurança").
 
 ---
 
