@@ -10,7 +10,7 @@
  * Requisito: variável de ambiente ENCRYPTION_KEY com ≥ 32 chars.
  * A chave derivada é cacheada em memória para performance.
  */
-import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, scryptSync } from 'crypto'
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, scryptSync, timingSafeEqual } from 'crypto'
 
 const ALG    = 'aes-256-gcm' as const
 const SALT   = 'usecognia-field-enc-v1'
@@ -130,4 +130,16 @@ export function generateCsrfToken(userId: string, csrfSeed?: string): string {
   // Nesses casos mantemos o formato legado para não invalidar sessões ativas no deploy.
   const payload = csrfSeed ? `csrf:${userId}:${csrfSeed}` : `csrf:${userId}`
   return createHmac('sha256', secret).update(payload).digest('hex')
+}
+
+/**
+ * Compara dois segredos em tempo constante.
+ * Hasheia ambos antes de comparar para aceitar comprimentos diferentes
+ * sem vazar o tamanho do segredo esperado.
+ */
+export function secretsMatch(provided: string | undefined, expected: string | undefined): boolean {
+  if (!provided || !expected) return false
+  const a = createHash('sha256').update(provided).digest()
+  const b = createHash('sha256').update(expected).digest()
+  return timingSafeEqual(a, b)
 }

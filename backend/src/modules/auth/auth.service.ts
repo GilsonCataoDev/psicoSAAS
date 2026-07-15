@@ -179,6 +179,11 @@ export class AuthService {
       throw new UnauthorizedException('Credenciais invalidas')
     }
 
+    if (user.isActive === false) {
+      this.audit('LOGIN_BLOCKED_INACTIVE', { userId: user.id, ip })
+      throw new UnauthorizedException('Conta desativada. Contate o suporte.')
+    }
+
     // Rehash transparente de bcrypt legado para Argon2id
     if (needsRehash) {
       user.passwordHash = await hashPassword(dto.password)
@@ -249,6 +254,12 @@ export class AuthService {
 
     const user = await this.users.findOneBy({ id: rt.userId })
     if (!user) throw new UnauthorizedException('Usuario nao encontrado')
+
+    if (user.isActive === false) {
+      await this.rtRepo.update({ userId: user.id, revoked: false }, { revoked: true })
+      this.audit('REFRESH_BLOCKED_INACTIVE', { userId: user.id, ip })
+      throw new UnauthorizedException('Conta desativada. Contate o suporte.')
+    }
 
     this.audit('REFRESH_TOKEN_ROTATED', { userId: user.id, ip })
 

@@ -553,8 +553,7 @@ export class BookingService {
     await this.bookings.save(booking)
 
     // ── Atualiza ou cria o FinancialRecord ──────────────────────────────────
-    let record: FinancialRecord | null = null
-    record = await this.financial.findOne({
+    let record: FinancialRecord | null = await this.financial.findOne({
       where: [
         { bookingId: booking.id, psychologistId },
         ...(booking.appointmentId

@@ -169,6 +169,15 @@ describe('AuthService', () => {
       expect(refreshTokenRepo.update).toHaveBeenCalledWith({ userId: 'user-123', revoked: false }, { revoked: true })
     })
 
+    it('deve bloquear login de conta desativada mesmo com senha correta', async () => {
+      const { service, userRepo, loginAttemptRepo } = await createService()
+      userRepo.findOneBy.mockResolvedValue(await makeUser({ isActive: false }))
+      loginAttemptRepo.findOneBy.mockResolvedValue(null)
+      loginAttemptRepo.findOne.mockResolvedValue(null)
+      await expect(service.login({ email: 'test@example.com', password: 'correct-password' }))
+        .rejects.toMatchObject({ message: 'Conta desativada. Contate o suporte.' })
+    })
+
     it('deve fazer rehash de senha bcrypt legada para Argon2', async () => {
       const { service, userRepo, loginAttemptRepo, refreshTokenRepo } = await createService()
       const bcrypt = require('bcryptjs')
@@ -189,6 +198,19 @@ describe('AuthService', () => {
     it('deve rejeitar token ausente', async () => {
       const { service } = await createService()
       await expect(service.refresh('')).rejects.toThrow(UnauthorizedException)
+    })
+
+    it('deve bloquear refresh de conta desativada e revogar sessoes', async () => {
+      const { service, userRepo, refreshTokenRepo } = await createService()
+      refreshTokenRepo.createQueryBuilder.mockReturnValue({
+        addSelect: jest.fn().mockReturnThis(),
+        where:     jest.fn().mockReturnThis(),
+        getOne:    jest.fn().mockResolvedValue({ id: 'rt-id', userId: 'user-123', revoked: false, expiresAt: new Date(Date.now() + 60_000) }),
+      })
+      userRepo.findOneBy.mockResolvedValue(await makeUser({ isActive: false }))
+      await expect(service.refresh('some-token'))
+        .rejects.toMatchObject({ message: 'Conta desativada. Contate o suporte.' })
+      expect(refreshTokenRepo.update).toHaveBeenCalledWith({ userId: 'user-123', revoked: false }, { revoked: true })
     })
 
     it('deve detectar replay attack e revogar todas as sessoes', async () => {

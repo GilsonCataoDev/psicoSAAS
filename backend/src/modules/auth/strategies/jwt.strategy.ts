@@ -23,6 +23,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: { sub: string; email: string; csrfSeed?: string; impersonatedBy?: string; impersonatedByEmail?: string }) {
     const user = await this.auth.findById(payload.sub)
     if (!user) throw new UnauthorizedException('Sessão inválida')
+    if (user.isActive === false) throw new UnauthorizedException('Conta desativada')
     const {
       passwordHash: _passwordHash,
       resetPasswordToken: _resetPasswordToken,
