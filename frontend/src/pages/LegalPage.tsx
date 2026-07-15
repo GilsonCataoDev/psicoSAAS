@@ -3,7 +3,60 @@ import BrandLogo from '@/components/ui/BrandLogo'
 
 // ─── POLÍTICA DE PRIVACIDADE ─────────────────────────────────────────────────
 
-const privacySections: Array<{ title: string; content: string | string[] }> = []
+const privacySections: Array<{ title: string; content: string | string[] }> = [
+  {
+    title: '1. Sobre esta política',
+    content: 'Esta Política de Privacidade explica como o UseCognia trata dados pessoais na plataforma. Ela deve ser lida junto dos Termos de Uso. O UseCognia fornece tecnologia de gestão para profissionais de saúde mental e não substitui as obrigações éticas, profissionais ou legais de quem realiza o atendimento.',
+  },
+  {
+    title: '2. Papéis no tratamento de dados',
+    content: 'Para os dados cadastrais da conta, cobrança, suporte e segurança, o UseCognia toma decisões necessárias à operação da plataforma. Em relação aos dados de pacientes inseridos pelo profissional, o profissional ou a clínica define a finalidade e atua como controlador; o UseCognia trata esses dados para prestar o serviço, na condição de operador, conforme as instruções e configurações da conta.',
+  },
+  {
+    title: '3. Dados tratados',
+    content: [
+      'Podemos tratar dados da conta, como nome, e-mail, telefone, registro profissional, preferências, plano e histórico de acesso.',
+      'Quando o profissional utiliza os módulos clínicos, a plataforma pode armazenar dados de pacientes, agenda, sessões, prontuários, documentos, instrumentos, anexos e informações financeiras. Esses registros podem incluir dados pessoais sensíveis relativos à saúde.',
+      'Também tratamos dados técnicos indispensáveis à segurança e ao funcionamento, como endereço IP, navegador, dispositivo, data, horário, eventos de autenticação e trilhas de auditoria.',
+    ],
+  },
+  {
+    title: '4. Finalidades e bases legais',
+    content: 'Os dados são utilizados para criar e autenticar contas, prestar as funcionalidades contratadas, proteger a plataforma, oferecer suporte, processar pagamentos, cumprir obrigações legais e prevenir fraude. Conforme o contexto, o tratamento pode se apoiar na execução de contrato, cumprimento de obrigação legal ou regulatória, exercício regular de direitos, legítimo interesse e consentimento quando exigido. O profissional é responsável por definir e documentar a base legal aplicável aos dados de seus pacientes.',
+  },
+  {
+    title: '5. Compartilhamento e fornecedores',
+    content: 'Os dados são compartilhados somente quando necessário à prestação do serviço, à segurança ou ao cumprimento da lei. A infraestrutura utiliza Vercel para a interface e Railway/PostgreSQL para aplicação e banco de dados. Recursos opcionais podem envolver Asaas, Resend, Google Calendar, WhatsApp e provedores de monitoramento. Cada integração recebe apenas os dados necessários para sua função e pode estar sujeita aos próprios termos. Não vendemos prontuários nem utilizamos conteúdo clínico para publicidade.',
+  },
+  {
+    title: '6. Transferência internacional',
+    content: 'Alguns fornecedores de infraestrutura e integrações podem processar dados fora do Brasil. Nesses casos, buscamos utilizar fornecedores com medidas contratuais e técnicas adequadas e limitar os dados ao necessário para a execução do serviço.',
+  },
+  {
+    title: '7. Segurança',
+    content: 'Adotamos HTTPS/TLS, autenticação individual, cookies de sessão HttpOnly, proteção CSRF, limitação de tentativas, isolamento de dados por conta, criptografia de campos clínicos sensíveis, validação de entradas e arquivos, trilhas de auditoria e verificações automáticas antes de alterações. Nenhum sistema é invulnerável; detalhes e limitações atuais estão publicados na página de Segurança.',
+  },
+  {
+    title: '8. Retenção, exportação e exclusão',
+    content: 'A conta oferece recurso de exportação dos dados. A exclusão deve considerar as obrigações de guarda de prontuários e documentos previstas pelas normas profissionais aplicáveis. Antes de encerrar uma conta, o profissional deve exportar e preservar os registros que precise manter. Dados técnicos, financeiros ou de auditoria poderão ser retidos pelo prazo necessário ao cumprimento de obrigação legal, prevenção de fraude e exercício regular de direitos.',
+  },
+  {
+    title: '9. Direitos dos titulares',
+    content: 'O titular pode solicitar confirmação de tratamento, acesso, correção, portabilidade quando aplicável, informação sobre compartilhamentos, revisão de consentimento e eliminação nos casos permitidos pela lei. Solicitações relacionadas ao prontuário de um paciente devem ser direcionadas primeiro ao profissional ou clínica responsável pelo atendimento. Pedidos sobre a conta UseCognia podem ser enviados ao contato informado abaixo.',
+  },
+  {
+    title: '10. Cookies e analytics',
+    content: 'Utilizamos cookies estritamente necessários para autenticação e segurança. Podemos coletar eventos operacionais e de uso sem conteúdo clínico para entender o funcionamento da plataforma. A gravação automática de sessão está desativada. Preferências e origem de campanha podem ser mantidas localmente no navegador.',
+  },
+  {
+    title: '11. Incidentes e contato',
+    content: 'Dúvidas, solicitações de privacidade ou relatos de vulnerabilidade podem ser enviados para contato@usecognia.com.br, com o assunto “Privacidade” ou “Segurança”. Incidentes confirmados serão avaliados e comunicados aos envolvidos e às autoridades quando exigido pela legislação aplicável.',
+  },
+  {
+    title: '12. Atualizações',
+    content: 'Esta política pode ser atualizada para refletir mudanças legais, técnicas ou operacionais. Alterações relevantes serão comunicadas por meio adequado. Versão 1.0 — última atualização: julho de 2026.',
+  },
+]
 
 // ─── TERMOS DE USO ───────────────────────────────────────────────────────────
 
@@ -90,13 +143,11 @@ export default function LegalPage({ type }: { type: 'privacy' | 'terms' }) {
         </h1>
         <p className="mt-2 text-sm text-neutral-500">
           {isPrivacy
-            ? ''
+            ? 'Versão 1.0 · Brasil · Última atualização: julho de 2026'
             : 'Versão 2.0 · Brasil · Última atualização: junho de 2025'}
         </p>
 
-        {isPrivacy && <div className="min-h-[420px]" />}
-
-        {!isPrivacy && <div className="mt-8 space-y-0 divide-y divide-neutral-100 rounded-2xl border border-sage-100 bg-white shadow-card overflow-hidden">
+        <div className="mt-8 space-y-0 divide-y divide-neutral-100 overflow-hidden rounded-2xl border border-sage-100 bg-white shadow-card">
           {sections.map((section) => (
             <section key={section.title} className="px-6 py-5">
               <h2 className="font-semibold text-neutral-900 mb-3">{section.title}</h2>
@@ -113,7 +164,12 @@ export default function LegalPage({ type }: { type: 'privacy' | 'terms' }) {
               )}
             </section>
           ))}
-        </div>}
+        </div>
+
+        <div className="mt-6 flex flex-wrap gap-4 text-sm font-semibold text-sage-700">
+          <Link to="/seguranca" className="hover:text-sage-900">Conheça os controles de segurança</Link>
+          <a href="mailto:contato@usecognia.com.br" className="hover:text-sage-900">Falar sobre privacidade</a>
+        </div>
 
       </article>
     </main>
