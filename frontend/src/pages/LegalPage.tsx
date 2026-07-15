@@ -128,8 +128,8 @@ export default function LegalPage({ type }: { type: 'privacy' | 'terms' }) {
   const sections = isPrivacy ? privacySections : termsSections
 
   return (
-    <main className="min-h-screen bg-neutral-50">
-      <header className="border-b border-sage-100 bg-white">
+    <main className="min-h-screen bg-neutral-50 text-neutral-900 transition-colors dark:bg-[#0d1512] dark:text-neutral-100">
+      <header className="border-b border-sage-100 bg-white dark:border-white/10 dark:bg-[#101915]">
         <div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-5">
           <Link to="/plataforma"><BrandLogo className="h-10 w-auto" /></Link>
           <Link to="/cadastro" className="btn-primary text-sm">Começar</Link>
@@ -138,27 +138,27 @@ export default function LegalPage({ type }: { type: 'privacy' | 'terms' }) {
 
       <article className="mx-auto max-w-4xl px-5 py-10">
         <p className="text-sm font-medium text-sage-700">UseCognia</p>
-        <h1 className="mt-2 font-display text-3xl font-bold text-neutral-950">
+        <h1 className="mt-2 font-display text-3xl font-bold text-neutral-950 dark:text-white">
           {isPrivacy ? 'Política de Privacidade' : 'Termos de Uso'}
         </h1>
-        <p className="mt-2 text-sm text-neutral-500">
+        <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
           {isPrivacy
             ? 'Versão 1.0 · Brasil · Última atualização: julho de 2026'
             : 'Versão 2.0 · Brasil · Última atualização: junho de 2025'}
         </p>
 
-        <div className="mt-8 space-y-0 divide-y divide-neutral-100 overflow-hidden rounded-2xl border border-sage-100 bg-white shadow-card">
+        <div className="mt-8 space-y-0 divide-y divide-neutral-100 overflow-hidden rounded-2xl border border-sage-100 bg-white shadow-card dark:divide-white/10 dark:border-white/10 dark:bg-[#17211d]">
           {sections.map((section) => (
-            <section key={section.title} className="px-6 py-5">
-              <h2 className="font-semibold text-neutral-900 mb-3">{section.title}</h2>
+            <section key={section.title} className="px-6 py-5 transition-colors dark:hover:bg-white/[0.025]">
+              <h2 className="mb-3 font-semibold text-neutral-900 dark:text-neutral-100">{section.title}</h2>
               {Array.isArray(section.content)
                 ? section.content.map((paragraph, i) => (
-                    <p key={i} className="mt-2 text-sm leading-relaxed text-neutral-600 whitespace-pre-line">
+                    <p key={i} className="mt-2 whitespace-pre-line text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">
                       {paragraph}
                     </p>
                   ))
                 : (
-                    <p className="text-sm leading-relaxed text-neutral-600 whitespace-pre-line">
+                    <p className="whitespace-pre-line text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">
                       {section.content}
                     </p>
               )}
@@ -166,9 +166,9 @@ export default function LegalPage({ type }: { type: 'privacy' | 'terms' }) {
           ))}
         </div>
 
-        <div className="mt-6 flex flex-wrap gap-4 text-sm font-semibold text-sage-700">
-          <Link to="/seguranca" className="hover:text-sage-900">Conheça os controles de segurança</Link>
-          <a href="mailto:contato@usecognia.com.br" className="hover:text-sage-900">Falar sobre privacidade</a>
+        <div className="mt-6 flex flex-wrap gap-4 text-sm font-semibold text-sage-700 dark:text-sage-300">
+          <Link to="/seguranca" className="hover:text-sage-900 dark:hover:text-sage-100">Conheça os controles de segurança</Link>
+          <a href="mailto:contato@usecognia.com.br" className="hover:text-sage-900 dark:hover:text-sage-100">Falar sobre privacidade</a>
         </div>
 
       </article>
