@@ -23,6 +23,10 @@ Cada psicólogo só acessa os próprios registros. Isso é aplicado **no servido
 
 Esse isolamento é coberto por **testes automatizados** que simulam duas contas tentando acessar pacientes, sessões, prontuários, documentos, agenda, financeiro e arquivos uma da outra. Esses testes rodam a cada alteração do código.
 
+## Acesso administrativo
+
+Para dar suporte, a operação da plataforma pode usar um modo "ver como" (impersonação) — sempre registrado na trilha de auditoria. Esse modo **não alcança conteúdo clínico**: prontuários, sessões, anexos, documentos e respostas de instrumentos ficam bloqueados durante a impersonação. Ficam visíveis apenas informações operacionais (como status da conta e do plano), o suficiente para o suporte sem expor o sigilo clínico. Ações sensíveis (troca de senha, exclusão de conta e dados de cobrança) também são bloqueadas nesse modo. Esse bloqueio é coberto por testes automatizados.
+
 ## Dados clínicos
 
 - Prontuários, anotações privadas de sessão e anexos são **criptografados no banco de dados** (AES-256-GCM, em nível de aplicação) — um acesso direto ao banco não expõe o conteúdo clínico em texto legível.
@@ -60,4 +64,4 @@ Solicitações de titulares de dados, dúvidas de privacidade ou relato de vulne
 
 ---
 
-*Última revisão técnica: julho de 2026.*
+*Última revisão técnica: julho de 2026 (inclui bloqueio de conteúdo clínico no acesso administrativo).*
