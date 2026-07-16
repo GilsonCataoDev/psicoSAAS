@@ -10,6 +10,7 @@ import { readPersistedStorage } from '@/lib/storageMigration'
 import { useAuthStore } from '@/store/auth'
 import { useSubscriptionStore } from '@/store/subscription'
 import { applyTheme, ThemeMode } from '@/store/theme'
+import AnalyticsConsentBanner from '@/components/privacy/AnalyticsConsentBanner'
 import './index.css'
 
 const CHUNK_RECOVERY_KEY = 'usecognia.chunk-recovery-at'
@@ -152,6 +153,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <BrowserRouter basename={(import.meta.env.BASE_URL || '/').replace(/\/$/, '') || '/'}>
         <App />
+        <AnalyticsConsentBanner />
         <Toaster
           position="top-right"
           toastOptions={{

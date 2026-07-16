@@ -38,6 +38,10 @@ Thumbs.db
 # Coverage
 coverage/
 
+# Local development tools and generated architecture maps
+.tools/
+graphify-out/
+
 # Playwright
 test-results/
 playwright-report/

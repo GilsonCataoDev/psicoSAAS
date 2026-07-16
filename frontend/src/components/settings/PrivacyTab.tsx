@@ -1,8 +1,10 @@
-import { Download, Trash2 } from 'lucide-react'
+import { BarChart3, Download, Trash2 } from 'lucide-react'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 import { type AuditLog, AUDIT_LABELS } from './types'
 
 interface Props {
+  analyticsEnabled: boolean
+  updateAnalyticsConsent: (enabled: boolean) => void
   exportingData: boolean
   loadingAudit: boolean
   auditLogs: AuditLog[]
@@ -16,6 +18,7 @@ interface Props {
 }
 
 export function PrivacyTab({
+  analyticsEnabled, updateAnalyticsConsent,
   exportingData, loadingAudit, auditLogs,
   deletePassword, setDeletePassword, deleteConfirm, setDeleteConfirm,
   deletingAccount, exportData, deleteAccount,
@@ -34,6 +37,35 @@ export function PrivacyTab({
             <p>{item.text}</p>
           </div>
         ))}
+      </div>
+      <div className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-white/10 dark:bg-white/[0.04]">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex min-w-0 gap-3">
+            <div className="rounded-xl bg-sage-100 p-2 text-sage-700 dark:bg-sage-500/20 dark:text-sage-200">
+              <BarChart3 className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">Métricas de uso protegidas</h3>
+              <p className="mt-1 text-sm leading-5 text-neutral-600 dark:text-neutral-300">
+                Ajuda a entender quais recursos precisam melhorar. Não inclui nomes, dados de pacientes,
+                prontuários, documentos, mensagens ou valores e não grava sua tela.
+              </p>
+              <p className="mt-2 text-xs text-neutral-400 dark:text-neutral-400">
+                Esta escolha vale somente para este navegador e pode ser alterada quando quiser.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={analyticsEnabled}
+            aria-label="Permitir métricas de uso"
+            onClick={() => updateAnalyticsConsent(!analyticsEnabled)}
+            className={`relative mt-1 h-6 w-11 shrink-0 rounded-full transition-colors ${analyticsEnabled ? 'bg-sage-600' : 'bg-neutral-300 dark:bg-neutral-600'}`}
+          >
+            <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${analyticsEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+          </button>
+        </div>
       </div>
       <button className="btn-secondary text-sm flex items-center gap-2 w-fit"
         disabled={exportingData}

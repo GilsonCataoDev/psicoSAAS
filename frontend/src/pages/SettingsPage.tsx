@@ -22,6 +22,12 @@ import { PaymentTab } from '@/components/settings/PaymentTab'
 import { PlanTab } from '@/components/settings/PlanTab'
 import { PrivacyTab } from '@/components/settings/PrivacyTab'
 import { SecurityTab } from '@/components/settings/SecurityTab'
+import {
+  getAnalyticsConsent,
+  identifyUser,
+  setAnalyticsConsent,
+  subscribeAnalyticsConsent,
+} from '@/lib/analytics'
 
 const GOOGLE_CALENDAR_ENABLED = true
 
@@ -60,12 +66,21 @@ export default function SettingsPage() {
   const isAuthenticated = useAuthStore(s => s.isAuthenticated)
   const updateUser = useAuthStore(s => s.updateUser)
   const logout = useAuthStore(s => s.logout)
+  const [analyticsEnabled, setAnalyticsEnabled] = useState(() => getAnalyticsConsent() === true)
   const [searchParams, setSearchParams] = useSearchParams()
   const [tab, setTab] = useState(
     searchParams.get('tab') === 'integrations' && !GOOGLE_CALENDAR_ENABLED
       ? 'profile'
       : searchParams.get('tab') ?? 'profile',
   )
+
+  useEffect(() => subscribeAnalyticsConsent(setAnalyticsEnabled), [])
+
+  function updateAnalyticsConsent(enabled: boolean) {
+    setAnalyticsConsent(enabled)
+    if (enabled && user?.id) identifyUser(user.id)
+    toast.success(enabled ? 'Métricas de uso ativadas neste navegador.' : 'Métricas de uso desativadas neste navegador.')
+  }
 
   useEffect(() => {
     const requestedTab = searchParams.get('tab')
@@ -626,6 +641,8 @@ export default function SettingsPage() {
 
           {tab === 'privacy' && (
             <PrivacyTab
+              analyticsEnabled={analyticsEnabled}
+              updateAnalyticsConsent={updateAnalyticsConsent}
               exportingData={exportingData} loadingAudit={loadingAudit} auditLogs={auditLogs}
               deletePassword={deletePassword} setDeletePassword={setDeletePassword}
               deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm}
