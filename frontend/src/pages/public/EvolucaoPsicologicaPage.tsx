@@ -205,7 +205,7 @@ function EmailModal({
     if (!re.test(email)) { setError('E-mail inválido.'); return }
     setSubmitting(true)
     // [ANALYTICS] email_capture event
-    track(EVENTS.TOOL_EMAIL_CAPTURE, { email_domain: email.split('@')[1] ?? '' })
+    track(EVENTS.TOOL_EMAIL_CAPTURE)
     // Simula pequeno delay para feedback
     setTimeout(() => {
       localStorage.setItem(EMAIL_KEY, email)
