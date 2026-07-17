@@ -12,6 +12,7 @@ import {
   useUserTimeline,
 } from '@/hooks/useApi'
 import { cn } from '@/lib/utils'
+import { buildWhatsAppUrl } from '@/lib/whatsapp'
 import toast from 'react-hot-toast'
 
 // ─── Risk config ─────────────────────────────────────────────────────────────
@@ -96,13 +97,9 @@ function AccountRow({ account }: { account: ChurnAccount }) {
     })
   }
 
-  const whatsappMsg = encodeURIComponent(
+  const whatsappMsg =
     `Olá ${account.name}! Aqui é a equipe do UseCognia. Percebemos que faz um tempo que você não acessa a plataforma. Podemos te ajudar com algo? 😊`
-  )
-  const whatsappPhone = (account as any).phone?.replace(/\D/g, '')
-  const whatsappUrl = whatsappPhone
-    ? `https://wa.me/55${whatsappPhone}?text=${whatsappMsg}`
-    : `https://wa.me/?text=${whatsappMsg}`
+  const whatsappUrl = buildWhatsAppUrl(account.phone, whatsappMsg)
 
   return (
     <Fragment>
