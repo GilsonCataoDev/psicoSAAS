@@ -6,6 +6,7 @@ import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { BookingService } from './booking.service'
 import { SaveBookingPageDto } from './dto/save-booking-page.dto'
 import { MarkBookingPaidDto } from './dto/mark-booking-paid.dto'
+import { PosthogService } from '../posthog/posthog.service'
 
 /**
  * Rotas autenticadas — painel do psicólogo.
@@ -13,7 +14,10 @@ import { MarkBookingPaidDto } from './dto/mark-booking-paid.dto'
 @Controller('booking')
 @UseGuards(JwtAuthGuard, CsrfGuard)
 export class BookingController {
-  constructor(private svc: BookingService) {}
+  constructor(
+    private svc: BookingService,
+    private posthog: PosthogService,
+  ) {}
 
   /** Listar solicitações de agendamento */
   @Get()
@@ -31,8 +35,10 @@ export class BookingController {
 
   /** Confirmar solicitação */
   @Patch(':id/confirm')
-  confirm(@Param('id') id: string, @Request() req: any) {
-    return this.svc.confirmBooking(id, req.user.id)
+  async confirm(@Param('id') id: string, @Request() req: any) {
+    const result = await this.svc.confirmBooking(id, req.user.id)
+    await this.posthog.captureAndFlush(this.posthog.distinctId(req.user.id), 'booking_confirmed')
+    return result
   }
 
   /** Rejeitar / cancelar solicitação */

@@ -5,11 +5,15 @@ import { AppointmentsService } from './appointments.service'
 import { CreateAppointmentDto } from './dto/create-appointment.dto'
 import { UpdateAppointmentDto } from './dto/update-appointment.dto'
 import { UpdateGroupDto } from './dto/update-group.dto'
+import { PosthogService } from '../posthog/posthog.service'
 
 @Controller('appointments')
 @UseGuards(JwtAuthGuard, CsrfGuard)
 export class AppointmentsController {
-  constructor(private svc: AppointmentsService) {}
+  constructor(
+    private svc: AppointmentsService,
+    private posthog: PosthogService,
+  ) {}
 
   // ── Grupo (devem vir antes das rotas com :id) ───────────────────────────────
 
@@ -46,7 +50,13 @@ export class AppointmentsController {
 
   @Get(':id') findOne(@Param('id') id: string, @Request() req: any) { return this.svc.findOne(id, req.user.id) }
 
-  @Post() create(@Body() dto: CreateAppointmentDto, @Request() req: any) { return this.svc.create(dto, req.user.id) }
+  @Post() async create(@Body() dto: CreateAppointmentDto, @Request() req: any) {
+    const result = await this.svc.create(dto, req.user.id)
+    await this.posthog.captureAndFlush(this.posthog.distinctId(req.user.id), 'appointment_created', {
+      modality: (dto as any).modality ?? undefined,
+    })
+    return result
+  }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateAppointmentDto, @Request() req: any) {
@@ -58,5 +68,9 @@ export class AppointmentsController {
     return this.svc.updateStatus(id, status, req.user.id)
   }
 
-  @Delete(':id') remove(@Param('id') id: string, @Request() req: any) { return this.svc.remove(id, req.user.id) }
+  @Delete(':id') async remove(@Param('id') id: string, @Request() req: any) {
+    const result = await this.svc.remove(id, req.user.id)
+    await this.posthog.captureAndFlush(this.posthog.distinctId(req.user.id), 'appointment_deleted')
+    return result
+  }
 }

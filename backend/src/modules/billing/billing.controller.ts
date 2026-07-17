@@ -6,6 +6,7 @@ import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard
 import { AsaasService, TokenizeCreditCardInput } from './asaas.service'
 import { BillingWebhookService } from './billing-webhook.service'
 import { BillingService } from './billing.service'
+import { PosthogService } from '../posthog/posthog.service'
 
 @Controller('billing')
 export class BillingController {
@@ -15,6 +16,7 @@ export class BillingController {
     private readonly billing: BillingService,
     private readonly asaas: AsaasService,
     private readonly webhooks: BillingWebhookService,
+    private readonly posthog: PosthogService,
   ) {}
 
   @Post('tokenize')
@@ -58,12 +60,15 @@ export class BillingController {
 
   @Post('subscribe')
   @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
-  subscribe(
+  async subscribe(
     @Request() req: any,
     @Body('plan') plan?: string,
     @Body('creditCardToken') creditCardToken?: string,
   ) {
-    return this.billing.subscribe(req.user, plan, creditCardToken)
+    const result = await this.billing.subscribe(req.user, plan, creditCardToken)
+    const distinctId = this.posthog.distinctId(req.user.id)
+    await this.posthog.captureAndFlush(distinctId, 'subscription_created', { plan: plan ?? 'unknown' })
+    return result
   }
 
   @Post('free')
@@ -84,14 +89,20 @@ export class BillingController {
 
   @Post('change-plan')
   @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
-  changePlan(@Request() req: any, @Body('plan') plan?: string) {
-    return this.billing.changePlan(req.user, plan)
+  async changePlan(@Request() req: any, @Body('plan') plan?: string) {
+    const result = await this.billing.changePlan(req.user, plan)
+    const distinctId = this.posthog.distinctId(req.user.id)
+    await this.posthog.captureAndFlush(distinctId, 'plan_changed', { plan: plan ?? 'unknown' })
+    return result
   }
 
   @Post('cancel')
   @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
-  cancel(@Request() req: any) {
-    return this.billing.cancel(req.user)
+  async cancel(@Request() req: any) {
+    const result = await this.billing.cancel(req.user)
+    const distinctId = this.posthog.distinctId(req.user.id)
+    await this.posthog.captureAndFlush(distinctId, 'subscription_cancelled')
+    return result
   }
 
   @Get('metrics')

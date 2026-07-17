@@ -13,6 +13,7 @@ import { AuditService } from '../audit/audit.service'
 import { DocumentsService, CreateDocumentDto } from './documents.service'
 import { DocType } from './entities/document.entity'
 import { pdfAttachment } from '../../common/http/content-disposition.util'
+import { PosthogService } from '../posthog/posthog.service'
 
 class CreateDocumentBodyDto implements CreateDocumentDto {
   @IsString() @IsNotEmpty() @MaxLength(80) patientId: string
@@ -27,6 +28,7 @@ export class DocumentsController {
   constructor(
     private svc: DocumentsService,
     private audit: AuditService,
+    private posthog: PosthogService,
   ) {}
 
   /** Gerar e assinar um novo documento (requer plano Essencial ou superior) */
@@ -38,6 +40,7 @@ export class DocumentsController {
               ?? req.socket?.remoteAddress
     const doc = await this.svc.create(req.user, body, ip)
     await this.record(req, 'document.created', 'document', doc.id, { type: doc.type, patientId: doc.patientId })
+    await this.posthog.captureAndFlush(this.posthog.distinctId(req.user.id), 'document_generated', { type: doc.type })
     return doc
   }
 
