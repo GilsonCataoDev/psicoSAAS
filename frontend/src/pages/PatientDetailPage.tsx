@@ -22,6 +22,7 @@ import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
 import { track, EVENTS } from '@/lib/analytics'
 import LightweightChart from '@/components/ui/LightweightChart'
+import EditPatientModal from '@/components/features/patients/EditPatientModal'
 
 const MOODS = ['', '1', '2', '3', '4', '5']
 const WEEKDAYS = ['Domingo', 'Segunda', 'Terca', 'Quarta', 'Quinta', 'Sexta', 'Sabado']
@@ -122,6 +123,7 @@ export default function PatientDetailPage() {
   }
   const [tab, setTab] = useState<'record' | 'timeline' | 'responses' | 'notes' | 'financial'>('record')
   const [showSessionModal, setShowSessionModal] = useState(false)
+  const [showEditPatientModal, setShowEditPatientModal] = useState(false)
   const [editingResponse, setEditingResponse] = useState<InstrumentAssignment | null>(null)
   const [editedAnswers, setEditedAnswers] = useState<Record<string, string>>({})
   const [fixedSchedule, setFixedSchedule] = useState({
@@ -384,6 +386,13 @@ export default function PatientDetailPage() {
 
               {/* Ações — desktop */}
               <div className="hidden sm:flex gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowEditPatientModal(true)}
+                  className="btn-secondary text-sm flex items-center gap-1.5"
+                >
+                  <Pencil className="w-3.5 h-3.5" /> Editar
+                </button>
                 <button onClick={copyPortalLink}
                   disabled={createPortalLink.isPending}
                   className="btn-secondary text-sm flex items-center gap-1.5">
@@ -409,18 +418,25 @@ export default function PatientDetailPage() {
         </div>
 
         {/* Ações — mobile */}
-        <div className="flex gap-2 mt-4 sm:hidden">
+        <div className="grid grid-cols-2 gap-2 mt-4 sm:hidden">
+          <button
+            type="button"
+            onClick={() => setShowEditPatientModal(true)}
+            className="btn-secondary text-sm flex items-center gap-1.5 justify-center"
+          >
+            <Pencil className="w-3.5 h-3.5" /> Editar
+          </button>
           <button onClick={copyPortalLink}
             disabled={createPortalLink.isPending}
-            className="btn-secondary text-sm flex items-center gap-1.5 flex-1 justify-center">
+            className="btn-secondary text-sm flex items-center gap-1.5 justify-center">
             <Copy className="w-3.5 h-3.5" /> Portal
           </button>
           <Link to={`/prontuario/${patient.id}`}
-            className="btn-secondary text-sm flex items-center gap-1.5 flex-1 justify-center">
+            className="btn-secondary text-sm flex items-center gap-1.5 justify-center">
             <ClipboardList className="w-3.5 h-3.5" /> Prontuário
           </Link>
           <button onClick={() => setShowSessionModal(true)}
-            className="btn-primary text-sm flex items-center gap-1.5 flex-1 justify-center">
+            className="btn-primary text-sm flex items-center gap-1.5 justify-center">
             <Plus className="w-3.5 h-3.5" /> Nova sessão
           </button>
         </div>
@@ -466,6 +482,12 @@ export default function PatientDetailPage() {
           </div>
         </div>
       </div>
+
+      <EditPatientModal
+        open={showEditPatientModal}
+        onClose={() => setShowEditPatientModal(false)}
+        patient={patient}
+      />
 
       <div className="card space-y-3">
         <div className="flex items-center justify-between gap-3">

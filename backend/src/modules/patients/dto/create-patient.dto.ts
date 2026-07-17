@@ -1,7 +1,7 @@
 import { Transform, Type } from 'class-transformer'
 import {
   ArrayMaxSize, IsString, IsEmail, IsOptional, IsNumber, IsArray, IsIn,
-  IsObject, Matches, IsBoolean, Min, Max, MaxLength, Validate,
+  IsObject, Matches, IsBoolean, Min, Max, MaxLength, MinLength, Validate,
   ValidateNested, ValidatorConstraint, ValidatorConstraintInterface,
 } from 'class-validator'
 
@@ -46,7 +46,11 @@ class PatientProntuarioDto {
 }
 
 export class CreatePatientDto {
-  @IsString() name: string
+  @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
+  @IsString()
+  @MinLength(2)
+  @MaxLength(150)
+  name: string
 
   @Transform(({ value }) => {
     const normalized = emptyToUndefined(value)
@@ -58,16 +62,19 @@ export class CreatePatientDto {
 
   @Transform(({ value }) => emptyToUndefined(value))
   @IsString()
+  @MaxLength(30)
   @IsOptional()
   phone?: string
 
   @Transform(({ value }) => emptyToUndefined(value))
   @IsString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'birthDate deve estar no formato AAAA-MM-DD' })
   @IsOptional()
   birthDate?: string
 
   @Transform(({ value }) => emptyToUndefined(value))
   @IsString()
+  @MaxLength(80)
   @IsOptional()
   pronouns?: string
 
@@ -92,7 +99,11 @@ export class CreatePatientDto {
   @IsNumber() @Min(1) @Max(31) @Type(() => Number) @IsOptional() monthlyIncludedSessions?: number
   @IsNumber() @Min(1) @Max(31) @Type(() => Number) @IsOptional() billingDay?: number
   @IsNumber() @IsOptional() sessionDuration?: number
-  @IsString() @IsOptional() startDate?: string
+  @Transform(({ value }) => emptyToUndefined(value))
+  @IsString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'startDate deve estar no formato AAAA-MM-DD' })
+  @IsOptional()
+  startDate?: string
   @IsBoolean() @IsOptional() hasFixedSchedule?: boolean
   @IsNumber() @Min(0) @Max(6) @IsOptional() fixedScheduleWeekday?: number
   @IsString() @IsOptional() @Matches(/^([01]\d|2[0-3]):[0-5]\d$/) fixedScheduleTime?: string

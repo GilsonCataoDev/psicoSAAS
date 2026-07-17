@@ -8,6 +8,7 @@ export interface Patient {
   race?: string
   gender?: string
   sexualOrientation?: string
+  cpfCnpj?: string
   tags: EmotionalTag[]
   status: 'active' | 'paused' | 'discharged'
   sessionPrice: number
