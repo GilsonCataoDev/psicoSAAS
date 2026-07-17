@@ -24,6 +24,7 @@ import { TemplatesModule } from './modules/templates/templates.module'
 import { AdminModule } from './modules/admin/admin.module'
 import { TestimonialModule } from './modules/testimonial/testimonial.module'
 import { ChurnModule } from './modules/churn/churn.module'
+import { PosthogModule } from './modules/posthog/posthog.module'
 import { Subscription as BillingSubscription } from './modules/billing/entities/subscription.entity'
 import { PlanGuard } from './common/guards/plan.guard'
 import { SubscriptionGuard } from './common/guards/subscription.guard'
@@ -33,6 +34,7 @@ import { StorageModule } from './common/storage/storage.module'
 import { SecurityModule } from './common/security/security.module'
 import { AuditInterceptor } from './modules/audit/interceptors/audit.interceptor'
 import { HealthController } from './health.controller'
+import { PosthogExceptionInterceptor } from './common/filters/posthog-exception.filter'
 
 @Module({
   imports: [
@@ -85,9 +87,11 @@ import { HealthController } from './health.controller'
     AdminModule,
     TestimonialModule,
     ChurnModule,
+    PosthogModule,
   ],
   controllers: [HealthController],
   providers: [
+    { provide: APP_INTERCEPTOR, useClass: PosthogExceptionInterceptor },
     { provide: APP_GUARD,       useClass: ThrottlerGuard },
     { provide: APP_GUARD,       useClass: SubscriptionGuard },
     { provide: APP_GUARD,       useClass: PlanGuard },

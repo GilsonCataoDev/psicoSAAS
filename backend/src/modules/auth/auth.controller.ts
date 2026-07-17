@@ -7,6 +7,7 @@ import { Throttle, SkipThrottle } from '@nestjs/throttler'
 import type { CookieOptions, Request as Req, Response as Res } from 'express'
 import { AuthService } from './auth.service'
 import { BillingService } from '../billing/billing.service'
+import { PosthogService } from '../posthog/posthog.service'
 import { JwtAuthGuard } from './guards/jwt-auth.guard'
 import { CsrfGuard }    from './guards/csrf.guard'
 import { AdminGuard } from '../../common/guards/admin.guard'
@@ -83,6 +84,7 @@ export class AuthController {
   constructor(
     private readonly auth: AuthService,
     private readonly billing: BillingService,
+    private readonly posthog: PosthogService,
   ) {}
 
   // ── Cadastro ────────────────────────────────────────────────────────────────
@@ -96,6 +98,10 @@ export class AuthController {
   ) {
     const result = await this.auth.register(dto, getIp(req), req.headers['user-agent'])
     this.setAuthCookies(res, result.tokens)
+    const registeredUser = result.user as any
+    const distinctId = this.posthog.distinctId(registeredUser.id)
+    this.posthog.identify(distinctId, { $set: { plan: registeredUser.plan ?? 'free' } })
+    await this.posthog.captureAndFlush(distinctId, 'user_registered', { plan: registeredUser.plan ?? 'free' })
     return authResponse(req, result)
   }
 
@@ -111,6 +117,10 @@ export class AuthController {
   ) {
     const result = await this.auth.login(dto, getIp(req), req.headers['user-agent'])
     this.setAuthCookies(res, result.tokens)
+    const loggedInUser = result.user as any
+    const loginDistinctId = this.posthog.distinctId(loggedInUser.id)
+    this.posthog.identify(loginDistinctId, { $set: { plan: loggedInUser.plan ?? 'free' } })
+    await this.posthog.captureAndFlush(loginDistinctId, 'user_logged_in', { plan: loggedInUser.plan ?? 'free' })
     return authResponse(req, result)
   }
 
@@ -265,8 +275,10 @@ export class AuthController {
     @Body() dto: DeleteAccountDto,
     @Response({ passthrough: true }) res: Res,
   ) {
+    const deletedDistinctId = this.posthog.distinctId(req.user.id)
     await this.auth.deleteAccount(req.user.id, dto.password, getIp(req))
     this.clearAuthCookies(res)
+    await this.posthog.captureAndFlush(deletedDistinctId, 'account_deleted')
     return { deleted: true }
   }
 
@@ -285,6 +297,8 @@ export class AuthController {
   @Throttle({ short: { limit: 5, ttl: 60000 } })
   async resetPassword(@Body() dto: ResetPasswordDto) {
     await this.auth.resetPassword(dto.token, dto.password)
+    this.posthog.capture('anonymous', 'password_reset_completed')
+    await this.posthog.client.flush()
     return { message: 'Senha redefinida com sucesso. Faça login para continuar.' }
   }
 

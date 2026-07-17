@@ -9,6 +9,7 @@ import { CreatePatientDto } from './dto/create-patient.dto'
 import { UpdatePatientDto } from './dto/update-patient.dto'
 import { AuditService } from '../audit/audit.service'
 import { pdfAttachment } from '../../common/http/content-disposition.util'
+import { PosthogService } from '../posthog/posthog.service'
 
 @Controller('patients')
 @UseGuards(JwtAuthGuard, CsrfGuard)
@@ -16,6 +17,7 @@ export class PatientsController {
   constructor(
     private svc: PatientsService,
     private audit: AuditService,
+    private posthog: PosthogService,
   ) {}
 
   @Get() findAll(@Request() req: any) { return this.svc.findAll(req.user.id) }
@@ -54,6 +56,7 @@ export class PatientsController {
   async create(@Body() dto: CreatePatientDto, @Request() req: any) {
     const patient = await this.svc.create(dto, req.user.id)
     await this.record(req, 'patient.created', 'patient', patient.id)
+    await this.posthog.captureAndFlush(this.posthog.distinctId(req.user.id), 'patient_created')
     return patient
   }
 
@@ -75,6 +78,7 @@ export class PatientsController {
   async remove(@Param('id') id: string, @Request() req: any) {
     const result = await this.svc.remove(id, req.user.id)
     await this.record(req, 'patient.deleted', 'patient', id)
+    await this.posthog.captureAndFlush(this.posthog.distinctId(req.user.id), 'patient_deleted')
     return result
   }
 

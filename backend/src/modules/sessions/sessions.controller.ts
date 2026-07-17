@@ -16,6 +16,7 @@ import { SessionsService } from './sessions.service'
 import { AiService, AiTextUsage } from './ai.service'
 import { CreateSessionDto } from './dto/create-session.dto'
 import { AiUsage } from './entities/ai-usage.entity'
+import { PosthogService } from '../posthog/posthog.service'
 
 const AI_TRANSCRIPTION_MAX_SECONDS = 15 * 60
 const COMPED_PRO_EMAILS = (process.env.COMPED_PRO_EMAILS ?? 'gilsonfilho96@outlook.com')
@@ -33,6 +34,7 @@ export class SessionsController {
     private ai: AiService,
     @InjectRepository(AiUsage) private readonly aiUsage: Repository<AiUsage>,
     @InjectRepository(Subscription) private readonly subscriptions: Repository<Subscription>,
+    private readonly posthog: PosthogService,
   ) {}
 
   @Get() findAll(
@@ -52,7 +54,11 @@ export class SessionsController {
   }
   @Get('dashboard') dashboard(@Request() req: any) { return this.svc.getDashboard(req.user.id) }
   @Get(':id') findOne(@Param('id') id: string, @Request() req: any) { return this.svc.findOne(id, req.user.id) }
-  @Post() create(@Body() dto: CreateSessionDto, @Request() req: any) { return this.svc.create(dto, req.user.id) }
+  @Post() async create(@Body() dto: CreateSessionDto, @Request() req: any) {
+    const result = await this.svc.create(dto, req.user.id)
+    await this.posthog.captureAndFlush(this.posthog.distinctId(req.user.id), 'session_note_created')
+    return result
+  }
   @Patch(':id') update(@Param('id') id: string, @Body() dto: Partial<CreateSessionDto>, @Request() req: any) { return this.svc.update(id, dto, req.user.id) }
   @Delete(':id') remove(@Param('id') id: string, @Request() req: any) { return this.svc.remove(id, req.user.id) }
 
@@ -80,6 +86,9 @@ export class SessionsController {
     await this.chargeTranscriptionQuota(req.user.id, duration, plan)
     try {
       const text = await this.ai.transcribeAudio(file.buffer, file.mimetype)
+      await this.posthog.captureAndFlush(this.posthog.distinctId(req.user.id), 'ai_transcription_used', {
+        duration_seconds: duration,
+      })
       return { text }
     } catch (error) {
       await this.releaseTranscriptionQuota(req.user.id, duration).catch(() => {})
@@ -97,7 +106,10 @@ export class SessionsController {
   ) {
     if (!transcription?.trim()) throw new BadRequestException('Transcrição ausente')
     const result = await this.ai.generateSessionSummary(transcription, patientName)
-    if (req?.user?.id) await this.incrementSummaryUsage(req.user.id, result.usage)
+    if (req?.user?.id) {
+      await this.incrementSummaryUsage(req.user.id, result.usage)
+      await this.posthog.captureAndFlush(this.posthog.distinctId(req.user.id), 'ai_summary_used', { mode: 'summary' })
+    }
     return { draft: result.text }
   }
 
@@ -115,7 +127,10 @@ export class SessionsController {
     if (input.trim().length < 20) throw new BadRequestException('Informe mais detalhes para a IA organizar.')
 
     const result = await this.ai.generateProntuarioDraft(input, mode)
-    if (req?.user?.id) await this.incrementSummaryUsage(req.user.id, result.usage)
+    if (req?.user?.id) {
+      await this.incrementSummaryUsage(req.user.id, result.usage)
+      await this.posthog.captureAndFlush(this.posthog.distinctId(req.user.id), 'ai_summary_used', { mode })
+    }
     return { draft: result.text }
   }
 

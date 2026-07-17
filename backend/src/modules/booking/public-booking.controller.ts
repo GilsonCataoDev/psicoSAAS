@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common'
 import { Throttle } from '@nestjs/throttler'
 import { BookingService } from './booking.service'
 import { CreateBookingDto } from './dto/create-booking.dto'
+import { PosthogService } from '../posthog/posthog.service'
 
 /**
  * Rotas públicas — sem autenticação.
@@ -14,7 +15,10 @@ import { CreateBookingDto } from './dto/create-booking.dto'
  */
 @Controller('public/booking')
 export class PublicBookingController {
-  constructor(private svc: BookingService) {}
+  constructor(
+    private svc: BookingService,
+    private posthog: PosthogService,
+  ) {}
 
   /** GET /api/public/booking/:slug — dados da página pública */
   @Get(':slug')
@@ -48,8 +52,15 @@ export class PublicBookingController {
   /** POST /api/public/booking/:slug — criar solicitação de agendamento */
   @Post(':slug')
   @Throttle({ short: { limit: 5, ttl: 60000 } })
-  createBooking(@Param('slug') slug: string, @Body() dto: CreateBookingDto) {
-    return this.svc.createBooking(slug, dto)
+  async createBooking(@Param('slug') slug: string, @Body() dto: CreateBookingDto) {
+    const result = await this.svc.createBooking(slug, dto)
+    this.posthog.capture('anonymous', 'booking_request_received', {
+      slug,
+      modality: (dto as any).modality ?? undefined,
+      $process_person_profile: false,
+    })
+    this.posthog.client.flush().catch(() => {})
+    return result
   }
 
   /** GET /api/public/booking/confirm/:token — paciente confirma via link */

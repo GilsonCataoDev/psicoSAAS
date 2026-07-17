@@ -8,6 +8,7 @@ import { Subscription } from './entities/subscription.entity'
 import { WebhookEvent } from './entities/webhook-event.entity'
 import { AsaasService } from './asaas.service'
 import { secretsMatch } from '../../common/crypto/encrypt.util'
+import { PosthogService } from '../posthog/posthog.service'
 
 @Injectable()
 export class BillingWebhookService {
@@ -23,6 +24,7 @@ export class BillingWebhookService {
     private readonly cfg: ConfigService,
     private readonly email: EmailService,
     private readonly asaas: AsaasService,
+    private readonly posthog: PosthogService,
   ) {}
 
   isValidOrigin(headers: Record<string, any>, payload: any): boolean {
@@ -71,6 +73,11 @@ export class BillingWebhookService {
         subscription.cancelAtPeriodEnd = false
         subscription.currentPeriodEnd = this.getCurrentPeriodEnd(payload)
         await this.applyPromotionCycle(subscription, payload)
+        this.posthog.capture(this.posthog.distinctId(subscription.userId), 'payment_received', {
+          plan: subscription.plan,
+          billing_type: payload?.payment?.billingType ?? undefined,
+        })
+        this.posthog.client.flush().catch(() => {})
         break
       case 'PAYMENT_OVERDUE':
         subscription.status = 'past_due'
@@ -83,6 +90,11 @@ export class BillingWebhookService {
       case 'SUBSCRIPTION_DELETED':
         subscription.status = 'canceled'
         subscription.cancelAtPeriodEnd = false
+        this.posthog.capture(this.posthog.distinctId(subscription.userId), 'subscription_deactivated', {
+          plan: subscription.plan,
+          event_type: eventType,
+        })
+        this.posthog.client.flush().catch(() => {})
         break
       default:
         this.logger.log(`[Asaas webhook] Evento ignorado event=${eventType}`)
