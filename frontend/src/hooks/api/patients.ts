@@ -3,6 +3,22 @@ import { api } from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 import { Patient } from '@/types'
 
+type NullablePatientField =
+  | 'email'
+  | 'phone'
+  | 'birthDate'
+  | 'pronouns'
+  | 'race'
+  | 'gender'
+  | 'sexualOrientation'
+  | 'startDate'
+  | 'cpfCnpj'
+
+export type UpdatePatientData =
+  & Omit<Partial<Patient>, NullablePatientField>
+  & { [Field in NullablePatientField]?: Patient[Field] | null }
+  & { prontuario?: Record<string, any>; privateNotes?: string }
+
 export function usePatients(options?: { enabled?: boolean }) {
   const userId = useAuthStore(s => s.user?.id)
   return useQuery<Patient[]>({
@@ -39,7 +55,7 @@ export function useCreatePatientPortalLink() {
 export function useUpdatePatient() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Patient> & { prontuario?: Record<string, any>; privateNotes?: string } }) =>
+    mutationFn: ({ id, data }: { id: string; data: UpdatePatientData }) =>
       api.patch(`/patients/${id}`, data).then(r => r.data),
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ['patients'] })
