@@ -30,6 +30,7 @@ interface TenantStatsRow {
   id: string
   name: string
   email: string
+  phone: string | null
   createdAt: Date
   lastActiveAt: Date | null
   plan: string | null
@@ -285,7 +286,7 @@ export class ChurnService {
   // ─── Internal scoring logic ──────────────────────────────────────────────────
 
   private scoreRow(row: TenantStatsRow): ChurnRiskResult & {
-    id: string; name: string; email: string; plan: string | null
+    id: string; name: string; email: string; phone: string | null; plan: string | null
     subscriptionStatus: string | null; lastActiveAt: Date | null; createdAt: Date
     daysSinceLastActive: number | null; patientCount: number; sessionCount: number
     tier: 'green' | 'yellow' | 'red'
@@ -330,6 +331,7 @@ export class ChurnService {
       id: row.id,
       name: row.name,
       email: row.email,
+      phone: row.phone,
       plan: row.plan,
       subscriptionStatus: row.subscriptionStatus,
       lastActiveAt: row.lastActiveAt,
@@ -482,6 +484,7 @@ export class ChurnService {
         u.id,
         u.name,
         u.email,
+        u.phone,
         u."createdAt",
         u."lastActiveAt",
         sub.plan,

@@ -15,6 +15,7 @@ export interface ChurnAccount {
   id: string
   name: string
   email: string
+  phone: string | null
   plan: string | null
   subscriptionStatus: string | null
   lastActiveAt: string | null
