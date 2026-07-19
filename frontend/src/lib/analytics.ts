@@ -114,8 +114,8 @@ function loadAnalytics(): Promise<PostHogClient | null> {
   loadPromise = import('posthog-js').then(({ default: posthog }) => {
     posthog.init(KEY, {
       api_host: HOST,
-      capture_pageview: false,
-      capture_pageleave: false,
+      capture_pageview: true,
+      capture_pageleave: true,
       autocapture: false,
       disable_session_recording: true,
       mask_all_text: true,
