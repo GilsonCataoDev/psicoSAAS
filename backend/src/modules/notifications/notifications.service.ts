@@ -435,7 +435,12 @@ export class NotificationsService {
     return result
   }
 
-  private async deliverWhatsApp(phone: string, text: string, ownerId: string): Promise<WhatsAppDeliveryResult> {
+  private async deliverWhatsApp(
+    phone: string,
+    text: string,
+    ownerId: string,
+    allowClosedConnectionRecovery = true,
+  ): Promise<WhatsAppDeliveryResult> {
     const normalizedText = typeof text === 'string' ? text.trim() : ''
     if (!normalizedText) {
       return {
@@ -463,6 +468,13 @@ export class NotificationsService {
         const nonRetryable = res.status >= 400 && res.status < 500 && res.status !== 429
         const error = this.formatWhatsAppError(res.status, body)
         this.logger.error(`[WhatsApp] Erro ${res.status} instance=${instance} nonRetryable=${nonRetryable} body=${body.slice(0, 300)}`)
+        if (allowClosedConnectionRecovery && this.isClosedConnectionError(body)) {
+          const recovered = await this.restartWhatsAppConnection(instance)
+          if (recovered) {
+            this.logger.warn(`[WhatsApp] Instancia reiniciada; repetindo envio uma vez instance=${instance}`)
+            return this.deliverWhatsApp(phone, text, ownerId, false)
+          }
+        }
         return { sent: false, reason: 'api_error', error, nonRetryable, contentLength: normalizedText.length }
       }
 
@@ -523,6 +535,36 @@ export class NotificationsService {
       return { messageId, status, text: typeof text === 'string' ? text : '' }
     } catch {
       return { text: '' }
+    }
+  }
+
+  private isClosedConnectionError(body: string): boolean {
+    return /connection\s+closed/i.test(body)
+  }
+
+  private async restartWhatsAppConnection(instance: string): Promise<boolean> {
+    try {
+      const restart = await fetch(`${this.WA_URL}/instance/restart/${instance}`, {
+        method: 'PUT',
+        headers: { apikey: this.WA_KEY },
+      })
+      if (!restart.ok) return false
+
+      const restartBody = await restart.json().catch(() => null) as Record<string, any> | null
+      if (restartBody?.instance?.state === 'open') return true
+
+      for (let attempt = 0; attempt < 5; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        const stateResponse = await fetch(`${this.WA_URL}/instance/connectionState/${instance}`, {
+          headers: { apikey: this.WA_KEY },
+        })
+        if (!stateResponse.ok) continue
+        const stateBody = await stateResponse.json().catch(() => null) as Record<string, any> | null
+        if (stateBody?.instance?.state === 'open') return true
+      }
+      return false
+    } catch {
+      return false
     }
   }
 

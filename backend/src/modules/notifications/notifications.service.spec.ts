@@ -107,4 +107,47 @@ describe('NotificationsService WhatsApp delivery validation', () => {
       expect.objectContaining({ status: 'failed', contentLength: 0 }),
     ]))
   })
+
+  it('restarts a closed instance and retries the message once', async () => {
+    const text = 'Teste de reconexão'
+    const fetchSpy = jest.spyOn(global, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        status: 500,
+        error: 'Internal Server Error',
+        response: { message: 'Connection Closed' },
+      }), { status: 500, headers: { 'Content-Type': 'application/json' } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        instance: { state: 'open' },
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        key: { id: 'recovered-message-id', fromMe: true },
+        message: { extendedTextMessage: { text } },
+        status: 'PENDING',
+      }), { status: 201, headers: { 'Content-Type': 'application/json' } }))
+
+    const result = await service.sendDirectWhatsApp('11999999999', text, ownerId)
+
+    expect(result).toEqual(expect.objectContaining({
+      sent: true,
+      providerMessageId: 'recovered-message-id',
+      contentLength: text.length,
+    }))
+    expect(fetchSpy).toHaveBeenCalledTimes(3)
+    expect(String(fetchSpy.mock.calls[1][0])).toContain('/instance/restart/')
+    expect(savedLogs).toHaveLength(1)
+    expect(savedLogs[0]).toEqual(expect.objectContaining({ status: 'sent' }))
+  })
+
+  it('does not retry an ambiguous provider timeout to avoid duplicate messages', async () => {
+    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+      status: 500,
+      error: 'Internal Server Error',
+      response: { message: 'Timed Out' },
+    }), { status: 500, headers: { 'Content-Type': 'application/json' } }))
+
+    const result = await service.sendDirectWhatsApp('11999999999', 'Mensagem única', ownerId)
+
+    expect(result.sent).toBe(false)
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+  })
 })
