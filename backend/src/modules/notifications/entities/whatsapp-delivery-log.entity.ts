@@ -36,6 +36,15 @@ export class WhatsAppDeliveryLog {
   @Column({ type: 'text', nullable: true })
   error?: string | null
 
+  @Column({ type: 'text', nullable: true })
+  providerMessageId?: string | null
+
+  @Column({ type: 'text', nullable: true })
+  providerStatus?: string | null
+
+  @Column({ type: 'integer', nullable: true })
+  contentLength?: number | null
+
   @CreateDateColumn()
   createdAt: Date
 }

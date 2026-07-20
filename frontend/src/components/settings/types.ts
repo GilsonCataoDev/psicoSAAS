@@ -36,6 +36,9 @@ export type WhatsAppLog = {
   patientName?: string | null
   recipientPhone?: string | null
   error?: string | null
+  providerMessageId?: string | null
+  providerStatus?: string | null
+  contentLength?: number | null
   createdAt: string
 }
 

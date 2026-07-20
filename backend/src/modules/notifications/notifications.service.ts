@@ -12,9 +12,12 @@ import { SavePushSubscriptionDto } from './dto/push-subscription.dto'
 
 export type WhatsAppDeliveryResult = {
   sent: boolean
-  reason?: 'plan' | 'not_configured' | 'disconnected' | 'api_error'
+  reason?: 'plan' | 'not_configured' | 'disconnected' | 'api_error' | 'invalid_content'
   error?: string
   nonRetryable?: boolean
+  providerMessageId?: string
+  providerStatus?: string
+  contentLength?: number
 }
 
 export type PushDeliveryResult = {
@@ -405,43 +408,9 @@ export class NotificationsService {
       return result
     }
 
-    // Normaliza o número: remove tudo que não for dígito, garante DDI 55
-    const normalized = phone.replace(/\D/g, '')
-    const withDdi = normalized.startsWith('55') ? normalized : `55${normalized}`
-
-    try {
-      const instance = this.getWhatsAppInstance(ownerId)
-      const res = await fetch(
-        `${this.WA_URL}/message/sendText/${instance}`,
-        {
-          method: 'POST',
-          headers: {
-            'apikey': this.WA_KEY,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            number: withDdi,
-            text,
-          }),
-        },
-      )
-      if (!res.ok) {
-        const body = await res.text().catch(() => '')
-        const nonRetryable = res.status >= 400 && res.status < 500 && res.status !== 429
-        const error = this.formatWhatsAppError(res.status, body)
-        this.logger.error(`[WhatsApp] Erro ${res.status} instance=${instance} nonRetryable=${nonRetryable} body=${body.slice(0, 300)}`)
-        result = { sent: false, reason: 'api_error', error, nonRetryable }
-        await this.recordWhatsAppLog(ownerId, phone, meta, result)
-        return result
-      }
-      result = { sent: true }
-      await this.recordWhatsAppLog(ownerId, phone, meta, result)
-      return result
-    } catch {
-      result = { sent: false, reason: 'disconnected', error: 'WhatsApp desconectado ou indisponivel' }
-      await this.recordWhatsAppLog(ownerId, phone, meta, result)
-      return result
-    }
+    result = await this.deliverWhatsApp(phone, text, ownerId)
+    await this.recordWhatsAppLog(ownerId, phone, meta, result)
+    return result
   }
 
   // ─── Agendamentos internos ─────────────────────────────────────────────────
@@ -461,6 +430,23 @@ export class NotificationsService {
       return result
     }
 
+    result = await this.deliverWhatsApp(phone, text, ownerId)
+    await this.recordWhatsAppLog(ownerId, phone, meta, result)
+    return result
+  }
+
+  private async deliverWhatsApp(phone: string, text: string, ownerId: string): Promise<WhatsAppDeliveryResult> {
+    const normalizedText = typeof text === 'string' ? text.trim() : ''
+    if (!normalizedText) {
+      return {
+        sent: false,
+        reason: 'invalid_content',
+        error: 'Mensagem sem conteúdo; envio bloqueado',
+        nonRetryable: true,
+        contentLength: 0,
+      }
+    }
+
     const normalized = phone.replace(/\D/g, '')
     const withDdi = normalized.startsWith('55') ? normalized : `55${normalized}`
 
@@ -468,25 +454,75 @@ export class NotificationsService {
       const instance = this.getWhatsAppInstance(ownerId)
       const res = await fetch(`${this.WA_URL}/message/sendText/${instance}`, {
         method: 'POST',
-        headers: { 'apikey': this.WA_KEY, 'Content-Type': 'application/json' },
+        headers: { apikey: this.WA_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({ number: withDdi, text }),
       })
+      const body = await res.text().catch(() => '')
+
       if (!res.ok) {
-        const body = await res.text().catch(() => '')
         const nonRetryable = res.status >= 400 && res.status < 500 && res.status !== 429
         const error = this.formatWhatsAppError(res.status, body)
         this.logger.error(`[WhatsApp] Erro ${res.status} instance=${instance} nonRetryable=${nonRetryable} body=${body.slice(0, 300)}`)
-        result = { sent: false, reason: 'api_error', error, nonRetryable }
-        await this.recordWhatsAppLog(ownerId, phone, meta, result)
-        return result
+        return { sent: false, reason: 'api_error', error, nonRetryable, contentLength: normalizedText.length }
       }
-      result = { sent: true }
-      await this.recordWhatsAppLog(ownerId, phone, meta, result)
-      return result
+
+      const provider = this.parseWhatsAppProviderResponse(body)
+      if (!provider.messageId || !provider.text.trim()) {
+        this.logger.error(`[WhatsApp] Resposta incompleta instance=${instance} status=${provider.status ?? 'unknown'} contentLength=${provider.text.trim().length}`)
+        return {
+          sent: false,
+          reason: 'api_error',
+          error: 'WhatsApp aceitou a requisição, mas retornou a mensagem sem conteúdo ou sem identificador',
+          nonRetryable: true,
+          providerMessageId: provider.messageId,
+          providerStatus: provider.status,
+          contentLength: provider.text.trim().length,
+        }
+      }
+
+      if (provider.text.trim() !== normalizedText) {
+        this.logger.error(`[WhatsApp] Conteudo divergente instance=${instance} expectedLength=${normalizedText.length} actualLength=${provider.text.trim().length}`)
+        return {
+          sent: false,
+          reason: 'api_error',
+          error: 'WhatsApp retornou um conteúdo diferente do texto enviado',
+          nonRetryable: true,
+          providerMessageId: provider.messageId,
+          providerStatus: provider.status,
+          contentLength: provider.text.trim().length,
+        }
+      }
+
+      return {
+        sent: true,
+        providerMessageId: provider.messageId,
+        providerStatus: provider.status ?? 'accepted',
+        contentLength: provider.text.trim().length,
+      }
     } catch {
-      result = { sent: false, reason: 'disconnected', error: 'WhatsApp desconectado ou indisponível' }
-      await this.recordWhatsAppLog(ownerId, phone, meta, result)
-      return result
+      return {
+        sent: false,
+        reason: 'disconnected',
+        error: 'WhatsApp desconectado ou indisponivel',
+        contentLength: normalizedText.length,
+      }
+    }
+  }
+
+  private parseWhatsAppProviderResponse(body: string): { messageId?: string; status?: string; text: string } {
+    try {
+      const payload = JSON.parse(body) as Record<string, any>
+      const messageId = typeof payload?.key?.id === 'string' ? payload.key.id : undefined
+      const status = typeof payload?.status === 'string' ? payload.status : undefined
+      const text = [
+        payload?.message?.conversation,
+        payload?.message?.extendedTextMessage?.text,
+        payload?.message?.imageMessage?.caption,
+        payload?.message?.videoMessage?.caption,
+      ].find(value => typeof value === 'string')
+      return { messageId, status, text: typeof text === 'string' ? text : '' }
+    } catch {
+      return { text: '' }
     }
   }
 
@@ -501,6 +537,9 @@ export class NotificationsService {
         patientName: meta.patientName?.slice(0, 160) ?? null,
         recipientPhone: normalized ? (normalized.startsWith('55') ? normalized : `55${normalized}`) : null,
         error: result.sent ? null : (result.error ?? result.reason ?? 'Falha no envio').slice(0, 240),
+        providerMessageId: result.providerMessageId?.slice(0, 160) ?? null,
+        providerStatus: result.providerStatus?.slice(0, 80) ?? null,
+        contentLength: Number.isInteger(result.contentLength) ? result.contentLength : null,
       }))
     } catch (err) {
       this.logger.warn(`[WhatsApp log] Falha ao registrar envio: ${err instanceof Error ? err.message : err}`)
