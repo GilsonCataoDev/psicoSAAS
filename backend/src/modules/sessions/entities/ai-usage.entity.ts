@@ -19,6 +19,9 @@ export class AiUsage {
   summaryRequests: number
 
   @Column({ type: 'int', default: 0 })
+  neuropsychAnalyses: number
+
+  @Column({ type: 'int', default: 0 })
   aiInputTokens: number
 
   @Column({ type: 'int', default: 0 })

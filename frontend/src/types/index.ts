@@ -59,6 +59,49 @@ export interface NeuropsychBatteryItem {
   updatedAt: string
 }
 
+export type NeuropsychAiCertainty = 'registered_data' | 'cautious_inference' | 'missing_information'
+
+export interface NeuropsychAiClinicalPoint {
+  text: string
+  basis: string[]
+  certainty: NeuropsychAiCertainty
+}
+
+export interface NeuropsychAiAnalysisResult {
+  caseSynthesis: NeuropsychAiClinicalPoint[]
+  convergences: NeuropsychAiClinicalPoint[]
+  divergences: NeuropsychAiClinicalPoint[]
+  possiblyPreservedFunctions: NeuropsychAiClinicalPoint[]
+  possibleFragilities: NeuropsychAiClinicalPoint[]
+  alternativeHypotheses: NeuropsychAiClinicalPoint[]
+  missingInformation: string[]
+  followUpQuestions: string[]
+  verificationPoints: string[]
+  suggestedIntegrationStructure: string[]
+  disclaimers: string[]
+}
+
+export type NeuropsychAiAnalysisField = 'referralQuestion' | 'clinicalHistory' | 'clinicalHypotheses' | 'qualitativeObservations' | 'batteryItems'
+
+export interface NeuropsychAiAnalysis {
+  id: string
+  status: string
+  result: NeuropsychAiAnalysisResult
+  model: string
+  promptVersion: string
+  inputTokens: number
+  outputTokens: number
+  costUsdMicros: number
+  includedFields: NeuropsychAiAnalysisField[]
+  createdAt: string
+}
+
+export interface NeuropsychAiUsage {
+  used: number
+  limit: number
+  month: string
+}
+
 export interface NeuropsychAssessment {
   id: string
   patientId: string

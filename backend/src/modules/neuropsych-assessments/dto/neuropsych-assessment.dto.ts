@@ -48,3 +48,13 @@ export class UpdateNeuropsychBatteryItemDto extends PartialType(CreateNeuropsych
   @IsString() @MaxLength(15000) @IsOptional() resultSummary?: string
   @IsString() @MaxLength(10000) @IsOptional() qualitativeNotes?: string
 }
+
+export const NEUROPSYCH_AI_ANALYSIS_FIELDS = [
+  'referralQuestion', 'clinicalHistory', 'clinicalHypotheses',
+  'qualitativeObservations', 'batteryItems',
+] as const
+
+export class CreateNeuropsychAiAnalysisDto {
+  @IsArray() @ArrayMaxSize(5) @IsIn(NEUROPSYCH_AI_ANALYSIS_FIELDS, { each: true })
+  fields: string[]
+}

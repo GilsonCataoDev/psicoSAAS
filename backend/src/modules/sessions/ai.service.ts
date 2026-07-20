@@ -18,6 +18,30 @@ export type AiTextResult = {
   usage: AiTextUsage
 }
 
+// Versão do prompt do Copiloto Neuropsicológico — mudar sempre que o texto do
+// prompt de sistema mudar, para auditoria e para invalidar análises antigas
+// se o formato de resposta mudar de forma incompatível.
+export const NEUROPSYCH_ANALYSIS_PROMPT_VERSION = 'npai-v1'
+
+export type NeuropsychAnalysisBatteryItem = {
+  name: string
+  procedureType: string
+  domains: string[]
+  status: string
+  purpose?: string
+  resultSummary?: string
+  qualitativeNotes?: string
+}
+
+export type NeuropsychAnalysisPayload = {
+  referralQuestion?: string
+  clinicalHistory?: string
+  clinicalHypotheses?: string
+  qualitativeObservations?: string
+  evaluatedDomains: string[]
+  batteryItems: NeuropsychAnalysisBatteryItem[]
+}
+
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name)
@@ -138,5 +162,84 @@ ${cleanInput}`
       this.logger.error('Claude prontuario error', err?.message)
       throw new BadRequestException('Nao foi possivel gerar o rascunho do prontuario. Tente novamente.')
     }
+  }
+
+  /**
+   * Copiloto de Raciocínio Clínico Neuropsicológico (plano Pro).
+   * O payload já chega redigido pelo chamador (sem nome, CPF, telefone, e-mail,
+   * endereço) — este método não recebe nem envia identificadores diretos.
+   * Retorna sempre o texto bruto do modelo; a validação/parse do JSON estruturado
+   * é responsabilidade do chamador (NeuropsychAiAnalysisService), que trata
+   * JSON inválido com um fallback seguro.
+   */
+  async generateNeuropsychAnalysis(payload: NeuropsychAnalysisPayload): Promise<AiTextResult> {
+    const prompt = this.buildNeuropsychAnalysisPrompt(payload)
+
+    try {
+      const msg = await this.anthropic.messages.create({
+        model: CLAUDE_TEXT_MODEL,
+        max_tokens: 3000,
+        messages: [{ role: 'user', content: prompt }],
+      })
+      return this.parseTextResult(msg)
+    } catch (err: any) {
+      this.logger.error('Claude neuropsych analysis error', err?.message)
+      throw new BadRequestException('Não foi possível gerar a análise agora. Tente novamente em instantes.')
+    }
+  }
+
+  private buildNeuropsychAnalysisPrompt(payload: NeuropsychAnalysisPayload): string {
+    const section = (label: string, value?: string) => value?.trim() ? `${label}:\n${value.trim().slice(0, 6000)}\n` : ''
+
+    const items = payload.batteryItems.map((item, index) => {
+      const lines = [
+        `Procedimento ${index + 1}: ${item.name} (tipo: ${item.procedureType}; status: ${item.status})`,
+        `Domínios: ${item.domains.join(', ') || 'não informado'}`,
+      ]
+      if (item.purpose?.trim()) lines.push(`Finalidade: ${item.purpose.trim().slice(0, 1000)}`)
+      if (item.resultSummary?.trim()) lines.push(`Resultado registrado: ${item.resultSummary.trim().slice(0, 3000)}`)
+      if (item.qualitativeNotes?.trim()) lines.push(`Observações qualitativas: ${item.qualitativeNotes.trim().slice(0, 3000)}`)
+      return lines.join('\n')
+    }).join('\n\n')
+
+    const record = [
+      section('Domínios avaliados', payload.evaluatedDomains.join(', ')),
+      section('Motivo e pergunta de encaminhamento', payload.referralQuestion),
+      section('História clínica', payload.clinicalHistory),
+      section('Hipóteses clínicas provisórias', payload.clinicalHypotheses),
+      section('Observações qualitativas gerais', payload.qualitativeObservations),
+      items ? `Bateria de avaliação:\n${items}\n` : '',
+    ].filter(Boolean).join('\n')
+
+    return `Você é um copiloto de raciocínio clínico para apoiar psicólogos na integração de avaliações neuropsicológicas. Você NÃO é um profissional de psicologia, NÃO substitui o julgamento clínico e NÃO produz diagnóstico.
+
+REGRAS OBRIGATÓRIAS (violar qualquer uma invalida a resposta):
+1. Nunca produza diagnóstico definitivo. Use apenas linguagem hipotética e cautelosa ("pode sugerir", "é compatível com", "merece investigação adicional").
+2. Nunca corrija testes, nunca interprete escores como se tivesse acesso a tabelas normativas — você não tem acesso a manuais, itens, estímulos ou chaves de correção, e não deve fingir que tem.
+3. Nunca invente informação. Use somente o que está no registro abaixo.
+4. Toda afirmação relevante deve indicar em "basis" os campos ou procedimentos registrados em que se baseia (ex: "história clínica", "Procedimento 2 - resultado registrado").
+5. Classifique cada afirmação em "certainty" como um destes valores exatos: "registered_data" (dado diretamente registrado), "cautious_inference" (inferência cautelosa a partir de registros) ou "missing_information" (não há dado suficiente).
+6. Nunca recomende conduta como ordem — no máximo, aponte pontos que merecem atenção do profissional.
+7. Responda SOMENTE com um objeto JSON válido, sem markdown, sem texto antes ou depois, seguindo EXATAMENTE este formato:
+
+{
+  "caseSynthesis": [{"text": string, "basis": string[], "certainty": "registered_data"|"cautious_inference"|"missing_information"}],
+  "convergences": [mesmo formato acima],
+  "divergences": [mesmo formato acima],
+  "possiblyPreservedFunctions": [mesmo formato acima],
+  "possibleFragilities": [mesmo formato acima],
+  "alternativeHypotheses": [mesmo formato acima],
+  "missingInformation": [string, ...],
+  "followUpQuestions": [string, ...],
+  "verificationPoints": [string, ...],
+  "suggestedIntegrationStructure": [string, ...],
+  "disclaimers": [string, ...]
+}
+
+Preencha "disclaimers" sempre com pelo menos um aviso de que esta é uma sugestão gerada por IA, sem valor diagnóstico, que precisa ser revisada pelo profissional responsável antes de qualquer uso clínico.
+Se um registro estiver ausente ou insuficiente para uma seção, retorne um array vazio [] ou inclua um item com certainty "missing_information" — nunca invente conteúdo para preencher a seção.
+
+Registro selecionado pelo profissional (identificadores diretos já foram removidos):
+${record || '(nenhum campo selecionado além dos domínios avaliados)'}`
   }
 }

@@ -10,6 +10,7 @@ import {
 import { NeuropsychBatteryItem, NeuropsychDomain } from '@/types'
 import { downloadPatientAttachment, PatientAttachment } from '@/hooks/api/attachments'
 import { buildNeuropsychIntegrationDraft } from '@/lib/neuropsychDraft'
+import NeuropsychCopilotPanel from '@/components/features/neuropsych/NeuropsychCopilotPanel'
 
 const DOMAINS: Array<[NeuropsychDomain, string]> = [
   ['intelligence', 'Inteligência'], ['attention', 'Atenção'], ['memory', 'Memória'],
@@ -120,6 +121,14 @@ export default function NeuropsychAssessmentPage() {
         <Field label="Conclusão profissional" value={form.professionalConclusion} onChange={value => setForm(current => ({ ...current, professionalConclusion: value }))} tall />
         <div className="rounded-xl bg-violet-50 p-3 text-xs text-violet-800 dark:bg-violet-950/30 dark:text-violet-200">O organizador acima funciona localmente, sem API externa e sem custo por uso. Ele apenas distribui os registros em uma estrutura de trabalho; não interpreta testes nem produz diagnóstico.</div>
       </section>
+
+      <NeuropsychCopilotPanel
+        assessment={assessment}
+        onAddToDraft={text => setForm(current => ({
+          ...current,
+          integrationDraft: current.integrationDraft.trim() ? `${current.integrationDraft.trim()}\n\n${text}` : text,
+        }))}
+      />
 
       <section className="card space-y-4 p-5"><div><h2 className="font-semibold text-neutral-900 dark:text-white">4. Resultados e relatório final</h2><p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">PDF, JPG ou PNG, com até 10 MB. O conteúdo é criptografado antes de ser salvo.</p></div>
         <div className="flex flex-col gap-2 sm:flex-row"><select value={attachmentKind} onChange={event => setAttachmentKind(event.target.value as PatientAttachment['kind'])} className="input-field sm:w-52"><option value="test_result">Resultado de teste</option><option value="supporting_document">Documento de apoio</option><option value="final_report">Relatório final</option><option value="other">Outro</option></select>

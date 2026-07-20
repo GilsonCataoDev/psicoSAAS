@@ -21,5 +21,6 @@ import { Subscription } from '../billing/entities/subscription.entity'
   ],
   controllers: [SessionsController],
   providers: [SessionsService, AiService],
+  exports: [AiService],
 })
 export class SessionsModule {}

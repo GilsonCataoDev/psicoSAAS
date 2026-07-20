@@ -1,18 +1,26 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Req, UseGuards } from '@nestjs/common'
+import { Throttle } from '@nestjs/throttler'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
+import { RequirePlan } from '../../common/decorators/require-plan.decorator'
 import { AuditService } from '../audit/audit.service'
 import {
+  CreateNeuropsychAiAnalysisDto,
   CreateNeuropsychAssessmentDto, CreateNeuropsychBatteryItemDto,
   UpdateNeuropsychAssessmentDto, UpdateNeuropsychBatteryItemDto,
 } from './dto/neuropsych-assessment.dto'
 import { NeuropsychAssessmentsService } from './neuropsych-assessments.service'
+import { NeuropsychAiAnalysisService } from './neuropsych-ai-analysis.service'
 
 @Controller('neuropsych-assessments')
 @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
 export class NeuropsychAssessmentsController {
-  constructor(private readonly service: NeuropsychAssessmentsService, private readonly audit: AuditService) {}
+  constructor(
+    private readonly service: NeuropsychAssessmentsService,
+    private readonly aiAnalysis: NeuropsychAiAnalysisService,
+    private readonly audit: AuditService,
+  ) {}
 
   @Get() list(@Req() req: any) { return this.service.list(req.user.id) }
 
@@ -64,6 +72,43 @@ export class NeuropsychAssessmentsController {
   ) {
     const result = await this.service.removeItem(id, itemId, req.user.id)
     await this.record(req, 'neuropsych_assessment.battery_item_deleted', id, { itemId })
+    return result
+  }
+
+  @Get(':id/ai-usage')
+  @RequirePlan('pro')
+  getAiUsage(@Req() req: any) {
+    return this.aiAnalysis.getUsage(req.user.id, req.user.email)
+  }
+
+  @Get(':id/ai-analysis')
+  @RequirePlan('pro')
+  listAiAnalyses(@Param('id', ParseUUIDPipe) id: string, @Req() req: any) {
+    return this.aiAnalysis.list(id, req.user.id)
+  }
+
+  @Post(':id/ai-analysis')
+  @RequirePlan('pro')
+  @Throttle({ default: { limit: 10, ttl: 60 * 1000 } })
+  async generateAiAnalysis(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: CreateNeuropsychAiAnalysisDto,
+    @Req() req: any,
+  ) {
+    const result = await this.aiAnalysis.generate(id, body.fields, req.user.id, req.user.email)
+    await this.record(req, 'neuropsych_ai_analysis.requested', id, { fields: body.fields })
+    return result
+  }
+
+  @Delete(':id/ai-analysis/:analysisId')
+  @RequirePlan('pro')
+  async deleteAiAnalysis(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('analysisId', ParseUUIDPipe) analysisId: string,
+    @Req() req: any,
+  ) {
+    const result = await this.aiAnalysis.remove(id, analysisId, req.user.id)
+    await this.record(req, 'neuropsych_ai_analysis.deleted', id, { analysisId })
     return result
   }
 

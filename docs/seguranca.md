@@ -45,6 +45,26 @@ Para dar suporte, a operação da plataforma pode usar um modo "ver como" (imper
 - O canal padronizado de divulgação responsável fica publicado em `/.well-known/security.txt`.
 - A Política de Privacidade pública descreve papéis, finalidades, fornecedores, direitos, retenção e limitações atuais.
 
+## Copiloto de Raciocínio Clínico Neuropsicológico (plano Pro)
+
+**Finalidade**: apoiar o psicólogo a organizar o raciocínio em avaliações neuropsicológicas — apontar convergências, divergências, funções possivelmente preservadas ou frágeis, hipóteses alternativas e lacunas de informação. **Não é uma ferramenta de diagnóstico** e não corrige testes psicológicos ou neuropsicológicos: não recebe nem processa itens, estímulos, manuais ou tabelas normativas de nenhum instrumento protegido.
+
+**Dados processados**: somente os campos que o profissional escolher incluir na análise (motivo de encaminhamento, história clínica, hipóteses provisórias, observações qualitativas e/ou os registros da bateria de avaliação). Antes do envio, o backend remove identificadores diretos — nome, CPF, telefone, e-mail e endereço nunca chegam ao provedor de IA.
+
+**Limites clínicos**: a resposta é sempre uma sugestão estruturada, com linguagem cautelosa, sem diagnóstico definitivo e sem recomendação de conduta como ordem. Cada afirmação relevante indica se é um dado registrado, uma inferência cautelosa ou uma lacuna de informação, e a que campo ou procedimento se refere. Toda resposta inclui um aviso de que foi gerada por IA e precisa ser revisada pelo profissional antes de qualquer uso.
+
+**Responsabilidade profissional**: a sugestão da IA nunca é aplicada automaticamente à conclusão ou ao relatório final — o profissional decide, campo a campo, o que aproveitar, sempre com confirmação explícita antes de qualquer inclusão no rascunho de integração.
+
+**Uso de provedor externo**: as chamadas usam a API da Anthropic (modelo Claude Haiku), sempre feitas pelo backend — a chave de API nunca é exposta ao navegador. A chamada só ocorre depois de o backend validar, no servidor, que a avaliação pertence ao psicólogo autenticado e que a conta está no plano Pro.
+
+**Retenção**: o texto enviado ao provedor (prompt) não é armazenado. Apenas a resposta estruturada da IA é persistida, e sempre **criptografada** (AES-256-GCM) — junto de metadados não sensíveis (modelo, versão do prompt, tokens consumidos e custo estimado). Os campos que compuseram cada análise ficam registrados apenas pelo nome do campo (ex.: "história clínica"), nunca pelo conteúdo.
+
+**Exclusão**: cada análise pode ser excluída individualmente pelo profissional a qualquer momento, permanentemente.
+
+**Controle de custos**: o plano Pro tem uma franquia mensal de análises (configurável por variável de ambiente, hoje 30/mês). Cada geração ou regeneração consome uma unidade da franquia; uma falha do provedor antes de retornar uma análise válida não consome a franquia. O uso mensal (tokens de entrada/saída, modelo e custo estimado) fica registrado para acompanhamento.
+
+**Como desativar**: para desativar o recurso por completo, defina `NEUROPSYCH_AI_MONTHLY_LIMIT=0` nas variáveis de ambiente do backend — nenhuma conta, independentemente do plano, conseguirá gerar novas análises. O organizador local de rascunho (sem IA) continua disponível normalmente.
+
 ## Seus direitos sobre os dados (LGPD)
 
 - **Exportação**: você pode baixar todos os seus dados em PDF pela própria plataforma (`Configurações → Exportar dados`).

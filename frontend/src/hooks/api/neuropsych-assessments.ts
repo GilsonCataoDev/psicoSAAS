@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import { NeuropsychAssessment, NeuropsychBatteryItem } from '@/types'
+import { NeuropsychAiAnalysis, NeuropsychAiAnalysisField, NeuropsychAiUsage, NeuropsychAssessment, NeuropsychBatteryItem } from '@/types'
 
 export function useNeuropsychAssessments() {
   return useQuery<NeuropsychAssessment[]>({
@@ -64,5 +64,41 @@ export function useDeleteNeuropsychBatteryItem(assessmentId: string) {
   return useMutation({
     mutationFn: (itemId: string) => api.delete(`/neuropsych-assessments/${assessmentId}/battery-items/${itemId}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['neuropsych-assessments', assessmentId] }),
+  })
+}
+
+export function useNeuropsychAiUsage(assessmentId?: string) {
+  return useQuery<NeuropsychAiUsage>({
+    queryKey: ['neuropsych-assessments', assessmentId, 'ai-usage'],
+    queryFn: () => api.get(`/neuropsych-assessments/${assessmentId}/ai-usage`).then(response => response.data),
+    enabled: !!assessmentId,
+  })
+}
+
+export function useNeuropsychAiAnalyses(assessmentId?: string) {
+  return useQuery<NeuropsychAiAnalysis[]>({
+    queryKey: ['neuropsych-assessments', assessmentId, 'ai-analysis'],
+    queryFn: () => api.get(`/neuropsych-assessments/${assessmentId}/ai-analysis`).then(response => response.data),
+    enabled: !!assessmentId,
+  })
+}
+
+export function useGenerateNeuropsychAiAnalysis(assessmentId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (fields: NeuropsychAiAnalysisField[]) =>
+      api.post<NeuropsychAiAnalysis>(`/neuropsych-assessments/${assessmentId}/ai-analysis`, { fields }).then(response => response.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['neuropsych-assessments', assessmentId, 'ai-analysis'] })
+      queryClient.invalidateQueries({ queryKey: ['neuropsych-assessments', assessmentId, 'ai-usage'] })
+    },
+  })
+}
+
+export function useDeleteNeuropsychAiAnalysis(assessmentId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (analysisId: string) => api.delete(`/neuropsych-assessments/${assessmentId}/ai-analysis/${analysisId}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['neuropsych-assessments', assessmentId, 'ai-analysis'] }),
   })
 }
