@@ -112,4 +112,48 @@ describe('AiService.generateNeuropsychAnalysis', () => {
       process.env.ANTHROPIC_API_KEY = original
     }
   })
+
+  describe('seam de mock do provedor (NEUROPSYCH_AI_MOCK_PROVIDER)', () => {
+    const originalNodeEnv = process.env.NODE_ENV
+    const originalMockFlag = process.env.NEUROPSYCH_AI_MOCK_PROVIDER
+
+    afterEach(() => {
+      process.env.NODE_ENV = originalNodeEnv
+      if (originalMockFlag === undefined) delete process.env.NEUROPSYCH_AI_MOCK_PROVIDER
+      else process.env.NEUROPSYCH_AI_MOCK_PROVIDER = originalMockFlag
+    })
+
+    it('usa o mock fora de produção quando a flag está ligada — nunca chama o provedor real', async () => {
+      process.env.NODE_ENV = 'test'
+      process.env.NEUROPSYCH_AI_MOCK_PROVIDER = 'true'
+      const result = await service.generateNeuropsychAnalysis(
+        { evaluatedDomains: [], batteryItems: [] },
+        { maxOutputTokens: 100, timeoutMs: 1000, maxInputChars: 1000 },
+      )
+      expect(createMock).not.toHaveBeenCalled()
+      expect(result.usage.model).toContain('mock')
+    })
+
+    it('NUNCA usa o mock quando NODE_ENV=production, mesmo com a flag ligada — chama o provedor real', async () => {
+      process.env.NODE_ENV = 'production'
+      process.env.NEUROPSYCH_AI_MOCK_PROVIDER = 'true'
+      createMock.mockResolvedValue(fakeUsageResponse('{}'))
+      await service.generateNeuropsychAnalysis(
+        { evaluatedDomains: [], batteryItems: [] },
+        { maxOutputTokens: 100, timeoutMs: 1000, maxInputChars: 1000 },
+      )
+      expect(createMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('sem a flag, sempre chama o provedor real independente do ambiente', async () => {
+      process.env.NODE_ENV = 'test'
+      delete process.env.NEUROPSYCH_AI_MOCK_PROVIDER
+      createMock.mockResolvedValue(fakeUsageResponse('{}'))
+      await service.generateNeuropsychAnalysis(
+        { evaluatedDomains: [], batteryItems: [] },
+        { maxOutputTokens: 100, timeoutMs: 1000, maxInputChars: 1000 },
+      )
+      expect(createMock).toHaveBeenCalledTimes(1)
+    })
+  })
 })

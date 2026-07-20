@@ -14,6 +14,11 @@ build/
 .env.*.local
 **/.env
 **/.env.local
+# Cópias locais de env de teste (o .example correspondente fica versionado)
+.env.e2e-local
+.env.e2e.local
+**/.env.e2e-local
+**/.env.e2e.local
 
 # Logs
 logs/

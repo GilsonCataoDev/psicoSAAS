@@ -20,15 +20,37 @@ export async function navigateApp(page: Page, path: string) {
       timeout: 15_000,
     })
   })
+  // Uma navegação "dura" (goto, não SPA) força o app a rebootar e reconferir
+  // a sessão a partir do cookie. Se essa checagem ainda não resolveu quando o
+  // guard de rota roda, ele pode redirecionar para /login por engano — uma
+  // segunda tentativa dá tempo do bootstrap de auth terminar.
+  if (page.url().includes('#/login') && !path.includes('/login')) {
+    await page.waitForTimeout(500)
+    await page.goto(appPath(path))
+    await page.waitForURL(new RegExp(`#${path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:$|[?&])`), {
+      timeout: 15_000,
+    }).catch(() => undefined)
+  }
 }
 
-export async function selectOptionByText(selectLocator: Locator, text: string) {
+export async function selectOptionByText(selectLocator: Locator, text: string, budgetMs = 10_000) {
   await selectLocator.waitFor({ state: 'visible', timeout: 15_000 })
-  const value = await selectLocator.evaluate((select, optionText) => {
-    const options = Array.from((select as HTMLSelectElement).options)
-    return options.find(option => option.textContent?.includes(optionText))?.value ?? ''
-  }, text)
-  if (!value) throw new Error(`Option containing "${text}" not found`)
+  const deadline = Date.now() + budgetMs
+  let value = ''
+  // O <select> pode estar visível antes da lista (ex.: pacientes) terminar
+  // de carregar via query assíncrona — tenta de novo até o texto aparecer.
+  while (Date.now() < deadline) {
+    value = await selectLocator.evaluate((select, optionText) => {
+      const options = Array.from((select as HTMLSelectElement).options)
+      return options.find(option => option.textContent?.includes(optionText))?.value ?? ''
+    }, text)
+    if (value) break
+    await selectLocator.page().waitForTimeout(300)
+  }
+  if (!value) {
+    const allOptions = await selectLocator.evaluate((select) => Array.from((select as HTMLSelectElement).options).map(o => o.textContent))
+    throw new Error(`Option containing "${text}" not found. Available options: ${JSON.stringify(allOptions)}`)
+  }
   await selectLocator.selectOption(value)
 }
 
@@ -40,9 +62,32 @@ export async function selectMobileAgendaDate(page: Page, date: Date) {
   await page.getByRole('button', { name: new RegExp(`\\b${day}\\b`) }).first().click({ timeout: 10_000 })
 }
 
-export async function dismissOverlays(page: Page) {
-  const btn = page.getByRole('button', { name: 'Fechar' })
-  if (await btn.count()) await btn.first().click().catch(() => undefined)
+/**
+ * Fecha overlays de primeiro login que podem aparecer em qualquer ordem e com
+ * atraso de animação: o assistente de onboarding (aria-label "Fechar
+ * onboarding"), o banner de consentimento de analytics ("Não, obrigado") e
+ * qualquer outro botão "Fechar" genérico. Tenta repetidamente por alguns
+ * segundos, já que esses overlays podem renderizar depois da navegação.
+ * Best-effort — nunca lança.
+ */
+export async function dismissOverlays(page: Page, budgetMs = 4_000) {
+  const closers = [
+    page.getByRole('button', { name: 'Fechar onboarding' }),
+    page.getByRole('button', { name: 'Não, obrigado' }),
+    page.getByRole('button', { name: 'Fechar' }),
+  ]
+  const deadline = Date.now() + budgetMs
+  while (Date.now() < deadline) {
+    let clickedAny = false
+    for (const closer of closers) {
+      if (await closer.count().catch(() => 0)) {
+        const clicked = await closer.first().click({ timeout: 1_500 }).then(() => true).catch(() => false)
+        clickedAny = clickedAny || clicked
+      }
+    }
+    if (!clickedAny) break
+    await page.waitForTimeout(300)
+  }
 }
 
 export async function registerAndActivateFree(page: Page, email: string, name = 'Teste E2E') {
@@ -54,8 +99,14 @@ export async function registerAndActivateFree(page: Page, email: string, name = 
   await page.locator('#crpConfirmed').check()
   await page.locator('#terms').check()
   await page.getByRole('button', { name: 'Criar conta gratuita' }).click()
-  await page.getByRole('button', { name: 'Comece gratis agora' }).click({ timeout: 15_000 })
-  await page.getByText('Seu plano foi ativado').waitFor({ timeout: 15_000 })
+  // Em produção, um passo intermediário de confirmação de plano aparece.
+  // Em alguns ambientes (ex.: BETA_FREE_ACCESS=true localmente) a conta já
+  // nasce com o plano grátis ativo e esse botão nunca aparece — segue direto.
+  await page.getByRole('button', { name: 'Comece gratis agora' }).click({ timeout: 8_000 }).catch(() => undefined)
+  await Promise.race([
+    page.getByText('Seu plano foi ativado').waitFor({ timeout: 15_000 }),
+    page.getByText(/Plano Gr[aá]tis ativo/i).waitFor({ timeout: 15_000 }),
+  ]).catch(() => undefined)
   await dismissOverlays(page)
 }
 
@@ -112,14 +163,17 @@ export async function cleanupAccount(email: string) {
 
 export async function createPatient(page: Page, name: string, stamp: number) {
   await navigateApp(page, '/pacientes')
+  await dismissOverlays(page)
+  await page.waitForTimeout(500) // dá tempo do banner de analytics (que só aparece após o onboarding fechar) renderizar
+  await dismissOverlays(page)
   const newBtn = page.getByRole('button', { name: 'Novo paciente' })
-  if (await newBtn.count()) {
-    await newBtn.click()
-  } else {
-    await page.getByRole('button', { name: 'Cadastrar primeiro paciente' }).click()
-  }
+  const openForm = (await newBtn.count())
+    ? newBtn
+    : page.getByRole('button', { name: 'Cadastrar primeiro paciente' })
+  await openForm.click()
   await page.getByPlaceholder('Nome completo').fill(name)
   await page.getByPlaceholder('email@exemplo.com').fill(`paciente.${stamp}@example.com`)
+  await dismissOverlays(page)
   await page.getByRole('button', { name: 'Salvar' }).click()
   await page.getByRole('link', { name: new RegExp(name) }).waitFor({ timeout: 10_000 })
 }

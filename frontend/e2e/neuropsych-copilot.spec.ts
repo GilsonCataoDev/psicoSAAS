@@ -1,10 +1,10 @@
 import { expect, request, test } from '@playwright/test'
 import {
   cleanupAccount, createPatient, dismissOverlays,
-  login, navigateApp, registerAndActivateFree,
+  login, navigateApp, registerAndActivateFree, selectOptionByText,
 } from './helpers'
 import {
-  E2E_TRIGGERS, execSql, goToAssessment, seedGlobalBudgetReached,
+  E2E_TRIGGERS, execSql, goToAssessment, loginOrRegister, seedGlobalBudgetReached,
   seedIndividualLimitReached, setReferralQuestionText, startNeuropsychAssessment,
 } from './neuropsych-copilot-helpers'
 
@@ -22,13 +22,15 @@ const apiBaseUrl = process.env.E2E_API_URL ?? 'http://localhost:3099/api'
  * ver E2E_PRO_EMAIL abaixo, que deve bater com o valor configurado lá.
  */
 
-const E2E_PRO_EMAIL = 'e2e.copilot@example.com'
+// Deve bater com COMPED_PRO_EMAILS em backend/.env.e2e-local.
+const E2E_PRO_EMAIL = process.env.E2E_PRO_EMAIL ?? 'e2e.copilot@example.com'
 
 test.describe('Copiloto Neuropsicológico — plano Pro', () => {
   let assessmentId = ''
   const patientName = `Paciente Copiloto ${Date.now()}`
 
   test.beforeAll(async ({ browser }) => {
+    test.setTimeout(120_000)
     const page = await browser.newPage()
     try {
       await registerAndActivateFree(page, E2E_PRO_EMAIL, 'E2E Copiloto Pro')
@@ -184,13 +186,12 @@ test.describe('Copiloto Neuropsicológico — falhas do provedor (mesma conta Pr
   const patientName = `Paciente Falhas ${Date.now()}`
 
   test.beforeAll(async ({ browser }) => {
+    test.setTimeout(120_000)
     const page = await browser.newPage()
     try {
       // Reaproveita o e-mail comped-Pro fixo — já existe (criado na suíte
       // anterior) ou é criado aqui se rodado isoladamente.
-      await login(page, E2E_PRO_EMAIL).catch(async () => {
-        await registerAndActivateFree(page, E2E_PRO_EMAIL, 'E2E Copiloto Pro')
-      })
+      await loginOrRegister(page, E2E_PRO_EMAIL, 'E2E Copiloto Pro')
       await createPatient(page, patientName, Date.now())
       assessmentId = await startNeuropsychAssessment(page, patientName)
     } finally {
@@ -267,6 +268,7 @@ test.describe('Copiloto Neuropsicológico — planos Grátis e Essencial', () =>
   const patientName = `Paciente Free ${Date.now()}`
 
   test.beforeAll(async ({ browser }) => {
+    test.setTimeout(120_000)
     const stamp = Date.now()
     email = `e2e.copilot.free.${stamp}@example.com`
     const page = await browser.newPage()
@@ -285,11 +287,14 @@ test.describe('Copiloto Neuropsicológico — planos Grátis e Essencial', () =>
   test('organizador local sem IA continua disponível (sem custo, sem plano Pro)', async ({ page }) => {
     await login(page, email)
     await navigateApp(page, '/avaliacoes')
+    await dismissOverlays(page)
+    await page.waitForTimeout(500) // banner de analytics só aparece após o onboarding fechar
+    await dismissOverlays(page)
     await page.getByRole('button', { name: 'Iniciar avaliação' }).click()
-    const select = page.locator('select').first()
-    await select.selectOption({ label: patientName })
+    const select = page.getByRole('dialog').locator('select').first()
+    await selectOptionByText(select, patientName)
     await page.getByRole('button', { name: 'Iniciar' }).click()
-    await page.waitForURL(/#\/avaliacoes\/[0-9a-f-]+/, { timeout: 15_000 })
+    await page.waitForURL(/#?\/avaliacoes\/[0-9a-f-]+/, { timeout: 15_000 })
 
     await expect(page.getByRole('button', { name: 'Organizar rascunho sem IA' })).toBeVisible()
     await expect(page.getByText('Copiloto clínico (IA)')).toBeVisible()
@@ -300,11 +305,14 @@ test.describe('Copiloto Neuropsicológico — planos Grátis e Essencial', () =>
   test('chamada manual à API de análise recebe acesso negado (backend, não só UI)', async ({ page }) => {
     await login(page, email)
     await navigateApp(page, '/avaliacoes')
+    await dismissOverlays(page)
+    await page.waitForTimeout(500) // banner de analytics só aparece após o onboarding fechar
+    await dismissOverlays(page)
     await page.getByRole('button', { name: 'Iniciar avaliação' }).click()
-    const select = page.locator('select').first()
-    await select.selectOption({ label: patientName })
+    const select = page.getByRole('dialog').locator('select').first()
+    await selectOptionByText(select, patientName)
     await page.getByRole('button', { name: 'Iniciar' }).click()
-    await page.waitForURL(/#\/avaliacoes\/[0-9a-f-]+/, { timeout: 15_000 })
+    await page.waitForURL(/#?\/avaliacoes\/[0-9a-f-]+/, { timeout: 15_000 })
     const assessmentId = page.url().match(/avaliacoes\/([0-9a-f-]+)/)?.[1]
     expect(assessmentId).toBeTruthy()
 
@@ -330,12 +338,11 @@ test.describe('Copiloto Neuropsicológico — isolamento entre contas', () => {
   let assessmentIdA = ''
 
   test.beforeAll(async ({ browser }) => {
+    test.setTimeout(120_000)
     // Conta A: usa o e-mail comped-Pro fixo (mesma conta das suítes anteriores).
     const pageA = await browser.newPage()
     try {
-      await login(pageA, E2E_PRO_EMAIL).catch(async () => {
-        await registerAndActivateFree(pageA, E2E_PRO_EMAIL, 'E2E Copiloto Pro')
-      })
+      await loginOrRegister(pageA, E2E_PRO_EMAIL, 'E2E Copiloto Pro')
       await createPatient(pageA, patientNameA, Date.now())
       assessmentIdA = await startNeuropsychAssessment(pageA, patientNameA)
     } finally {

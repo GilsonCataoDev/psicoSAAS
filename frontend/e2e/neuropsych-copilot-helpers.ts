@@ -1,6 +1,6 @@
 import { execFileSync } from 'child_process'
 import { type Page } from '@playwright/test'
-import { appPath, navigateApp, selectOptionByText } from './helpers'
+import { appPath, dismissOverlays, login, navigateApp, registerAndActivateFree, selectOptionByText } from './helpers'
 
 /**
  * Helpers específicos do E2E do Copiloto Neuropsicológico.
@@ -32,12 +32,31 @@ export const E2E_TRIGGERS = {
   providerError: '__E2E_PROVIDER_ERROR__',
 }
 
+/**
+ * Entra com a conta se ela já existir; caso contrário, registra. login()
+ * nunca lança em caso de falha — só permanece em /login — então checamos a
+ * URL depois, em vez de depender de um .catch().
+ */
+export async function loginOrRegister(page: Page, email: string, name: string) {
+  await login(page, email)
+  // Roteamento por hash (#/login) — pathname sozinho nunca reflete a rota atual.
+  if (new URL(page.url()).hash.includes('/login') || page.url().endsWith('/login')) {
+    await registerAndActivateFree(page, email, name)
+  }
+}
+
 export async function startNeuropsychAssessment(page: Page, patientName: string) {
   await navigateApp(page, '/avaliacoes')
+  await dismissOverlays(page)
+  await page.waitForTimeout(500) // banner de analytics só aparece após o onboarding fechar
+  await dismissOverlays(page)
   await page.getByRole('button', { name: 'Iniciar avaliação' }).click()
-  await selectOptionByText(page.locator('select').first(), patientName)
+  // A página tem outro <select> (filtro de status) fora do modal — escopar ao
+  // diálogo evita pegar o elemento errado.
+  const dialog = page.getByRole('dialog')
+  await selectOptionByText(dialog.locator('select').first(), patientName)
   await page.getByRole('button', { name: 'Iniciar' }).click()
-  await page.waitForURL(/#\/avaliacoes\/[0-9a-f-]+/, { timeout: 15_000 })
+  await page.waitForURL(/#?\/avaliacoes\/[0-9a-f-]+/, { timeout: 15_000 })
   const match = page.url().match(/avaliacoes\/([0-9a-f-]+)/)
   if (!match) throw new Error('Não foi possível extrair o id da avaliação da URL')
   return match[1]
