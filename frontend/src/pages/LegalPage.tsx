@@ -26,35 +26,44 @@ const privacySections: Array<{ title: string; content: string | string[] }> = [
   },
   {
     title: '5. Compartilhamento e fornecedores',
-    content: 'Os dados são compartilhados somente quando necessário à prestação do serviço, à segurança ou ao cumprimento da lei. A infraestrutura utiliza Vercel para a interface e Railway/PostgreSQL para aplicação e banco de dados. Recursos opcionais podem envolver Asaas, Resend, Google Calendar, WhatsApp e provedores de monitoramento. Cada integração recebe apenas os dados necessários para sua função e pode estar sujeita aos próprios termos. Não vendemos prontuários nem utilizamos conteúdo clínico para publicidade.',
+    content: 'Os dados são compartilhados somente quando necessário à prestação do serviço, à segurança ou ao cumprimento da lei. A infraestrutura utiliza Vercel para a interface e Railway/PostgreSQL para aplicação e banco de dados. Recursos opcionais podem envolver Asaas, Resend, Google Calendar, WhatsApp, Anthropic (recursos de inteligência artificial, descritos no item 6) e provedores de monitoramento. Cada integração recebe apenas os dados necessários para sua função e pode estar sujeita aos próprios termos. Não vendemos prontuários nem utilizamos conteúdo clínico para publicidade.',
   },
   {
-    title: '6. Transferência internacional',
-    content: 'Alguns fornecedores de infraestrutura e integrações podem processar dados fora do Brasil. Nesses casos, buscamos utilizar fornecedores com medidas contratuais e técnicas adequadas e limitar os dados ao necessário para a execução do serviço.',
+    title: '6. Recursos de inteligência artificial',
+    content: [
+      'Alguns recursos opcionais (transcrição de sessão, organização de rascunho de prontuário e o Copiloto de Raciocínio Clínico Neuropsicológico) processam texto selecionado pelo profissional por meio de provedores externos de inteligência artificial — atualmente Groq/OpenAI (transcrição de áudio) e Anthropic (geração e organização de texto clínico).',
+      'Esses recursos só são acionados quando o profissional os utiliza ativamente. No caso do Copiloto Neuropsicológico, apenas os campos explicitamente selecionados pelo profissional são enviados, após uma etapa de redução de identificadores diretos (nome do paciente e padrões como CPF, telefone, e-mail, CEP, endereço e data de nascimento). Essa redução é feita por padrões conhecidos e não constitui anonimização garantida.',
+      'O texto enviado ao provedor de IA não é retido para treinamento de modelos por parte da UseCognia. A resposta gerada é uma sugestão de apoio, permanece sob responsabilidade de revisão do profissional e nunca substitui o julgamento clínico, o diagnóstico ou a conduta profissional.',
+      'Detalhes técnicos completos (dados enviados, limites, retenção e como desativar) estão descritos na página de Segurança.',
+    ],
   },
   {
-    title: '7. Segurança',
+    title: '7. Transferência internacional',
+    content: 'Alguns fornecedores de infraestrutura e integrações, incluindo os provedores de inteligência artificial mencionados no item 6, podem processar dados fora do Brasil. Nesses casos, buscamos utilizar fornecedores com medidas contratuais e técnicas adequadas e limitar os dados ao necessário para a execução do serviço.',
+  },
+  {
+    title: '8. Segurança',
     content: 'Adotamos HTTPS/TLS, autenticação individual, cookies de sessão HttpOnly, proteção CSRF, limitação de tentativas, isolamento de dados por conta, criptografia de campos clínicos sensíveis, validação de entradas e arquivos, trilhas de auditoria e verificações automáticas antes de alterações. Nenhum sistema é invulnerável; detalhes e limitações atuais estão publicados na página de Segurança.',
   },
   {
-    title: '8. Retenção, exportação e exclusão',
+    title: '9. Retenção, exportação e exclusão',
     content: 'A conta oferece recurso de exportação dos dados. A exclusão deve considerar as obrigações de guarda de prontuários e documentos previstas pelas normas profissionais aplicáveis. Antes de encerrar uma conta, o profissional deve exportar e preservar os registros que precise manter. Dados técnicos, financeiros ou de auditoria poderão ser retidos pelo prazo necessário ao cumprimento de obrigação legal, prevenção de fraude e exercício regular de direitos.',
   },
   {
-    title: '9. Direitos dos titulares',
+    title: '10. Direitos dos titulares',
     content: 'O titular pode solicitar confirmação de tratamento, acesso, correção, portabilidade quando aplicável, informação sobre compartilhamentos, revisão de consentimento e eliminação nos casos permitidos pela lei. Solicitações relacionadas ao prontuário de um paciente devem ser direcionadas primeiro ao profissional ou clínica responsável pelo atendimento. Pedidos sobre a conta UseCognia podem ser enviados ao contato informado abaixo.',
   },
   {
-    title: '10. Cookies e analytics',
+    title: '11. Cookies e analytics',
     content: 'Utilizamos cookies estritamente necessários para autenticação e segurança. Podemos coletar eventos operacionais e de uso sem conteúdo clínico para entender o funcionamento da plataforma. A gravação automática de sessão está desativada. Preferências e origem de campanha podem ser mantidas localmente no navegador.',
   },
   {
-    title: '11. Incidentes e contato',
+    title: '12. Incidentes e contato',
     content: 'Dúvidas, solicitações de privacidade ou relatos de vulnerabilidade podem ser enviados para usecognia@gmail.com, com o assunto “Privacidade” ou “Segurança”. Incidentes confirmados serão avaliados e comunicados aos envolvidos e às autoridades quando exigido pela legislação aplicável.',
   },
   {
-    title: '12. Atualizações',
-    content: 'Esta política pode ser atualizada para refletir mudanças legais, técnicas ou operacionais. Alterações relevantes serão comunicadas por meio adequado. Versão 1.0 — última atualização: julho de 2026.',
+    title: '13. Atualizações',
+    content: 'Esta política pode ser atualizada para refletir mudanças legais, técnicas ou operacionais. Alterações relevantes serão comunicadas por meio adequado. Versão 1.1 — última atualização: julho de 2026 (inclui menção a recursos de inteligência artificial).',
   },
 ]
 

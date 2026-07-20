@@ -5,6 +5,12 @@ export class CreateNeuropsychAiAnalyses1784560000000 implements MigrationInterfa
 
   async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`ALTER TABLE "ai_usage" ADD COLUMN IF NOT EXISTS "neuropsychAnalyses" integer NOT NULL DEFAULT 0`)
+    // Ledger de custo real do Copiloto — separado das colunas genéricas de IA
+    // para o orçamento global mensal não se misturar com outras features.
+    // bigint: a linha "sentinela" do orçamento global soma todas as contas.
+    await queryRunner.query(`ALTER TABLE "ai_usage" ADD COLUMN IF NOT EXISTS "neuropsychInputTokens" bigint NOT NULL DEFAULT 0`)
+    await queryRunner.query(`ALTER TABLE "ai_usage" ADD COLUMN IF NOT EXISTS "neuropsychOutputTokens" bigint NOT NULL DEFAULT 0`)
+    await queryRunner.query(`ALTER TABLE "ai_usage" ADD COLUMN IF NOT EXISTS "neuropsychCostUsdMicros" bigint NOT NULL DEFAULT 0`)
 
     await queryRunner.query(`
       CREATE TABLE "neuropsych_ai_analyses" (
@@ -34,6 +40,9 @@ export class CreateNeuropsychAiAnalyses1784560000000 implements MigrationInterfa
   async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query('DROP INDEX IF EXISTS "IDX_neuropsych_ai_analyses_assessment"')
     await queryRunner.query('DROP TABLE IF EXISTS "neuropsych_ai_analyses"')
+    await queryRunner.query('ALTER TABLE "ai_usage" DROP COLUMN IF EXISTS "neuropsychCostUsdMicros"')
+    await queryRunner.query('ALTER TABLE "ai_usage" DROP COLUMN IF EXISTS "neuropsychOutputTokens"')
+    await queryRunner.query('ALTER TABLE "ai_usage" DROP COLUMN IF EXISTS "neuropsychInputTokens"')
     await queryRunner.query('ALTER TABLE "ai_usage" DROP COLUMN IF EXISTS "neuropsychAnalyses"')
   }
 }

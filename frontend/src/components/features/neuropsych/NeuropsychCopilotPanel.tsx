@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { AlertTriangle, Copy, Lock, PlusCircle, RefreshCw, ShieldCheck, Sparkles, Trash2 } from 'lucide-react'
@@ -8,7 +8,18 @@ import {
 } from '@/hooks/useApi'
 import { useHasPlan } from '@/store/subscription'
 import { renderNeuropsychAiAnalysisAsText } from '@/lib/neuropsychAiText'
+import Modal from '@/components/ui/Modal'
 import { NeuropsychAiAnalysis, NeuropsychAiAnalysisField, NeuropsychAiClinicalPoint, NeuropsychAssessment } from '@/types'
+
+const CONSENT_STORAGE_KEY = 'usecognia-neuropsych-copilot-consent-v1'
+
+function hasStoredConsent(): boolean {
+  try {
+    return localStorage.getItem(CONSENT_STORAGE_KEY) === '1'
+  } catch {
+    return false
+  }
+}
 
 const FIELD_OPTIONS: Array<{ id: NeuropsychAiAnalysisField; label: string }> = [
   { id: 'referralQuestion', label: 'Motivo e pergunta de encaminhamento' },
@@ -41,6 +52,11 @@ export default function NeuropsychCopilotPanel({ assessment, onAddToDraft }: Pro
   const generate = useGenerateNeuropsychAiAnalysis(assessment.id)
   const deleteAnalysis = useDeleteNeuropsychAiAnalysis(assessment.id)
   const [selectedFields, setSelectedFields] = useState<NeuropsychAiAnalysisField[]>(['referralQuestion', 'clinicalHistory', 'clinicalHypotheses', 'batteryItems'])
+  const [consentGiven, setConsentGiven] = useState(hasStoredConsent)
+  const [showConsentModal, setShowConsentModal] = useState(false)
+  // Guarda síncrona contra duplo clique: generate.isPending só reflete no próximo
+  // render, então um segundo clique rápido pode disparar antes do React repintar.
+  const submittingRef = useRef(false)
 
   if (!hasPro) {
     return (
@@ -66,14 +82,30 @@ export default function NeuropsychCopilotPanel({ assessment, onAddToDraft }: Pro
     setSelectedFields(current => current.includes(field) ? current.filter(f => f !== field) : [...current, field])
   }
 
-  async function analyze() {
+  function requestAnalyze() {
     if (selectedFields.length === 0) return toast.error('Selecione ao menos uma informação para incluir na análise')
+    if (!consentGiven) { setShowConsentModal(true); return }
+    void analyze()
+  }
+
+  function confirmConsentAndAnalyze() {
+    try { localStorage.setItem(CONSENT_STORAGE_KEY, '1') } catch { /* modo privado: consentimento vale só para esta sessão */ }
+    setConsentGiven(true)
+    setShowConsentModal(false)
+    void analyze()
+  }
+
+  async function analyze() {
+    if (submittingRef.current || generate.isPending) return
     if (analyses.length > 0 && !window.confirm('Uma nova análise será gerada e adicionada ao histórico. Continuar?')) return
+    submittingRef.current = true
     try {
       await generate.mutateAsync(selectedFields)
       toast.success('Análise gerada. Revise antes de usar.')
     } catch (error: any) {
       toast.error(error?.response?.data?.message ?? 'Não foi possível gerar a análise agora')
+    } finally {
+      submittingRef.current = false
     }
   }
 
@@ -145,12 +177,36 @@ export default function NeuropsychCopilotPanel({ assessment, onAddToDraft }: Pro
           <p>Limite mensal de análises do Copiloto atingido. O contador é reiniciado no próximo mês.</p>
         </div>
       ) : (
-        <button onClick={analyze} disabled={generate.isPending} className="btn-primary flex w-fit items-center gap-2">
+        <button onClick={requestAnalyze} disabled={generate.isPending} className="btn-primary flex w-fit items-center gap-2">
           {generate.isPending
             ? <><RefreshCw className="h-4 w-4 animate-spin" /> Analisando...</>
             : <><Sparkles className="h-4 w-4" /> {analyses.length > 0 ? 'Gerar nova análise' : 'Analisar com IA'}</>}
         </button>
       )}
+
+      <Modal
+        open={showConsentModal}
+        onClose={() => setShowConsentModal(false)}
+        title="Processamento por IA externa"
+        description="Confirme antes do primeiro uso do Copiloto clínico"
+      >
+        <div className="space-y-4 text-sm text-neutral-700 dark:text-neutral-300">
+          <p>
+            Ao usar o Copiloto, os campos clínicos que você selecionar são enviados a um provedor externo de
+            inteligência artificial (Anthropic/Claude) para gerar a sugestão. Antes do envio, o nome do paciente e
+            padrões como CPF, telefone, e-mail, CEP, endereço e data de nascimento são reduzidos automaticamente —
+            isso é uma <strong>redução de identificadores diretos</strong>, não uma anonimização garantida.
+          </p>
+          <p>
+            O provedor processa o texto para gerar a resposta e não o mantém retido para treinamento. A resposta
+            fica sob sua responsabilidade profissional de revisão antes de qualquer uso clínico.
+          </p>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setShowConsentModal(false)} className="btn-secondary">Cancelar</button>
+            <button onClick={confirmConsentAndAnalyze} className="btn-primary">Entendi e concordo</button>
+          </div>
+        </div>
+      </Modal>
 
       {isLoading ? <div className="h-24 animate-pulse rounded-2xl bg-neutral-100 dark:bg-white/5" /> : latest && (
         <div className="space-y-4">

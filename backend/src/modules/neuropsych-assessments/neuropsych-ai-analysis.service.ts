@@ -1,21 +1,36 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
 import { PLAN_LIMITS, KnownPlan, normalizePlan } from '../../common/plans'
 import { Subscription } from '../billing/entities/subscription.entity'
-import { AiService, NeuropsychAnalysisPayload, NEUROPSYCH_ANALYSIS_PROMPT_VERSION } from '../sessions/ai.service'
+import { Patient } from '../patients/entities/patient.entity'
+import {
+  AiService, CLAUDE_HAIKU_INPUT_USD_MICROS_PER_TOKEN, CLAUDE_HAIKU_OUTPUT_USD_MICROS_PER_TOKEN,
+  NeuropsychAnalysisPayload, NEUROPSYCH_ANALYSIS_PROMPT_VERSION,
+} from '../sessions/ai.service'
 import { AiUsage } from '../sessions/entities/ai-usage.entity'
 import { NeuropsychAssessment } from './entities/neuropsych-assessment.entity'
 import { NeuropsychBatteryItem } from './entities/neuropsych-battery-item.entity'
 import { NeuropsychAiAnalysis } from './entities/neuropsych-ai-analysis.entity'
 import { parseNeuropsychAnalysis, NeuropsychAnalysisResult } from './neuropsych-analysis.schema'
+import { sanitizeClinicalText } from './neuropsych-identifier-redaction'
+import { NEUROPSYCH_AI_LIMITS } from './neuropsych-ai-limits'
 
 const ASSESSMENT_CLINICAL_FIELDS = ['referralQuestion', 'clinicalHistory', 'clinicalHypotheses', 'qualitativeObservations'] as const
 const COMPED_PRO_EMAILS = (process.env.COMPED_PRO_EMAILS ?? 'gilsonfilho96@outlook.com')
   .split(',')
   .map(email => email.trim().toLowerCase())
   .filter(Boolean)
+
+// Linha "sentinela" no ai_usage que acumula o custo do Copiloto de TODAS as
+// contas no mês — não corresponde a nenhum usuário real. ai_usage.userId não
+// tem FK para users, então este UUID fixo nunca colide com uma conta real.
+const GLOBAL_BUDGET_SENTINEL_USER_ID = '00000000-0000-0000-0000-000000000000'
+
+// Estimativa conservadora de tokens por caractere de texto em português
+// (tende a superestimar tokens, o que é o lado seguro para reservar orçamento).
+const CHARS_PER_TOKEN_ESTIMATE = 3
 
 export type NeuropsychAiAnalysisDto = {
   id: string
@@ -40,6 +55,7 @@ export class NeuropsychAiAnalysisService {
     @InjectRepository(NeuropsychAiAnalysis) private readonly analyses: Repository<NeuropsychAiAnalysis>,
     @InjectRepository(AiUsage) private readonly aiUsage: Repository<AiUsage>,
     @InjectRepository(Subscription) private readonly subscriptions: Repository<Subscription>,
+    @InjectRepository(Patient) private readonly patients: Repository<Patient>,
     private readonly ai: AiService,
   ) {}
 
@@ -69,11 +85,35 @@ export class NeuropsychAiAnalysisService {
   ): Promise<NeuropsychAiAnalysisDto> {
     const assessment = await this.assertAssessmentOwner(assessmentId, psychologistId)
     const plan = await this.getCurrentPlan(psychologistId, email)
-    await this.chargeQuota(psychologistId, plan)
+    const month = this.currentMonth()
+
+    await this.chargeQuota(psychologistId, month, plan)
+
+    const estimatedMaxCostUsdMicros = this.estimateMaxCostUsdMicros()
+    let globalReserved = false
+    let globalSettled = false
 
     try {
-      const payload = await this.buildPayload(assessment, fields)
-      const result = await this.ai.generateNeuropsychAnalysis(payload)
+      await this.reserveGlobalBudget(month, estimatedMaxCostUsdMicros)
+      globalReserved = true
+
+      const patient = await this.patients.findOne({ where: { id: assessment.patientId, psychologistId }, select: ['name'] })
+      const payload = await this.buildPayload(assessment, fields, patient?.name)
+
+      const result = await this.ai.generateNeuropsychAnalysis(payload, {
+        maxOutputTokens: NEUROPSYCH_AI_LIMITS.maxOutputTokens,
+        timeoutMs: NEUROPSYCH_AI_LIMITS.timeoutMs,
+        maxInputChars: NEUROPSYCH_AI_LIMITS.maxInputChars,
+      })
+
+      // A partir daqui o provedor JÁ cobrou pela chamada, independente do JSON
+      // ser válido — o custo real é sempre registrado, tanto por conta quanto
+      // no orçamento global. A franquia mensal de ANÁLISES (contagem), essa
+      // sim, só é consumida se o resultado for válido (ver catch abaixo).
+      await this.recordRealUsage(psychologistId, month, result.usage.inputTokens, result.usage.outputTokens, result.usage.costUsdMicros)
+      await this.settleGlobalBudget(month, estimatedMaxCostUsdMicros, result.usage.costUsdMicros)
+      globalSettled = true
+
       const parsed = parseNeuropsychAnalysis(result.text)
       if (!parsed) {
         this.logger.warn(`Análise neuropsicológica: JSON inválido do modelo (assessment ${assessmentId})`)
@@ -94,10 +134,22 @@ export class NeuropsychAiAnalysisService {
         includedFields: fields,
       }))
 
-      return this.toDto(saved)!
+      const dto = this.toDto(saved)
+      if (!dto) {
+        // Não deveria acontecer: acabamos de criptografar este mesmo conteúdo.
+        // Se acontecer, é um bug real (ex.: ENCRYPTION_KEY mudou no meio do
+        // processo) — não devolver corpo vazio silenciosamente.
+        throw new InternalServerErrorException('A análise foi salva, mas não foi possível confirmá-la. Recarregue a página.')
+      }
+      return dto
     } catch (error) {
-      // Falha antes de uma análise válida: nunca cobra a franquia mensal.
-      await this.releaseQuota(psychologistId).catch(() => {})
+      // Falha antes de uma análise válida: nunca cobra a franquia mensal de
+      // contagem. O custo real em dólares, se algo já foi cobrado pelo
+      // provedor, já foi registrado acima antes deste catch — não é revertido.
+      await this.releaseQuota(psychologistId, month).catch(() => {})
+      if (globalReserved && !globalSettled) {
+        await this.settleGlobalBudget(month, estimatedMaxCostUsdMicros, 0).catch(() => {})
+      }
       throw error
     }
   }
@@ -114,14 +166,15 @@ export class NeuropsychAiAnalysisService {
     return assessment
   }
 
-  private async buildPayload(assessment: NeuropsychAssessment, fields: string[]): Promise<NeuropsychAnalysisPayload> {
+  private async buildPayload(assessment: NeuropsychAssessment, fields: string[], patientName: string | undefined): Promise<NeuropsychAnalysisPayload> {
     const payload: NeuropsychAnalysisPayload = {
       evaluatedDomains: assessment.evaluatedDomains ?? [],
       batteryItems: [],
     }
     for (const field of ASSESSMENT_CLINICAL_FIELDS) {
       if (fields.includes(field)) {
-        (payload as any)[field] = safeDecrypt((assessment as any)[field]) ?? undefined
+        const decrypted = safeDecrypt((assessment as any)[field])
+        ;(payload as any)[field] = sanitizeClinicalText(decrypted, patientName)
       }
     }
     if (fields.includes('batteryItems')) {
@@ -131,9 +184,9 @@ export class NeuropsychAiAnalysisService {
         procedureType: item.procedureType,
         domains: item.domains ?? [],
         status: item.status,
-        purpose: safeDecrypt(item.purpose) ?? undefined,
-        resultSummary: safeDecrypt(item.resultSummary) ?? undefined,
-        qualitativeNotes: safeDecrypt(item.qualitativeNotes) ?? undefined,
+        purpose: sanitizeClinicalText(safeDecrypt(item.purpose), patientName),
+        resultSummary: sanitizeClinicalText(safeDecrypt(item.resultSummary), patientName),
+        qualitativeNotes: sanitizeClinicalText(safeDecrypt(item.qualitativeNotes), patientName),
       }))
     }
     return payload
@@ -149,8 +202,14 @@ export class NeuropsychAiAnalysisService {
     return normalizePlan((sub?.status === 'active' || sub?.status === 'trialing') ? sub.plan : 'free')
   }
 
-  private async chargeQuota(userId: string, plan: KnownPlan): Promise<void> {
-    const month = this.currentMonth()
+  /** Estimativa de custo máximo (pior caso) de uma chamada, usada para reservar orçamento global antes de saber o custo real. */
+  private estimateMaxCostUsdMicros(): number {
+    const maxInputTokens = Math.ceil(NEUROPSYCH_AI_LIMITS.maxInputChars / CHARS_PER_TOKEN_ESTIMATE)
+    return (maxInputTokens * CLAUDE_HAIKU_INPUT_USD_MICROS_PER_TOKEN)
+      + (NEUROPSYCH_AI_LIMITS.maxOutputTokens * CLAUDE_HAIKU_OUTPUT_USD_MICROS_PER_TOKEN)
+  }
+
+  private async chargeQuota(userId: string, month: string, plan: KnownPlan): Promise<void> {
     const limit = PLAN_LIMITS[plan].neuropsychAiMonthlyLimit
     if (limit <= 0) {
       throw new ForbiddenException({
@@ -179,12 +238,63 @@ export class NeuropsychAiAnalysisService {
     }
   }
 
-  private async releaseQuota(userId: string): Promise<void> {
-    const month = this.currentMonth()
+  private async releaseQuota(userId: string, month: string): Promise<void> {
     await this.aiUsage
       .createQueryBuilder()
       .update()
       .set({ neuropsychAnalyses: () => 'GREATEST("neuropsychAnalyses" - 1, 0)' })
+      .where('"userId" = :userId AND month = :month', { userId, month })
+      .execute()
+  }
+
+  /** Reserva o pior caso de custo no ledger global antes de chamar o provedor. Bloqueio atômico via UPDATE condicional. */
+  private async reserveGlobalBudget(month: string, estimateMicros: number): Promise<void> {
+    const budgetMicros = NEUROPSYCH_AI_LIMITS.globalMonthlyBudgetUsd * 1_000_000
+    await this.aiUsage
+      .createQueryBuilder()
+      .insert()
+      .values({ userId: GLOBAL_BUDGET_SENTINEL_USER_ID, month })
+      .orIgnore()
+      .execute()
+    const result = await this.aiUsage
+      .createQueryBuilder()
+      .update()
+      .set({ neuropsychCostUsdMicros: () => `"neuropsychCostUsdMicros" + ${estimateMicros}` })
+      .where(
+        '"userId" = :userId AND month = :month AND "neuropsychCostUsdMicros" + :estimate <= :budget',
+        { userId: GLOBAL_BUDGET_SENTINEL_USER_ID, month, estimate: estimateMicros, budget: budgetMicros },
+      )
+      .execute()
+
+    if (!result.affected) {
+      // Mensagem amigável, sem expor números internos de orçamento/custo.
+      throw new ForbiddenException({
+        message: 'O Copiloto de Raciocínio Clínico atingiu o limite de uso geral neste mês. Tente novamente em alguns dias ou no próximo mês.',
+      })
+    }
+  }
+
+  /** Ajusta o ledger global do valor reservado (pior caso) para o valor real cobrado, sem nunca ficar negativo. */
+  private async settleGlobalBudget(month: string, reservedMicros: number, actualMicros: number): Promise<void> {
+    const delta = actualMicros - reservedMicros
+    await this.aiUsage
+      .createQueryBuilder()
+      .update()
+      .set({ neuropsychCostUsdMicros: () => `GREATEST("neuropsychCostUsdMicros" + (${delta}), 0)` })
+      .where('"userId" = :userId AND month = :month', { userId: GLOBAL_BUDGET_SENTINEL_USER_ID, month })
+      .execute()
+  }
+
+  /** Registra tokens/custo reais da chamada na conta do usuário, independente do JSON ser válido — dinheiro já foi gasto. */
+  private async recordRealUsage(userId: string, month: string, inputTokens: number, outputTokens: number, costMicros: number): Promise<void> {
+    await this.aiUsage
+      .createQueryBuilder()
+      .update()
+      .set({
+        neuropsychInputTokens: () => `"neuropsychInputTokens" + ${inputTokens}`,
+        neuropsychOutputTokens: () => `"neuropsychOutputTokens" + ${outputTokens}`,
+        neuropsychCostUsdMicros: () => `"neuropsychCostUsdMicros" + ${costMicros}`,
+      })
       .where('"userId" = :userId AND month = :month', { userId, month })
       .execute()
   }

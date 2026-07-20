@@ -24,6 +24,17 @@ function qb(overrides: Partial<Record<string, jest.Mock>> = {}) {
   return builder
 }
 
+/** Extrai, entre todas as chamadas set(), o valor de uma chave específica (ex.: 'neuropsychAnalyses'). */
+function setCallsFor(qbMock: ReturnType<typeof qb>, key: string): any[] {
+  return qbMock.set.mock.calls
+    .map((call: any[]) => call[0]?.[key])
+    .filter((value: any) => value !== undefined)
+}
+
+function evalFnResult(fn: any): string | number {
+  return typeof fn === 'function' ? fn() : fn
+}
+
 function assessment(overrides: Partial<NeuropsychAssessment> = {}): NeuropsychAssessment {
   return {
     id: ASSESSMENT_ID,
@@ -56,15 +67,6 @@ const VALID_AI_JSON = JSON.stringify({
   disclaimers: ['Sugestão gerada por IA, revisar antes do uso clínico.'],
 })
 
-/** set() recebe { neuropsychAnalyses: () => sql }; a chamada de liberação usa GREATEST(...).
- *  JSON.stringify descarta valores de função, então inspecionamos a função diretamente. */
-function releasedQuota(qbMock: ReturnType<typeof qb>): boolean {
-  return qbMock.set.mock.calls.some((call: any[]) => {
-    const fn = call[0]?.neuropsychAnalyses
-    return typeof fn === 'function' && String(fn()).includes('GREATEST')
-  })
-}
-
 function buildService() {
   const assessments = {
     findOne: jest.fn().mockResolvedValue(assessment()),
@@ -86,6 +88,9 @@ function buildService() {
   const subscriptions = {
     findOne: jest.fn().mockResolvedValue({ plan: 'pro', status: 'active' }),
   }
+  const patients = {
+    findOne: jest.fn().mockResolvedValue({ name: 'Paciente Teste' }),
+  }
   const ai = {
     generateNeuropsychAnalysis: jest.fn<Promise<AiTextResult>, any>().mockResolvedValue({
       text: VALID_AI_JSON,
@@ -94,9 +99,9 @@ function buildService() {
   }
 
   const service = new NeuropsychAiAnalysisService(
-    assessments as any, items as any, analyses as any, aiUsage as any, subscriptions as any, ai as any,
+    assessments as any, items as any, analyses as any, aiUsage as any, subscriptions as any, patients as any, ai as any,
   )
-  return { service, assessments, items, analyses, aiUsage, aiUsageQb, subscriptions, ai }
+  return { service, assessments, items, analyses, aiUsage, aiUsageQb, subscriptions, patients, ai }
 }
 
 describe('NeuropsychAiAnalysisService', () => {
@@ -124,15 +129,42 @@ describe('NeuropsychAiAnalysisService', () => {
       .rejects.toThrow(ForbiddenException)
   })
 
+  it('respeita o orçamento global mensal, sem consumir a franquia individual', async () => {
+    const { service, aiUsageQb, ai } = buildService()
+    // 1) insert idempotente da cota do usuário; 2) update da cota do usuário (sucesso);
+    // 3) insert idempotente do ledger global; 4) update do ledger global (falha: orçamento estourado)
+    aiUsageQb.execute
+      .mockResolvedValueOnce({ affected: 0 })
+      .mockResolvedValueOnce({ affected: 1 })
+      .mockResolvedValueOnce({ affected: 0 })
+      .mockResolvedValueOnce({ affected: 0 })
+    await expect(service.generate(ASSESSMENT_ID, ['clinicalHistory'], PSYCHOLOGIST_ID, undefined))
+      .rejects.toThrow(ForbiddenException)
+    expect(ai.generateNeuropsychAnalysis).not.toHaveBeenCalled()
+    // A cota individual (contagem) deve ter sido liberada já que a chamada nunca aconteceu.
+    const counterReleases = setCallsFor(aiUsageQb, 'neuropsychAnalyses').map(evalFnResult)
+    expect(counterReleases.some(value => String(value).includes('GREATEST'))).toBe(true)
+  })
+
   it('não cobra a franquia quando o provedor de IA falha', async () => {
     const { service, ai, aiUsageQb } = buildService()
     ai.generateNeuropsychAnalysis.mockRejectedValue(new BadRequestException('Não foi possível gerar a análise agora.'))
     await expect(service.generate(ASSESSMENT_ID, ['clinicalHistory'], PSYCHOLOGIST_ID, undefined))
       .rejects.toThrow(BadRequestException)
-    expect(releasedQuota(aiUsageQb)).toBe(true)
+    const counterReleases = setCallsFor(aiUsageQb, 'neuropsychAnalyses').map(evalFnResult)
+    expect(counterReleases.some(value => String(value).includes('GREATEST'))).toBe(true)
   })
 
-  it('trata JSON inválido do modelo com segurança, sem cobrar a franquia', async () => {
+  it('libera a reserva do orçamento global quando o provedor falha (sem custo real)', async () => {
+    const { service, ai, aiUsageQb } = buildService()
+    ai.generateNeuropsychAnalysis.mockRejectedValue(new BadRequestException('falhou'))
+    await expect(service.generate(ASSESSMENT_ID, ['clinicalHistory'], PSYCHOLOGIST_ID, undefined)).rejects.toThrow()
+    // settleGlobalBudget(reserved, 0) deve ter sido chamado — delta negativo do valor reservado.
+    const globalCostChanges = setCallsFor(aiUsageQb, 'neuropsychCostUsdMicros').map(evalFnResult)
+    expect(globalCostChanges.some(value => String(value).includes('GREATEST'))).toBe(true)
+  })
+
+  it('trata JSON inválido do modelo com segurança, sem cobrar a franquia individual, mas registra o custo real gasto', async () => {
     const { service, ai, aiUsageQb, analyses } = buildService()
     ai.generateNeuropsychAnalysis.mockResolvedValue({
       text: 'não é json',
@@ -141,7 +173,12 @@ describe('NeuropsychAiAnalysisService', () => {
     await expect(service.generate(ASSESSMENT_ID, ['clinicalHistory'], PSYCHOLOGIST_ID, undefined))
       .rejects.toThrow(BadRequestException)
     expect(analyses.save).not.toHaveBeenCalled()
-    expect(releasedQuota(aiUsageQb)).toBe(true)
+    // Franquia de contagem liberada...
+    const counterReleases = setCallsFor(aiUsageQb, 'neuropsychAnalyses').map(evalFnResult)
+    expect(counterReleases.some(value => String(value).includes('GREATEST'))).toBe(true)
+    // ...mas o custo real (mesmo de uma resposta inválida) foi registrado na conta do usuário.
+    const realCostRecords = setCallsFor(aiUsageQb, 'neuropsychInputTokens').map(evalFnResult)
+    expect(realCostRecords.some(value => String(value).includes('+ 10'))).toBe(true)
   })
 
   it('criptografa a resposta antes de persistir e registra tokens/custo', async () => {
@@ -156,17 +193,29 @@ describe('NeuropsychAiAnalysisService', () => {
     expect(result.result.caseSynthesis[0].text).toContain('Síntese cautelosa')
   })
 
-  it('nunca inclui nome do paciente ou identificadores no payload enviado à IA', async () => {
-    const { service, assessments, ai } = buildService()
+  it('nunca inclui nome do paciente ou identificadores diretos no payload enviado à IA', async () => {
+    const { service, assessments, patients, ai } = buildService()
     assessments.findOne.mockResolvedValue(assessment({ clinicalHistory: 'hist-cipher' }))
+    patients.findOne.mockResolvedValue({ name: 'Maria Souza' })
     await service.generate(ASSESSMENT_ID, ['clinicalHistory', 'batteryItems'], PSYCHOLOGIST_ID, undefined)
     const payload = ai.generateNeuropsychAnalysis.mock.calls[0][0]
     const serialized = JSON.stringify(payload).toLowerCase()
-    expect(serialized).not.toContain('name')
+    expect(serialized).not.toContain('maria souza')
     expect(serialized).not.toContain('cpf')
     expect(serialized).not.toContain('email')
     expect(payload).not.toHaveProperty('patientId')
     expect(payload).not.toHaveProperty('patientName')
+  })
+
+  it('passa os limites configurados (max_tokens/timeout/max chars) para o AiService', async () => {
+    const { service, ai } = buildService()
+    await service.generate(ASSESSMENT_ID, ['clinicalHistory'], PSYCHOLOGIST_ID, undefined)
+    const options = ai.generateNeuropsychAnalysis.mock.calls[0][1]
+    expect(options).toEqual(expect.objectContaining({
+      maxOutputTokens: expect.any(Number),
+      timeoutMs: expect.any(Number),
+      maxInputChars: expect.any(Number),
+    }))
   })
 
   it('exclusão de análise filtra por avaliação e psicólogo', async () => {

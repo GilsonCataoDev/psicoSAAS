@@ -49,21 +49,32 @@ Para dar suporte, a operação da plataforma pode usar um modo "ver como" (imper
 
 **Finalidade**: apoiar o psicólogo a organizar o raciocínio em avaliações neuropsicológicas — apontar convergências, divergências, funções possivelmente preservadas ou frágeis, hipóteses alternativas e lacunas de informação. **Não é uma ferramenta de diagnóstico** e não corrige testes psicológicos ou neuropsicológicos: não recebe nem processa itens, estímulos, manuais ou tabelas normativas de nenhum instrumento protegido.
 
-**Dados processados**: somente os campos que o profissional escolher incluir na análise (motivo de encaminhamento, história clínica, hipóteses provisórias, observações qualitativas e/ou os registros da bateria de avaliação). Antes do envio, o backend remove identificadores diretos — nome, CPF, telefone, e-mail e endereço nunca chegam ao provedor de IA.
+**Dados processados**: somente os campos que o profissional escolher incluir na análise (motivo de encaminhamento, história clínica, hipóteses provisórias, observações qualitativas e/ou os registros da bateria de avaliação).
 
-**Limites clínicos**: a resposta é sempre uma sugestão estruturada, com linguagem cautelosa, sem diagnóstico definitivo e sem recomendação de conduta como ordem. Cada afirmação relevante indica se é um dado registrado, uma inferência cautelosa ou uma lacuna de informação, e a que campo ou procedimento se refere. Toda resposta inclui um aviso de que foi gerada por IA e precisa ser revisada pelo profissional antes de qualquer uso.
+**Redução de identificadores diretos (não é anonimização)**: antes do envio, o backend aplica um filtro de padrões (CPF, RG, telefone, e-mail, CEP, endereço, data de nascimento próxima de palavras-chave, URLs e identificadores internos/UUIDs) e remove ocorrências do nome do paciente cadastrado no texto livre. **Isto é redução de identificadores diretos, por padrões conhecidos — não é anonimização nem garantia de privacidade.** Texto digitado de forma não padronizada, apelidos, erros de digitação ou identificadores fora dos padrões cobertos podem não ser detectados. O profissional não deve, mesmo assim, digitar deliberadamente identificadores desnecessários nos campos analisados.
+
+**Proibido enviar material de teste protegido**: o Copiloto não recebe e não deve receber itens, estímulos, manuais, tabelas normativas ou chaves de correção de nenhum instrumento psicológico ou neuropsicológico protegido. Ele trabalha exclusivamente com o que o profissional registrou sobre o andamento e os resultados já apurados — nunca com o conteúdo do instrumento em si.
+
+**Limites clínicos**: a resposta é sempre uma sugestão estruturada, com linguagem cautelosa, sem diagnóstico definitivo e sem recomendação de conduta como ordem. Cada afirmação relevante indica se é um dado registrado, uma inferência cautelosa ou uma lacuna de informação, e a que campo ou procedimento se refere. Toda resposta inclui um aviso de que foi gerada por IA e precisa ser revisada pelo profissional antes de qualquer uso. Antes do primeiro uso, a interface exige uma confirmação explícita de que os dados selecionados serão processados por um provedor externo de IA.
 
 **Responsabilidade profissional**: a sugestão da IA nunca é aplicada automaticamente à conclusão ou ao relatório final — o profissional decide, campo a campo, o que aproveitar, sempre com confirmação explícita antes de qualquer inclusão no rascunho de integração.
 
-**Uso de provedor externo**: as chamadas usam a API da Anthropic (modelo Claude Haiku), sempre feitas pelo backend — a chave de API nunca é exposta ao navegador. A chamada só ocorre depois de o backend validar, no servidor, que a avaliação pertence ao psicólogo autenticado e que a conta está no plano Pro.
+**Uso de provedor externo**: as chamadas usam a API da Anthropic (modelo Claude Haiku), sempre feitas pelo backend — a chave de API nunca é exposta ao navegador ou ao bundle da aplicação. A chamada só ocorre depois de o backend validar, no servidor, que a avaliação pertence ao psicólogo autenticado e que a conta está no plano Pro (`@RequirePlan('pro')`, verificado no servidor — a interface bloqueia visualmente, mas quem impede de fato é o backend).
 
-**Retenção**: o texto enviado ao provedor (prompt) não é armazenado. Apenas a resposta estruturada da IA é persistida, e sempre **criptografada** (AES-256-GCM) — junto de metadados não sensíveis (modelo, versão do prompt, tokens consumidos e custo estimado). Os campos que compuseram cada análise ficam registrados apenas pelo nome do campo (ex.: "história clínica"), nunca pelo conteúdo.
+**Retenção**: o texto enviado ao provedor (prompt) não é armazenado. Apenas a resposta estruturada da IA é persistida, e sempre **criptografada** (AES-256-GCM, com IV/nonce aleatório a cada gravação) — junto de metadados não sensíveis (modelo, versão do prompt, tokens consumidos e custo estimado). Os campos que compuseram cada análise ficam registrados apenas pelo nome do campo (ex.: "história clínica"), nunca pelo conteúdo. Erros de descriptografia nunca retornam conteúdo parcial — o registro é tratado como indisponível.
 
-**Exclusão**: cada análise pode ser excluída individualmente pelo profissional a qualquer momento, permanentemente.
+**Exclusão**: cada análise pode ser excluída individualmente pelo profissional a qualquer momento, de forma definitiva (exclusão permanente, não reversível).
 
-**Controle de custos**: o plano Pro tem uma franquia mensal de análises (configurável por variável de ambiente, hoje 30/mês). Cada geração ou regeneração consome uma unidade da franquia; uma falha do provedor antes de retornar uma análise válida não consome a franquia. O uso mensal (tokens de entrada/saída, modelo e custo estimado) fica registrado para acompanhamento.
+**Limites técnicos e controle de custos** — todos aplicados no servidor, nunca a partir de valores enviados pelo navegador:
+- Franquia mensal de análises por conta no plano Pro (`NEUROPSYCH_AI_MONTHLY_LIMIT`, padrão 30/mês), aplicada com contagem atômica no banco — chamadas concorrentes não conseguem ultrapassar o limite.
+- Tamanho máximo do registro enviado ao provedor (`NEUROPSYCH_AI_MAX_INPUT_CHARS`, padrão 20.000 caracteres) e teto de tokens de resposta (`NEUROPSYCH_AI_MAX_OUTPUT_TOKENS`, padrão 3.000).
+- Timeout da chamada ao provedor (`NEUROPSYCH_AI_TIMEOUT_MS`, padrão 30s).
+- Orçamento global mensal, somando todas as contas (`NEUROPSYCH_AI_GLOBAL_MONTHLY_BUDGET_USD`, padrão US$50/mês) — ao ser atingido, novas análises ficam bloqueadas com uma mensagem genérica, sem expor números internos, até o mês seguinte.
+- Uma falha do provedor antes de retornar uma resposta não consome a franquia mensal de análises. Já o custo real de uma chamada que o provedor efetivamente processou (mesmo que a resposta tenha vindo em formato inválido) é sempre contabilizado no orçamento — dinheiro gasto é registrado independentemente do resultado ser aproveitável.
 
-**Como desativar**: para desativar o recurso por completo, defina `NEUROPSYCH_AI_MONTHLY_LIMIT=0` nas variáveis de ambiente do backend — nenhuma conta, independentemente do plano, conseguirá gerar novas análises. O organizador local de rascunho (sem IA) continua disponível normalmente.
+**Como desativar**: para desativar o recurso por completo, defina `NEUROPSYCH_AI_MONTHLY_LIMIT=0` (ou `NEUROPSYCH_AI_GLOBAL_MONTHLY_BUDGET_USD=0`) nas variáveis de ambiente do backend — nenhuma conta, independentemente do plano, conseguirá gerar novas análises. O organizador local de rascunho (sem IA) continua disponível normalmente, sem custo.
+
+**Como configurar o orçamento**: todas as variáveis acima ficam documentadas em `backend/.env.example` e devem ser definidas no ambiente de produção (Railway). Não há valor "certo" universal — ajuste `NEUROPSYCH_AI_GLOBAL_MONTHLY_BUDGET_USD` conforme o número de contas Pro ativas e o orçamento de infraestrutura disponível.
 
 ## Seus direitos sobre os dados (LGPD)
 

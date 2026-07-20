@@ -96,7 +96,7 @@ export class NeuropsychAssessmentsController {
     @Req() req: any,
   ) {
     const result = await this.aiAnalysis.generate(id, body.fields, req.user.id, req.user.email)
-    await this.record(req, 'neuropsych_ai_analysis.requested', id, { fields: body.fields })
+    await this.record(req, 'neuropsych_ai_analysis.requested', id, { fields: body.fields }, 'neuropsych_ai_analysis')
     return result
   }
 
@@ -108,15 +108,21 @@ export class NeuropsychAssessmentsController {
     @Req() req: any,
   ) {
     const result = await this.aiAnalysis.remove(id, analysisId, req.user.id)
-    await this.record(req, 'neuropsych_ai_analysis.deleted', id, { analysisId })
+    await this.record(req, 'neuropsych_ai_analysis.deleted', id, { analysisId }, 'neuropsych_ai_analysis')
     return result
   }
 
-  private record(req: any, action: string, resourceId: string, metadata?: Record<string, unknown>) {
+  private record(
+    req: any,
+    action: string,
+    resourceId: string,
+    metadata?: Record<string, unknown>,
+    resource: string = 'neuropsych_assessment',
+  ) {
     return this.audit.record({
       userId: req.user.id,
       action,
-      resource: 'neuropsych_assessment',
+      resource,
       resourceId,
       metadata,
       ip: (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ?? req.socket?.remoteAddress,
