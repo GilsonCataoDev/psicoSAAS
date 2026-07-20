@@ -13,6 +13,7 @@ export class UpdatePreferencesDto {
   @IsOptional() @IsBoolean() dailyAgendaDigest?: boolean
   @IsOptional() @IsBoolean() chargeAfterSession?: boolean
   @IsOptional() @IsBoolean() bookingConfirmation?: boolean
+  @IsOptional() @IsBoolean() googleCalendarInvitePatients?: boolean
 
   // ── PIX ────────────────────────────────────────────────────────────────────
   @IsOptional() @IsString() @MaxLength(20)  pixKeyType?: string

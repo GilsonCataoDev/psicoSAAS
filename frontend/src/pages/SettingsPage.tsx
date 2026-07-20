@@ -49,6 +49,7 @@ const EDITABLE_PREF_KEYS = [
   'dailyAgendaDigest',
   'chargeAfterSession',
   'bookingConfirmation',
+  'googleCalendarInvitePatients',
   'pixKeyType',
   'pixKey',
   'pixName',
@@ -196,6 +197,7 @@ export default function SettingsPage() {
           ...prev,
           googleCalendarConnected: !!data.connected,
           googleCalendarEmail: data.email ?? '',
+          googleCalendarInvitePatients: data.invitePatients === true,
         }))
       })
       .catch((err) => {
@@ -617,6 +619,7 @@ export default function SettingsPage() {
               googleLastSyncedAt={googleLastSyncedAt} googleLastSyncError={googleLastSyncError}
               setConfirmDisconnectGoogle={setConfirmDisconnectGoogle}
               connectGoogleCalendar={connectGoogleCalendar}
+              togglePref={togglePref}
             />
           )}
 
