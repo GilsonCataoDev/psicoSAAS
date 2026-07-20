@@ -16,6 +16,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { to: '/sessoes', icon: 'sessions', label: 'Sessões' },
   { to: '/documentos', icon: 'documents', label: 'Documentos' },
   { to: '/instrumentos', icon: 'instruments', label: 'Instrumentos', proOnly: true },
+  { to: '/avaliacoes', icon: 'assessments', label: 'Avaliações' },
   { to: '/financeiro', icon: 'financial', label: 'Financeiro', mobile: true },
   { to: '/configuracoes', icon: 'settings', label: 'Ajustes', mobile: true },
 ]

@@ -23,6 +23,7 @@ const schema = z.object({
   race: z.string().trim().max(120).optional(),
   gender: z.string().trim().max(120).optional(),
   sexualOrientation: z.string().trim().max(120).optional(),
+  careMode: z.enum(['psychotherapy', 'neuropsychological_assessment']),
   tags: z.array(z.enum(TAG_VALUES)).max(20),
 })
 
@@ -42,6 +43,7 @@ function defaultValues(patient: Patient): FormData {
     race: patient.race ?? '',
     gender: patient.gender ?? '',
     sexualOrientation: patient.sexualOrientation ?? '',
+    careMode: patient.careMode ?? 'psychotherapy',
     tags: patient.tags ?? [],
   }
 }
@@ -102,6 +104,7 @@ export default function EditPatientModal({ open, onClose, patient }: EditPatient
           race: nullable(data.race),
           gender: nullable(data.gender),
           sexualOrientation: nullable(data.sexualOrientation),
+          careMode: data.careMode,
           tags: data.tags,
         },
       })
@@ -123,6 +126,14 @@ export default function EditPatientModal({ open, onClose, patient }: EditPatient
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label className="label">Modo de atendimento</label>
+            <select {...register('careMode')} className="input-field">
+              <option value="psychotherapy">Psicoterapia</option>
+              <option value="neuropsychological_assessment">Avaliação neuropsicológica</option>
+            </select>
+            <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">A troca organiza a interface e não apaga nenhum histórico.</p>
+          </div>
           <div className="sm:col-span-2">
             <label className="label">Nome completo *</label>
             <input {...register('name')} autoFocus className="input-field" placeholder="Nome completo" />

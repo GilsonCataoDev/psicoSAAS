@@ -1,5 +1,6 @@
 import { CalendarDays, CheckCircle2, ExternalLink } from 'lucide-react'
 import { type Prefs } from './types'
+import { Toggle } from './Toggle'
 
 interface Props {
   prefs: Prefs
@@ -9,12 +10,14 @@ interface Props {
   googleLastSyncError: string | null
   setConfirmDisconnectGoogle: (v: boolean) => void
   connectGoogleCalendar: () => void
+  togglePref: (key: keyof Prefs) => void
 }
 
 export function IntegrationsTab({
   prefs, calendarBusy, googleCalendarAvailable,
   googleLastSyncedAt, googleLastSyncError,
   setConfirmDisconnectGoogle, connectGoogleCalendar,
+  togglePref,
 }: Props) {
   return (
     <div className="space-y-5">
@@ -81,6 +84,20 @@ export function IntegrationsTab({
               <p className="mt-1 text-sm text-neutral-600">{text}</p>
             </div>
           ))}
+        </div>
+
+        <div className="flex items-start justify-between gap-4 rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+          <div>
+            <p className="text-sm font-medium text-neutral-800">Convidar paciente pelo Google Agenda</p>
+            <p className="mt-1 text-xs text-neutral-500">
+              Envia ao e-mail cadastrado o convite, as remarcações e o cancelamento. O evento usa um título discreto para preservar a privacidade.
+            </p>
+          </div>
+          <Toggle
+            on={prefs.googleCalendarInvitePatients}
+            onChange={() => togglePref('googleCalendarInvitePatients')}
+            disabled={!prefs.googleCalendarConnected || calendarBusy}
+          />
         </div>
 
         <div className="flex flex-wrap gap-3">

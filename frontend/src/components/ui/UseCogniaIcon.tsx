@@ -11,6 +11,7 @@ import {
   FileText,
   LayoutDashboard,
   Library,
+  BrainCircuit,
   Link2,
   LockKeyhole,
   LogIn,
@@ -44,6 +45,7 @@ export type UseCogniaIconName =
   | 'plan-professional'
   | 'automated-messages'
   | 'instruments'
+  | 'assessments'
   | 'billing'
   | 'payment-methods'
   | 'security-lgpd'
@@ -77,6 +79,7 @@ const ICONS: Record<UseCogniaIconName, LucideIcon> = {
   'plan-professional': Sparkles,
   'automated-messages': MessageCircle,
   instruments: Library,
+  assessments: BrainCircuit,
   billing: CreditCard,
   'payment-methods': CreditCard,
   'security-lgpd': ShieldCheck,

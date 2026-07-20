@@ -130,7 +130,17 @@ function loadAnalytics(): Promise<PostHogClient | null> {
       capture_pageview:        true,
       capture_pageleave:       true,
       autocapture:             false,
+      capture_dead_clicks:     false,
+      capture_heatmaps:        false,
+      capture_performance:     false,
       disable_session_recording: true,
+      disable_surveys:         true,
+      disable_product_tours:   true,
+      disable_conversations:   true,
+      disable_external_dependency_loading: true,
+      // Only named analytics events are used. Remote flags/config can request
+      // executable extensions that the site's strict CSP intentionally blocks.
+      advanced_disable_flags: true,
       mask_all_text:           true,
       mask_all_element_attributes: true,
       persistence:             'localStorage',

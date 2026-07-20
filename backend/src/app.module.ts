@@ -33,6 +33,7 @@ import { StorageModule } from './common/storage/storage.module'
 import { SecurityModule } from './common/security/security.module'
 import { AuditInterceptor } from './modules/audit/interceptors/audit.interceptor'
 import { HealthController } from './health.controller'
+import { NeuropsychAssessmentsModule } from './modules/neuropsych-assessments/neuropsych-assessments.module'
 
 @Module({
   imports: [
@@ -81,6 +82,7 @@ import { HealthController } from './health.controller'
     DataExportModule,
     GoogleCalendarModule,
     InstrumentAssignmentsModule,
+    NeuropsychAssessmentsModule,
     TemplatesModule,
     AdminModule,
     TestimonialModule,

@@ -11,6 +11,7 @@ export interface Patient {
   cpfCnpj?: string
   tags: EmotionalTag[]
   status: 'active' | 'paused' | 'discharged'
+  careMode: 'psychotherapy' | 'neuropsychological_assessment'
   sessionPrice: number
   billingType: 'per_session' | 'monthly_package'
   monthlyPackagePrice: number
@@ -27,6 +28,55 @@ export interface Patient {
   privateNotes?: string
   prontuario?: Record<string, any>
   avatarColor: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type NeuropsychDomain =
+  | 'intelligence'
+  | 'attention'
+  | 'memory'
+  | 'executive_functions'
+  | 'language'
+  | 'visuospatial_skills'
+  | 'behavioral_scales'
+  | 'personality'
+
+export interface NeuropsychBatteryItem {
+  id: string
+  assessmentId: string
+  name: string
+  procedureType: 'psychological_test' | 'neuropsychological_procedure' | 'behavioral_scale' | 'clinical_interview' | 'observation' | 'other'
+  domains: NeuropsychDomain[]
+  status: 'planned' | 'applied' | 'integrated' | 'not_applied'
+  purpose?: string
+  resultSummary?: string
+  qualitativeNotes?: string
+  plannedDate?: string
+  appliedDate?: string
+  sortOrder: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface NeuropsychAssessment {
+  id: string
+  patientId: string
+  patient?: Pick<Patient, 'id' | 'name' | 'avatarColor'>
+  status: 'planning' | 'in_progress' | 'integration' | 'completed' | 'archived'
+  referralQuestion?: string
+  clinicalHistory?: string
+  clinicalHypotheses?: string
+  evaluatedDomains: NeuropsychDomain[]
+  qualitativeObservations?: string
+  integrationDraft?: string
+  professionalConclusion?: string
+  startedAt: string
+  targetCompletionDate?: string
+  completedAt?: string
+  version: number
+  batteryItems: NeuropsychBatteryItem[]
+  batteryProgress: { total: number; applied: number }
   createdAt: string
   updatedAt: string
 }

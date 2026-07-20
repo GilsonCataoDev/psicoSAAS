@@ -13,6 +13,7 @@ export const DEFAULT_PREFS = {
   chargeTemplate: 'Ola, {{nome}}!\n\nSegue o valor da sessao: *{{valor}}*.\n\nPIX: `{{pix}}`\n\n{{comprovante}}\n\nObrigado(a).',
   googleCalendarConnected: false,
   googleCalendarEmail: '',
+  googleCalendarInvitePatients: false,
   whatsapp: '',
   confirmationTemplate: 'Ola, {{nome}}! Sua sessao esta confirmada para {{data}} as {{hora}}. Se precisar cancelar ou remarcar, me avise com antecedencia.',
   reminderTemplate: 'Ola, {{nome}}! Passando para lembrar da nossa sessao em {{data}} as {{hora}}. Qualquer imprevisto, me avise.',

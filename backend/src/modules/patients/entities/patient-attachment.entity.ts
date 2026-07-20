@@ -4,6 +4,9 @@ import {
 } from 'typeorm'
 import { Patient } from './patient.entity'
 import { User } from '../../auth/entities/user.entity'
+import { NeuropsychAssessment } from '../../neuropsych-assessments/entities/neuropsych-assessment.entity'
+
+export type PatientAttachmentKind = 'test_result' | 'final_report' | 'supporting_document' | 'other'
 
 /**
  * Documento anexado ao prontuário de um paciente (material clínico legado,
@@ -30,6 +33,12 @@ export class PatientAttachment {
   @Column() psychologistId: string
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'psychologistId' }) psychologist: User
+
+  @Column({ type: 'text', default: 'other' }) kind: PatientAttachmentKind
+
+  @Column({ nullable: true }) assessmentId?: string
+  @ManyToOne(() => NeuropsychAssessment, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'assessmentId' }) assessment?: NeuropsychAssessment
 
   @CreateDateColumn() createdAt: Date
 }
