@@ -15,6 +15,9 @@ import { AuditModule } from '../audit/audit.module'
 import { AuditLog } from '../audit/entities/audit-log.entity'
 import { DataExportController } from './data-export.controller'
 import { DataExportService } from './data-export.service'
+import { NeuropsychAssessment } from '../neuropsych-assessments/entities/neuropsych-assessment.entity'
+import { NeuropsychBatteryItem } from '../neuropsych-assessments/entities/neuropsych-battery-item.entity'
+import { PatientAttachment } from '../patients/entities/patient-attachment.entity'
 
 @Module({
   imports: [
@@ -31,6 +34,9 @@ import { DataExportService } from './data-export.service'
       Booking,
       Subscription,
       AuditLog,
+      NeuropsychAssessment,
+      NeuropsychBatteryItem,
+      PatientAttachment,
     ]),
     AuditModule,
   ],

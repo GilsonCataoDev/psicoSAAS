@@ -34,6 +34,8 @@ const InstrumentosPage    = lazy(() => import('@/pages/InstrumentosPage'))
 const AdminPage           = lazy(() => import('@/pages/AdminPage'))
 const TestimonialsPage    = lazy(() => import('@/pages/admin/TestimonialsPage'))
 const ChurnPage           = lazy(() => import('@/pages/admin/ChurnPage'))
+const NeuropsychAssessmentsPage = lazy(() => import('@/pages/NeuropsychAssessmentsPage'))
+const NeuropsychAssessmentPage = lazy(() => import('@/pages/NeuropsychAssessmentPage'))
 
 // Public pages — lazy loaded
 const BookingPage         = lazy(() => import('@/pages/public/BookingPage'))
@@ -154,6 +156,8 @@ export default function App() {
             <Route path="financeiro" element={<FinancialPage />} />
             <Route path="configuracoes" element={<SettingsPage />} />
             <Route path="instrumentos" element={<ProOnlyRoute><InstrumentosPage /></ProOnlyRoute>} />
+            <Route path="avaliacoes" element={<NeuropsychAssessmentsPage />} />
+            <Route path="avaliacoes/:id" element={<NeuropsychAssessmentPage />} />
           </Route>
         </Route>
 

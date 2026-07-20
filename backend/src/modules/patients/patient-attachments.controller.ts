@@ -1,6 +1,6 @@
 import {
-  BadRequestException, Controller, Delete, Get, Param, ParseUUIDPipe,
-  Post, Request, Res, UploadedFile, UseGuards, UseInterceptors,
+  BadRequestException, Body, Controller, Delete, Get, Param, ParseUUIDPipe,
+  Post, Query, Request, Res, UploadedFile, UseGuards, UseInterceptors,
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { Throttle } from '@nestjs/throttler'
@@ -11,6 +11,15 @@ import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard
 import { AuditService } from '../audit/audit.service'
 import { PatientAttachmentsService } from './patient-attachments.service'
 import { pdfAttachment } from '../../common/http/content-disposition.util'
+import { IsIn, IsOptional, IsUUID } from 'class-validator'
+import { PatientAttachmentKind } from './entities/patient-attachment.entity'
+
+class UploadPatientAttachmentDto {
+  @IsIn(['test_result', 'final_report', 'supporting_document', 'other']) @IsOptional()
+  kind?: PatientAttachmentKind
+
+  @IsUUID() @IsOptional() assessmentId?: string
+}
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
 const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
@@ -25,8 +34,12 @@ export class PatientAttachmentsController {
   ) {}
 
   @Get()
-  list(@Param('patientId', ParseUUIDPipe) patientId: string, @Request() req: any) {
-    return this.svc.list(patientId, req.user.id)
+  list(
+    @Param('patientId', ParseUUIDPipe) patientId: string,
+    @Request() req: any,
+    @Query('assessmentId', new ParseUUIDPipe({ optional: true })) assessmentId?: string,
+  ) {
+    return this.svc.list(patientId, req.user.id, assessmentId)
   }
 
   @Post()
@@ -44,14 +57,17 @@ export class PatientAttachmentsController {
   async upload(
     @Param('patientId', ParseUUIDPipe) patientId: string,
     @UploadedFile() file: any,
+    @Body() body: UploadPatientAttachmentDto,
     @Request() req: any,
   ) {
     if (!file) throw new BadRequestException('Envie um arquivo PDF, JPG ou PNG')
-    const attachment = await this.svc.add(patientId, req.user.id, file)
+    const attachment = await this.svc.add(patientId, req.user.id, file, body)
     await this.record(req, 'patient.attachment_added', patientId, {
       attachmentId: attachment.id,
       filename: attachment.filename,
       size: attachment.size,
+      kind: attachment.kind,
+      assessmentId: attachment.assessmentId,
     })
     return attachment
   }

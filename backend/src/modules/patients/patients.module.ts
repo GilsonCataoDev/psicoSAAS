@@ -11,9 +11,10 @@ import { Subscription } from '../billing/entities/subscription.entity'
 import { Appointment } from '../appointments/entities/appointment.entity'
 import { AuditModule } from '../audit/audit.module'
 import { FinancialModule } from '../financial/financial.module'
+import { NeuropsychAssessment } from '../neuropsych-assessments/entities/neuropsych-assessment.entity'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Patient, PatientAttachment, Subscription, Appointment]), AuditModule, FinancialModule],
+  imports: [TypeOrmModule.forFeature([Patient, PatientAttachment, Subscription, Appointment, NeuropsychAssessment]), AuditModule, FinancialModule],
   controllers: [PatientsController, PatientPortalController, PatientAttachmentsController],
   providers: [PatientsService, PatientAttachmentsService],
   exports: [PatientsService],

@@ -16,6 +16,7 @@ const schema = z.object({
   race: z.string().optional(),
   gender: z.string().optional(),
   sexualOrientation: z.string().optional(),
+  careMode: z.enum(['psychotherapy', 'neuropsychological_assessment']),
   billingType: z.enum(['per_session', 'monthly_package']),
   sessionPrice: z.coerce.number().min(0),
   monthlyPackagePrice: z.coerce.number().min(0),
@@ -47,6 +48,7 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
     resolver: zodResolver(schema),
     defaultValues: {
       billingType: 'per_session',
+      careMode: 'psychotherapy',
       sessionPrice: 150,
       monthlyPackagePrice: 600,
       monthlyIncludedSessions: 4,
@@ -65,6 +67,7 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
   const selectedTags = watch('tags') ?? []
   const hasFixedSchedule = watch('hasFixedSchedule')
   const billingType = watch('billingType')
+  const careMode = watch('careMode')
 
   function toggleTag(tag: EmotionalTag) {
     const current = selectedTags
@@ -112,6 +115,21 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
           </button>
         )}
         <div className="grid grid-cols-2 gap-4">
+          <div className="col-span-2 rounded-xl border border-sage-100 bg-sage-50/60 p-4 dark:border-sage-800/60 dark:bg-sage-950/20">
+            <label className="label">Modo de atendimento</label>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <label className={`cursor-pointer rounded-xl border p-3 text-sm ${careMode === 'psychotherapy' ? 'border-sage-400 bg-white text-sage-800 dark:bg-cognia-panel dark:text-sage-200' : 'border-neutral-200 text-neutral-600 dark:border-white/10 dark:text-neutral-300'}`}>
+                <input {...register('careMode')} type="radio" value="psychotherapy" className="sr-only" />
+                <span className="block font-semibold">Psicoterapia</span>
+                <span className="mt-1 block text-xs opacity-75">Sessões e acompanhamento contínuo</span>
+              </label>
+              <label className={`cursor-pointer rounded-xl border p-3 text-sm ${careMode === 'neuropsychological_assessment' ? 'border-sage-400 bg-white text-sage-800 dark:bg-cognia-panel dark:text-sage-200' : 'border-neutral-200 text-neutral-600 dark:border-white/10 dark:text-neutral-300'}`}>
+                <input {...register('careMode')} type="radio" value="neuropsychological_assessment" className="sr-only" />
+                <span className="block font-semibold">Avaliação neuropsicológica</span>
+                <span className="mt-1 block text-xs opacity-75">Bateria, resultados e integração</span>
+              </label>
+            </div>
+          </div>
           <div className="col-span-2">
             <label className="label">Nome *</label>
             <input {...register('name')} className="input-field" placeholder="Nome completo" />

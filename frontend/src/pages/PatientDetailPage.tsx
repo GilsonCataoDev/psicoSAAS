@@ -1,9 +1,9 @@
-import { useParams, Link } from 'react-router-dom'
+import { useNavigate, useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, Phone, Mail, Calendar, Plus, Lock,
   ClipboardList, MessageCircle, CheckCircle2, Save,
   CalendarDays, Banknote, Clock, FileText, Pencil,
-  BookOpenText, BarChart3, Copy, Paperclip, Download, Trash2, Eye,
+  BookOpenText, BrainCircuit, BarChart3, Copy, Paperclip, Download, Trash2, Eye,
 } from 'lucide-react'
 import { SCALE_CONFIGS, getCriticalResponses, interpretScaleResult } from '@/lib/scale-scoring'
 import Avatar from '@/components/ui/Avatar'
@@ -16,6 +16,7 @@ import {
   useInstrumentAssignments, useUpdateInstrumentAnswers, useCreatePatientPortalLink, type InstrumentAssignment,
   usePatientAttachments, useUploadPatientAttachment, useDeletePatientAttachment,
   downloadPatientAttachment, previewPatientAttachment, type PatientAttachment,
+  useCreateNeuropsychAssessment, useNeuropsychAssessments,
 } from '@/hooks/useApi'
 import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 import Modal from '@/components/ui/Modal'
@@ -44,6 +45,7 @@ const PRONTUARIO_FIELDS = [
 
 export default function PatientDetailPage() {
   const { id } = useParams()
+  const navigate = useNavigate()
   useEffect(() => { if (id) track(EVENTS.PATIENT_VIEWED) }, [id])
   const { data: patient, isLoading } = usePatient(id ?? '')
   const { data: allSessions = [] } = useSessions({ patientId: id, includeClinical: true })
@@ -57,6 +59,11 @@ export default function PatientDetailPage() {
   const { data: attachments = [] } = usePatientAttachments(id)
   const uploadAttachment = useUploadPatientAttachment(id)
   const deleteAttachment = useDeletePatientAttachment(id)
+  const { data: neuropsychAssessments = [] } = useNeuropsychAssessments()
+  const createNeuropsychAssessment = useCreateNeuropsychAssessment()
+  const patientAssessments = neuropsychAssessments.filter(assessment => assessment.patientId === id)
+  const activeAssessment = patientAssessments.find(assessment => ['planning', 'in_progress', 'integration'].includes(assessment.status))
+  const latestAssessment = activeAssessment ?? patientAssessments[0]
   const [downloadingAttachmentId, setDownloadingAttachmentId] = useState<string | null>(null)
   const [previewAttachment, setPreviewAttachment] = useState<PatientAttachment | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -74,7 +81,7 @@ export default function PatientDetailPage() {
       return
     }
     try {
-      await uploadAttachment.mutateAsync(file)
+      await uploadAttachment.mutateAsync({ file })
       toast.success('Documento anexado ao prontuário')
     } catch (e: any) {
       toast.error(e?.response?.data?.message ?? 'Não foi possível anexar o documento.')
@@ -120,6 +127,21 @@ export default function PatientDetailPage() {
     if (previewUrl) URL.revokeObjectURL(previewUrl)
     setPreviewUrl(null)
     setPreviewAttachment(null)
+  }
+
+  async function openOrStartNeuropsychAssessment() {
+    if (activeAssessment) {
+      navigate(`/avaliacoes/${activeAssessment.id}`)
+      return
+    }
+    if (!id) return
+    try {
+      const created = await createNeuropsychAssessment.mutateAsync({ patientId: id })
+      toast.success('Avaliação iniciada')
+      navigate(`/avaliacoes/${created.id}`)
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message ?? 'Não foi possível iniciar a avaliação')
+    }
   }
   const [tab, setTab] = useState<'record' | 'timeline' | 'responses' | 'notes' | 'financial'>('record')
   const [showSessionModal, setShowSessionModal] = useState(false)
@@ -482,6 +504,23 @@ export default function PatientDetailPage() {
           </div>
         </div>
       </div>
+
+      {(patient.careMode === 'neuropsychological_assessment' || latestAssessment) && (
+        <section className="rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white p-5 shadow-card dark:border-violet-900/50 dark:from-violet-950/30 dark:to-cognia-panel">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+            <div className="flex items-start gap-3">
+              <span className="rounded-xl bg-violet-100 p-2.5 text-violet-700 dark:bg-violet-900/50 dark:text-violet-200"><BrainCircuit className="h-5 w-5" /></span>
+              <div><h2 className="font-semibold text-neutral-900 dark:text-white">Avaliação neuropsicológica</h2>
+                <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">{activeAssessment
+                  ? `${activeAssessment.batteryProgress.applied}/${activeAssessment.batteryProgress.total} procedimentos aplicados · avaliação em andamento`
+                  : latestAssessment
+                    ? 'A avaliação mais recente foi concluída ou arquivada. Você pode consultá-la na área de avaliações.'
+                    : 'Organize história, bateria, resultados, integração e relatório final.'}</p></div>
+            </div>
+            {activeAssessment ? <button type="button" onClick={openOrStartNeuropsychAssessment} className="btn-primary shrink-0">Abrir avaliação</button> : latestAssessment ? <Link to={`/avaliacoes/${latestAssessment.id}`} className="btn-secondary shrink-0 text-center">Ver última avaliação</Link> : <button type="button" onClick={openOrStartNeuropsychAssessment} disabled={createNeuropsychAssessment.isPending} className="btn-primary shrink-0">{createNeuropsychAssessment.isPending ? 'Iniciando...' : 'Iniciar avaliação'}</button>}
+          </div>
+        </section>
+      )}
 
       <EditPatientModal
         open={showEditPatientModal}

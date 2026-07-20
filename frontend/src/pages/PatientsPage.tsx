@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import { Plus, Search, UsersRound } from 'lucide-react'
+import { BrainCircuit, Plus, Search, UsersRound } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
@@ -22,6 +22,7 @@ export default function PatientsPage() {
     : ''
   const [search, setSearch] = useState(initialSearch)
   const [filter, setFilter] = useState<'all' | 'active' | 'paused' | 'discharged'>('all')
+  const [careMode, setCareMode] = useState<'all' | 'psychotherapy' | 'neuropsychological_assessment'>('all')
   const [showModal, setShowModal] = useState(false)
   const { data: patients = [], isLoading } = usePatients()
   const subscription = useSubscriptionStore((s) => s.subscription)
@@ -29,7 +30,8 @@ export default function PatientsPage() {
   const filtered = patients.filter((p) => {
     const matchSearch = patientMatchesSearch(p, search)
     const matchFilter = filter === 'all' || p.status === filter
-    return matchSearch && matchFilter
+    const matchCareMode = careMode === 'all' || p.careMode === careMode
+    return matchSearch && matchFilter && matchCareMode
   }).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }))
 
   const groupedPatients = filtered.reduce<Record<string, Patient[]>>((groups, patient) => {
@@ -110,6 +112,11 @@ export default function PatientsPage() {
             </button>
           ))}
         </div>
+        <select value={careMode} onChange={event => setCareMode(event.target.value as typeof careMode)} className="input-field sm:w-56" aria-label="Filtrar por modo de atendimento">
+          <option value="all">Todos os atendimentos</option>
+          <option value="psychotherapy">Psicoterapia</option>
+          <option value="neuropsychological_assessment">Avaliação neuropsicológica</option>
+        </select>
       </div>
 
       {isLoading ? (
@@ -121,9 +128,9 @@ export default function PatientsPage() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<UsersRound className="h-7 w-7" strokeWidth={1.8} />}
-          title={search || filter !== 'all' ? 'Nenhum paciente encontrado' : 'Nenhum paciente cadastrado ainda'}
+          title={search || filter !== 'all' || careMode !== 'all' ? 'Nenhum paciente encontrado' : 'Nenhum paciente cadastrado ainda'}
           description={
-            search || filter !== 'all'
+            search || filter !== 'all' || careMode !== 'all'
               ? 'Tente ajustar a busca ou os filtros.'
               : reachedPatientLimit
                 ? `Seu plano ${currentPlan.name} permite até ${patientLimit} pacientes ativos.`
@@ -178,6 +185,11 @@ function PatientCard({ patient }: { patient: Patient }) {
             <span className="text-xs text-neutral-400">({patient.pronouns})</span>
           )}
           <StatusBadge status={patient.status} />
+          {patient.careMode === 'neuropsychological_assessment' && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-700 dark:bg-violet-950/40 dark:text-violet-200">
+              <BrainCircuit className="h-3 w-3" /> Avaliação
+            </span>
+          )}
         </div>
         <p className="text-xs text-neutral-400 mt-0.5 truncate">
           Desde {formatDate(patientStartDate(patient.startDate, patient.createdAt))} · {patient.billingType === 'monthly_package'

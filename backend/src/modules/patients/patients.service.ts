@@ -29,6 +29,7 @@ export type PatientListItemDto = Pick<
   | 'race'
   | 'gender'
   | 'sexualOrientation'
+  | 'careMode'
   | 'sessionPrice'
   | 'billingType'
   | 'monthlyPackagePrice'
@@ -189,7 +190,7 @@ export class PatientsService {
       // Listagem nunca deve carregar prontuário, privateNotes nem ids internos de gateway.
       select: [
         'id', 'name', 'email', 'phone', 'birthDate', 'pronouns', 'race', 'gender',
-        'sexualOrientation', 'sessionPrice', 'billingType', 'monthlyPackagePrice',
+        'sexualOrientation', 'careMode', 'sessionPrice', 'billingType', 'monthlyPackagePrice',
         'monthlyIncludedSessions', 'billingDay', 'sessionDuration', 'startDate',
         'hasFixedSchedule', 'fixedScheduleWeekday', 'fixedScheduleTime',
         'fixedScheduleFrequency', 'fixedScheduleModality', 'tags', 'status',

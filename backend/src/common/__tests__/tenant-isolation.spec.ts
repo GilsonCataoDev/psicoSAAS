@@ -31,6 +31,7 @@ import { Appointment } from '../../modules/appointments/entities/appointment.ent
 import { Booking } from '../../modules/booking/entities/booking.entity'
 import { User } from '../../modules/auth/entities/user.entity'
 import { Subscription } from '../../modules/billing/entities/subscription.entity'
+import { NeuropsychAssessment } from '../../modules/neuropsych-assessments/entities/neuropsych-assessment.entity'
 
 import { FinancialService as FinService } from '../../modules/financial/financial.service'
 import { NotificationsService } from '../../modules/notifications/notifications.service'
@@ -98,6 +99,10 @@ const appointments = [
 const attachments = [
   { id: 'att-a', psychologistId: PSY_A, patientId: 'pat-a', filename: 'a.pdf', mimeType: 'application/pdf', data: 'x', size: 10 },
   { id: 'att-b', psychologistId: PSY_B, patientId: 'pat-b', filename: 'b.pdf', mimeType: 'application/pdf', data: 'x', size: 10 },
+]
+const neuropsychAssessments = [
+  { id: 'ass-a', psychologistId: PSY_A, patientId: 'pat-a', status: 'planning' },
+  { id: 'ass-b', psychologistId: PSY_B, patientId: 'pat-b', status: 'planning' },
 ]
 
 const stub = () => ({}) as any
@@ -268,6 +273,7 @@ describe('Isolamento entre contas — psicólogo A não acessa dados de B', () =
           PatientAttachmentsService,
           { provide: getRepositoryToken(PatientAttachment), useValue: fakeRepo(attachments) },
           { provide: getRepositoryToken(Patient),           useValue: fakeRepo(patients) },
+          { provide: getRepositoryToken(NeuropsychAssessment), useValue: fakeRepo(neuropsychAssessments) },
         ],
       }).compile()
       svc = mod.get(PatientAttachmentsService)
@@ -289,6 +295,16 @@ describe('Isolamento entre contas — psicólogo A não acessa dados de B', () =
       const pdf = Buffer.concat([Buffer.from('%PDF-1.7\n'), Buffer.alloc(16)])
       await expect(svc.add('pat-b', PSY_A, { originalname: 'x.pdf', mimetype: 'application/pdf', size: 25, buffer: pdf }))
         .rejects.toThrow(NotFoundException)
+    })
+
+    it('A NÃO vincula anexo a avaliação de B', async () => {
+      const pdf = Buffer.concat([Buffer.from('%PDF-1.7\n'), Buffer.alloc(16)])
+      await expect(svc.add(
+        'pat-a',
+        PSY_A,
+        { originalname: 'x.pdf', mimetype: 'application/pdf', size: 25, buffer: pdf },
+        { assessmentId: 'ass-b', kind: 'test_result' },
+      )).rejects.toThrow(NotFoundException)
     })
   })
 })

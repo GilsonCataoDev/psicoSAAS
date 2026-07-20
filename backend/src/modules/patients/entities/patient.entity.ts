@@ -8,6 +8,7 @@ import { Appointment } from '../../appointments/entities/appointment.entity'
 
 export type PatientStatus = 'active' | 'paused' | 'discharged'
 export type PatientBillingType = 'per_session' | 'monthly_package'
+export type PatientCareMode = 'psychotherapy' | 'neuropsychological_assessment'
 
 @Entity('patients')
 export class Patient {
@@ -24,6 +25,9 @@ export class Patient {
 
   @Column({ type: 'text', default: 'active' })
   status: PatientStatus
+
+  @Column({ type: 'text', default: 'psychotherapy' })
+  careMode: PatientCareMode
 
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   sessionPrice: number
