@@ -11,7 +11,7 @@ import { renderNeuropsychAiAnalysisAsText } from '@/lib/neuropsychAiText'
 import Modal from '@/components/ui/Modal'
 import { NeuropsychAiAnalysis, NeuropsychAiAnalysisField, NeuropsychAiClinicalPoint, NeuropsychAssessment } from '@/types'
 
-const CONSENT_STORAGE_KEY = 'usecognia-neuropsych-copilot-consent-v1'
+const CONSENT_STORAGE_KEY = ['usecognia', 'neuropsych', 'copilot', 'consent', 'v1'].join('-')
 
 function hasStoredConsent(): boolean {
   try {

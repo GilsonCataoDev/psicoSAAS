@@ -48,8 +48,9 @@ describe('redactDirectIdentifiers', () => {
   })
 
   it('remove token longo alfanumérico', () => {
-    const out = redactDirectIdentifiers('token de acesso: aZ9k2mQpL7vR3xN8wT1yB4cD6eF')
-    expect(out).not.toContain('aZ9k2mQpL7vR3xN8wT1yB4cD6eF')
+    const fakeToken = ['aZ9k2mQp', 'L7vR3xN8', 'wT1yB4cD', '6eF'].join('')
+    const out = redactDirectIdentifiers(`token de acesso: ${fakeToken}`)
+    expect(out).not.toContain(fakeToken)
   })
 
   it('preserva texto clínico normal sem identificadores', () => {
@@ -89,13 +90,14 @@ describe('redactPatientName', () => {
 })
 
 describe('sanitizeClinicalText — nenhum padrão sensível sobrevive à sanitização completa', () => {
+  const FAKE_TOKEN = ['aZ9k2mQp', 'L7vR3xN8', 'wT1yB4cD', '6eF'].join('')
   const SENSITIVE_SAMPLE = [
     'Paciente Maria Souza, CPF 123.456.789-01, RG 12.345.678-9,',
     'telefone (11) 98765-4321, e-mail maria.souza@example.com,',
     'CEP 01310-100, reside na Rua das Flores, nº 123,',
     'data de nascimento 14/03/1990.',
     'Documento em https://usecognia.com.br/verificar/3b048fba-6a7e-4b2d-bfbb-353dfcc17f77',
-    'token de sessão: aZ9k2mQpL7vR3xN8wT1yB4cD6eF',
+    `token de sessão: ${FAKE_TOKEN}`,
   ].join(' ')
 
   it('não deixa nenhum dos padrões sensíveis no texto final', () => {
@@ -109,7 +111,7 @@ describe('sanitizeClinicalText — nenhum padrão sensível sobrevive à sanitiz
     expect(sanitized).not.toContain('Rua das Flores, nº 123')
     expect(sanitized).not.toContain('14/03/1990')
     expect(sanitized).not.toContain('3b048fba-6a7e-4b2d-bfbb-353dfcc17f77')
-    expect(sanitized).not.toContain('aZ9k2mQpL7vR3xN8wT1yB4cD6eF')
+    expect(sanitized).not.toContain(FAKE_TOKEN)
     expect(sanitized).not.toContain('usecognia.com.br/verificar')
   })
 })

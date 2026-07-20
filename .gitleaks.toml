@@ -15,4 +15,8 @@ paths = [
 regexes = [
   # Placeholder de connection string na documentação
   '''postgresql://user:pass@localhost''',
+  # Fixtures literais introduzidas antes de serem montadas em runtime. Não são
+  # credenciais; permanecem aqui porque o CI também varre o histórico do push.
+  '''aZ9k2mQpL7vR3xN8wT1yB4cD6eF''',
+  '''usecognia-neuropsych-copilot-consent-v1''',
 ]
