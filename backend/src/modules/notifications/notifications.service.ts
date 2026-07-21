@@ -167,17 +167,25 @@ export class NotificationsService {
 
     // Só deleta+recria se já está conectado (troca de conta) ou não existe
     if (currentState === 'open') {
-      await this.deleteWhatsAppInstance(instance)
-      await delay(1000)
-      await this.ensureWhatsAppInstance(instance)
-      await delay(3000)
+      await this.recreateWhatsAppInstance(instance)
     } else if (currentState === 'not_created') {
       await this.ensureWhatsAppInstance(instance)
       await delay(3000)
     }
     // Se está em estado intermediário (connecting, qrReadSuccess, etc.) apenas tenta buscar o QR
 
-    // Tenta obter QR com retry
+    return this.fetchWhatsAppQrCode(instance)
+  }
+
+  private async recreateWhatsAppInstance(instance: string): Promise<void> {
+    await this.deleteWhatsAppInstance(instance)
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    await this.ensureWhatsAppInstance(instance)
+    await new Promise(resolve => setTimeout(resolve, 3000))
+  }
+
+  private async fetchWhatsAppQrCode(instance: string): Promise<{ base64: string; instance: string }> {
+    const delay = (ms: number) => new Promise(r => setTimeout(r, ms))
     const maxAttempts = 4
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       const res = await fetch(`${this.WA_URL}/instance/connect/${instance}`, {
@@ -281,9 +289,14 @@ export class NotificationsService {
       method: 'DELETE',
       headers: { apikey: this.WA_KEY },
     }).catch(() => undefined)
+    await new Promise(resolve => setTimeout(resolve, 1000))
 
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    return this.getWhatsAppQrCode(ownerId)
+    // O logout apenas desvincula o aparelho no WhatsApp — o estado de sessao Signal
+    // (libsignal) guardado pela Evolution API para essa instancia pode continuar
+    // corrompido (ex: erros "Bad MAC"). Apaga e recria a instancia do zero para
+    // garantir uma sessao criptografica limpa antes de gerar o QR Code novo.
+    await this.recreateWhatsAppInstance(instance)
+    return this.fetchWhatsAppQrCode(instance)
   }
 
   async sendTestWhatsApp(ownerId: string, phone?: string): Promise<WhatsAppDeliveryResult> {

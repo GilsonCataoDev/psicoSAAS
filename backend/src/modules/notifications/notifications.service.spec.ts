@@ -150,4 +150,64 @@ describe('NotificationsService WhatsApp delivery validation', () => {
     expect(result.sent).toBe(false)
     expect(fetchSpy).toHaveBeenCalledTimes(1)
   })
+
+  it('resends once when the provider confirms sendText but persists the message blank', async () => {
+    const text = 'Sua sessao foi confirmada'
+    const originalWorkerId = process.env.JEST_WORKER_ID
+    delete process.env.JEST_WORKER_ID
+
+    try {
+      const fetchSpy = jest.spyOn(global, 'fetch')
+        .mockResolvedValueOnce(new Response(JSON.stringify({
+          key: { id: 'first-message-id', fromMe: true },
+          message: { extendedTextMessage: { text } },
+          status: 'PENDING',
+        }), { status: 201, headers: { 'Content-Type': 'application/json' } }))
+        .mockResolvedValueOnce(new Response(JSON.stringify({
+          messages: { records: [{ key: { id: 'first-message-id' }, message: { extendedTextMessage: { text: '' } } }] },
+        }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+        .mockResolvedValueOnce(new Response(JSON.stringify({
+          key: { id: 'second-message-id', fromMe: true },
+          message: { extendedTextMessage: { text } },
+          status: 'PENDING',
+        }), { status: 201, headers: { 'Content-Type': 'application/json' } }))
+
+      const result = await service.sendDirectWhatsApp('11999999999', text, ownerId)
+
+      expect(result).toEqual(expect.objectContaining({
+        sent: true,
+        providerMessageId: 'second-message-id',
+      }))
+      expect(fetchSpy).toHaveBeenCalledTimes(3)
+      expect(String(fetchSpy.mock.calls[1][0])).toContain('/chat/findMessages/')
+      expect(String(fetchSpy.mock.calls[2][0])).toContain('/message/sendText/')
+      expect(savedLogs).toHaveLength(1)
+      expect(savedLogs[0]).toEqual(expect.objectContaining({ status: 'sent', providerMessageId: 'second-message-id' }))
+    } finally {
+      if (originalWorkerId !== undefined) process.env.JEST_WORKER_ID = originalWorkerId
+    }
+  }, 10000)
+
+  it('keeps the original result when the persisted-message check is inconclusive', async () => {
+    const text = 'Lembrete de sessao'
+    const originalWorkerId = process.env.JEST_WORKER_ID
+    delete process.env.JEST_WORKER_ID
+
+    try {
+      const fetchSpy = jest.spyOn(global, 'fetch')
+        .mockResolvedValueOnce(new Response(JSON.stringify({
+          key: { id: 'only-message-id', fromMe: true },
+          message: { extendedTextMessage: { text } },
+          status: 'PENDING',
+        }), { status: 201, headers: { 'Content-Type': 'application/json' } }))
+        .mockResolvedValueOnce(new Response('not json', { status: 200 }))
+
+      const result = await service.sendDirectWhatsApp('11999999999', text, ownerId)
+
+      expect(result).toEqual(expect.objectContaining({ sent: true, providerMessageId: 'only-message-id' }))
+      expect(fetchSpy).toHaveBeenCalledTimes(2)
+    } finally {
+      if (originalWorkerId !== undefined) process.env.JEST_WORKER_ID = originalWorkerId
+    }
+  }, 10000)
 })
