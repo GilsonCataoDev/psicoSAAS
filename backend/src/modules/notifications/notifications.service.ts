@@ -9,6 +9,7 @@ import { User } from '../auth/entities/user.entity'
 import { PushSubscriptionEntity } from './entities/push-subscription.entity'
 import { WhatsAppDeliveryLog } from './entities/whatsapp-delivery-log.entity'
 import { SavePushSubscriptionDto } from './dto/push-subscription.dto'
+import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
 
 export type WhatsAppDeliveryResult = {
   sent: boolean
@@ -207,11 +208,11 @@ export class NotificationsService {
         continue
       }
       if (!res.ok) {
-        this.logger.error(`[WA connect] erro ${res.status}: ${raw.slice(0, 300)}`)
+        this.logger.error(`[WA connect] erro status=${res.status}`)
         throw new BadRequestException(data.message ?? `Evolution API retornou ${res.status}`)
       }
       if (!qrCode) {
-        this.logger.error(`[WA connect] sem base64 na resposta: ${raw.slice(0, 300)}`)
+        this.logger.error('[WA connect] resposta sem QR Code')
         throw new BadRequestException('QR Code nao disponivel — tente novamente em alguns segundos')
       }
       return { base64: qrCode, instance }
@@ -244,11 +245,17 @@ export class NotificationsService {
   }
 
   async getWhatsAppLogs(ownerId: string): Promise<WhatsAppDeliveryLog[]> {
-    return this.whatsAppLogs.find({
+    const logs = await this.whatsAppLogs.find({
       where: { userId: ownerId },
       order: { createdAt: 'DESC' },
       take: 20,
     })
+    return logs.map(log => ({
+      ...log,
+      patientName: safeDecrypt(log.patientName),
+      recipientPhone: safeDecrypt(log.recipientPhone),
+      error: safeDecrypt(log.error),
+    }))
   }
 
   async debugWhatsApp(ownerId: string) {
@@ -485,7 +492,7 @@ export class NotificationsService {
       if (!res.ok) {
         const nonRetryable = res.status >= 400 && res.status < 500 && res.status !== 429
         const error = this.formatWhatsAppError(res.status, body)
-        this.logger.error(`[WhatsApp] Erro ${res.status} instance=${instance} nonRetryable=${nonRetryable} body=${body.slice(0, 300)}`)
+        this.logger.error(`[WhatsApp] Erro ${res.status} instance=${instance} nonRetryable=${nonRetryable}`)
         if (allowClosedConnectionRecovery && this.isClosedConnectionError(body)) {
           const recovered = await this.restartWhatsAppConnection(instance)
           if (recovered) {
@@ -649,9 +656,13 @@ export class NotificationsService {
         type: meta.type,
         status: result.sent ? 'sent' : 'failed',
         patientId: meta.patientId ?? null,
-        patientName: meta.patientName?.slice(0, 160) ?? null,
-        recipientPhone: normalized ? (normalized.startsWith('55') ? normalized : `55${normalized}`) : null,
-        error: result.sent ? null : (result.error ?? result.reason ?? 'Falha no envio').slice(0, 240),
+        patientName: meta.patientName ? encrypt(meta.patientName.slice(0, 160)) : null,
+        recipientPhone: normalized
+          ? encrypt(normalized.startsWith('55') ? normalized : `55${normalized}`)
+          : null,
+        error: result.sent
+          ? null
+          : encrypt((result.error ?? result.reason ?? 'Falha no envio').slice(0, 240)),
         providerMessageId: result.providerMessageId?.slice(0, 160) ?? null,
         providerStatus: result.providerStatus?.slice(0, 80) ?? null,
         contentLength: Number.isInteger(result.contentLength) ? result.contentLength : null,
@@ -712,8 +723,7 @@ export class NotificationsService {
     })
     if (res.ok || res.status === 409 || res.status === 403) return
 
-    const body = await res.text().catch(() => '')
-    this.logger.error(`[WA create instance] erro ${res.status}: ${body.slice(0, 300)}`)
+    this.logger.error(`[WA create instance] erro status=${res.status}`)
     throw new BadRequestException(`Nao foi possivel criar a instancia WhatsApp: erro ${res.status}`)
   }
 
@@ -849,7 +859,10 @@ export class NotificationsService {
   // ─── Booking público ───────────────────────────────────────────────────────
 
   async sendBookingRequest(booking: any, page: any): Promise<void> {
-    const confirmUrl = `${this.BASE_URL}/agendar/confirmar/${booking.confirmationToken}`
+    const confirmToken = booking.publicConfirmationToken
+      ?? safeDecrypt(booking.confirmationTokenEncrypted)
+      ?? booking.confirmationToken
+    const confirmUrl = `${this.BASE_URL}/agendar/confirmar/${confirmToken}`
     const cancelUrl  = this.getCancellationUrl(booking)
 
     // Para o paciente — WhatsApp
@@ -889,7 +902,7 @@ export class NotificationsService {
       )
     }
 
-    this.logger.log(`[Booking] Nova solicitação: ${booking.patientName} — ${booking.date} ${booking.time}`)
+    this.logger.log(`[Booking] Nova solicitacao bookingId=${booking.id} date=${booking.date} time=${booking.time}`)
   }
 
   async sendBookingConfirmation(booking: any, page?: any): Promise<void> {
@@ -922,7 +935,7 @@ export class NotificationsService {
       )
     }
 
-    this.logger.log(`[Booking] Confirmação enviada: ${booking.patientName}`)
+    this.logger.log(`[Booking] Confirmacao enviada bookingId=${booking.id}`)
   }
 
   private renderBookingConfirmationMessage(booking: any, page?: any): string | null {
@@ -977,7 +990,7 @@ export class NotificationsService {
     const psychologist = booking.psychologist
     const prefs = (psychologist?.preferences ?? {}) as Record<string, any>
     const phone = prefs.whatsapp || psychologist?.phone
-    const reason = booking.cancellationReason?.trim()
+    const reason = safeDecrypt(booking.cancellationReason)?.trim()
     const reasonLine = reason ? `\nMotivo: ${reason}` : ''
     const msg =
       `Sessao cancelada pelo paciente\n\n` +
@@ -1001,7 +1014,7 @@ export class NotificationsService {
       )
     }
 
-    this.logger.log(`[Booking] Cancelamento enviado ao psicólogo: ${booking.patientName}`)
+    this.logger.log(`[Booking] Cancelamento enviado ao psicologo bookingId=${booking.id}`)
   }
 
   async sendPaymentReminder(booking: any, pixKey?: string): Promise<void> {
@@ -1040,9 +1053,15 @@ export class NotificationsService {
   }
 
   private getCancellationUrl(booking: any): string {
-    return booking.cancellationCode
-      ? `${this.BASE_URL}/c/${booking.cancellationCode}`
-      : `${this.BASE_URL}/agendar/cancelar/${booking.confirmationToken}`
+    const cancellationToken = booking.publicCancellationCode
+      ?? safeDecrypt(booking.cancellationCodeEncrypted)
+      ?? booking.cancellationCode
+    const confirmationToken = booking.publicConfirmationToken
+      ?? safeDecrypt(booking.confirmationTokenEncrypted)
+      ?? booking.confirmationToken
+    return cancellationToken
+      ? `${this.BASE_URL}/c/${cancellationToken}`
+      : `${this.BASE_URL}/agendar/cancelar/${confirmationToken}`
   }
 
   private renderReminderTemplate(

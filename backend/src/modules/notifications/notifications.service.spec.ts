@@ -1,6 +1,8 @@
 import { ConfigService } from '@nestjs/config'
 import { NotificationsService } from './notifications.service'
 
+process.env.ENCRYPTION_KEY = 'notifications-test-key-with-32-chars!'
+
 describe('NotificationsService WhatsApp delivery validation', () => {
   const ownerId = 'psychologist-id'
   const savedLogs: Record<string, unknown>[] = []

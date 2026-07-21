@@ -19,7 +19,7 @@ jobs:
           sudo curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc --fail https://www.postgresql.org/media/keys/ACCC4CF8.asc
           sudo sh -c 'echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
           sudo apt-get update -qq
-          sudo apt-get install -y postgresql-client-18
+          sudo apt-get install -y postgresql-client-18 age
 
       - name: Gerar dump
         env:
@@ -35,10 +35,26 @@ jobs:
           SIZE=$(du -sh "$FILENAME" | cut -f1)
           echo "Backup gerado: $FILENAME ($SIZE)"
 
+      - name: Criptografar dump antes do upload
+        env:
+          BACKUP_AGE_RECIPIENT: ${{ vars.BACKUP_AGE_RECIPIENT }}
+        run: |
+          if [ -z "$BACKUP_AGE_RECIPIENT" ]; then
+            echo "BACKUP_AGE_RECIPIENT nao configurado; recusando upload sem criptografia."
+            exit 1
+          fi
+          ENCRYPTED_FILENAME="${FILENAME}.age"
+          age --recipient "$BACKUP_AGE_RECIPIENT" --output "$ENCRYPTED_FILENAME" "$FILENAME"
+          shred --remove "$FILENAME"
+          echo "ENCRYPTED_FILENAME=$ENCRYPTED_FILENAME" >> "$GITHUB_ENV"
+          sha256sum "$ENCRYPTED_FILENAME" > "${ENCRYPTED_FILENAME}.sha256"
+
       - name: Salvar artifact
         uses: actions/upload-artifact@v4
         with:
           name: db-backup-${{ github.run_number }}
-          path: ${{ env.FILENAME }}
-          retention-days: 90
+          path: |
+            ${{ env.ENCRYPTED_FILENAME }}
+            ${{ env.ENCRYPTED_FILENAME }}.sha256
+          retention-days: 30
           if-no-files-found: error

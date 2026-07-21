@@ -1,4 +1,7 @@
 import { PatientsService } from './patients.service'
+import { safeDecrypt } from '../../common/crypto/encrypt.util'
+
+process.env.ENCRYPTION_KEY = 'patients-test-encryption-key-32-chars!'
 
 describe('PatientsService — edição cadastral', () => {
   it('atualiza os dados do próprio paciente e permite limpar campos opcionais', async () => {
@@ -42,13 +45,26 @@ describe('PatientsService — edição cadastral', () => {
       name: 'Nome atualizado',
       email: null,
       phone: null,
-      birthDate: '1990-05-10',
       tags: ['ansiedade'],
     }))
+    expect(safeDecrypt(repo.save.mock.calls[0][0].birthDate)).toBe('1990-05-10')
     expect(updated).toEqual(expect.objectContaining({
       name: 'Nome atualizado',
       email: null,
       phone: null,
+      birthDate: '1990-05-10',
     }))
+  })
+  it('remove definitivamente o paciente do proprio psicologo', async () => {
+    const patient = { id: 'patient-1', psychologistId: 'psychologist-1' }
+    const repo = {
+      findOne: jest.fn().mockResolvedValue(patient),
+      remove: jest.fn().mockResolvedValue(patient),
+    }
+    const service = new PatientsService(repo as any, {} as any, {} as any, {} as any)
+
+    await service.remove(patient.id, patient.psychologistId)
+
+    expect(repo.remove).toHaveBeenCalledWith(patient)
   })
 })

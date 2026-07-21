@@ -31,7 +31,7 @@ export class DocumentsController {
 
   /** Gerar e assinar um novo documento (requer plano Essencial ou superior) */
   @Post()
-  @UseGuards(JwtAuthGuard, CsrfGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
   @RequirePlan('essencial')
   async create(@Req() req: any, @Body() body: CreateDocumentBodyDto) {
     const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
@@ -73,7 +73,7 @@ export class DocumentsController {
   /** Enviar documento por email para o paciente (ou outro destinatário) */
   @Post(':id/send-email')
   @HttpCode(200)
-  @UseGuards(JwtAuthGuard, CsrfGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
   async sendEmail(@Param('id') id: string, @Body('to') to: string, @Req() req: any) {
     const result = await this.svc.sendDocumentByEmail(id, req.user.id, to)
     await this.record(req, 'document.email_sent', 'document', id, { to })
@@ -81,7 +81,7 @@ export class DocumentsController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard, CsrfGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
   async remove(@Param('id') id: string, @Req() req: any) {
     const result = await this.svc.remove(id, req.user.id)
     await this.record(req, 'document.deleted', 'document', id)

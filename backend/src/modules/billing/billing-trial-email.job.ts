@@ -109,7 +109,7 @@ export class BillingTrialEmailJob implements OnModuleInit, OnModuleDestroy {
     })
 
     if (sent) {
-      this.logger.log(`Aviso de trial já enviado para ${to}; pulando duplicidade.`)
+      this.logger.log('Aviso de trial ja enviado; pulando duplicidade.')
     }
 
     return sent

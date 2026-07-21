@@ -11,6 +11,8 @@ paths = [
   # 63621c1d — as fixtures de teste das bibliotecas (chaves RSA de exemplo,
   # AKIA de documentação da AWS) não são segredos reais.
   '''node_modules/''',
+  # Ferramentas locais e ambientes virtuais nao fazem parte do produto.
+  '''.tools/''',
 ]
 regexes = [
   # Placeholder de connection string na documentação

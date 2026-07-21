@@ -25,11 +25,11 @@ Esse isolamento é coberto por **testes automatizados** que simulam duas contas 
 
 ## Acesso administrativo
 
-Para dar suporte, a operação da plataforma pode usar um modo "ver como" (impersonação) — sempre registrado na trilha de auditoria. Esse modo **não alcança conteúdo clínico**: prontuários, sessões, anexos, documentos e respostas de instrumentos ficam bloqueados durante a impersonação. Ficam visíveis apenas informações operacionais (como status da conta e do plano), o suficiente para o suporte sem expor o sigilo clínico. Ações sensíveis (troca de senha, exclusão de conta e dados de cobrança) também são bloqueadas nesse modo. Esse bloqueio é coberto por testes automatizados.
+Para dar suporte, a operação da plataforma pode usar um modo "ver como" (impersonação) — sempre registrado na trilha de auditoria. Esse modo **não alcança dados de pacientes**: cadastros, agenda, agendamentos, financeiro, prontuários, sessões, anexos, documentos, respostas de instrumentos e exportações integrais ficam bloqueados durante a impersonação. Ficam visíveis apenas informações operacionais da conta, sem sigilo clínico. Ações sensíveis (troca de senha, exclusão de conta e dados de cobrança) também são bloqueadas. Esse bloqueio é coberto por testes automatizados.
 
 ## Dados clínicos
 
-- Prontuários, anotações privadas de sessão e anexos são **criptografados no banco de dados** (AES-256-GCM, em nível de aplicação) — um acesso direto ao banco não expõe o conteúdo clínico em texto legível.
+- Prontuários, anotações privadas de sessão, anexos, CPF, data de nascimento e dados demográficos sensíveis são **criptografados no banco de dados** (AES-256-GCM, em nível de aplicação) — um acesso direto ao banco não expõe esses campos em texto legível.
 - Logs do sistema não registram conteúdo clínico.
 - Ações sensíveis (visualização de paciente, exportação de prontuário, download de anexos, login) ficam registradas em **trilha de auditoria**.
 
@@ -37,6 +37,8 @@ Para dar suporte, a operação da plataforma pode usar um modo "ver como" (imper
 
 - Documentos em PDF têm código único e QR de verificação pública de autenticidade.
 - Links públicos (agendamento, portal do paciente, instrumentos) usam tokens aleatórios longos, armazenados de forma irreversível (hash) e com limite de tentativas por IP.
+- A cópia necessária para o profissional reenviar um link fica criptografada com AES-256-GCM; ela não aparece em texto legível num dump do banco.
+- Portais de paciente expiram em 30 dias por padrão. Formulários e confirmações mantêm os prazos menores definidos em cada fluxo.
 
 ## Proteções do site público
 
@@ -85,7 +87,8 @@ Para dar suporte, a operação da plataforma pode usar um modo "ver como" (imper
 ## Limitações conhecidas (transparência)
 
 - **Não há criptografia de ponta a ponta**: a criptografia é em trânsito (TLS) e em repouso (campo clínico criptografado no banco). A equipe de infraestrutura tecnicamente teria acesso ao servidor, como em praticamente todo SaaS.
-- **Backups** são os do provedor (Railway). A política de frequência e retenção de backup deve ser conferida no painel do provedor.
+- Além dos mecanismos do Railway, existe um dump diário de recuperação. Ele é criptografado com `age` antes de sair do job, o arquivo sem criptografia é destruído e apenas o arquivo cifrado fica retido no GitHub por até 30 dias. A chave privada de recuperação não fica no repositório nem no GitHub Actions.
+- Logs de entrega do WhatsApp guardam apenas metadados necessários para diagnóstico, com nome, telefone e erro criptografados. Esses registros são eliminados automaticamente após sete dias.
 - A adequação à LGPD é um processo contínuo: os controles técnicos descritos aqui existem e são testados, mas **este documento não é um parecer jurídico**.
 
 ## Contato para privacidade e incidentes
@@ -95,4 +98,4 @@ Solicitações de titulares de dados, dúvidas de privacidade ou relato de vulne
 
 ---
 
-*Última revisão técnica: julho de 2026 (inclui bloqueio de conteúdo clínico no acesso administrativo).*
+*Última revisão técnica: julho de 2026 (inclui bloqueio integral de dados de pacientes no acesso administrativo, tokens públicos protegidos e backups cifrados).*

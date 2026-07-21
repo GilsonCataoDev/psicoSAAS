@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, Header, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common'
 import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator'
 import { Throttle } from '@nestjs/throttler'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
@@ -30,20 +30,21 @@ export class InstrumentAssignmentsController {
   }
 
   @Post('instrument-assignments')
-  @UseGuards(JwtAuthGuard, CsrfGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
   @RequirePlan('pro')
   create(@Req() req: any, @Body() body: CreateInstrumentAssignmentDto) {
     return this.svc.create(body, req.user.id)
   }
 
   @Patch('instrument-assignments/:id/answers')
-  @UseGuards(JwtAuthGuard, CsrfGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
   @RequirePlan('pro')
   updateAnswers(@Req() req: any, @Param('id') id: string, @Body('answers') answers: Record<string, string>) {
     return this.svc.updateAnswers(id, answers ?? {}, req.user.id)
   }
 
   @Get('public/instruments/:token')
+  @Header('Cache-Control', 'private, no-store')
   @PublicRoute()
   @Throttle({ long: { limit: 30, ttl: 60 * 1000 } }) // Link público: leitura limitada por IP.
   getPublic(@Param('token') token: string) {
@@ -51,6 +52,7 @@ export class InstrumentAssignmentsController {
   }
 
   @Post('public/instruments/:token')
+  @Header('Cache-Control', 'private, no-store')
   @PublicRoute()
   @Throttle({ long: { limit: 5, ttl: 60 * 1000 } }) // Envio limitado para reduzir flood e abuso de token vazado.
   submit(

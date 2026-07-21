@@ -82,6 +82,9 @@ type PatientPortalDto = {
 
 const PRONTUARIO_ENCRYPTED_MARKER = 'usecognia.prontuario.v1'
 const LEGACY_PRONTUARIO_ENCRYPTED_MARKER = 'psicosaas.prontuario.v1'
+const PATIENT_ENCRYPTED_FIELDS = [
+  'birthDate', 'pronouns', 'race', 'gender', 'sexualOrientation', 'cpfCnpj',
+] as const
 
 @Injectable()
 export class PatientsService {
@@ -98,10 +101,13 @@ export class PatientsService {
    * Retorna uma cópia do DTO com privateNotes criptografadas.
    * Campos ausentes não são modificados.
    */
-  private encryptFields<T extends { privateNotes?: string; prontuario?: object }>(dto: T): T {
+  private encryptFields<T extends { privateNotes?: string; prontuario?: object } & Record<string, any>>(dto: T): T {
     const encrypted: any = { ...dto }
     if (dto.privateNotes) encrypted.privateNotes = encrypt(dto.privateNotes)
     if (dto.prontuario) encrypted.prontuario = this.encryptProntuario(dto.prontuario as Record<string, any>)
+    for (const field of PATIENT_ENCRYPTED_FIELDS) {
+      if (typeof dto[field] === 'string' && dto[field].length > 0) encrypted[field] = encrypt(dto[field])
+    }
     return encrypted
   }
 
@@ -114,6 +120,9 @@ export class PatientsService {
 
     if (p.privateNotes) p.privateNotes = safeDecrypt(p.privateNotes)
     if (p.prontuario) p.prontuario = this.decryptProntuario(p.prontuario)
+    for (const field of PATIENT_ENCRYPTED_FIELDS) {
+      if (p[field]) p[field] = safeDecrypt(p[field])
+    }
 
     // Descriptografa anotações das sessões se foram carregadas via relação
     if (p.sessions?.length) {
@@ -197,7 +206,7 @@ export class PatientsService {
         'cpfCnpj', 'createdAt', 'updatedAt',
       ],
     })
-    return patients
+    return patients.map(patient => this.dec(patient) as PatientListItemDto)
   }
 
   async findOne(id: string, psychologistId: string): Promise<Patient> {
@@ -304,7 +313,7 @@ export class PatientsService {
       }),
     }
 
-    Object.assign(patient, this.pickDefined({
+    Object.assign(patient, this.encryptFields(this.pickDefined({
       email: dto.email,
       phone: dto.phone,
       birthDate: dto.birthDate,
@@ -312,8 +321,8 @@ export class PatientsService {
       race: dto.race,
       gender: dto.gender,
       sexualOrientation: dto.sexualOrientation,
-      prontuario: this.encryptProntuario(prontuario),
-    }))
+      prontuario,
+    })))
 
     await this.repo.save(patient)
     return { saved: true }
@@ -321,7 +330,7 @@ export class PatientsService {
 
   async remove(id: string, psychologistId: string) {
     const patient = await this.findRaw(id, psychologistId)
-    return this.repo.softRemove(patient)
+    return this.repo.remove(patient)
   }
 
   private async findByPortalToken(token: string, relations?: string[]): Promise<Patient> {
@@ -332,11 +341,13 @@ export class PatientsService {
     })
     if (!patient) throw new NotFoundException('Portal não encontrado')
 
-    // Expiração opcional do link do portal (LGPD: links vazados não valem para sempre).
-    // Só é aplicada quando PORTAL_TOKEN_TTL_DAYS está configurada — links antigos
-    // continuam funcionando em instalações que não definirem a variável.
-    const ttlDays = Number(process.env.PORTAL_TOKEN_TTL_DAYS)
-    if (ttlDays > 0 && patient.portalTokenCreatedAt) {
+    // Expiracao obrigatoria: configuracao invalida volta ao limite seguro de 30 dias.
+    const configuredTtl = Number(process.env.PORTAL_TOKEN_TTL_DAYS)
+    const ttlDays = Number.isFinite(configuredTtl) && configuredTtl > 0 ? configuredTtl : 30
+    if (!patient.portalTokenCreatedAt) {
+      throw new NotFoundException('Link expirado. Solicite um novo ao seu profissional.')
+    }
+    if (patient.portalTokenCreatedAt) {
       const ageMs = Date.now() - new Date(patient.portalTokenCreatedAt).getTime()
       if (ageMs > ttlDays * 24 * 60 * 60 * 1000) {
         throw new NotFoundException('Link expirado. Solicite um novo ao seu profissional.')

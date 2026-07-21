@@ -23,6 +23,7 @@ import { CreateBookingDto } from './dto/create-booking.dto'
 import { SaveBookingPageDto } from './dto/save-booking-page.dto'
 import { GoogleCalendarService } from '../google-calendar/google-calendar.service'
 import { isPublicBookingMonthAllowed } from './booking-month-policy'
+import { encrypt, hashToken, safeDecrypt } from '../../common/crypto/encrypt.util'
 
 const OCCUPYING_BOOKING_STATUSES: Booking['status'][] = ['pending', 'confirmed']
 const FREE_APPOINTMENT_STATUSES = ['cancelled', 'no_show']
@@ -397,7 +398,7 @@ export class BookingService {
     }
 
     const confirmationToken = randomBytes(32).toString('hex')
-    const cancellationCode = randomBytes(6).toString('base64url')
+    const cancellationCode = randomBytes(32).toString('base64url')
     const tokenExpiresAt = addDays(new Date(), 2)
 
     const saved = await this.dataSource.transaction(async (manager) => {
@@ -417,8 +418,11 @@ export class BookingService {
         psychologistId: page.psychologistId,
         duration: this.getSessionDuration(page, dto.modality),
         amount: page.sessionPrice,
-        confirmationToken,
-        cancellationCode,
+        confirmationToken: hashToken(confirmationToken),
+        cancellationCode: hashToken(cancellationCode),
+        confirmationTokenEncrypted: encrypt(confirmationToken),
+        cancellationCodeEncrypted: encrypt(cancellationCode),
+        patientNotes: dto.patientNotes?.trim() ? encrypt(dto.patientNotes.trim()) : undefined,
         tokenExpiresAt,
         status: 'confirmed',
         confirmedAt: new Date(),
@@ -427,6 +431,9 @@ export class BookingService {
 
       return manager.save(Booking, booking)
     })
+
+    saved.publicConfirmationToken = confirmationToken
+    saved.publicCancellationCode = cancellationCode
 
     const appointment = await this.createSessionResources(saved, page.psychologistId)
     if (appointment) this.googleCalendar.syncAppointment(appointment).catch(err => this.logCalendarError('sync', appointment.id, err))
@@ -437,14 +444,17 @@ export class BookingService {
 
     return {
       id: saved.id,
-      confirmationToken: saved.confirmationToken,
+      confirmationToken,
       message: 'Agendamento confirmado com sucesso!',
     }
   }
 
   async confirmByToken(token: string) {
     const booking = await this.bookings.findOne({
-      where: { confirmationToken: token },
+      where: [
+        { confirmationToken: hashToken(token) },
+        { confirmationToken: token },
+      ],
       relations: ['psychologist'],
     })
     if (!booking) throw new NotFoundException('Link de confirmacao invalido')
@@ -486,7 +496,7 @@ export class BookingService {
 
     booking.status = 'cancelled'
     booking.cancelledAt = new Date()
-    booking.cancellationReason = reason?.trim().slice(0, 500) || undefined
+    booking.cancellationReason = reason?.trim() ? encrypt(reason.trim().slice(0, 500)) : undefined
     await this.bookings.save(booking)
     await this.cancelLinkedAppointment(booking)
     await this.notifications.sendBookingCancellation(booking)
@@ -509,10 +519,11 @@ export class BookingService {
   async getMyBookings(psychologistId: string, status?: string) {
     const where: any = { psychologistId }
     if (status) where.status = status
-    return this.bookings.find({
+    const bookings = await this.bookings.find({
       where,
       order: { date: 'ASC', time: 'ASC' },
     })
+    return bookings.map(booking => this.toPrivateBooking(booking))
   }
 
   async confirmBooking(id: string, psychologistId: string) {
@@ -533,17 +544,17 @@ export class BookingService {
     })
     await this.maybeSendUpfrontCharge(booking, page, appointment)
     await this.notifications.sendBookingConfirmation(booking, page)
-    return booking
+    return this.toPrivateBooking(booking)
   }
 
   async rejectBooking(id: string, psychologistId: string, reason?: string) {
     const booking = await this.findOne(id, psychologistId)
     booking.status = 'cancelled'
     booking.cancelledAt = new Date()
-    booking.cancellationReason = reason
+    booking.cancellationReason = reason?.trim() ? encrypt(reason.trim().slice(0, 500)) : undefined
     const saved = await this.bookings.save(booking)
     await this.cancelLinkedAppointment(saved)
-    return saved
+    return this.toPrivateBooking(saved)
   }
 
   async markPaid(id: string, psychologistId: string, method: string) {
@@ -608,7 +619,7 @@ export class BookingService {
       )
     }
 
-    return booking
+    return this.toPrivateBooking(booking)
   }
 
   // ─── Booking Page (configurações) ──────────────────────────────────────────
@@ -796,7 +807,7 @@ export class BookingService {
         psychologistId,
         modality:       booking.modality ?? 'online',
         status:         'scheduled',
-        notes:          booking.patientNotes || undefined,
+        notes:          safeDecrypt(booking.patientNotes) || undefined,
       }),
     )
     appointment.patient = patient
@@ -890,13 +901,19 @@ export class BookingService {
 
   private async findByCancellationToken(token: string): Promise<Booking> {
     const booking = await this.bookings.findOne({
-      where: { cancellationCode: token },
+      where: [
+        { cancellationCode: hashToken(token) },
+        { cancellationCode: token },
+      ],
       relations: ['psychologist'],
     })
     if (booking) return booking
 
     const legacyBooking = await this.bookings.findOne({
-      where: { confirmationToken: token, cancellationCode: IsNull() },
+      where: [
+        { confirmationToken: hashToken(token), cancellationCode: IsNull() },
+        { confirmationToken: token, cancellationCode: IsNull() },
+      ],
       relations: ['psychologist'],
     })
     if (!legacyBooking) throw new NotFoundException('Link inválido')
@@ -905,6 +922,23 @@ export class BookingService {
 
   private normalizeTime(time: string) {
     return time.slice(0, 5)
+  }
+
+  private toPrivateBooking(booking: Booking) {
+    const { confirmationTokenEncrypted, cancellationCodeEncrypted, ...safe } = booking
+    return {
+      ...safe,
+      confirmationToken: this.readPublicToken(confirmationTokenEncrypted, booking.confirmationToken),
+      cancellationCode: booking.cancellationCode
+        ? this.readPublicToken(cancellationCodeEncrypted, booking.cancellationCode)
+        : undefined,
+      patientNotes: safeDecrypt(booking.patientNotes),
+      cancellationReason: safeDecrypt(booking.cancellationReason),
+    }
+  }
+
+  private readPublicToken(encrypted: string | undefined, legacyOrHash: string): string {
+    return encrypted ? (safeDecrypt(encrypted) ?? legacyOrHash) : legacyOrHash
   }
 
   private async cancelLinkedAppointment(booking: Booking): Promise<void> {

@@ -74,6 +74,6 @@ export class EmailWebhookService {
     if (exists) return
 
     await this.suppressions.save(this.suppressions.create({ email, reason, sourceEventType }))
-    this.logger.warn(`[Resend webhook] Endereco suprimido email=${email} motivo=${reason}`)
+    this.logger.warn(`[Resend webhook] Endereco suprimido motivo=${reason}`)
   }
 }

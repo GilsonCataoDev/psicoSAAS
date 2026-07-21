@@ -6,7 +6,7 @@ import { Repository } from 'typeorm'
 import { InstrumentAssignment } from './entities/instrument-assignment.entity'
 import { Patient } from '../patients/entities/patient.entity'
 import { NotificationsService } from '../notifications/notifications.service'
-import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
+import { encrypt, hashToken, safeDecrypt } from '../../common/crypto/encrypt.util'
 
 type InstrumentField = {
   id: string
@@ -44,10 +44,12 @@ export class InstrumentAssignmentsService {
     const expiresAt = new Date()
     expiresAt.setDate(expiresAt.getDate() + 7)
 
+    const publicToken = randomBytes(24).toString('hex')
     const assignment = await this.assignments.save(this.assignments.create({
       patientId: patient.id,
       psychologistId,
-      token: randomBytes(24).toString('hex'),
+      token: hashToken(publicToken),
+      tokenEncrypted: encrypt(publicToken),
       instrumentId: input.instrumentId,
       title: input.title,
       description: input.description,
@@ -57,7 +59,7 @@ export class InstrumentAssignmentsService {
       expiresAt,
     }))
 
-    const url = this.publicUrl(assignment.token)
+    const url = this.publicUrl(publicToken)
 
     let whatsAppSent = false
     let whatsAppError: string | undefined
@@ -94,12 +96,12 @@ export class InstrumentAssignmentsService {
     return items.map(item => ({
       ...this.toDto(item),
       patientName: item.patient?.name ?? null,
-      url: this.publicUrl(item.token),
+      url: this.publicUrl(this.readPublicToken(item)),
     }))
   }
 
   async getPublic(token: string) {
-    const assignment = await this.assignments.findOne({ where: { token }, relations: ['patient'] })
+    const assignment = await this.findByPublicToken(token)
     if (!assignment) throw new NotFoundException('Formulario nao encontrado')
     if (assignment.status !== 'pending' || assignment.expiresAt.getTime() < Date.now()) {
       throw new ForbiddenException('Formulario expirado ou ja respondido')
@@ -118,7 +120,7 @@ export class InstrumentAssignmentsService {
   }
 
   async submit(token: string, answers: Record<string, string>, score?: number, scoreDetails?: string) {
-    const assignment = await this.assignments.findOne({ where: { token }, relations: ['patient'] })
+    const assignment = await this.findByPublicToken(token)
     if (!assignment) throw new NotFoundException('Formulario nao encontrado')
     if (assignment.status !== 'pending' || assignment.expiresAt.getTime() < Date.now()) {
       throw new ForbiddenException('Formulario expirado ou ja respondido')
@@ -133,7 +135,7 @@ export class InstrumentAssignmentsService {
     assignment.responseText = encrypt(responseText)
     assignment.responseData = encrypt(JSON.stringify(cleanAnswers))
     if (score != null) assignment.score = score
-    if (scoreDetails) assignment.scoreDetails = scoreDetails
+    if (scoreDetails) assignment.scoreDetails = encrypt(scoreDetails)
     await this.assignments.save(assignment)
 
     return { ok: true }
@@ -213,6 +215,20 @@ export class InstrumentAssignmentsService {
     ].join('\n')
   }
 
+  private async findByPublicToken(token: string): Promise<InstrumentAssignment | null> {
+    return this.assignments.findOne({
+      where: [
+        { token: hashToken(token) },
+        { token },
+      ],
+      relations: ['patient'],
+    })
+  }
+
+  private readPublicToken(item: InstrumentAssignment): string {
+    return item.tokenEncrypted ? (safeDecrypt(item.tokenEncrypted) ?? item.token) : item.token
+  }
+
   private publicUrl(token: string): string {
     const frontendUrl = (this.config.get<string>('FRONTEND_URL') ?? 'https://usecognia.com.br').replace(/\/$/, '')
     return `${frontendUrl}/instrumentos/responder/${token}`
@@ -231,7 +247,7 @@ export class InstrumentAssignmentsService {
       completedAt: item.completedAt,
       responseText: item.responseText ? safeDecrypt(item.responseText) : null,
       score: item.score ?? null,
-      scoreDetails: item.scoreDetails ?? null,
+      scoreDetails: item.scoreDetails ? safeDecrypt(item.scoreDetails) : null,
       fields,
       answers: this.decryptAnswers(item.responseData, item.responseText, fields),
       createdAt: item.createdAt,

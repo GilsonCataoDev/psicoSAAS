@@ -11,7 +11,7 @@ import { AuditService } from '../audit/audit.service'
 import { pdfAttachment } from '../../common/http/content-disposition.util'
 
 @Controller('patients')
-@UseGuards(JwtAuthGuard, CsrfGuard)
+@UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
 export class PatientsController {
   constructor(
     private svc: PatientsService,
@@ -21,7 +21,6 @@ export class PatientsController {
   @Get() findAll(@Request() req: any) { return this.svc.findAll(req.user.id) }
 
   @Get(':id/prontuario/export')
-  @UseGuards(JwtAuthGuard, NoImpersonationGuard)
   @Throttle({ long: { limit: 5, ttl: 60 * 60 * 1000 } })
   async exportProntuario(@Param('id') id: string, @Request() req: any, @Res() res: Response) {
     const { filename, buffer } = await this.svc.exportProntuario(
@@ -40,10 +39,8 @@ export class PatientsController {
     res.end(buffer)
   }
 
-  // Detalhe traz o prontuário (dado clínico) — bloqueado durante impersonação de admin.
-  // A listagem (findAll) permanece acessível para suporte, pois não expõe conteúdo clínico.
+  // O guard de classe bloqueia toda a area de pacientes durante impersonacao.
   @Get(':id')
-  @UseGuards(JwtAuthGuard, NoImpersonationGuard)
   async findOne(@Param('id') id: string, @Request() req: any) {
     const patient = await this.svc.findOne(id, req.user.id)
     await this.record(req, 'patient.viewed', 'patient', id)

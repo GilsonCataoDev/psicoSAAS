@@ -29,6 +29,8 @@ export class Booking {
   // Token único para confirmar/cancelar via link no e-mail/WhatsApp
   @Column({ unique: true }) confirmationToken: string
   @Column({ unique: true, nullable: true }) cancellationCode?: string
+  @Column({ type: 'text', nullable: true }) confirmationTokenEncrypted?: string
+  @Column({ type: 'text', nullable: true }) cancellationCodeEncrypted?: string
   @Column({ type: 'timestamptz' }) tokenExpiresAt: Date   // expira em 48h
   @Column({ nullable: true }) confirmedAt?: Date
   @Column({ nullable: true }) cancelledAt?: Date
@@ -58,4 +60,7 @@ export class Booking {
 
   @CreateDateColumn() createdAt: Date
   @UpdateDateColumn() updatedAt: Date
+
+  publicConfirmationToken?: string
+  publicCancellationCode?: string
 }
