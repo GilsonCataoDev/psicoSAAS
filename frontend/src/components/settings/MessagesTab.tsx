@@ -93,7 +93,7 @@ export function MessagesTab({
                 {whatsappBusy ? 'Gerando QR Code...' : whatsappQr ? 'Gerar novo QR Code' : 'Conectar WhatsApp'}
               </button>
             )}
-            {!whatsappConnected && whatsappQr && (
+            {(whatsappConnected || whatsappQr) && (
               <button type="button" onClick={resetWhatsApp} disabled={whatsappBusy} className="btn-secondary text-sm">
                 Reiniciar conexao
               </button>
