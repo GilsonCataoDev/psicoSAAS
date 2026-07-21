@@ -180,7 +180,11 @@ export class NotificationsService {
   private async recreateWhatsAppInstance(instance: string): Promise<void> {
     await this.deleteWhatsAppInstance(instance)
     await new Promise(resolve => setTimeout(resolve, 1000))
-    await this.ensureWhatsAppInstance(instance)
+    // Cria direto, sem checar connectionState antes: acabamos de apagar a instancia,
+    // e a Evolution API pode demorar para propagar isso — checar primeiro corre o risco
+    // de ver um estado "ainda existe" desatualizado e pular a criacao, deixando a
+    // instancia de fato inexistente na hora de buscar o QR Code (erro 404).
+    await this.createWhatsAppInstance(instance)
     await new Promise(resolve => setTimeout(resolve, 3000))
   }
 
@@ -690,6 +694,10 @@ export class NotificationsService {
     }).catch(() => null)
     if (status && status.status !== 404) return
 
+    await this.createWhatsAppInstance(instance)
+  }
+
+  private async createWhatsAppInstance(instance: string): Promise<void> {
     const res = await fetch(`${this.WA_URL}/instance/create`, {
       method: 'POST',
       headers: {
