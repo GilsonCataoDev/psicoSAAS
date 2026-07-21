@@ -465,6 +465,7 @@ export class NotificationsService {
     ownerId: string,
     allowClosedConnectionRecovery = true,
     allowDeliveryVerification = true,
+    allowEmptyDeliveryRetry = true,
   ): Promise<WhatsAppDeliveryResult> {
     const normalizedText = typeof text === 'string' ? text.trim() : ''
     if (!normalizedText) {
@@ -485,7 +486,7 @@ export class NotificationsService {
       const res = await fetch(`${this.WA_URL}/message/sendText/${instance}`, {
         method: 'POST',
         headers: { apikey: this.WA_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ number: withDdi, text }),
+        body: JSON.stringify({ number: withDdi, text: normalizedText, delay: 1000 }),
       })
       const body = await res.text().catch(() => '')
 
@@ -544,8 +545,28 @@ export class NotificationsService {
       if (allowDeliveryVerification) {
         const verification = await this.verifyWhatsAppDelivery(instance, provider.messageId, normalizedText)
         if (verification === 'empty') {
-          this.logger.warn(`[WhatsApp] Entrega vazia confirmada apos envio; reenviando uma vez instance=${instance} messageId=${provider.messageId}`)
-          return this.deliverWhatsApp(phone, text, ownerId, allowClosedConnectionRecovery, false)
+          if (allowEmptyDeliveryRetry) {
+            this.logger.warn(`[WhatsApp] Entrega vazia confirmada apos envio; reenviando uma vez instance=${instance} messageId=${provider.messageId}`)
+            return this.deliverWhatsApp(
+              phone,
+              normalizedText,
+              ownerId,
+              allowClosedConnectionRecovery,
+              true,
+              false,
+            )
+          }
+
+          this.logger.error(`[WhatsApp] Reenvio tambem persistiu vazio instance=${instance} messageId=${provider.messageId}`)
+          return {
+            sent: false,
+            reason: 'api_error',
+            error: 'WhatsApp persistiu a mensagem sem conteúdo mesmo após uma nova tentativa',
+            nonRetryable: true,
+            providerMessageId: provider.messageId,
+            providerStatus: provider.status,
+            contentLength: 0,
+          }
         }
       }
 
@@ -905,19 +926,20 @@ export class NotificationsService {
     this.logger.log(`[Booking] Nova solicitacao bookingId=${booking.id} date=${booking.date} time=${booking.time}`)
   }
 
-  async sendBookingConfirmation(booking: any, page?: any): Promise<void> {
+  async sendBookingConfirmation(booking: any, page?: any): Promise<WhatsAppDeliveryResult | undefined> {
     const cancelUrl = this.getCancellationUrl(booking)
     const first = booking.patientName.split(' ')[0]
     const customMessage = this.renderBookingConfirmationMessage(booking, page)
 
     // WhatsApp para o paciente
+    let whatsAppResult: WhatsAppDeliveryResult | undefined
     if (booking.patientPhone) {
       const msg = customMessage
         ? `${customMessage}\n\nPrecisando cancelar: ${cancelUrl}`
         : `Ola, ${first}!\n\n` +
           `Sua sessao foi confirmada para *${booking.date}* as *${String(booking.time).slice(0, 5)}*.\n\n` +
           `Precisando cancelar: ${cancelUrl}\n\nNos vemos la.`
-      await this.sendWhatsApp(booking.patientPhone, msg, booking.psychologistId, {
+      whatsAppResult = await this.sendWhatsApp(booking.patientPhone, msg, booking.psychologistId, {
         type: 'Confirmacao de agenda',
         patientName: booking.patientName,
       })
@@ -935,7 +957,12 @@ export class NotificationsService {
       )
     }
 
-    this.logger.log(`[Booking] Confirmacao enviada bookingId=${booking.id}`)
+    if (whatsAppResult?.sent === false) {
+      this.logger.warn(`[Booking] Confirmacao por WhatsApp falhou bookingId=${booking.id} reason=${whatsAppResult.reason ?? 'unknown'}`)
+    } else {
+      this.logger.log(`[Booking] Confirmacao enviada bookingId=${booking.id}`)
+    }
+    return whatsAppResult
   }
 
   private renderBookingConfirmationMessage(booking: any, page?: any): string | null {
