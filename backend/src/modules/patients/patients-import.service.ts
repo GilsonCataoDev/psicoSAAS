@@ -179,7 +179,7 @@ export class PatientsImportService {
   }
 
   private parseCsv(buffer: Buffer): ParsedRow[] {
-    const text = buffer.toString('utf-8').replace(/^﻿/, '')
+    const text = buffer.toString('utf-8').replace(/^\uFEFF/, '')
     const parsed = Papa.parse<Record<string, string>>(text, {
       header: true,
       skipEmptyLines: true,
