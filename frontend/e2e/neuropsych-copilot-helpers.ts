@@ -64,14 +64,18 @@ export async function startNeuropsychAssessment(page: Page, patientName: string)
 
 export async function goToAssessment(page: Page, assessmentId: string) {
   await page.goto(appPath(`/avaliacoes/${assessmentId}`))
+  await page.getByRole('heading', { name: /.+/ }).first().waitFor({ timeout: 15_000 })
+  await page.getByRole('button', { name: /Integração e IA|Integrar/ }).click()
   await page.getByText('Copiloto clínico (IA)').waitFor({ timeout: 15_000 })
 }
 
 /** Preenche o motivo de encaminhamento (campo simples, sempre disponível) com um marcador de teste. */
 export async function setReferralQuestionText(page: Page, text: string) {
-  const field = page.locator('textarea').first()
+  await page.getByRole('button', { name: /Planejamento|Planejar/ }).click()
+  const field = page.getByRole('textbox', { name: 'Motivo e pergunta de encaminhamento' })
   await field.fill(text)
   await field.blur()
+  await page.getByRole('button', { name: /Integração e IA|Integrar/ }).click()
 }
 
 export function currentMonth(): string {

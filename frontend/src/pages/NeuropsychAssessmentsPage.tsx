@@ -77,7 +77,7 @@ export default function NeuropsychAssessmentsPage() {
           description="Inicie uma avaliação para organizar todo o processo em um só lugar."
           action={<button onClick={() => setModalOpen(true)} className="btn-primary">Iniciar primeira avaliação</button>} />
       ) : (
-        <div className="grid gap-3 lg:grid-cols-2">
+        <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
           {filtered.map(assessment => {
             const progress = assessment.batteryProgress.total
               ? Math.round(assessment.batteryProgress.applied / assessment.batteryProgress.total * 100) : 0
@@ -88,10 +88,17 @@ export default function NeuropsychAssessmentsPage() {
                     <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">Iniciada em {formatDate(assessment.startedAt)}</p></div>
                   <span className="rounded-full bg-sage-50 px-2.5 py-1 text-xs font-semibold text-sage-700 dark:bg-sage-950/40 dark:text-sage-200">{STATUS_LABELS[assessment.status]}</span>
                 </div>
-                <div className="mt-5 flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400">
-                  <span>{assessment.batteryProgress.applied}/{assessment.batteryProgress.total} procedimentos aplicados</span><span>{progress}%</span>
-                </div>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-100 dark:bg-white/10"><div className="h-full rounded-full bg-sage-500" style={{ width: `${progress}%` }} /></div>
+                {assessment.batteryProgress.total === 0 ? (
+                  <div className="mt-5 rounded-xl border border-dashed border-neutral-200 bg-neutral-50/60 px-3 py-2.5 text-xs dark:border-white/10 dark:bg-white/[0.03]">
+                    <p className="font-medium text-neutral-700 dark:text-neutral-200">Bateria ainda não iniciada</p>
+                    <p className="mt-0.5 text-neutral-500 dark:text-neutral-400">Próxima ação: adicionar o primeiro procedimento.</p>
+                  </div>
+                ) : <>
+                  <div className="mt-5 flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400">
+                    <span>{assessment.batteryProgress.applied}/{assessment.batteryProgress.total} procedimentos aplicados</span><span>{progress}%</span>
+                  </div>
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-100 dark:bg-white/10"><div className="h-full rounded-full bg-sage-500" style={{ width: `${progress}%` }} /></div>
+                </>}
               </Link>
             )
           })}

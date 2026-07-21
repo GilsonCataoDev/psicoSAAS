@@ -104,7 +104,7 @@ test.describe('Copiloto Neuropsicológico — plano Pro', () => {
 
   test('adicionar ao rascunho exige confirmação e anexa sem substituir conteúdo existente', async ({ page }) => {
     // Preenche o rascunho de integração com um marcador prévio.
-    const draftField = page.locator('textarea').last()
+    const draftField = page.getByRole('textbox', { name: 'Integração dos resultados' })
     await draftField.fill('CONTEÚDO PRÉVIO DO RASCUNHO — NÃO PODE SER PERDIDO')
     await draftField.blur()
 
@@ -120,7 +120,7 @@ test.describe('Copiloto Neuropsicológico — plano Pro', () => {
   })
 
   test('cancelar a confirmação de "adicionar ao rascunho" não altera o rascunho', async ({ page }) => {
-    const draftField = page.locator('textarea').last()
+    const draftField = page.getByRole('textbox', { name: 'Integração dos resultados' })
     await draftField.fill('RASCUNHO ORIGINAL INTACTO')
     await draftField.blur()
 
@@ -295,6 +295,7 @@ test.describe('Copiloto Neuropsicológico — planos Grátis e Essencial', () =>
     await selectOptionByText(select, patientName)
     await page.getByRole('button', { name: 'Iniciar' }).click()
     await page.waitForURL(/#?\/avaliacoes\/[0-9a-f-]+/, { timeout: 15_000 })
+    await page.getByRole('button', { name: /Integração e IA|Integrar/ }).click()
 
     await expect(page.getByRole('button', { name: 'Organizar rascunho sem IA' })).toBeVisible()
     await expect(page.getByText('Copiloto clínico (IA)')).toBeVisible()
