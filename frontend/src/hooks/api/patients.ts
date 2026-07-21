@@ -64,6 +64,48 @@ export function useUpdatePatient() {
   })
 }
 
+export type ImportSkipReason = 'duplicate' | 'plan_limit_reached'
+
+export type ImportPatientsResult = {
+  totalRows: number
+  importedCount: number
+  skippedCount: number
+  errorCount: number
+  imported: { row: number; id: string; name: string }[]
+  skipped: { row: number; name?: string; reason: ImportSkipReason; details?: string }[]
+  errors: { row: number; name?: string; errors: string[] }[]
+  upgradeUrl?: string
+  currentPlan?: string
+}
+
+export function useImportPatients() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData()
+      form.append('file', file)
+      return api.post<ImportPatientsResult>('/patients/import', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }).then(r => r.data)
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['patients'] }),
+  })
+}
+
+export async function downloadPatientsImportTemplate() {
+  const res = await api.get('/patients/import/template', { responseType: 'blob' })
+  const url = URL.createObjectURL(new Blob([res.data], { type: 'text/csv' }))
+  const a = document.createElement('a')
+  const cd = res.headers['content-disposition'] as string | undefined
+  const match = cd?.match(/filename="([^"]+)"/)
+  a.href = url
+  a.download = match?.[1] ?? 'modelo-importacao-pacientes.csv'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
 export function useExportProntuario(patientId: string) {
   return useMutation({
     mutationFn: async () => {

@@ -101,7 +101,7 @@ export class PatientsService {
    * Retorna uma cópia do DTO com privateNotes criptografadas.
    * Campos ausentes não são modificados.
    */
-  private encryptFields<T extends { privateNotes?: string; prontuario?: object } & Record<string, any>>(dto: T): T {
+  encryptFields<T extends { privateNotes?: string; prontuario?: object } & Record<string, any>>(dto: T): T {
     const encrypted: any = { ...dto }
     if (dto.privateNotes) encrypted.privateNotes = encrypt(dto.privateNotes)
     if (dto.prontuario) encrypted.prontuario = this.encryptProntuario(dto.prontuario as Record<string, any>)
@@ -174,13 +174,9 @@ export class PatientsService {
   // ─── Limites de plano ────────────────────────────────────────────────────────
 
   private async checkPatientLimit(userId: string) {
-    const sub  = await this.subs.findOne({ where: { userId } })
-    const plan = normalizePlan((sub?.status === 'active' || sub?.status === 'trialing') ? sub.plan : 'free')
-
-    const limit = PLAN_LIMITS[plan].maxPatients
+    const { plan, limit, count } = await this.getPlanUsage(userId)
     if (limit === -1) return
 
-    const count = await this.repo.count({ where: { psychologistId: userId, status: 'active' } })
     if (count >= limit) {
       throw new ForbiddenException({
         message: `Limite de ${limit} pessoa${limit !== 1 ? 's' : ''} atingido para o plano ${plan}. Faça upgrade para adicionar mais.`,
@@ -188,6 +184,26 @@ export class PatientsService {
         currentPlan: plan,
       })
     }
+  }
+
+  async getPlanUsage(userId: string): Promise<{ plan: string; limit: number; count: number }> {
+    const sub  = await this.subs.findOne({ where: { userId } })
+    const plan = normalizePlan((sub?.status === 'active' || sub?.status === 'trialing') ? sub.plan : 'free')
+    const limit = PLAN_LIMITS[plan].maxPatients
+    const count = await this.repo.count({ where: { psychologistId: userId, status: 'active' } })
+    return { plan, limit, count }
+  }
+
+  /**
+   * Vagas restantes de pacientes ativos para o plano do usuário.
+   * Retorna Number.MAX_SAFE_INTEGER para planos sem limite (pro/premium).
+   * Usado pela importação em massa para truncar o lote de uma vez, sem
+   * recontar o banco a cada linha processada.
+   */
+  async getRemainingPatientSlots(userId: string): Promise<number> {
+    const { limit, count } = await this.getPlanUsage(userId)
+    if (limit === -1) return Number.MAX_SAFE_INTEGER
+    return Math.max(0, limit - count)
   }
 
   // ─── API pública ─────────────────────────────────────────────────────────────

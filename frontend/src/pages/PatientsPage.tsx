@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import { BrainCircuit, Plus, Search, UsersRound } from 'lucide-react'
+import { BrainCircuit, Plus, Search, Upload, UsersRound } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
 import { formatCurrency, formatDate, patientStartDate } from '@/lib/utils'
 import { Patient } from '@/types'
 import NewPatientModal from '@/components/features/patients/NewPatientModal'
+import ImportPatientsModal from '@/components/features/patients/ImportPatientsModal'
 import { usePatients } from '@/hooks/useApi'
 import { PLANS, useSubscriptionStore } from '@/store/subscription'
 import toast from 'react-hot-toast'
@@ -24,6 +25,7 @@ export default function PatientsPage() {
   const [filter, setFilter] = useState<'all' | 'active' | 'paused' | 'discharged'>('all')
   const [careMode, setCareMode] = useState<'all' | 'psychotherapy' | 'neuropsychological_assessment'>('all')
   const [showModal, setShowModal] = useState(false)
+  const [showImportModal, setShowImportModal] = useState(false)
   const { data: patients = [], isLoading } = usePatients()
   const subscription = useSubscriptionStore((s) => s.subscription)
 
@@ -78,15 +80,25 @@ export default function PatientsPage() {
               : `${activeCount}/${patientLimit} pacientes ativos no plano ${currentPlan.name}`}
           </p>
         </div>
-        <button
-          onClick={openCreatePatientModal}
-          className="btn-primary flex items-center gap-2"
-          aria-disabled={reachedPatientLimit}
-          aria-label="Novo paciente"
-        >
-          <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Novo paciente</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="btn-secondary flex items-center gap-2"
+            aria-label="Importar CSV"
+          >
+            <Upload className="w-4 h-4" />
+            <span className="hidden sm:inline">Importar CSV</span>
+          </button>
+          <button
+            onClick={openCreatePatientModal}
+            className="btn-primary flex items-center gap-2"
+            aria-disabled={reachedPatientLimit}
+            aria-label="Novo paciente"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Novo paciente</span>
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -164,6 +176,12 @@ export default function PatientsPage() {
       )}
 
       <NewPatientModal open={showModal} onClose={() => setShowModal(false)} />
+      <ImportPatientsModal
+        open={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        reachedPatientLimit={reachedPatientLimit}
+        currentPlanName={currentPlan.name}
+      />
     </div>
   )
 }
