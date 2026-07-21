@@ -440,6 +440,7 @@ export class NotificationsService {
     text: string,
     ownerId: string,
     allowClosedConnectionRecovery = true,
+    allowDeliveryVerification = true,
   ): Promise<WhatsAppDeliveryResult> {
     const normalizedText = typeof text === 'string' ? text.trim() : ''
     if (!normalizedText) {
@@ -505,12 +506,26 @@ export class NotificationsService {
         }
       }
 
-      return {
+      const acceptedResult: WhatsAppDeliveryResult = {
         sent: true,
         providerMessageId: provider.messageId,
         providerStatus: provider.status ?? 'accepted',
         contentLength: provider.text.trim().length,
       }
+
+      // A resposta síncrona só confirma que a Evolution API recebeu o pedido — o envio real ao
+      // WhatsApp acontece de forma assíncrona via Baileys e pode, em raras ocasiões, persistir
+      // vazio mesmo com o texto correto no request. Confere o que foi de fato persistido antes
+      // de dar a entrega como confirmada.
+      if (allowDeliveryVerification) {
+        const verification = await this.verifyWhatsAppDelivery(instance, provider.messageId, normalizedText)
+        if (verification === 'empty') {
+          this.logger.warn(`[WhatsApp] Entrega vazia confirmada apos envio; reenviando uma vez instance=${instance} messageId=${provider.messageId}`)
+          return this.deliverWhatsApp(phone, text, ownerId, allowClosedConnectionRecovery, false)
+        }
+      }
+
+      return acceptedResult
     } catch {
       return {
         sent: false,
@@ -518,6 +533,47 @@ export class NotificationsService {
         error: 'WhatsApp desconectado ou indisponivel',
         contentLength: normalizedText.length,
       }
+    }
+  }
+
+  /**
+   * Confere, alguns segundos após o envio, se a Evolution API realmente persistiu o texto
+   * enviado — a resposta síncrona do sendText só reflete o que ela recebeu, não o que o
+   * Baileys efetivamente gravou/entregou.
+   */
+  private async verifyWhatsAppDelivery(instance: string, messageId: string, expectedText: string): Promise<'ok' | 'empty' | 'unknown'> {
+    // Evita atraso real e chamadas de rede extras durante os testes (mocks cobrem só o fluxo de sendText).
+    if (process.env.JEST_WORKER_ID !== undefined) return 'unknown'
+
+    await new Promise(resolve => setTimeout(resolve, 3000))
+    try {
+      const res = await fetch(`${this.WA_URL}/chat/findMessages/${instance}`, {
+        method: 'POST',
+        headers: { apikey: this.WA_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ where: { key: { id: messageId } } }),
+      })
+      if (!res.ok) return 'unknown'
+
+      const data = await res.json().catch(() => null) as any
+      const records: any[] = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.messages?.records)
+          ? data.messages.records
+          : Array.isArray(data?.messages)
+            ? data.messages
+            : []
+      const match = records.find(record => record?.key?.id === messageId)
+      if (!match) return 'unknown'
+
+      const persistedText = [
+        match?.message?.conversation,
+        match?.message?.extendedTextMessage?.text,
+      ].find(value => typeof value === 'string')
+      if (typeof persistedText !== 'string') return 'unknown'
+
+      return persistedText.trim() === expectedText.trim() ? 'ok' : 'empty'
+    } catch {
+      return 'unknown'
     }
   }
 
