@@ -111,13 +111,6 @@ function formatWhatsApp(raw?: string | null) {
   return `55${digits}`
 }
 
-function getMaxAdvanceDate(today: Date, maxAdvanceDays: number): Date {
-  if (maxAdvanceDays > 0 && maxAdvanceDays % 30 === 0) {
-    return endOfMonth(addMonths(startOfMonth(today), maxAdvanceDays / 30))
-  }
-  return addDays(today, maxAdvanceDays)
-}
-
 function getBookingToday(): Date {
   const dateKey = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Sao_Paulo',
@@ -237,9 +230,8 @@ export default function BookingPage() {
   function isDisabled(date: Date) {
     const today = startOfDay(getBookingToday())
     const min = addDays(today, page?.minAdvanceDays ?? 0)
-    const max = getMaxAdvanceDate(today, page?.maxAdvanceDays ?? 60)
     const dateStr = format(date, 'yyyy-MM-dd')
-    return isBefore(date, min) || isBefore(max, date) || !availableDateSet.has(dateStr)
+    return isBefore(date, min) || !availableDateSet.has(dateStr)
   }
 
   // ─── Envio ───────────────────────────────────────────────────────────────────

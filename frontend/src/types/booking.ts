@@ -18,7 +18,8 @@ export interface BookingPage {
   allowPresencial: boolean
   allowOnline: boolean
   minAdvanceDays: number
-  maxAdvanceDays: number
+  /** @deprecated O periodo publico agora e controlado por mes. */
+  maxAdvanceDays?: number
   allowNextMonthBooking: boolean
   requirePaymentUpfront: boolean
   pixKey?: string

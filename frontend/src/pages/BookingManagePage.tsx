@@ -453,7 +453,6 @@ function BookingSettings({ page }: { page: any }) {
     presencialSlotInterval: initialBreakInterval(page, 'presencial'),
     onlineSlotInterval:     initialBreakInterval(page, 'online'),
     minAdvanceDays:      +(page?.minAdvanceDays ?? 0),
-    maxAdvanceDays:      +(page?.maxAdvanceDays ?? 30),
     allowNextMonthBooking: page?.allowNextMonthBooking ?? false,
     pixKey:              page?.pixKey ?? '',
     confirmationMessage: page?.confirmationMessage ?? '',
@@ -477,7 +476,6 @@ function BookingSettings({ page }: { page: any }) {
       presencialSlotInterval: initialBreakInterval(page, 'presencial'),
       onlineSlotInterval:     initialBreakInterval(page, 'online'),
       minAdvanceDays:      +(page.minAdvanceDays ?? 0),
-      maxAdvanceDays:      +(page.maxAdvanceDays ?? 30),
       allowNextMonthBooking: page.allowNextMonthBooking ?? false,
       pixKey:              page.pixKey ?? '',
       confirmationMessage: page.confirmationMessage ?? '',
@@ -572,15 +570,6 @@ function BookingSettings({ page }: { page: any }) {
       toast.error('A antecedência mínima precisa ficar entre 0 e 30 dias.')
       return false
     }
-    if (form.maxAdvanceDays < 1 || form.maxAdvanceDays > 180) {
-      toast.error('A antecedência máxima precisa ficar entre 1 e 180 dias.')
-      return false
-    }
-    if (form.maxAdvanceDays < form.minAdvanceDays) {
-      toast.error('A antecedência máxima precisa ser maior que a mínima.')
-      return false
-    }
-
     const invalidSlot = MODALITIES.flatMap(({ key }) =>
       WEEKDAYS
         .filter(({ d }) => schedules[key][d]?.enabled)
@@ -971,11 +960,6 @@ function BookingSettings({ page }: { page: any }) {
             <label className="label">Antecedência mínima (dias)</label>
             <input type="number" min={0} max={30} value={form.minAdvanceDays} onChange={e => set('minAdvanceDays', +e.target.value)} className="input-field" />
             <p className="text-xs text-neutral-400 mt-1">Ex: 1 impede agendamento para hoje.</p>
-          </div>
-          <div>
-            <label className="label">Agendar até quantos dias à frente</label>
-            <input type="number" min={1} max={180} value={form.maxAdvanceDays} onChange={e => set('maxAdvanceDays', +e.target.value)} className="input-field" />
-            <p className="text-xs text-neutral-400 mt-1">Também respeita o limite mensal definido abaixo.</p>
           </div>
         </div>
         <button

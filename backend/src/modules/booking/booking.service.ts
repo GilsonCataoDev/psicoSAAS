@@ -9,7 +9,6 @@ import { ConfigService } from '@nestjs/config'
 import {
   addDays, format, parseISO, setHours, setMinutes,
   addMinutes, isBefore, isAfter, getDay, eachDayOfInterval,
-  addMonths, endOfMonth, startOfMonth,
 } from 'date-fns'
 import { Booking } from './entities/booking.entity'
 import { BookingPage } from './entities/booking-page.entity'
@@ -63,14 +62,6 @@ function saoPauloDateKey(date = new Date()): string {
 function nextSaoPauloMidnight(date = new Date()): Date {
   const [year, month, day] = saoPauloDateKey(date).split('-').map(Number)
   return new Date(Date.UTC(year, month - 1, day + 1, 3, 0, 0))
-}
-
-function getMaxAdvanceDate(today: Date, maxAdvanceDays: number): Date {
-  const days = Number(maxAdvanceDays)
-  if (days > 0 && days % 30 === 0) {
-    return endOfMonth(addMonths(startOfMonth(today), days / 30))
-  }
-  return addDays(today, days)
 }
 
 @Injectable()
@@ -217,8 +208,7 @@ export class BookingService {
 
     const today = parseISO(todayStr)
     const minDate = addDays(today, page.minAdvanceDays ?? 0)
-    const maxDate = getMaxAdvanceDate(today, page.maxAdvanceDays)
-    if (isBefore(date, minDate) || isAfter(date, maxDate)) return []
+    if (isBefore(date, minDate)) return []
 
     const [existingBookings, existingAppointments] = await Promise.all([
       this.bookings.find({
@@ -294,7 +284,6 @@ export class BookingService {
     const today = parseISO(todayStr)
     if (!isPublicBookingMonthAllowed(monthStr, todayStr, page.allowNextMonthBooking)) return []
     const minDate = addDays(today, page.minAdvanceDays ?? 0)
-    const maxDate = getMaxAdvanceDate(today, page.maxAdvanceDays)
 
     const [slots, extraSlots, blockedDates, existingBookings, existingAppointments] = await Promise.all([
       this.availability.findAll(page.psychologistId),
@@ -333,7 +322,7 @@ export class BookingService {
 
     for (const day of days) {
       const dateStr = format(day, 'yyyy-MM-dd')
-      if (isBefore(day, minDate) || isAfter(day, maxDate) || blocked.has(dateStr)) continue
+      if (isBefore(day, minDate) || blocked.has(dateStr)) continue
 
       const daySlots = [
         ...activeSlots.filter(slot => slot.weekday === getDay(day)),
@@ -658,9 +647,6 @@ export class BookingService {
 
   async saveMyPage(psychologistId: string, dto: SaveBookingPageDto) {
     let page = await this.pages.findOne({ where: { psychologistId } })
-    if (dto.maxAdvanceDays !== undefined && dto.minAdvanceDays !== undefined && dto.maxAdvanceDays < dto.minAdvanceDays) {
-      throw new BadRequestException('A antecedencia maxima deve ser maior que a minima')
-    }
     if (dto.slug !== undefined) {
       dto.slug = slugifyName(dto.slug)
       if (!dto.slug || dto.slug.length < 3) {
