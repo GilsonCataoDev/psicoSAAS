@@ -55,6 +55,15 @@ export function useAddBlockedDate() {
   })
 }
 
+export function useAddBlockedWeek() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: { date: string; reason?: string }) =>
+      api.post('/availability/blocked/week', data).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['blocked-dates'] }),
+  })
+}
+
 export function useRemoveBlockedDate() {
   const qc = useQueryClient()
   return useMutation({

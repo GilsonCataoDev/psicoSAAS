@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { In, Repository } from 'typeorm'
 import { AvailabilitySlot } from './entities/availability-slot.entity'
 import { BlockedDate } from './entities/blocked-date.entity'
 import { ExtraAvailabilitySlot } from './entities/extra-availability-slot.entity'
@@ -91,9 +91,35 @@ export class AvailabilityService {
     return this.blocked.find({ where: { psychologistId }, order: { date: 'ASC' } })
   }
 
-  addBlockedDate(psychologistId: string, date: string, reason?: string) {
-    const b = this.blocked.create({ psychologistId, date, reason })
+  async addBlockedDate(psychologistId: string, date: string, reason?: string) {
+    this.validateDate(date)
+    const existing = await this.blocked.findOne({ where: { psychologistId, date } })
+    if (existing) return existing
+
+    const b = this.blocked.create({ psychologistId, date, reason: this.normalizeReason(reason) })
     return this.blocked.save(b)
+  }
+
+  async addBlockedWeek(psychologistId: string, selectedDate: string, reason?: string) {
+    this.validateDate(selectedDate)
+    const dates = this.getWeekDates(selectedDate)
+    const existing = await this.blocked.find({
+      where: { psychologistId, date: In(dates) },
+      select: ['date'],
+    })
+    const existingDates = new Set(existing.map(item => item.date))
+    const missingDates = dates.filter(date => !existingDates.has(date))
+
+    if (missingDates.length) {
+      const normalizedReason = this.normalizeReason(reason) ?? 'Semana bloqueada'
+      await this.blocked.save(missingDates.map(date => this.blocked.create({
+        psychologistId,
+        date,
+        reason: normalizedReason,
+      })))
+    }
+
+    return { dates, created: missingDates.length }
   }
 
   async removeBlockedDate(id: string, psychologistId: string) {
@@ -121,6 +147,30 @@ export class AvailabilityService {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       throw new BadRequestException('Data invalida')
     }
+    const [year, month, day] = date.split('-').map(Number)
+    const parsed = new Date(Date.UTC(year, month - 1, day))
+    if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() !== month - 1 || parsed.getUTCDate() !== day) {
+      throw new BadRequestException('Data invalida')
+    }
+  }
+
+  private getWeekDates(selectedDate: string): string[] {
+    const [year, month, day] = selectedDate.split('-').map(Number)
+    const selected = new Date(Date.UTC(year, month - 1, day))
+    const mondayOffset = (selected.getUTCDay() + 6) % 7
+    const monday = new Date(selected)
+    monday.setUTCDate(selected.getUTCDate() - mondayOffset)
+
+    return Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(monday)
+      date.setUTCDate(monday.getUTCDate() + index)
+      return date.toISOString().slice(0, 10)
+    })
+  }
+
+  private normalizeReason(reason?: string): string | undefined {
+    const normalized = reason?.trim().slice(0, 255)
+    return normalized || undefined
   }
 
   private async ensureExtraSlotDoesNotConflict(

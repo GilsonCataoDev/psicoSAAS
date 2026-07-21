@@ -19,6 +19,7 @@ export interface BookingPage {
   allowOnline: boolean
   minAdvanceDays: number
   maxAdvanceDays: number
+  allowNextMonthBooking: boolean
   requirePaymentUpfront: boolean
   pixKey?: string
   confirmationMessage?: string

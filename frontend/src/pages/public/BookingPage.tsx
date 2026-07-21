@@ -118,12 +118,22 @@ function getMaxAdvanceDate(today: Date, maxAdvanceDays: number): Date {
   return addDays(today, maxAdvanceDays)
 }
 
+function getBookingToday(): Date {
+  const dateKey = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date())
+  return parseISO(dateKey)
+}
+
 export default function BookingPage() {
   const { slug } = useParams()
   const { data: page, isLoading: pageLoading, isError } = usePublicBookingPage(slug ?? '')
 
   const [step, setStep] = useState<Step>('landing')
-  const [month, setMonth] = useState(new Date())
+  const [month, setMonth] = useState(() => startOfMonth(getBookingToday()))
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedTime, setSelectedTime] = useState<string | null>(null)
 
@@ -136,12 +146,20 @@ export default function BookingPage() {
     },
   })
   const selectedModality = watch('modality')
+  const currentCalendarMonth = startOfMonth(getBookingToday())
+  const latestCalendarMonth = page?.allowNextMonthBooking
+    ? addMonths(currentCalendarMonth, 1)
+    : currentCalendarMonth
+  const canGoToPreviousMonth = month.getTime() > currentCalendarMonth.getTime()
+  const canGoToNextMonth = month.getTime() < latestCalendarMonth.getTime()
+  const isVisibleMonthAllowed = month.getTime() >= currentCalendarMonth.getTime()
+    && month.getTime() <= latestCalendarMonth.getTime()
   const monthKey = format(month, 'yyyy-MM')
   const { data: availableDates = [], isFetching: datesLoading } = usePublicBookingDates(
     slug ?? '',
     monthKey,
     selectedModality,
-    !!slug && step !== 'success',
+    !!slug && !!page && step !== 'success' && isVisibleMonthAllowed,
   )
   const { data: slots = [], isFetching: slotsLoading } = usePublicBookingSlots(slug ?? '', selectedDate, selectedModality)
   const createBooking = useCreateBooking(slug ?? '')
@@ -217,7 +235,7 @@ export default function BookingPage() {
   }
 
   function isDisabled(date: Date) {
-    const today = startOfDay(new Date())
+    const today = startOfDay(getBookingToday())
     const min = addDays(today, page?.minAdvanceDays ?? 0)
     const max = getMaxAdvanceDate(today, page?.maxAdvanceDays ?? 60)
     const dateStr = format(date, 'yyyy-MM-dd')
@@ -533,16 +551,32 @@ export default function BookingPage() {
                     {format(month, 'MMMM yyyy', { locale: ptBR })}
                   </h2>
                   <div className="flex gap-1">
-                    <button onClick={() => setMonth(m => new Date(m.getFullYear(), m.getMonth() - 1))}
-                      className="p-2 rounded-xl hover:bg-neutral-100 text-neutral-500 transition-colors">
+                    <button
+                      type="button"
+                      aria-label="Mês anterior"
+                      disabled={!canGoToPreviousMonth}
+                      onClick={() => setMonth(m => startOfMonth(addMonths(m, -1)))}
+                      className="p-2 rounded-xl text-neutral-500 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+                    >
                       <ChevronLeft className="w-4 h-4" />
                     </button>
-                    <button onClick={() => setMonth(m => new Date(m.getFullYear(), m.getMonth() + 1))}
-                      className="p-2 rounded-xl hover:bg-neutral-100 text-neutral-500 transition-colors">
+                    <button
+                      type="button"
+                      aria-label="Próximo mês"
+                      title={canGoToNextMonth ? 'Ver próximo mês' : 'O próximo mês ainda não foi liberado'}
+                      disabled={!canGoToNextMonth}
+                      onClick={() => setMonth(m => startOfMonth(addMonths(m, 1)))}
+                      className="p-2 rounded-xl text-neutral-500 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+                    >
                       <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
+                {!page.allowNextMonthBooking && (
+                  <p className="mb-4 text-xs text-neutral-400">
+                    Agendamentos disponíveis somente para o mês atual.
+                  </p>
+                )}
                 {datesLoading && (
                   <div className="mb-3 flex items-center gap-2 text-xs text-neutral-400">
                     <span className="w-3 h-3 border-2 border-sage-300 border-t-transparent rounded-full animate-spin" />

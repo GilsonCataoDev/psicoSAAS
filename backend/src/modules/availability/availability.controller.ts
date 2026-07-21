@@ -37,6 +37,11 @@ export class AvailabilityController {
     return this.svc.addBlockedDate(req.user.id, body.date, body.reason)
   }
 
+  @Post('blocked/week')
+  addBlockedWeek(@Request() req: any, @Body() body: { date: string; reason?: string }) {
+    return this.svc.addBlockedWeek(req.user.id, body.date, body.reason)
+  }
+
   @Delete('blocked/:id')
   removeBlocked(@Param('id') id: string, @Request() req: any) {
     return this.svc.removeBlockedDate(id, req.user.id)

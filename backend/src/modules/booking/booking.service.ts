@@ -23,6 +23,7 @@ import { NotificationsService } from '../notifications/notifications.service'
 import { CreateBookingDto } from './dto/create-booking.dto'
 import { SaveBookingPageDto } from './dto/save-booking-page.dto'
 import { GoogleCalendarService } from '../google-calendar/google-calendar.service'
+import { isPublicBookingMonthAllowed } from './booking-month-policy'
 
 const OCCUPYING_BOOKING_STATUSES: Booking['status'][] = ['pending', 'confirmed']
 const FREE_APPOINTMENT_STATUSES = ['cancelled', 'no_show']
@@ -191,6 +192,16 @@ export class BookingService {
     const stepMinutes = this.getStepMinutes(page, modality)
     if (sessionDuration <= 0 || stepMinutes <= 0) return []
 
+    const now = new Date()
+    const timeZone = this.config.get<string>('GOOGLE_CALENDAR_TIMEZONE') ?? 'America/Sao_Paulo'
+    const todayStr = new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(now)
+    if (!isPublicBookingMonthAllowed(dateStr, todayStr, page.allowNextMonthBooking)) return []
+
     const date = parseISO(dateStr)
     const weekday = getDay(date)
 
@@ -204,14 +215,6 @@ export class BookingService {
     const slots = [...weeklySlots, ...extraSlots]
     if (!slots.length) return []
 
-    const now = new Date()
-    const timeZone = this.config.get<string>('GOOGLE_CALENDAR_TIMEZONE') ?? 'America/Sao_Paulo'
-    const todayStr = new Intl.DateTimeFormat('en-CA', {
-      timeZone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(now)
     const today = parseISO(todayStr)
     const minDate = addDays(today, page.minAdvanceDays ?? 0)
     const maxDate = getMaxAdvanceDate(today, page.maxAdvanceDays)
@@ -289,6 +292,7 @@ export class BookingService {
       day: '2-digit',
     }).format(now)
     const today = parseISO(todayStr)
+    if (!isPublicBookingMonthAllowed(monthStr, todayStr, page.allowNextMonthBooking)) return []
     const minDate = addDays(today, page.minAdvanceDays ?? 0)
     const maxDate = getMaxAdvanceDate(today, page.maxAdvanceDays)
 
@@ -382,6 +386,17 @@ export class BookingService {
     }
     if (dto.modality === 'online' && !page.allowOnline) {
       throw new BadRequestException('Atendimento online indisponivel')
+    }
+
+    const timeZone = this.config.get<string>('GOOGLE_CALENDAR_TIMEZONE') ?? 'America/Sao_Paulo'
+    const todayStr = new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date())
+    if (!isPublicBookingMonthAllowed(dto.date, todayStr, page.allowNextMonthBooking)) {
+      throw new BadRequestException('Este mes ainda nao foi liberado pelo profissional')
     }
 
     // Recarregar com relations se necessário
