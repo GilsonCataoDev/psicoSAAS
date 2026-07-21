@@ -113,7 +113,7 @@ export class EmailService {
           )
         }
 
-        this.logger.error(`[Resend] Erro ao enviar email status=${res.status}`)
+        this.logger.error(`[Resend] Erro ao enviar email status=${res.status} body=${err}`)
 
         if (err.includes('domain is not verified')) {
           throw new ServiceUnavailableException(
@@ -121,7 +121,7 @@ export class EmailService {
           )
         }
 
-        throw new BadGatewayException('Nao foi possivel enviar o e-mail')
+        throw new BadGatewayException(`Nao foi possivel enviar o e-mail (status=${res.status})`)
       }
       this.logger.log(`[Resend] Email enviado subjectChars=${opts.subject.length}`)
       this.writeLog(opts.to, opts.subject, 'sent', null)
