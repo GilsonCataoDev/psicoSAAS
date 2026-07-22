@@ -1,8 +1,8 @@
 import {
-  Controller, Post, Get, Delete, Param, Body, Req, Res, UseGuards, HttpCode, Query,
+  BadRequestException, Controller, Post, Get, Delete, Param, Body, Req, Res, UseGuards, HttpCode, Query,
 } from '@nestjs/common'
 import { Throttle } from '@nestjs/throttler'
-import { IsEnum, IsString, IsNotEmpty, MaxLength } from 'class-validator'
+import { IsEnum, IsIn, IsString, IsNotEmpty, MaxLength, MinLength } from 'class-validator'
 import { Response } from 'express'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
@@ -13,6 +13,8 @@ import { AuditService } from '../audit/audit.service'
 import { DocumentsService, CreateDocumentDto } from './documents.service'
 import { DocType } from './entities/document.entity'
 import { pdfAttachment } from '../../common/http/content-disposition.util'
+import { AiDocumentField, AiDocumentType, AiService } from '../sessions/ai.service'
+import { AiTextQuotaService } from '../sessions/ai-text-quota.service'
 
 class CreateDocumentBodyDto implements CreateDocumentDto {
   @IsString() @IsNotEmpty() @MaxLength(80) patientId: string
@@ -22,11 +24,25 @@ class CreateDocumentBodyDto implements CreateDocumentDto {
   @IsString() @IsNotEmpty() @MaxLength(12000) content: string
 }
 
+class GenerateDocumentAiDraftDto {
+  @IsIn(['relatorio', 'atestado', 'encaminhamento']) documentType: AiDocumentType
+  @IsIn(['demand', 'procedure', 'analysis', 'conclusion', 'referralReason']) field: AiDocumentField
+  @IsString() @IsNotEmpty() @MinLength(20) @MaxLength(8000) input: string
+}
+
+const DOCUMENT_AI_FIELDS: Record<AiDocumentType, AiDocumentField[]> = {
+  relatorio: ['demand', 'procedure', 'analysis', 'conclusion'],
+  atestado: ['demand', 'procedure', 'conclusion'],
+  encaminhamento: ['referralReason'],
+}
+
 @Controller('documents')
 export class DocumentsController {
   constructor(
     private svc: DocumentsService,
     private audit: AuditService,
+    private readonly ai: AiService,
+    private readonly aiTextQuota: AiTextQuotaService,
   ) {}
 
   /** Gerar e assinar um novo documento (requer plano Essencial ou superior) */
@@ -46,6 +62,32 @@ export class DocumentsController {
   @UseGuards(JwtAuthGuard, NoImpersonationGuard)
   async findMine(@Req() req: any, @Query('type') type?: DocType) {
     return this.svc.findByUser(req.user.id, type)
+  }
+
+  /** Organiza um campo do documento sem salvar nem assinar automaticamente. */
+  @Post('ai-draft')
+  @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
+  @RequirePlan('essencial')
+  @Throttle({ default: { limit: 10, ttl: 60 * 1000 } })
+  async generateAiDraft(@Req() req: any, @Body() body: GenerateDocumentAiDraftDto) {
+    if (!DOCUMENT_AI_FIELDS[body.documentType].includes(body.field)) {
+      throw new BadRequestException('Este campo não é compatível com o tipo de documento selecionado.')
+    }
+
+    await this.aiTextQuota.reserve(req.user.id, req.user.email)
+    let result
+    try {
+      result = await this.ai.generateDocumentDraft(body.input, body.documentType, body.field)
+    } catch (error) {
+      await this.aiTextQuota.release(req.user.id).catch(() => {})
+      throw error
+    }
+    await this.aiTextQuota.recordUsage(req.user.id, result.usage)
+    await this.record(req, 'document.ai_draft_generated', 'document_ai_draft', undefined, {
+      documentType: body.documentType,
+      field: body.field,
+    })
+    return { draft: result.text }
   }
 
   /** Carrega o conteúdo somente quando o profissional abre um documento. */

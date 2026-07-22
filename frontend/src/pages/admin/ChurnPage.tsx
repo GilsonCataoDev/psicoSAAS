@@ -4,12 +4,12 @@ import { ptBR } from 'date-fns/locale'
 import {
   AlertTriangle, CheckCircle2,
   Users, ShieldAlert, Bell, BellOff, ChevronDown, ChevronUp,
-  RefreshCw, Mail, MessageCircle, Loader2, Target,
+  RefreshCw, Mail, MessageCircle, Loader2, Target, Sparkles,
 } from 'lucide-react'
 import {
   useChurnDashboard, useChurnAnalytics, useChurnAlerts,
   useResolveChurnAlert, useSendReactivationEmail, ChurnAccount, ChurnRiskLevel,
-  useUserTimeline,
+  useUserTimeline, useChurnAiDiagnosis,
 } from '@/hooks/useApi'
 import { cn } from '@/lib/utils'
 import { buildWhatsAppUrl } from '@/lib/whatsapp'
@@ -88,6 +88,14 @@ function AccountRow({ account }: { account: ChurnAccount }) {
   const [expanded, setExpanded] = useState(false)
   const risk = RISK_CONFIG[account.riskLevel]
   const sendEmail = useSendReactivationEmail()
+  const aiDiagnose = useChurnAiDiagnosis()
+
+  function handleAiDiagnose(e: React.MouseEvent) {
+    e.stopPropagation()
+    aiDiagnose.mutate(account.id, {
+      onError: () => toast.error('Não foi possível gerar o diagnóstico por IA'),
+    })
+  }
 
   function handleEmail(e: React.MouseEvent) {
     e.stopPropagation()
@@ -207,6 +215,27 @@ function AccountRow({ account }: { account: ChurnAccount }) {
                   ))
                 }
               </div>
+            </div>
+
+            <div className="mt-3 rounded-xl border border-neutral-100 bg-white p-4 text-sm" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-semibold text-neutral-700 flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-sage-600" /> Diagnóstico com IA
+                </p>
+                <button
+                  type="button"
+                  onClick={handleAiDiagnose}
+                  disabled={aiDiagnose.isPending}
+                  className="btn-secondary text-xs px-2.5 py-1"
+                >
+                  {aiDiagnose.isPending
+                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    : aiDiagnose.data ? 'Gerar de novo' : 'Gerar'}
+                </button>
+              </div>
+              {aiDiagnose.data && (
+                <p className="mt-2 text-neutral-600 leading-relaxed">{aiDiagnose.data.explanation}</p>
+              )}
             </div>
 
             <div className="mt-3">

@@ -16,7 +16,7 @@ describe('ChurnService — contato por WhatsApp', () => {
     }
     const activationRepo = { find: jest.fn().mockResolvedValue([]) }
     const service = new ChurnService(
-      ds as any, {} as any, activationRepo as any, {} as any, {} as any,
+      ds as any, {} as any, activationRepo as any, {} as any, {} as any, {} as any,
     )
 
     const dashboard = await service.getDashboard()

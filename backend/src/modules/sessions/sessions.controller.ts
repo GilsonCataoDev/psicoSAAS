@@ -13,9 +13,10 @@ import { RequirePlan } from '../../common/decorators/require-plan.decorator'
 import { PLAN_LIMITS, KnownPlan, normalizePlan } from '../../common/plans'
 import { Subscription } from '../billing/entities/subscription.entity'
 import { SessionsService } from './sessions.service'
-import { AiService, AiTextUsage } from './ai.service'
+import { AiService } from './ai.service'
 import { CreateSessionDto } from './dto/create-session.dto'
 import { AiUsage } from './entities/ai-usage.entity'
+import { AiTextQuotaService } from './ai-text-quota.service'
 
 const AI_TRANSCRIPTION_MAX_SECONDS = 15 * 60
 const COMPED_PRO_EMAILS = (process.env.COMPED_PRO_EMAILS ?? 'gilsonfilho96@outlook.com')
@@ -31,6 +32,7 @@ export class SessionsController {
   constructor(
     private svc: SessionsService,
     private ai: AiService,
+    private readonly aiTextQuota: AiTextQuotaService,
     @InjectRepository(AiUsage) private readonly aiUsage: Repository<AiUsage>,
     @InjectRepository(Subscription) private readonly subscriptions: Repository<Subscription>,
   ) {}
@@ -92,12 +94,19 @@ export class SessionsController {
   @Throttle({ default: { limit: 20, ttl: 60 * 1000 } })
   async aiSummary(
     @Body('transcription') transcription: string,
-    @Body('patientName') patientName?: string,
     @Request() req?: any,
   ) {
     if (!transcription?.trim()) throw new BadRequestException('Transcrição ausente')
-    const result = await this.ai.generateSessionSummary(transcription, patientName)
-    if (req?.user?.id) await this.incrementSummaryUsage(req.user.id, result.usage)
+    if (transcription.length > 12000) throw new BadRequestException('A transcrição deve ter no máximo 12.000 caracteres.')
+    await this.aiTextQuota.reserve(req.user.id, req.user.email)
+    let result
+    try {
+      result = await this.ai.generateSessionSummary(transcription)
+    } catch (error) {
+      await this.aiTextQuota.release(req.user.id).catch(() => {})
+      throw error
+    }
+    await this.aiTextQuota.recordUsage(req.user.id, result.usage)
     return { draft: result.text }
   }
 
@@ -114,8 +123,16 @@ export class SessionsController {
     if (!input?.trim()) throw new BadRequestException('Texto ausente')
     if (input.trim().length < 20) throw new BadRequestException('Informe mais detalhes para a IA organizar.')
 
-    const result = await this.ai.generateProntuarioDraft(input, mode)
-    if (req?.user?.id) await this.incrementSummaryUsage(req.user.id, result.usage)
+    if (input.length > 12000) throw new BadRequestException('O texto deve ter no máximo 12.000 caracteres.')
+    await this.aiTextQuota.reserve(req.user.id, req.user.email)
+    let result
+    try {
+      result = await this.ai.generateProntuarioDraft(input, mode)
+    } catch (error) {
+      await this.aiTextQuota.release(req.user.id).catch(() => {})
+      throw error
+    }
+    await this.aiTextQuota.recordUsage(req.user.id, result.usage)
     return { draft: result.text }
   }
 
@@ -201,24 +218,4 @@ export class SessionsController {
       .execute()
   }
 
-  private async incrementSummaryUsage(userId: string, usage?: AiTextUsage): Promise<void> {
-    const month = this.currentMonth()
-    await this.aiUsage
-      .createQueryBuilder()
-      .insert()
-      .values({ userId, month })
-      .orIgnore()
-      .execute()
-    await this.aiUsage
-      .createQueryBuilder()
-      .update()
-      .set({
-        summaryRequests: () => '"summaryRequests" + 1',
-        aiInputTokens: () => `"aiInputTokens" + ${usage?.inputTokens ?? 0}`,
-        aiOutputTokens: () => `"aiOutputTokens" + ${usage?.outputTokens ?? 0}`,
-        aiCostUsdMicros: () => `"aiCostUsdMicros" + ${usage?.costUsdMicros ?? 0}`,
-      })
-      .where('"userId" = :userId AND month = :month', { userId, month })
-      .execute()
-  }
 }

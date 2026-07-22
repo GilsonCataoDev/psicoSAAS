@@ -70,6 +70,25 @@ export function useUpdateInstrumentAnswers() {
   })
 }
 
+export type AssessmentAiInterpretationResult = {
+  draft: string
+  criticalAlert: string | null
+}
+
+export function useAssessmentAiInterpretation() {
+  return useMutation({
+    mutationFn: ({ id, scaleName, scoreDetails, criticalFlags }: {
+      id: string
+      scaleName: string
+      scoreDetails: { score: number; level?: string; subscales?: Array<{ label: string; score: number; level?: string }> }
+      criticalFlags: Array<{ label: string; note: string }>
+    }) =>
+      api.post<AssessmentAiInterpretationResult>(`/instrument-assignments/${id}/ai-interpretation`, {
+        scaleName, scoreDetails, criticalFlags,
+      }).then(r => r.data),
+  })
+}
+
 export function usePublicInstrument(token: string | undefined) {
   return useQuery<PublicInstrumentData>({
     queryKey: ['public-instrument', token],

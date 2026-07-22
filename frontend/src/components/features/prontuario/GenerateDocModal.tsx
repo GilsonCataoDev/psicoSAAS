@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
-import { AlertTriangle, ChevronLeft } from 'lucide-react'
+import { AlertTriangle, ChevronLeft, Loader2, Sparkles } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import { Patient } from '@/types'
 import { Documento, DocType, DOC_TYPE_DESCRIPTIONS, DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '@/types/prontuario'
 import { formatCurrency } from '@/lib/utils'
-import { useCreateDocument, useDefaultTemplate } from '@/hooks/useApi'
+import { DocumentAiField, useCreateDocument, useDefaultTemplate, useGenerateDocumentAiDraft } from '@/hooks/useApi'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 import toast from 'react-hot-toast'
 import { track, EVENTS } from '@/lib/analytics'
@@ -27,6 +27,8 @@ type FormData = {
   extraText?: string
   referralTo?: string
 }
+
+type AiEditableField = 'demand' | 'procedure' | 'conclusion' | 'extraText'
 
 function buildContent(data: FormData, patient: Patient, type: DocType, user: { name: string; crp?: string } | null): string {
   const today = new Date().toLocaleDateString('pt-BR')
@@ -159,7 +161,9 @@ export default function GenerateDocModal({
 }) {
   const [step, setStep] = useState<'type' | 'form'>('type')
   const [selectedType, setSelectedType] = useState<DocType>('declaracao')
+  const [aiSuggestion, setAiSuggestion] = useState<{ formField: AiEditableField; draft: string } | null>(null)
   const createDocument = useCreateDocument()
+  const generateAiDraft = useGenerateDocumentAiDraft()
   const { data: receiptTemplate } = useDefaultTemplate('receipt')
   const { register, handleSubmit, watch, reset, setValue, formState: { isSubmitting } } = useForm<FormData>({
     defaultValues: { type: 'declaracao' },
@@ -182,8 +186,54 @@ export default function GenerateDocModal({
 
   function handleClose() {
     setStep('type')
+    setAiSuggestion(null)
     reset()
     onClose()
+  }
+
+  async function requestAiDraft(formField: AiEditableField) {
+    if (!['relatorio', 'atestado', 'encaminhamento'].includes(selectedType)) return
+    const input = String(watch(formField) ?? '').trim()
+    if (input.length < 20) {
+      toast.error('Escreva ao menos 20 caracteres de anotações antes de usar a IA.')
+      return
+    }
+    const field: DocumentAiField = formField === 'extraText'
+      ? (selectedType === 'encaminhamento' ? 'referralReason' : 'analysis')
+      : formField
+    try {
+      const result = await generateAiDraft.mutateAsync({
+        documentType: selectedType as 'relatorio' | 'atestado' | 'encaminhamento',
+        field,
+        input,
+      })
+      setAiSuggestion({ formField, draft: result.draft })
+    } catch (err: any) {
+      const message = err?.response?.data?.message
+      toast.error(typeof message === 'string' ? message : 'Não foi possível gerar a sugestão.')
+    }
+  }
+
+  function applyAiSuggestion() {
+    if (!aiSuggestion) return
+    setValue(aiSuggestion.formField, aiSuggestion.draft, { shouldDirty: true, shouldTouch: true })
+    setAiSuggestion(null)
+    toast.success('Sugestão adicionada. Revise antes de assinar.')
+  }
+
+  function aiButton(field: AiEditableField) {
+    const isCurrent = generateAiDraft.isPending && !aiSuggestion
+    return (
+      <button
+        type="button"
+        onClick={() => requestAiDraft(field)}
+        disabled={generateAiDraft.isPending}
+        className="mt-1.5 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-violet-700 hover:bg-violet-50 disabled:opacity-50 dark:text-violet-300 dark:hover:bg-violet-500/10"
+      >
+        {isCurrent ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+        Organizar com IA
+      </button>
+    )
   }
 
   async function onSubmit(data: FormData) {
@@ -346,12 +396,14 @@ export default function GenerateDocModal({
                 <textarea {...register('demand')} rows={3}
                   className="input-field resize-none text-sm"
                   placeholder="Descreva a demanda e o motivo da solicitacao do documento." />
+                {aiButton('demand')}
               </div>
               <div>
                 <label className="label">Procedimento</label>
                 <textarea {...register('procedure')} rows={3}
                   className="input-field resize-none text-sm"
                   placeholder="Informe procedimentos utilizados, periodo, fontes consultadas e limites." />
+                {aiButton('procedure')}
               </div>
             </div>
           )}
@@ -362,6 +414,7 @@ export default function GenerateDocModal({
               <textarea {...register('conclusion')} rows={3}
                 className="input-field resize-none text-sm"
                 placeholder="Registre uma conclusao tecnica limitada a finalidade do documento." />
+              {aiButton('conclusion')}
             </div>
           )}
 
@@ -373,6 +426,29 @@ export default function GenerateDocModal({
               <textarea {...register('extraText')} rows={4}
                 className="input-field resize-none text-sm"
                 placeholder="Descreva as informações relevantes para este documento..." />
+              {aiButton('extraText')}
+            </div>
+          )}
+
+          {aiSuggestion && (
+            <div className="rounded-2xl border border-violet-200 bg-violet-50/70 p-4 dark:border-violet-400/20 dark:bg-violet-500/10">
+              <div className="flex items-center gap-2 text-sm font-semibold text-violet-900 dark:text-violet-100">
+                <Sparkles className="h-4 w-4" /> Sugestão da IA
+              </div>
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-neutral-700 dark:text-neutral-200">
+                {aiSuggestion.draft}
+              </p>
+              <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
+                A IA pode errar. O texto só entra no documento depois da sua confirmação e ainda deve ser revisado.
+              </p>
+              <div className="mt-3 flex gap-2">
+                <button type="button" onClick={applyAiSuggestion} className="btn-primary px-3 py-2 text-xs">
+                  Usar esta sugestão
+                </button>
+                <button type="button" onClick={() => setAiSuggestion(null)} className="btn-secondary px-3 py-2 text-xs">
+                  Descartar
+                </button>
+              </div>
             </div>
           )}
 

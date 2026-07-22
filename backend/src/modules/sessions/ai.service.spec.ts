@@ -1,12 +1,22 @@
 process.env.ANTHROPIC_API_KEY = 'sk-test-fake-key-for-unit-tests'
+delete process.env.GROQ_API_KEY // testes deste arquivo exercitam o caminho Anthropic (fallback) por padrão
 
 const createMock = jest.fn()
+const createChatMock = jest.fn()
 
 jest.mock('@anthropic-ai/sdk', () => {
   const MockAnthropic = jest.fn().mockImplementation(() => ({
     messages: { create: createMock },
   }))
   return { __esModule: true, default: MockAnthropic }
+})
+
+jest.mock('openai', () => {
+  const MockOpenAI = jest.fn().mockImplementation(() => ({
+    chat: { completions: { create: createChatMock } },
+    audio: { transcriptions: { create: jest.fn() } },
+  }))
+  return { __esModule: true, default: MockOpenAI }
 })
 
 import { BadRequestException } from '@nestjs/common'
@@ -155,5 +165,205 @@ describe('AiService.generateNeuropsychAnalysis', () => {
       )
       expect(createMock).toHaveBeenCalledTimes(1)
     })
+  })
+})
+
+describe('AiService.generateDocumentDraft', () => {
+  let service: AiService
+
+  beforeEach(() => {
+    createMock.mockReset()
+    service = new AiService()
+  })
+
+  it('remove identificadores diretos antes de enviar as anotações ao provedor', async () => {
+    createMock.mockResolvedValue(fakeUsageResponse('Rascunho seguro'))
+    await service.generateDocumentDraft(
+      'Paciente relata melhora. Contato nome@exemplo.com, CPF 123.456.789-10 e telefone (87) 99967-5353.',
+      'relatorio',
+      'analysis',
+    )
+
+    const [params] = createMock.mock.calls[0]
+    const prompt = params.messages[0].content as string
+    expect(prompt).not.toContain('nome@exemplo.com')
+    expect(prompt).not.toContain('123.456.789-10')
+    expect(prompt).not.toContain('99967-5353')
+    expect(prompt).toContain('[e-mail omitido]')
+    expect(prompt).toContain('[CPF omitido]')
+    expect(prompt).toContain('[telefone omitido]')
+  })
+
+  it('limita a parte variável enviada a 8.000 caracteres', async () => {
+    createMock.mockResolvedValue(fakeUsageResponse('Rascunho'))
+    await service.generateDocumentDraft('A'.repeat(12000), 'atestado', 'demand')
+    const [params] = createMock.mock.calls[0]
+    const prompt = params.messages[0].content as string
+    expect(prompt.length).toBeLessThan(10000)
+  })
+
+  it('não vaza o erro interno do provedor', async () => {
+    createMock.mockRejectedValue(new Error('dados clínicos refletidos pelo provedor'))
+    await expect(
+      service.generateDocumentDraft('Anotação clínica suficientemente detalhada.', 'encaminhamento', 'referralReason'),
+    ).rejects.toThrow('Não foi possível gerar o rascunho do documento. Tente novamente.')
+  })
+})
+
+function fakeChatResponse(text: string) {
+  return {
+    choices: [{ message: { content: text } }],
+    usage: { prompt_tokens: 40, completion_tokens: 20 },
+  }
+}
+
+describe('AiService — provedor de texto (Groq preferido, Anthropic fallback)', () => {
+  let service: AiService
+  const originalGroqKey = process.env.GROQ_API_KEY
+  const originalNodeEnv = process.env.NODE_ENV
+  const originalMockFlag = process.env.NEUROPSYCH_AI_MOCK_PROVIDER
+
+  beforeEach(() => {
+    createMock.mockReset()
+    createChatMock.mockReset()
+    service = new AiService()
+    // Mock seam desligado por padrão nestes testes — queremos exercitar o
+    // caminho real de escolha de provedor, não a guarda de E2E.
+    delete process.env.NEUROPSYCH_AI_MOCK_PROVIDER
+  })
+
+  afterEach(() => {
+    if (originalGroqKey === undefined) delete process.env.GROQ_API_KEY
+    else process.env.GROQ_API_KEY = originalGroqKey
+    process.env.NODE_ENV = originalNodeEnv
+    if (originalMockFlag === undefined) delete process.env.NEUROPSYCH_AI_MOCK_PROVIDER
+    else process.env.NEUROPSYCH_AI_MOCK_PROVIDER = originalMockFlag
+  })
+
+  it('usa Groq quando GROQ_API_KEY está configurada — nunca chama a Anthropic', async () => {
+    process.env.GROQ_API_KEY = 'gsk-test-fake-key'
+    createChatMock.mockResolvedValue(fakeChatResponse('[TESTE] resumo gerado via Groq'))
+    const result = await service.generateSessionSummary('transcrição de teste')
+    expect(createChatMock).toHaveBeenCalledTimes(1)
+    expect(createMock).not.toHaveBeenCalled()
+    expect(result.text).toBe('[TESTE] resumo gerado via Groq')
+    expect(result.usage.model).toBe('llama-3.3-70b-versatile')
+  })
+
+  it('cai para Anthropic quando GROQ_API_KEY não está configurada', async () => {
+    delete process.env.GROQ_API_KEY
+    createMock.mockResolvedValue(fakeUsageResponse('[TESTE] resumo gerado via Anthropic'))
+    const result = await service.generateSessionSummary('transcrição de teste')
+    expect(createMock).toHaveBeenCalledTimes(1)
+    expect(createChatMock).not.toHaveBeenCalled()
+    expect(result.text).toBe('[TESTE] resumo gerado via Anthropic')
+  })
+
+  it('normaliza corretamente tokens de entrada/saída no formato Groq (prompt_tokens/completion_tokens)', async () => {
+    process.env.GROQ_API_KEY = 'gsk-test-fake-key'
+    createChatMock.mockResolvedValue(fakeChatResponse('texto'))
+    const result = await service.generateSessionSummary('transcrição')
+    expect(result.usage.inputTokens).toBe(40)
+    expect(result.usage.outputTokens).toBe(20)
+  })
+})
+
+describe('AiService — mock seam nos rascunhos por IA (paridade com o Copiloto Neuropsicológico)', () => {
+  let service: AiService
+  const originalNodeEnv = process.env.NODE_ENV
+  const originalMockFlag = process.env.NEUROPSYCH_AI_MOCK_PROVIDER
+
+  beforeEach(() => {
+    createMock.mockReset()
+    createChatMock.mockReset()
+    service = new AiService()
+  })
+
+  afterEach(() => {
+    process.env.NODE_ENV = originalNodeEnv
+    if (originalMockFlag === undefined) delete process.env.NEUROPSYCH_AI_MOCK_PROVIDER
+    else process.env.NEUROPSYCH_AI_MOCK_PROVIDER = originalMockFlag
+  })
+
+  it.each([
+    ['generateSessionSummary', () => service.generateSessionSummary('transcrição qualquer')],
+    ['generateProntuarioDraft', () => service.generateProntuarioDraft('anotação qualquer', 'organizar')],
+    ['generateDocumentDraft', () => service.generateDocumentDraft('anotação qualquer com mais de vinte caracteres', 'relatorio', 'demand')],
+  ])('%s usa o mock fora de produção quando a flag está ligada — nunca chama o provedor', async (_name, call) => {
+    process.env.NODE_ENV = 'test'
+    process.env.NEUROPSYCH_AI_MOCK_PROVIDER = 'true'
+    const result = await call()
+    expect(createMock).not.toHaveBeenCalled()
+    expect(createChatMock).not.toHaveBeenCalled()
+    expect(result.usage.model).toContain('mock')
+  })
+
+  it.each([
+    ['generateSessionSummary', () => service.generateSessionSummary('transcrição qualquer')],
+    ['generateProntuarioDraft', () => service.generateProntuarioDraft('anotação qualquer', 'organizar')],
+    ['generateDocumentDraft', () => service.generateDocumentDraft('anotação qualquer com mais de vinte caracteres', 'relatorio', 'demand')],
+  ])('%s NUNCA usa o mock quando NODE_ENV=production, mesmo com a flag ligada', async (_name, call) => {
+    process.env.NODE_ENV = 'production'
+    process.env.NEUROPSYCH_AI_MOCK_PROVIDER = 'true'
+    process.env.GROQ_API_KEY = 'gsk-test-fake-key'
+    createChatMock.mockResolvedValue(fakeChatResponse('resposta real'))
+    await call()
+    expect(createChatMock).toHaveBeenCalledTimes(1)
+    delete process.env.GROQ_API_KEY
+  })
+})
+
+describe('AiService.generateChurnDiagnosis', () => {
+  let service: AiService
+
+  beforeEach(() => {
+    createMock.mockReset()
+    createChatMock.mockReset()
+    service = new AiService()
+    process.env.GROQ_API_KEY = 'gsk-test-fake-key'
+  })
+
+  afterEach(() => {
+    delete process.env.GROQ_API_KEY
+  })
+
+  it('gera a narrativa a partir das métricas, sem alterar o score (determinístico fica em ChurnService)', async () => {
+    createChatMock.mockResolvedValue(fakeChatResponse('[TESTE] diagnóstico de churn'))
+    const result = await service.generateChurnDiagnosis({
+      daysWithoutLogin: 10, patients: 0, sessions: 0, appointments: 0, score: 20,
+      reasons: ['Sem login há 10 dias', 'Nenhum paciente cadastrado'],
+    })
+    const [params] = createChatMock.mock.calls[0]
+    const prompt = params.messages[0].content as string
+    expect(prompt).toContain('Sem login há 10 dias')
+    expect(result.text).toBe('[TESTE] diagnóstico de churn')
+  })
+})
+
+describe('AiService.generateAssessmentInterpretation', () => {
+  let service: AiService
+
+  beforeEach(() => {
+    createMock.mockReset()
+    createChatMock.mockReset()
+    service = new AiService()
+    process.env.GROQ_API_KEY = 'gsk-test-fake-key'
+  })
+
+  afterEach(() => {
+    delete process.env.GROQ_API_KEY
+  })
+
+  it('inclui os pontos críticos no prompt e nunca fecha diagnóstico (instrução obrigatória no prompt)', async () => {
+    createChatMock.mockResolvedValue(fakeChatResponse('[TESTE] interpretação'))
+    await service.generateAssessmentInterpretation(
+      'PHQ-9',
+      { score: 22, level: 'Grave' },
+      [{ label: 'Item 9 positivo', note: 'Investigar ideação suicida/autoagressão' }],
+    )
+    const [params] = createChatMock.mock.calls[0]
+    const prompt = params.messages[0].content as string
+    expect(prompt).toContain('Investigar ideação suicida/autoagressão')
+    expect(prompt).toContain('Nunca produza diagnóstico definitivo')
   })
 })
