@@ -130,6 +130,19 @@ export function useChurnAiDiagnosis() {
   })
 }
 
+export type WhatsAppDeliveryResult = {
+  sent: boolean
+  reason?: 'plan' | 'not_configured' | 'disconnected' | 'api_error' | 'invalid_content'
+  error?: string
+}
+
+export function useSendChurnWhatsApp() {
+  return useMutation({
+    mutationFn: ({ userId, phone, message }: { userId: string; phone: string; message: string }) =>
+      api.post<WhatsAppDeliveryResult>(`/admin/churn/user/${userId}/send-whatsapp`, { phone, message }).then(r => r.data),
+  })
+}
+
 export function useSendReactivationEmail() {
   return useMutation({
     mutationFn: (userId: string) =>
