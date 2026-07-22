@@ -278,3 +278,79 @@ describe('NotificationsService WhatsApp delivery validation', () => {
     }
   }, 10000)
 })
+
+describe('NotificationsService.sendAppointmentReminder — template por lead (24h/2h)', () => {
+  const ownerId = 'psychologist-id'
+
+  const cfg = {
+    get: jest.fn((key: string) => ({
+      FRONTEND_URL: 'https://usecognia.com.br',
+      WHATSAPP_API_URL: 'https://evolution.test',
+      WHATSAPP_API_KEY: 'test-api-key',
+      WHATSAPP_INSTANCE_PREFIX: 'cognia',
+    })[key]),
+  } as unknown as ConfigService
+
+  const users = {
+    findOneBy: jest.fn().mockResolvedValue({ email: 'gilsonfilho96@outlook.com' }),
+  }
+  const subs = { findOne: jest.fn().mockResolvedValue(null) }
+  const pushSubscriptions = { countBy: jest.fn(), findBy: jest.fn() }
+  const whatsAppLogs = { create: jest.fn((v: Record<string, unknown>) => v), save: jest.fn(async (v: any) => v) }
+
+  let service: NotificationsService
+  let sentText: string
+
+  function baseAppointment(preferences: Record<string, any> = {}) {
+    return {
+      psychologistId: ownerId,
+      psychologist: { preferences },
+      patient: { id: 'patient-1', name: 'Marina Souza', phone: '11999999999' },
+      date: '2026-08-10',
+      time: '14:00',
+    }
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    users.findOneBy.mockResolvedValue({ email: 'gilsonfilho96@outlook.com' })
+    service = new NotificationsService(cfg, {} as any, subs as any, users as any, pushSubscriptions as any, whatsAppLogs as any)
+    sentText = ''
+    jest.spyOn(global, 'fetch').mockImplementation(async (_url, init: any) => {
+      sentText = JSON.parse(init.body).text
+      return new Response(JSON.stringify({
+        key: { id: 'msg-id', fromMe: true },
+        message: { extendedTextMessage: { text: sentText } },
+        status: 'PENDING',
+      }), { status: 201, headers: { 'Content-Type': 'application/json' } })
+    })
+  })
+
+  it('usa reminderTemplate24h no lembrete de 24h quando configurado', async () => {
+    await service.sendAppointmentReminder(baseAppointment({
+      reminderTemplate24h: 'Template24h para {{nome}}',
+      reminderTemplate2h: 'Template2h para {{nome}}',
+    }), '24h')
+    expect(sentText).toBe('Template24h para Marina')
+  })
+
+  it('usa reminderTemplate2h no lembrete de 2h quando configurado', async () => {
+    await service.sendAppointmentReminder(baseAppointment({
+      reminderTemplate24h: 'Template24h para {{nome}}',
+      reminderTemplate2h: 'Template2h para {{nome}}',
+    }), '2h')
+    expect(sentText).toBe('Template2h para Marina')
+  })
+
+  it('cai para o template único legado quando o específico do lead não está configurado', async () => {
+    await service.sendAppointmentReminder(baseAppointment({
+      reminderTemplate: 'Legado para {{nome}}',
+    }), '2h')
+    expect(sentText).toBe('Legado para Marina')
+  })
+
+  it('usa o texto padrão embutido quando nenhum template foi customizado', async () => {
+    await service.sendAppointmentReminder(baseAppointment({}), '24h')
+    expect(sentText).toContain('Lembrando que temos nosso encontro em')
+  })
+})
