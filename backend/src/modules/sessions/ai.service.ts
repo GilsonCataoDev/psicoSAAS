@@ -6,6 +6,13 @@ const CLAUDE_TEXT_MODEL = 'claude-haiku-4-5-20251001'
 export const CLAUDE_HAIKU_INPUT_USD_MICROS_PER_TOKEN = 1
 export const CLAUDE_HAIKU_OUTPUT_USD_MICROS_PER_TOKEN = 5
 
+// Groq é o provedor de texto padrão (mais barato, chave já ativa em produção).
+// Anthropic vira fallback automático — só é usada se GROQ_API_KEY não estiver
+// configurada. Ver textClient() abaixo.
+const GROQ_TEXT_MODEL = 'llama-3.3-70b-versatile'
+export const GROQ_LLAMA_INPUT_USD_MICROS_PER_TOKEN = 0.05
+export const GROQ_LLAMA_OUTPUT_USD_MICROS_PER_TOKEN = 0.08
+
 export type AiTextUsage = {
   model: string
   inputTokens: number
@@ -16,6 +23,26 @@ export type AiTextUsage = {
 export type AiTextResult = {
   text: string
   usage: AiTextUsage
+}
+
+export type AiDocumentType = 'relatorio' | 'atestado' | 'encaminhamento'
+export type AiDocumentField = 'demand' | 'procedure' | 'analysis' | 'conclusion' | 'referralReason'
+
+export type ChurnDiagnosisInput = {
+  daysWithoutLogin: number
+  patients: number
+  sessions: number
+  appointments: number
+  score: number
+  reasons: string[]
+}
+
+export type AssessmentCriticalFlag = { label: string; note: string }
+
+export type AssessmentScoreDetails = {
+  score: number
+  level?: string
+  subscales?: Array<{ label: string; score: number; level?: string }>
 }
 
 // Versão do prompt do Copiloto Neuropsicológico — mudar sempre que o texto do
@@ -76,6 +103,40 @@ export class AiService {
     return new Anthropic({ apiKey: key })
   }
 
+  /**
+   * Cliente de geração de texto — prefere Groq (mais barato, chave já ativa em
+   * produção), cai para Anthropic só se GROQ_API_KEY não estiver configurada.
+   * Mesmo padrão de preferência já usado em whisperClient (Groq > OpenAI).
+   */
+  private get textClient(): { client: OpenAI | Anthropic; provider: 'groq' | 'anthropic'; model: string } {
+    const groqKey = process.env.GROQ_API_KEY
+    if (groqKey) {
+      return { client: new OpenAI({ apiKey: groqKey, baseURL: 'https://api.groq.com/openai/v1' }), provider: 'groq', model: GROQ_TEXT_MODEL }
+    }
+    const anthropicKey = process.env.ANTHROPIC_API_KEY
+    if (anthropicKey) {
+      return { client: new Anthropic({ apiKey: anthropicKey }), provider: 'anthropic', model: CLAUDE_TEXT_MODEL }
+    }
+    throw new BadRequestException('Geração de texto por IA não configurada (GROQ_API_KEY/ANTHROPIC_API_KEY ausentes)')
+  }
+
+  /** Chama o provedor de texto ativo (ver textClient) e normaliza a resposta. */
+  private async callTextModel(prompt: string, maxTokens: number, timeoutMs?: number): Promise<AiTextResult> {
+    const { client, provider, model } = this.textClient
+    if (provider === 'anthropic') {
+      const msg = await (client as Anthropic).messages.create(
+        { model, max_tokens: maxTokens, messages: [{ role: 'user', content: prompt }] },
+        timeoutMs ? { timeout: timeoutMs } : undefined,
+      )
+      return this.parseTextResult(msg, 'anthropic', model)
+    }
+    const completion = await (client as OpenAI).chat.completions.create(
+      { model, max_tokens: maxTokens, messages: [{ role: 'user', content: prompt }] },
+      timeoutMs ? { timeout: timeoutMs } : undefined,
+    )
+    return this.parseTextResult(completion, 'groq', model)
+  }
+
   async transcribeAudio(buffer: Buffer, mimeType: string): Promise<string> {
     const ext = mimeType.includes('mp4') || mimeType.includes('m4a') ? 'm4a'
       : mimeType.includes('ogg') ? 'ogg'
@@ -93,7 +154,7 @@ export class AiService {
       })
       return result.text
     } catch (err: any) {
-      this.logger.error('Whisper error', err?.message)
+      this.logger.error(`Whisper error: ${err?.status ?? err?.name ?? 'unknown'}`)
       throw new BadRequestException('Não foi possível transcrever o áudio. Verifique o arquivo e tente novamente.')
     }
   }
@@ -105,43 +166,68 @@ export class AiService {
     )
   }
 
-  private parseTextResult(msg: Anthropic.Messages.Message): AiTextResult {
-    const block = msg.content[0]
-    const inputTokens = msg.usage.input_tokens ?? 0
-    const outputTokens = msg.usage.output_tokens ?? 0
+  private calculateGroqCost(inputTokens: number, outputTokens: number): number {
+    return Math.round(
+      (inputTokens * GROQ_LLAMA_INPUT_USD_MICROS_PER_TOKEN)
+      + (outputTokens * GROQ_LLAMA_OUTPUT_USD_MICROS_PER_TOKEN),
+    )
+  }
 
+  /** Normaliza a resposta do provedor ativo (Anthropic ou Groq/OpenAI) num formato único. */
+  private parseTextResult(
+    response: Anthropic.Messages.Message | OpenAI.Chat.Completions.ChatCompletion,
+    provider: 'groq' | 'anthropic',
+    model: string,
+  ): AiTextResult {
+    if (provider === 'anthropic') {
+      const msg = response as Anthropic.Messages.Message
+      const block = msg.content[0]
+      const inputTokens = msg.usage.input_tokens ?? 0
+      const outputTokens = msg.usage.output_tokens ?? 0
+      return {
+        text: block.type === 'text' ? block.text.trim() : '',
+        usage: { model, inputTokens, outputTokens, costUsdMicros: this.calculateClaudeCost(inputTokens, outputTokens) },
+      }
+    }
+
+    const completion = response as OpenAI.Chat.Completions.ChatCompletion
+    const inputTokens = completion.usage?.prompt_tokens ?? 0
+    const outputTokens = completion.usage?.completion_tokens ?? 0
     return {
-      text: block.type === 'text' ? block.text.trim() : '',
-      usage: {
-        model: CLAUDE_TEXT_MODEL,
-        inputTokens,
-        outputTokens,
-        costUsdMicros: this.calculateClaudeCost(inputTokens, outputTokens),
-      },
+      text: (completion.choices[0]?.message?.content ?? '').trim(),
+      usage: { model, inputTokens, outputTokens, costUsdMicros: this.calculateGroqCost(inputTokens, outputTokens) },
     }
   }
 
-  async generateSessionSummary(transcription: string, patientName?: string): Promise<AiTextResult> {
-    const patient = patientName ? `Paciente: ${patientName}.\n` : ''
+  async generateSessionSummary(transcription: string): Promise<AiTextResult> {
+    const mocked = await this.mockTextIfEnabled(
+      transcription, 15_000,
+      '[MOCK] Rascunho de evolução de teste E2E. Revisar antes de salvar.',
+      'Não foi possível gerar o resumo. Tente novamente.',
+    )
+    if (mocked) return mocked
+
     const prompt = `Você é um assistente de apoio clínico para psicólogos e terapeutas. Com base na transcrição abaixo de uma sessão clínica, elabore um rascunho conciso de nota de evolução clínica. Escreva em linguagem técnica, primeira pessoa do profissional, sem diagnóstico. Inclua: demanda trabalhada, intervenções realizadas, resposta observada e próximos passos sugeridos. Máximo 250 palavras. O profissional revisará e editará antes de salvar.
 
-${patient}Transcrição:
+Transcrição:
 ${transcription.slice(0, 6000)}`
 
     try {
-      const msg = await this.anthropic.messages.create({
-        model: CLAUDE_TEXT_MODEL,
-        max_tokens: 700,
-        messages: [{ role: 'user', content: prompt }],
-      })
-      return this.parseTextResult(msg)
+      return await this.callTextModel(prompt, 700)
     } catch (err: any) {
-      this.logger.error('Claude error', err?.message)
+      this.logger.error(`AI session summary error: ${err?.status ?? err?.name ?? 'unknown'}`)
       throw new BadRequestException('Não foi possível gerar o resumo. Tente novamente.')
     }
   }
 
   async generateProntuarioDraft(input: string, mode: 'resumo' | 'evolucao' | 'organizar'): Promise<AiTextResult> {
+    const mocked = await this.mockTextIfEnabled(
+      input, 15_000,
+      '[MOCK] Rascunho de prontuário de teste E2E. Rascunho gerado por IA, revisar antes de salvar.',
+      'Nao foi possivel gerar o rascunho do prontuario. Tente novamente.',
+    )
+    if (mocked) return mocked
+
     const cleanInput = input.trim().slice(0, 8000)
     const modeInstruction = {
       resumo: 'gere um resumo clinico conciso, em linguagem profissional, preservando apenas informacoes relevantes para acompanhamento.',
@@ -161,16 +247,139 @@ Texto:
 ${cleanInput}`
 
     try {
-      const msg = await this.anthropic.messages.create({
-        model: CLAUDE_TEXT_MODEL,
-        max_tokens: 900,
-        messages: [{ role: 'user', content: prompt }],
-      })
-      return this.parseTextResult(msg)
+      return await this.callTextModel(prompt, 900)
     } catch (err: any) {
-      this.logger.error('Claude prontuario error', err?.message)
+      this.logger.error(`AI prontuario error: ${err?.status ?? err?.name ?? 'unknown'}`)
       throw new BadRequestException('Nao foi possivel gerar o rascunho do prontuario. Tente novamente.')
     }
+  }
+
+  async generateDocumentDraft(
+    input: string,
+    documentType: AiDocumentType,
+    field: AiDocumentField,
+  ): Promise<AiTextResult> {
+    const mocked = await this.mockTextIfEnabled(
+      input, 15_000,
+      '[MOCK] Rascunho de documento de teste E2E.',
+      'Não foi possível gerar o rascunho do documento. Tente novamente.',
+    )
+    if (mocked) return mocked
+
+    const cleanInput = this.redactDirectIdentifiers(input.trim()).slice(0, 8000)
+    const fieldInstruction: Record<AiDocumentField, string> = {
+      demand: 'organize uma descrição objetiva da demanda e da finalidade informada',
+      procedure: 'organize a descrição dos procedimentos, fontes consultadas, período e limites do trabalho',
+      analysis: 'organize o desenvolvimento técnico apenas com informações pertinentes à finalidade do documento',
+      conclusion: 'organize uma conclusão técnica cautelosa, limitada aos dados registrados e à finalidade informada',
+      referralReason: 'organize uma justificativa breve para continuidade do cuidado, revelando somente o necessário',
+    }
+
+    const prompt = `Você auxilia um psicólogo a redigir um rascunho de ${documentType}, conforme a Resolução CFP nº 06/2019.
+Tarefa: ${fieldInstruction[field]}.
+Use somente os fatos fornecidos. Não invente informações, não feche diagnóstico, não prescreva conduta e não cite regras que não estejam no texto.
+Não inclua nome, CPF, telefone, e-mail, endereço ou qualquer identificador direto.
+Escreva em português do Brasil, em um ou dois parágrafos, com no máximo 180 palavras.
+Retorne somente o rascunho, sem título e sem comentários sobre a tarefa.
+
+Anotações do profissional:
+${cleanInput}`
+
+    try {
+      return await this.callTextModel(prompt, 550)
+    } catch (err: any) {
+      this.logger.error(`AI document draft error: ${err?.status ?? err?.name ?? 'unknown'}`)
+      throw new BadRequestException('Não foi possível gerar o rascunho do documento. Tente novamente.')
+    }
+  }
+
+  /** Guarda de mock compartilhada — mesmo env var/critério do Copiloto Neuropsicológico. */
+  private async mockTextIfEnabled(haystack: string, timeoutMs: number, mockText: string, errorMessage: string): Promise<AiTextResult | null> {
+    if (process.env.NODE_ENV === 'production' || process.env.NEUROPSYCH_AI_MOCK_PROVIDER !== 'true') return null
+    if (haystack.includes('__E2E_TIMEOUT__')) {
+      await new Promise(resolve => setTimeout(resolve, timeoutMs + 2000))
+    }
+    if (haystack.includes('__E2E_PROVIDER_ERROR__')) {
+      throw new BadRequestException(errorMessage)
+    }
+    return { text: mockText, usage: { model: `${GROQ_TEXT_MODEL}-mock`, inputTokens: 10, outputTokens: 20, costUsdMicros: 2 } }
+  }
+
+  /**
+   * Diagnóstico de churn (admin, não-clínico). A pontuação continua
+   * determinística (calculada em ChurnService) — só a narrativa é gerada por
+   * IA. Não recebe dados de identificação de pacientes, só métricas
+   * agregadas do tenant.
+   */
+  async generateChurnDiagnosis(input: ChurnDiagnosisInput): Promise<AiTextResult> {
+    const prompt = `Você ajuda um time de sucesso do cliente a entender o risco de cancelamento (churn) de contas de um SaaS para psicólogos.
+Com base nas métricas abaixo, escreva um diagnóstico curto e direto (máximo 100 palavras) explicando o risco e sugerindo o próximo passo mais eficaz.
+Não invente informações além das métricas fornecidas. Tom profissional e objetivo, em português do Brasil.
+
+Métricas:
+- Score de saúde da conta: ${input.score}/100
+- Dias sem login: ${input.daysWithoutLogin}
+- Pacientes cadastrados: ${input.patients}
+- Sessões registradas: ${input.sessions}
+- Agendamentos: ${input.appointments}
+- Sinais identificados: ${input.reasons.join('; ') || 'nenhum sinal de risco relevante'}`
+
+    try {
+      return await this.callTextModel(prompt, 300)
+    } catch (err: any) {
+      this.logger.error(`AI churn diagnosis error: ${err?.status ?? err?.name ?? 'unknown'}`)
+      throw new BadRequestException('Não foi possível gerar o diagnóstico agora. Tente novamente.')
+    }
+  }
+
+  /**
+   * Interpretação de avaliação psicológica (PHQ-9, GAD-7, etc.) a partir da
+   * pontuação já calculada no frontend (scale-scoring.ts) — este método não
+   * corrige nem recalcula a pontuação, só redige um rascunho de interpretação
+   * para o profissional revisar.
+   *
+   * IMPORTANTE — segurança clínica: o alerta de item crítico (ex.: risco de
+   * suicídio no PHQ-9) NUNCA depende só do texto gerado pelo modelo. O
+   * chamador (InstrumentAssignmentsController) deve sempre anexar
+   * criticalFlags ao retorno de forma determinística, fora do texto da IA —
+   * ver uso deste método no controller.
+   */
+  async generateAssessmentInterpretation(
+    scaleName: string,
+    scoreDetails: AssessmentScoreDetails,
+    criticalFlags: AssessmentCriticalFlag[],
+  ): Promise<AiTextResult> {
+    const subscalesText = scoreDetails.subscales?.length
+      ? scoreDetails.subscales.map(s => `${s.label}: ${s.score}${s.level ? ` (${s.level})` : ''}`).join('; ')
+      : 'não há subescalas'
+
+    const prompt = `Você é um assistente de apoio clínico para psicólogos. Você NÃO substitui o julgamento clínico e NÃO produz diagnóstico.
+
+REGRAS OBRIGATÓRIAS:
+1. Nunca produza diagnóstico definitivo. Use linguagem cautelosa ("pode sugerir", "é compatível com", "merece investigação adicional").
+2. Use somente a pontuação fornecida — você não tem acesso aos itens originais nem a manuais de correção.
+3. Se houver pontos críticos assinalados, mencione-os com destaque e recomende avaliação de risco imediata — nunca minimize ou omita.
+4. Escreva em português do Brasil, no máximo 150 palavras, tom técnico.
+5. Finalize com: "Rascunho gerado por IA, revisar antes de usar."
+
+Escala: ${scaleName}
+Pontuação total: ${scoreDetails.score}${scoreDetails.level ? ` (${scoreDetails.level})` : ''}
+Subescalas: ${subscalesText}
+Pontos críticos assinalados: ${criticalFlags.length ? criticalFlags.map(f => `${f.label} — ${f.note}`).join('; ') : 'nenhum'}`
+
+    try {
+      return await this.callTextModel(prompt, 450)
+    } catch (err: any) {
+      this.logger.error(`AI assessment interpretation error: ${err?.status ?? err?.name ?? 'unknown'}`)
+      throw new BadRequestException('Não foi possível gerar a interpretação agora. Tente novamente.')
+    }
+  }
+
+  private redactDirectIdentifiers(value: string): string {
+    return value
+      .replace(/[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/g, '[e-mail omitido]')
+      .replace(/\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, '[CPF omitido]')
+      .replace(/(?:\+?55\s*)?(?:\(?\d{2}\)?\s*)?9?\d{4}[-\s]?\d{4}\b/g, '[telefone omitido]')
   }
 
   /**
@@ -197,21 +406,13 @@ ${cleanInput}`
     const prompt = this.buildNeuropsychAnalysisPrompt(payload, options.maxInputChars)
 
     try {
-      const msg = await this.anthropic.messages.create(
-        {
-          model: CLAUDE_TEXT_MODEL,
-          max_tokens: options.maxOutputTokens,
-          messages: [{ role: 'user', content: prompt }],
-        },
-        { timeout: options.timeoutMs },
-      )
-      return this.parseTextResult(msg)
+      return await this.callTextModel(prompt, options.maxOutputTokens, options.timeoutMs)
     } catch (err: any) {
       // Nunca logar err?.message aqui: em falhas de validação da API, o provedor
       // pode ecoar de volta um trecho do corpo da requisição (que contém o
       // registro clínico redigido) na mensagem de erro. Logamos só o essencial
       // para diagnóstico (tipo/status), nunca o conteúdo.
-      this.logger.error(`Claude neuropsych analysis error: ${err?.status ?? err?.name ?? 'unknown'}`)
+      this.logger.error(`AI neuropsych analysis error: ${err?.status ?? err?.name ?? 'unknown'}`)
       throw new BadRequestException('Não foi possível gerar a análise agora. Tente novamente em instantes.')
     }
   }

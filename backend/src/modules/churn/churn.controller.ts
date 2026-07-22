@@ -43,6 +43,18 @@ export class ChurnController {
     return this.svc.calculateChurnRisk(userId)
   }
 
+  @Get('user/:userId/ai-diagnose')
+  async getUserAiDiagnose(@Param('userId') userId: string) {
+    const risk = await this.svc.calculateChurnRisk(userId)
+    return this.svc.aiDiagnose({
+      daysWithoutLogin: risk.daysSinceLastActive ?? 0,
+      patients: risk.patientCount,
+      sessions: risk.sessionCount,
+      appointments: 0,
+      score: risk.score,
+    })
+  }
+
   @Get('user/:userId/timeline')
   getUserTimeline(@Param('userId') userId: string) {
     return this.svc.getBehaviorTimeline(userId)

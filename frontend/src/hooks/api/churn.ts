@@ -117,6 +117,19 @@ export function useUserTimeline(userId: string) {
   })
 }
 
+export interface ChurnAiDiagnosis {
+  riskLevel: ChurnRiskLevel
+  explanation: string
+  recommendations: ChurnRecommendation[]
+}
+
+export function useChurnAiDiagnosis() {
+  return useMutation({
+    mutationFn: (userId: string) =>
+      api.get<ChurnAiDiagnosis>(`/admin/churn/user/${userId}/ai-diagnose`).then(r => r.data),
+  })
+}
+
 export function useSendReactivationEmail() {
   return useMutation({
     mutationFn: (userId: string) =>

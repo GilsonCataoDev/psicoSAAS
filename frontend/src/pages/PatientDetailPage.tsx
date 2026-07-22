@@ -3,7 +3,7 @@ import {
   ArrowLeft, Phone, Mail, Calendar, Plus, Lock,
   ClipboardList, MessageCircle, CheckCircle2, Save,
   CalendarDays, Banknote, Clock, FileText, Pencil,
-  BookOpenText, BrainCircuit, BarChart3, Copy, Paperclip, Download, Trash2, Eye,
+  BookOpenText, BrainCircuit, BarChart3, Copy, Paperclip, Download, Trash2, Eye, Sparkles, Loader2,
 } from 'lucide-react'
 import { SCALE_CONFIGS, getCriticalResponses, interpretScaleResult } from '@/lib/scale-scoring'
 import Avatar from '@/components/ui/Avatar'
@@ -17,6 +17,7 @@ import {
   usePatientAttachments, useUploadPatientAttachment, useDeletePatientAttachment,
   downloadPatientAttachment, previewPatientAttachment, type PatientAttachment,
   useCreateNeuropsychAssessment, useNeuropsychAssessments,
+  useAssessmentAiInterpretation,
 } from '@/hooks/useApi'
 import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 import Modal from '@/components/ui/Modal'
@@ -55,6 +56,7 @@ export default function PatientDetailPage() {
   const updatePatient = useUpdatePatient()
   const { data: instrumentAssignments = [] } = useInstrumentAssignments(id)
   const updateInstrumentAnswers = useUpdateInstrumentAnswers()
+  const assessmentAiInterpretation = useAssessmentAiInterpretation()
   const createPortalLink = useCreatePatientPortalLink()
   const { data: attachments = [] } = usePatientAttachments(id)
   const uploadAttachment = useUploadPatientAttachment(id)
@@ -294,6 +296,26 @@ export default function PatientDetailPage() {
   function openResponse(response: InstrumentAssignment) {
     setEditingResponse(response)
     setEditedAnswers(response.answers ?? {})
+    assessmentAiInterpretation.reset()
+  }
+
+  function generateAssessmentInterpretation() {
+    if (!editingResponse) return
+    const interpretation = scaleInterpretation(editingResponse)
+    if (!interpretation) return
+    const critical = criticalResponses(editingResponse)
+    assessmentAiInterpretation.mutate({
+      id: editingResponse.id,
+      scaleName: editingResponse.title,
+      scoreDetails: {
+        score: interpretation.score,
+        level: interpretation.level?.label,
+        subscales: interpretation.subscales.map(s => ({ label: s.label, score: s.score, level: s.level.label })),
+      },
+      criticalFlags: critical.map(c => ({ label: c.label, note: c.note })),
+    }, {
+      onError: () => toast.error('Não foi possível gerar a interpretação por IA.'),
+    })
   }
 
   function criticalResponses(response: InstrumentAssignment | null) {
@@ -1228,6 +1250,35 @@ export default function PatientDetailPage() {
             </div>
           )
         })()}
+        {editingResponse?.score != null && (
+          <div className="mb-4 rounded-xl border border-neutral-100 bg-white p-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-neutral-700 flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-sage-600" /> Interpretação por IA
+              </p>
+              <button
+                type="button"
+                onClick={generateAssessmentInterpretation}
+                disabled={assessmentAiInterpretation.isPending}
+                className="btn-secondary text-xs px-2.5 py-1"
+              >
+                {assessmentAiInterpretation.isPending
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : assessmentAiInterpretation.data ? 'Gerar de novo' : 'Gerar rascunho'}
+              </button>
+            </div>
+            {assessmentAiInterpretation.data?.criticalAlert && (
+              <p className="mt-2 rounded-lg bg-red-50 p-2 text-xs font-medium leading-relaxed text-red-800">
+                {assessmentAiInterpretation.data.criticalAlert}
+              </p>
+            )}
+            {assessmentAiInterpretation.data?.draft && (
+              <p className="mt-2 text-xs leading-relaxed text-neutral-600">
+                {assessmentAiInterpretation.data.draft}
+              </p>
+            )}
+          </div>
+        )}
         {editingResponse?.answers && SCALE_CONFIGS[editingResponse.instrumentId] ? (
           <div className="space-y-3">
             {SCALE_CONFIGS[editingResponse.instrumentId].items.map((item, index) => {

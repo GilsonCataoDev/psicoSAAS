@@ -5,9 +5,10 @@ import { InstrumentAssignmentsController } from './instrument-assignments.contro
 import { InstrumentAssignmentsService } from './instrument-assignments.service'
 import { Patient } from '../patients/entities/patient.entity'
 import { NotificationsModule } from '../notifications/notifications.module'
+import { SessionsModule } from '../sessions/sessions.module'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([InstrumentAssignment, Patient]), NotificationsModule],
+  imports: [TypeOrmModule.forFeature([InstrumentAssignment, Patient]), NotificationsModule, SessionsModule],
   controllers: [InstrumentAssignmentsController],
   providers: [InstrumentAssignmentsService],
 })

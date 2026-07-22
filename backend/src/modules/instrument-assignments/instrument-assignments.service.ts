@@ -86,6 +86,12 @@ export class InstrumentAssignmentsService {
     }
   }
 
+  async findOwned(id: string, psychologistId: string): Promise<InstrumentAssignment> {
+    const assignment = await this.assignments.findOne({ where: { id, psychologistId } })
+    if (!assignment) throw new NotFoundException('Resposta nao encontrada')
+    return assignment
+  }
+
   async findMine(psychologistId: string, patientId?: string) {
     const items = await this.assignments.find({
       where: { psychologistId, ...(patientId ? { patientId } : {}) },

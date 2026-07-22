@@ -12,6 +12,7 @@ import { User } from '../auth/entities/user.entity'
 import { Appointment } from '../appointments/entities/appointment.entity'
 import { Booking } from '../booking/entities/booking.entity'
 import { Subscription } from '../billing/entities/subscription.entity'
+import { AiTextQuotaService } from './ai-text-quota.service'
 
 @Module({
   imports: [
@@ -20,7 +21,7 @@ import { Subscription } from '../billing/entities/subscription.entity'
     NotificationsModule,
   ],
   controllers: [SessionsController],
-  providers: [SessionsService, AiService],
-  exports: [AiService],
+  providers: [SessionsService, AiService, AiTextQuotaService],
+  exports: [AiService, AiTextQuotaService],
 })
 export class SessionsModule {}

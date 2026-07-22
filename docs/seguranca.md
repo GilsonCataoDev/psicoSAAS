@@ -47,6 +47,14 @@ Para dar suporte, a operação da plataforma pode usar um modo "ver como" (imper
 - O canal padronizado de divulgação responsável fica publicado em `/.well-known/security.txt`.
 - A Política de Privacidade pública descreve papéis, finalidades, fornecedores, direitos, retenção e limitações atuais.
 
+## Textos assistidos por IA
+
+- A partir do plano Essencial, a IA pode organizar transcrições, anotações de prontuário e campos de relatório, atestado ou encaminhamento. Ela gera somente um rascunho; nunca salva, assina ou envia um documento automaticamente.
+- Nos documentos, o profissional envia apenas as anotações do campo escolhido. Nome do paciente e dados cadastrais não são buscados nem enviados. O backend também reduz padrões de e-mail, CPF e telefone antes da chamada externa, mas o profissional deve evitar identificadores desnecessários.
+- A sugestão aparece separada e só substitui o campo após confirmação explícita. A revisão e a responsabilidade técnica continuam sendo do profissional.
+- A franquia mensal compartilhada é aplicada de forma atômica no servidor: 30 textos no Essencial e 150 no Pro por padrão. Os limites podem ser alterados ou desativados com `AI_TEXT_ESSENCIAL_MONTHLY_LIMIT` e `AI_TEXT_PRO_MONTHLY_LIMIT`.
+- Falhas do provedor devolvem a reserva da franquia. Tokens e custo estimado das respostas concluídas ficam contabilizados em `ai_usage`; prompts e conteúdo dos rascunhos de documentos não são persistidos pelo UseCognia.
+
 ## Copiloto de Raciocínio Clínico Neuropsicológico (plano Pro)
 
 **Finalidade**: apoiar o psicólogo a organizar o raciocínio em avaliações neuropsicológicas — apontar convergências, divergências, funções possivelmente preservadas ou frágeis, hipóteses alternativas e lacunas de informação. **Não é uma ferramenta de diagnóstico** e não corrige testes psicológicos ou neuropsicológicos: não recebe nem processa itens, estímulos, manuais ou tabelas normativas de nenhum instrumento protegido.
