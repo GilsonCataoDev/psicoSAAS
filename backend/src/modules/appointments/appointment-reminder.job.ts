@@ -188,15 +188,16 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
       const message = this.buildDailyAgendaDigestMessage(psychologist, appointments)
       const result = await this.notifications.sendDailyAgendaDigest(psychologistId, targetPhone, message)
 
+      if (!result.sent) {
+        this.logger.warn(`Resumo diario da agenda nao enviado para user ${psychologistId}: ${result.error ?? result.reason}`)
+        if (!result.nonRetryable) continue
+      }
+
       psychologist.preferences = {
         ...prefs,
         dailyAgendaDigestLastSentDate: today,
       }
       await this.users.save(psychologist)
-
-      if (!result.sent) {
-        this.logger.warn(`Resumo diario da agenda nao enviado para user ${psychologistId}: ${result.error ?? result.reason}`)
-      }
     }
   }
 

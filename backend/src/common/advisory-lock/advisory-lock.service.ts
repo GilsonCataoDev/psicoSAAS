@@ -8,6 +8,7 @@ export const JOB_LOCK_KEYS = {
   BILLING_TRIAL_EMAIL:    1003,
   BILLING_RECONCILIATION: 1004,
   CHURN_SCORE:            1005,
+  WHATSAPP_LOG_RETENTION: 1006,
 } as const
 
 @Injectable()
