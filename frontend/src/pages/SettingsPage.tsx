@@ -60,6 +60,8 @@ const EDITABLE_PREF_KEYS = [
   'whatsapp',
   'confirmationTemplate',
   'reminderTemplate',
+  'reminderTemplate24h',
+  'reminderTemplate2h',
 ] as const
 
 export default function SettingsPage() {
@@ -181,7 +183,20 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const userPrefs = (user as any)?.preferences ?? {}
-    setPrefs(prev => ({ ...prev, ...userPrefs }))
+    // Migração suave: quem já tinha um único template de lembrete customizado
+    // (antes da separação 24h/2h) continua vendo o próprio texto nas duas
+    // caixas novas, em vez de ser trocado silenciosamente pelo padrão genérico.
+    const legacyReminder = typeof userPrefs.reminderTemplate === 'string' && userPrefs.reminderTemplate.trim()
+      ? userPrefs.reminderTemplate
+      : undefined
+    const migratedPrefs = legacyReminder
+      ? {
+          reminderTemplate24h: userPrefs.reminderTemplate24h ?? legacyReminder,
+          reminderTemplate2h: userPrefs.reminderTemplate2h ?? legacyReminder,
+          ...userPrefs,
+        }
+      : userPrefs
+    setPrefs(prev => ({ ...prev, ...migratedPrefs }))
     setPhone(user?.phone ?? '')
 
     if (!isAuthenticated) { setLoadingPrefs(false); return }

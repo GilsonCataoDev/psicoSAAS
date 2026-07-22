@@ -797,8 +797,15 @@ export class NotificationsService {
     const defaultMsg = lead === '24h'
       ? `Ola, ${first}!\n\nLembrando que temos nosso encontro em *${dateLabel}* as *${timeLabel}*.\n\nAte la!`
       : `Ola, ${first}!\n\nPassando para lembrar que nossa sessao e hoje as *${timeLabel}*.\n\nAte daqui a pouco!`
-    const msg = typeof prefs.reminderTemplate === 'string' && prefs.reminderTemplate.trim()
-      ? this.renderReminderTemplate(prefs.reminderTemplate, patient.name, dateLabel, timeLabel, lead)
+    // Template específico do lead (24h/2h) tem prioridade; cai para o template
+    // único legado (contas que customizaram antes da separação) e por fim para
+    // o texto padrão embutido no código.
+    const leadTemplate = lead === '24h' ? prefs.reminderTemplate24h : prefs.reminderTemplate2h
+    const template = typeof leadTemplate === 'string' && leadTemplate.trim()
+      ? leadTemplate
+      : (typeof prefs.reminderTemplate === 'string' && prefs.reminderTemplate.trim() ? prefs.reminderTemplate : null)
+    const msg = template
+      ? this.renderReminderTemplate(template, patient.name, dateLabel, timeLabel, lead)
       : defaultMsg
 
     const whatsAppResult = await this.sendWhatsApp(patient.phone, msg, appointment.psychologistId, {
