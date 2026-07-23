@@ -86,6 +86,11 @@ export default defineConfig({
       devOptions: { enabled: true },
     }),
   ],
+  define: {
+    // Permite que tree-shaking elimine blocos `if (USE_MOCK)` na build de produção.
+    // Os arquivos mock-*.ts importados condicionalmente são zerados pelo bundler.
+    __USE_MOCK__: 'false',
+  },
   css: {
     postcss: { plugins: [tailwindcss, autoprefixer] },
   },

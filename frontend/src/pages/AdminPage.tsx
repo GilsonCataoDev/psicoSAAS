@@ -16,6 +16,7 @@ import {
   Eye,
   Mail,
   MessageCircle,
+  Radar,
   Search,
   ShieldCheck,
   TrendingDown,
@@ -900,6 +901,13 @@ export default function AdminPage() {
           >
             <MessageCircle className="h-4 w-4" />
             Depoimentos
+          </Link>
+          <Link
+            to="/admin/prospeccao"
+            className="inline-flex h-9 shrink-0 items-center gap-2 rounded-lg border border-neutral-200 px-3 text-sm font-medium text-neutral-600 hover:border-sage-300 hover:text-sage-700"
+          >
+            <Radar className="h-4 w-4" />
+            Radar de Psicólogos
           </Link>
         </div>
       </div>

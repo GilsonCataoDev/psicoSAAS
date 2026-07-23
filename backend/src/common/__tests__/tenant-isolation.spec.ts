@@ -21,6 +21,7 @@ import { SessionsService } from '../../modules/sessions/sessions.service'
 import { FinancialService } from '../../modules/financial/financial.service'
 import { DocumentsService } from '../../modules/documents/documents.service'
 import { AppointmentsService } from '../../modules/appointments/appointments.service'
+import { StorageService } from '../storage/storage.service'
 
 import { Patient } from '../../modules/patients/entities/patient.entity'
 import { PatientAttachment } from '../../modules/patients/entities/patient-attachment.entity'
@@ -274,6 +275,7 @@ describe('Isolamento entre contas — psicólogo A não acessa dados de B', () =
           { provide: getRepositoryToken(PatientAttachment), useValue: fakeRepo(attachments) },
           { provide: getRepositoryToken(Patient),           useValue: fakeRepo(patients) },
           { provide: getRepositoryToken(NeuropsychAssessment), useValue: fakeRepo(neuropsychAssessments) },
+          { provide: StorageService, useValue: { isPrivateConfigured: () => false } },
         ],
       }).compile()
       svc = mod.get(PatientAttachmentsService)

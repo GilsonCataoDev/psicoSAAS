@@ -24,6 +24,7 @@ import { TemplatesModule } from './modules/templates/templates.module'
 import { AdminModule } from './modules/admin/admin.module'
 import { TestimonialModule } from './modules/testimonial/testimonial.module'
 import { ChurnModule } from './modules/churn/churn.module'
+import { ProspectingModule } from './modules/prospecting/prospecting.module'
 import { Subscription as BillingSubscription } from './modules/billing/entities/subscription.entity'
 import { PlanGuard } from './common/guards/plan.guard'
 import { SubscriptionGuard } from './common/guards/subscription.guard'
@@ -32,6 +33,7 @@ import { AdvisoryLockModule } from './common/advisory-lock/advisory-lock.module'
 import { StorageModule } from './common/storage/storage.module'
 import { SecurityModule } from './common/security/security.module'
 import { AuditInterceptor } from './modules/audit/interceptors/audit.interceptor'
+import { MonitoringModule } from './common/monitoring/monitoring.module'
 import { HealthController } from './health.controller'
 import { NeuropsychAssessmentsModule } from './modules/neuropsych-assessments/neuropsych-assessments.module'
 
@@ -66,6 +68,7 @@ import { NeuropsychAssessmentsModule } from './modules/neuropsych-assessments/ne
     StorageModule,
     SecurityModule,
     AuditModule,
+    MonitoringModule,
     AuthModule,
     PatientsModule,
     AppointmentsModule,
@@ -87,6 +90,7 @@ import { NeuropsychAssessmentsModule } from './modules/neuropsych-assessments/ne
     AdminModule,
     TestimonialModule,
     ChurnModule,
+    ProspectingModule,
   ],
   controllers: [HealthController],
   providers: [

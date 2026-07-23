@@ -336,6 +336,7 @@ export class AuthService {
     if (!user) throw new NotFoundException()
 
     if (this.storage.isConfigured()) {
+      // Apaga avatar anterior se era do storage (não é base64 legado)
       if (user.avatarUrl && !user.avatarUrl.startsWith('data:')) {
         const oldKey = this.storage.keyFromUrl(user.avatarUrl)
         if (oldKey) await this.storage.delete(oldKey)
@@ -343,6 +344,7 @@ export class AuthService {
       const key = `avatars/${id}-${Date.now()}.jpg`
       user.avatarUrl = await this.storage.upload(key, buffer, 'image/jpeg')
     } else {
+      // Fallback legado: base64 no banco (sem storage configurado)
       user.avatarUrl = `data:image/jpeg;base64,${buffer.toString('base64')}`
     }
 
@@ -472,6 +474,7 @@ export class AuthService {
 
   // ── CSRF ───────────────────────────────────────────────────────────────────
 
+  /** Token stateless — HMAC(JWT_SECRET, "csrf:" + userId + ":" + csrfSeed) */
   generateCsrfToken(userId: string, csrfSeed?: string): string {
     return generateCsrfToken(userId, csrfSeed)
   }
