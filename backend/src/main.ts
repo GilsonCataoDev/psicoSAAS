@@ -66,10 +66,6 @@ async function bootstrap() {
   // para verificar a assinatura Svix do webhook do Resend sobre os bytes
   // exatos recebidos — o body-parser padrão já reconstrói o JSON, o que
   // invalidaria a assinatura HMAC calculada sobre o payload original.
-  if (process.env.NODE_ENV === 'production' && process.env.TYPEORM_SYNC === 'true') {
-    throw new Error('TYPEORM_SYNC=true em produção é proibido — use migrations')
-  }
-
   const app = await NestFactory.create(AppModule, { rawBody: true })
 
   // Confia no X-Forwarded-For do primeiro proxy (Railway/Vercel/Cloudflare).
