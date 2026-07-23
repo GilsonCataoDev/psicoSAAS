@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common'
+import { Body, Controller, Get, Header, Param, Post, Query } from '@nestjs/common'
 import { Throttle } from '@nestjs/throttler'
 import { BookingService } from './booking.service'
 import { CreateBookingDto } from './dto/create-booking.dto'
@@ -47,6 +47,7 @@ export class PublicBookingController {
 
   /** POST /api/public/booking/:slug — criar solicitação de agendamento */
   @Post(':slug')
+  @Header('Cache-Control', 'private, no-store')
   @Throttle({ short: { limit: 5, ttl: 60000 } })
   createBooking(@Param('slug') slug: string, @Body() dto: CreateBookingDto) {
     return this.svc.createBooking(slug, dto)
@@ -54,6 +55,7 @@ export class PublicBookingController {
 
   /** GET /api/public/booking/confirm/:token — paciente confirma via link */
   @Get('confirm/:token')
+  @Header('Cache-Control', 'private, no-store')
   @Throttle({ short: { limit: 10, ttl: 60000 } })
   confirm(@Param('token') token: string) {
     return this.svc.confirmByToken(token)
@@ -61,6 +63,7 @@ export class PublicBookingController {
 
   /** GET /api/public/booking/cancel/:token — valida link sem cancelar */
   @Get('cancel/:token')
+  @Header('Cache-Control', 'private, no-store')
   @Throttle({ short: { limit: 10, ttl: 60000 } })
   getCancel(@Param('token') token: string) {
     return this.svc.getCancellationPreview(token)
@@ -68,6 +71,7 @@ export class PublicBookingController {
 
   /** POST /api/public/booking/cancel/:token — paciente confirma cancelamento */
   @Post('cancel/:token')
+  @Header('Cache-Control', 'private, no-store')
   @Throttle({ short: { limit: 10, ttl: 60000 } })
   cancel(@Param('token') token: string, @Query('reason') reason?: string) {
     return this.svc.cancelByToken(token, reason)

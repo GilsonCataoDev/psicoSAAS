@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Download, Lock, Save, FileText, Pencil, X } from 'lucide-react'
-import { usePatient, useUpdatePatient, useSessions, useCreateSession, useUpdateSession, useExportProntuario } from '@/hooks/useApi'
+import { ArrowLeft, Download, Lock, Save, FileText, Pencil, X, Sparkles } from 'lucide-react'
+import { usePatient, useUpdatePatient, useSessions, useCreateSession, useUpdateSession, useExportProntuario, useGenerateProntuarioDraft } from '@/hooks/useApi'
 import { TAG_LABELS } from '@/types'
 import { Prontuario } from '@/types/prontuario'
 import { formatDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import DictationButton from '@/components/ui/DictationButton'
 import RecordingPanel from '@/components/ui/RecordingPanel'
+import { useHasPlan } from '@/store/subscription'
 
 const TABS = [
   { id: 'identificacao', label: 'Identificação' },
@@ -17,6 +18,7 @@ const TABS = [
 ] as const
 
 type Tab = typeof TABS[number]['id']
+type AiProntuarioMode = 'resumo' | 'evolucao' | 'organizar'
 
 const FIELD = ({
   label, value, onChange, rows, placeholder, readOnly, dictation,
@@ -65,8 +67,12 @@ export default function ProntuarioPage() {
   const updateSession = useUpdateSession()
   const updatePatient = useUpdatePatient()
   const exportProntuario = useExportProntuario(id ?? '')
+  const generateProntuarioDraft = useGenerateProntuarioDraft()
+  const hasEssencial = useHasPlan('essencial')
   const [evolText, setEvolText] = useState('')
   const [evolDate, setEvolDate] = useState(new Date().toISOString().split('T')[0])
+  const [aiMode, setAiMode] = useState<AiProntuarioMode>('organizar')
+  const [aiDraft, setAiDraft] = useState('')
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null)
   const [editEvolDate, setEditEvolDate] = useState('')
   const [editEvolText, setEditEvolText] = useState('')
@@ -123,6 +129,27 @@ export default function ProntuarioPage() {
       toast.success('Prontuario salvo com seguranca')
     } catch {
       toast.error('Erro ao salvar prontuário.')
+    }
+  }
+
+  async function generateAiDraft() {
+    if (!hasEssencial) {
+      toast.error('IA disponivel a partir do plano Essencial.')
+      return
+    }
+    if (!evolText.trim()) {
+      toast.error('Escreva a evolucao ou cole anotacoes antes de usar IA.')
+      return
+    }
+    try {
+      const { draft } = await generateProntuarioDraft.mutateAsync({
+        input: evolText,
+        mode: aiMode,
+      })
+      setAiDraft(draft)
+      toast.success('Rascunho gerado. Revise antes de salvar.')
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'Nao foi possivel gerar o rascunho.')
     }
   }
 
@@ -359,6 +386,54 @@ export default function ProntuarioPage() {
               <textarea rows={5} value={evolText} onChange={e => setEvolText(e.target.value)}
                 className="input-field resize-none text-sm"
                 placeholder="Descreva o conteúdo trabalhado, observações clínicas, intercorrências, resposta da pessoa ao processo terapêutico..." />
+            </div>
+            <div className="rounded-2xl border border-sage-100 bg-sage-50/70 p-3 dark:border-sage-400/20 dark:bg-sage-500/10">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div className="space-y-1">
+                  <p className="flex items-center gap-2 text-sm font-semibold text-sage-800 dark:text-sage-100">
+                    <Sparkles className="h-4 w-4" />
+                    Apoio de IA no prontuario
+                  </p>
+                  <p className="text-xs text-sage-700 dark:text-sage-200">
+                    A IA gera um rascunho. Disponivel a partir do Essencial.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <select
+                    value={aiMode}
+                    onChange={e => setAiMode(e.target.value as AiProntuarioMode)}
+                    className="input-field h-10 min-w-[150px] text-sm"
+                  >
+                    <option value="organizar">Organizar</option>
+                    <option value="evolucao">Evolucao</option>
+                    <option value="resumo">Resumo</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={generateAiDraft}
+                    disabled={generateProntuarioDraft.isPending || !hasEssencial}
+                    title={!hasEssencial ? 'IA disponivel a partir do plano Essencial' : undefined}
+                    className="btn-secondary flex items-center justify-center gap-2 text-sm"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    {!hasEssencial ? 'IA no Essencial' : generateProntuarioDraft.isPending ? 'Gerando...' : 'Gerar rascunho'}
+                  </button>
+                </div>
+              </div>
+              {aiDraft && (
+                <div className="mt-3 rounded-xl border border-white/70 bg-white p-3 dark:border-white/10 dark:bg-neutral-900">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Preview da IA</p>
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-700 dark:text-neutral-100">{aiDraft}</p>
+                  <div className="mt-3 flex flex-wrap justify-end gap-2">
+                    <button type="button" onClick={() => setAiDraft('')} className="btn-secondary text-sm">
+                      Descartar
+                    </button>
+                    <button type="button" onClick={() => setEvolText(aiDraft)} className="btn-primary text-sm">
+                      Usar rascunho
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
             <RecordingPanel
               patientName={patient.name}

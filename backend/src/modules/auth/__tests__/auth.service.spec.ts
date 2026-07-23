@@ -12,6 +12,9 @@ import { EmailService } from '../../email/email.service'
 import { ReferralService } from '../../referral/referral.service'
 import { AsaasService } from '../../billing/asaas.service'
 import { AuditService } from '../../audit/audit.service'
+import { RiskEngineService } from '../../../common/security/risk-engine.service'
+import { SuspiciousActivityService } from '../../../common/security/suspicious-activity.service'
+import { StorageService } from '../../../common/storage/storage.service'
 
 const makeUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-1',
@@ -104,6 +107,9 @@ describe('AuthService', () => {
         { provide: ReferralService, useValue: { applyReferral: jest.fn() } },
         { provide: AsaasService, useValue: { cancelSubscription: jest.fn().mockResolvedValue(undefined) } },
         { provide: AuditService, useValue: { record: jest.fn().mockResolvedValue(undefined) } },
+        { provide: RiskEngineService, useValue: { assessLoginRisk: jest.fn().mockResolvedValue({ level: 'low' }) } },
+        { provide: SuspiciousActivityService, useValue: { isIpBlocked: jest.fn().mockResolvedValue(false), recordFailedAttempt: jest.fn().mockResolvedValue(undefined) } },
+        { provide: StorageService, useValue: { isConfigured: jest.fn().mockReturnValue(false), upload: jest.fn(), delete: jest.fn(), keyFromUrl: jest.fn() } },
         {
           provide: DataSource,
           useValue: {

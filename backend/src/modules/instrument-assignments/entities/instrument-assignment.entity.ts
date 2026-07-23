@@ -13,6 +13,9 @@ export class InstrumentAssignment {
   @Column()
   token: string
 
+  @Column({ type: 'text', nullable: true })
+  tokenEncrypted?: string
+
   @Column()
   instrumentId: string
 

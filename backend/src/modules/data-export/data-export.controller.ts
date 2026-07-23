@@ -2,12 +2,13 @@ import { Controller, Get, HttpException, HttpStatus, Req, Res, UseGuards } from 
 import { Throttle } from '@nestjs/throttler'
 import { Response } from 'express'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
+import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
 import { AuditService } from '../audit/audit.service'
 import { DataExportService } from './data-export.service'
 import { pdfAttachment } from '../../common/http/content-disposition.util'
 
 @Controller('data-export')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, NoImpersonationGuard)
 export class DataExportController {
   constructor(
     private readonly dataExport: DataExportService,

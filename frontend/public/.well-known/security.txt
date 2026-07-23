@@ -1,0 +1,5 @@
+Contact: mailto:usecognia@gmail.com
+Expires: 2027-07-15T23:59:59Z
+Preferred-Languages: pt-BR, en
+Canonical: https://usecognia.com.br/.well-known/security.txt
+Policy: https://usecognia.com.br/seguranca

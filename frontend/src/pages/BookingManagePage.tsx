@@ -4,12 +4,14 @@ import { Link2, Check, X, Wallet, Settings, Clock, RefreshCw, Trash2, MessageCir
 import { copyText, formatCurrency, formatDateRelative } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import { addDays, format, parseISO, startOfWeek } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 import { openWhatsApp } from '@/lib/whatsapp'
 import {
   useBookings, useBookingPage, useSaveBookingPage,
   useConfirmBooking, useRejectBooking, usePayBooking,
   useDailyBookingLink, useAvailability, useSaveAvailability,
-  useSyncBookingAppointments, useBlockedDates, useAddBlockedDate, useRemoveBlockedDate,
+  useSyncBookingAppointments, useBlockedDates, useAddBlockedDate, useAddBlockedWeek, useRemoveBlockedDate,
 } from '@/hooks/useApi'
 
 const STATUS_CONFIG = {
@@ -428,8 +430,13 @@ function BookingSettings({ page }: { page: any }) {
   const saveAvailability = useSaveAvailability()
   const { data: blockedDates = [] } = useBlockedDates()
   const addBlockedDate = useAddBlockedDate()
+  const addBlockedWeek = useAddBlockedWeek()
   const removeBlockedDate = useRemoveBlockedDate()
-  const [blockedForm, setBlockedForm] = useState({ date: '', reason: '' })
+  const [blockedForm, setBlockedForm] = useState<{ date: string; reason: string; scope: 'day' | 'week' }>({
+    date: '',
+    reason: '',
+    scope: 'day',
+  })
 
   const [form, setForm] = useState({
     isActive:           page?.isActive ?? true,
@@ -446,7 +453,7 @@ function BookingSettings({ page }: { page: any }) {
     presencialSlotInterval: initialBreakInterval(page, 'presencial'),
     onlineSlotInterval:     initialBreakInterval(page, 'online'),
     minAdvanceDays:      +(page?.minAdvanceDays ?? 0),
-    maxAdvanceDays:      +(page?.maxAdvanceDays ?? 30),
+    allowNextMonthBooking: page?.allowNextMonthBooking ?? false,
     pixKey:              page?.pixKey ?? '',
     confirmationMessage: page?.confirmationMessage ?? '',
     allowPresencial:     page?.allowPresencial ?? true,
@@ -469,7 +476,7 @@ function BookingSettings({ page }: { page: any }) {
       presencialSlotInterval: initialBreakInterval(page, 'presencial'),
       onlineSlotInterval:     initialBreakInterval(page, 'online'),
       minAdvanceDays:      +(page.minAdvanceDays ?? 0),
-      maxAdvanceDays:      +(page.maxAdvanceDays ?? 30),
+      allowNextMonthBooking: page.allowNextMonthBooking ?? false,
       pixKey:              page.pixKey ?? '',
       confirmationMessage: page.confirmationMessage ?? '',
       allowPresencial:     page.allowPresencial ?? true,
@@ -563,15 +570,6 @@ function BookingSettings({ page }: { page: any }) {
       toast.error('A antecedência mínima precisa ficar entre 0 e 30 dias.')
       return false
     }
-    if (form.maxAdvanceDays < 1 || form.maxAdvanceDays > 180) {
-      toast.error('A antecedência máxima precisa ficar entre 1 e 180 dias.')
-      return false
-    }
-    if (form.maxAdvanceDays < form.minAdvanceDays) {
-      toast.error('A antecedência máxima precisa ser maior que a mínima.')
-      return false
-    }
-
     const invalidSlot = MODALITIES.flatMap(({ key }) =>
       WEEKDAYS
         .filter(({ d }) => schedules[key][d]?.enabled)
@@ -626,16 +624,25 @@ function BookingSettings({ page }: { page: any }) {
       return
     }
     try {
-      await addBlockedDate.mutateAsync({
+      const payload = {
         date: blockedForm.date,
         reason: blockedForm.reason.trim() || undefined,
-      })
-      setBlockedForm({ date: '', reason: '' })
-      toast.success('Data bloqueada.')
+      }
+      if (blockedForm.scope === 'week') {
+        await addBlockedWeek.mutateAsync(payload)
+      } else {
+        await addBlockedDate.mutateAsync(payload)
+      }
+      setBlockedForm(form => ({ ...form, date: '', reason: '' }))
+      toast.success(blockedForm.scope === 'week' ? 'Semana bloqueada.' : 'Data bloqueada.')
     } catch {
-      toast.error('Erro ao bloquear data.')
+      toast.error(blockedForm.scope === 'week' ? 'Erro ao bloquear semana.' : 'Erro ao bloquear data.')
     }
   }
+
+  const selectedWeekStart = blockedForm.date
+    ? startOfWeek(parseISO(blockedForm.date), { weekStartsOn: 1 })
+    : null
 
   const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }))
   const isSaving = saveBookingPage.isPending || saveAvailability.isPending
@@ -954,12 +961,37 @@ function BookingSettings({ page }: { page: any }) {
             <input type="number" min={0} max={30} value={form.minAdvanceDays} onChange={e => set('minAdvanceDays', +e.target.value)} className="input-field" />
             <p className="text-xs text-neutral-400 mt-1">Ex: 1 impede agendamento para hoje.</p>
           </div>
-          <div>
-            <label className="label">Agendar até quantos dias à frente</label>
-            <input type="number" min={1} max={180} value={form.maxAdvanceDays} onChange={e => set('maxAdvanceDays', +e.target.value)} className="input-field" />
-            <p className="text-xs text-neutral-400 mt-1">Ex: 15 impede que alguem marque para daqui dois meses.</p>
-          </div>
         </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={form.allowNextMonthBooking}
+          onClick={() => set('allowNextMonthBooking', !form.allowNextMonthBooking)}
+          className={cn(
+            'flex w-full items-center justify-between gap-4 rounded-2xl border p-4 text-left transition-colors',
+            form.allowNextMonthBooking
+              ? 'border-sage-300 bg-sage-50 dark:border-sage-400/40 dark:bg-sage-500/15'
+              : 'border-neutral-200 bg-neutral-50 dark:border-white/10 dark:bg-black/15',
+          )}
+        >
+          <span>
+            <span className="block text-sm font-semibold text-neutral-800 dark:text-neutral-100">
+              Liberar agendamentos para o próximo mês
+            </span>
+            <span className="mt-1 block text-xs text-neutral-500 dark:text-neutral-300">
+              O mês atual fica sempre disponível. Meses posteriores ao próximo continuam bloqueados.
+            </span>
+          </span>
+          <span className={cn(
+            'relative h-6 w-11 shrink-0 rounded-full transition-colors',
+            form.allowNextMonthBooking ? 'bg-sage-600' : 'bg-neutral-300 dark:bg-neutral-600',
+          )}>
+            <span className={cn(
+              'absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform',
+              form.allowNextMonthBooking ? 'translate-x-6' : 'translate-x-1',
+            )} />
+          </span>
+        </button>
         <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4 dark:border-white/10 dark:bg-black/15">
           <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-400">Previa do link publico</p>
           <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-neutral-950">
@@ -982,7 +1014,7 @@ function BookingSettings({ page }: { page: any }) {
                 {formatCurrency(form.sessionPrice)}
               </div>
               <div className="rounded-xl bg-neutral-50 px-3 py-2 text-xs text-neutral-500 dark:bg-white/5 dark:text-neutral-300">
-                {form.maxAdvanceDays} dias abertos
+                {form.allowNextMonthBooking ? 'Mês atual + próximo' : 'Somente mês atual'}
               </div>
               <div className="rounded-xl bg-neutral-50 px-3 py-2 text-xs text-neutral-500 dark:bg-white/5 dark:text-neutral-300">
                 {[form.allowPresencial && 'Presencial', form.allowOnline && 'Online'].filter(Boolean).join(' / ') || 'Sem modalidade'}
@@ -1029,6 +1061,26 @@ function BookingSettings({ page }: { page: any }) {
       <div className="card space-y-4">
         <h2 className="section-title">Datas bloqueadas</h2>
         <p className="text-xs text-neutral-400">Férias, feriados e dias sem atendimento não aparecem como disponíveis no link público.</p>
+        <div className="inline-flex w-full rounded-xl bg-neutral-100 p-1 dark:bg-black/20 sm:w-auto">
+          {([
+            { value: 'day', label: 'Bloquear um dia' },
+            { value: 'week', label: 'Bloquear uma semana' },
+          ] as const).map(option => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setBlockedForm(form => ({ ...form, scope: option.value }))}
+              className={cn(
+                'flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors sm:flex-none',
+                blockedForm.scope === option.value
+                  ? 'bg-white text-neutral-800 shadow-sm dark:bg-sage-500/25 dark:text-sage-100'
+                  : 'text-neutral-500 hover:text-neutral-700 dark:text-neutral-300 dark:hover:text-white',
+              )}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-[160px_1fr_auto] gap-3">
           <input
             type="date"
@@ -1037,15 +1089,30 @@ function BookingSettings({ page }: { page: any }) {
             className="input-field"
           />
           <input
+            maxLength={255}
             value={blockedForm.reason}
             onChange={e => setBlockedForm(f => ({ ...f, reason: e.target.value }))}
             className="input-field"
-            placeholder="Motivo opcional"
+            placeholder={blockedForm.scope === 'week' ? 'Motivo da semana (opcional)' : 'Motivo opcional'}
           />
-          <button type="button" onClick={blockDate} className="btn-secondary text-sm">
-            Bloquear
+          <button
+            type="button"
+            onClick={blockDate}
+            disabled={addBlockedDate.isPending || addBlockedWeek.isPending}
+            className="btn-secondary text-sm disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {addBlockedDate.isPending || addBlockedWeek.isPending
+              ? 'Bloqueando...'
+              : blockedForm.scope === 'week' ? 'Bloquear semana' : 'Bloquear dia'}
           </button>
         </div>
+        {blockedForm.scope === 'week' && selectedWeekStart && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-100">
+            A semana de {format(selectedWeekStart, 'dd/MM', { locale: ptBR })} a{' '}
+            {format(addDays(selectedWeekStart, 6), 'dd/MM/yyyy', { locale: ptBR })} será bloqueada.
+            Agendamentos já confirmados não serão cancelados.
+          </div>
+        )}
         <div className="space-y-2">
           {blockedDates.length === 0 ? (
             <p className="text-sm text-neutral-400 py-2">Nenhuma data bloqueada.</p>

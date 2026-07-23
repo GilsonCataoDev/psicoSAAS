@@ -6,9 +6,10 @@ import { DocumentsController } from './documents.controller'
 import { Subscription } from '../billing/entities/subscription.entity'
 import { EmailModule } from '../email/email.module'
 import { AuditModule } from '../audit/audit.module'
+import { SessionsModule } from '../sessions/sessions.module'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Document, Subscription]), EmailModule, AuditModule],
+  imports: [TypeOrmModule.forFeature([Document, Subscription]), EmailModule, AuditModule, SessionsModule],
   providers: [DocumentsService],
   controllers: [DocumentsController],
   exports: [DocumentsService],

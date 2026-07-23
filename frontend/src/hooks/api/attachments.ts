@@ -6,23 +6,27 @@ export type PatientAttachment = {
   filename: string
   mimeType: string
   size: number
+  kind: 'test_result' | 'final_report' | 'supporting_document' | 'other'
+  assessmentId?: string
   createdAt: string
 }
 
-export function usePatientAttachments(patientId?: string) {
+export function usePatientAttachments(patientId?: string, assessmentId?: string) {
   return useQuery<PatientAttachment[]>({
-    queryKey: ['patient-attachments', patientId],
-    queryFn: () => api.get(`/patients/${patientId}/attachments`).then(r => r.data),
+    queryKey: ['patient-attachments', patientId, assessmentId],
+    queryFn: () => api.get(`/patients/${patientId}/attachments`, { params: assessmentId ? { assessmentId } : undefined }).then(r => r.data),
     enabled: !!patientId,
   })
 }
 
-export function useUploadPatientAttachment(patientId?: string) {
+export function useUploadPatientAttachment(patientId?: string, assessmentId?: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (file: File) => {
+    mutationFn: ({ file, kind = 'other' }: { file: File; kind?: PatientAttachment['kind'] }) => {
       const form = new FormData()
       form.append('file', file)
+      form.append('kind', kind)
+      if (assessmentId) form.append('assessmentId', assessmentId)
       return api.post<PatientAttachment>(`/patients/${patientId}/attachments`, form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       }).then(r => r.data)

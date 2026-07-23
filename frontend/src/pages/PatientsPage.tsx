@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import { Plus, Search, UsersRound } from 'lucide-react'
+import { BrainCircuit, Plus, Search, Upload, UsersRound } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
 import { formatCurrency, formatDate, patientStartDate } from '@/lib/utils'
 import { Patient } from '@/types'
 import NewPatientModal from '@/components/features/patients/NewPatientModal'
+import ImportPatientsModal from '@/components/features/patients/ImportPatientsModal'
 import { usePatients } from '@/hooks/useApi'
 import { PLANS, useSubscriptionStore } from '@/store/subscription'
 import toast from 'react-hot-toast'
@@ -22,14 +23,17 @@ export default function PatientsPage() {
     : ''
   const [search, setSearch] = useState(initialSearch)
   const [filter, setFilter] = useState<'all' | 'active' | 'paused' | 'discharged'>('all')
+  const [careMode, setCareMode] = useState<'all' | 'psychotherapy' | 'neuropsychological_assessment'>('all')
   const [showModal, setShowModal] = useState(false)
+  const [showImportModal, setShowImportModal] = useState(false)
   const { data: patients = [], isLoading } = usePatients()
   const subscription = useSubscriptionStore((s) => s.subscription)
 
   const filtered = patients.filter((p) => {
     const matchSearch = patientMatchesSearch(p, search)
     const matchFilter = filter === 'all' || p.status === filter
-    return matchSearch && matchFilter
+    const matchCareMode = careMode === 'all' || p.careMode === careMode
+    return matchSearch && matchFilter && matchCareMode
   }).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }))
 
   const groupedPatients = filtered.reduce<Record<string, Patient[]>>((groups, patient) => {
@@ -76,15 +80,25 @@ export default function PatientsPage() {
               : `${activeCount}/${patientLimit} pacientes ativos no plano ${currentPlan.name}`}
           </p>
         </div>
-        <button
-          onClick={openCreatePatientModal}
-          className="btn-primary flex items-center gap-2"
-          aria-disabled={reachedPatientLimit}
-          aria-label="Novo paciente"
-        >
-          <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Novo paciente</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="btn-secondary flex items-center gap-2"
+            aria-label="Importar CSV"
+          >
+            <Upload className="w-4 h-4" />
+            <span className="hidden sm:inline">Importar CSV</span>
+          </button>
+          <button
+            onClick={openCreatePatientModal}
+            className="btn-primary flex items-center gap-2"
+            aria-disabled={reachedPatientLimit}
+            aria-label="Novo paciente"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Novo paciente</span>
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -110,6 +124,11 @@ export default function PatientsPage() {
             </button>
           ))}
         </div>
+        <select value={careMode} onChange={event => setCareMode(event.target.value as typeof careMode)} className="input-field sm:w-56" aria-label="Filtrar por modo de atendimento">
+          <option value="all">Todos os atendimentos</option>
+          <option value="psychotherapy">Psicoterapia</option>
+          <option value="neuropsychological_assessment">Avaliação neuropsicológica</option>
+        </select>
       </div>
 
       {isLoading ? (
@@ -121,9 +140,9 @@ export default function PatientsPage() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<UsersRound className="h-7 w-7" strokeWidth={1.8} />}
-          title={search || filter !== 'all' ? 'Nenhum paciente encontrado' : 'Nenhum paciente cadastrado ainda'}
+          title={search || filter !== 'all' || careMode !== 'all' ? 'Nenhum paciente encontrado' : 'Nenhum paciente cadastrado ainda'}
           description={
-            search || filter !== 'all'
+            search || filter !== 'all' || careMode !== 'all'
               ? 'Tente ajustar a busca ou os filtros.'
               : reachedPatientLimit
                 ? `Seu plano ${currentPlan.name} permite até ${patientLimit} pacientes ativos.`
@@ -157,6 +176,12 @@ export default function PatientsPage() {
       )}
 
       <NewPatientModal open={showModal} onClose={() => setShowModal(false)} />
+      <ImportPatientsModal
+        open={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        reachedPatientLimit={reachedPatientLimit}
+        currentPlanName={currentPlan.name}
+      />
     </div>
   )
 }
@@ -178,9 +203,16 @@ function PatientCard({ patient }: { patient: Patient }) {
             <span className="text-xs text-neutral-400">({patient.pronouns})</span>
           )}
           <StatusBadge status={patient.status} />
+          {patient.careMode === 'neuropsychological_assessment' && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-700 dark:bg-violet-950/40 dark:text-violet-200">
+              <BrainCircuit className="h-3 w-3" /> Avaliação
+            </span>
+          )}
         </div>
         <p className="text-xs text-neutral-400 mt-0.5 truncate">
-          Desde {formatDate(patientStartDate(patient.startDate, patient.createdAt))} · {formatCurrency(Number(patient.sessionPrice ?? 0))}/sessão
+          Desde {formatDate(patientStartDate(patient.startDate, patient.createdAt))} · {patient.billingType === 'monthly_package'
+            ? `${formatCurrency(Number(patient.monthlyPackagePrice ?? 0))}/mês · ${patient.monthlyIncludedSessions ?? 4} sessões`
+            : `${formatCurrency(Number(patient.sessionPrice ?? 0))}/sessão`}
         </p>
         {patient.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1.5">

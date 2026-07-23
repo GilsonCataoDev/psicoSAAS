@@ -1,9 +1,9 @@
-import { useParams, Link } from 'react-router-dom'
+import { useNavigate, useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, Phone, Mail, Calendar, Plus, Lock,
   ClipboardList, MessageCircle, CheckCircle2, Save,
   CalendarDays, Banknote, Clock, FileText, Pencil,
-  BookOpenText, BarChart3, Copy, Paperclip, Download, Trash2, Eye,
+  BookOpenText, BrainCircuit, BarChart3, Copy, Paperclip, Download, Trash2, Eye, Sparkles, Loader2,
 } from 'lucide-react'
 import { SCALE_CONFIGS, getCriticalResponses, interpretScaleResult } from '@/lib/scale-scoring'
 import Avatar from '@/components/ui/Avatar'
@@ -16,12 +16,15 @@ import {
   useInstrumentAssignments, useUpdateInstrumentAnswers, useCreatePatientPortalLink, type InstrumentAssignment,
   usePatientAttachments, useUploadPatientAttachment, useDeletePatientAttachment,
   downloadPatientAttachment, previewPatientAttachment, type PatientAttachment,
+  useCreateNeuropsychAssessment, useNeuropsychAssessments,
+  useAssessmentAiInterpretation,
 } from '@/hooks/useApi'
 import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
 import { track, EVENTS } from '@/lib/analytics'
 import LightweightChart from '@/components/ui/LightweightChart'
+import EditPatientModal from '@/components/features/patients/EditPatientModal'
 
 const MOODS = ['', '1', '2', '3', '4', '5']
 const WEEKDAYS = ['Domingo', 'Segunda', 'Terca', 'Quarta', 'Quinta', 'Sexta', 'Sabado']
@@ -43,6 +46,7 @@ const PRONTUARIO_FIELDS = [
 
 export default function PatientDetailPage() {
   const { id } = useParams()
+  const navigate = useNavigate()
   useEffect(() => { if (id) track(EVENTS.PATIENT_VIEWED) }, [id])
   const { data: patient, isLoading } = usePatient(id ?? '')
   const { data: allSessions = [] } = useSessions({ patientId: id, includeClinical: true })
@@ -52,10 +56,16 @@ export default function PatientDetailPage() {
   const updatePatient = useUpdatePatient()
   const { data: instrumentAssignments = [] } = useInstrumentAssignments(id)
   const updateInstrumentAnswers = useUpdateInstrumentAnswers()
+  const assessmentAiInterpretation = useAssessmentAiInterpretation()
   const createPortalLink = useCreatePatientPortalLink()
   const { data: attachments = [] } = usePatientAttachments(id)
   const uploadAttachment = useUploadPatientAttachment(id)
   const deleteAttachment = useDeletePatientAttachment(id)
+  const { data: neuropsychAssessments = [] } = useNeuropsychAssessments()
+  const createNeuropsychAssessment = useCreateNeuropsychAssessment()
+  const patientAssessments = neuropsychAssessments.filter(assessment => assessment.patientId === id)
+  const activeAssessment = patientAssessments.find(assessment => ['planning', 'in_progress', 'integration'].includes(assessment.status))
+  const latestAssessment = activeAssessment ?? patientAssessments[0]
   const [downloadingAttachmentId, setDownloadingAttachmentId] = useState<string | null>(null)
   const [previewAttachment, setPreviewAttachment] = useState<PatientAttachment | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -73,7 +83,7 @@ export default function PatientDetailPage() {
       return
     }
     try {
-      await uploadAttachment.mutateAsync(file)
+      await uploadAttachment.mutateAsync({ file })
       toast.success('Documento anexado ao prontuário')
     } catch (e: any) {
       toast.error(e?.response?.data?.message ?? 'Não foi possível anexar o documento.')
@@ -120,8 +130,24 @@ export default function PatientDetailPage() {
     setPreviewUrl(null)
     setPreviewAttachment(null)
   }
+
+  async function openOrStartNeuropsychAssessment() {
+    if (activeAssessment) {
+      navigate(`/avaliacoes/${activeAssessment.id}`)
+      return
+    }
+    if (!id) return
+    try {
+      const created = await createNeuropsychAssessment.mutateAsync({ patientId: id })
+      toast.success('Avaliação iniciada')
+      navigate(`/avaliacoes/${created.id}`)
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message ?? 'Não foi possível iniciar a avaliação')
+    }
+  }
   const [tab, setTab] = useState<'record' | 'timeline' | 'responses' | 'notes' | 'financial'>('record')
   const [showSessionModal, setShowSessionModal] = useState(false)
+  const [showEditPatientModal, setShowEditPatientModal] = useState(false)
   const [editingResponse, setEditingResponse] = useState<InstrumentAssignment | null>(null)
   const [editedAnswers, setEditedAnswers] = useState<Record<string, string>>({})
   const [fixedSchedule, setFixedSchedule] = useState({
@@ -133,7 +159,11 @@ export default function PatientDetailPage() {
   })
   const [careSettings, setCareSettings] = useState({
     status: 'active' as 'active' | 'paused' | 'discharged',
+    billingType: 'per_session' as 'per_session' | 'monthly_package',
     sessionPrice: 0,
+    monthlyPackagePrice: 0,
+    monthlyIncludedSessions: 4,
+    billingDay: 5,
     sessionDuration: 50,
   })
   const [demographicSettings, setDemographicSettings] = useState({
@@ -157,7 +187,11 @@ export default function PatientDetailPage() {
     })
     setCareSettings({
       status: patient.status,
+      billingType: patient.billingType ?? 'per_session',
       sessionPrice: Number(patient.sessionPrice ?? 0),
+      monthlyPackagePrice: Number(patient.monthlyPackagePrice ?? 0),
+      monthlyIncludedSessions: patient.monthlyIncludedSessions ?? 4,
+      billingDay: patient.billingDay ?? 5,
       sessionDuration: patient.sessionDuration ?? 50,
     })
     setDemographicSettings({
@@ -168,7 +202,11 @@ export default function PatientDetailPage() {
   }, [
     patient?.id,
     patient?.status,
+    patient?.billingType,
     patient?.sessionPrice,
+    patient?.monthlyPackagePrice,
+    patient?.monthlyIncludedSessions,
+    patient?.billingDay,
     patient?.sessionDuration,
     patient?.race,
     patient?.gender,
@@ -212,7 +250,11 @@ export default function PatientDetailPage() {
         id,
         data: {
           status: careSettings.status,
+          billingType: careSettings.billingType,
           sessionPrice: careSettings.sessionPrice,
+          monthlyPackagePrice: careSettings.monthlyPackagePrice,
+          monthlyIncludedSessions: careSettings.monthlyIncludedSessions,
+          billingDay: careSettings.billingDay,
           sessionDuration: careSettings.sessionDuration,
         },
       })
@@ -254,6 +296,26 @@ export default function PatientDetailPage() {
   function openResponse(response: InstrumentAssignment) {
     setEditingResponse(response)
     setEditedAnswers(response.answers ?? {})
+    assessmentAiInterpretation.reset()
+  }
+
+  function generateAssessmentInterpretation() {
+    if (!editingResponse) return
+    const interpretation = scaleInterpretation(editingResponse)
+    if (!interpretation) return
+    const critical = criticalResponses(editingResponse)
+    assessmentAiInterpretation.mutate({
+      id: editingResponse.id,
+      scaleName: editingResponse.title,
+      scoreDetails: {
+        score: interpretation.score,
+        level: interpretation.level?.label,
+        subscales: interpretation.subscales.map(s => ({ label: s.label, score: s.score, level: s.level.label })),
+      },
+      criticalFlags: critical.map(c => ({ label: c.label, note: c.note })),
+    }, {
+      onError: () => toast.error('Não foi possível gerar a interpretação por IA.'),
+    })
   }
 
   function criticalResponses(response: InstrumentAssignment | null) {
@@ -306,6 +368,8 @@ export default function PatientDetailPage() {
   const totalPaid    = financialRecords.filter(r => r.status === 'paid').reduce((s, r) => s + Number(r.amount), 0)
   const totalPending = financialRecords.filter(r => r.status !== 'paid').reduce((s, r) => s + Number(r.amount), 0)
   const clinicalSessions = allSessions.filter(session => !session.tags?.some(tag => String(tag) === 'instrumento'))
+  const currentMonth = new Date().toISOString().slice(0, 7)
+  const monthlySessionsUsed = clinicalSessions.filter(session => String(session.date).startsWith(currentMonth)).length
   const prontuario = patient.prontuario ?? {}
 
   const moodChartData = (() => {
@@ -366,6 +430,13 @@ export default function PatientDetailPage() {
 
               {/* Ações — desktop */}
               <div className="hidden sm:flex gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowEditPatientModal(true)}
+                  className="btn-secondary text-sm flex items-center gap-1.5"
+                >
+                  <Pencil className="w-3.5 h-3.5" /> Editar
+                </button>
                 <button onClick={copyPortalLink}
                   disabled={createPortalLink.isPending}
                   className="btn-secondary text-sm flex items-center gap-1.5">
@@ -391,18 +462,25 @@ export default function PatientDetailPage() {
         </div>
 
         {/* Ações — mobile */}
-        <div className="flex gap-2 mt-4 sm:hidden">
+        <div className="grid grid-cols-2 gap-2 mt-4 sm:hidden">
+          <button
+            type="button"
+            onClick={() => setShowEditPatientModal(true)}
+            className="btn-secondary text-sm flex items-center gap-1.5 justify-center"
+          >
+            <Pencil className="w-3.5 h-3.5" /> Editar
+          </button>
           <button onClick={copyPortalLink}
             disabled={createPortalLink.isPending}
-            className="btn-secondary text-sm flex items-center gap-1.5 flex-1 justify-center">
+            className="btn-secondary text-sm flex items-center gap-1.5 justify-center">
             <Copy className="w-3.5 h-3.5" /> Portal
           </button>
           <Link to={`/prontuario/${patient.id}`}
-            className="btn-secondary text-sm flex items-center gap-1.5 flex-1 justify-center">
+            className="btn-secondary text-sm flex items-center gap-1.5 justify-center">
             <ClipboardList className="w-3.5 h-3.5" /> Prontuário
           </Link>
           <button onClick={() => setShowSessionModal(true)}
-            className="btn-primary text-sm flex items-center gap-1.5 flex-1 justify-center">
+            className="btn-primary text-sm flex items-center gap-1.5 justify-center">
             <Plus className="w-3.5 h-3.5" /> Nova sessão
           </button>
         </div>
@@ -414,8 +492,13 @@ export default function PatientDetailPage() {
             <p className="font-semibold text-neutral-700 text-sm">{formatDate(patientStartDate(patient.startDate, patient.createdAt))}</p>
           </div>
           <div>
-            <p className="text-xs text-neutral-400 mb-0.5">Valor por sessão</p>
-            <p className="font-semibold text-neutral-700 text-sm">{formatCurrency(patient.sessionPrice)}</p>
+            <p className="text-xs text-neutral-400 mb-0.5">
+              {patient.billingType === 'monthly_package' ? 'Pacote mensal' : 'Valor por sessão'}
+            </p>
+            <p className="font-semibold text-neutral-700 text-sm">
+              {formatCurrency(patient.billingType === 'monthly_package' ? patient.monthlyPackagePrice : patient.sessionPrice)}
+              {patient.billingType === 'monthly_package' && <span className="font-normal text-neutral-400"> · {monthlySessionsUsed}/{patient.monthlyIncludedSessions} sessões</span>}
+            </p>
           </div>
           <div>
             <p className="text-xs text-neutral-400 mb-0.5">Duração</p>
@@ -443,6 +526,29 @@ export default function PatientDetailPage() {
           </div>
         </div>
       </div>
+
+      {(patient.careMode === 'neuropsychological_assessment' || latestAssessment) && (
+        <section className="rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white p-5 shadow-card dark:border-violet-900/50 dark:from-violet-950/30 dark:to-cognia-panel">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+            <div className="flex items-start gap-3">
+              <span className="rounded-xl bg-violet-100 p-2.5 text-violet-700 dark:bg-violet-900/50 dark:text-violet-200"><BrainCircuit className="h-5 w-5" /></span>
+              <div><h2 className="font-semibold text-neutral-900 dark:text-white">Avaliação neuropsicológica</h2>
+                <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">{activeAssessment
+                  ? `${activeAssessment.batteryProgress.applied}/${activeAssessment.batteryProgress.total} procedimentos aplicados · avaliação em andamento`
+                  : latestAssessment
+                    ? 'A avaliação mais recente foi concluída ou arquivada. Você pode consultá-la na área de avaliações.'
+                    : 'Organize história, bateria, resultados, integração e relatório final.'}</p></div>
+            </div>
+            {activeAssessment ? <button type="button" onClick={openOrStartNeuropsychAssessment} className="btn-primary shrink-0">Abrir avaliação</button> : latestAssessment ? <Link to={`/avaliacoes/${latestAssessment.id}`} className="btn-secondary shrink-0 text-center">Ver última avaliação</Link> : <button type="button" onClick={openOrStartNeuropsychAssessment} disabled={createNeuropsychAssessment.isPending} className="btn-primary shrink-0">{createNeuropsychAssessment.isPending ? 'Iniciando...' : 'Iniciar avaliação'}</button>}
+          </div>
+        </section>
+      )}
+
+      <EditPatientModal
+        open={showEditPatientModal}
+        onClose={() => setShowEditPatientModal(false)}
+        patient={patient}
+      />
 
       <div className="card space-y-3">
         <div className="flex items-center justify-between gap-3">
@@ -509,15 +615,13 @@ export default function PatientDetailPage() {
             </select>
           </div>
           <div>
-            <label className="label">Valor da sessão (R$)</label>
-            <input
-              type="number"
-              min={0}
-              step="0.01"
-              value={careSettings.sessionPrice}
-              onChange={e => setCareSettings(s => ({ ...s, sessionPrice: Number(e.target.value) }))}
-              className="input-field"
-            />
+            <label className="label">Forma de cobrança</label>
+            <select value={careSettings.billingType}
+              onChange={e => setCareSettings(s => ({ ...s, billingType: e.target.value as typeof careSettings.billingType }))}
+              className="input-field">
+              <option value="per_session">Por sessão</option>
+              <option value="monthly_package">Pacote mensal</option>
+            </select>
           </div>
           <div>
             <label className="label">Duração (min)</label>
@@ -530,6 +634,38 @@ export default function PatientDetailPage() {
               className="input-field"
             />
           </div>
+          {careSettings.billingType === 'monthly_package' ? (
+            <>
+              <div>
+                <label className="label">Valor do pacote (R$)</label>
+                <input type="number" min={0} step="0.01" value={careSettings.monthlyPackagePrice}
+                  onChange={e => setCareSettings(s => ({ ...s, monthlyPackagePrice: Number(e.target.value) }))}
+                  className="input-field" />
+              </div>
+              <div>
+                <label className="label">Sessões incluídas/mês</label>
+                <input type="number" min={1} max={31} value={careSettings.monthlyIncludedSessions}
+                  onChange={e => setCareSettings(s => ({ ...s, monthlyIncludedSessions: Number(e.target.value) }))}
+                  className="input-field" />
+              </div>
+              <div>
+                <label className="label">Dia do vencimento</label>
+                <input type="number" min={1} max={31} value={careSettings.billingDay}
+                  onChange={e => setCareSettings(s => ({ ...s, billingDay: Number(e.target.value) }))}
+                  className="input-field" />
+              </div>
+              <div className="flex items-end text-xs text-neutral-500">
+                Uso neste mês: <strong className="ml-1 text-neutral-700">{monthlySessionsUsed}/{careSettings.monthlyIncludedSessions}</strong>
+              </div>
+            </>
+          ) : (
+            <div>
+              <label className="label">Valor da sessão (R$)</label>
+              <input type="number" min={0} step="0.01" value={careSettings.sessionPrice}
+                onChange={e => setCareSettings(s => ({ ...s, sessionPrice: Number(e.target.value) }))}
+                className="input-field" />
+            </div>
+          )}
           <div className="flex items-end">
             <button onClick={saveCareSettings} disabled={updatePatient.isPending} className="btn-primary text-sm w-full">
               {updatePatient.isPending ? 'Salvando...' : 'Salvar'}
@@ -1114,6 +1250,35 @@ export default function PatientDetailPage() {
             </div>
           )
         })()}
+        {editingResponse?.score != null && (
+          <div className="mb-4 rounded-xl border border-neutral-100 bg-white p-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-neutral-700 flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-sage-600" /> Interpretação por IA
+              </p>
+              <button
+                type="button"
+                onClick={generateAssessmentInterpretation}
+                disabled={assessmentAiInterpretation.isPending}
+                className="btn-secondary text-xs px-2.5 py-1"
+              >
+                {assessmentAiInterpretation.isPending
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : assessmentAiInterpretation.data ? 'Gerar de novo' : 'Gerar rascunho'}
+              </button>
+            </div>
+            {assessmentAiInterpretation.data?.criticalAlert && (
+              <p className="mt-2 rounded-lg bg-red-50 p-2 text-xs font-medium leading-relaxed text-red-800">
+                {assessmentAiInterpretation.data.criticalAlert}
+              </p>
+            )}
+            {assessmentAiInterpretation.data?.draft && (
+              <p className="mt-2 text-xs leading-relaxed text-neutral-600">
+                {assessmentAiInterpretation.data.draft}
+              </p>
+            )}
+          </div>
+        )}
         {editingResponse?.answers && SCALE_CONFIGS[editingResponse.instrumentId] ? (
           <div className="space-y-3">
             {SCALE_CONFIGS[editingResponse.instrumentId].items.map((item, index) => {

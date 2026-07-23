@@ -18,6 +18,7 @@ export class FinancialRecord {
   @Column({ nullable: true }) sessionId?: string
   @Column({ nullable: true }) appointmentId?: string
   @Column({ nullable: true }) bookingId?: string
+  @Column({ length: 7, nullable: true }) packageMonth?: string
   @Column({ nullable: true }) receiptUrl?: string
   @Column({ nullable: true }) asaasPaymentId?: string
   @Column({ nullable: true }) paymentLinkUrl?: string

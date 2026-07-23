@@ -9,7 +9,6 @@ import { ConfigService } from '@nestjs/config'
 import {
   addDays, format, parseISO, setHours, setMinutes,
   addMinutes, isBefore, isAfter, getDay, eachDayOfInterval,
-  addMonths, endOfMonth, startOfMonth,
 } from 'date-fns'
 import { Booking } from './entities/booking.entity'
 import { BookingPage } from './entities/booking-page.entity'
@@ -23,6 +22,8 @@ import { NotificationsService } from '../notifications/notifications.service'
 import { CreateBookingDto } from './dto/create-booking.dto'
 import { SaveBookingPageDto } from './dto/save-booking-page.dto'
 import { GoogleCalendarService } from '../google-calendar/google-calendar.service'
+import { isPublicBookingMonthAllowed } from './booking-month-policy'
+import { encrypt, hashToken, safeDecrypt } from '../../common/crypto/encrypt.util'
 
 const OCCUPYING_BOOKING_STATUSES: Booking['status'][] = ['pending', 'confirmed']
 const FREE_APPOINTMENT_STATUSES = ['cancelled', 'no_show']
@@ -62,14 +63,6 @@ function saoPauloDateKey(date = new Date()): string {
 function nextSaoPauloMidnight(date = new Date()): Date {
   const [year, month, day] = saoPauloDateKey(date).split('-').map(Number)
   return new Date(Date.UTC(year, month - 1, day + 1, 3, 0, 0))
-}
-
-function getMaxAdvanceDate(today: Date, maxAdvanceDays: number): Date {
-  const days = Number(maxAdvanceDays)
-  if (days > 0 && days % 30 === 0) {
-    return endOfMonth(addMonths(startOfMonth(today), days / 30))
-  }
-  return addDays(today, days)
 }
 
 @Injectable()
@@ -191,15 +184,6 @@ export class BookingService {
     const stepMinutes = this.getStepMinutes(page, modality)
     if (sessionDuration <= 0 || stepMinutes <= 0) return []
 
-    const date = parseISO(dateStr)
-    const weekday = getDay(date)
-
-    const slots = await this.availability.getSlotsForDay(page.psychologistId, weekday, modality)
-    if (!slots.length) return []
-
-    const isBlocked = await this.availability.isDateBlocked(page.psychologistId, dateStr)
-    if (isBlocked) return []
-
     const now = new Date()
     const timeZone = this.config.get<string>('GOOGLE_CALENDAR_TIMEZONE') ?? 'America/Sao_Paulo'
     const todayStr = new Intl.DateTimeFormat('en-CA', {
@@ -208,10 +192,24 @@ export class BookingService {
       month: '2-digit',
       day: '2-digit',
     }).format(now)
+    if (!isPublicBookingMonthAllowed(dateStr, todayStr, page.allowNextMonthBooking)) return []
+
+    const date = parseISO(dateStr)
+    const weekday = getDay(date)
+
+    const isBlocked = await this.availability.isDateBlocked(page.psychologistId, dateStr)
+    if (isBlocked) return []
+
+    const [weeklySlots, extraSlots] = await Promise.all([
+      this.availability.getSlotsForDay(page.psychologistId, weekday, modality),
+      this.availability.getExtraSlotsForDate(page.psychologistId, dateStr, modality),
+    ])
+    const slots = [...weeklySlots, ...extraSlots]
+    if (!slots.length) return []
+
     const today = parseISO(todayStr)
     const minDate = addDays(today, page.minAdvanceDays ?? 0)
-    const maxDate = getMaxAdvanceDate(today, page.maxAdvanceDays)
-    if (isBefore(date, minDate) || isAfter(date, maxDate)) return []
+    if (isBefore(date, minDate)) return []
 
     const [existingBookings, existingAppointments] = await Promise.all([
       this.bookings.find({
@@ -285,11 +283,12 @@ export class BookingService {
       day: '2-digit',
     }).format(now)
     const today = parseISO(todayStr)
+    if (!isPublicBookingMonthAllowed(monthStr, todayStr, page.allowNextMonthBooking)) return []
     const minDate = addDays(today, page.minAdvanceDays ?? 0)
-    const maxDate = getMaxAdvanceDate(today, page.maxAdvanceDays)
 
-    const [slots, blockedDates, existingBookings, existingAppointments] = await Promise.all([
+    const [slots, extraSlots, blockedDates, existingBookings, existingAppointments] = await Promise.all([
       this.availability.findAll(page.psychologistId),
+      this.availability.getExtraSlots(page.psychologistId),
       this.availability.getBlockedDates(page.psychologistId),
       this.bookings.find({
         where: {
@@ -310,6 +309,7 @@ export class BookingService {
     ])
 
     const activeSlots = slots.filter(slot => !modality || slot.modality === modality)
+    const activeExtraSlots = extraSlots.filter(slot => !modality || slot.modality === modality)
     const blocked = new Set(blockedDates.map(item => item.date))
     const occupiedByDate = new Map<string, Array<{ start: number; end: number }>>()
     for (const item of [...existingBookings, ...existingAppointments]) {
@@ -323,9 +323,12 @@ export class BookingService {
 
     for (const day of days) {
       const dateStr = format(day, 'yyyy-MM-dd')
-      if (isBefore(day, minDate) || isAfter(day, maxDate) || blocked.has(dateStr)) continue
+      if (isBefore(day, minDate) || blocked.has(dateStr)) continue
 
-      const daySlots = activeSlots.filter(slot => slot.weekday === getDay(day))
+      const daySlots = [
+        ...activeSlots.filter(slot => slot.weekday === getDay(day)),
+        ...activeExtraSlots.filter(slot => String(slot.date).slice(0, 10) === dateStr),
+      ]
       if (!daySlots.length) continue
 
       const occupiedIntervals = occupiedByDate.get(dateStr) ?? []
@@ -375,6 +378,17 @@ export class BookingService {
       throw new BadRequestException('Atendimento online indisponivel')
     }
 
+    const timeZone = this.config.get<string>('GOOGLE_CALENDAR_TIMEZONE') ?? 'America/Sao_Paulo'
+    const todayStr = new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date())
+    if (!isPublicBookingMonthAllowed(dto.date, todayStr, page.allowNextMonthBooking)) {
+      throw new BadRequestException('Este mes ainda nao foi liberado pelo profissional')
+    }
+
     // Recarregar com relations se necessário
     if (!page.psychologist) {
       page = await this.pages.findOne({
@@ -384,7 +398,7 @@ export class BookingService {
     }
 
     const confirmationToken = randomBytes(32).toString('hex')
-    const cancellationCode = randomBytes(6).toString('base64url')
+    const cancellationCode = randomBytes(32).toString('base64url')
     const tokenExpiresAt = addDays(new Date(), 2)
 
     const saved = await this.dataSource.transaction(async (manager) => {
@@ -404,8 +418,11 @@ export class BookingService {
         psychologistId: page.psychologistId,
         duration: this.getSessionDuration(page, dto.modality),
         amount: page.sessionPrice,
-        confirmationToken,
-        cancellationCode,
+        confirmationToken: hashToken(confirmationToken),
+        cancellationCode: hashToken(cancellationCode),
+        confirmationTokenEncrypted: encrypt(confirmationToken),
+        cancellationCodeEncrypted: encrypt(cancellationCode),
+        patientNotes: dto.patientNotes?.trim() ? encrypt(dto.patientNotes.trim()) : undefined,
         tokenExpiresAt,
         status: 'confirmed',
         confirmedAt: new Date(),
@@ -414,6 +431,9 @@ export class BookingService {
 
       return manager.save(Booking, booking)
     })
+
+    saved.publicConfirmationToken = confirmationToken
+    saved.publicCancellationCode = cancellationCode
 
     const appointment = await this.createSessionResources(saved, page.psychologistId)
     if (appointment) this.googleCalendar.syncAppointment(appointment).catch(err => this.logCalendarError('sync', appointment.id, err))
@@ -424,14 +444,17 @@ export class BookingService {
 
     return {
       id: saved.id,
-      confirmationToken: saved.confirmationToken,
+      confirmationToken,
       message: 'Agendamento confirmado com sucesso!',
     }
   }
 
   async confirmByToken(token: string) {
     const booking = await this.bookings.findOne({
-      where: { confirmationToken: token },
+      where: [
+        { confirmationToken: hashToken(token) },
+        { confirmationToken: token },
+      ],
       relations: ['psychologist'],
     })
     if (!booking) throw new NotFoundException('Link de confirmacao invalido')
@@ -473,7 +496,7 @@ export class BookingService {
 
     booking.status = 'cancelled'
     booking.cancelledAt = new Date()
-    booking.cancellationReason = reason?.trim().slice(0, 500) || undefined
+    booking.cancellationReason = reason?.trim() ? encrypt(reason.trim().slice(0, 500)) : undefined
     await this.bookings.save(booking)
     await this.cancelLinkedAppointment(booking)
     await this.notifications.sendBookingCancellation(booking)
@@ -496,10 +519,11 @@ export class BookingService {
   async getMyBookings(psychologistId: string, status?: string) {
     const where: any = { psychologistId }
     if (status) where.status = status
-    return this.bookings.find({
+    const bookings = await this.bookings.find({
       where,
       order: { date: 'ASC', time: 'ASC' },
     })
+    return bookings.map(booking => this.toPrivateBooking(booking))
   }
 
   async confirmBooking(id: string, psychologistId: string) {
@@ -520,17 +544,17 @@ export class BookingService {
     })
     await this.maybeSendUpfrontCharge(booking, page, appointment)
     await this.notifications.sendBookingConfirmation(booking, page)
-    return booking
+    return this.toPrivateBooking(booking)
   }
 
   async rejectBooking(id: string, psychologistId: string, reason?: string) {
     const booking = await this.findOne(id, psychologistId)
     booking.status = 'cancelled'
     booking.cancelledAt = new Date()
-    booking.cancellationReason = reason
+    booking.cancellationReason = reason?.trim() ? encrypt(reason.trim().slice(0, 500)) : undefined
     const saved = await this.bookings.save(booking)
     await this.cancelLinkedAppointment(saved)
-    return saved
+    return this.toPrivateBooking(saved)
   }
 
   async markPaid(id: string, psychologistId: string, method: string) {
@@ -544,8 +568,7 @@ export class BookingService {
     await this.bookings.save(booking)
 
     // ── Atualiza ou cria o FinancialRecord ──────────────────────────────────
-    let record: FinancialRecord | null = null
-    record = await this.financial.findOne({
+    let record: FinancialRecord | null = await this.financial.findOne({
       where: [
         { bookingId: booking.id, psychologistId },
         ...(booking.appointmentId
@@ -596,7 +619,7 @@ export class BookingService {
       )
     }
 
-    return booking
+    return this.toPrivateBooking(booking)
   }
 
   // ─── Booking Page (configurações) ──────────────────────────────────────────
@@ -635,9 +658,6 @@ export class BookingService {
 
   async saveMyPage(psychologistId: string, dto: SaveBookingPageDto) {
     let page = await this.pages.findOne({ where: { psychologistId } })
-    if (dto.maxAdvanceDays !== undefined && dto.minAdvanceDays !== undefined && dto.maxAdvanceDays < dto.minAdvanceDays) {
-      throw new BadRequestException('A antecedencia maxima deve ser maior que a minima')
-    }
     if (dto.slug !== undefined) {
       dto.slug = slugifyName(dto.slug)
       if (!dto.slug || dto.slug.length < 3) {
@@ -787,7 +807,7 @@ export class BookingService {
         psychologistId,
         modality:       booking.modality ?? 'online',
         status:         'scheduled',
-        notes:          booking.patientNotes || undefined,
+        notes:          safeDecrypt(booking.patientNotes) || undefined,
       }),
     )
     appointment.patient = patient
@@ -881,13 +901,19 @@ export class BookingService {
 
   private async findByCancellationToken(token: string): Promise<Booking> {
     const booking = await this.bookings.findOne({
-      where: { cancellationCode: token },
+      where: [
+        { cancellationCode: hashToken(token) },
+        { cancellationCode: token },
+      ],
       relations: ['psychologist'],
     })
     if (booking) return booking
 
     const legacyBooking = await this.bookings.findOne({
-      where: { confirmationToken: token, cancellationCode: IsNull() },
+      where: [
+        { confirmationToken: hashToken(token), cancellationCode: IsNull() },
+        { confirmationToken: token, cancellationCode: IsNull() },
+      ],
       relations: ['psychologist'],
     })
     if (!legacyBooking) throw new NotFoundException('Link inválido')
@@ -896,6 +922,23 @@ export class BookingService {
 
   private normalizeTime(time: string) {
     return time.slice(0, 5)
+  }
+
+  private toPrivateBooking(booking: Booking) {
+    const { confirmationTokenEncrypted, cancellationCodeEncrypted, ...safe } = booking
+    return {
+      ...safe,
+      confirmationToken: this.readPublicToken(confirmationTokenEncrypted, booking.confirmationToken),
+      cancellationCode: booking.cancellationCode
+        ? this.readPublicToken(cancellationCodeEncrypted, booking.cancellationCode)
+        : undefined,
+      patientNotes: safeDecrypt(booking.patientNotes),
+      cancellationReason: safeDecrypt(booking.cancellationReason),
+    }
+  }
+
+  private readPublicToken(encrypted: string | undefined, legacyOrHash: string): string {
+    return encrypted ? (safeDecrypt(encrypted) ?? legacyOrHash) : legacyOrHash
   }
 
   private async cancelLinkedAppointment(booking: Booking): Promise<void> {

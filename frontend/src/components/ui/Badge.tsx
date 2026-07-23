@@ -15,7 +15,7 @@ export function TagBadge({ tag, small }: TagBadgeProps) {
 }
 
 interface StatusBadgeProps {
-  status: 'active' | 'paused' | 'discharged' | 'scheduled' | 'completed' | 'cancelled' | 'no_show' | 'paid' | 'pending' | 'overdue' | 'waived'
+  status: 'active' | 'paused' | 'discharged' | 'scheduled' | 'completed' | 'cancelled' | 'no_show' | 'paid' | 'pending' | 'overdue' | 'waived' | 'included'
 }
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
@@ -30,6 +30,7 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   pending:    { label: 'Pendente',       className: 'bg-amber-100 text-amber-700' },
   overdue:    { label: 'Em atraso',      className: 'bg-rose-100 text-rose-700' },
   waived:     { label: 'Cortesia',       className: 'bg-neutral-100 text-neutral-500' },
+  included:   { label: 'No pacote',      className: 'bg-mist-100 text-mist-700' },
 }
 
 export function StatusBadge({ status }: StatusBadgeProps) {

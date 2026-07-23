@@ -3,6 +3,7 @@ import {
 } from '@nestjs/common'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
+import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
 import { BookingService } from './booking.service'
 import { SaveBookingPageDto } from './dto/save-booking-page.dto'
 import { MarkBookingPaidDto } from './dto/mark-booking-paid.dto'
@@ -11,7 +12,7 @@ import { MarkBookingPaidDto } from './dto/mark-booking-paid.dto'
  * Rotas autenticadas — painel do psicólogo.
  */
 @Controller('booking')
-@UseGuards(JwtAuthGuard, CsrfGuard)
+@UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
 export class BookingController {
   constructor(private svc: BookingService) {}
 

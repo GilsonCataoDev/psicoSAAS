@@ -93,7 +93,7 @@ export function MessagesTab({
                 {whatsappBusy ? 'Gerando QR Code...' : whatsappQr ? 'Gerar novo QR Code' : 'Conectar WhatsApp'}
               </button>
             )}
-            {!whatsappConnected && whatsappQr && (
+            {(whatsappConnected || whatsappQr) && (
               <button type="button" onClick={resetWhatsApp} disabled={whatsappBusy} className="btn-secondary text-sm">
                 Reiniciar conexao
               </button>
@@ -123,6 +123,12 @@ export function MessagesTab({
                   <p className="text-xs text-neutral-400">
                     {new Date(log.createdAt).toLocaleString('pt-BR')} {log.recipientPhone ? `· +${log.recipientPhone}` : ''}
                   </p>
+                  {log.status === 'sent' && typeof log.contentLength === 'number' && (
+                    <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                      Conteúdo confirmado · {log.contentLength} caracteres
+                      {log.providerStatus ? ` · ${log.providerStatus}` : ''}
+                    </p>
+                  )}
                   {log.status === 'failed' && log.error && (
                     <p className="mt-1 text-xs text-red-600">{log.error}</p>
                   )}
@@ -176,7 +182,7 @@ export function MessagesTab({
       </div>
 
       <div className="card space-y-4">
-        <h2 className="section-title">Modelo de lembrete</h2>
+        <h2 className="section-title">Modelo de lembrete — 24h antes</h2>
         {messageTemplates.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {messageTemplates.map(template => (
@@ -184,7 +190,7 @@ export function MessagesTab({
                 key={template.id}
                 type="button"
                 className="rounded-full border border-sage-100 bg-sage-50 px-3 py-1 text-xs font-medium text-sage-700 hover:bg-sage-100"
-                onClick={() => setPref('reminderTemplate', template.content)}
+                onClick={() => setPref('reminderTemplate24h', template.content)}
               >
                 Usar {template.name}
               </button>
@@ -198,15 +204,51 @@ export function MessagesTab({
         </p>
         <textarea rows={3} className="input-field resize-none text-sm"
           disabled={!hasProAutomation}
-          value={prefs.reminderTemplate}
-          onChange={e => setPref('reminderTemplate', e.target.value)} />
+          value={prefs.reminderTemplate24h}
+          onChange={e => setPref('reminderTemplate24h', e.target.value)} />
         <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Prévia para paciente</p>
-          <p className="whitespace-pre-line text-sm text-neutral-700">{previewMessage(prefs.reminderTemplate)}</p>
+          <p className="whitespace-pre-line text-sm text-neutral-700">{previewMessage(prefs.reminderTemplate24h)}</p>
         </div>
         <button type="button" className="btn-secondary text-xs w-fit"
           disabled={!hasProAutomation || createTemplate.isPending}
-          onClick={() => saveTemplate('whatsapp_message', 'Lembrete personalizado', prefs.reminderTemplate)}>
+          onClick={() => saveTemplate('whatsapp_message', 'Lembrete 24h personalizado', prefs.reminderTemplate24h)}>
+          Salvar como template
+        </button>
+      </div>
+
+      <div className="card space-y-4">
+        <h2 className="section-title">Modelo de lembrete — 2h antes</h2>
+        {messageTemplates.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {messageTemplates.map(template => (
+              <button
+                key={template.id}
+                type="button"
+                className="rounded-full border border-sage-100 bg-sage-50 px-3 py-1 text-xs font-medium text-sage-700 hover:bg-sage-100"
+                onClick={() => setPref('reminderTemplate2h', template.content)}
+              >
+                Usar {template.name}
+              </button>
+            ))}
+          </div>
+        )}
+        <p className="text-xs text-neutral-400">
+          Variáveis: <code className="bg-neutral-100 px-1 rounded">{'{{nome}}'}</code>{' '}
+          <code className="bg-neutral-100 px-1 rounded">{'{{data}}'}</code>{' '}
+          <code className="bg-neutral-100 px-1 rounded">{'{{hora}}'}</code>
+        </p>
+        <textarea rows={3} className="input-field resize-none text-sm"
+          disabled={!hasProAutomation}
+          value={prefs.reminderTemplate2h}
+          onChange={e => setPref('reminderTemplate2h', e.target.value)} />
+        <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Prévia para paciente</p>
+          <p className="whitespace-pre-line text-sm text-neutral-700">{previewMessage(prefs.reminderTemplate2h)}</p>
+        </div>
+        <button type="button" className="btn-secondary text-xs w-fit"
+          disabled={!hasProAutomation || createTemplate.isPending}
+          onClick={() => saveTemplate('whatsapp_message', 'Lembrete 2h personalizado', prefs.reminderTemplate2h)}>
           Salvar como template
         </button>
       </div>

@@ -11,6 +11,7 @@ import { Subscription } from '../billing/entities/subscription.entity'
 import { Appointment } from '../appointments/entities/appointment.entity'
 import { PLAN_LIMITS, normalizePlan } from '../../common/plans'
 import { encrypt, hashToken, safeDecrypt } from '../../common/crypto/encrypt.util'
+import { FinancialService } from '../financial/financial.service'
 
 type EncryptedProntuario = {
   __encrypted: 'usecognia.prontuario.v1' | 'psicosaas.prontuario.v1'
@@ -28,7 +29,12 @@ export type PatientListItemDto = Pick<
   | 'race'
   | 'gender'
   | 'sexualOrientation'
+  | 'careMode'
   | 'sessionPrice'
+  | 'billingType'
+  | 'monthlyPackagePrice'
+  | 'monthlyIncludedSessions'
+  | 'billingDay'
   | 'sessionDuration'
   | 'startDate'
   | 'hasFixedSchedule'
@@ -76,6 +82,9 @@ type PatientPortalDto = {
 
 const PRONTUARIO_ENCRYPTED_MARKER = 'usecognia.prontuario.v1'
 const LEGACY_PRONTUARIO_ENCRYPTED_MARKER = 'psicosaas.prontuario.v1'
+const PATIENT_ENCRYPTED_FIELDS = [
+  'birthDate', 'pronouns', 'race', 'gender', 'sexualOrientation', 'cpfCnpj',
+] as const
 
 @Injectable()
 export class PatientsService {
@@ -83,6 +92,7 @@ export class PatientsService {
     @InjectRepository(Patient) private repo: Repository<Patient>,
     @InjectRepository(Subscription) private subs: Repository<Subscription>,
     @InjectRepository(Appointment) private appointments: Repository<Appointment>,
+    private financial: FinancialService,
   ) {}
 
   // ─── Helpers de criptografia ────────────────────────────────────────────────
@@ -91,10 +101,13 @@ export class PatientsService {
    * Retorna uma cópia do DTO com privateNotes criptografadas.
    * Campos ausentes não são modificados.
    */
-  private encryptFields<T extends { privateNotes?: string; prontuario?: object }>(dto: T): T {
+  encryptFields<T extends { privateNotes?: string; prontuario?: object } & Record<string, any>>(dto: T): T {
     const encrypted: any = { ...dto }
     if (dto.privateNotes) encrypted.privateNotes = encrypt(dto.privateNotes)
     if (dto.prontuario) encrypted.prontuario = this.encryptProntuario(dto.prontuario as Record<string, any>)
+    for (const field of PATIENT_ENCRYPTED_FIELDS) {
+      if (typeof dto[field] === 'string' && dto[field].length > 0) encrypted[field] = encrypt(dto[field])
+    }
     return encrypted
   }
 
@@ -107,6 +120,9 @@ export class PatientsService {
 
     if (p.privateNotes) p.privateNotes = safeDecrypt(p.privateNotes)
     if (p.prontuario) p.prontuario = this.decryptProntuario(p.prontuario)
+    for (const field of PATIENT_ENCRYPTED_FIELDS) {
+      if (p[field]) p[field] = safeDecrypt(p[field])
+    }
 
     // Descriptografa anotações das sessões se foram carregadas via relação
     if (p.sessions?.length) {
@@ -158,13 +174,9 @@ export class PatientsService {
   // ─── Limites de plano ────────────────────────────────────────────────────────
 
   private async checkPatientLimit(userId: string) {
-    const sub  = await this.subs.findOne({ where: { userId } })
-    const plan = normalizePlan((sub?.status === 'active' || sub?.status === 'trialing') ? sub.plan : 'free')
-
-    const limit = PLAN_LIMITS[plan].maxPatients
+    const { plan, limit, count } = await this.getPlanUsage(userId)
     if (limit === -1) return
 
-    const count = await this.repo.count({ where: { psychologistId: userId, status: 'active' } })
     if (count >= limit) {
       throw new ForbiddenException({
         message: `Limite de ${limit} pessoa${limit !== 1 ? 's' : ''} atingido para o plano ${plan}. Faça upgrade para adicionar mais.`,
@@ -172,6 +184,26 @@ export class PatientsService {
         currentPlan: plan,
       })
     }
+  }
+
+  async getPlanUsage(userId: string): Promise<{ plan: string; limit: number; count: number }> {
+    const sub  = await this.subs.findOne({ where: { userId } })
+    const plan = normalizePlan((sub?.status === 'active' || sub?.status === 'trialing') ? sub.plan : 'free')
+    const limit = PLAN_LIMITS[plan].maxPatients
+    const count = await this.repo.count({ where: { psychologistId: userId, status: 'active' } })
+    return { plan, limit, count }
+  }
+
+  /**
+   * Vagas restantes de pacientes ativos para o plano do usuário.
+   * Retorna Number.MAX_SAFE_INTEGER para planos sem limite (pro/premium).
+   * Usado pela importação em massa para truncar o lote de uma vez, sem
+   * recontar o banco a cada linha processada.
+   */
+  async getRemainingPatientSlots(userId: string): Promise<number> {
+    const { limit, count } = await this.getPlanUsage(userId)
+    if (limit === -1) return Number.MAX_SAFE_INTEGER
+    return Math.max(0, limit - count)
   }
 
   // ─── API pública ─────────────────────────────────────────────────────────────
@@ -183,13 +215,14 @@ export class PatientsService {
       // Listagem nunca deve carregar prontuário, privateNotes nem ids internos de gateway.
       select: [
         'id', 'name', 'email', 'phone', 'birthDate', 'pronouns', 'race', 'gender',
-        'sexualOrientation', 'sessionPrice', 'sessionDuration', 'startDate',
+        'sexualOrientation', 'careMode', 'sessionPrice', 'billingType', 'monthlyPackagePrice',
+        'monthlyIncludedSessions', 'billingDay', 'sessionDuration', 'startDate',
         'hasFixedSchedule', 'fixedScheduleWeekday', 'fixedScheduleTime',
         'fixedScheduleFrequency', 'fixedScheduleModality', 'tags', 'status',
         'cpfCnpj', 'createdAt', 'updatedAt',
       ],
     })
-    return patients
+    return patients.map(patient => this.dec(patient) as PatientListItemDto)
   }
 
   async findOne(id: string, psychologistId: string): Promise<Patient> {
@@ -202,7 +235,9 @@ export class PatientsService {
     const encrypted = this.encryptFields(dto)
     // status 'active' definido explicitamente (não depende só do default DB)
     const patient   = this.repo.create({ status: 'active', ...encrypted, psychologistId })
-    return this.dec(await this.repo.save(patient))
+    const saved = await this.repo.save(patient)
+    await this.ensureCurrentMonthlyCharge(saved)
+    return this.dec(saved)
   }
 
   async update(id: string, dto: UpdatePatientDto, psychologistId: string): Promise<Patient> {
@@ -210,7 +245,14 @@ export class PatientsService {
     const patient   = await this.findRaw(id, psychologistId)
     const encrypted = this.encryptFields(dto)
     Object.assign(patient, encrypted)
-    return this.dec(await this.repo.save(patient))
+    const saved = await this.repo.save(patient)
+    await this.ensureCurrentMonthlyCharge(saved)
+    return this.dec(saved)
+  }
+
+  private async ensureCurrentMonthlyCharge(patient: Patient): Promise<void> {
+    if (patient.status !== 'active' || patient.billingType !== 'monthly_package') return
+    await this.financial.ensureMonthlyPackageCharge(patient, new Date()).catch(() => undefined)
   }
 
   async createPortalLink(id: string, psychologistId: string): Promise<{ url: string }> {
@@ -287,7 +329,7 @@ export class PatientsService {
       }),
     }
 
-    Object.assign(patient, this.pickDefined({
+    Object.assign(patient, this.encryptFields(this.pickDefined({
       email: dto.email,
       phone: dto.phone,
       birthDate: dto.birthDate,
@@ -295,8 +337,8 @@ export class PatientsService {
       race: dto.race,
       gender: dto.gender,
       sexualOrientation: dto.sexualOrientation,
-      prontuario: this.encryptProntuario(prontuario),
-    }))
+      prontuario,
+    })))
 
     await this.repo.save(patient)
     return { saved: true }
@@ -304,7 +346,7 @@ export class PatientsService {
 
   async remove(id: string, psychologistId: string) {
     const patient = await this.findRaw(id, psychologistId)
-    return this.repo.softRemove(patient)
+    return this.repo.remove(patient)
   }
 
   private async findByPortalToken(token: string, relations?: string[]): Promise<Patient> {
@@ -314,6 +356,20 @@ export class PatientsService {
       ...(relations ? { relations } : {}),
     })
     if (!patient) throw new NotFoundException('Portal não encontrado')
+
+    // Expiracao obrigatoria: configuracao invalida volta ao limite seguro de 30 dias.
+    const configuredTtl = Number(process.env.PORTAL_TOKEN_TTL_DAYS)
+    const ttlDays = Number.isFinite(configuredTtl) && configuredTtl > 0 ? configuredTtl : 30
+    if (!patient.portalTokenCreatedAt) {
+      throw new NotFoundException('Link expirado. Solicite um novo ao seu profissional.')
+    }
+    if (patient.portalTokenCreatedAt) {
+      const ageMs = Date.now() - new Date(patient.portalTokenCreatedAt).getTime()
+      if (ageMs > ttlDays * 24 * 60 * 60 * 1000) {
+        throw new NotFoundException('Link expirado. Solicite um novo ao seu profissional.')
+      }
+    }
+
     return patient
   }
 

@@ -21,6 +21,18 @@ export function useCreateDocument() {
   })
 }
 
+export type DocumentAiField = 'demand' | 'procedure' | 'analysis' | 'conclusion' | 'referralReason'
+
+export function useGenerateDocumentAiDraft() {
+  return useMutation({
+    mutationFn: (data: {
+      documentType: 'relatorio' | 'atestado' | 'encaminhamento'
+      field: DocumentAiField
+      input: string
+    }) => api.post<{ draft: string }>('/documents/ai-draft', data).then(r => r.data),
+  })
+}
+
 export function useDeleteDocument() {
   const qc = useQueryClient()
   return useMutation({

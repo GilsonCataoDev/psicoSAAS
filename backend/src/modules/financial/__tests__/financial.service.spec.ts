@@ -146,6 +146,44 @@ describe('FinancialService', () => {
     })
   })
 
+  describe('ensureMonthlyPackageCharge', () => {
+    it('cria uma unica cobranca do pacote com o vencimento configurado', async () => {
+      const patient = {
+        id: 'pat-1',
+        psychologistId: PSY_ID,
+        status: 'active',
+        billingType: 'monthly_package',
+        monthlyPackagePrice: 600,
+        monthlyIncludedSessions: 4,
+        billingDay: 10,
+      } as Patient
+      repo.findOne.mockResolvedValue(null)
+      repo.create.mockImplementation((value) => value)
+      repo.save.mockImplementation(async (value) => ({ id: 'package-1', ...value }))
+
+      const result = await service.ensureMonthlyPackageCharge(patient, new Date('2026-07-03T12:00:00'))
+
+      expect(result?.amount).toBe(600)
+      expect(result?.packageMonth).toBe('2026-07')
+      expect(result?.dueDate).toBe('2026-07-10')
+      expect(repo.save).toHaveBeenCalledTimes(1)
+    })
+
+    it('reutiliza a cobranca ja existente no mesmo mes', async () => {
+      const existing = makeRecord({ packageMonth: '2026-07' })
+      repo.findOne.mockResolvedValue(existing)
+      const patient = {
+        id: 'pat-1', psychologistId: PSY_ID, status: 'active', billingType: 'monthly_package',
+        monthlyPackagePrice: 600, billingDay: 10,
+      } as Patient
+
+      const result = await service.ensureMonthlyPackageCharge(patient, new Date('2026-07-20T12:00:00'))
+
+      expect(result).toBe(existing)
+      expect(repo.save).not.toHaveBeenCalled()
+    })
+  })
+
   describe('sendChargeMessage', () => {
     it('falha com mensagem clara quando lancamento nao tem paciente', async () => {
       repo.findOne.mockResolvedValue(makeRecord({ patient: undefined }))

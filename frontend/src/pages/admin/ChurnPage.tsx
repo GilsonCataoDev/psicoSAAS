@@ -4,14 +4,15 @@ import { ptBR } from 'date-fns/locale'
 import {
   AlertTriangle, CheckCircle2,
   Users, ShieldAlert, Bell, BellOff, ChevronDown, ChevronUp,
-  RefreshCw, Mail, MessageCircle, Loader2, Target,
+  RefreshCw, Mail, MessageCircle, Loader2, Target, Sparkles,
 } from 'lucide-react'
 import {
   useChurnDashboard, useChurnAnalytics, useChurnAlerts,
   useResolveChurnAlert, useSendReactivationEmail, ChurnAccount, ChurnRiskLevel,
-  useUserTimeline,
+  useUserTimeline, useChurnAiDiagnosis, useSendChurnWhatsApp,
 } from '@/hooks/useApi'
 import { cn } from '@/lib/utils'
+import { buildWhatsAppUrl } from '@/lib/whatsapp'
 import toast from 'react-hot-toast'
 
 // ─── Risk config ─────────────────────────────────────────────────────────────
@@ -87,6 +88,28 @@ function AccountRow({ account }: { account: ChurnAccount }) {
   const [expanded, setExpanded] = useState(false)
   const risk = RISK_CONFIG[account.riskLevel]
   const sendEmail = useSendReactivationEmail()
+  const aiDiagnose = useChurnAiDiagnosis()
+  const sendWhatsApp = useSendChurnWhatsApp()
+
+  function handleAiDiagnose(e: React.MouseEvent) {
+    e.stopPropagation()
+    aiDiagnose.mutate(account.id, {
+      onError: () => toast.error('Não foi possível gerar o diagnóstico por IA'),
+    })
+  }
+
+  function handleSendDiagnosisWhatsApp(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!account.phone || !aiDiagnose.data) return
+    if (!window.confirm(`Enviar esta mensagem por WhatsApp para ${account.name}?`)) return
+    sendWhatsApp.mutate({ userId: account.id, phone: account.phone, message: aiDiagnose.data.explanation }, {
+      onSuccess: (result) => {
+        if (result.sent) toast.success(`WhatsApp enviado para ${account.name}`)
+        else toast.error(result.error ?? 'Não foi possível enviar o WhatsApp')
+      },
+      onError: () => toast.error('Não foi possível enviar o WhatsApp'),
+    })
+  }
 
   function handleEmail(e: React.MouseEvent) {
     e.stopPropagation()
@@ -96,13 +119,9 @@ function AccountRow({ account }: { account: ChurnAccount }) {
     })
   }
 
-  const whatsappMsg = encodeURIComponent(
+  const whatsappMsg =
     `Olá ${account.name}! Aqui é a equipe do UseCognia. Percebemos que faz um tempo que você não acessa a plataforma. Podemos te ajudar com algo? 😊`
-  )
-  const whatsappPhone = (account as any).phone?.replace(/\D/g, '')
-  const whatsappUrl = whatsappPhone
-    ? `https://wa.me/55${whatsappPhone}?text=${whatsappMsg}`
-    : `https://wa.me/?text=${whatsappMsg}`
+  const whatsappUrl = buildWhatsAppUrl(account.phone, whatsappMsg)
 
   return (
     <Fragment>
@@ -210,6 +229,43 @@ function AccountRow({ account }: { account: ChurnAccount }) {
                   ))
                 }
               </div>
+            </div>
+
+            <div className="mt-3 rounded-xl border border-neutral-100 bg-white p-4 text-sm" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-semibold text-neutral-700 flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-sage-600" /> Diagnóstico com IA
+                </p>
+                <div className="flex items-center gap-1.5">
+                  {aiDiagnose.data && (
+                    <button
+                      type="button"
+                      onClick={handleSendDiagnosisWhatsApp}
+                      disabled={!account.phone || sendWhatsApp.isPending}
+                      title={account.phone ? 'Enviar por WhatsApp' : 'Conta sem telefone cadastrado'}
+                      className="btn-secondary text-xs px-2.5 py-1 flex items-center gap-1"
+                    >
+                      {sendWhatsApp.isPending
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <MessageCircle className="h-3.5 w-3.5" />}
+                      Enviar por WhatsApp
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleAiDiagnose}
+                    disabled={aiDiagnose.isPending}
+                    className="btn-secondary text-xs px-2.5 py-1"
+                  >
+                    {aiDiagnose.isPending
+                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      : aiDiagnose.data ? 'Gerar de novo' : 'Gerar'}
+                  </button>
+                </div>
+              </div>
+              {aiDiagnose.data && (
+                <p className="mt-2 text-neutral-600 leading-relaxed">{aiDiagnose.data.explanation}</p>
+              )}
             </div>
 
             <div className="mt-3">

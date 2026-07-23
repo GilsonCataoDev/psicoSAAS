@@ -11,6 +11,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  secrets-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (histórico completo para varrer commits)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks (detecção de segredos)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   backend:
     runs-on: ubuntu-latest
     defaults:
@@ -30,6 +43,12 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
+
+      - name: Audit dependencies (high+)
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Lint
+        run: npm run lint
 
       - name: Build (TypeScript)
         run: npm run build
@@ -57,6 +76,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Audit dependencies (high+)
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Build (typecheck + vite build)
         env:
           VITE_API_URL: https://psicosaas-production-2d6c.up.railway.app/api
@@ -66,4 +88,3 @@ jobs:
 
       - name: Lint
         run: npm run lint
-        continue-on-error: true

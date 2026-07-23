@@ -5,13 +5,15 @@ import {
 import { Throttle } from '@nestjs/throttler'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
+import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
 import { FinancialService } from './financial.service'
 import { CreateFinancialDto } from './dto/create-financial.dto'
 import { MarkPaidDto } from './dto/mark-paid.dto'
 import { RequirePlan } from '../../common/decorators/require-plan.decorator'
+import { secretsMatch } from '../../common/crypto/encrypt.util'
 
 @Controller('financial')
-@UseGuards(JwtAuthGuard, CsrfGuard)
+@UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
 export class FinancialController {
   constructor(private svc: FinancialService) {}
 
@@ -71,7 +73,7 @@ export class AsaasWebhookController {
     @Body() body: { event: string; payment: any },
   ) {
     const expected = process.env.ASAAS_WEBHOOK_TOKEN
-    if (!expected || token !== expected) return { ok: false } // Sem segredo configurado, o webhook não é processado.
+    if (!secretsMatch(token, expected)) return { ok: false } // Sem segredo configurado, o webhook não é processado.
 
     await this.svc.handleAsaasWebhook(body.event, body.payment)
     return { ok: true }

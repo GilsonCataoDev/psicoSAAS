@@ -9,12 +9,16 @@ import { User } from '../auth/entities/user.entity'
 import { PushSubscriptionEntity } from './entities/push-subscription.entity'
 import { WhatsAppDeliveryLog } from './entities/whatsapp-delivery-log.entity'
 import { SavePushSubscriptionDto } from './dto/push-subscription.dto'
+import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
 
 export type WhatsAppDeliveryResult = {
   sent: boolean
-  reason?: 'plan' | 'not_configured' | 'disconnected' | 'api_error'
+  reason?: 'plan' | 'not_configured' | 'disconnected' | 'api_error' | 'invalid_content'
   error?: string
   nonRetryable?: boolean
+  providerMessageId?: string
+  providerStatus?: string
+  contentLength?: number
 }
 
 export type PushDeliveryResult = {
@@ -164,17 +168,29 @@ export class NotificationsService {
 
     // Só deleta+recria se já está conectado (troca de conta) ou não existe
     if (currentState === 'open') {
-      await this.deleteWhatsAppInstance(instance)
-      await delay(1000)
-      await this.ensureWhatsAppInstance(instance)
-      await delay(3000)
+      await this.recreateWhatsAppInstance(instance)
     } else if (currentState === 'not_created') {
       await this.ensureWhatsAppInstance(instance)
       await delay(3000)
     }
     // Se está em estado intermediário (connecting, qrReadSuccess, etc.) apenas tenta buscar o QR
 
-    // Tenta obter QR com retry
+    return this.fetchWhatsAppQrCode(instance)
+  }
+
+  private async recreateWhatsAppInstance(instance: string): Promise<void> {
+    await this.deleteWhatsAppInstance(instance)
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    // Cria direto, sem checar connectionState antes: acabamos de apagar a instancia,
+    // e a Evolution API pode demorar para propagar isso — checar primeiro corre o risco
+    // de ver um estado "ainda existe" desatualizado e pular a criacao, deixando a
+    // instancia de fato inexistente na hora de buscar o QR Code (erro 404).
+    await this.createWhatsAppInstance(instance)
+    await new Promise(resolve => setTimeout(resolve, 3000))
+  }
+
+  private async fetchWhatsAppQrCode(instance: string): Promise<{ base64: string; instance: string }> {
+    const delay = (ms: number) => new Promise(r => setTimeout(r, ms))
     const maxAttempts = 4
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       const res = await fetch(`${this.WA_URL}/instance/connect/${instance}`, {
@@ -192,11 +208,11 @@ export class NotificationsService {
         continue
       }
       if (!res.ok) {
-        this.logger.error(`[WA connect] erro ${res.status}: ${raw.slice(0, 300)}`)
+        this.logger.error(`[WA connect] erro status=${res.status}`)
         throw new BadRequestException(data.message ?? `Evolution API retornou ${res.status}`)
       }
       if (!qrCode) {
-        this.logger.error(`[WA connect] sem base64 na resposta: ${raw.slice(0, 300)}`)
+        this.logger.error('[WA connect] resposta sem QR Code')
         throw new BadRequestException('QR Code nao disponivel — tente novamente em alguns segundos')
       }
       return { base64: qrCode, instance }
@@ -229,11 +245,17 @@ export class NotificationsService {
   }
 
   async getWhatsAppLogs(ownerId: string): Promise<WhatsAppDeliveryLog[]> {
-    return this.whatsAppLogs.find({
+    const logs = await this.whatsAppLogs.find({
       where: { userId: ownerId },
       order: { createdAt: 'DESC' },
       take: 20,
     })
+    return logs.map(log => ({
+      ...log,
+      patientName: safeDecrypt(log.patientName),
+      recipientPhone: safeDecrypt(log.recipientPhone),
+      error: safeDecrypt(log.error),
+    }))
   }
 
   async debugWhatsApp(ownerId: string) {
@@ -278,9 +300,14 @@ export class NotificationsService {
       method: 'DELETE',
       headers: { apikey: this.WA_KEY },
     }).catch(() => undefined)
+    await new Promise(resolve => setTimeout(resolve, 1000))
 
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    return this.getWhatsAppQrCode(ownerId)
+    // O logout apenas desvincula o aparelho no WhatsApp — o estado de sessao Signal
+    // (libsignal) guardado pela Evolution API para essa instancia pode continuar
+    // corrompido (ex: erros "Bad MAC"). Apaga e recria a instancia do zero para
+    // garantir uma sessao criptografica limpa antes de gerar o QR Code novo.
+    await this.recreateWhatsAppInstance(instance)
+    return this.fetchWhatsAppQrCode(instance)
   }
 
   async sendTestWhatsApp(ownerId: string, phone?: string): Promise<WhatsAppDeliveryResult> {
@@ -405,43 +432,9 @@ export class NotificationsService {
       return result
     }
 
-    // Normaliza o número: remove tudo que não for dígito, garante DDI 55
-    const normalized = phone.replace(/\D/g, '')
-    const withDdi = normalized.startsWith('55') ? normalized : `55${normalized}`
-
-    try {
-      const instance = this.getWhatsAppInstance(ownerId)
-      const res = await fetch(
-        `${this.WA_URL}/message/sendText/${instance}`,
-        {
-          method: 'POST',
-          headers: {
-            'apikey': this.WA_KEY,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            number: withDdi,
-            text,
-          }),
-        },
-      )
-      if (!res.ok) {
-        const body = await res.text().catch(() => '')
-        const nonRetryable = res.status >= 400 && res.status < 500 && res.status !== 429
-        const error = this.formatWhatsAppError(res.status, body)
-        this.logger.error(`[WhatsApp] Erro ${res.status} instance=${instance} nonRetryable=${nonRetryable} body=${body.slice(0, 300)}`)
-        result = { sent: false, reason: 'api_error', error, nonRetryable }
-        await this.recordWhatsAppLog(ownerId, phone, meta, result)
-        return result
-      }
-      result = { sent: true }
-      await this.recordWhatsAppLog(ownerId, phone, meta, result)
-      return result
-    } catch {
-      result = { sent: false, reason: 'disconnected', error: 'WhatsApp desconectado ou indisponivel' }
-      await this.recordWhatsAppLog(ownerId, phone, meta, result)
-      return result
-    }
+    result = await this.deliverWhatsApp(phone, text, ownerId)
+    await this.recordWhatsAppLog(ownerId, phone, meta, result)
+    return result
   }
 
   // ─── Agendamentos internos ─────────────────────────────────────────────────
@@ -461,6 +454,30 @@ export class NotificationsService {
       return result
     }
 
+    result = await this.deliverWhatsApp(phone, text, ownerId)
+    await this.recordWhatsAppLog(ownerId, phone, meta, result)
+    return result
+  }
+
+  private async deliverWhatsApp(
+    phone: string,
+    text: string,
+    ownerId: string,
+    allowClosedConnectionRecovery = true,
+    allowDeliveryVerification = true,
+    allowEmptyDeliveryRetry = true,
+  ): Promise<WhatsAppDeliveryResult> {
+    const normalizedText = typeof text === 'string' ? text.trim() : ''
+    if (!normalizedText) {
+      return {
+        sent: false,
+        reason: 'invalid_content',
+        error: 'Mensagem sem conteúdo; envio bloqueado',
+        nonRetryable: true,
+        contentLength: 0,
+      }
+    }
+
     const normalized = phone.replace(/\D/g, '')
     const withDdi = normalized.startsWith('55') ? normalized : `55${normalized}`
 
@@ -468,25 +485,187 @@ export class NotificationsService {
       const instance = this.getWhatsAppInstance(ownerId)
       const res = await fetch(`${this.WA_URL}/message/sendText/${instance}`, {
         method: 'POST',
-        headers: { 'apikey': this.WA_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ number: withDdi, text }),
+        headers: { apikey: this.WA_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ number: withDdi, text: normalizedText, delay: 1000 }),
       })
+      const body = await res.text().catch(() => '')
+
       if (!res.ok) {
-        const body = await res.text().catch(() => '')
         const nonRetryable = res.status >= 400 && res.status < 500 && res.status !== 429
         const error = this.formatWhatsAppError(res.status, body)
-        this.logger.error(`[WhatsApp] Erro ${res.status} instance=${instance} nonRetryable=${nonRetryable} body=${body.slice(0, 300)}`)
-        result = { sent: false, reason: 'api_error', error, nonRetryable }
-        await this.recordWhatsAppLog(ownerId, phone, meta, result)
-        return result
+        this.logger.error(`[WhatsApp] Erro ${res.status} instance=${instance} nonRetryable=${nonRetryable}`)
+        if (allowClosedConnectionRecovery && this.isClosedConnectionError(body)) {
+          const recovered = await this.restartWhatsAppConnection(instance)
+          if (recovered) {
+            this.logger.warn(`[WhatsApp] Instancia reiniciada; repetindo envio uma vez instance=${instance}`)
+            return this.deliverWhatsApp(phone, text, ownerId, false)
+          }
+        }
+        return { sent: false, reason: 'api_error', error, nonRetryable, contentLength: normalizedText.length }
       }
-      result = { sent: true }
-      await this.recordWhatsAppLog(ownerId, phone, meta, result)
-      return result
+
+      const provider = this.parseWhatsAppProviderResponse(body)
+      if (!provider.messageId || !provider.text.trim()) {
+        this.logger.error(`[WhatsApp] Resposta incompleta instance=${instance} status=${provider.status ?? 'unknown'} contentLength=${provider.text.trim().length}`)
+        return {
+          sent: false,
+          reason: 'api_error',
+          error: 'WhatsApp aceitou a requisição, mas retornou a mensagem sem conteúdo ou sem identificador',
+          nonRetryable: true,
+          providerMessageId: provider.messageId,
+          providerStatus: provider.status,
+          contentLength: provider.text.trim().length,
+        }
+      }
+
+      if (provider.text.trim() !== normalizedText) {
+        this.logger.error(`[WhatsApp] Conteudo divergente instance=${instance} expectedLength=${normalizedText.length} actualLength=${provider.text.trim().length}`)
+        return {
+          sent: false,
+          reason: 'api_error',
+          error: 'WhatsApp retornou um conteúdo diferente do texto enviado',
+          nonRetryable: true,
+          providerMessageId: provider.messageId,
+          providerStatus: provider.status,
+          contentLength: provider.text.trim().length,
+        }
+      }
+
+      const acceptedResult: WhatsAppDeliveryResult = {
+        sent: true,
+        providerMessageId: provider.messageId,
+        providerStatus: provider.status ?? 'accepted',
+        contentLength: provider.text.trim().length,
+      }
+
+      // A resposta síncrona só confirma que a Evolution API recebeu o pedido — o envio real ao
+      // WhatsApp acontece de forma assíncrona via Baileys e pode, em raras ocasiões, persistir
+      // vazio mesmo com o texto correto no request. Confere o que foi de fato persistido antes
+      // de dar a entrega como confirmada.
+      if (allowDeliveryVerification) {
+        const verification = await this.verifyWhatsAppDelivery(instance, provider.messageId, normalizedText)
+        if (verification === 'empty') {
+          if (allowEmptyDeliveryRetry) {
+            this.logger.warn(`[WhatsApp] Entrega vazia confirmada apos envio; reenviando uma vez instance=${instance} messageId=${provider.messageId}`)
+            return this.deliverWhatsApp(
+              phone,
+              normalizedText,
+              ownerId,
+              allowClosedConnectionRecovery,
+              true,
+              false,
+            )
+          }
+
+          this.logger.error(`[WhatsApp] Reenvio tambem persistiu vazio instance=${instance} messageId=${provider.messageId}`)
+          return {
+            sent: false,
+            reason: 'api_error',
+            error: 'WhatsApp persistiu a mensagem sem conteúdo mesmo após uma nova tentativa',
+            nonRetryable: true,
+            providerMessageId: provider.messageId,
+            providerStatus: provider.status,
+            contentLength: 0,
+          }
+        }
+      }
+
+      return acceptedResult
     } catch {
-      result = { sent: false, reason: 'disconnected', error: 'WhatsApp desconectado ou indisponível' }
-      await this.recordWhatsAppLog(ownerId, phone, meta, result)
-      return result
+      return {
+        sent: false,
+        reason: 'disconnected',
+        error: 'WhatsApp desconectado ou indisponivel',
+        contentLength: normalizedText.length,
+      }
+    }
+  }
+
+  /**
+   * Confere, alguns segundos após o envio, se a Evolution API realmente persistiu o texto
+   * enviado — a resposta síncrona do sendText só reflete o que ela recebeu, não o que o
+   * Baileys efetivamente gravou/entregou.
+   */
+  private async verifyWhatsAppDelivery(instance: string, messageId: string, expectedText: string): Promise<'ok' | 'empty' | 'unknown'> {
+    // Evita atraso real e chamadas de rede extras durante os testes (mocks cobrem só o fluxo de sendText).
+    if (process.env.JEST_WORKER_ID !== undefined) return 'unknown'
+
+    await new Promise(resolve => setTimeout(resolve, 3000))
+    try {
+      const res = await fetch(`${this.WA_URL}/chat/findMessages/${instance}`, {
+        method: 'POST',
+        headers: { apikey: this.WA_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ where: { key: { id: messageId } } }),
+      })
+      if (!res.ok) return 'unknown'
+
+      const data = await res.json().catch(() => null) as any
+      const records: any[] = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.messages?.records)
+          ? data.messages.records
+          : Array.isArray(data?.messages)
+            ? data.messages
+            : []
+      const match = records.find(record => record?.key?.id === messageId)
+      if (!match) return 'unknown'
+
+      const persistedText = [
+        match?.message?.conversation,
+        match?.message?.extendedTextMessage?.text,
+      ].find(value => typeof value === 'string')
+      if (typeof persistedText !== 'string') return 'unknown'
+
+      return persistedText.trim() === expectedText.trim() ? 'ok' : 'empty'
+    } catch {
+      return 'unknown'
+    }
+  }
+
+  private parseWhatsAppProviderResponse(body: string): { messageId?: string; status?: string; text: string } {
+    try {
+      const payload = JSON.parse(body) as Record<string, any>
+      const messageId = typeof payload?.key?.id === 'string' ? payload.key.id : undefined
+      const status = typeof payload?.status === 'string' ? payload.status : undefined
+      const text = [
+        payload?.message?.conversation,
+        payload?.message?.extendedTextMessage?.text,
+        payload?.message?.imageMessage?.caption,
+        payload?.message?.videoMessage?.caption,
+      ].find(value => typeof value === 'string')
+      return { messageId, status, text: typeof text === 'string' ? text : '' }
+    } catch {
+      return { text: '' }
+    }
+  }
+
+  private isClosedConnectionError(body: string): boolean {
+    return /connection\s+closed/i.test(body)
+  }
+
+  private async restartWhatsAppConnection(instance: string): Promise<boolean> {
+    try {
+      const restart = await fetch(`${this.WA_URL}/instance/restart/${instance}`, {
+        method: 'PUT',
+        headers: { apikey: this.WA_KEY },
+      })
+      if (!restart.ok) return false
+
+      const restartBody = await restart.json().catch(() => null) as Record<string, any> | null
+      if (restartBody?.instance?.state === 'open') return true
+
+      for (let attempt = 0; attempt < 5; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        const stateResponse = await fetch(`${this.WA_URL}/instance/connectionState/${instance}`, {
+          headers: { apikey: this.WA_KEY },
+        })
+        if (!stateResponse.ok) continue
+        const stateBody = await stateResponse.json().catch(() => null) as Record<string, any> | null
+        if (stateBody?.instance?.state === 'open') return true
+      }
+      return false
+    } catch {
+      return false
     }
   }
 
@@ -498,9 +677,16 @@ export class NotificationsService {
         type: meta.type,
         status: result.sent ? 'sent' : 'failed',
         patientId: meta.patientId ?? null,
-        patientName: meta.patientName?.slice(0, 160) ?? null,
-        recipientPhone: normalized ? (normalized.startsWith('55') ? normalized : `55${normalized}`) : null,
-        error: result.sent ? null : (result.error ?? result.reason ?? 'Falha no envio').slice(0, 240),
+        patientName: meta.patientName ? encrypt(meta.patientName.slice(0, 160)) : null,
+        recipientPhone: normalized
+          ? encrypt(normalized.startsWith('55') ? normalized : `55${normalized}`)
+          : null,
+        error: result.sent
+          ? null
+          : encrypt((result.error ?? result.reason ?? 'Falha no envio').slice(0, 240)),
+        providerMessageId: result.providerMessageId?.slice(0, 160) ?? null,
+        providerStatus: result.providerStatus?.slice(0, 80) ?? null,
+        contentLength: Number.isInteger(result.contentLength) ? result.contentLength : null,
       }))
     } catch (err) {
       this.logger.warn(`[WhatsApp log] Falha ao registrar envio: ${err instanceof Error ? err.message : err}`)
@@ -540,6 +726,10 @@ export class NotificationsService {
     }).catch(() => null)
     if (status && status.status !== 404) return
 
+    await this.createWhatsAppInstance(instance)
+  }
+
+  private async createWhatsAppInstance(instance: string): Promise<void> {
     const res = await fetch(`${this.WA_URL}/instance/create`, {
       method: 'POST',
       headers: {
@@ -554,8 +744,7 @@ export class NotificationsService {
     })
     if (res.ok || res.status === 409 || res.status === 403) return
 
-    const body = await res.text().catch(() => '')
-    this.logger.error(`[WA create instance] erro ${res.status}: ${body.slice(0, 300)}`)
+    this.logger.error(`[WA create instance] erro status=${res.status}`)
     throw new BadRequestException(`Nao foi possivel criar a instancia WhatsApp: erro ${res.status}`)
   }
 
@@ -608,8 +797,15 @@ export class NotificationsService {
     const defaultMsg = lead === '24h'
       ? `Ola, ${first}!\n\nLembrando que temos nosso encontro em *${dateLabel}* as *${timeLabel}*.\n\nAte la!`
       : `Ola, ${first}!\n\nPassando para lembrar que nossa sessao e hoje as *${timeLabel}*.\n\nAte daqui a pouco!`
-    const msg = typeof prefs.reminderTemplate === 'string' && prefs.reminderTemplate.trim()
-      ? this.renderReminderTemplate(prefs.reminderTemplate, patient.name, dateLabel, timeLabel, lead)
+    // Template específico do lead (24h/2h) tem prioridade; cai para o template
+    // único legado (contas que customizaram antes da separação) e por fim para
+    // o texto padrão embutido no código.
+    const leadTemplate = lead === '24h' ? prefs.reminderTemplate24h : prefs.reminderTemplate2h
+    const template = typeof leadTemplate === 'string' && leadTemplate.trim()
+      ? leadTemplate
+      : (typeof prefs.reminderTemplate === 'string' && prefs.reminderTemplate.trim() ? prefs.reminderTemplate : null)
+    const msg = template
+      ? this.renderReminderTemplate(template, patient.name, dateLabel, timeLabel, lead)
       : defaultMsg
 
     const whatsAppResult = await this.sendWhatsApp(patient.phone, msg, appointment.psychologistId, {
@@ -691,7 +887,10 @@ export class NotificationsService {
   // ─── Booking público ───────────────────────────────────────────────────────
 
   async sendBookingRequest(booking: any, page: any): Promise<void> {
-    const confirmUrl = `${this.BASE_URL}/agendar/confirmar/${booking.confirmationToken}`
+    const confirmToken = booking.publicConfirmationToken
+      ?? safeDecrypt(booking.confirmationTokenEncrypted)
+      ?? booking.confirmationToken
+    const confirmUrl = `${this.BASE_URL}/agendar/confirmar/${confirmToken}`
     const cancelUrl  = this.getCancellationUrl(booking)
 
     // Para o paciente — WhatsApp
@@ -731,22 +930,23 @@ export class NotificationsService {
       )
     }
 
-    this.logger.log(`[Booking] Nova solicitação: ${booking.patientName} — ${booking.date} ${booking.time}`)
+    this.logger.log(`[Booking] Nova solicitacao bookingId=${booking.id} date=${booking.date} time=${booking.time}`)
   }
 
-  async sendBookingConfirmation(booking: any, page?: any): Promise<void> {
+  async sendBookingConfirmation(booking: any, page?: any): Promise<WhatsAppDeliveryResult | undefined> {
     const cancelUrl = this.getCancellationUrl(booking)
     const first = booking.patientName.split(' ')[0]
     const customMessage = this.renderBookingConfirmationMessage(booking, page)
 
     // WhatsApp para o paciente
+    let whatsAppResult: WhatsAppDeliveryResult | undefined
     if (booking.patientPhone) {
       const msg = customMessage
         ? `${customMessage}\n\nPrecisando cancelar: ${cancelUrl}`
         : `Ola, ${first}!\n\n` +
           `Sua sessao foi confirmada para *${booking.date}* as *${String(booking.time).slice(0, 5)}*.\n\n` +
           `Precisando cancelar: ${cancelUrl}\n\nNos vemos la.`
-      await this.sendWhatsApp(booking.patientPhone, msg, booking.psychologistId, {
+      whatsAppResult = await this.sendWhatsApp(booking.patientPhone, msg, booking.psychologistId, {
         type: 'Confirmacao de agenda',
         patientName: booking.patientName,
       })
@@ -764,7 +964,12 @@ export class NotificationsService {
       )
     }
 
-    this.logger.log(`[Booking] Confirmação enviada: ${booking.patientName}`)
+    if (whatsAppResult?.sent === false) {
+      this.logger.warn(`[Booking] Confirmacao por WhatsApp falhou bookingId=${booking.id} reason=${whatsAppResult.reason ?? 'unknown'}`)
+    } else {
+      this.logger.log(`[Booking] Confirmacao enviada bookingId=${booking.id}`)
+    }
+    return whatsAppResult
   }
 
   private renderBookingConfirmationMessage(booking: any, page?: any): string | null {
@@ -819,7 +1024,7 @@ export class NotificationsService {
     const psychologist = booking.psychologist
     const prefs = (psychologist?.preferences ?? {}) as Record<string, any>
     const phone = prefs.whatsapp || psychologist?.phone
-    const reason = booking.cancellationReason?.trim()
+    const reason = safeDecrypt(booking.cancellationReason)?.trim()
     const reasonLine = reason ? `\nMotivo: ${reason}` : ''
     const msg =
       `Sessao cancelada pelo paciente\n\n` +
@@ -843,7 +1048,7 @@ export class NotificationsService {
       )
     }
 
-    this.logger.log(`[Booking] Cancelamento enviado ao psicólogo: ${booking.patientName}`)
+    this.logger.log(`[Booking] Cancelamento enviado ao psicologo bookingId=${booking.id}`)
   }
 
   async sendPaymentReminder(booking: any, pixKey?: string): Promise<void> {
@@ -882,9 +1087,15 @@ export class NotificationsService {
   }
 
   private getCancellationUrl(booking: any): string {
-    return booking.cancellationCode
-      ? `${this.BASE_URL}/c/${booking.cancellationCode}`
-      : `${this.BASE_URL}/agendar/cancelar/${booking.confirmationToken}`
+    const cancellationToken = booking.publicCancellationCode
+      ?? safeDecrypt(booking.cancellationCodeEncrypted)
+      ?? booking.cancellationCode
+    const confirmationToken = booking.publicConfirmationToken
+      ?? safeDecrypt(booking.confirmationTokenEncrypted)
+      ?? booking.confirmationToken
+    return cancellationToken
+      ? `${this.BASE_URL}/c/${cancellationToken}`
+      : `${this.BASE_URL}/agendar/cancelar/${confirmationToken}`
   }
 
   private renderReminderTemplate(

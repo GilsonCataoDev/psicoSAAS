@@ -16,12 +16,30 @@ export class AvailabilityController {
     return this.svc.saveSlots(req.user.id, body.slots)
   }
 
+  @Get('extra')
+  getExtraSlots(@Request() req: any) { return this.svc.getExtraSlots(req.user.id) }
+
+  @Post('extra')
+  addExtraSlot(@Request() req: any, @Body() body: { date: string; startTime: string; endTime: string; modality?: 'presencial' | 'online' }) {
+    return this.svc.addExtraSlot(req.user.id, body)
+  }
+
+  @Delete('extra/:id')
+  removeExtraSlot(@Param('id') id: string, @Request() req: any) {
+    return this.svc.removeExtraSlot(id, req.user.id)
+  }
+
   @Get('blocked')
   getBlocked(@Request() req: any) { return this.svc.getBlockedDates(req.user.id) }
 
   @Post('blocked')
   addBlocked(@Request() req: any, @Body() body: { date: string; reason?: string }) {
     return this.svc.addBlockedDate(req.user.id, body.date, body.reason)
+  }
+
+  @Post('blocked/week')
+  addBlockedWeek(@Request() req: any, @Body() body: { date: string; reason?: string }) {
+    return this.svc.addBlockedWeek(req.user.id, body.date, body.reason)
   }
 
   @Delete('blocked/:id')

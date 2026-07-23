@@ -373,13 +373,14 @@ export class AdminService {
     // Uso financeiro — 10 pts
     const financialPts = r.hasFinancialLast30d ? 10 : 0
 
-    // Uso de IA (só Pro) — 10 pts; Free nunca marca aqui, teto bruto = 90
-    const aiPts = r.plan === 'pro' && r.hasAiUsageLast30d ? 10 : 0
+    // Uso de IA (Essencial+) - 10 pts; Free nunca marca aqui.
+    const hasAiPlan = r.plan === 'essencial' || r.plan === 'pro'
+    const aiPts = hasAiPlan && r.hasAiUsageLast30d ? 10 : 0
 
     const rawScore = recency + patientPts + sessionPts + financialPts + aiPts
 
-    // Normaliza pelo teto do plano para que Free e Pro usem a mesma escala 0-100
-    const maxPossible = r.plan === 'pro' ? 100 : 90
+    // Normaliza pelo teto do plano para que Free e planos pagos usem a mesma escala 0-100.
+    const maxPossible = hasAiPlan ? 100 : 90
     const score = Math.min(100, Math.round((rawScore / maxPossible) * 100))
 
     return { rawScore, score }
@@ -485,6 +486,7 @@ export class AdminService {
 
     await this.deleteFrom(tx, 'booking_pages', '"psychologistId"::text = ANY($1::text[])', [userIds])
     await this.deleteFrom(tx, 'availability_slots', '"psychologistId"::text = ANY($1::text[])', [userIds])
+    await this.deleteFrom(tx, 'extra_availability_slots', '"psychologistId"::text = ANY($1::text[])', [userIds])
     await this.deleteFrom(tx, 'blocked_dates', '"psychologistId"::text = ANY($1::text[])', [userIds])
     await this.deleteFrom(tx, 'billing_subscriptions', '"userId"::text = ANY($1::text[])', [userIds])
     await this.deleteFrom(tx, 'refresh_tokens', '"userId"::text = ANY($1::text[])', [userIds])

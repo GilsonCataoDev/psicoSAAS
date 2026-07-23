@@ -1,14 +1,20 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { In, Repository } from 'typeorm'
 import { AvailabilitySlot } from './entities/availability-slot.entity'
 import { BlockedDate } from './entities/blocked-date.entity'
+import { ExtraAvailabilitySlot } from './entities/extra-availability-slot.entity'
+import { Appointment } from '../appointments/entities/appointment.entity'
+import { Booking } from '../booking/entities/booking.entity'
 
 @Injectable()
 export class AvailabilityService {
   constructor(
     @InjectRepository(AvailabilitySlot) private slots: Repository<AvailabilitySlot>,
     @InjectRepository(BlockedDate) private blocked: Repository<BlockedDate>,
+    @InjectRepository(ExtraAvailabilitySlot) private extraSlots: Repository<ExtraAvailabilitySlot>,
+    @InjectRepository(Appointment) private appointments: Repository<Appointment>,
+    @InjectRepository(Booking) private bookings: Repository<Booking>,
   ) {}
 
   findAll(psychologistId: string) {
@@ -23,6 +29,46 @@ export class AvailabilityService {
       where: { psychologistId, weekday, isActive: true, ...(modality ? { modality } : {}) },
       order: { startTime: 'ASC' },
     })
+  }
+
+  getExtraSlots(psychologistId: string) {
+    return this.extraSlots.find({
+      where: { psychologistId, isActive: true },
+      order: { date: 'ASC', startTime: 'ASC' },
+    })
+  }
+
+  getExtraSlotsForDate(psychologistId: string, date: string, modality?: 'presencial' | 'online') {
+    return this.extraSlots.find({
+      where: { psychologistId, date, isActive: true, ...(modality ? { modality } : {}) },
+      order: { startTime: 'ASC' },
+    })
+  }
+
+  async addExtraSlot(
+    psychologistId: string,
+    data: { date: string; startTime: string; endTime: string; modality?: 'presencial' | 'online' },
+  ) {
+    this.validateDate(data.date)
+    const modality = data.modality ?? 'online'
+    this.validateSlots([{ weekday: 1, startTime: data.startTime, endTime: data.endTime, modality }])
+    await this.ensureExtraSlotDoesNotConflict(psychologistId, {
+      date: data.date,
+      startTime: data.startTime,
+      endTime: data.endTime,
+    })
+    const slot = this.extraSlots.create({
+      date: data.date,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      modality,
+      psychologistId,
+    })
+    return this.extraSlots.save(slot)
+  }
+
+  async removeExtraSlot(id: string, psychologistId: string) {
+    await this.extraSlots.delete({ id, psychologistId })
   }
 
   async isDateBlocked(psychologistId: string, date: string): Promise<boolean> {
@@ -45,9 +91,35 @@ export class AvailabilityService {
     return this.blocked.find({ where: { psychologistId }, order: { date: 'ASC' } })
   }
 
-  addBlockedDate(psychologistId: string, date: string, reason?: string) {
-    const b = this.blocked.create({ psychologistId, date, reason })
+  async addBlockedDate(psychologistId: string, date: string, reason?: string) {
+    this.validateDate(date)
+    const existing = await this.blocked.findOne({ where: { psychologistId, date } })
+    if (existing) return existing
+
+    const b = this.blocked.create({ psychologistId, date, reason: this.normalizeReason(reason) })
     return this.blocked.save(b)
+  }
+
+  async addBlockedWeek(psychologistId: string, selectedDate: string, reason?: string) {
+    this.validateDate(selectedDate)
+    const dates = this.getWeekDates(selectedDate)
+    const existing = await this.blocked.find({
+      where: { psychologistId, date: In(dates) },
+      select: ['date'],
+    })
+    const existingDates = new Set(existing.map(item => item.date))
+    const missingDates = dates.filter(date => !existingDates.has(date))
+
+    if (missingDates.length) {
+      const normalizedReason = this.normalizeReason(reason) ?? 'Semana bloqueada'
+      await this.blocked.save(missingDates.map(date => this.blocked.create({
+        psychologistId,
+        date,
+        reason: normalizedReason,
+      })))
+    }
+
+    return { dates, created: missingDates.length }
   }
 
   async removeBlockedDate(id: string, psychologistId: string) {
@@ -71,11 +143,99 @@ export class AvailabilityService {
     })
   }
 
+  private validateDate(date: string): void {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      throw new BadRequestException('Data invalida')
+    }
+    const [year, month, day] = date.split('-').map(Number)
+    const parsed = new Date(Date.UTC(year, month - 1, day))
+    if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() !== month - 1 || parsed.getUTCDate() !== day) {
+      throw new BadRequestException('Data invalida')
+    }
+  }
+
+  private getWeekDates(selectedDate: string): string[] {
+    const [year, month, day] = selectedDate.split('-').map(Number)
+    const selected = new Date(Date.UTC(year, month - 1, day))
+    const mondayOffset = (selected.getUTCDay() + 6) % 7
+    const monday = new Date(selected)
+    monday.setUTCDate(selected.getUTCDate() - mondayOffset)
+
+    return Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(monday)
+      date.setUTCDate(monday.getUTCDate() + index)
+      return date.toISOString().slice(0, 10)
+    })
+  }
+
+  private normalizeReason(reason?: string): string | undefined {
+    const normalized = reason?.trim().slice(0, 255)
+    return normalized || undefined
+  }
+
+  private async ensureExtraSlotDoesNotConflict(
+    psychologistId: string,
+    data: { date: string; startTime: string; endTime: string },
+  ): Promise<void> {
+    const start = this.timeToMinutes(data.startTime)
+    const end = this.timeToMinutes(data.endTime)
+    const weekday = this.weekdayFromDate(data.date)
+
+    const [weeklySlots, extraSlots, appointments, bookings] = await Promise.all([
+      this.slots.find({ where: { psychologistId, weekday, isActive: true } }),
+      this.extraSlots.find({ where: { psychologistId, date: data.date, isActive: true } }),
+      this.appointments.find({ where: { psychologistId, date: data.date } }),
+      this.bookings.find({ where: { psychologistId, date: data.date } }),
+    ])
+
+    const hasWeeklyConflict = weeklySlots.some(slot =>
+      this.rangesOverlap(start, end, this.timeToMinutes(slot.startTime), this.timeToMinutes(slot.endTime)),
+    )
+    if (hasWeeklyConflict) {
+      throw new BadRequestException('Este horario ja existe na agenda semanal')
+    }
+
+    const hasExtraConflict = extraSlots.some(slot =>
+      this.rangesOverlap(start, end, this.timeToMinutes(slot.startTime), this.timeToMinutes(slot.endTime)),
+    )
+    if (hasExtraConflict) {
+      throw new BadRequestException('Ja existe um horario extra nesse periodo')
+    }
+
+    const busyAppointments = appointments.filter(appt => !['cancelled', 'no_show'].includes(appt.status))
+    const hasAppointmentConflict = busyAppointments.some(appt => {
+      const apptStart = this.timeToMinutes(appt.time)
+      return this.rangesOverlap(start, end, apptStart, apptStart + Number(appt.duration || 50))
+    })
+    if (hasAppointmentConflict) {
+      throw new BadRequestException('Ja existe um atendimento marcado nesse horario')
+    }
+
+    const busyBookings = bookings.filter(booking => !['cancelled', 'no_show'].includes(booking.status))
+    const hasBookingConflict = busyBookings.some(booking => {
+      const bookingStart = this.timeToMinutes(booking.time)
+      return this.rangesOverlap(start, end, bookingStart, bookingStart + Number(booking.duration || 50))
+    })
+    if (hasBookingConflict) {
+      throw new BadRequestException('Ja existe uma solicitacao de agendamento nesse horario')
+    }
+  }
+
+  private rangesOverlap(startA: number, endA: number, startB: number, endB: number): boolean {
+    return startA < endB && startB < endA
+  }
+
+  private weekdayFromDate(date: string): number {
+    const [year, month, day] = date.split('-').map(Number)
+    return new Date(Date.UTC(year, month - 1, day)).getUTCDay()
+  }
+
   private timeToMinutes(time: string): number {
-    if (!/^\d{2}:\d{2}$/.test(time)) {
+    const normalized = String(time ?? '').slice(0, 5)
+    if (!/^\d{2}:\d{2}$/.test(normalized)) {
       throw new BadRequestException('Horario invalido')
     }
-    const [hours, minutes] = time.split(':').map(Number)
+    const [hours, minutes] = normalized.split(':').map(Number)
     if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
       throw new BadRequestException('Horario invalido')
     }

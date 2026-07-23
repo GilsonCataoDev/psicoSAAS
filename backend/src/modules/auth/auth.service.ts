@@ -1,14 +1,17 @@
-import {
+﻿import {
   BadRequestException, ConflictException, ForbiddenException, HttpException, HttpStatus,
   Injectable, Logger, NotFoundException, UnauthorizedException,
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { DataSource, Repository } from 'typeorm'
 import { JwtService } from '@nestjs/jwt'
-import * as bcrypt from 'bcryptjs'
 import { randomBytes } from 'crypto'
 import { generateCsrfToken, hashToken } from '../../common/crypto/encrypt.util'
+import { hashPassword, verifyPassword, DUMMY_ARGON2_HASH } from '../../common/password/password.util'
 import { getAdminEmails } from '../../common/guards/admin.guard'
+import { RiskEngineService } from '../../common/security/risk-engine.service'
+import { SuspiciousActivityService } from '../../common/security/suspicious-activity.service'
+import { StorageService } from '../../common/storage/storage.service'
 import { User }         from './entities/user.entity'
 import { RefreshToken } from './entities/refresh-token.entity'
 import { LoginAttempt } from './entities/login-attempt.entity'
@@ -53,23 +56,26 @@ export const CURRENT_TERMS_VERSION = '2026-05-02'
 
 @Injectable()
 export class AuthService {
-  private readonly logger     = new Logger(AuthService.name)
+  private readonly logger      = new Logger(AuthService.name)
   private readonly auditLogger = new Logger('AuditLog')
 
   /** Brute-force protection: max 10 falhas por email em 15 minutos */
-  private readonly MAX_ATTEMPTS  = 10
-  private readonly WINDOW_MS     = 15 * 60 * 1000
+  private readonly MAX_ATTEMPTS = 10
+  private readonly WINDOW_MS    = 15 * 60 * 1000
 
   constructor(
-    @InjectRepository(User)         private users:    Repository<User>,
-    @InjectRepository(RefreshToken) private rtRepo:   Repository<RefreshToken>,
+    @InjectRepository(User)         private users:         Repository<User>,
+    @InjectRepository(RefreshToken) private rtRepo:        Repository<RefreshToken>,
     @InjectRepository(LoginAttempt) private loginAttempts: Repository<LoginAttempt>,
-    private dataSource: DataSource,
-    private jwt:      JwtService,
-    private email:    EmailService,
-    private referral: ReferralService,
-    private asaas:    AsaasService,
-    private auditService: AuditService,
+    private dataSource:    DataSource,
+    private jwt:           JwtService,
+    private email:         EmailService,
+    private referral:      ReferralService,
+    private asaas:         AsaasService,
+    private auditService:  AuditService,
+    private riskEngine:    RiskEngineService,
+    private suspicious:    SuspiciousActivityService,
+    private storage:       StorageService,
   ) {}
 
   // ── Registro ───────────────────────────────────────────────────────────────
@@ -82,7 +88,7 @@ export class AuthService {
     }
 
     const { referralCode, password, termsAccepted: _termsAccepted, termsVersion, ...userData } = dto
-    const passwordHash = await bcrypt.hash(password, 12)
+    const passwordHash = await hashPassword(password)
     const verificationToken = randomBytes(32).toString('hex')
     const user = this.users.create({
       ...userData,
@@ -98,12 +104,12 @@ export class AuthService {
 
     if (referralCode) {
       await this.referral.applyReferral(referralCode, user).catch((err) => {
-        this.logger.warn(`[Register] Falha ao aplicar indicação user=${user.id}: ${err?.message ?? err}`)
+        this.logger.warn(`[Register] Falha ao aplicar indicacao user=${user.id}: ${err?.message ?? err}`)
       })
     }
 
     this.email.sendEmailVerification(user.name, user.email, verificationToken)
-      .catch(err => this.logger.error(`[Register] Falha ao enviar verificação user=${user.id}: ${err?.message}`))
+      .catch(err => this.logger.error(`[Register] Falha ao enviar verificacao user=${user.id}: ${err?.message}`))
     this.email.sendWelcome(user.name, user.email)
       .catch(err => this.logger.error(`[Register] Falha ao enviar boas-vindas user=${user.id}: ${err?.message}`))
     this.audit('REGISTER', { userId: user.id, ip })
@@ -148,20 +154,68 @@ export class AuthService {
   async login(dto: LoginDto, ip?: string, userAgent?: string): Promise<AuthResult> {
     const email = dto.email.toLowerCase()
 
-    // Rate limit por email antes de qualquer operação
+    // Bloqueia IPs com ataques cross-account (credential stuffing)
+    if (ip && await this.suspicious.isIpBlocked(ip)) {
+      this.audit('LOGIN_IP_BLOCKED', { email: this.maskEmail(email), ip })
+      throw new HttpException(
+        { message: 'Acesso temporariamente bloqueado. Tente novamente em 15 minutos.' },
+        HttpStatus.TOO_MANY_REQUESTS,
+      )
+    }
+
+    // Rate limit por email (brute-force direcionado)
     await this.checkLoginRateLimit(email, ip)
 
     const user = await this.users.findOneBy({ email })
 
-    // Tempo constante mesmo se user não existe (previne timing attack)
-    const dummyHash = '$2a$12$dummyhashtopreventtimingattack000000000000000000000000'
-    const hash  = user?.passwordHash ?? dummyHash
-    const valid = await bcrypt.compare(dto.password, hash)
+    // Tempo constante mesmo se user nao existe (previne timing attack)
+    const hash  = user?.passwordHash ?? DUMMY_ARGON2_HASH
+    const { valid, needsRehash } = await verifyPassword(dto.password, hash)
 
     if (!user || !valid) {
       await this.recordLoginFailure(email)
+      await this.suspicious.recordFailedAttempt(ip ?? '', email)
       this.audit('LOGIN_FAILED', { email: this.maskEmail(email), ip })
-      throw new UnauthorizedException('Credenciais inválidas')
+      throw new UnauthorizedException('Credenciais invalidas')
+    }
+
+    if (user.isActive === false) {
+      this.audit('LOGIN_BLOCKED_INACTIVE', { userId: user.id, ip })
+      throw new UnauthorizedException('Conta desativada. Contate o suporte.')
+    }
+
+    // Rehash transparente de bcrypt legado para Argon2id
+    if (needsRehash) {
+      user.passwordHash = await hashPassword(dto.password)
+      await this.users.save(user)
+      this.audit('PASSWORD_REHASHED_ARGON2', { userId: user.id })
+    }
+
+    // Risk engine: avalia sinais de ameaca apos senha valida
+    const risk = await this.riskEngine.assessLoginRisk(user.id, ip ?? '')
+
+    if (risk.level === 'critical') {
+      // Revoga todas as sessoes e bloqueia login
+      await this.rtRepo.update({ userId: user.id, revoked: false }, { revoked: true })
+      await this.auditService.record({
+        userId: user.id,
+        action: 'LOGIN_BLOCKED_CRITICAL_RISK',
+        resource: 'auth',
+        ip,
+        metadata: { score: risk.score, signals: risk.signals },
+      })
+      this.audit('LOGIN_BLOCKED_CRITICAL_RISK', { userId: user.id, ip, score: String(risk.score) })
+      throw new UnauthorizedException('Login bloqueado por atividade suspeita. Faca login novamente ou contate o suporte.')
+    }
+
+    if (risk.level === 'high' || risk.level === 'medium') {
+      await this.auditService.record({
+        userId: user.id,
+        action: `LOGIN_RISK_${risk.level.toUpperCase()}`,
+        resource: 'auth',
+        ip,
+        metadata: { score: risk.score, signals: risk.signals },
+      })
     }
 
     await this.clearLoginAttempts(email)
@@ -172,12 +226,6 @@ export class AuthService {
 
   // ── Refresh Token ──────────────────────────────────────────────────────────
 
-  /**
-   * Rotaciona o refresh token:
-   * 1. Valida o token bruto recebido do cookie
-   * 2. Detecta replay attack (token revogado → invalida toda a sessão)
-   * 3. Revoga o token atual e cria um novo par (access + refresh)
-   */
   async refresh(rawToken: string, ip?: string, userAgent?: string): Promise<AuthResult> {
     if (!rawToken) throw new UnauthorizedException('Refresh token ausente')
 
@@ -189,72 +237,66 @@ export class AuthService {
       .getOne()
 
     if (!rt) {
-      throw new UnauthorizedException('Sessão inválida. Faça login novamente.')
+      throw new UnauthorizedException('Sessao invalida. Faca login novamente.')
     }
 
-    // ── Replay attack detection ──────────────────────────────────────────────
     if (rt.revoked) {
-      // Token revogado sendo reutilizado → sessão provavelmente comprometida
       await this.rtRepo.update({ userId: rt.userId }, { revoked: true })
       this.audit('REFRESH_REPLAY_DETECTED', { userId: rt.userId, ip })
-      throw new UnauthorizedException('Sessão comprometida. Faça login novamente.')
+      throw new UnauthorizedException('Sessao comprometida. Faca login novamente.')
     }
 
     if (new Date() > rt.expiresAt) {
-      throw new UnauthorizedException('Sessão expirada. Faça login novamente.')
+      throw new UnauthorizedException('Sessao expirada. Faca login novamente.')
     }
 
-    // Revoga token antigo (soft delete para audit)
     await this.rtRepo.update(rt.id, { revoked: true })
 
     const user = await this.users.findOneBy({ id: rt.userId })
-    if (!user) throw new UnauthorizedException('Usuário não encontrado')
+    if (!user) throw new UnauthorizedException('Usuario nao encontrado')
+
+    if (user.isActive === false) {
+      await this.rtRepo.update({ userId: user.id, revoked: false }, { revoked: true })
+      this.audit('REFRESH_BLOCKED_INACTIVE', { userId: user.id, ip })
+      throw new UnauthorizedException('Conta desativada. Contate o suporte.')
+    }
 
     this.audit('REFRESH_TOKEN_ROTATED', { userId: user.id, ip })
 
     return this.buildResult(user, ip, userAgent)
   }
 
-  /**
-   * Revoga todos os refresh tokens do usuário (logout completo).
-   * Garante que nenhuma sessão paralela permaneça ativa.
-   */
   async revokeAllTokens(userId: string, ip?: string): Promise<void> {
     await this.rtRepo.update({ userId, revoked: false }, { revoked: true })
     this.audit('LOGOUT', { userId, ip })
   }
 
-  // ── Impersonação (admin "ver como") ─────────────────────────────────────────
+  // ── Impersonacao (admin "ver como") ─────────────────────────────────────────
 
-  /**
-   * Emite um access token de curta duração (15 min) para o admin visualizar
-   * a plataforma como outro usuário. NÃO cria/rotaciona refresh token — a
-   * sessão original do admin permanece intacta e é restaurada automaticamente
-   * quando o access token expirar (ou via /auth/refresh explícito), pois o
-   * refresh_token continua sendo o do admin.
-   */
   async impersonate(admin: { id: string; email: string }, targetUserId: string, ip?: string): Promise<ImpersonationResult> {
     if (targetUserId === admin.id) {
-      throw new BadRequestException('Você já está autenticado como você mesmo')
+      throw new BadRequestException('Voce ja esta autenticado como voce mesmo')
     }
 
     const target = await this.users.findOneBy({ id: targetUserId })
-    if (!target) throw new NotFoundException('Usuário não encontrado')
+    if (!target) throw new NotFoundException('Usuario nao encontrado')
 
     if (getAdminEmails().includes(target.email.toLowerCase())) {
-      throw new ForbiddenException('Não é possível visualizar como outro administrador')
+      throw new ForbiddenException('Nao e possivel visualizar como outro administrador')
     }
 
+    const csrfSeed = randomBytes(16).toString('hex')
     const accessToken = this.jwt.sign(
       {
         sub: target.id,
         email: target.email,
+        csrfSeed,
         impersonatedBy: admin.id,
         impersonatedByEmail: admin.email,
       },
       { expiresIn: '15m' },
     )
-    const csrfToken = generateCsrfToken(target.id)
+    const csrfToken = generateCsrfToken(target.id, csrfSeed)
 
     await this.auditService.record({
       userId: admin.id,
@@ -292,7 +334,18 @@ export class AuthService {
   async updateAvatar(id: string, buffer: Buffer): Promise<SafeUser> {
     const user = await this.users.findOneBy({ id })
     if (!user) throw new NotFoundException()
-    user.avatarUrl = `data:image/jpeg;base64,${buffer.toString('base64')}`
+
+    if (this.storage.isConfigured()) {
+      if (user.avatarUrl && !user.avatarUrl.startsWith('data:')) {
+        const oldKey = this.storage.keyFromUrl(user.avatarUrl)
+        if (oldKey) await this.storage.delete(oldKey)
+      }
+      const key = `avatars/${id}-${Date.now()}.jpg`
+      user.avatarUrl = await this.storage.upload(key, buffer, 'image/jpeg')
+    } else {
+      user.avatarUrl = `data:image/jpeg;base64,${buffer.toString('base64')}`
+    }
+
     await this.users.save(user)
     return this.toSafeUser(user)
   }
@@ -321,10 +374,9 @@ export class AuthService {
   async changePassword(id: string, currentPassword: string, newPassword: string): Promise<{ message: string }> {
     const user = await this.users.findOneBy({ id })
     if (!user) throw new NotFoundException()
-    const valid = await bcrypt.compare(currentPassword, user.passwordHash)
-    // Mensagem genérica — não diferencia "senha errada" de "conta inexistente"
-    if (!valid) throw new UnauthorizedException('Credenciais inválidas')
-    user.passwordHash = await bcrypt.hash(newPassword, 12)
+    const { valid } = await verifyPassword(currentPassword, user.passwordHash)
+    if (!valid) throw new UnauthorizedException('Credenciais invalidas')
+    user.passwordHash = await hashPassword(newPassword)
     await this.users.save(user)
     this.audit('PASSWORD_CHANGED', { userId: id })
     return { message: 'Senha alterada com sucesso' }
@@ -339,7 +391,7 @@ export class AuthService {
 
     if (!user) throw new NotFoundException()
 
-    const valid = await bcrypt.compare(password, user.passwordHash)
+    const { valid } = await verifyPassword(password, user.passwordHash)
     if (!valid) throw new UnauthorizedException('Senha invalida')
 
     const subscriptions = await this.dataSource.query(
@@ -385,11 +437,11 @@ export class AuthService {
     this.audit('ACCOUNT_DELETED', { userId: id, ip })
   }
 
-  // ── Recuperação de senha ───────────────────────────────────────────────────
+  // ── Recuperacao de senha ───────────────────────────────────────────────────
 
   async forgotPassword(email: string): Promise<void> {
     const user = await this.users.findOneBy({ email: email.toLowerCase().trim() })
-    if (!user) return   // resposta idêntica para evitar user enumeration
+    if (!user) return
 
     const token = randomBytes(32).toString('hex')
     user.resetPasswordToken  = hashToken(token)
@@ -401,53 +453,45 @@ export class AuthService {
   }
 
   async resetPassword(token: string, newPassword: string): Promise<void> {
-    if (!token || !newPassword) throw new BadRequestException('Dados inválidos')
+    if (!token || !newPassword) throw new BadRequestException('Dados invalidos')
     if (newPassword.length < 8) throw new BadRequestException('A senha deve ter pelo menos 8 caracteres')
 
     const user = await this.users.findOneBy({ resetPasswordToken: hashToken(token) })
     if (!user || !user.resetPasswordExpiry || user.resetPasswordExpiry < new Date()) {
-      throw new BadRequestException('Link inválido ou expirado. Solicite um novo.')
+      throw new BadRequestException('Link invalido ou expirado. Solicite um novo.')
     }
 
-    user.passwordHash        = await bcrypt.hash(newPassword, 12)
+    user.passwordHash        = await hashPassword(newPassword)
     user.resetPasswordToken  = undefined
     user.resetPasswordExpiry = undefined
     await this.users.save(user)
 
-    // Revoga todas as sessões após reset de senha
     await this.rtRepo.update({ userId: user.id }, { revoked: true })
     this.audit('PASSWORD_RESET_SUCCESS', { userId: user.id })
   }
 
   // ── CSRF ───────────────────────────────────────────────────────────────────
 
-  /** Token stateless — HMAC(JWT_SECRET, "csrf:" + userId) */
-  generateCsrfToken(userId: string): string {
-    return generateCsrfToken(userId)
+  generateCsrfToken(userId: string, csrfSeed?: string): string {
+    return generateCsrfToken(userId, csrfSeed)
   }
 
   // ── Internos ───────────────────────────────────────────────────────────────
 
-  /**
-   * Monta o resultado completo de autenticação:
-   * - Access token JWT de curta duração (15 min)
-   * - Refresh token opaco, armazenado hashed no DB (7 dias)
-   * - CSRF token stateless derivado do userId
-   */
   private async buildResult(
     user: User,
     ip?: string,
     userAgent?: string,
   ): Promise<AuthResult> {
+    const csrfSeed    = randomBytes(16).toString('hex')
     const accessToken = this.jwt.sign(
-      { sub: user.id, email: user.email },
+      { sub: user.id, email: user.email, csrfSeed },
       { expiresIn: '15m' },
     )
 
     const refreshToken = await this.createRefreshToken(user.id, ip, userAgent)
-    const csrfToken    = generateCsrfToken(user.id)
-
-    const safeUser = this.toSafeUser(user)
+    const csrfToken    = generateCsrfToken(user.id, csrfSeed)
+    const safeUser     = this.toSafeUser(user)
 
     return { user: safeUser, tokens: { accessToken, refreshToken }, csrfToken }
   }
@@ -488,8 +532,6 @@ export class AuthService {
     try {
       await this.rtRepo.save(rt)
     } catch (err: any) {
-      // Causa mais comum: tabela refresh_tokens não existe (synchronize: false em prod)
-      // Solução: adicionar TYPEORM_SYNC=true no Railway e reimplantar uma vez
       this.logger.error(`createRefreshToken falhou: ${err?.message ?? err}`)
       throw err
     }
@@ -527,14 +569,13 @@ export class AuthService {
         await repo.save(repo.create({ email, count: 1, resetAt }))
         return
       }
-
-      entry.count += 1 // Contador persistente evita reset por restart ou múltiplas instâncias.
+      entry.count += 1
       await repo.save(entry)
     })
   }
 
   private async clearLoginAttempts(email: string): Promise<void> {
-    await this.loginAttempts.delete({ email }) // Sucesso de login limpa a janela distribuída.
+    await this.loginAttempts.delete({ email })
   }
 
   // ── Audit log ─────────────────────────────────────────────────────────────

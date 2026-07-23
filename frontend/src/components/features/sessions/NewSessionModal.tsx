@@ -92,6 +92,11 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
     setFollowUp({ date: '', time: '', modality: 'presencial' })
   }, [defaultPatientId, defaults?.appointmentId, defaults?.date, defaults?.duration, defaults?.patientId, open, reset])
 
+  useEffect(() => {
+    if (!open || !selectedPatient) return
+    setValue('paymentStatus', selectedPatient.billingType === 'monthly_package' ? 'included' : 'pending')
+  }, [open, selectedPatient?.billingType, selectedPatient?.id, setValue])
+
   function toggleTag(tag: EmotionalTag) {
     setTags(t => t.includes(tag) ? t.filter(x => x !== tag) : [...t, tag])
   }
@@ -294,11 +299,18 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
 
         <div>
           <label className="label">Pagamento</label>
-          <select {...register('paymentStatus')} className="input-field">
-            <option value="paid">Recebido</option>
-            <option value="pending">Pendente</option>
-            <option value="waived">Cortesia</option>
-          </select>
+          {selectedPatient?.billingType === 'monthly_package' ? (
+            <div className="rounded-xl border border-mist-200 bg-mist-50 px-3 py-2.5 text-sm text-mist-800">
+              Incluída no pacote mensal de {formatCurrency(Number(selectedPatient.monthlyPackagePrice ?? 0))}. Nenhuma cobrança avulsa será criada.
+              <input {...register('paymentStatus')} type="hidden" value="included" />
+            </div>
+          ) : (
+            <select {...register('paymentStatus')} className="input-field">
+              <option value="paid">Recebido</option>
+              <option value="pending">Pendente</option>
+              <option value="waived">Cortesia</option>
+            </select>
+          )}
         </div>
 
         <section className="rounded-2xl border border-neutral-200 p-4 dark:border-white/10">

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common'
+﻿import { Module } from '@nestjs/common'
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -29,16 +29,19 @@ import { PlanGuard } from './common/guards/plan.guard'
 import { SubscriptionGuard } from './common/guards/subscription.guard'
 import { LastActiveInterceptor } from './common/interceptors/last-active.interceptor'
 import { AdvisoryLockModule } from './common/advisory-lock/advisory-lock.module'
+import { StorageModule } from './common/storage/storage.module'
+import { SecurityModule } from './common/security/security.module'
+import { AuditInterceptor } from './modules/audit/interceptors/audit.interceptor'
 import { HealthController } from './health.controller'
+import { NeuropsychAssessmentsModule } from './modules/neuropsych-assessments/neuropsych-assessments.module'
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
 
-    // ── Rate limiting global ─────────────────────────────────────────────────
     ThrottlerModule.forRoot([
-      { name: 'short', ttl: 1000,  limit: 3   }, // 3 req/s (anti-DDoS)
-      { name: 'long',  ttl: 60000, limit: 100  }, // 100 req/min por IP
+      { name: 'short', ttl: 1000,  limit: 3   },
+      { name: 'long',  ttl: 60000, limit: 100  },
     ]),
 
     TypeOrmModule.forRootAsync({
@@ -50,17 +53,19 @@ import { HealthController } from './health.controller'
         synchronize: cfg.get('NODE_ENV') !== 'production' || cfg.get('TYPEORM_SYNC') === 'true',
         logging: ['error'],
         extra: {
-          max: 10,                    // tamanho do pool de conexões
-          idleTimeoutMillis: 30_000,  // libera conexões ociosas após 30s
+          max: 10,
+          idleTimeoutMillis: 30_000,
           connectionTimeoutMillis: 5_000,
         },
       }),
     }),
 
-    // Disponibiliza Subscription repository para o PlanGuard global
     TypeOrmModule.forFeature([BillingSubscription]),
 
     AdvisoryLockModule,
+    StorageModule,
+    SecurityModule,
+    AuditModule,
     AuthModule,
     PatientsModule,
     AppointmentsModule,
@@ -77,7 +82,7 @@ import { HealthController } from './health.controller'
     DataExportModule,
     GoogleCalendarModule,
     InstrumentAssignmentsModule,
-    AuditModule,
+    NeuropsychAssessmentsModule,
     TemplatesModule,
     AdminModule,
     TestimonialModule,
@@ -85,10 +90,11 @@ import { HealthController } from './health.controller'
   ],
   controllers: [HealthController],
   providers: [
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
-    { provide: APP_GUARD, useClass: SubscriptionGuard },
-    { provide: APP_GUARD, useClass: PlanGuard },
+    { provide: APP_GUARD,       useClass: ThrottlerGuard },
+    { provide: APP_GUARD,       useClass: SubscriptionGuard },
+    { provide: APP_GUARD,       useClass: PlanGuard },
     { provide: APP_INTERCEPTOR, useClass: LastActiveInterceptor },
+    { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
   ],
 })
 export class AppModule {}

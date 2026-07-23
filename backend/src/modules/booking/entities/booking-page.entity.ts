@@ -40,6 +40,9 @@ export class BookingPage {
   @Column({ default: 0 }) minAdvanceDays: number
   @Column({ default: 60 }) maxAdvanceDays: number
 
+  // O mes atual e sempre aberto; o seguinte exige permissao explicita.
+  @Column({ default: false }) allowNextMonthBooking: boolean
+
   // Pagamento
   @Column({ default: false }) requirePaymentUpfront: boolean
   @Column({ nullable: true }) pixKey?: string

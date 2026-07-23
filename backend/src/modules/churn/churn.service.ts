@@ -5,6 +5,7 @@ import { TenantHealth, RiskLevel, Recommendation, ScoreBreakdown } from './entit
 import { TenantActivation } from './entities/tenant-activation.entity'
 import { TenantAlert, AlertType } from './entities/tenant-alert.entity'
 import { EmailService } from '../email/email.service'
+import { AiService } from '../sessions/ai.service'
 
 // ─── Score weights — single source of truth, easy to adjust ──────────────────
 const WEIGHTS = {
@@ -30,6 +31,7 @@ interface TenantStatsRow {
   id: string
   name: string
   email: string
+  phone: string | null
   createdAt: Date
   lastActiveAt: Date | null
   plan: string | null
@@ -52,6 +54,9 @@ export interface ChurnRiskResult {
   reasons: string[]
   recommendations: Recommendation[]
   scoreBreakdown: ScoreBreakdown
+  patientCount: number
+  sessionCount: number
+  daysSinceLastActive: number | null
 }
 
 export interface BehaviorTimeline {
@@ -75,6 +80,7 @@ export class ChurnService {
     @InjectRepository(TenantActivation) private readonly activationRepo: Repository<TenantActivation>,
     @InjectRepository(TenantAlert) private readonly alertRepo: Repository<TenantAlert>,
     private readonly email: EmailService,
+    private readonly ai: AiService,
   ) {}
 
   // ─── Public API ─────────────────────────────────────────────────────────────
@@ -120,7 +126,11 @@ export class ChurnService {
   async calculateChurnRisk(userId: string): Promise<ChurnRiskResult> {
     const rows = await this.fetchAllStats({ userId })
     if (!rows.length) {
-      return { riskLevel: 'CRITICAL', score: 0, reasons: ['Usuário não encontrado'], recommendations: [], scoreBreakdown: { patients: 0, sessions: 0, appointments: 0, whatsapp: 0, recency: 0, penalties: 0 } }
+      return {
+        riskLevel: 'CRITICAL', score: 0, reasons: ['Usuário não encontrado'], recommendations: [],
+        scoreBreakdown: { patients: 0, sessions: 0, appointments: 0, whatsapp: 0, recency: 0, penalties: 0 },
+        patientCount: 0, sessionCount: 0, daysSinceLastActive: null,
+      }
     }
     return this.scoreRow(rows[0])
   }
@@ -270,14 +280,21 @@ export class ChurnService {
     appointments: number
     score: number
   }): Promise<{ riskLevel: RiskLevel; explanation: string; recommendations: Recommendation[] }> {
-    // Architecture ready for OpenAI/Claude integration — returns rule-based response for now
     const risk = this.scoreToRiskLevel(input.score)
     const reasons = this.buildReasons(input.daysWithoutLogin, input.patients, input.sessions, input.appointments)
     const recs = this.buildRecommendations(input.patients, input.sessions, input.appointments, input.daysWithoutLogin)
 
+    let explanation = reasons.join('. ') || 'Usuário com boa atividade.'
+    try {
+      const ai = await this.ai.generateChurnDiagnosis({ ...input, reasons })
+      if (ai.text) explanation = ai.text
+    } catch (err: any) {
+      this.logger.warn(`Diagnóstico por IA indisponível, usando explicação por regras: ${err?.message ?? 'erro desconhecido'}`)
+    }
+
     return {
       riskLevel: risk,
-      explanation: reasons.join('. ') || 'Usuário com boa atividade.',
+      explanation,
       recommendations: recs,
     }
   }
@@ -285,7 +302,7 @@ export class ChurnService {
   // ─── Internal scoring logic ──────────────────────────────────────────────────
 
   private scoreRow(row: TenantStatsRow): ChurnRiskResult & {
-    id: string; name: string; email: string; plan: string | null
+    id: string; name: string; email: string; phone: string | null; plan: string | null
     subscriptionStatus: string | null; lastActiveAt: Date | null; createdAt: Date
     daysSinceLastActive: number | null; patientCount: number; sessionCount: number
     tier: 'green' | 'yellow' | 'red'
@@ -330,6 +347,7 @@ export class ChurnService {
       id: row.id,
       name: row.name,
       email: row.email,
+      phone: row.phone,
       plan: row.plan,
       subscriptionStatus: row.subscriptionStatus,
       lastActiveAt: row.lastActiveAt,
@@ -482,6 +500,7 @@ export class ChurnService {
         u.id,
         u.name,
         u.email,
+        u.phone,
         u."createdAt",
         u."lastActiveAt",
         sub.plan,

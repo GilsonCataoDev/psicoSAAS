@@ -3,6 +3,7 @@ import { Throttle } from '@nestjs/throttler'
 import { Response } from 'express'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
+import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
 import { PatientsService } from './patients.service'
 import { CreatePatientDto } from './dto/create-patient.dto'
 import { UpdatePatientDto } from './dto/update-patient.dto'
@@ -10,7 +11,7 @@ import { AuditService } from '../audit/audit.service'
 import { pdfAttachment } from '../../common/http/content-disposition.util'
 
 @Controller('patients')
-@UseGuards(JwtAuthGuard, CsrfGuard)
+@UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
 export class PatientsController {
   constructor(
     private svc: PatientsService,
@@ -20,7 +21,6 @@ export class PatientsController {
   @Get() findAll(@Request() req: any) { return this.svc.findAll(req.user.id) }
 
   @Get(':id/prontuario/export')
-  @UseGuards(JwtAuthGuard)
   @Throttle({ long: { limit: 5, ttl: 60 * 60 * 1000 } })
   async exportProntuario(@Param('id') id: string, @Request() req: any, @Res() res: Response) {
     const { filename, buffer } = await this.svc.exportProntuario(
@@ -39,6 +39,7 @@ export class PatientsController {
     res.end(buffer)
   }
 
+  // O guard de classe bloqueia toda a area de pacientes durante impersonacao.
   @Get(':id')
   async findOne(@Param('id') id: string, @Request() req: any) {
     const patient = await this.svc.findOne(id, req.user.id)

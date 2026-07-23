@@ -15,6 +15,7 @@ export interface ChurnAccount {
   id: string
   name: string
   email: string
+  phone: string | null
   plan: string | null
   subscriptionStatus: string | null
   lastActiveAt: string | null
@@ -113,6 +114,32 @@ export function useUserTimeline(userId: string) {
     queryKey: ['admin', 'churn', 'timeline', userId],
     queryFn: () => api.get(`/admin/churn/user/${userId}/timeline`).then(r => r.data),
     enabled: !!userId,
+  })
+}
+
+export interface ChurnAiDiagnosis {
+  riskLevel: ChurnRiskLevel
+  explanation: string
+  recommendations: ChurnRecommendation[]
+}
+
+export function useChurnAiDiagnosis() {
+  return useMutation({
+    mutationFn: (userId: string) =>
+      api.get<ChurnAiDiagnosis>(`/admin/churn/user/${userId}/ai-diagnose`).then(r => r.data),
+  })
+}
+
+export type WhatsAppDeliveryResult = {
+  sent: boolean
+  reason?: 'plan' | 'not_configured' | 'disconnected' | 'api_error' | 'invalid_content'
+  error?: string
+}
+
+export function useSendChurnWhatsApp() {
+  return useMutation({
+    mutationFn: ({ userId, phone, message }: { userId: string; phone: string; message: string }) =>
+      api.post<WhatsAppDeliveryResult>(`/admin/churn/user/${userId}/send-whatsapp`, { phone, message }).then(r => r.data),
   })
 }
 

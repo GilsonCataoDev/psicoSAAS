@@ -19,7 +19,7 @@ import { usePublicTestimonials } from '@/hooks/api/testimonial'
 import { track, EVENTS } from '@/lib/analytics'
 
 const trustSignals = [
-  'Plano gratis',
+  'Plano grátis',
   'Para psicólogos, terapeutas e estagiários clínicos',
   'Sem cartão para começar',
 ]
@@ -63,11 +63,11 @@ const features = [
 ]
 
 const freeItems = [
-  'Acesso gratuito sem cartao',
-  'Agenda online com link publico',
-  'Cadastro de ate 10 pacientes',
-  'Prontuario e evolucoes em um so lugar',
-  'Ideal para estagiarios, psicologos e terapeutas no inicio da rotina',
+  'Acesso gratuito sem cartão',
+  'Agenda online com link público',
+  'Cadastro de até 10 pacientes',
+  'Prontuário e evoluções em um só lugar',
+  'Ideal para estagiários, psicólogos e terapeutas no início da rotina',
 ]
 
 const faqs = [
@@ -143,9 +143,9 @@ function ProductPreview() {
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-white/5 px-4 py-3">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sage-200">Painel UseCognia</p>
-          <p className="mt-1 text-sm text-white/70">Rotina clinica</p>
+          <p className="mt-1 text-sm text-white/70">Rotina clínica</p>
         </div>
-        <span className="shrink-0 rounded-full bg-sage-200 px-3 py-1 text-xs font-semibold text-sage-900">Plano gratis</span>
+        <span className="shrink-0 rounded-full bg-sage-200 px-3 py-1 text-xs font-semibold text-sage-900">Plano grátis</span>
       </div>
 
       <div className="grid gap-0 md:grid-cols-[180px_1fr]">
@@ -225,7 +225,7 @@ export default function LandingPage() {
           </Link>
           <nav className="hidden items-center gap-6 text-sm font-medium text-[#5F5A51] md:flex">
             <a href="#produto" className="hover:text-sage-700">Produto</a>
-            <a href="#gratis" className="hover:text-sage-700">Plano gratis</a>
+            <a href="#grátis" className="hover:text-sage-700">Plano grátis</a>
             <button onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-sage-700">Dúvidas</button>
             <Link to="/seguranca" className="hover:text-sage-700">Segurança</Link>
           </nav>
@@ -256,7 +256,7 @@ export default function LandingPage() {
           >
             <motion.p variants={fadeUp} className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-3 py-1 text-sm font-semibold text-sage-200">
               <Sparkles className="h-4 w-4" />
-              Plano gratis para psicólogos, terapeutas e estagiários
+              Plano grátis para psicólogos, terapeutas e estagiários
             </motion.p>
 
             <motion.h1 variants={fadeUp} className="mt-6 max-w-[21rem] text-[2.1rem] font-bold leading-[1.06] tracking-normal text-white sm:max-w-2xl sm:text-5xl lg:text-6xl">
@@ -275,7 +275,7 @@ export default function LandingPage() {
                 whileTap={reduce ? undefined : { scale: 0.975 }}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-sage-200 px-5 text-sm font-bold text-sage-900 shadow-lg shadow-sage-200/15 hover:bg-sage-100"
               >
-                Começar gratis <ArrowRight className="h-4 w-4" />
+                Começar grátis <ArrowRight className="h-4 w-4" />
               </MotionLink>
               <motion.a
                 href="#produto"
@@ -432,10 +432,10 @@ export default function LandingPage() {
           variants={fadeUp}
         >
           <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">
-            {realTestimonials.length > 0 ? 'Quem usa recomenda' : 'Por que começar agora'}
+            {realTestimonials.length >= 3 ? 'Quem usa recomenda' : 'Por que começar agora'}
           </p>
           <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">
-            {realTestimonials.length > 0
+            {realTestimonials.length >= 3
               ? 'Psicólogos e terapeutas que já organizaram a rotina com o UseCognia.'
               : 'Uma rotina clínica mais organizada desde o primeiro paciente.'}
           </h2>
@@ -447,7 +447,7 @@ export default function LandingPage() {
           viewport={{ once: true, margin: '-80px' }}
           variants={stagger}
         >
-          {(realTestimonials.length > 0
+          {(realTestimonials.length >= 3
             ? realTestimonials.slice(0, 3).map(item => ({
                 quote: item.text ?? '',
                 name: item.firstName,
@@ -508,17 +508,18 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      <section id="gratis" className="mx-auto grid max-w-6xl gap-8 px-5 py-16 lg:grid-cols-[0.9fr_1fr]">
+      <section id="grátis" className="mx-auto grid max-w-6xl gap-8 px-5 py-16 lg:grid-cols-[0.9fr_1fr]">
         <motion.div
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, margin: '-80px' }}
           variants={fadeUp}
         >
-          <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Plano gratis</p>
+          <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Plano grátis</p>
           <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Comece sem cartão e organize os primeiros pacientes.</h2>
           <p className="mt-4 max-w-xl leading-relaxed text-[#5F5A51]">
-            O plano grátis foi pensado para quem quer sair da bagunça inicial sem assumir custo de imediato. Quando precisar de mais limite ou automação, escolha Essencial ou Pro.
+            O plano grátis foi pensado para quem quer sair da bagunça inicial sem assumir custo de imediato. Quando precisar de mais limite ou automação, veja os{' '}
+            <Link to="/precos" className="font-semibold text-sage-700 underline underline-offset-2 hover:text-sage-900">planos pagos</Link>.
           </p>
         </motion.div>
 
@@ -531,10 +532,10 @@ export default function LandingPage() {
         >
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-sage-700">UseCognia Gratis</p>
+              <p className="text-sm font-semibold text-sage-700">UseCognia Grátis</p>
               <p className="mt-1 text-3xl font-bold text-[#211F1C]">Gratuito</p>
             </div>
-            <span className="rounded-full bg-sage-100 px-3 py-1 text-xs font-semibold text-sage-700">sem cartao</span>
+            <span className="rounded-full bg-sage-800 px-3 py-1 text-xs font-semibold text-white">sem cartão</span>
           </div>
           <ul className="space-y-3">
             {freeItems.map((item) => (
@@ -550,7 +551,7 @@ export default function LandingPage() {
             whileTap={reduce ? undefined : { scale: 0.98 }}
             className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-md bg-sage-800 text-sm font-bold text-white hover:bg-sage-900"
           >
-            Começar gratis
+            Começar grátis
           </MotionLink>
           <p className="mt-3 text-center text-xs text-[#A9A394]">Sem cartão. Você pode mudar de plano depois.</p>
         </motion.div>
@@ -578,7 +579,7 @@ export default function LandingPage() {
             {faqs.map((item) => (
               <motion.details key={item.question} variants={fadeUp} className="group py-5">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
-                  <span className="font-semibold text-[#211F1C] group-open:text-sage-700">{item.question}</span>
+                  <span className="font-semibold text-[#211F1C] group-open:text-sage-900">{item.question}</span>
                   <span className="shrink-0 text-[#7C776B] text-lg leading-none group-open:rotate-45 transition-transform duration-200">+</span>
                 </summary>
                 <p className="mt-3 text-sm leading-relaxed text-[#7C776B]">{item.answer}</p>
@@ -588,17 +589,20 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="bg-[#1D352D] px-5 py-16 text-white">
+      <section className="bg-[#1D352D] px-5 py-20 text-white">
         <motion.div
-          className="mx-auto max-w-3xl text-center"
+          className="mx-auto max-w-2xl text-center"
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, margin: '-80px' }}
           variants={fadeUp}
         >
-          <h2 className="text-3xl font-bold">Pronto para deixar o consultório com cara de operação profissional?</h2>
-          <p className="mx-auto mt-4 max-w-2xl text-white/70">
-            Preencha o formulário e entraremos em contato para apresentar a plataforma.
+          <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-200">Comece hoje</p>
+          <h2 className="mt-4 text-3xl font-bold leading-snug">
+            Pronto para deixar o consultório com cara de operação profissional?
+          </h2>
+          <p className="mx-auto mt-4 max-w-lg text-white/70">
+            Crie sua conta grátis em menos de dois minutos — sem cartão, sem contrato.
           </p>
           <div className="mt-8 rounded-xl bg-white p-6 text-left">
             <div
@@ -621,6 +625,59 @@ export default function LandingPage() {
           </div>
         </motion.div>
       </section>
+
+      <footer className="border-t border-[#E7E4DA] bg-[#F7F8F5]">
+        <div className="mx-auto max-w-6xl px-5 py-12">
+          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="col-span-full lg:col-span-1">
+              <Link to="/inicio" className="flex items-center gap-2.5">
+                <BrandLogo compact className="shrink-0" />
+                <span className="text-xl font-bold tracking-tight text-[#211F1C]">
+                  Use<span className="text-[#2F7657]">Cognia</span>
+                </span>
+              </Link>
+              <p className="mt-3 text-sm leading-relaxed text-[#7C776B]">
+                Agenda, prontuário e cobranças para psicólogos e terapeutas.
+              </p>
+              <a href="mailto:usecognia@gmail.com" className="mt-3 block text-sm text-sage-700 hover:underline">
+                usecognia@gmail.com
+              </a>
+            </div>
+
+            <div>
+              <p className="mb-4 text-xs font-bold uppercase tracking-[0.15em] text-[#7C776B]">Produto</p>
+              <ul className="space-y-2.5 text-sm text-[#49443D]">
+                <li><a href="#produto" className="hover:text-sage-700">Funcionalidades</a></li>
+                <li><a href="#grátis" className="hover:text-sage-700">Plano grátis</a></li>
+                <li><Link to="/precos" className="hover:text-sage-700">Planos pagos</Link></li>
+                <li><Link to="/seguranca" className="hover:text-sage-700">Segurança</Link></li>
+              </ul>
+            </div>
+
+            <div>
+              <p className="mb-4 text-xs font-bold uppercase tracking-[0.15em] text-[#7C776B]">Conta</p>
+              <ul className="space-y-2.5 text-sm text-[#49443D]">
+                <li><Link to="/cadastro" className="hover:text-sage-700">Criar conta</Link></li>
+                <li><Link to="/login" className="hover:text-sage-700">Entrar</Link></li>
+              </ul>
+            </div>
+
+            <div>
+              <p className="mb-4 text-xs font-bold uppercase tracking-[0.15em] text-[#7C776B]">Legal</p>
+              <ul className="space-y-2.5 text-sm text-[#49443D]">
+                <li><Link to="/privacidade" className="hover:text-sage-700">Privacidade</Link></li>
+                <li><Link to="/termos" className="hover:text-sage-700">Termos de uso</Link></li>
+                <li><Link to="/acessibilidade" className="hover:text-sage-700">Acessibilidade</Link></li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="mt-10 flex flex-col gap-2 border-t border-[#E7E4DA] pt-8 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-[#A9A394]">© {new Date().getFullYear()} UseCognia. Todos os direitos reservados.</p>
+            <p className="text-xs text-[#A9A394]">Desenvolvido para psicólogos, terapeutas e estagiários clínicos no Brasil.</p>
+          </div>
+        </div>
+      </footer>
     </main>
   )
 }

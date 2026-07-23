@@ -44,6 +44,7 @@ export class FinancialService {
         sessionId: true,
         appointmentId: true,
         bookingId: true,
+        packageMonth: true,
         receiptUrl: true,
         patientId: true,
         psychologistId: true,
@@ -73,6 +74,7 @@ export class FinancialService {
         sessionId: true,
         appointmentId: true,
         bookingId: true,
+        packageMonth: true,
         receiptUrl: true,
         asaasPaymentId: true,
         paymentLinkUrl: true,
@@ -134,6 +136,48 @@ export class FinancialService {
 
     const record = this.repo.create({ ...dto, psychologistId })
     return this.repo.save(record)
+  }
+
+  async ensureMonthlyPackageCharge(patient: Patient, referenceDate: Date): Promise<FinancialRecord | null> {
+    if (patient.status !== 'active' || patient.billingType !== 'monthly_package') return null
+    const amount = Number(patient.monthlyPackagePrice) || 0
+    if (amount <= 0) return null
+
+    const year = referenceDate.getFullYear()
+    const month = referenceDate.getMonth() + 1
+    const packageMonth = `${year}-${String(month).padStart(2, '0')}`
+    const existing = await this.repo.findOne({
+      where: { psychologistId: patient.psychologistId, patientId: patient.id, packageMonth },
+    })
+    if (existing) return existing
+
+    const lastDay = new Date(year, month, 0).getDate()
+    // Ao ativar um pacote no meio do mês, nunca cria uma cobrança já vencida.
+    // Nos meses seguintes o job roda desde o início do mês e respeita o dia configurado.
+    const dueDay = Math.min(
+      Math.max(Number(patient.billingDay) || 1, referenceDate.getDate(), 1),
+      lastDay,
+    )
+    const monthLabel = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(referenceDate)
+    const record = this.repo.create({
+      type: 'income',
+      amount,
+      description: `Pacote mensal — ${monthLabel}`,
+      status: 'pending',
+      dueDate: `${packageMonth}-${String(dueDay).padStart(2, '0')}`,
+      packageMonth,
+      patientId: patient.id,
+      psychologistId: patient.psychologistId,
+    })
+
+    try {
+      return await this.repo.save(record)
+    } catch (error: any) {
+      if (error?.code !== '23505') throw error
+      return this.repo.findOne({
+        where: { psychologistId: patient.psychologistId, patientId: patient.id, packageMonth },
+      })
+    }
   }
 
   async markPaid(id: string, method: string, psychologistId: string) {

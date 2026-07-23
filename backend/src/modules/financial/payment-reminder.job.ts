@@ -4,6 +4,8 @@ import { LessThanOrEqual, Repository } from 'typeorm'
 import { FinancialRecord } from './entities/financial-record.entity'
 import { NotificationsService } from '../notifications/notifications.service'
 import { AdvisoryLockService, JOB_LOCK_KEYS } from '../../common/advisory-lock/advisory-lock.service'
+import { Patient } from '../patients/entities/patient.entity'
+import { FinancialService } from './financial.service'
 
 const SIX_HOURS_MS = 6 * 60 * 60 * 1000
 const OVERDUE_AFTER_DAYS = 3
@@ -17,6 +19,9 @@ export class PaymentReminderJob implements OnModuleInit, OnModuleDestroy {
   constructor(
     @InjectRepository(FinancialRecord)
     private readonly records: Repository<FinancialRecord>,
+    @InjectRepository(Patient)
+    private readonly patients: Repository<Patient>,
+    private readonly financial: FinancialService,
     private readonly notifications: NotificationsService,
     private readonly lock: AdvisoryLockService,
   ) {}
@@ -41,6 +46,15 @@ export class PaymentReminderJob implements OnModuleInit, OnModuleDestroy {
   }
 
   private async runLocked(): Promise<void> {
+    const monthlyPatients = await this.patients.find({
+      where: { status: 'active', billingType: 'monthly_package' },
+    })
+    for (const patient of monthlyPatients) {
+      await this.financial.ensureMonthlyPackageCharge(patient, new Date()).catch((error: unknown) => {
+        this.logger.warn(`Pacote mensal nao gerado para paciente ${patient.id}: ${error instanceof Error ? error.message : error}`)
+      })
+    }
+
     const cutoff = this.cutoffDate()
     const overdue = await this.records.find({
       where: {

@@ -125,7 +125,7 @@ export class AppointmentsService {
     await this.syncLinkedBookingStatus(saved, status)
 
     if (['cancelled', 'no_show'].includes(status)) {
-      this.googleCalendar.deleteAppointment(saved).catch(err => this.logCalendarError('delete', saved.id, err))
+      this.googleCalendar.deleteAppointment(saved, status === 'cancelled').catch(err => this.logCalendarError('delete', saved.id, err))
     } else {
       this.googleCalendar.syncAppointment(saved).catch(err => this.logCalendarError('sync', saved.id, err))
     }

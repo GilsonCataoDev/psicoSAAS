@@ -7,6 +7,7 @@ import { User } from '../auth/entities/user.entity'
 import { Subscription } from './entities/subscription.entity'
 import { WebhookEvent } from './entities/webhook-event.entity'
 import { AsaasService } from './asaas.service'
+import { secretsMatch } from '../../common/crypto/encrypt.util'
 
 @Injectable()
 export class BillingWebhookService {
@@ -34,7 +35,7 @@ export class BillingWebhookService {
       headers['access-token'] ??
       payload?.accessToken
 
-    return received === expected
+    return secretsMatch(typeof received === 'string' ? received : undefined, expected)
   }
 
   async process(payload: any): Promise<void> {
