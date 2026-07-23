@@ -123,10 +123,14 @@ export function MessagesTab({
                   <p className="text-xs text-neutral-400">
                     {new Date(log.createdAt).toLocaleString('pt-BR')} {log.recipientPhone ? `· +${log.recipientPhone}` : ''}
                   </p>
-                  {log.status === 'sent' && typeof log.contentLength === 'number' && (
+                  {log.status === 'sent' && log.providerStatus === 'unverified' && (
+                    <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                      Enviado, mas não foi possível confirmar se o conteúdo chegou ao paciente. Se ele não recebeu, reenvie.
+                    </p>
+                  )}
+                  {log.status === 'sent' && log.providerStatus !== 'unverified' && typeof log.contentLength === 'number' && (
                     <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
                       Conteúdo confirmado · {log.contentLength} caracteres
-                      {log.providerStatus ? ` · ${log.providerStatus}` : ''}
                     </p>
                   )}
                   {log.status === 'failed' && log.error && (
