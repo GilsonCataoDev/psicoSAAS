@@ -7,6 +7,7 @@ import { NotificationsService, WhatsAppDeliveryResult, PushDeliveryResult } from
 import { EmailService } from '../email/email.service'
 import { User } from '../auth/entities/user.entity'
 import { AdvisoryLockService, JOB_LOCK_KEYS } from '../../common/advisory-lock/advisory-lock.service'
+import { HeartbeatService } from '../../common/monitoring/heartbeat.service'
 
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000
@@ -27,6 +28,7 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
     private readonly config: ConfigService,
     private readonly email: EmailService,
     private readonly lock: AdvisoryLockService,
+    private readonly heartbeat: HeartbeatService,
   ) {}
 
   onModuleInit(): void {
@@ -43,6 +45,7 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
     this.running = true
     try {
       await this.lock.withLock(JOB_LOCK_KEYS.APPOINTMENT_REMINDER, () => this.runLocked())
+      this.heartbeat.ping('BETTERSTACK_HEARTBEAT_REMINDER_URL')
     } finally {
       this.running = false
     }

@@ -4,6 +4,7 @@ import { LessThanOrEqual, Repository } from 'typeorm'
 import { FinancialRecord } from './entities/financial-record.entity'
 import { NotificationsService } from '../notifications/notifications.service'
 import { AdvisoryLockService, JOB_LOCK_KEYS } from '../../common/advisory-lock/advisory-lock.service'
+import { HeartbeatService } from '../../common/monitoring/heartbeat.service'
 
 const SIX_HOURS_MS = 6 * 60 * 60 * 1000
 const OVERDUE_AFTER_DAYS = 3
@@ -19,6 +20,7 @@ export class PaymentReminderJob implements OnModuleInit, OnModuleDestroy {
     private readonly records: Repository<FinancialRecord>,
     private readonly notifications: NotificationsService,
     private readonly lock: AdvisoryLockService,
+    private readonly heartbeat: HeartbeatService,
   ) {}
 
   onModuleInit(): void {
@@ -35,6 +37,7 @@ export class PaymentReminderJob implements OnModuleInit, OnModuleDestroy {
     this.running = true
     try {
       await this.lock.withLock(JOB_LOCK_KEYS.PAYMENT_REMINDER, () => this.runLocked())
+      this.heartbeat.ping('BETTERSTACK_HEARTBEAT_PAYMENT_URL')
     } finally {
       this.running = false
     }

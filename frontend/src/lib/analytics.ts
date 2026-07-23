@@ -4,6 +4,14 @@
  * Em produção: envia para PostHog (grátis até 1M eventos/mês).
  *
  * Setup: https://posthog.com → criar projeto → copiar API key para VITE_POSTHOG_KEY
+ *
+ * IMPORTANTE — dados clínicos: capture_pageview, capture_pageleave,
+ * autocapture e disable_session_recording abaixo NUNCA devem ser
+ * reativados. Este sistema lida com prontuários e dados de pacientes;
+ * autocapture/session recording poderiam vazar conteúdo clínico visível na
+ * tela para o PostHog sem que ninguém perceba em um PR futuro. Eventos só
+ * devem ser enviados explicitamente via track() com nomes estruturais
+ * (ver EVENTS) e props tipadas — nunca texto livre.
  */
 const KEY  = import.meta.env.VITE_POSTHOG_KEY as string | undefined
 const HOST = (import.meta.env.VITE_POSTHOG_HOST as string | undefined) ?? 'https://app.posthog.com'
