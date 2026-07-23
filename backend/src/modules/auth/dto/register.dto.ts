@@ -18,6 +18,11 @@ export class RegisterDto {
   @Transform(({ value }) => value?.trim())
   crp: string
 
+  @IsString()
+  @Matches(/^\d{10,11}$/, { message: 'Telefone inválido. Use DDD + número (10 ou 11 dígitos)' })
+  @Transform(({ value }) => value?.replace(/\D/g, ''))
+  phone: string
+
   /**
    * Senha forte: 8+ chars, maiúscula, minúscula, número e símbolo.
    * Mesma política usada no ResetPasswordDto e ChangePasswordDto.

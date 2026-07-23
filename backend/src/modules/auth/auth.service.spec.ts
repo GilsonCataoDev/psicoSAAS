@@ -99,7 +99,7 @@ describe('AuthService', () => {
 
       await expect(service.register({
         name: 'Novo', email: 'test@example.com', password: 'senha1234',
-        crp: '12345/SP', termsAccepted: true, termsVersion: '2026-05-02',
+        crp: '12345/SP', phone: '11987654321', termsAccepted: true, termsVersion: '2026-05-02',
       })).rejects.toThrow(ConflictException)
     })
 
@@ -109,7 +109,7 @@ describe('AuthService', () => {
 
       await expect(service.register({
         name: 'Novo', email: 'novo@example.com', password: 'senha1234',
-        crp: '12345/SP', termsAccepted: false,
+        crp: '12345/SP', phone: '11987654321', termsAccepted: false,
       })).rejects.toThrow()
     })
 
@@ -121,7 +121,7 @@ describe('AuthService', () => {
 
       const result = await service.register({
         name: 'Novo', email: 'novo@example.com', password: 'senha1234',
-        crp: '12345/SP', termsAccepted: true, termsVersion: '2026-05-02',
+        crp: '12345/SP', phone: '11987654321', termsAccepted: true, termsVersion: '2026-05-02',
       })
 
       expect(result.user).toBeDefined()

@@ -18,6 +18,10 @@ const schema = z.object({
   crp: z
     .string()
     .refine(isValidCrpFormat, 'CRP inválido. Use uma região entre 01 e 24.'),
+  phone: z
+    .string()
+    .transform((v) => v.replace(/\D/g, ''))
+    .refine((v) => v.length === 10 || v.length === 11, 'Telefone inválido. Use DDD + número.'),
   password: z.string()
     .min(8, 'Mínimo 8 caracteres')
     .regex(/[A-Z]/, 'Precisa de ao menos uma letra maiúscula')
@@ -68,6 +72,7 @@ export default function RegisterPage() {
         email: data.email,
         password: data.password,
         crp: data.crp,
+        phone: data.phone,
         termsAccepted: data.terms,
         termsVersion: TERMS_VERSION,
         ...(referralCode ? { referralCode } : {}),
@@ -163,6 +168,21 @@ export default function RegisterPage() {
             aria-invalid={!!errors.email}
           />
           {errors.email && <p className="text-rose-500 text-xs mt-1">{errors.email.message}</p>}
+        </div>
+
+        <div>
+          <label htmlFor="register-phone" className="label">Telefone (WhatsApp)</label>
+          <input
+            id="register-phone"
+            {...register('phone')}
+            type="tel"
+            className="input-field"
+            placeholder="(00) 00000-0000"
+            autoComplete="tel"
+            inputMode="numeric"
+            aria-invalid={!!errors.phone}
+          />
+          {errors.phone && <p className="text-rose-500 text-xs mt-1">{errors.phone.message}</p>}
         </div>
 
         {/* ── CRP com validação em tempo real ────────────────────────── */}

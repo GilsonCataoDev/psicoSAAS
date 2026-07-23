@@ -255,6 +255,7 @@ describe('AuthService', () => {
           email: 'test@example.com',
           password: 'Password1!',
           crp: '01/123456',
+          phone: '11987654321',
           specialty: 'Clínica Geral',
           termsAccepted: true,
           termsVersion: '2026-05-02',
