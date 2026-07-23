@@ -540,23 +540,35 @@ export class NotificationsService {
 
       // A resposta síncrona só confirma que a Evolution API recebeu o pedido — o envio real ao
       // WhatsApp acontece de forma assíncrona via Baileys e pode, em raras ocasiões, persistir
-      // vazio mesmo com o texto correto no request. Confere o que foi de fato persistido antes
-      // de dar a entrega como confirmada.
+      // vazio mesmo com o texto correto no request (a psicóloga vê a mensagem certa na própria
+      // conversa — é o eco local do que ELA enviou — mas o paciente pode receber em branco).
+      // Confere o que foi de fato persistido antes de dar a entrega como confirmada.
       if (allowDeliveryVerification) {
         const verification = await this.verifyWhatsAppDelivery(instance, provider.messageId, normalizedText)
-        if (verification === 'empty') {
-          if (allowEmptyDeliveryRetry) {
-            this.logger.warn(`[WhatsApp] Entrega vazia confirmada apos envio; reenviando uma vez instance=${instance} messageId=${provider.messageId}`)
-            return this.deliverWhatsApp(
-              phone,
-              normalizedText,
-              ownerId,
-              allowClosedConnectionRecovery,
-              true,
-              false,
-            )
-          }
 
+        if (verification === 'ok') {
+          return acceptedResult
+        }
+
+        // 'empty' (confirmado vazio) e 'unknown' (não deu pra confirmar nem
+        // refutar — falha na consulta, formato de resposta inesperado, mensagem
+        // ainda não indexada) recebem o mesmo tratamento na primeira tentativa:
+        // reenviar uma vez. Um resultado inconclusivo é exatamente tão arriscado
+        // quanto um vazio confirmado do ponto de vista do paciente — não vale a
+        // pena arriscar deixá-lo sem mensagem só porque a checagem em si falhou.
+        if (allowEmptyDeliveryRetry) {
+          this.logger.warn(`[WhatsApp] Entrega ${verification === 'empty' ? 'vazia confirmada' : 'nao verificavel'} apos envio; reenviando uma vez instance=${instance} messageId=${provider.messageId}`)
+          return this.deliverWhatsApp(
+            phone,
+            normalizedText,
+            ownerId,
+            allowClosedConnectionRecovery,
+            true,
+            false,
+          )
+        }
+
+        if (verification === 'empty') {
           this.logger.error(`[WhatsApp] Reenvio tambem persistiu vazio instance=${instance} messageId=${provider.messageId}`)
           return {
             sent: false,
@@ -568,6 +580,14 @@ export class NotificationsService {
             contentLength: 0,
           }
         }
+
+        // 'unknown' também na segunda tentativa: não temos prova de falha, então
+        // não bloqueamos como erro (evitaria reenvios/alarmes falsos), mas também
+        // não afirmamos que o conteúdo foi confirmado — fica marcado como
+        // "unverified" para ter visibilidade real no histórico, em vez de
+        // aparecer idêntico a uma entrega efetivamente confirmada.
+        this.logger.warn(`[WhatsApp] Verificacao de entrega inconclusiva apos reenvio instance=${instance} messageId=${provider.messageId} — marcado como enviado sem confirmacao de conteudo`)
+        return { ...acceptedResult, providerStatus: 'unverified' }
       }
 
       return acceptedResult
@@ -586,7 +606,12 @@ export class NotificationsService {
    * enviado — a resposta síncrona do sendText só reflete o que ela recebeu, não o que o
    * Baileys efetivamente gravou/entregou.
    */
-  private async verifyWhatsAppDelivery(instance: string, messageId: string, expectedText: string): Promise<'ok' | 'empty' | 'unknown'> {
+  private async verifyWhatsAppDelivery(
+    instance: string,
+    messageId: string,
+    expectedText: string,
+    attempt: 1 | 2 = 1,
+  ): Promise<'ok' | 'empty' | 'unknown'> {
     // Evita atraso real e chamadas de rede extras durante os testes (mocks cobrem só o fluxo de sendText).
     if (process.env.JEST_WORKER_ID !== undefined) return 'unknown'
 
@@ -608,7 +633,12 @@ export class NotificationsService {
             ? data.messages
             : []
       const match = records.find(record => record?.key?.id === messageId)
-      if (!match) return 'unknown'
+      if (!match) {
+        // A mensagem pode ainda não ter sido indexada pelo Baileys sob carga —
+        // uma segunda tentativa evita marcar como "unknown" só por lentidão pontual.
+        if (attempt === 1) return this.verifyWhatsAppDelivery(instance, messageId, expectedText, 2)
+        return 'unknown'
+      }
 
       const persistedText = [
         match?.message?.conversation,
