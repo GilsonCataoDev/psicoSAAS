@@ -15,6 +15,7 @@ import { RobotsService } from './crawler/robots.service'
 import { SiteCrawlerService } from './crawler/site-crawler.service'
 import { MockSearchProvider } from './providers/mock-search.provider'
 import { GenericHttpSearchProvider } from './providers/generic-http-search.provider'
+import { GoogleCustomSearchProvider } from './providers/google-custom-search.provider'
 import { searchProviderFactory } from './providers/search-provider.factory'
 import { DiscoverProspectsJob } from './jobs/discover-prospects.job'
 import { AnalyzePendingProspectsJob } from './jobs/analyze-pending-prospects.job'
@@ -40,6 +41,7 @@ import { AdvisoryLockModule } from '../../common/advisory-lock/advisory-lock.mod
     SiteCrawlerService,
     MockSearchProvider,
     GenericHttpSearchProvider,
+    GoogleCustomSearchProvider,
     searchProviderFactory,
     DiscoverProspectsJob,
     AnalyzePendingProspectsJob,

@@ -85,8 +85,24 @@ Por padrão, `PROSPECTING_SEARCH_PROVIDER=mock` — nenhuma chamada de rede é
 feita, resultados sintéticos determinísticos são gerados para desenvolvimento
 e testes.
 
-Para usar um provedor de busca web real e autorizado (ex: Bing Web Search
-API ou equivalente):
+### Opção recomendada: Google Custom Search JSON API (grátis até 100 buscas/dia)
+
+1. [Google Cloud Console](https://console.cloud.google.com) → criar/selecionar um projeto → **APIs & Services → Credentials** → criar uma **API key**. Restrinja a key à "Custom Search API" (Enable a API primeiro em **APIs & Services → Library**).
+2. [Programmable Search Engine](https://programmablesearchengine.google.com) → criar um mecanismo novo → em "Sites to search" escolha "Search the entire web" → copie o **Search engine ID** (`cx`).
+3. Configure:
+
+```
+PROSPECTING_ENABLED=true
+PROSPECTING_SEARCH_PROVIDER=google
+PROSPECTING_SEARCH_API_KEY=<API key do passo 1>
+PROSPECTING_SEARCH_ENGINE_ID=<cx do passo 2>
+```
+
+`GoogleCustomSearchProvider` (`backend/src/modules/prospecting/providers/google-custom-search.provider.ts`) já lida com o formato de resposta do Google (`items[]`) e para de tentar novamente automaticamente quando a cota diária estoura (HTTP 429) — evita gastar tentativas à toa quando a cota já acabou.
+
+### Alternativa: provider HTTP genérico
+
+Para qualquer outra API de busca web autorizada:
 
 ```
 PROSPECTING_ENABLED=true
@@ -96,7 +112,8 @@ PROSPECTING_SEARCH_BASE_URL=<endpoint GET da API>
 ```
 
 O `GenericHttpSearchProvider` espera uma resposta JSON no formato
-`{ results: [{ title, url, snippet }] }` (ou `items` com `link`/`description`).
+`{ results: [{ title, url, snippet }] }` (ou `items` com `link`/`description`),
+autenticação via header `Authorization: Bearer <key>`.
 Se o provedor escolhido usa um formato diferente, ajuste `parseResponse()` em
 `backend/src/modules/prospecting/providers/generic-http-search.provider.ts`.
 
