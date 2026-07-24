@@ -85,10 +85,32 @@ Por padrão, `PROSPECTING_SEARCH_PROVIDER=mock` — nenhuma chamada de rede é
 feita, resultados sintéticos determinísticos são gerados para desenvolvimento
 e testes.
 
-### Opção recomendada: Google Custom Search JSON API (grátis até 100 buscas/dia)
+### Opção recomendada: Tavily Search API (grátis até 1.000 buscas/mês, sem cartão)
+
+> **Histórico**: até mar/2026 a opção recomendada aqui era o Google Custom
+> Search JSON API. O Google descontinuou a busca gratuita em toda a web
+> (`"Search the entire web"`) nessa data — o tier gratuito do Google ficou
+> restrito a uma lista fixa de até 50 domínios, o que não serve pra
+> prospecção aberta (precisamos achar sites de psicólogos que não sabemos
+> de antemão). `GoogleCustomSearchProvider` continua no código
+> (`PROSPECTING_SEARCH_PROVIDER=google`) pra quem já tem domínios fixos
+> pra buscar, mas deixou de ser a opção padrão.
+
+1. [app.tavily.com](https://app.tavily.com) → criar conta grátis (sem cartão) → copiar a **API key** do dashboard.
+2. Configure:
+
+```
+PROSPECTING_ENABLED=true
+PROSPECTING_SEARCH_PROVIDER=tavily
+PROSPECTING_SEARCH_API_KEY=<API key do passo 1>
+```
+
+`TavilySearchProvider` (`backend/src/modules/prospecting/providers/tavily-search.provider.ts`) já lida com o formato de resposta do Tavily (`results[]`) e para de tentar novamente automaticamente quando a cota mensal estoura (HTTP 429/432) — evita gastar tentativas à toa quando a cota já acabou. Índice menor que o Google, mas cobre bem sites institucionais e perfis públicos, que é o que os detectores deste módulo procuram.
+
+### Google Custom Search JSON API (cobertura limitada a domínios fixos)
 
 1. [Google Cloud Console](https://console.cloud.google.com) → criar/selecionar um projeto → **APIs & Services → Credentials** → criar uma **API key**. Restrinja a key à "Custom Search API" (Enable a API primeiro em **APIs & Services → Library**).
-2. [Programmable Search Engine](https://programmablesearchengine.google.com) → criar um mecanismo novo → em "Sites to search" escolha "Search the entire web" → copie o **Search engine ID** (`cx`).
+2. [Programmable Search Engine](https://programmablesearchengine.google.com) → criar um mecanismo novo → adicionar até 50 domínios/diretórios específicos de psicólogos em "Sites para pesquisar" (a busca em toda a web não está mais disponível de graça) → copie o **Search engine ID** (`cx`).
 3. Configure:
 
 ```

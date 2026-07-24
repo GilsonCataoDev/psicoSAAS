@@ -16,6 +16,7 @@ import { SiteCrawlerService } from './crawler/site-crawler.service'
 import { MockSearchProvider } from './providers/mock-search.provider'
 import { GenericHttpSearchProvider } from './providers/generic-http-search.provider'
 import { GoogleCustomSearchProvider } from './providers/google-custom-search.provider'
+import { TavilySearchProvider } from './providers/tavily-search.provider'
 import { searchProviderFactory } from './providers/search-provider.factory'
 import { DiscoverProspectsJob } from './jobs/discover-prospects.job'
 import { AnalyzePendingProspectsJob } from './jobs/analyze-pending-prospects.job'
@@ -44,6 +45,7 @@ import { SessionsModule } from '../sessions/sessions.module'
     MockSearchProvider,
     GenericHttpSearchProvider,
     GoogleCustomSearchProvider,
+    TavilySearchProvider,
     searchProviderFactory,
     DiscoverProspectsJob,
     AnalyzePendingProspectsJob,
