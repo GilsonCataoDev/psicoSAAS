@@ -185,7 +185,16 @@ export function useDeleteProspect() {
 
 export function useGenerateDraft() {
   return useMutation({
-    mutationFn: (id: string) => api.post(`/admin/prospecting/prospects/${id}/draft`).then(r => r.data as { draft: string }),
+    mutationFn: (id: string) => api.post(`/admin/prospecting/prospects/${id}/draft`).then(r => r.data as { draft: string; source: 'ai' | 'template' }),
+  })
+}
+
+export type ReplyChannel = 'whatsapp' | 'direct'
+
+export function useSuggestReply() {
+  return useMutation({
+    mutationFn: ({ id, channel, leadReplyText, priorMessage }: { id: string; channel: ReplyChannel; leadReplyText: string; priorMessage?: string }) =>
+      api.post(`/admin/prospecting/prospects/${id}/suggest-reply`, { channel, leadReplyText, priorMessage }).then(r => r.data as { suggestion: string }),
   })
 }
 

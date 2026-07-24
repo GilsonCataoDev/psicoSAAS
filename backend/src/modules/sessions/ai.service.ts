@@ -333,6 +333,75 @@ Métricas:
   }
 
   /**
+   * Rascunho de mensagem de primeira abordagem para um lead do Radar de
+   * Psicólogos (prospecção B2B interna, admin-only). Dado não-clínico
+   * (presença profissional pública) — não passa pelas restrições de
+   * docs/ia-gratuita-politica.md, que são específicas de dados clínicos.
+   * Chamador (ProspectingService) sempre tem um rascunho por template pronto
+   * como fallback caso esta chamada falhe.
+   */
+  async generateProspectOutreachDraft(input: {
+    firstName: string
+    sourceDescription: string
+    signalMention: string | null
+  }): Promise<AiTextResult> {
+    const prompt = `Você escreve uma mensagem curta de primeiro contato comercial (B2B) de um psicólogo para outro psicólogo, oferecendo uma ferramenta gratuita de anotações clínicas da UseCognia.
+
+REGRAS OBRIGATÓRIAS:
+1. Nunca afirme que a pessoa não usa nenhum sistema — não invente ausência de ferramentas.
+2. Cite apenas o sinal fornecido (se houver), sem exagerar ou fabricar detalhes.
+3. Sempre ofereça a opção de não receber novos contatos, de forma explícita.
+4. Tom respeitoso, colega-para-colega, sem jargão de vendas agressivo, em português do Brasil.
+5. No máximo 4 frases curtas. Retorne somente o texto da mensagem, sem título, sem aspas, sem comentários.
+
+Dados:
+- Primeiro nome: ${input.firstName}
+- Onde encontrei o contato: ${input.sourceDescription}
+- Sinal observado (use no máximo este, se houver): ${input.signalMention ?? 'nenhum sinal específico — não mencione nenhum'}`
+
+    try {
+      return await this.callTextModel(prompt, 220)
+    } catch (err: any) {
+      this.logger.error(`AI prospect outreach draft error: ${err?.status ?? err?.name ?? 'unknown'}`)
+      throw new BadRequestException('Não foi possível gerar o rascunho com IA agora.')
+    }
+  }
+
+  /**
+   * Sugestão de próxima mensagem para responder a réplica de um lead do
+   * Radar de Psicólogos, colada manualmente pelo admin (sem captura
+   * automática de WhatsApp — ver docs/PROSPECTING_RADAR.md). Mesmas
+   * ressalvas de dado não-clínico do método acima. Sem fallback por
+   * template: se a IA falhar, o admin escreve manualmente, como já fazia.
+   */
+  async generateProspectReplySuggestion(input: {
+    firstName: string
+    channel: 'whatsapp' | 'direct'
+    priorMessage: string | null
+    leadReplyText: string
+  }): Promise<AiTextResult> {
+    const channelLabel = input.channel === 'whatsapp' ? 'WhatsApp' : 'contato direto'
+    const prompt = `Você ajuda um profissional a responder a réplica de um lead (outro psicólogo) em uma conversa de prospecção comercial B2B pelo canal ${channelLabel}.
+
+REGRAS OBRIGATÓRIAS:
+1. Nunca afirme que a pessoa não usa nenhum sistema.
+2. Se a resposta do lead indicar desinteresse, recusa ou pedido para não ser mais contatado, a sugestão deve ser SOMENTE uma mensagem curta de agradecimento e confirmação de que não haverá mais contato — nunca insista.
+3. Se houver interesse, seja objetivo: confirme o próximo passo (enviar link da ferramenta gratuita) sem pressão.
+4. No máximo 3 frases curtas, tom colega-para-colega, português do Brasil.
+5. Retorne somente o texto da mensagem sugerida, sem título, sem aspas, sem comentários.
+
+${input.priorMessage ? `Mensagem original enviada: "${input.priorMessage}"` : ''}
+Resposta do lead (${input.firstName}): "${input.leadReplyText}"`
+
+    try {
+      return await this.callTextModel(prompt, 200)
+    } catch (err: any) {
+      this.logger.error(`AI prospect reply suggestion error: ${err?.status ?? err?.name ?? 'unknown'}`)
+      throw new BadRequestException('Não foi possível gerar a sugestão de resposta agora. Tente novamente.')
+    }
+  }
+
+  /**
    * Interpretação de avaliação psicológica (PHQ-9, GAD-7, etc.) a partir da
    * pontuação já calculada no frontend (scale-scoring.ts) — este método não
    * corrige nem recalcula a pontuação, só redige um rascunho de interpretação

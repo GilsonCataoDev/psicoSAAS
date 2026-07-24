@@ -59,12 +59,22 @@ function makeProspect(overrides: Partial<Prospect> = {}): Prospect {
   } as Prospect
 }
 
-function createService(prospectOverrides: Partial<Prospect> = {}) {
+function mockAiService(overrides: Partial<Record<string, jest.Mock>> = {}) {
+  return {
+    generateProspectOutreachDraft: jest.fn().mockRejectedValue(new Error('IA desligada neste teste — fallback esperado')),
+    generateProspectReplySuggestion: jest.fn(),
+    ...overrides,
+  }
+}
+
+function createService(prospectOverrides: Partial<Prospect> = {}, draftOverride?: Record<string, jest.Mock>, aiOverride?: Record<string, jest.Mock>) {
   const prospect = makeProspect(prospectOverrides)
   const prospectsRepo = mockRepo({ findOne: jest.fn().mockResolvedValue(prospect) })
   const signalsRepo = mockRepo()
   const activitiesRepo = mockRepo()
   const searchesRepo = mockRepo()
+  const draft = draftOverride ?? { generate: jest.fn().mockReturnValue('rascunho') }
+  const aiService = mockAiService(aiOverride)
 
   const svc = new ProspectingService(
     prospectsRepo as any,
@@ -76,10 +86,11 @@ function createService(prospectOverrides: Partial<Prospect> = {}) {
     { findMatch: jest.fn().mockReturnValue(null) } as any,
     { crawlSite: jest.fn().mockResolvedValue([]) } as any,
     { score: jest.fn().mockReturnValue({ score: 0, confidence: 'low', signals: [] }) } as any,
-    { generate: jest.fn().mockReturnValue('rascunho') } as any,
+    draft as any,
+    aiService as any,
   )
 
-  return { svc, prospectsRepo, signalsRepo, activitiesRepo, searchesRepo, prospect }
+  return { svc, prospectsRepo, signalsRepo, activitiesRepo, searchesRepo, prospect, draft, aiService }
 }
 
 describe('ProspectingService — governança', () => {
@@ -115,11 +126,61 @@ describe('ProspectingService — governança', () => {
     expect(result.deleted).toBe(true)
   })
 
-  it('generateDraft() delega ao DraftService e registra atividade', async () => {
+  it('generateDraft() cai para o template quando a IA falha (fallback nunca bloqueia o admin)', async () => {
     const { svc, activitiesRepo } = createService({ status: 'approved' })
     const result = await svc.generateDraft('p1', 'admin-1')
     expect(result.draft).toBe('rascunho')
-    expect(activitiesRepo.save).toHaveBeenCalledWith(expect.objectContaining({ action: 'draft_generated' }))
+    expect(result.source).toBe('template')
+    expect(activitiesRepo.save).toHaveBeenCalledWith(expect.objectContaining({
+      action: 'draft_generated', notes: 'gerado por template (fallback)',
+    }))
+  })
+
+  it('generateDraft() usa o texto da IA quando ela responde com sucesso', async () => {
+    const aiOverride = { generateProspectOutreachDraft: jest.fn().mockResolvedValue({ text: '  rascunho por IA  ', usage: {} }) }
+    const { svc, activitiesRepo } = createService({ status: 'approved' }, undefined, aiOverride)
+    const result = await svc.generateDraft('p1', 'admin-1')
+    expect(result.draft).toBe('rascunho por IA')
+    expect(result.source).toBe('ai')
+    expect(activitiesRepo.save).toHaveBeenCalledWith(expect.objectContaining({
+      action: 'draft_generated', notes: 'gerado por IA',
+    }))
+  })
+
+  it('generateDraft() nunca chama a IA quando a guarda do template já rejeita (doNotContact/não aprovado)', async () => {
+    const draft = { generate: jest.fn().mockImplementation(() => { throw new BadRequestException('não contatar') }) }
+    const { svc, aiService } = createService({ doNotContact: true }, draft)
+    await expect(svc.generateDraft('p1', 'admin-1')).rejects.toThrow(BadRequestException)
+    expect(aiService.generateProspectOutreachDraft).not.toHaveBeenCalled()
+  })
+})
+
+describe('ProspectingService — sugestão de resposta (Entrega B)', () => {
+  it('suggestReply() recusa lead marcado como doNotContact', async () => {
+    const { svc } = createService({ doNotContact: true })
+    await expect(svc.suggestReply('p1', { channel: 'whatsapp', leadReplyText: 'oi' })).rejects.toThrow(BadRequestException)
+  })
+
+  it('suggestReply() recusa lead não aprovado', async () => {
+    const { svc } = createService({ status: 'qualified' })
+    await expect(svc.suggestReply('p1', { channel: 'whatsapp', leadReplyText: 'oi' })).rejects.toThrow(BadRequestException)
+  })
+
+  it('suggestReply() retorna a sugestão da IA e registra só o canal na atividade (nunca o texto colado)', async () => {
+    const aiOverride = { generateProspectReplySuggestion: jest.fn().mockResolvedValue({ text: '  ótimo, vou te mandar o link  ', usage: {} }) }
+    const { svc, activitiesRepo, aiService } = createService({ status: 'approved' }, undefined, aiOverride)
+    const result = await svc.suggestReply('p1', { channel: 'whatsapp', leadReplyText: 'tenho interesse!' }, 'admin-1')
+    expect(result.suggestion).toBe('ótimo, vou te mandar o link')
+    expect(aiService.generateProspectReplySuggestion).toHaveBeenCalledWith(expect.objectContaining({ channel: 'whatsapp', leadReplyText: 'tenho interesse!' }))
+    expect(activitiesRepo.save).toHaveBeenCalledWith(expect.objectContaining({ action: 'reply_suggested', notes: 'canal: whatsapp' }))
+    const [[savedActivity]] = activitiesRepo.save.mock.calls
+    expect(JSON.stringify(savedActivity)).not.toContain('tenho interesse')
+  })
+
+  it('suggestReply() propaga o erro quando a IA falha (sem fallback de template)', async () => {
+    const aiOverride = { generateProspectReplySuggestion: jest.fn().mockRejectedValue(new BadRequestException('indisponível')) }
+    const { svc } = createService({ status: 'approved' }, undefined, aiOverride)
+    await expect(svc.suggestReply('p1', { channel: 'direct', leadReplyText: 'oi' })).rejects.toThrow(BadRequestException)
   })
 })
 
@@ -140,6 +201,7 @@ describe('ProspectingService — expiração (LGPD)', () => {
       { crawlSite: jest.fn() } as any,
       { score: jest.fn() } as any,
       { generate: jest.fn() } as any,
+      mockAiService() as any,
     )
 
     const result = await svc.expireOldProspects()
@@ -160,6 +222,7 @@ describe('ProspectingService — expiração (LGPD)', () => {
       { crawlSite: jest.fn() } as any,
       { score: jest.fn() } as any,
       { generate: jest.fn() } as any,
+      mockAiService() as any,
     )
 
     const result = await svc.expireOldProspects()
@@ -177,6 +240,7 @@ describe('ProspectingService — expiração (LGPD)', () => {
       { crawlSite: jest.fn() } as any,
       { score: jest.fn() } as any,
       { generate: jest.fn() } as any,
+      mockAiService() as any,
     )
 
     const result = await svc.expireOldProspects()

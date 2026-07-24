@@ -11,6 +11,7 @@ export type ProspectActivityAction =
   | 'deleted'
   | 'exported'
   | 'draft_generated'
+  | 'reply_suggested'
   | 'status_changed'
   | 'expired'
   | 'analysis_failed'

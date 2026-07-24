@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import {
   Radar, Search, Globe, Linkedin, Users2, X, ShieldOff, Trash2,
-  CheckCircle2, XCircle, FileText, Loader2, ExternalLink,
+  CheckCircle2, XCircle, FileText, Loader2, ExternalLink, MessageSquareText, Sparkles,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import {
   useProspectingMetrics, useProspectingSearches, usePreviewSearch, useCreateSearch,
   useProspects, useProspect, useAnalyzeProspect, useApproveProspect, useDiscardProspect,
-  useDoNotContactProspect, useDeleteProspect, useGenerateDraft,
-  Prospect, ProspectStatus, ProspectSourceType, SearchFilters,
+  useDoNotContactProspect, useDeleteProspect, useGenerateDraft, useSuggestReply,
+  Prospect, ProspectStatus, ProspectSourceType, SearchFilters, ReplyChannel,
 } from '@/hooks/api/prospecting'
 
 const STATUS_LABEL: Record<ProspectStatus, string> = {
@@ -164,6 +164,13 @@ function ProspectDetailDrawer({ id, onClose }: { id: string; onClose: () => void
   const remove = useDeleteProspect()
   const draft = useGenerateDraft()
   const [draftText, setDraftText] = useState<string | null>(null)
+  const [draftSource, setDraftSource] = useState<'ai' | 'template' | null>(null)
+
+  const suggestReply = useSuggestReply()
+  const [showReplyForm, setShowReplyForm] = useState(false)
+  const [replyChannel, setReplyChannel] = useState<ReplyChannel>('whatsapp')
+  const [leadReplyText, setLeadReplyText] = useState('')
+  const [replySuggestion, setReplySuggestion] = useState<string | null>(null)
 
   function run(mutation: ReturnType<typeof useAnalyzeProspect>, successMsg: string) {
     mutation.mutate({ id }, { onSuccess: () => toast.success(successMsg), onError: (e: any) => toast.error(e?.response?.data?.message ?? 'Ação falhou.') })
@@ -232,8 +239,58 @@ function ProspectDetailDrawer({ id, onClose }: { id: string; onClose: () => void
 
             {draftText && (
               <div className="rounded-xl border border-sage-200 bg-sage-50 p-3 text-xs text-neutral-700">
-                <p className="mb-1 font-semibold text-sage-700">Rascunho (não enviado)</p>
+                <p className="mb-1 flex items-center gap-1.5 font-semibold text-sage-700">
+                  Rascunho (não enviado)
+                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${draftSource === 'ai' ? 'bg-purple-100 text-purple-700' : 'bg-neutral-200 text-neutral-500'}`}>
+                    {draftSource === 'ai' ? 'gerado por IA' : 'modelo padrão (IA indisponível)'}
+                  </span>
+                </p>
                 {draftText}
+              </div>
+            )}
+
+            {(data.prospect.status === 'approved' && !data.prospect.doNotContact) && (
+              <div className="rounded-xl border border-neutral-100 p-3">
+                <button
+                  type="button" onClick={() => setShowReplyForm(v => !v)}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-neutral-600"
+                >
+                  <MessageSquareText className="h-3.5 w-3.5" /> Colar resposta do lead → sugerir próxima mensagem
+                </button>
+                {showReplyForm && (
+                  <div className="mt-3 space-y-2">
+                    <select
+                      value={replyChannel} onChange={e => setReplyChannel(e.target.value as ReplyChannel)}
+                      className="h-9 w-full rounded-lg border border-neutral-200 px-2 text-xs text-neutral-600 outline-none focus:border-sage-400"
+                    >
+                      <option value="whatsapp">WhatsApp</option>
+                      <option value="direct">Contato direto</option>
+                    </select>
+                    <textarea
+                      value={leadReplyText} onChange={e => setLeadReplyText(e.target.value)}
+                      placeholder="Cole aqui o que o lead respondeu…" rows={3}
+                      className="w-full rounded-lg border border-neutral-200 p-2 text-xs outline-none focus:border-sage-400"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => suggestReply.mutate(
+                        { id, channel: replyChannel, leadReplyText, priorMessage: draftText ?? undefined },
+                        {
+                          onSuccess: r => setReplySuggestion(r.suggestion),
+                          onError: (e: any) => toast.error(e?.response?.data?.message ?? 'Não foi possível gerar a sugestão.'),
+                        },
+                      )}
+                      disabled={suggestReply.isPending || !leadReplyText.trim()}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-sage-200 px-3 py-1.5 text-xs font-medium text-sage-700 hover:bg-sage-50 disabled:opacity-40"
+                    >
+                      {suggestReply.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                      Sugerir resposta com IA
+                    </button>
+                    {replySuggestion && (
+                      <div className="rounded-lg border border-sage-200 bg-sage-50 p-2 text-xs text-neutral-700">{replySuggestion}</div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -267,12 +324,12 @@ function ProspectDetailDrawer({ id, onClose }: { id: string; onClose: () => void
               </button>
               <button
                 onClick={() => draft.mutate(id, {
-                  onSuccess: r => setDraftText(r.draft),
+                  onSuccess: r => { setDraftText(r.draft); setDraftSource(r.source) },
                   onError: (e: any) => toast.error(e?.response?.data?.message ?? 'Rascunho requer aprovação prévia.'),
                 })}
                 disabled={draft.isPending}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-sage-200 px-3 py-1.5 text-xs font-medium text-sage-700 hover:bg-sage-50 disabled:opacity-40">
-                <FileText className="h-3.5 w-3.5" /> Gerar rascunho
+                {draft.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />} Gerar rascunho com IA
               </button>
               <button
                 onClick={() => {

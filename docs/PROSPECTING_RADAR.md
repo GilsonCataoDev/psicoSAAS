@@ -117,6 +117,49 @@ autenticação via header `Authorization: Bearer <key>`.
 Se o provedor escolhido usa um formato diferente, ajuste `parseResponse()` em
 `backend/src/modules/prospecting/providers/generic-http-search.provider.ts`.
 
+## Assistente de IA (rascunho e resposta)
+
+Além do template estático, o rascunho de primeira abordagem e a sugestão de
+resposta a um lead podem ser gerados por IA, reaproveitando o mesmo cliente de
+texto (`AiService`/`callTextModel`) já usado no restante do produto — Groq
+como provedor primário, Anthropic como fallback automático (ver
+`backend/src/modules/sessions/ai.service.ts`).
+
+- **Rascunho inicial** (`POST .../prospects/:id/draft`): `ProspectingService.generateDraft()`
+  sempre gera o template estático primeiro (garante as guardas de
+  `doNotContact`/`status` e já deixa um fallback pronto) e então tenta
+  `AiService.generateProspectOutreachDraft()`. Se a IA responder, o rascunho
+  gerado por ela é usado (`source: "ai"`); se falhar por qualquer motivo, o
+  template continua sendo retornado (`source: "template"`) — uma instabilidade
+  do provedor nunca bloqueia o admin de gerar um rascunho.
+- **Sugestão de resposta** (`POST .../prospects/:id/suggest-reply`): o admin
+  **cola manualmente** o que o lead respondeu (canal `whatsapp` ou `direct`) e
+  `AiService.generateProspectReplySuggestion()` sugere a próxima mensagem.
+  Sem persistência — é uma chamada stateless, nada do texto colado é salvo, só
+  o canal é registrado na atividade (`reply_suggested`). Sem fallback por
+  template (não existe um genérico pra resposta arbitrária): se a IA falhar, o
+  admin escreve manualmente, como já fazia antes desta funcionalidade existir.
+- Mesmas guardas do fluxo original em ambos os casos: nunca gera nada para
+  lead `doNotContact` ou fora do status `approved`; nada é enviado
+  automaticamente, o admin sempre copia manualmente.
+
+**Nota de dados**: o texto enviado à IA (primeiro nome, descrição da fonte,
+sinal detectado, e — na sugestão de resposta — o texto colado pelo lead)
+passa pela API do Groq (ou Anthropic, como fallback). É dado B2B sobre
+presença profissional pública, não dado clínico/de paciente — por isso as
+restrições de `docs/ia-gratuita-politica.md` (específicas de dado clínico)
+não se aplicam aqui, mas registrar o fluxo explicitamente ajuda quem for
+auditar exposição de dados a provedores externos.
+
+**Fora de escopo (trabalho futuro)**: captura automática da resposta do lead
+via webhook do WhatsApp (Evolution API) — hoje não existe nenhuma
+infraestrutura de webhook de entrada no backend. Automatizar isso exigiria um
+módulo novo (`src/modules/whatsapp/` ou similar) com endpoint de recebimento,
+configuração de webhook na Evolution API e uma decisão sobre persistência do
+histórico de mensagens. Foi um corte de escopo deliberado para entregar o
+assistente de resposta agora sem abrir uma nova superfície de integração;
+revisitar se colar manualmente se mostrar um gargalo real de fluxo de trabalho.
+
 ## Executando uma busca de teste
 
 Com o backend rodando e `PROSPECTING_SEARCH_PROVIDER=mock` (padrão):

@@ -12,8 +12,10 @@ import { DedupeService, normalizeDomain, normalizeEmail, normalizePhone } from '
 import { SiteCrawlerService } from './crawler/site-crawler.service'
 import { detectSignals } from './scoring/signal-detectors'
 import { ScoringService } from './scoring/scoring.service'
-import { DraftService } from './draft/draft.service'
+import { DraftService, describeSource, pickMention } from './draft/draft.service'
 import { CreateSearchDto, PreviewSearchDto } from './dto/create-search.dto'
+import { SuggestReplyDto } from './dto/suggest-reply.dto'
+import { AiService } from '../sessions/ai.service'
 
 const EMAIL_REGEX = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i
 const PHONE_REGEX = /(?:\+?55\s?)?\(?\d{2}\)?\s?9?\d{4}-?\d{4}/
@@ -48,6 +50,7 @@ export class ProspectingService {
     private readonly crawler: SiteCrawlerService,
     private readonly scoring: ScoringService,
     private readonly draft: DraftService,
+    private readonly aiService: AiService,
   ) {}
 
   // ─── Buscas ────────────────────────────────────────────────────────────
@@ -317,12 +320,60 @@ export class ProspectingService {
     return { prospect, signals, activities }
   }
 
-  async generateDraft(id: string, actorUserId?: string): Promise<{ draft: string }> {
+  async generateDraft(id: string, actorUserId?: string): Promise<{ draft: string; source: 'ai' | 'template' }> {
     const prospect = await this.getOrThrow(id)
     const signals = await this.signals.find({ where: { prospectId: id } })
-    const draftText = this.draft.generate(prospect, signals)
-    await this.logActivity(id, 'draft_generated', actorUserId, undefined)
-    return { draft: draftText }
+    // Gera o template primeiro: cumpre as guardas (doNotContact/status) e já
+    // deixa um fallback pronto caso a IA falhe — uma instabilidade do Groq
+    // nunca bloqueia o admin de gerar um rascunho.
+    const templateDraft = this.draft.generate(prospect, signals)
+
+    let draftText = templateDraft
+    let source: 'ai' | 'template' = 'template'
+    try {
+      const firstName = prospect.professionalName?.split(' ')[0] || 'Olá'
+      const ai = await this.aiService.generateProspectOutreachDraft({
+        firstName,
+        sourceDescription: describeSource(prospect),
+        signalMention: pickMention(signals),
+      })
+      draftText = ai.text.trim()
+      source = 'ai'
+    } catch (err: any) {
+      this.logger.warn(`generateDraft: IA indisponível, usando template (${err?.message ?? 'erro desconhecido'})`)
+    }
+
+    await this.logActivity(id, 'draft_generated', actorUserId, source === 'ai' ? 'gerado por IA' : 'gerado por template (fallback)')
+    return { draft: draftText, source }
+  }
+
+  /**
+   * Sugestão de próxima mensagem a partir da resposta do lead, colada
+   * manualmente pelo admin (sem captura automática de WhatsApp — ver
+   * docs/PROSPECTING_RADAR.md). Mesmas guardas de generateDraft/DraftService.
+   * Sem fallback por template: se a IA falhar, o admin escreve manualmente.
+   */
+  async suggestReply(id: string, dto: SuggestReplyDto, actorUserId?: string): Promise<{ suggestion: string }> {
+    const prospect = await this.getOrThrow(id)
+    if (prospect.doNotContact) {
+      throw new BadRequestException('Este lead está marcado como "não contatar" — não é possível sugerir resposta.')
+    }
+    if (prospect.status !== 'approved') {
+      throw new BadRequestException('Sugestão de resposta só é permitida após aprovação humana (status "approved").')
+    }
+
+    const firstName = prospect.professionalName?.split(' ')[0] || 'Olá'
+    const ai = await this.aiService.generateProspectReplySuggestion({
+      firstName,
+      channel: dto.channel,
+      priorMessage: dto.priorMessage ?? null,
+      leadReplyText: dto.leadReplyText,
+    })
+
+    // Loga só o canal — nunca o texto colado pelo lead, pra manter o log de
+    // atividade livre de conteúdo arbitrário/PII (mesmo padrão dos demais logs deste módulo).
+    await this.logActivity(id, 'reply_suggested', actorUserId, `canal: ${dto.channel}`)
+    return { suggestion: ai.text.trim() }
   }
 
   // ─── Consulta ──────────────────────────────────────────────────────────

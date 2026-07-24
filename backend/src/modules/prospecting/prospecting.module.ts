@@ -23,11 +23,13 @@ import { ExpireOldProspectsJob } from './jobs/expire-old-prospects.job'
 import { RetryFailedAnalysesJob } from './jobs/retry-failed-analyses.job'
 import { CalculateProspectingMetricsJob } from './jobs/calculate-prospecting-metrics.job'
 import { AdvisoryLockModule } from '../../common/advisory-lock/advisory-lock.module'
+import { SessionsModule } from '../sessions/sessions.module'
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Prospect, ProspectSignal, ProspectActivity, ProspectingSearch]),
     AdvisoryLockModule,
+    SessionsModule,
   ],
   controllers: [ProspectingController],
   providers: [

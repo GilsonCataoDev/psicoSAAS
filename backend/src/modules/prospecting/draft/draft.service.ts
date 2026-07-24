@@ -14,6 +14,25 @@ const SIGNAL_MENTION: Partial<Record<string, string>> = {
   linkedin_autonomous_snippet: 'a atuação parece ser autônoma, segundo o perfil público no LinkedIn',
 }
 
+/** Reaproveitado pelo DraftService (template) e pela AiService (prompt) — mesmo contexto para os dois caminhos. */
+export function describeSource(prospect: Prospect): string {
+  if (prospect.website) {
+    const domain = prospect.websiteDomain ?? prospect.website
+    return `no site ${domain}`
+  }
+  if (prospect.sourceType === 'linkedin_search') return 'no seu perfil público no LinkedIn'
+  if (prospect.sourceType === 'psymeet_search') return 'no seu perfil público no PsyMeet'
+  return 'em um diretório profissional público'
+}
+
+/** Reaproveitado pelo DraftService (template) e pela AiService (prompt) — mesmo contexto para os dois caminhos. */
+export function pickMention(signals: ProspectSignal[]): string | null {
+  const positive = signals
+    .filter(s => s.points > 0 && SIGNAL_MENTION[s.type])
+    .sort((a, b) => b.points - a.points)[0]
+  return positive ? SIGNAL_MENTION[positive.type] ?? null : null
+}
+
 /**
  * Gera rascunho de abordagem — nunca enviado automaticamente. Só é permitido
  * após aprovação humana explícita (status "approved") e nunca para leads
@@ -31,8 +50,8 @@ export class DraftService {
     }
 
     const name = prospect.professionalName?.split(' ')[0] || 'Olá'
-    const source = this.describeSource(prospect)
-    const mention = this.pickMention(signals)
+    const source = describeSource(prospect)
+    const mention = pickMention(signals)
 
     const lines = [
       `Olá, ${name}. Encontrei seu contato profissional ${source}.`,
@@ -42,22 +61,5 @@ export class DraftService {
     ].filter(Boolean)
 
     return lines.join(' ')
-  }
-
-  private describeSource(prospect: Prospect): string {
-    if (prospect.website) {
-      const domain = prospect.websiteDomain ?? prospect.website
-      return `no site ${domain}`
-    }
-    if (prospect.sourceType === 'linkedin_search') return 'no seu perfil público no LinkedIn'
-    if (prospect.sourceType === 'psymeet_search') return 'no seu perfil público no PsyMeet'
-    return 'em um diretório profissional público'
-  }
-
-  private pickMention(signals: ProspectSignal[]): string | null {
-    const positive = signals
-      .filter(s => s.points > 0 && SIGNAL_MENTION[s.type])
-      .sort((a, b) => b.points - a.points)[0]
-    return positive ? SIGNAL_MENTION[positive.type] ?? null : null
   }
 }

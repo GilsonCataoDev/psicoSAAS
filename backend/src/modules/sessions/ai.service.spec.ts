@@ -367,3 +367,105 @@ describe('AiService.generateAssessmentInterpretation', () => {
     expect(prompt).toContain('Nunca produza diagnóstico definitivo')
   })
 })
+
+describe('AiService.generateProspectOutreachDraft', () => {
+  let service: AiService
+
+  beforeEach(() => {
+    createMock.mockReset()
+    createChatMock.mockReset()
+    service = new AiService()
+    process.env.GROQ_API_KEY = 'gsk-test-fake-key'
+  })
+
+  afterEach(() => {
+    delete process.env.GROQ_API_KEY
+  })
+
+  it('inclui nome, origem e sinal no prompt e retorna o texto gerado', async () => {
+    createChatMock.mockResolvedValue(fakeChatResponse('[TESTE] rascunho de abordagem'))
+    const result = await service.generateProspectOutreachDraft({
+      firstName: 'Maria',
+      sourceDescription: 'no site exemplo.com.br',
+      signalMention: 'o agendamento é disponibilizado pelo WhatsApp',
+    })
+    const [params] = createChatMock.mock.calls[0]
+    const prompt = params.messages[0].content as string
+    expect(prompt).toContain('Maria')
+    expect(prompt).toContain('no site exemplo.com.br')
+    expect(prompt).toContain('o agendamento é disponibilizado pelo WhatsApp')
+    expect(prompt).toContain('Sempre ofereça a opção de não receber novos contatos')
+    expect(result.text).toBe('[TESTE] rascunho de abordagem')
+  })
+
+  it('quando não há sinal, avisa explicitamente pra não inventar um', async () => {
+    createChatMock.mockResolvedValue(fakeChatResponse('[TESTE] rascunho sem sinal'))
+    await service.generateProspectOutreachDraft({
+      firstName: 'João',
+      sourceDescription: 'em um diretório profissional público',
+      signalMention: null,
+    })
+    const [params] = createChatMock.mock.calls[0]
+    const prompt = params.messages[0].content as string
+    expect(prompt).toContain('nenhum sinal específico — não mencione nenhum')
+  })
+
+  it('propaga erro do provedor como BadRequestException em pt-BR', async () => {
+    createChatMock.mockRejectedValue(new Error('provider down'))
+    await expect(service.generateProspectOutreachDraft({
+      firstName: 'Maria', sourceDescription: 'no site exemplo.com.br', signalMention: null,
+    })).rejects.toThrow(BadRequestException)
+  })
+})
+
+describe('AiService.generateProspectReplySuggestion', () => {
+  let service: AiService
+
+  beforeEach(() => {
+    createMock.mockReset()
+    createChatMock.mockReset()
+    service = new AiService()
+    process.env.GROQ_API_KEY = 'gsk-test-fake-key'
+  })
+
+  afterEach(() => {
+    delete process.env.GROQ_API_KEY
+  })
+
+  it('inclui canal, mensagem original e resposta do lead no prompt', async () => {
+    createChatMock.mockResolvedValue(fakeChatResponse('[TESTE] sugestão de resposta'))
+    const result = await service.generateProspectReplySuggestion({
+      firstName: 'Maria',
+      channel: 'whatsapp',
+      priorMessage: 'Olá, Maria. Encontrei seu contato...',
+      leadReplyText: 'Tenho interesse, pode me mandar o link?',
+    })
+    const [params] = createChatMock.mock.calls[0]
+    const prompt = params.messages[0].content as string
+    expect(prompt).toContain('WhatsApp')
+    expect(prompt).toContain('Olá, Maria. Encontrei seu contato...')
+    expect(prompt).toContain('Tenho interesse, pode me mandar o link?')
+    expect(result.text).toBe('[TESTE] sugestão de resposta')
+  })
+
+  it('instrui a nunca insistir quando o lead recusa/pede pra não ser mais contatado', async () => {
+    createChatMock.mockResolvedValue(fakeChatResponse('[TESTE] sugestão de recusa'))
+    await service.generateProspectReplySuggestion({
+      firstName: 'João',
+      channel: 'direct',
+      priorMessage: null,
+      leadReplyText: 'Não tenho interesse, por favor não me contate mais.',
+    })
+    const [params] = createChatMock.mock.calls[0]
+    const prompt = params.messages[0].content as string
+    expect(prompt).toContain('nunca insista')
+    expect(prompt).toContain('contato direto')
+  })
+
+  it('propaga erro do provedor como BadRequestException em pt-BR', async () => {
+    createChatMock.mockRejectedValue(new Error('provider down'))
+    await expect(service.generateProspectReplySuggestion({
+      firstName: 'Maria', channel: 'whatsapp', priorMessage: null, leadReplyText: 'oi',
+    })).rejects.toThrow(BadRequestException)
+  })
+})
