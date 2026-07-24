@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
+import { DataSource } from 'typeorm'
 import { JwtService } from '@nestjs/jwt'
 import { ConflictException, HttpException, UnauthorizedException } from '@nestjs/common'
 import * as bcrypt from 'bcryptjs'
@@ -11,6 +12,8 @@ import { EmailService } from '../email/email.service'
 import { ReferralService } from '../referral/referral.service'
 import { AsaasService } from '../billing/asaas.service'
 import { AuditService } from '../audit/audit.service'
+import { RiskEngineService } from '../../common/security/risk-engine.service'
+import { SuspiciousActivityService } from '../../common/security/suspicious-activity.service'
 import { StorageService } from '../../common/storage/storage.service'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -74,12 +77,14 @@ async function createService(
       { provide: getRepositoryToken(User),         useValue: userRepo },
       { provide: getRepositoryToken(RefreshToken), useValue: refreshTokenRepo },
       { provide: getRepositoryToken(LoginAttempt), useValue: loginAttemptRepo },
-      { provide: 'DataSource', useValue: dataSourceMock },
+      { provide: DataSource, useValue: dataSourceMock },
       { provide: JwtService,   useValue: { sign: jest.fn().mockReturnValue('jwt-token') } },
       { provide: EmailService, useValue: { sendEmailVerification: jest.fn().mockResolvedValue(undefined), sendWelcome: jest.fn().mockResolvedValue(undefined), sendPasswordReset: jest.fn().mockResolvedValue(undefined) } },
       { provide: ReferralService, useValue: { applyReferral: jest.fn().mockResolvedValue(undefined) } },
       { provide: AsaasService,    useValue: { cancelSubscription: jest.fn().mockResolvedValue(undefined) } },
       { provide: AuditService,    useValue: { record: jest.fn().mockResolvedValue(undefined) } },
+      { provide: RiskEngineService, useValue: { assessLoginRisk: jest.fn().mockResolvedValue({ score: 0, level: 'low', signals: {} }) } },
+      { provide: SuspiciousActivityService, useValue: { isIpBlocked: jest.fn().mockResolvedValue(false), recordFailedAttempt: jest.fn().mockResolvedValue(undefined) } },
       { provide: StorageService,  useValue: { isConfigured: jest.fn().mockReturnValue(false), upload: jest.fn(), delete: jest.fn(), keyFromUrl: jest.fn() } },
     ],
   }).compile()

@@ -176,7 +176,7 @@ export class AuthService {
       await this.recordLoginFailure(email)
       await this.suspicious.recordFailedAttempt(ip ?? '', email)
       this.audit('LOGIN_FAILED', { email: this.maskEmail(email), ip })
-      throw new UnauthorizedException('Credenciais invalidas')
+      throw new UnauthorizedException('Credenciais inválidas')
     }
 
     if (user.isActive === false) {
@@ -237,17 +237,17 @@ export class AuthService {
       .getOne()
 
     if (!rt) {
-      throw new UnauthorizedException('Sessao invalida. Faca login novamente.')
+      throw new UnauthorizedException('Sessão inválida. Faça login novamente.')
     }
 
     if (rt.revoked) {
       await this.rtRepo.update({ userId: rt.userId }, { revoked: true })
       this.audit('REFRESH_REPLAY_DETECTED', { userId: rt.userId, ip })
-      throw new UnauthorizedException('Sessao comprometida. Faca login novamente.')
+      throw new UnauthorizedException('Sessão comprometida. Faça login novamente.')
     }
 
     if (new Date() > rt.expiresAt) {
-      throw new UnauthorizedException('Sessao expirada. Faca login novamente.')
+      throw new UnauthorizedException('Sessão expirada. Faça login novamente.')
     }
 
     await this.rtRepo.update(rt.id, { revoked: true })
@@ -377,7 +377,7 @@ export class AuthService {
     const user = await this.users.findOneBy({ id })
     if (!user) throw new NotFoundException()
     const { valid } = await verifyPassword(currentPassword, user.passwordHash)
-    if (!valid) throw new UnauthorizedException('Credenciais invalidas')
+    if (!valid) throw new UnauthorizedException('Credenciais inválidas')
     user.passwordHash = await hashPassword(newPassword)
     await this.users.save(user)
     this.audit('PASSWORD_CHANGED', { userId: id })
