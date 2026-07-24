@@ -60,6 +60,12 @@ Registro das decisões técnicas não-óbvias tomadas no projeto. O objetivo é 
 | BillingTrialEmail | 1003 |
 | BillingReconciliation | 1004 |
 | ChurnScore | 1005 |
+| WhatsappLogRetention | 1006 |
+| ProspectingDiscover | 1007 |
+| ProspectingAnalyze | 1008 |
+| ProspectingExpire | 1009 |
+| ProspectingRetry | 1010 |
+| ProspectingMetrics | 1011 |
 
 ---
 
@@ -113,3 +119,47 @@ findOne() {}
 **Tradeoff:** só bounce do tipo `Permanent` suprime — bounce `Transient` (caixa cheia, servidor temporariamente fora) é esperado se resolver sozinho e não deveria bloquear envios futuros.
 
 **Consequência:** sem `RESEND_WEBHOOK_SECRET` configurado, o endpoint rejeita todo payload (falha fechado) e a supressão simplesmente não acontece — não é um requisito para o app subir, mas sem ele bounces/reclamações nunca são registrados.
+
+---
+
+## ADR-010 — `/health` responde 200 mesmo com banco fora (`degraded`, não `503`)
+
+**Decisão:** `GET /health` checa `SELECT 1` no banco e retorna `{ status: "ok"|"degraded", checks: { database } }`, sempre com HTTP 200 — nunca 503, mesmo quando o banco falha.
+
+**Por quê:** Falhas de banco costumam ser transitórias (reconexão de pool, deploy do Postgres, hiccup de rede). Se o healthcheck do Railway recebesse 503 nesses momentos, o orquestrador poderia reiniciar o container ou marcar o deploy como falho por um problema que se resolveria sozinho em segundos. Retornar 200 com `status: "degraded"` deixa o problema visível (pra quem monitora o body) sem acionar restart automático.
+
+**Segurança:** a resposta nunca inclui mensagem de erro real, stack trace, connection string ou nome de variável de ambiente — só `"ok"`/`"error"` por checagem.
+
+---
+
+## ADR-011 — Heartbeat de monitoramento é fail-open e nunca bloqueia o job
+
+**Decisão:** `HeartbeatService.ping(envVar)` é fire-and-forget (`fetch(url).catch(() => {})`, sem `await` bloqueante no fluxo principal do job) e é um no-op completo se a env var da URL não estiver configurada.
+
+**Por quê:** Um serviço de monitoramento externo (Better Stack) é auxiliar, não crítico. Se o heartbeat travasse ou lançasse exceção, um lembrete de sessão ou cobrança deixaria de ser enviado por causa de um problema no monitoramento — inversão de prioridade inaceitável. Sem nenhuma env var configurada, o comportamento do sistema é idêntico ao de antes dessa feature existir.
+
+---
+
+## ADR-012 — Anexos clínicos em R2 são opcionais, privados e sem migração automática
+
+**Decisão:** `ATTACHMENTS_STORAGE_DRIVER=postgres|r2` (padrão `postgres`, comportamento inalterado). Quando `r2`, o objeto é sempre criptografado antes do upload, a key do bucket inclui `psychologistId` (isolamento reforçado na própria key, não só na query), nunca é gerada URL pública/CDN, e anexos já existentes no Postgres **não são migrados automaticamente** para R2.
+
+**Por quê:** Um driver alternativo pra armazenamento de dados clínicos precisa ser estritamente aditivo — não pode arriscar dado clínico existente numa migração automática, nem exigir a configuração de credenciais de storage pra continuar funcionando. `StorageService` (já usado para avatar) foi reaproveitado em vez de criar um client S3 novo.
+
+**Consequência:** trocar o driver não migra o histórico — anexos antigos continuam legíveis via Postgres indefinidamente; só uploads novos, após a troca, vão para R2.
+
+---
+
+## ADR-013 — Redação best-effort de PII antes de enviar erros ao Sentry
+
+**Decisão:** `Sentry.init({ sendDefaultPii: false, beforeSend })` remove `request.cookies`/`Authorization` e varre `message`/`extra` por padrões de e-mail/telefone via regex, redigindo antes do envio.
+
+**Por quê:** O ideal é nunca colocar PII em campos livres de erro (`extra`, `message`) — essa é a primeira linha de defesa e continua sendo responsabilidade de quem escreve o código. `beforeSend` é uma segunda camada: um erro futuro que acidentalmente inclua um e-mail ou telefone num payload de exceção não vaza pro Sentry sem essa rede de segurança. Não substitui a disciplina de não logar PII — é defesa em profundidade.
+
+---
+
+## ADR-014 — Telefone obrigatório só para novos cadastros, sem exigir de contas existentes
+
+**Decisão:** `RegisterDto.phone` é obrigatório (10-11 dígitos). A coluna `phone` na tabela `users` continua `nullable` — nenhuma migração retroativa exige telefone de contas já cadastradas.
+
+**Por quê:** Tornar a coluna `NOT NULL` quebraria login de qualquer conta existente sem telefone cadastrado. A exigência é uma regra de negócio no cadastro (usado pra lembretes via WhatsApp), não uma invariante de schema — separar as duas coisas evita uma migração de dados desnecessária e arriscada.

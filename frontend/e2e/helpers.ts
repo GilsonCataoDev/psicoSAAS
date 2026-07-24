@@ -94,6 +94,7 @@ export async function registerAndActivateFree(page: Page, email: string, name = 
   await page.goto(appPath('/cadastro'))
   await page.getByPlaceholder('Nome completo').fill(name)
   await page.getByPlaceholder('seu@email.com').fill(email)
+  await page.getByPlaceholder('(00) 00000-0000').fill('11987654321')
   await page.getByPlaceholder('06/123456').fill('06/123456')
   await page.getByPlaceholder('Mínimo 8 caracteres').fill(testPassword)
   await page.locator('#crpConfirmed').check()
