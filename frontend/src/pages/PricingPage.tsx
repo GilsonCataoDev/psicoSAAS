@@ -587,13 +587,48 @@ function RoiIcon({ type }: { type: PricingRoiItem['type'] }) {
 
 function PricingComparison() {
   return (
-    <section className="mx-auto max-w-4xl px-1">
+    <section className="mx-auto max-w-5xl px-1">
       <h2 className="mb-8 text-center text-3xl font-bold text-neutral-900 dark:text-white">{PRICING_COMPARISON.title}</h2>
-      <div className="space-y-4">
+
+      {/* Tabela em telas médias+; cards empilhados em mobile pra não espremer 4 colunas numa tela estreita */}
+      <div className="hidden overflow-hidden rounded-2xl border border-neutral-200 shadow-card dark:border-white/10 sm:block">
+        <table className="w-full border-collapse bg-white text-left dark:bg-cognia-panel">
+          <thead>
+            <tr className="border-b border-neutral-200 dark:border-white/10">
+              <th className="w-40 px-5 py-4 text-sm font-semibold text-neutral-500 dark:text-neutral-400">Recurso</th>
+              <th className="px-5 py-4 text-sm font-bold text-neutral-700 dark:text-neutral-200">Grátis</th>
+              <th className="bg-sage-50 px-5 py-4 text-sm font-bold text-sage-700 dark:bg-sage-500/10 dark:text-sage-200">Essencial</th>
+              <th className="bg-purple-50 px-5 py-4 text-sm font-bold text-purple-700 dark:bg-purple-500/10 dark:text-purple-200">Pro</th>
+            </tr>
+          </thead>
+          <tbody>
+            {PRICING_COMPARISON.sections.map((row, index) => (
+              <tr
+                key={row.title}
+                className={cn(
+                  'border-b border-neutral-100 last:border-0 dark:border-white/5',
+                  index % 2 === 1 && 'bg-neutral-50/60 dark:bg-white/[0.02]',
+                )}
+              >
+                <td className="px-5 py-4 text-sm font-semibold text-neutral-800 dark:text-neutral-100">{row.title}</td>
+                <td className="px-5 py-4 text-sm text-neutral-600 dark:text-neutral-300">{row.free}</td>
+                <td className="bg-sage-50/40 px-5 py-4 text-sm text-neutral-700 dark:bg-sage-500/5 dark:text-neutral-300">{row.essencial}</td>
+                <td className="bg-purple-50/40 px-5 py-4 text-sm text-neutral-700 dark:bg-purple-500/5 dark:text-neutral-300">{row.pro}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="space-y-4 sm:hidden">
         {PRICING_COMPARISON.sections.map((row) => (
           <div key={row.title} className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-card dark:border-white/10 dark:bg-cognia-panel">
             <h3 className="mb-4 text-lg font-bold text-neutral-900 dark:text-white">{row.title}</h3>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-3">
+              <div className="rounded-xl bg-neutral-50 p-4 dark:bg-white/5">
+                <p className="mb-1 font-semibold text-neutral-600 dark:text-neutral-300">Grátis</p>
+                <p className="text-sm text-neutral-700 dark:text-neutral-300">{row.free}</p>
+              </div>
               <div className="rounded-xl bg-sage-50 p-4 dark:bg-sage-500/10">
                 <p className="mb-1 font-semibold text-sage-700 dark:text-sage-200">Essencial</p>
                 <p className="text-sm text-neutral-700 dark:text-neutral-300">{row.essencial}</p>

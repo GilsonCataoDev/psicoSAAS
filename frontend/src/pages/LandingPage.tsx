@@ -44,21 +44,48 @@ const features = [
     icon: CalendarCheck2,
     title: 'Link público com datas disponíveis',
     text: 'O paciente escolhe uma data real da sua agenda, sem ficar testando dia por dia ou esperando resposta.',
+    accent: 'text-sky-600 bg-sky-50',
   },
   {
     icon: FileSignature,
     title: 'Prontuário clínico digital',
     text: 'Registre evoluções, acompanhe histórico e mantenha dados clínicos em uma rotina mais segura.',
+    accent: 'text-sage-600 bg-sage-50',
   },
   {
     icon: WalletCards,
     title: 'Cobranças e recebimentos organizados',
     text: 'Acompanhe pendências, registre pagamentos e envie cobranças de forma mais profissional.',
+    accent: 'text-amber-600 bg-amber-50',
   },
   {
     icon: MessageSquareText,
     title: 'Mensagens e lembretes',
     text: 'Padronize comunicações importantes e reduza trabalho repetitivo antes e depois das sessões.',
+    accent: 'text-purple-600 bg-purple-50',
+  },
+]
+
+const howItWorks = [
+  {
+    step: '1',
+    title: 'Paciente agenda pelo link',
+    text: 'Você compartilha seu link público. O paciente escolhe data e horário reais da sua agenda, sem trocar mensagem.',
+  },
+  {
+    step: '2',
+    title: 'Sessão e evolução no prontuário',
+    text: 'Depois do atendimento, registre a evolução clínica no mesmo lugar — sem depender de caderno ou planilha solta.',
+  },
+  {
+    step: '3',
+    title: 'Lembrete antes da consulta',
+    text: 'O sistema avisa o paciente automaticamente, reduzindo esquecimentos e faltas de última hora.',
+  },
+  {
+    step: '4',
+    title: 'Cobrança organizada',
+    text: 'Pendências e recebimentos ficam visíveis no financeiro, sem precisar controlar tudo de cabeça.',
   },
 ]
 
@@ -406,7 +433,7 @@ export default function LandingPage() {
             viewport={{ once: true, margin: '-80px' }}
             variants={stagger}
           >
-            {features.map(({ icon: Icon, title, text }) => (
+            {features.map(({ icon: Icon, title, text, accent }) => (
               <motion.article
                 key={title}
                 variants={fadeUp}
@@ -414,10 +441,45 @@ export default function LandingPage() {
                 transition={{ duration: 0.2 }}
                 className="rounded-lg border border-[#E7E4DA] bg-[#F7F8F5] p-5 transition-shadow hover:shadow-md"
               >
-                <Icon className="mb-4 h-5 w-5 text-sage-600" />
+                <span className={`mb-4 inline-flex h-9 w-9 items-center justify-center rounded-lg ${accent}`}>
+                  <Icon className="h-5 w-5" />
+                </span>
                 <h3 className="font-semibold text-[#211F1C]">{title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-[#7C776B]">{text}</p>
               </motion.article>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      <section className="border-b border-[#E7E4DA] bg-[#F7F8F5]">
+        <div className="mx-auto max-w-6xl px-5 py-16">
+          <motion.div
+            className="max-w-2xl"
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '-80px' }}
+            variants={fadeUp}
+          >
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Como funciona</p>
+            <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Do agendamento até o recebimento, sem sair do fluxo.</h2>
+          </motion.div>
+
+          <motion.div
+            className="mt-8 grid gap-6 md:grid-cols-4"
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '-80px' }}
+            variants={stagger}
+          >
+            {howItWorks.map(({ step, title, text }) => (
+              <motion.div key={step} variants={fadeUp} className="relative">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-sage-800 text-sm font-bold text-white">
+                  {step}
+                </span>
+                <h3 className="mt-4 font-semibold text-[#211F1C]">{title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-[#7C776B]">{text}</p>
+              </motion.div>
             ))}
           </motion.div>
         </div>

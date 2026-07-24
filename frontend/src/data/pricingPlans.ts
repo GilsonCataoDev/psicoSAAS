@@ -121,11 +121,13 @@ export const PRICING_PLANS: PricingPlan[] = [
 export const PRICING_COMPARISON = {
   title: 'QUAL A DIFERENCA REAL?',
   sections: [
-    { title: 'WhatsApp', essencial: 'Voce abre mensagens prontas manualmente', pro: 'O sistema envia automaticamente' },
-    { title: 'Lembretes', essencial: 'Controle manual pela agenda', pro: '24h e 1h antes, automatico' },
-    { title: 'Cobranca', essencial: 'Controle financeiro manual', pro: 'Link e mensagem de cobranca em 1 clique' },
-    { title: 'IA', essencial: '10 min/mes de transcricao e rascunho de evolucao', pro: '120 min/mes de transcricao e rascunho de evolucao' },
-    { title: 'Escalabilidade', essencial: 'Ate 50 pacientes', pro: '50+, 100+. O sistema aguenta' },
+    { title: 'WhatsApp', free: 'Sem WhatsApp automatico', essencial: 'Voce abre mensagens prontas manualmente', pro: 'O sistema envia automaticamente' },
+    { title: 'Lembretes', free: 'Sem lembretes automaticos', essencial: 'Controle manual pela agenda', pro: '24h e 1h antes, automatico' },
+    { title: 'Cobranca', free: 'Financeiro basico, sem cobranca automatizada', essencial: 'Controle financeiro manual', pro: 'Link e mensagem de cobranca em 1 clique' },
+    { title: 'IA', free: 'Sem transcricao/rascunho por IA', essencial: '10 min/mes de transcricao e rascunho de evolucao', pro: '120 min/mes de transcricao e rascunho de evolucao' },
+    { title: 'Documentos', free: 'Sem documentos/PDF', essencial: 'Ate 200 documentos/PDF com verificacao', pro: 'Documentos ilimitados' },
+    { title: 'Instrumentos clinicos', free: 'Nao disponivel', essencial: 'Nao disponivel', pro: 'Escalas e instrumentos clinicos' },
+    { title: 'Escalabilidade', free: 'Ate 10 pacientes ativos', essencial: 'Ate 50 pacientes', pro: '50+, 100+. O sistema aguenta' },
   ],
 }
 
