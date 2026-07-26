@@ -273,11 +273,91 @@ describe('NotificationsService WhatsApp delivery validation', () => {
     expect(result).toEqual(failure)
   })
 
-  it('resends once when the delivery check is inconclusive on the first attempt, and succeeds on the retry', async () => {
     // Um resultado inconclusivo (falha na consulta de verificação, por exemplo)
     // é tratado com a mesma urgência de um vazio confirmado — reenvia antes de
     // aceitar, já que a psicóloga pode ver a mensagem certa na própria conversa
     // mesmo quando o paciente recebe em branco.
+  it('uses the public booking page confirmation message when present', async () => {
+    const sendSpy = jest.spyOn(service as any, 'sendWhatsApp').mockResolvedValue({ sent: true })
+
+    await service.sendBookingConfirmation({
+      id: 'booking-id',
+      patientName: 'Marina Silva',
+      patientPhone: '11999999999',
+      patientEmail: '',
+      psychologistId: ownerId,
+      date: '2026-07-22',
+      time: '14:00',
+      publicCancellationCode: 'cancel-token',
+    }, {
+      confirmationMessage: 'Oi {{primeiro_nome}}, confirmado dia {{data}} as {{hora}} com {{profissional}}.',
+      psychologist: { name: 'Dra. Allany', preferences: { confirmationTemplate: 'Mensagem geral' } },
+    })
+
+    expect(sendSpy).toHaveBeenCalledWith(
+      '11999999999',
+      expect.stringContaining('Oi Marina, confirmado dia 2026-07-22 as 14:00 com Dra. Allany.'),
+      ownerId,
+      expect.objectContaining({ type: 'Confirmacao de agenda' }),
+    )
+  })
+
+  it('falls back to the general confirmation template when the public page message is empty', async () => {
+    const sendSpy = jest.spyOn(service as any, 'sendWhatsApp').mockResolvedValue({ sent: true })
+
+    await service.sendBookingConfirmation({
+      id: 'booking-id',
+      patientName: 'Marina Silva',
+      patientPhone: '11999999999',
+      patientEmail: '',
+      psychologistId: ownerId,
+      date: '2026-07-22',
+      time: '14:00',
+      publicCancellationCode: 'cancel-token',
+    }, {
+      confirmationMessage: '',
+      psychologist: {
+        name: 'Dra. Allany',
+        preferences: {
+          confirmationTemplate: 'Ola, {{nome}}. Sua sessao esta confirmada para {{data}} as {{hora}}.',
+        },
+      },
+    })
+
+    expect(sendSpy).toHaveBeenCalledWith(
+      '11999999999',
+      expect.stringContaining('Ola, Marina Silva. Sua sessao esta confirmada para 2026-07-22 as 14:00.'),
+      ownerId,
+      expect.objectContaining({ type: 'Confirmacao de agenda' }),
+    )
+  })
+
+  it('uses the customized reminder template for appointment reminders', async () => {
+    jest.spyOn(service, 'sendAppointmentPushReminder').mockResolvedValue({ sent: 0, removed: 0 })
+    const sendSpy = jest.spyOn(service as any, 'sendWhatsApp').mockResolvedValue({ sent: true })
+
+    await service.sendAppointmentReminder({
+      id: 'appointment-id',
+      patient: { id: 'patient-id', name: 'Marina Silva', phone: '11999999999' },
+      psychologistId: ownerId,
+      psychologist: {
+        preferences: {
+          reminderTemplate: 'Oi {{nome}}, lembrete {{antecedencia}}: {{data}} as {{hora}}.',
+        },
+      },
+      date: '2026-07-22',
+      time: '14:00',
+    }, '24h')
+
+    expect(sendSpy).toHaveBeenCalledWith(
+      '11999999999',
+      expect.stringContaining('Oi Marina, lembrete 24h:'),
+      ownerId,
+      expect.objectContaining({ type: 'Lembrete 24h' }),
+    )
+  })
+
+  it('resends once when the delivery check is inconclusive on the first attempt, and succeeds on the retry', async () => {
     const text = 'Lembrete de sessao'
     const originalWorkerId = process.env.JEST_WORKER_ID
     delete process.env.JEST_WORKER_ID

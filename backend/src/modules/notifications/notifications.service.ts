@@ -1003,7 +1003,9 @@ export class NotificationsService {
   }
 
   private renderBookingConfirmationMessage(booking: any, page?: any): string | null {
-    const template = String(page?.confirmationMessage ?? '').trim()
+    const prefs = (page?.psychologist?.preferences ?? {}) as Record<string, any>
+    const pageTemplate = String(page?.confirmationMessage ?? '').trim()
+    const template = pageTemplate || String(prefs.confirmationTemplate ?? '').trim()
     if (!template) return null
 
     const first = String(booking.patientName ?? '').split(' ')[0] ?? ''
