@@ -100,6 +100,52 @@ describe('NotificationsService WhatsApp delivery validation', () => {
     expect(savedLogs[0]).not.toHaveProperty('text')
   })
 
+  it('uses the current Evolution text payload with link preview disabled', async () => {
+    const text = 'Formulario: https://usecognia.com.br/i/token'
+    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+      key: { id: 'provider-message-id', fromMe: true },
+      message: { extendedTextMessage: { text } },
+      status: 'PENDING',
+    }), { status: 201, headers: { 'Content-Type': 'application/json' } }))
+
+    await service.sendDirectWhatsApp('11999999999', text, ownerId)
+
+    const body = JSON.parse(String(fetchSpy.mock.calls[0][1]?.body))
+    expect(body).toEqual(expect.objectContaining({
+      number: '5511999999999',
+      textMessage: { text },
+      options: expect.objectContaining({ linkPreview: false }),
+    }))
+    expect(body).not.toHaveProperty('text')
+  })
+
+  it('falls back to the legacy Evolution text payload when the current shape is rejected', async () => {
+    const text = 'Formulario simples'
+    let calls = 0
+    const accepted = () => new Response(JSON.stringify({
+        key: { id: 'legacy-message-id', fromMe: true },
+        message: { extendedTextMessage: { text } },
+        status: 'PENDING',
+      }), { status: 201, headers: { 'Content-Type': 'application/json' } })
+    const fetchSpy = jest.spyOn(global, 'fetch').mockImplementation(async () => {
+      calls += 1
+      if (calls === 1) return new Response(JSON.stringify({ message: 'invalid body' }), { status: 400 })
+      return accepted()
+    })
+
+    const result = await service.sendDirectWhatsApp('11999999999', text, ownerId)
+
+    expect(result.sent).toBe(true)
+    expect(fetchSpy.mock.calls.length).toBeGreaterThanOrEqual(2)
+    const legacyBody = JSON.parse(String(fetchSpy.mock.calls[1][1]?.body))
+    expect(legacyBody).toEqual(expect.objectContaining({
+      number: '5511999999999',
+      text,
+      delay: 1000,
+      options: expect.objectContaining({ linkPreview: false }),
+    }))
+  })
+
   it('blocks whitespace-only messages before calling the provider', async () => {
     const fetchSpy = jest.spyOn(global, 'fetch')
 
@@ -511,7 +557,8 @@ describe('NotificationsService.sendAppointmentReminder — template por lead (24
     service = new NotificationsService(cfg, {} as any, subs as any, users as any, pushSubscriptions as any, whatsAppLogs as any)
     sentText = ''
     jest.spyOn(global, 'fetch').mockImplementation(async (_url, init: any) => {
-      sentText = JSON.parse(init.body).text
+      const body = JSON.parse(init.body)
+      sentText = body.textMessage?.text ?? body.text ?? ''
       return new Response(JSON.stringify({
         key: { id: 'msg-id', fromMe: true },
         message: { extendedTextMessage: { text: sentText } },

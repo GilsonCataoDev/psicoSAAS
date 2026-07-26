@@ -70,7 +70,7 @@ export class InstrumentAssignmentsService {
         patient.phone,
         `Ola, ${first}. A profissional enviou um formulario pelo UseCognia para voce responder com calma.\n\nAcesse: ${url}\n\nO link e individual, seguro e expira em 7 dias. Responda em um ambiente reservado.`,
         psychologistId,
-        { type: 'Formulario', patientId: patient.id, patientName: patient.name },
+        { type: 'Formulario', patientId: patient.id, patientName: patient.name, verifyDelivery: false },
       )
       whatsAppSent = result.sent
       if (!result.sent) whatsAppError = result.error

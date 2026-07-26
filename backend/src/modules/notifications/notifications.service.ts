@@ -41,6 +41,19 @@ type WhatsAppLogMeta = {
   type: string
   patientId?: string | null
   patientName?: string | null
+  verifyDelivery?: boolean
+}
+
+type WhatsAppTextPayload = {
+  number: string
+  text?: string
+  textMessage?: { text: string }
+  delay?: number
+  options?: {
+    delay?: number
+    presence?: 'composing' | 'recording'
+    linkPreview?: boolean
+  }
 }
 
 const COMPED_PRO_EMAILS = (process.env.COMPED_PRO_EMAILS ?? 'gilsonfilho96@outlook.com')
@@ -432,7 +445,7 @@ export class NotificationsService {
       return result
     }
 
-    result = await this.deliverWhatsApp(phone, text, ownerId)
+    result = await this.deliverWhatsApp(phone, text, ownerId, true, meta.verifyDelivery ?? true)
     await this.recordWhatsAppLog(ownerId, phone, meta, result)
     return result
   }
@@ -483,12 +496,7 @@ export class NotificationsService {
 
     try {
       const instance = this.getWhatsAppInstance(ownerId)
-      const res = await fetch(`${this.WA_URL}/message/sendText/${instance}`, {
-        method: 'POST',
-        headers: { apikey: this.WA_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ number: withDdi, text: normalizedText, delay: 1000 }),
-      })
-      const body = await res.text().catch(() => '')
+      const { res, body } = await this.postWhatsAppText(instance, withDdi, normalizedText)
 
       if (!res.ok) {
         const nonRetryable = res.status >= 400 && res.status < 500 && res.status !== 429
@@ -667,6 +675,50 @@ export class NotificationsService {
     } catch {
       return { text: '' }
     }
+  }
+
+  private async postWhatsAppText(instance: string, number: string, text: string): Promise<{ res: Response; body: string }> {
+    const endpoint = `${this.WA_URL}/message/sendText/${instance}`
+    const headers = { apikey: this.WA_KEY, 'Content-Type': 'application/json' }
+    const payloads = this.buildWhatsAppTextPayloads(number, text)
+
+    let response = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payloads[0]),
+    })
+    let body = await response.text().catch(() => '')
+
+    if (!response.ok && [400, 404, 422].includes(response.status)) {
+      response = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payloads[1]),
+      })
+      body = await response.text().catch(() => '')
+    }
+
+    return { res: response, body }
+  }
+
+  private buildWhatsAppTextPayloads(number: string, text: string): [WhatsAppTextPayload, WhatsAppTextPayload] {
+    return [
+      {
+        number,
+        textMessage: { text },
+        options: {
+          delay: 1000,
+          presence: 'composing',
+          linkPreview: false,
+        },
+      },
+      {
+        number,
+        text,
+        delay: 1000,
+        options: { linkPreview: false },
+      },
+    ]
   }
 
   private isClosedConnectionError(body: string): boolean {
