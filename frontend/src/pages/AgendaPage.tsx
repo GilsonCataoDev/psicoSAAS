@@ -10,6 +10,7 @@ import Avatar from '@/components/ui/Avatar'
 import { StatusBadge } from '@/components/ui/Badge'
 import { formatTime } from '@/lib/utils'
 import { patientMatchesSearch } from '@/lib/patientSearch'
+import ExtraAvailabilityCard from '@/components/features/agenda/ExtraAvailabilityCard'
 import {
   useAppointments,
   useAvailability,
@@ -665,96 +666,15 @@ export default function AgendaPage() {
         )}
       </div>
 
-      <details className="order-6 card group">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
-          <div>
-            <h2 className="section-title">Horário extra</h2>
-            <p className="text-sm text-neutral-500 dark:text-neutral-300">
-              Libere um horário pontual no link público quando precisar.
-            </p>
-          </div>
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sage-50 text-lg text-sage-700 transition-transform group-open:rotate-45 dark:bg-sage-500/15 dark:text-sage-200">+</span>
-        </summary>
-        <div className="mt-4 space-y-4 border-t border-neutral-100 pt-4 dark:border-white/10">
-        <div className="grid gap-3 md:grid-cols-[1fr_120px_120px_150px_auto]">
-          <input
-            type="date"
-            value={extraForm.date}
-            onChange={e => setExtraForm(form => ({ ...form, date: e.target.value }))}
-            className="input-field"
-          />
-          <input
-            type="time"
-            value={extraForm.startTime}
-            onChange={e => setExtraForm(form => ({ ...form, startTime: e.target.value }))}
-            className="input-field"
-          />
-          <input
-            type="time"
-            value={extraForm.endTime}
-            onChange={e => setExtraForm(form => ({ ...form, endTime: e.target.value }))}
-            className="input-field"
-          />
-          <select
-            value={extraForm.modality}
-            onChange={e => setExtraForm(form => ({ ...form, modality: e.target.value as 'presencial' | 'online' }))}
-            className="input-field"
-          >
-            <option value="online">Online</option>
-            <option value="presencial">Presencial</option>
-          </select>
-          <button
-            type="button"
-            onClick={addExtraSlot}
-            disabled={addExtraAvailability.isPending}
-            className="btn-primary whitespace-nowrap"
-          >
-            {addExtraAvailability.isPending ? 'Abrindo...' : 'Abrir horario'}
-          </button>
-        </div>
-        <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-3 dark:border-white/10 dark:bg-white/5">
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-300">
-              Horarios extras abertos
-            </p>
-            <span className="text-xs text-neutral-400">
-              {upcomingExtraAvailability.length} {upcomingExtraAvailability.length === 1 ? 'ativo' : 'ativos'}
-            </span>
-          </div>
-          {upcomingExtraAvailability.length === 0 ? (
-            <p className="text-sm text-neutral-400">Nenhum horario extra aberto.</p>
-          ) : (
-            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-              {upcomingExtraAvailability.map(slot => (
-                <div
-                  key={slot.id}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-sage-100 bg-white px-3 py-2 text-sm text-neutral-700 dark:border-white/10 dark:bg-neutral-900 dark:text-neutral-100"
-                >
-                  <div className="min-w-0">
-                    <p className="font-semibold">
-                      {format(parseISO(String(slot.date).slice(0, 10)), 'dd/MM/yyyy', { locale: ptBR })}
-                    </p>
-                    <p className="text-xs text-neutral-500 dark:text-neutral-300">
-                      {formatTime(slot.startTime)} - {formatTime(slot.endTime)} · {slot.modality === 'online' ? 'Online' : 'Presencial'}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeExtraAvailability.mutateAsync(slot.id)}
-                    disabled={removeExtraAvailability.isPending}
-                    className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-rose-100 px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-60 dark:border-rose-400/30 dark:text-rose-200 dark:hover:bg-rose-400/10"
-                    title="Retirar horario extra"
-                  >
-                    <XCircle className="h-3.5 w-3.5" />
-                    Retirar
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        </div>
-      </details>
+      <ExtraAvailabilityCard
+        form={extraForm}
+        onFormChange={setExtraForm}
+        slots={upcomingExtraAvailability}
+        onAddSlot={addExtraSlot}
+        onRemoveSlot={id => removeExtraAvailability.mutateAsync(id)}
+        isAdding={addExtraAvailability.isPending}
+        isRemoving={removeExtraAvailability.isPending}
+      />
 
       <div className="order-4 card space-y-4">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
