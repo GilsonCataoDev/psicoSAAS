@@ -357,6 +357,26 @@ describe('NotificationsService WhatsApp delivery validation', () => {
     )
   })
 
+  it('does not send booking confirmation when the preference is disabled', async () => {
+    const sendSpy = jest.spyOn(service as any, 'sendWhatsApp').mockResolvedValue({ sent: true })
+
+    const result = await service.sendBookingConfirmation({
+      id: 'booking-id',
+      patientName: 'Marina Silva',
+      patientPhone: '11999999999',
+      patientEmail: '',
+      psychologistId: ownerId,
+      date: '2026-07-22',
+      time: '14:00',
+      publicCancellationCode: 'cancel-token',
+    }, {
+      psychologist: { preferences: { bookingConfirmation: false } },
+    })
+
+    expect(result).toBeUndefined()
+    expect(sendSpy).not.toHaveBeenCalled()
+  })
+
   it('resends once when the delivery check is inconclusive on the first attempt, and succeeds on the retry', async () => {
     const text = 'Lembrete de sessao'
     const originalWorkerId = process.env.JEST_WORKER_ID

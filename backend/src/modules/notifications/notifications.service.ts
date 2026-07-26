@@ -964,6 +964,12 @@ export class NotificationsService {
   }
 
   async sendBookingConfirmation(booking: any, page?: any): Promise<WhatsAppDeliveryResult | undefined> {
+    const prefs = (page?.psychologist?.preferences ?? {}) as Record<string, any>
+    if (prefs.bookingConfirmation === false) {
+      this.logger.log(`[Booking] Confirmacao desativada por preferencia bookingId=${booking.id}`)
+      return undefined
+    }
+
     const cancelUrl = this.getCancellationUrl(booking)
     const first = booking.patientName.split(' ')[0]
     const customMessage = this.renderBookingConfirmationMessage(booking, page)
