@@ -312,6 +312,10 @@ Cobertura atual: brute-force de login, rotação/replay de refresh token, expira
 | `SENTRY_DSN` | Monitoramento de erros (opcional) |
 | `WHATSAPP_API_URL` / `WHATSAPP_API_KEY` / `WHATSAPP_INSTANCE_PREFIX` | Integração WhatsApp (opcional) |
 | `TYPEORM_SYNC` | Manter ausente/false em producao; use migrations |
+| `DB_POOL_MAX` | Maximo de conexoes do pool Postgres por instancia; padrao `10` |
+| `DB_IDLE_TIMEOUT_MS` | Tempo para fechar conexao ociosa; padrao `30000` |
+| `DB_CONNECTION_TIMEOUT_MS` | Timeout para abrir conexao; padrao `5000` |
+| `DB_APPLICATION_NAME` | Nome da aplicacao nas conexoes Postgres; padrao `usecognia-api` |
 
 ---
 
