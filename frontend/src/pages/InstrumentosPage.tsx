@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import {
   Search, Download, X,
   ClipboardList, Baby, Target, FileSignature, MessageSquare,
@@ -1798,8 +1798,31 @@ function SendInstrumentModal({
   const createAssignment = useCreateInstrumentAssignment()
   const [patientId, setPatientId] = useState('')
   const [sendWhatsApp, setSendWhatsApp] = useState(true)
+  const [extraAnamneseQuestions, setExtraAnamneseQuestions] = useState('')
   const selectedPatient = patients.find(p => p.id === patientId)
   const shouldSendWhatsApp = sendWhatsApp && !!selectedPatient?.phone
+  const isAnamnese = instrument?.tags.some(tag => tag.toLowerCase() === 'anamnese') ?? false
+
+  useEffect(() => {
+    setExtraAnamneseQuestions('')
+  }, [instrument?.id])
+
+  function templateWithExtraAnamneseQuestions() {
+    if (!instrument) return ''
+    const questions = extraAnamneseQuestions
+      .split('\n')
+      .map(line => line.trim().replace(/:+$/, ''))
+      .filter(Boolean)
+
+    if (!isAnamnese || questions.length === 0) return instrument.template
+
+    return [
+      instrument.template.trimEnd(),
+      '',
+      'PERGUNTAS EXTRAS DA ANAMNESE',
+      ...questions.map(question => `${question}:`),
+    ].join('\n')
+  }
 
   async function send() {
     if (!instrument || !patientId) return
@@ -1810,7 +1833,7 @@ function SendInstrumentModal({
         title: instrument.title,
         description: instrument.description,
         category: instrument.category,
-        template: instrument.template,
+        template: templateWithExtraAnamneseQuestions(),
         sendWhatsApp: shouldSendWhatsApp,
       })
 
@@ -1850,6 +1873,23 @@ function SendInstrumentModal({
             ))}
           </select>
         </label>
+
+        {isAnamnese && (
+          <label className="block">
+            <span className="label">Perguntas extras da anamnese</span>
+            <textarea
+              value={extraAnamneseQuestions}
+              onChange={e => setExtraAnamneseQuestions(e.target.value)}
+              rows={5}
+              maxLength={4000}
+              placeholder="Uma pergunta por linha. Ex: Como costuma dormir?"
+              className="input-field min-h-[120px] resize-y"
+            />
+            <span className="mt-1 block text-xs text-neutral-400">
+              Essas perguntas entram só neste link enviado para o paciente.
+            </span>
+          </label>
+        )}
 
         <label className="flex items-start gap-3 rounded-2xl border border-neutral-100 bg-white p-4">
           <input
