@@ -71,7 +71,7 @@ Migration mais recente:
 
 - `AddPatientAttachmentStorageKey1782900000000`: adiciona `storageKey` em `patient_attachments` e torna `data` nullable, pra suportar o driver R2 opcional sem afetar anexos existentes (ver ADR-012 em `decisions.md`).
 
-**Nota — bootstrap local em banco vazio:** a cadeia de migrations assume que a tabela `users` ja existe antes de `CreateRefreshTokensTable1714500000000` rodar; num Postgres completamente vazio (sem `synchronize` nem `init.sql` legado), `npm run migration:run` falha com `relation "users" does not exist`. Em desenvolvimento local, a forma mais simples de bootstrap e deixar `NODE_ENV=development` (synchronize automatico via TypeORM cria o schema a partir das entidades) e so usar migrations pra ambientes que ja tem o banco de producao/staging existente. `database/init.sql` esta desatualizado (schema legado em snake_case) — nao usar pra bootstrap novo.
+**Nota — bootstrap local em banco vazio:** a cadeia de migrations assume que a tabela `users` ja existe antes de `CreateRefreshTokensTable1714500000000` rodar; num Postgres completamente vazio (sem `synchronize` nem `init.sql` legado), `npm run migration:run` falha com `relation "users" does not exist`. Em desenvolvimento local, a forma mais simples de bootstrap e rodar a API com `TYPEORM_SYNC=true` fora de producao para o TypeORM criar o schema a partir das entidades, depois usar migrations nos ambientes que ja tem o banco de producao/staging existente. Nunca habilitar `TYPEORM_SYNC=true` em producao. `database/init.sql` esta desatualizado (schema legado em snake_case) — nao usar pra bootstrap novo.
 
 ## Teste de restauracao
 
