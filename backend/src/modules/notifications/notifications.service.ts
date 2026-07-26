@@ -807,9 +807,17 @@ export class NotificationsService {
     const pushResult = await this.sendAppointmentPushReminder(appointment, lead)
 
     if (!patient?.phone) {
-      return pushResult.sent > 0
+      const result = pushResult.sent > 0
         ? { sent: true }
         : { sent: false, error: 'Paciente sem WhatsApp e push nao enviado' }
+      if (!result.sent) {
+        await this.recordWhatsAppLog(appointment.psychologistId, '', {
+          type: lead === '24h' ? 'Lembrete 24h' : 'Lembrete 2h',
+          patientId: patient?.id,
+          patientName: patient?.name,
+        }, result)
+      }
+      return result
     }
 
     const first = patient.name.split(' ')[0]
