@@ -67,13 +67,6 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
     let sent = 0
     const planCache = new Map<string, boolean>()
     for (const appointment of upcoming) {
-      if (this.email.isRateLimited()) {
-        this.logger.warn(
-          `Lembretes por e-mail pausados por limite do provedor. Retry em ${Math.ceil(this.email.getRateLimitRetryAfterMs() / 1000)}s.`,
-        )
-        break
-      }
-
       const prefs = (appointment.psychologist?.preferences ?? {}) as Record<string, any>
       const startsAt = this.appointmentStartsAt(appointment)
       const diff = startsAt.getTime() - now.getTime()
@@ -107,7 +100,11 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
             sent++
           } catch (err: any) {
             this.logger.warn(`Falha ao enviar lembrete por e-mail para appointment ${appointment.id}: ${err?.message}`)
-            if (this.email.isRateLimited()) break
+            if (this.email.isRateLimited()) {
+              this.logger.warn(
+                `Fallback por e-mail do lembrete 24h pausado por limite do provedor. appointment ${appointment.id}; proximos lembretes WhatsApp continuam.`,
+              )
+            }
           }
         } else if (this.shouldStopRetrying(result)) {
           appointment.reminder24hSentAt = new Date()
@@ -140,7 +137,11 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
             sent++
           } catch (err: any) {
             this.logger.warn(`Falha ao enviar lembrete 2h por e-mail para appointment ${appointment.id}: ${err?.message}`)
-            if (this.email.isRateLimited()) break
+            if (this.email.isRateLimited()) {
+              this.logger.warn(
+                `Fallback por e-mail do lembrete 2h pausado por limite do provedor. appointment ${appointment.id}; proximos lembretes WhatsApp continuam.`,
+              )
+            }
           }
         } else if (this.shouldStopRetrying(result)) {
           appointment.reminder2hSentAt = new Date()

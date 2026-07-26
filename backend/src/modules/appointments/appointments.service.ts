@@ -108,6 +108,7 @@ export class AppointmentsService {
       appointment.isFixedScheduleException = true
       appointment.originalDate = appointment.originalDate ?? appointment.date
       appointment.originalTime = appointment.originalTime ?? appointment.time
+      this.resetReminderTracking(appointment)
     }
 
     if (dto.meetingUrl !== undefined) dto.meetingUrl = this.cleanMeetingUrl(dto.meetingUrl)
@@ -176,7 +177,12 @@ export class AppointmentsService {
         appt.id,
       )
     }
-    for (const appt of toUpdate) Object.assign(appt, dto)
+    for (const appt of toUpdate) {
+      const changedSlot = (dto.time !== undefined && dto.time !== appt.time)
+        || (dto.duration !== undefined && Number(dto.duration) !== Number(appt.duration))
+      if (changedSlot) this.resetReminderTracking(appt)
+      Object.assign(appt, dto)
+    }
     const saved = await this.repo.save(toUpdate)
     for (const appt of saved) {
       await this.syncLinkedBookingFromAppointment(appt)
@@ -233,6 +239,11 @@ export class AppointmentsService {
   private logCalendarError(action: 'sync' | 'delete', appointmentId: string, err: unknown): void {
     const message = err instanceof Error ? err.message : 'erro desconhecido'
     this.logger.warn(`google_calendar.${action}.failed appointmentId=${appointmentId} message=${message}`)
+  }
+
+  private resetReminderTracking(appointment: Appointment): void {
+    appointment.reminder24hSentAt = null
+    appointment.reminder2hSentAt = null
   }
 
   private async assertSlotAvailable(

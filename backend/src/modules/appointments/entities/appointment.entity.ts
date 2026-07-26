@@ -21,8 +21,8 @@ export class Appointment {
   @Column({ default: false }) isFixedScheduleException: boolean
   @Column({ nullable: true }) originalDate?: string
   @Column({ nullable: true }) originalTime?: string
-  @Column({ type: 'timestamptz', nullable: true }) reminder24hSentAt?: Date
-  @Column({ type: 'timestamptz', nullable: true }) reminder2hSentAt?: Date
+  @Column({ type: 'timestamptz', nullable: true }) reminder24hSentAt?: Date | null
+  @Column({ type: 'timestamptz', nullable: true }) reminder2hSentAt?: Date | null
   @Column() patientId: string
   @ManyToOne(() => Patient, (p) => p.appointments, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'patientId' }) patient: Patient
