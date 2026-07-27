@@ -11,6 +11,7 @@ import Avatar from '@/components/ui/Avatar'
 import { usePatients } from '@/hooks/api/patients'
 import { patientMatchesSearch } from '@/lib/patientSearch'
 import { useThemeStore } from '@/store/theme'
+import { safeInternalPath } from '@/lib/safeNavigation'
 
 const TYPE_ICON: Record<NotificationType, React.ReactNode> = {
   booking_request: <Calendar className="w-3.5 h-3.5 text-sage-500" />,
@@ -111,7 +112,8 @@ export default function TopBar() {
   function handleClickNotif(n: AppNotification) {
     markRead(n.id)
     setPanelOpen(false)
-    if (n.link) navigate(n.link)
+    const destination = safeInternalPath(n.link)
+    if (destination) navigate(destination)
   }
 
   function closeSearch() {

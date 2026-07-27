@@ -14,6 +14,38 @@
       "destination": "/api/booking-og?slug=:slug"
     },
     {
+      "source": "/plataforma",
+      "destination": "/plataforma/index.html"
+    },
+    {
+      "source": "/precos",
+      "destination": "/precos/index.html"
+    },
+    {
+      "source": "/seguranca",
+      "destination": "/seguranca/index.html"
+    },
+    {
+      "source": "/privacidade",
+      "destination": "/privacidade/index.html"
+    },
+    {
+      "source": "/termos",
+      "destination": "/termos/index.html"
+    },
+    {
+      "source": "/dpa",
+      "destination": "/dpa/index.html"
+    },
+    {
+      "source": "/acessibilidade",
+      "destination": "/acessibilidade/index.html"
+    },
+    {
+      "source": "/ferramenta/evolucao",
+      "destination": "/ferramenta/evolucao/index.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

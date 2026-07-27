@@ -99,6 +99,14 @@ Para dar suporte, a operação da plataforma pode usar um modo "ver como" (imper
 - Logs de entrega do WhatsApp guardam apenas metadados necessários para diagnóstico, com nome, telefone e erro criptografados. Esses registros são eliminados automaticamente após sete dias.
 - A adequação à LGPD é um processo contínuo: os controles técnicos descritos aqui existem e são testados, mas **este documento não é um parecer jurídico**.
 
+## Exceção de dependência registrada
+
+- Em 27/07/2026, o React Router 7.18.1 possui o alerta
+  [GHSA-qwww-vcr4-c8h2](https://github.com/advisories/GHSA-qwww-vcr4-c8h2), aplicável somente às APIs
+  instáveis de React Server Components (RSC). O UseCognia é uma SPA declarativa e não usa essas APIs.
+- O CI aceita exclusivamente esse alerta enquanto ele não for aplicável. Qualquer outro aviso de
+  produção ou a introdução de uma API de RSC volta a bloquear a compilação automaticamente.
+
 ## Contato para privacidade e incidentes
 
 Solicitações de titulares de dados, dúvidas de privacidade ou relato de vulnerabilidade:

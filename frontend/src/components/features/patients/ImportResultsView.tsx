@@ -1,6 +1,7 @@
 import { AlertTriangle, CheckCircle2, ExternalLink, XCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { ImportPatientsResult } from '@/hooks/useApi'
+import { safeInternalPath } from '@/lib/safeNavigation'
 
 export default function ImportResultsView({
   result,
@@ -13,6 +14,7 @@ export default function ImportResultsView({
 }) {
   const planLimited = result.skipped.filter(s => s.reason === 'plan_limit_reached')
   const duplicates = result.skipped.filter(s => s.reason === 'duplicate')
+  const upgradePath = safeInternalPath(result.upgradeUrl)
 
   return (
     <div className="space-y-4">
@@ -41,8 +43,8 @@ export default function ImportResultsView({
               {result.currentPlan ? ` ${result.currentPlan}` : ''}.
             </p>
           </div>
-          {result.upgradeUrl && (
-            <Link to={result.upgradeUrl} className="mt-2 inline-flex items-center gap-1 text-xs font-semibold underline">
+          {upgradePath && (
+            <Link to={upgradePath} className="mt-2 inline-flex items-center gap-1 text-xs font-semibold underline">
               Fazer upgrade <ExternalLink className="h-3 w-3" />
             </Link>
           )}
