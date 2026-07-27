@@ -90,7 +90,7 @@ export default function OnboardingTour() {
   }
 
   return (
-    <div className="pointer-events-none fixed inset-x-3 bottom-20 z-[70] flex justify-end sm:bottom-5 sm:right-5 sm:left-auto">
+    <div data-testid="onboarding-tour" className="pointer-events-none fixed inset-x-3 bottom-20 z-[70] flex justify-end sm:bottom-5 sm:right-5 sm:left-auto">
       <div className="pointer-events-auto w-full max-w-md rounded-3xl border border-sage-100 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-cognia-panel dark:text-white">
         <div className="flex items-start gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sage-100 text-sage-700 dark:bg-sage-500/20 dark:text-sage-200">
@@ -116,6 +116,7 @@ export default function OnboardingTour() {
         <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
           <button
             type="button"
+            data-testid="onboarding-tour-close"
             onClick={skip}
             disabled={saving}
             className="h-11 rounded-xl px-4 text-sm font-medium text-gray-500 hover:text-gray-800 disabled:opacity-60 dark:text-gray-300"
