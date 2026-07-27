@@ -17,7 +17,7 @@ import {
   usePatientAttachments, useUploadPatientAttachment, useDeletePatientAttachment,
   downloadPatientAttachment, previewPatientAttachment, type PatientAttachment,
   useCreateNeuropsychAssessment, useNeuropsychAssessments,
-  useAssessmentAiInterpretation,
+  useAssessmentAiInterpretation, useAppointments,
 } from '@/hooks/useApi'
 import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 import Modal from '@/components/ui/Modal'
@@ -25,6 +25,7 @@ import toast from 'react-hot-toast'
 import { track, EVENTS } from '@/lib/analytics'
 import LightweightChart from '@/components/ui/LightweightChart'
 import EditPatientModal from '@/components/features/patients/EditPatientModal'
+import RecurringSessionsCard from '@/components/features/patients/RecurringSessionsCard'
 
 const MOODS = ['', '1', '2', '3', '4', '5']
 const WEEKDAYS = ['Domingo', 'Segunda', 'Terca', 'Quarta', 'Quinta', 'Sexta', 'Sabado']
@@ -63,6 +64,10 @@ export default function PatientDetailPage() {
   const deleteAttachment = useDeletePatientAttachment(id)
   const { data: neuropsychAssessments = [] } = useNeuropsychAssessments()
   const createNeuropsychAssessment = useCreateNeuropsychAssessment()
+  const { data: patientAppointments = [] } = useAppointments({ patientId: id })
+  const lastAppointment = [...patientAppointments]
+    .filter(a => a.status !== 'cancelled')
+    .sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`))[0] ?? null
   const patientAssessments = neuropsychAssessments.filter(assessment => assessment.patientId === id)
   const activeAssessment = patientAssessments.find(assessment => ['planning', 'in_progress', 'integration'].includes(assessment.status))
   const latestAssessment = activeAssessment ?? patientAssessments[0]
@@ -542,6 +547,14 @@ export default function PatientDetailPage() {
             {activeAssessment ? <button type="button" onClick={openOrStartNeuropsychAssessment} className="btn-primary shrink-0">Abrir avaliação</button> : latestAssessment ? <Link to={`/avaliacoes/${latestAssessment.id}`} className="btn-secondary shrink-0 text-center">Ver última avaliação</Link> : <button type="button" onClick={openOrStartNeuropsychAssessment} disabled={createNeuropsychAssessment.isPending} className="btn-primary shrink-0">{createNeuropsychAssessment.isPending ? 'Iniciando...' : 'Iniciar avaliação'}</button>}
           </div>
         </section>
+      )}
+
+      {patient.hasFixedSchedule && (
+        <RecurringSessionsCard
+          patient={patient}
+          anchorDate={lastAppointment?.date ?? null}
+          anchorLabel={lastAppointment ? `Última sessão em ${formatDate(lastAppointment.date)}` : 'Sem sessões registradas ainda'}
+        />
       )}
 
       <EditPatientModal

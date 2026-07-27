@@ -113,7 +113,7 @@ function appointmentMatchesSearch(appt: any, query: string) {
 }
 
 export default function AgendaPage() {
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }))
   const [showModal, setShowModal] = useState(false)
   const [editingAppointment, setEditingAppointment] = useState<any | null>(null)
@@ -268,6 +268,26 @@ export default function AgendaPage() {
     }
   }, [searchParams])
 
+  // Pré-preenchimento vindo da ficha do paciente ("Ir para agenda" na sugestão
+  // de sessão recorrente) — memoizado pra não resetar o formulário a cada
+  // digitação enquanto o modal estiver aberto (identidade estável entre renders).
+  const initialAppointmentValues = useMemo(() => {
+    const patientId = searchParams.get('patientId')
+    if (!patientId) return undefined
+    const date = searchParams.get('date')
+    const recurrenceParam = searchParams.get('recurrence')
+    const recurrence: 'weekly' | 'biweekly' | undefined =
+      recurrenceParam === 'weekly' || recurrenceParam === 'biweekly' ? recurrenceParam : undefined
+    const repeatUntil = searchParams.get('repeatUntil')
+    return {
+      patientId,
+      ...(date ? { date } : {}),
+      ...(recurrence ? { recurrence } : {}),
+      ...(repeatUntil ? { repeatUntil } : {}),
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams.get('patientId'), searchParams.get('date'), searchParams.get('recurrence'), searchParams.get('repeatUntil')])
+
   useEffect(() => {
     if (!mobileDays.some(day => isSameDay(day, mobileDay))) {
       setMobileDay(weekStart)
@@ -351,6 +371,7 @@ export default function AgendaPage() {
   function closeModal() {
     setShowModal(false)
     setEditingAppointment(null)
+    if (searchParams.toString()) setSearchParams({}, { replace: true })
   }
 
   async function addExtraSlot() {
@@ -961,7 +982,14 @@ export default function AgendaPage() {
           </div>
         </div>
       )}>
-        {showModal && <NewAppointmentModal open onClose={closeModal} appointment={editingAppointment} />}
+        {showModal && (
+          <NewAppointmentModal
+            open
+            onClose={closeModal}
+            appointment={editingAppointment}
+            initialValues={editingAppointment ? undefined : initialAppointmentValues}
+          />
+        )}
         {appointmentToEvolve && (
           <NewSessionModal
             open

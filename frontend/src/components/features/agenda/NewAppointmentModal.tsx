@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { addDays, addMonths, format, isAfter, parseISO } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { AlertTriangle, CalendarClock, Repeat2 } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
 import { usePatients, useAppointments, useCreateAppointment, useUpdateAppointment, useUpdateAppointmentGroup } from '@/hooks/useApi'
-import { Appointment, Patient } from '@/types'
+import { Appointment } from '@/types'
+import { calcSessionPreview, fixedScheduleLabel, nextOccurrenceFromAnchor } from '@/lib/recurringSchedule'
 
 type FormData = {
   patientId: string
@@ -23,42 +24,11 @@ type Props = {
   open: boolean
   onClose: () => void
   appointment?: Appointment | null
-}
-
-const WEEKDAY_LABELS = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado']
-
-function calcSessionPreview(
-  dateStr: string,
-  recurrence: 'weekly' | 'biweekly',
-  repeatUntilStr: string,
-): { count: number; lastDate: Date; effectiveUntil: Date } | null {
-  if (!dateStr) return null
-  const start = parseISO(dateStr)
-  const effectiveUntil = repeatUntilStr ? parseISO(repeatUntilStr) : addMonths(start, 3)
-  const step = recurrence === 'weekly' ? 7 : 14
-  let count = 0
-  let current = start
-  let lastDate = start
-  while (!isAfter(current, effectiveUntil) && count < 52) {
-    lastDate = current
-    count += 1
-    current = addDays(current, step)
-  }
-  return count > 0 ? { count, lastDate, effectiveUntil } : null
+  initialValues?: Partial<FormData>
 }
 
 function nextDateForWeekday(weekday: number): string {
-  const today = new Date()
-  const diff = (weekday - today.getDay() + 7) % 7
-  return format(addDays(today, diff), 'yyyy-MM-dd')
-}
-
-function fixedScheduleLabel(patient?: Patient): string {
-  if (!patient?.hasFixedSchedule || patient.fixedScheduleWeekday === undefined || !patient.fixedScheduleTime) {
-    return ''
-  }
-  const frequency = patient.fixedScheduleFrequency === 'biweekly' ? 'de 15 em 15 dias' : 'toda semana'
-  return `${frequency}, ${WEEKDAY_LABELS[patient.fixedScheduleWeekday]} as ${patient.fixedScheduleTime}`
+  return nextOccurrenceFromAnchor(null, weekday, 'weekly')
 }
 
 function timeToMinutes(time?: string): number {
@@ -78,7 +48,7 @@ function buildAppointmentUpdatePayload(data: FormData) {
   }
 }
 
-export default function NewAppointmentModal({ open, onClose, appointment }: Props) {
+export default function NewAppointmentModal({ open, onClose, appointment, initialValues }: Props) {
   const { data: patients = [] } = usePatients()
   const [editScope, setEditScope] = useState<'single' | 'future'>('single')
   const createAppointment = useCreateAppointment()
@@ -164,8 +134,9 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
       notes: '',
       recurrence: 'none',
       repeatUntil: '',
+      ...initialValues,
     })
-  }, [open, appointment, reset])
+  }, [open, appointment, reset, initialValues])
 
   function applyFixedSchedule() {
     if (!selectedPatient?.hasFixedSchedule || selectedPatient.fixedScheduleWeekday === undefined || !selectedPatient.fixedScheduleTime) {
