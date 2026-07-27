@@ -114,7 +114,7 @@ const termsSections: Array<{ title: string; content: string | string[] }> = [
   },
   {
     title: '11. Dados, Exportação e Exclusão',
-    content: 'O usuário pode exportar seus dados e os dados de pacientes por meio da funcionalidade de exportação da plataforma. Arquivos exportados podem conter dados sensíveis e devem ser protegidos com os cuidados exigidos para prontuários.',
+    content: 'O usuário pode exportar seus dados e os dados de pacientes por meio da funcionalidade de exportação da plataforma. Arquivos exportados podem conter dados sensíveis e devem ser protegidos com os cuidados exigidos para prontuários. O Acordo de Tratamento de Dados disponível em /dpa integra estes Termos quando o UseCognia trata dados pessoais em nome do profissional ou da clínica.',
   },
   {
     title: '12. Limitação de Responsabilidade',
