@@ -7,7 +7,7 @@ import {
   useNeuropsychAssessment, useUpdateNeuropsychAssessment, useUpdateNeuropsychBatteryItem,
   usePatientAttachments, useUploadPatientAttachment,
 } from '@/hooks/useApi'
-import { NeuropsychBatteryItem, NeuropsychDomain } from '@/types'
+import { NeuropsychAssessment, NeuropsychBatteryItem, NeuropsychDomain } from '@/types'
 import { downloadPatientAttachment, PatientAttachment } from '@/hooks/api/attachments'
 import { buildNeuropsychIntegrationDraft } from '@/lib/neuropsychDraft'
 import NeuropsychCopilotPanel from '@/components/features/neuropsych/NeuropsychCopilotPanel'
@@ -41,6 +41,7 @@ export default function NeuropsychAssessmentPage() {
   const [activeStep, setActiveStep] = useState<AssessmentStep>('planning')
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
+  const [statusSaveState, setStatusSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const hydratedAssessmentId = useRef<string | null>(null)
   const [form, setForm] = useState({ referralQuestion: '', clinicalHistory: '', clinicalHypotheses: '', qualitativeObservations: '', integrationDraft: '', professionalConclusion: '', evaluatedDomains: [] as NeuropsychDomain[] })
   const [newItem, setNewItem] = useState<{
@@ -94,6 +95,18 @@ export default function NeuropsychAssessmentPage() {
     } catch (error: any) { toast.error(error?.response?.data?.message ?? 'Não foi possível adicionar') }
   }
 
+  async function changeAssessmentStatus(status: NeuropsychAssessment['status']) {
+    setStatusSaveState('saving')
+    try {
+      await update.mutateAsync({ status, version: assessment!.version })
+      setLastSavedAt(new Date())
+      setStatusSaveState('saved')
+    } catch (error: any) {
+      setStatusSaveState('error')
+      toast.error(error?.response?.data?.message ?? 'Não foi possível alterar o status')
+    }
+  }
+
   async function upload(file?: File) {
     if (!file) return
     try { await uploadAttachment.mutateAsync({ file, kind: attachmentKind }); toast.success('Arquivo protegido anexado') }
@@ -133,9 +146,27 @@ export default function NeuropsychAssessmentPage() {
         <div><Link to="/avaliacoes" className="mb-2 inline-flex items-center gap-1 text-xs font-medium text-neutral-500 hover:text-sage-700"><ArrowLeft className="h-3.5 w-3.5" /> Avaliações</Link>
           <h1 className="page-title flex items-center gap-2"><BrainCircuit className="h-6 w-6 text-sage-600" />{assessment.patient?.name}</h1>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs"><span className="text-neutral-500 dark:text-neutral-400">Etapa {activeStepIndex + 1} de {STEPS.length} · rascunho clínico protegido</span><span className={`rounded-full px-2 py-0.5 font-medium ${hasUnsavedChanges ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-200' : 'bg-sage-50 text-sage-700 dark:bg-sage-950/40 dark:text-sage-200'}`}>{hasUnsavedChanges ? 'Alterações não salvas' : lastSavedAt ? `Salvo às ${lastSavedAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : 'Tudo salvo'}</span></div></div>
-        <div className="flex flex-col gap-2 min-[430px]:flex-row"><select aria-label="Status da avaliação" value={assessment.status} onChange={event => update.mutate({ status: event.target.value as any, version: assessment.version })} className="input-field min-[430px]:w-44">
-          <option value="planning">Planejamento</option><option value="in_progress">Em aplicação</option><option value="integration">Integração</option><option value="completed">Concluída</option><option value="archived">Arquivada</option>
-        </select><button onClick={save} disabled={update.isPending || !hasUnsavedChanges} className="btn-primary flex items-center justify-center gap-2"><Check className="h-4 w-4" />{update.isPending ? 'Salvando...' : 'Salvar'}</button></div>
+        <div className="flex flex-col gap-2 min-[430px]:flex-row min-[430px]:items-start">
+          <div>
+            <select
+              aria-label="Status da avaliação"
+              value={assessment.status}
+              disabled={update.isPending}
+              onChange={event => void changeAssessmentStatus(event.target.value as NeuropsychAssessment['status'])}
+              className="input-field min-[430px]:w-44"
+            >
+              <option value="planning">Planejamento</option><option value="in_progress">Em aplicação</option><option value="integration">Integração</option><option value="completed">Concluída</option><option value="archived">Arquivada</option>
+            </select>
+            <span role="status" aria-label="Salvamento automático do status" aria-live="polite" className={`mt-1 block min-h-4 text-[11px] ${
+              statusSaveState === 'error' ? 'text-rose-600 dark:text-rose-300' : 'text-neutral-500 dark:text-neutral-400'
+            }`}>
+              {statusSaveState === 'saving' && 'Salvando status...'}
+              {statusSaveState === 'saved' && 'Status salvo automaticamente'}
+              {statusSaveState === 'error' && 'Status não salvo; tente novamente'}
+            </span>
+          </div>
+          <button onClick={save} disabled={update.isPending || !hasUnsavedChanges} className="btn-primary flex items-center justify-center gap-2"><Check className="h-4 w-4" />{update.isPending && statusSaveState !== 'saving' ? 'Salvando...' : 'Salvar'}</button>
+        </div>
       </header>
 
       <nav aria-label="Etapas da avaliação" className="grid grid-cols-2 gap-2 lg:grid-cols-4">

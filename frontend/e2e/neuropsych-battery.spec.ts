@@ -37,5 +37,9 @@ test.describe('Bateria neuropsicológica', () => {
     await page.getByRole('button', { name: 'Adicionar à bateria' }).click()
 
     await expect(page.getByRole('heading', { name: procedureName })).toBeVisible()
+
+    await page.getByRole('combobox', { name: 'Status da avaliação' }).selectOption('in_progress')
+    await expect(page.getByRole('status', { name: 'Salvamento automático do status' }))
+      .toContainText('Status salvo automaticamente')
   })
 })
