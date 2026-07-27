@@ -2,14 +2,23 @@ import { Body, Controller, Delete, Get, Param, Post, Query, Request, UseGuards }
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { AdminGuard } from '../../common/guards/admin.guard'
 import { ProspectingService } from './prospecting.service'
+import { ProspectingConversationService } from './conversations/prospecting-conversation.service'
+import { ProspectingMessageService } from './messages/prospecting-message.service'
+import { MessageProviderFactory } from './providers/message-provider.factory'
 import { CreateSearchDto, PreviewSearchDto } from './dto/create-search.dto'
 import { SuggestReplyDto } from './dto/suggest-reply.dto'
 import { ProspectStatus } from './entities/prospect.entity'
+import { ConversationChannel } from './entities/prospect-conversation.entity'
 
 @Controller('admin/prospecting')
 @UseGuards(JwtAuthGuard, AdminGuard)
 export class ProspectingController {
-  constructor(private readonly svc: ProspectingService) {}
+  constructor(
+    private readonly svc: ProspectingService,
+    private readonly conversationSvc: ProspectingConversationService,
+    private readonly messageSvc: ProspectingMessageService,
+    private readonly providerFactory: MessageProviderFactory,
+  ) {}
 
   @Post('searches/preview')
   preview(@Body() dto: PreviewSearchDto) {
@@ -93,6 +102,89 @@ export class ProspectingController {
   suggestReply(@Param('id') id: string, @Body() dto: SuggestReplyDto, @Request() req: any) {
     return this.svc.suggestReply(id, dto, req.user?.id)
   }
+
+  // ─── Conversas ────────────────────────────────────────────────────────────
+
+  @Post('prospects/:id/conversations')
+  createConversation(
+    @Param('id') prospectId: string,
+    @Body('channel') channel: ConversationChannel,
+    @Request() req: any,
+  ) {
+    return this.conversationSvc.createConversation(prospectId, channel, req.user?.id)
+  }
+
+  @Get('prospects/:id/conversations')
+  listConversations(@Param('id') prospectId: string) {
+    return this.conversationSvc.listConversations(prospectId)
+  }
+
+  @Get('conversations/:id')
+  getConversation(@Param('id') id: string) {
+    return this.conversationSvc.getConversation(id)
+  }
+
+  @Post('conversations/:id/pause')
+  pauseConversation(@Param('id') id: string, @Request() req: any) {
+    return this.conversationSvc.pause(id, req.user?.id)
+  }
+
+  @Post('conversations/:id/opt-out')
+  optOutConversation(@Param('id') id: string, @Request() req: any) {
+    return this.conversationSvc.optOut(id, req.user?.id)
+  }
+
+  @Post('conversations/:id/convert')
+  convertConversation(@Param('id') id: string, @Request() req: any) {
+    return this.conversationSvc.convert(id, req.user?.id)
+  }
+
+  // ─── Mensagens ────────────────────────────────────────────────────────────
+
+  @Post('conversations/:id/draft')
+  createDraftMessage(
+    @Param('id') conversationId: string,
+    @Body('content') content: string,
+    @Body('aiGenerated') aiGenerated: boolean = false,
+    @Request() req: any,
+  ) {
+    return this.messageSvc.createDraft(conversationId, content, aiGenerated, req.user?.id)
+  }
+
+  @Get('messages/:id')
+  getMessage(@Param('id') id: string) {
+    return this.messageSvc.getMessage(id)
+  }
+
+  @Post('messages/:id/approve')
+  approveMessage(
+    @Param('id') messageId: string,
+    @Body('notes') notes: string | undefined,
+    @Request() req: any,
+  ) {
+    return this.messageSvc.approve(messageId, req.user?.id, notes)
+  }
+
+  @Post('messages/:id/send')
+  async sendMessage(@Param('id') messageId: string, @Request() req: any) {
+    const message = await this.messageSvc.getMessage(messageId)
+    const conversation = await this.conversationSvc.getConversation(message.conversationId)
+    const provider = this.providerFactory.getProvider(conversation.channel)
+    const result = await provider.send(message, conversation)
+    return this.messageSvc.send(messageId, result.messageId)
+  }
+
+  @Post('conversations/:id/inbound')
+  recordInbound(
+    @Param('id') conversationId: string,
+    @Body('content') content: string,
+    @Body('providerMessageId') providerMessageId: string | undefined,
+    @Request() req: any,
+  ) {
+    return this.messageSvc.autoClassifyAndHandle(conversationId, content, providerMessageId, req.user?.id)
+  }
+
+  // ─── Métricas ─────────────────────────────────────────────────────────────
 
   @Get('metrics')
   metrics() {

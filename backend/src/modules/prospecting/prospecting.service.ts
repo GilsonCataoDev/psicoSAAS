@@ -436,7 +436,7 @@ export class ProspectingService {
     return { processed, errors }
   }
 
-  async metrics(): Promise<Record<ProspectStatus | 'searchesRun', number>> {
+  async metrics(): Promise<Record<string, any>> {
     const rows = await this.prospects
       .createQueryBuilder('p')
       .select('p.status', 'status')
@@ -449,7 +449,54 @@ export class ProspectingService {
 
     const base: Record<string, number> = { searchesRun }
     for (const row of rows) base[row.status] = Number(row.count)
-    return base as Record<ProspectStatus | 'searchesRun', number>
+
+    // Expand with conversation metrics
+    const convBase = await this.buildConversationMetrics()
+
+    return { ...base, ...convBase }
+  }
+
+  private async buildConversationMetrics(): Promise<Record<string, any>> {
+    const ProspectConversation = await this.getConversationEntity()
+    if (!ProspectConversation) return {}
+
+    const conversationRepo = this.prospects.manager.getRepository(ProspectConversation)
+    const messageRepo = this.prospects.manager.getRepository('ProspectMessage')
+
+    const convStatuses = await conversationRepo
+      .createQueryBuilder('c')
+      .select('c.status', 'status')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('c.status')
+      .getRawMany<{ status: string; count: string }>()
+
+    const messagesAwaiting = await messageRepo
+      .count({ where: { status: 'awaiting_approval' } })
+
+    const totalMessages = await messageRepo.count()
+    const optOuts = await conversationRepo.count({ where: { status: 'opted_out' } })
+    const converted = await conversationRepo.count({ where: { status: 'converted' } })
+
+    const metrics: Record<string, any> = {
+      messagesAwaitingApproval: messagesAwaiting,
+      totalMessages,
+      optOuts,
+      convertedConversations: converted,
+    }
+
+    for (const row of convStatuses) {
+      metrics[`conversations_${row.status}`] = Number(row.count)
+    }
+
+    return metrics
+  }
+
+  private async getConversationEntity(): Promise<any> {
+    try {
+      return require('../entities/prospect-conversation.entity').ProspectConversation
+    } catch {
+      return null
+    }
   }
 
   // ─── LGPD: expiração e helpers ─────────────────────────────────────────
