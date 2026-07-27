@@ -43,7 +43,7 @@ jobs:
           E2E_API_URL: ${{ secrets.E2E_API_URL || 'https://psicosaas-production-2d6c.up.railway.app/api' }}
           E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
           E2E_CLEANUP_SECRET: ${{ secrets.E2E_CLEANUP_SECRET }}
-        run: npm run test:e2e -- usecognia.smoke.spec.ts public-pricing.spec.ts dpa.spec.ts --project=chromium
+        run: npm run test:e2e -- usecognia.smoke.spec.ts public-pricing.spec.ts dpa.spec.ts seo.spec.ts --project=chromium
 
       - name: Upload failure evidence
         if: failure()
