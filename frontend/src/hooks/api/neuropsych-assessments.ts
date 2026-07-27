@@ -2,6 +2,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { NeuropsychAiAnalysis, NeuropsychAiAnalysisField, NeuropsychAiUsage, NeuropsychAssessment, NeuropsychBatteryItem } from '@/types'
 
+type CreateNeuropsychBatteryItemInput =
+  Pick<NeuropsychBatteryItem, 'name' | 'procedureType' | 'domains'>
+  & Partial<Pick<NeuropsychBatteryItem, 'purpose' | 'plannedDate' | 'sortOrder'>>
+
 export function useNeuropsychAssessments() {
   return useQuery<NeuropsychAssessment[]>({
     queryKey: ['neuropsych-assessments'],
@@ -44,7 +48,7 @@ export function useUpdateNeuropsychAssessment(id: string) {
 export function useCreateNeuropsychBatteryItem(assessmentId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (data: Partial<NeuropsychBatteryItem>) =>
+    mutationFn: (data: CreateNeuropsychBatteryItemInput) =>
       api.post(`/neuropsych-assessments/${assessmentId}/battery-items`, data).then(response => response.data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['neuropsych-assessments', assessmentId] }),
   })

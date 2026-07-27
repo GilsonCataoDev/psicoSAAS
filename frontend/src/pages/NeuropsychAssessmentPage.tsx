@@ -88,7 +88,7 @@ export default function NeuropsychAssessmentPage() {
     event.preventDefault()
     if (!newItem.name.trim()) return toast.error('Informe o nome do procedimento')
     try {
-      await createItem.mutateAsync({ ...newItem, status: 'planned' })
+      await createItem.mutateAsync(newItem)
       setNewItem({ name: '', procedureType: 'neuropsychological_procedure', domains: [], purpose: '' })
       toast.success('Procedimento adicionado')
     } catch (error: any) { toast.error(error?.response?.data?.message ?? 'Não foi possível adicionar') }
