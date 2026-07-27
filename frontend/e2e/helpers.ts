@@ -1,6 +1,6 @@
 import { request, type Locator, type Page } from '@playwright/test'
 
-export const apiBaseUrl = process.env.E2E_API_URL ?? 'https://psicosaas-production-2d6c.up.railway.app/api'
+export const apiBaseUrl = `${(process.env.E2E_API_URL ?? 'https://psicosaas-production-2d6c.up.railway.app/api').replace(/\/$/, '')}/`
 export const appBaseUrl = process.env.E2E_BASE_URL ?? 'https://usecognia.com.br'
 export const testPassword = process.env.E2E_TEST_PASSWORD ?? 'Teste@12345'
 
@@ -140,7 +140,7 @@ export async function logout(page: Page) {
 export async function cleanupAccount(email: string) {
   const api = await request.newContext({ baseURL: apiBaseUrl })
   try {
-    const login = await api.post('/auth/login', { data: { email, password: testPassword } })
+    const login = await api.post('auth/login', { data: { email, password: testPassword } })
     if (!login.ok()) {
       console.warn(`[cleanup] login falhou para ${email}: HTTP ${login.status()} — globalTeardown irá limpar`)
       return
@@ -150,7 +150,7 @@ export async function cleanupAccount(email: string) {
       console.warn(`[cleanup] csrfToken ausente para ${email} — globalTeardown irá limpar`)
       return
     }
-    const del = await api.delete('/auth/account', {
+    const del = await api.delete('auth/account', {
       headers: { 'X-CSRF-Token': csrfToken },
       data: { password: testPassword, confirmation: 'EXCLUIR' },
     })
