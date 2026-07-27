@@ -114,6 +114,7 @@ export default function App() {
         <Route path="/seguranca" element={<SecurityPage />} />
         <Route path="/dpa" element={<DpaPage />} />
         <Route path="/acessibilidade" element={<AccessibilityPage />} />
+        <Route path="/precos" element={<PricingPage publicView />} />
 
         {/* ── Rotas públicas de autenticação ──────────────────────── */}
         <Route path="/register" element={<Navigate to="/cadastro" replace />} />

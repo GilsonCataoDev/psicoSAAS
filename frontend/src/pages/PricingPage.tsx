@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { BadgeDollarSign, CheckCircle2, Clock3, CreditCard, Loader2, Target, TrendingUp, XCircle } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/store/auth'
 import { PLANS, Plan, useSubscriptionStore } from '@/store/subscription'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
+import BrandLogo from '@/components/ui/BrandLogo'
 import Modal from '@/components/ui/Modal'
 import { PRICING_COMPARISON, PRICING_FAQ, PRICING_HERO, PRICING_PLANS, PricingPlan, PricingRoiItem } from '@/data/pricingPlans'
 import { userSafeError } from '@/lib/userSafeError'
@@ -19,11 +21,34 @@ function statusMessage(status: string) {
   return 'Escolha um plano para continuar'
 }
 
-export default function PricingPage() {
-  return <PaidPricingPage />
+export default function PricingPage({ publicView = false }: { publicView?: boolean }) {
+  if (!publicView) return <PaidPricingPage />
+
+  return (
+    <main className="min-h-screen bg-neutral-50">
+      <header className="border-b border-sage-100 bg-white">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5">
+          <Link to="/plataforma" aria-label="Voltar para a página inicial">
+            <BrandLogo className="h-10 w-auto" />
+          </Link>
+          <div className="flex items-center gap-3">
+            <Link to="/login" className="text-sm font-semibold text-sage-700 hover:text-sage-900">
+              Entrar
+            </Link>
+            <Link to="/cadastro" className="rounded-xl bg-sage-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sage-700">
+              Começar grátis
+            </Link>
+          </div>
+        </div>
+      </header>
+      <div className="mx-auto max-w-7xl px-5 py-8">
+        <PaidPricingPage publicView />
+      </div>
+    </main>
+  )
 }
 
-function PaidPricingPage() {
+function PaidPricingPage({ publicView = false }: { publicView?: boolean }) {
 
   const checkoutRef = useRef<HTMLElement | null>(null)
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
@@ -39,6 +64,8 @@ function PaidPricingPage() {
   const [planChangeTarget, setPlanChangeTarget] = useState<Plan | null>(null)
   const [confirmCancelToFree, setConfirmCancelToFree] = useState(false)
   const { subscription, setSubscription } = useSubscriptionStore()
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  const navigate = useNavigate()
   const currentPlanId = String(subscription.planId ?? subscription.plan ?? '')
   const billingPlans = new Map(PLANS.map((plan) => [plan.id, plan]))
   const currentPlan = billingPlans.get(currentPlanId)
@@ -220,6 +247,11 @@ function PaidPricingPage() {
   }
 
   function handlePlanClick(plan: PricingPlan) {
+    if (publicView) {
+      navigate(isAuthenticated ? '/planos' : `/cadastro?plano=${plan.id}`)
+      return
+    }
+
     const billingPlan = billingPlans.get(plan.id)
     if (!billingPlan) return
     const hasActivePlan = ['active', 'trialing'].includes(subscription.status)

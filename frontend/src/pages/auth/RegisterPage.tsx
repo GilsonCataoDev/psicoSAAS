@@ -113,7 +113,8 @@ export default function RegisterPage() {
           ? 'Plano gratis liberado! Seja bem-vindo(a)'
           : 'Conta criada! Vamos terminar a ativacao do plano gratis no painel.',
       )
-      navigate('/')
+      const requestedPlan = searchParams.get('plano')
+      navigate(requestedPlan === 'essencial' || requestedPlan === 'pro' ? `/planos?plano=${requestedPlan}` : '/')
     } catch (err: any) {
       const status = err?.response?.status
       const msg = err?.response?.data?.message
