@@ -129,6 +129,9 @@ export class DocumentsService {
   // ─── Criar e assinar documento ────────────────────────────────────────────
 
   async create(user: User, dto: CreateDocumentDto, signerIp?: string): Promise<Document> {
+    if (!user.crp) {
+      throw new BadRequestException('Documentos oficiais assinados exigem CRP ativo. Adicione seu CRP no perfil para desbloquear esse recurso.')
+    }
     await this.checkDocumentLimit(user.id)
     if (UNFILLED_TEMPLATE_RE.test(dto.content)) {
       throw new BadRequestException('Preencha todos os campos obrigatórios antes de assinar o documento.')

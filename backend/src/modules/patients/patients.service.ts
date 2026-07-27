@@ -12,6 +12,7 @@ import { Appointment } from '../appointments/entities/appointment.entity'
 import { PLAN_LIMITS, normalizePlan } from '../../common/plans'
 import { encrypt, hashToken, safeDecrypt } from '../../common/crypto/encrypt.util'
 import { FinancialService } from '../financial/financial.service'
+import { formatCrpForDisplay } from '../auth/entities/user.entity'
 
 type EncryptedProntuario = {
   __encrypted: 'usecognia.prontuario.v1' | 'psicosaas.prontuario.v1'
@@ -297,7 +298,7 @@ export class PatientsService {
       },
       psychologist: {
         name: patient.psychologist?.name ?? 'Profissional responsável',
-        crp: patient.psychologist?.crp ?? null,
+        crp: patient.psychologist ? formatCrpForDisplay(patient.psychologist) : null,
       },
       appointments: upcoming.map(appointment => ({
         id: appointment.id,

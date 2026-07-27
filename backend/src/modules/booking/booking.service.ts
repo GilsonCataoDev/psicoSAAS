@@ -15,7 +15,7 @@ import { BookingPage } from './entities/booking-page.entity'
 import { Patient } from '../patients/entities/patient.entity'
 import { Appointment } from '../appointments/entities/appointment.entity'
 import { FinancialRecord } from '../financial/entities/financial-record.entity'
-import { User } from '../auth/entities/user.entity'
+import { User, formatCrpForDisplay } from '../auth/entities/user.entity'
 import { Session } from '../sessions/entities/session.entity'
 import { AvailabilityService } from '../availability/availability.service'
 import { NotificationsService } from '../notifications/notifications.service'
@@ -163,7 +163,7 @@ export class BookingService {
       ...pageData,
       avatarUrl: page.avatarUrl ?? psychologist.avatarUrl ?? null,
       psychologistName: psychologist.name,
-      psychologistCrp: psychologist.crp,
+      psychologistCrp: formatCrpForDisplay(psychologist),
       specialty: psychologist.specialty,
       psychologistPhone: psychologist.phone ?? null,
     }
@@ -964,7 +964,7 @@ export class BookingService {
       id: booking.id,
       patientName: booking.patientName,
       psychologistName: booking.psychologist?.name,
-      psychologistCrp: booking.psychologist?.crp,
+      psychologistCrp: booking.psychologist ? formatCrpForDisplay(booking.psychologist) : null,
       date: booking.date,
       time: this.normalizeTime(booking.time),
       duration: booking.duration || 50,

@@ -18,8 +18,12 @@ export class User {
   @Column()
   passwordHash: string
 
-  @Column()
-  crp: string
+  @Column({ nullable: true })
+  crp: string | null
+
+  /** Estudante de psicologia sem CRP — documentos oficiais assinados exigem CRP preenchido. */
+  @Column({ default: false })
+  isStudent: boolean
 
   @Column({ nullable: true })
   specialty?: string
@@ -85,4 +89,10 @@ export class User {
 
   @UpdateDateColumn()
   updatedAt: Date
+}
+
+/** CRP exibido ao paciente: valor real, "Estudante de Psicologia" (sem CRP, conta de estudante) ou null. */
+export function formatCrpForDisplay(user: Pick<User, 'crp' | 'isStudent'>): string | null {
+  if (user.crp) return user.crp
+  return user.isStudent ? 'Estudante de Psicologia' : null
 }
