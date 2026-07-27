@@ -14,7 +14,6 @@ export type PricingPlan = {
   name: string
   price: string
   pricePeriod: string
-  priceAnnual?: string
   description: string
   badge: string | null
   featured?: boolean
@@ -30,7 +29,7 @@ export type PricingPlan = {
 export const PRICING_HERO = {
   title: 'Escolha como quer usar o UseCognia',
   subtitle: 'Organize agenda, pacientes, prontuario e financeiro sem transformar a rotina clinica em planilha.',
-  context: 'Comece gratis, evolua para uma rotina profissional com IA no Essencial ou automatize comunicacao e cobrancas no Pro.',
+  context: 'Comece gratis e evolua conforme precisar. Recursos de IA, WhatsApp e pagamentos dependem dos provedores externos estarem configurados e disponiveis.',
   trialCta: 'Comecar no plano gratis',
   trialSubtext: 'Sem cartao. Ideal para testar a rotina com ate 10 pacientes.',
 }
@@ -41,7 +40,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     name: 'Grátis',
     price: 'Grátis',
     pricePeriod: 'Sem prazo para expirar',
-    description: 'Para estagiarios e profissionais testarem a rotina sem custo',
+    description: 'Para psicologos com CRP ativo testarem a rotina sem custo',
     badge: null,
     features: [
       { type: 'included', title: 'Veja todos os seus atendimentos de uma vez', subtitle: 'Agenda basica' },
@@ -62,7 +61,6 @@ export const PRICING_PLANS: PricingPlan[] = [
     name: 'Essencial',
     price: '79',
     pricePeriod: '/mes',
-    priceAnnual: 'R$ 63/mes, cobrado por ano',
     description: 'Para organizar agenda, pacientes, prontuario, documentos e financeiro sem automacao',
     badge: null,
     features: [
@@ -71,7 +69,7 @@ export const PRICING_PLANS: PricingPlan[] = [
       { type: 'included', title: 'Gere documentos e PDFs com verificacao', subtitle: 'Ate 200 documentos' },
       { type: 'included', title: 'Saiba quanto faturou e quanto falta receber', subtitle: 'Financeiro basico' },
       { type: 'included', title: 'Abra mensagens prontas no WhatsApp em 1 clique', subtitle: 'WhatsApp manual com template' },
-      { type: 'included', title: 'Use IA para transcricao e rascunhos clinicos', subtitle: '10 min/mes de transcricao' },
+      { type: 'included', title: 'Use IA para transcricao e rascunhos clinicos quando habilitada', subtitle: 'Ate 10 min/mes de transcricao' },
     ],
     roi: {
       items: [
@@ -89,20 +87,19 @@ export const PRICING_PLANS: PricingPlan[] = [
     name: 'Pro',
     price: '149',
     pricePeriod: '/mes',
-    priceAnnual: 'R$ 119/mes, cobrado por ano',
     description: 'Para automatizar lembretes, cobrancas, instrumentos e ampliar o uso de IA',
     badge: 'Mais escolhido',
     featured: true,
     features: [
       { type: 'included', title: 'Sem limite de pacientes, cresca o quanto quiser', subtitle: 'Pacientes ilimitados' },
-      { type: 'included', title: 'Gere documentos ilimitados, recibos, relatorios e contratos', subtitle: 'Documentos ilimitados' },
-      { type: 'included', title: 'Instrumentos do CFP integrados, PHQ-9, GAD-7 e outros', subtitle: 'Instrumentos clinicos' },
-      { type: 'included', title: 'WhatsApp automatico sem voce digitar nada', subtitle: 'WhatsApp automatico 100%' },
+      { type: 'included', title: 'Gere declaracoes, recibos, relatorios, atestados e encaminhamentos', subtitle: 'Documentos ilimitados' },
+      { type: 'included', title: 'Use escalas clinicas disponibilizadas no sistema, como PHQ-9 e GAD-7', subtitle: 'Uso e interpretacao sob responsabilidade profissional' },
+      { type: 'included', title: 'Envie mensagens automaticas com a integracao conectada', subtitle: 'WhatsApp sujeito a configuracao e disponibilidade' },
       { type: 'included', title: 'Mensagens podem soar como voce', subtitle: 'Modelos WhatsApp personalizados' },
       { type: 'included', title: 'Envie link de cobranca para o paciente pagar em 1 clique', subtitle: 'Financeiro Pro com links' },
       { type: 'included', title: 'Lembretes automaticos 24h e 1h antes', subtitle: 'Lembretes automaticos' },
-      { type: 'included', title: 'Grave, transcreva e gere rascunhos com IA', subtitle: '120 min/mes de transcricao' },
-      { type: 'included', title: 'Dashboard mostrando faltas evitadas e receita protegida', subtitle: 'Relatorios avancados' },
+      { type: 'included', title: 'Grave, transcreva e gere rascunhos com IA quando habilitada', subtitle: 'Ate 120 min/mes de transcricao' },
+      { type: 'included', title: 'Acompanhe faltas, comparecimento e receita registrada', subtitle: 'Relatorios avancados' },
     ],
     roi: {
       items: [
@@ -111,7 +108,7 @@ export const PRICING_PLANS: PricingPlan[] = [
         { type: 'revenue', text: 'Recupere pagamentos pendentes com menos trabalho manual' },
         { type: 'collection', text: 'Use IA como apoio para transcricao e resumo clinico' },
       ],
-      note: 'Seu investimento se paga em 3 atendimentos',
+      note: 'Resultados dependem da rotina e do uso de cada profissional',
     },
     cta: 'Contratar Pro',
     ctaSubtext: 'Cartao necessario. Cobranca conforme o plano.',
@@ -121,10 +118,10 @@ export const PRICING_PLANS: PricingPlan[] = [
 export const PRICING_COMPARISON = {
   title: 'QUAL A DIFERENCA REAL?',
   sections: [
-    { title: 'WhatsApp', free: 'Sem WhatsApp automatico', essencial: 'Voce abre mensagens prontas manualmente', pro: 'O sistema envia automaticamente' },
-    { title: 'Lembretes', free: 'Sem lembretes automaticos', essencial: 'Controle manual pela agenda', pro: '24h e 1h antes, automatico' },
-    { title: 'Cobranca', free: 'Financeiro basico, sem cobranca automatizada', essencial: 'Controle financeiro manual', pro: 'Link e mensagem de cobranca em 1 clique' },
-    { title: 'IA', free: 'Sem transcricao/rascunho por IA', essencial: '10 min/mes de transcricao e rascunho de evolucao', pro: '120 min/mes de transcricao e rascunho de evolucao' },
+    { title: 'WhatsApp', free: 'Sem WhatsApp automatico', essencial: 'Voce abre mensagens prontas manualmente', pro: 'Envio automatico quando a integracao estiver conectada' },
+    { title: 'Lembretes', free: 'Sem lembretes automaticos', essencial: 'Controle manual pela agenda', pro: '24h e 1h antes, quando o WhatsApp estiver disponivel' },
+    { title: 'Cobranca', free: 'Financeiro basico, sem cobranca automatizada', essencial: 'Controle financeiro manual', pro: 'Link e mensagem quando o provedor de pagamentos estiver configurado' },
+    { title: 'IA', free: 'Sem transcricao/rascunho por IA', essencial: 'Ate 10 min/mes, quando a IA estiver habilitada', pro: 'Ate 120 min/mes, quando a IA estiver habilitada' },
     { title: 'Documentos', free: 'Sem documentos/PDF', essencial: 'Ate 200 documentos/PDF com verificacao', pro: 'Documentos ilimitados' },
     { title: 'Instrumentos clinicos', free: 'Nao disponivel', essencial: 'Nao disponivel', pro: 'Escalas e instrumentos clinicos' },
     { title: 'Escalabilidade', free: 'Ate 10 pacientes ativos', essencial: 'Ate 50 pacientes', pro: '50+, 100+. O sistema aguenta' },
@@ -132,14 +129,14 @@ export const PRICING_COMPARISON = {
 }
 
 export const PRICING_FAQ = [
-  { question: 'Posso cancelar a qualquer hora?', answer: 'Sim. Sem multa, sem aviso previo. Basta cancelar em 1 clique.' },
+  { question: 'Posso cancelar a qualquer hora?', answer: 'Sim. O cancelamento pode ser solicitado pelo sistema e segue o ciclo de cobranca e os Termos de Uso vigentes.' },
   { question: 'Preciso de cartao para começar?', answer: 'Nao. O plano Gratis nao exige cartao e permite organizar ate 10 pacientes.' },
-  { question: 'Meus dados estao seguros?', answer: 'Sim. Dados criptografados, backup automatico e exportacao em 1 clique.' },
+  { question: 'Como meus dados sao protegidos?', answer: 'O UseCognia aplica HTTPS, controle de acesso, isolamento entre contas, criptografia de campos sensiveis, backup cifrado e exportacao autenticada. Nenhum sistema e absolutamente seguro.' },
   { question: 'Posso mudar de plano depois?', answer: 'Sim. Voce pode fazer upgrade ou downgrade a qualquer momento.' },
   { question: 'Qual e a diferenca entre Essencial e Pro?', answer: 'Essencial organiza a rotina com agenda, pacientes, documentos e financeiro. Pro automatiza WhatsApp, lembretes, cobrancas, instrumentos e IA.' },
   { question: 'E se eu tiver 50+ pacientes?', answer: 'Ate 50 pacientes, Essencial funciona bem. Acima disso, Pro e o plano indicado.' },
-  { question: 'Voces oferecem suporte?', answer: 'Free tem suporte por email. Essencial tem prioridade maior. Pro tem atendimento mais rapido e suporte por WhatsApp.' },
+  { question: 'Voces oferecem suporte?', answer: 'Sim. O canal atual e usecognia@gmail.com. O prazo de resposta pode variar conforme a demanda.' },
   { question: 'Posso usar em mais de um dispositivo?', answer: 'Sim. Celular, tablet e computador sincronizados.' },
   { question: 'Posso ficar no plano Gratis?', answer: 'Sim. Voce pode continuar no Gratis enquanto os limites atenderem sua rotina.' },
-  { question: 'Voces tem plano anual com desconto?', answer: 'Sim. Essencial e Pro exibem o valor mensal equivalente no anual.' },
+  { question: 'A cobranca dos planos pagos e mensal?', answer: 'Sim. Hoje os planos Essencial e Pro sao cobrados mensalmente.' },
 ]

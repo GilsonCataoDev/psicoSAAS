@@ -18,7 +18,6 @@ export interface Plan {
   id: PlanId
   name: string
   price: number
-  priceYearly: number
   maxPatients: number
   maxStorage: number
   audience: string
@@ -31,10 +30,9 @@ export const PLANS: Plan[] = [
     id: 'free',
     name: 'Grátis',
     price: 0,
-    priceYearly: 0,
     maxPatients: 10,
     maxStorage: 1,
-    audience: 'Para estagiários e profissionais testarem a rotina sem custo',
+    audience: 'Para psicólogos com CRP ativo testarem a rotina sem custo',
     features: [
       'Agenda basica',
       'Ate 10 pacientes ativos',
@@ -50,17 +48,16 @@ export const PLANS: Plan[] = [
     id: 'essencial',
     name: 'Essencial',
     price: 79,
-    priceYearly: 63,
     maxPatients: 50,
     maxStorage: 10,
-    audience: 'Para psicólogo ou terapeuta solo organizar agenda, pacientes, documentos e financeiro',
+    audience: 'Para psicólogos organizarem agenda, pacientes, documentos e financeiro',
     features: [
       'Agenda, pacientes e sessões',
       'Link público de agendamento',
       'Até 200 documentos/PDF com verificação',
       'Financeiro básico',
       'WhatsApp manual com mensagem pronta',
-      '10 min/mes de transcricao por IA para testar',
+      'Até 10 min/mes de transcricao por IA, quando habilitada',
       'Sem instrumentos clinicos',
       'Até 50 pacientes ativos',
     ],
@@ -69,10 +66,9 @@ export const PLANS: Plan[] = [
     id: 'pro',
     name: 'Pro',
     price: 149,
-    priceYearly: 119,
     maxPatients: -1,
     maxStorage: 50,
-    audience: 'Para psicólogos e terapeutas que querem automação, instrumentos, WhatsApp e IA',
+    audience: 'Para psicólogos que querem automação, instrumentos, WhatsApp e IA',
     highlight: true,
     features: [
       'Tudo do Essencial',
@@ -80,9 +76,9 @@ export const PLANS: Plan[] = [
       'Documentos ilimitados',
       'Instrumentos clinicos',
       'Financeiro Pro com links de pagamento',
-      'WhatsApp automático e modelos personalizados',
+      'WhatsApp automático quando a integração estiver conectada',
       'Lembretes de consulta e cobrança',
-      '120 min/mes de gravacao e transcricao com IA',
+      'Até 120 min/mes de gravacao e transcricao com IA, quando habilitada',
       'Resumo de sessão com IA para rascunho de evolução',
       'Relatórios avançados para decisão',
     ],

@@ -310,6 +310,11 @@ function PaidPricingPage({ publicView = false }: { publicView?: boolean }) {
         ))}
       </section>
 
+      <aside className="mx-auto max-w-4xl rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm leading-6 text-amber-900 dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-100">
+        <p>WhatsApp, pagamentos e IA dependem da configuração e disponibilidade dos respectivos provedores externos.</p>
+        <p className="mt-1">A IA é um apoio opcional e pode ficar indisponível quando o provedor não estiver configurado.</p>
+      </aside>
+
       {selectedPlan && (
         <CheckoutForm
           checkoutRef={checkoutRef}
@@ -439,7 +444,9 @@ function PricingCard({
             </>
           )}
         </div>
-        <p className="mt-2 text-xs text-neutral-400">{plan.priceAnnual ?? plan.pricePeriod}</p>
+        <p className="mt-2 text-xs text-neutral-400">
+          {plan.id === 'free' ? plan.pricePeriod : 'Cobrança mensal'}
+        </p>
       </div>
 
       {plan.roi && (
