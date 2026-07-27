@@ -378,6 +378,31 @@ describe('NotificationsService WhatsApp delivery validation', () => {
     )
   })
 
+  it('ignores a booking template that renders only the time', async () => {
+    const sendSpy = jest.spyOn(service as any, 'sendWhatsApp').mockResolvedValue({ sent: true })
+
+    await service.sendBookingConfirmation({
+      id: 'booking-id',
+      patientName: 'Marina Silva',
+      patientPhone: '11999999999',
+      patientEmail: '',
+      psychologistId: ownerId,
+      date: '2026-07-22',
+      time: '19:25',
+      publicCancellationCode: 'cancel-token',
+    }, {
+      confirmationMessage: '{{hora}}',
+      psychologist: { preferences: {} },
+    })
+
+    expect(sendSpy).toHaveBeenCalledWith(
+      '11999999999',
+      expect.stringContaining('Sua sessao foi confirmada'),
+      ownerId,
+      expect.objectContaining({ type: 'Confirmacao de agenda' }),
+    )
+  })
+
   it('uses the customized reminder template for appointment reminders', async () => {
     jest.spyOn(service, 'sendAppointmentPushReminder').mockResolvedValue({ sent: 0, removed: 0 })
     const sendSpy = jest.spyOn(service as any, 'sendWhatsApp').mockResolvedValue({ sent: true })
@@ -423,7 +448,7 @@ describe('NotificationsService WhatsApp delivery validation', () => {
     expect(sendSpy).not.toHaveBeenCalled()
   })
 
-  it('resends once when the delivery check is inconclusive on the first attempt, and succeeds on the retry', async () => {
+  it('does not resend when the delivery check is inconclusive, avoiding duplicate messages', async () => {
     const text = 'Lembrete de sessao'
     const originalWorkerId = process.env.JEST_WORKER_ID
     delete process.env.JEST_WORKER_ID
@@ -436,26 +461,21 @@ describe('NotificationsService WhatsApp delivery validation', () => {
           status: 'PENDING',
         }), { status: 201, headers: { 'Content-Type': 'application/json' } }))
         .mockResolvedValueOnce(new Response('erro interno', { status: 500 })) // findMessages falha -> 'unknown'
-        .mockResolvedValueOnce(new Response(JSON.stringify({
-          key: { id: 'second-id', fromMe: true },
-          message: { extendedTextMessage: { text } },
-          status: 'PENDING',
-        }), { status: 201, headers: { 'Content-Type': 'application/json' } }))
-        .mockResolvedValueOnce(new Response(JSON.stringify({
-          messages: { records: [{ key: { id: 'second-id' }, message: { extendedTextMessage: { text } } }] },
-        }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
 
       const result = await service.sendDirectWhatsApp('11999999999', text, ownerId)
 
-      expect(result).toEqual(expect.objectContaining({ sent: true, providerMessageId: 'second-id' }))
-      expect(result.providerStatus).not.toBe('unverified')
-      expect(fetchSpy).toHaveBeenCalledTimes(4)
+      expect(result).toEqual(expect.objectContaining({
+        sent: true,
+        providerMessageId: 'first-id',
+        providerStatus: 'unverified',
+      }))
+      expect(fetchSpy).toHaveBeenCalledTimes(2)
     } finally {
       if (originalWorkerId !== undefined) process.env.JEST_WORKER_ID = originalWorkerId
     }
   }, 15000)
 
-  it('marks the delivery as unverified (but still sent) when the check stays inconclusive even after the resend', async () => {
+  it('marks an inconclusive delivery as unverified without resending it', async () => {
     const text = 'Lembrete de sessao'
     const originalWorkerId = process.env.JEST_WORKER_ID
     delete process.env.JEST_WORKER_ID
@@ -468,21 +488,15 @@ describe('NotificationsService WhatsApp delivery validation', () => {
           status: 'PENDING',
         }), { status: 201, headers: { 'Content-Type': 'application/json' } }))
         .mockResolvedValueOnce(new Response('erro interno', { status: 500 }))
-        .mockResolvedValueOnce(new Response(JSON.stringify({
-          key: { id: 'second-id', fromMe: true },
-          message: { extendedTextMessage: { text } },
-          status: 'PENDING',
-        }), { status: 201, headers: { 'Content-Type': 'application/json' } }))
-        .mockResolvedValueOnce(new Response('erro interno', { status: 500 }))
 
       const result = await service.sendDirectWhatsApp('11999999999', text, ownerId)
 
       expect(result).toEqual(expect.objectContaining({
         sent: true,
-        providerMessageId: 'second-id',
+        providerMessageId: 'first-id',
         providerStatus: 'unverified',
       }))
-      expect(fetchSpy).toHaveBeenCalledTimes(4)
+      expect(fetchSpy).toHaveBeenCalledTimes(2)
       expect(savedLogs).toEqual([expect.objectContaining({ status: 'sent', providerStatus: 'unverified' })])
     } finally {
       if (originalWorkerId !== undefined) process.env.JEST_WORKER_ID = originalWorkerId
@@ -593,5 +607,15 @@ describe('NotificationsService.sendAppointmentReminder — template por lead (24
   it('usa o texto padrão embutido quando nenhum template foi customizado', async () => {
     await service.sendAppointmentReminder(baseAppointment({}), '24h')
     expect(sentText).toContain('Lembrando que temos nosso encontro em')
+  })
+
+  it('ignora template que renderiza somente o horario e usa a mensagem completa', async () => {
+    await service.sendAppointmentReminder(baseAppointment({
+      reminderTemplate24h: '{{hora}}',
+    }), '24h')
+
+    expect(sentText).not.toBe('14:00')
+    expect(sentText).toContain('Marina')
+    expect(sentText).toContain('14:00')
   })
 })

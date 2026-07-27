@@ -558,14 +558,15 @@ export class NotificationsService {
           return acceptedResult
         }
 
-        // 'empty' (confirmado vazio) e 'unknown' (não deu pra confirmar nem
-        // refutar — falha na consulta, formato de resposta inesperado, mensagem
-        // ainda não indexada) recebem o mesmo tratamento na primeira tentativa:
-        // reenviar uma vez. Um resultado inconclusivo é exatamente tão arriscado
-        // quanto um vazio confirmado do ponto de vista do paciente — não vale a
-        // pena arriscar deixá-lo sem mensagem só porque a checagem em si falhou.
+        // Uma consulta inconclusiva não prova falha. Reenviar nesse estado cria
+        // duplicidade quando a primeira mensagem só demorou para ser indexada.
+        if (verification === 'unknown') {
+          this.logger.warn(`[WhatsApp] Verificacao inconclusiva instance=${instance} messageId=${provider.messageId}; envio nao repetido para evitar duplicidade`)
+          return { ...acceptedResult, providerStatus: 'unverified' }
+        }
+
         if (allowEmptyDeliveryRetry) {
-          this.logger.warn(`[WhatsApp] Entrega ${verification === 'empty' ? 'vazia confirmada' : 'nao verificavel'} apos envio; reenviando uma vez instance=${instance} messageId=${provider.messageId}`)
+          this.logger.warn(`[WhatsApp] Entrega vazia confirmada apos envio; reenviando uma vez instance=${instance} messageId=${provider.messageId}`)
           return this.deliverWhatsApp(
             phone,
             normalizedText,
@@ -589,13 +590,6 @@ export class NotificationsService {
           }
         }
 
-        // 'unknown' também na segunda tentativa: não temos prova de falha, então
-        // não bloqueamos como erro (evitaria reenvios/alarmes falsos), mas também
-        // não afirmamos que o conteúdo foi confirmado — fica marcado como
-        // "unverified" para ter visibilidade real no histórico, em vez de
-        // aparecer idêntico a uma entrega efetivamente confirmada.
-        this.logger.warn(`[WhatsApp] Verificacao de entrega inconclusiva apos reenvio instance=${instance} messageId=${provider.messageId} — marcado como enviado sem confirmacao de conteudo`)
-        return { ...acceptedResult, providerStatus: 'unverified' }
       }
 
       return acceptedResult
@@ -894,8 +888,11 @@ export class NotificationsService {
     const template = typeof leadTemplate === 'string' && leadTemplate.trim()
       ? leadTemplate
       : (typeof prefs.reminderTemplate === 'string' && prefs.reminderTemplate.trim() ? prefs.reminderTemplate : null)
-    const msg = template
+    const renderedTemplate = template
       ? this.renderReminderTemplate(template, patient.name, dateLabel, timeLabel, lead)
+      : ''
+    const msg = this.isMeaningfulAutomatedMessage(renderedTemplate)
+      ? renderedTemplate
       : defaultMsg
 
     const whatsAppResult = await this.sendWhatsApp(patient.phone, msg, appointment.psychologistId, {
@@ -1082,13 +1079,15 @@ export class NotificationsService {
         ? 'online'
         : ''
 
-    return template
+    const rendered = template
       .replace(/{{\s*nome\s*}}/gi, String(booking.patientName ?? ''))
       .replace(/{{\s*primeiro_nome\s*}}/gi, first)
       .replace(/{{\s*data\s*}}/gi, String(booking.date ?? ''))
       .replace(/{{\s*hora\s*}}/gi, time)
       .replace(/{{\s*profissional\s*}}/gi, String(page?.psychologist?.name ?? page?.psychologistName ?? ''))
       .replace(/{{\s*modalidade\s*}}/gi, modality)
+
+    return this.isMeaningfulAutomatedMessage(rendered) ? rendered : null
   }
 
   async sendBookingCreatedToPsychologist(booking: any, page: any): Promise<void> {
@@ -1208,5 +1207,10 @@ export class NotificationsService {
       .replaceAll('{{data}}', dateLabel)
       .replaceAll('{{hora}}', time)
       .replaceAll('{{antecedencia}}', lead)
+  }
+
+  private isMeaningfulAutomatedMessage(text: string): boolean {
+    const normalized = String(text ?? '').trim()
+    return normalized.length >= 8 && /[A-Za-zÀ-ÿ]{3}/.test(normalized)
   }
 }
