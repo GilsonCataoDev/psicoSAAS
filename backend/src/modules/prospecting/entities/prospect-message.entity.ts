@@ -34,7 +34,7 @@ export class ProspectMessage {
   @Column({ type: 'varchar', length: 24, default: 'draft' })
   status: MessageStatus
 
-  @Column({ type: 'text', length: 5000 })
+  @Column({ type: 'text' })
   content: string
 
   @Column({ type: 'boolean', default: false })
