@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Post, Query, Request, UseGuards } from '@nestjs/common'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
+import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { AdminGuard } from '../../common/guards/admin.guard'
 import { ProspectingService } from './prospecting.service'
 import { ProspectingConversationService } from './conversations/prospecting-conversation.service'
@@ -11,7 +12,7 @@ import { ProspectStatus } from './entities/prospect.entity'
 import { ConversationChannel } from './entities/prospect-conversation.entity'
 
 @Controller('admin/prospecting')
-@UseGuards(JwtAuthGuard, AdminGuard)
+@UseGuards(JwtAuthGuard, CsrfGuard, AdminGuard)
 export class ProspectingController {
   constructor(
     private readonly svc: ProspectingService,

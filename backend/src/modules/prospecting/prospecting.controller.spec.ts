@@ -2,6 +2,7 @@ import 'reflect-metadata'
 import { ForbiddenException } from '@nestjs/common'
 import { ProspectingController } from './prospecting.controller'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
+import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { AdminGuard } from '../../common/guards/admin.guard'
 
 // Chave interna do Nest para os guards aplicados via @UseGuards — usada aqui
@@ -12,6 +13,7 @@ describe('ProspectingController — autorização', () => {
   it('está protegido por JwtAuthGuard e AdminGuard', () => {
     const guards = Reflect.getMetadata(GUARDS_METADATA_KEY, ProspectingController) as unknown[]
     expect(guards).toContain(JwtAuthGuard)
+    expect(guards).toContain(CsrfGuard)
     expect(guards).toContain(AdminGuard)
   })
 })

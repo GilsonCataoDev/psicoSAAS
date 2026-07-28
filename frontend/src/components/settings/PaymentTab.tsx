@@ -15,12 +15,12 @@ interface Props {
   saveTemplate: (type: 'whatsapp_message' | 'receipt', name: string, content: string) => void
 }
 
-function previewCharge(template: string, pixKey: string) {
+function previewCharge(template: string, pixKey: string, receiptText = 'Pode enviar o comprovante por aqui.') {
   return template
     .split('{{nome}}').join('Marina')
     .split('{{valor}}').join('R$ 180,00')
     .split('{{pix}}').join(pixKey || '11999990000')
-    .split('{{comprovante}}').join('Pode enviar o comprovante por aqui.')
+    .split('{{comprovante}}').join(receiptText)
 }
 
 export function PaymentTab({
@@ -113,6 +113,24 @@ export function PaymentTab({
           onClick={() => saveTemplate('receipt', 'Cobranca personalizada', prefs.chargeTemplate)}>
           Salvar como template
         </button>
+      </div>
+
+      <div className="card space-y-4">
+        <h2 className="section-title">Modelo do lembrete de atraso</h2>
+        <p className="text-xs text-neutral-400">
+          Enviado automaticamente 3 dias após o vencimento, se o lembrete de atraso estiver ligado. Variáveis:{' '}
+          <code className="bg-neutral-100 px-1 rounded">{'{{nome}}'}</code>{' '}
+          <code className="bg-neutral-100 px-1 rounded">{'{{valor}}'}</code>{' '}
+          <code className="bg-neutral-100 px-1 rounded">{'{{pix}}'}</code>
+        </p>
+        <textarea rows={4} className="input-field resize-none text-sm"
+          disabled={!hasProAutomation}
+          value={prefs.lateReminderTemplate}
+          onChange={e => setPref('lateReminderTemplate', e.target.value)} />
+        <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Prévia para paciente</p>
+          <p className="whitespace-pre-line text-sm text-neutral-700">{previewCharge(prefs.lateReminderTemplate, prefs.pixKey, '')}</p>
+        </div>
         <div className="flex justify-end">
           <button onClick={() => savePrefs('Pagamentos')} disabled={savingPrefs || !hasProAutomation} className="btn-primary text-sm flex items-center gap-2">
             {savingPrefs && <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}

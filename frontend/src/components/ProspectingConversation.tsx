@@ -34,7 +34,7 @@ export function ProspectingConversation({ conversationId }: Props) {
   const [showInbound, setShowInbound] = useState(false)
 
   if (isLoading) return <div className="p-4">Carregando...</div>
-  if (!conversation) return <div className="p-4">Conversa não encontrada</div>
+  if (!conversation) return <div className="p-4">Conversa nao encontrada</div>
 
   const handleCreateDraft = async () => {
     if (!draftContent.trim()) {
@@ -66,7 +66,7 @@ export function ProspectingConversation({ conversationId }: Props) {
   const handleSend = (messageId: string) => {
     sendMsg.mutate(messageId, {
       onSuccess: () => toast.success('Mensagem enviada'),
-      onError: () => toast.error('Erro ao enviar'),
+      onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Erro ao enviar'),
     })
   }
 
@@ -111,7 +111,7 @@ export function ProspectingConversation({ conversationId }: Props) {
                 className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-2 text-sm text-red-700 hover:bg-red-50"
               >
                 <Ban className="h-4 w-4" />
-                Não contatar
+                Nao contatar
               </button>
             </>
           )}
@@ -139,7 +139,7 @@ export function ProspectingConversation({ conversationId }: Props) {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-semibold text-neutral-600">
-                      {msg?.direction === 'outbound' ? '📤 Out' : '📥 In'}
+                      {msg?.direction === 'outbound' ? 'Saida' : 'Entrada'}
                     </span>
                     <span className="text-xs text-neutral-500">{msg?.createdAt && new Date(msg.createdAt).toLocaleString('pt-BR')}</span>
                   </div>

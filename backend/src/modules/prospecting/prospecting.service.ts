@@ -6,6 +6,8 @@ import { Prospect, ProspectStatus } from './entities/prospect.entity'
 import { ProspectSignal } from './entities/prospect-signal.entity'
 import { ProspectActivity, ProspectActivityAction } from './entities/prospect-activity.entity'
 import { ProspectingSearch } from './entities/prospecting-search.entity'
+import { ProspectConversation } from './entities/prospect-conversation.entity'
+import { ProspectMessage } from './entities/prospect-message.entity'
 import { QueryBuilderService } from './query-builder/query-builder.service'
 import { SEARCH_PROVIDER, SearchProvider, SearchResult } from './providers/search-provider.interface'
 import { DedupeService, normalizeDomain, normalizeEmail, normalizePhone } from './dedup/dedupe.service'
@@ -457,11 +459,8 @@ export class ProspectingService {
   }
 
   private async buildConversationMetrics(): Promise<Record<string, any>> {
-    const ProspectConversation = await this.getConversationEntity()
-    if (!ProspectConversation) return {}
-
     const conversationRepo = this.prospects.manager.getRepository(ProspectConversation)
-    const messageRepo = this.prospects.manager.getRepository('ProspectMessage')
+    const messageRepo = this.prospects.manager.getRepository(ProspectMessage)
 
     const convStatuses = await conversationRepo
       .createQueryBuilder('c')
@@ -489,14 +488,6 @@ export class ProspectingService {
     }
 
     return metrics
-  }
-
-  private async getConversationEntity(): Promise<any> {
-    try {
-      return require('../entities/prospect-conversation.entity').ProspectConversation
-    } catch {
-      return null
-    }
   }
 
   // ─── LGPD: expiração e helpers ─────────────────────────────────────────

@@ -46,6 +46,11 @@ export class ProspectingMessageService {
       }),
     )
 
+    if (conversation.status === 'draft') {
+      conversation.status = 'awaiting_approval'
+      await this.conversations.save(conversation)
+    }
+
     await this.activities.save(
       this.activities.create({
         prospectId: conversation.prospectId,
@@ -83,6 +88,10 @@ export class ProspectingMessageService {
 
     const conversation = await this.conversations.findOne({ where: { id: message.conversationId } })
     if (conversation) {
+      if (conversation.status === 'draft' || conversation.status === 'awaiting_approval') {
+        conversation.status = 'approved'
+        await this.conversations.save(conversation)
+      }
       await this.activities.save(
         this.activities.create({
           prospectId: conversation.prospectId,
@@ -127,6 +136,9 @@ export class ProspectingMessageService {
     const conversation = await this.conversations.findOne({ where: { id: message.conversationId } })
     if (conversation) {
       conversation.lastOutboundAt = new Date()
+      if (conversation.status === 'approved' || conversation.status === 'awaiting_approval' || conversation.status === 'draft') {
+        conversation.status = 'active'
+      }
       await this.conversations.save(conversation)
     }
 
@@ -168,6 +180,9 @@ export class ProspectingMessageService {
     )
 
     conversation.lastInboundAt = new Date()
+    if (conversation.status !== 'converted' && conversation.status !== 'opted_out' && conversation.status !== 'closed') {
+      conversation.status = 'active'
+    }
     await this.conversations.save(conversation)
 
     await this.activities.save(

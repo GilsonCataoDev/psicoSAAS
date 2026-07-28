@@ -27,6 +27,7 @@ export class UpdatePreferencesDto {
 
   // ── Templates de mensagem ─────────────────────────────────────────────────
   @IsOptional() @IsString() @MaxLength(1000) chargeTemplate?: string
+  @IsOptional() @IsString() @MaxLength(1000) lateReminderTemplate?: string
   @IsOptional() @IsString() @MaxLength(20)  @Transform(({ value }) => value?.replace(/\D/g, '')) whatsapp?: string
   @IsOptional() @IsString() @MaxLength(500) confirmationTemplate?: string
   /** @deprecated Use reminderTemplate24h/reminderTemplate2h. Mantido para contas com o template antigo já salvo. */

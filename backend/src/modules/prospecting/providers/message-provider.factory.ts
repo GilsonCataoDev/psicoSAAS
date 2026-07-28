@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { BadRequestException, Injectable, Logger } from '@nestjs/common'
 import { IMessageProvider } from './message-provider.interface'
 import { ManualMessageProvider } from './manual-message.provider'
 import { MockMessageProvider } from './mock-message.provider'
@@ -17,7 +17,7 @@ export class MessageProviderFactory {
 
     if (channel === 'manual') return this.manual
 
-    const providerMode = env.PROSPECTING_MESSAGE_PROVIDER ?? 'mock'
+    const providerMode = env.PROSPECTING_MESSAGE_PROVIDER ?? 'manual'
 
     if (providerMode === 'mock') {
       if (!this.mock.canSend(channel)) {
@@ -27,7 +27,7 @@ export class MessageProviderFactory {
       return this.mock
     }
 
-    this.logger.debug(`provider_selection channel=${channel} mode=${providerMode}`)
-    return this.manual
+    this.logger.warn(`provider_unavailable channel=${channel} mode=${providerMode}`)
+    throw new BadRequestException(`Envio real por ${channel} ainda nao esta configurado. Use o canal manual ou configure um provider de mensagens.`)
   }
 }

@@ -13,11 +13,22 @@ interface Props {
 }
 
 const CHANNELS: { value: ConversationChannel; label: string }[] = [
-  { value: 'manual', label: '📋 Manual' },
-  { value: 'whatsapp', label: '💬 WhatsApp' },
-  { value: 'email', label: '✉️ Email' },
-  { value: 'instagram', label: '📷 Instagram' },
+  { value: 'manual', label: 'Manual' },
+  { value: 'whatsapp', label: 'WhatsApp' },
+  { value: 'email', label: 'Email' },
+  { value: 'instagram', label: 'Instagram' },
 ]
+
+const STATUS_LABEL: Record<string, string> = {
+  draft: 'Rascunho',
+  awaiting_approval: 'Aguardando aprovacao',
+  approved: 'Aprovada',
+  active: 'Ativa',
+  paused: 'Pausada',
+  converted: 'Convertida',
+  opted_out: 'Nao contatar',
+  closed: 'Fechada',
+}
 
 export function ProspectConversationsList({ prospectId, onSelectConversation, selectedConversationId }: Props) {
   const { data: response, isLoading } = useProspectConversations(prospectId)
@@ -81,11 +92,10 @@ export function ProspectConversationsList({ prospectId, onSelectConversation, se
                     <span className="text-xs font-semibold text-neutral-900">{conv.channel}</span>
                   </div>
                   <p className="text-xs text-neutral-500 mt-1">
-                    Status: <span className="font-medium">{conv.status}</span>
+                    Status: <span className="font-medium">{STATUS_LABEL[conv.status] ?? conv.status}</span>
                   </p>
                   {conv.lastInboundAt && (
-                    <p className="text-xs text-neutral-500 mt-0.5">
-                      Última resposta: {new Date(conv.lastInboundAt).toLocaleString('pt-BR')}
+                    <p className="text-xs text-neutral-500 mt-0.5">Ultima resposta: {new Date(conv.lastInboundAt).toLocaleString('pt-BR')}
                     </p>
                   )}
                 </div>

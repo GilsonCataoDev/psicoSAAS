@@ -57,6 +57,7 @@ const EDITABLE_PREF_KEYS = [
   'lateReminder',
   'includeReceipt',
   'chargeTemplate',
+  'lateReminderTemplate',
   'whatsapp',
   'confirmationTemplate',
   'reminderTemplate',

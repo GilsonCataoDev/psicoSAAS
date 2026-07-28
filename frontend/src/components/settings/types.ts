@@ -11,6 +11,7 @@ export const DEFAULT_PREFS = {
   lateReminder: true,
   includeReceipt: false,
   chargeTemplate: 'Ola, {{nome}}!\n\nSegue o valor da sessao: *{{valor}}*.\n\nPIX: `{{pix}}`\n\n{{comprovante}}\n\nObrigado(a).',
+  lateReminderTemplate: 'Ola, {{nome}}!\n\nPassando para lembrar do pagamento pendente da sessao (*{{valor}}*).\n\nChave PIX: `{{pix}}`\n\nQualquer duvida, e so me chamar.',
   googleCalendarConnected: false,
   googleCalendarEmail: '',
   googleCalendarInvitePatients: false,

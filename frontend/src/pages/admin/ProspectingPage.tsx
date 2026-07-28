@@ -10,6 +10,7 @@ import {
   useDoNotContactProspect, useDeleteProspect, useGenerateDraft, useSuggestReply,
   Prospect, ProspectStatus, ProspectSourceType, SearchFilters, ReplyChannel,
 } from '@/hooks/api/prospecting'
+import { ProspectDetailWithConversations } from '@/components/ProspectDetailWithConversations'
 
 const STATUS_LABEL: Record<ProspectStatus, string> = {
   discovered: 'Descoberto', analyzing: 'Analisando', analyzed: 'Analisado',
@@ -155,7 +156,7 @@ function NewSearchForm() {
   )
 }
 
-function ProspectDetailDrawer({ id, onClose }: { id: string; onClose: () => void }) {
+function ProspectDetailDrawer({ id, onClose, onOpenConversations }: { id: string; onClose: () => void; onOpenConversations: (name: string) => void }) {
   const { data, isLoading } = useProspect(id)
   const analyze = useAnalyzeProspect()
   const approve = useApproveProspect()
@@ -306,6 +307,13 @@ function ProspectDetailDrawer({ id, onClose }: { id: string; onClose: () => void
             </div>
 
             <div className="flex flex-wrap gap-2 border-t border-neutral-100 pt-4">
+              <button
+                type="button"
+                onClick={() => onOpenConversations(data.prospect.professionalName ?? 'Lead sem nome')}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-sage-200 px-3 py-1.5 text-xs font-medium text-sage-700 hover:bg-sage-50"
+              >
+                <MessageSquareText className="h-3.5 w-3.5" /> Conversas
+              </button>
               <button onClick={() => run(analyze, 'Análise concluída.')} disabled={analyze.isPending}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 disabled:opacity-40">
                 <Search className="h-3.5 w-3.5" /> Analisar
@@ -353,6 +361,7 @@ export default function ProspectingPage() {
     city: '', state: '', status: '', minScore: '',
   })
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [conversationLead, setConversationLead] = useState<{ id: string; name: string } | null>(null)
   const { data: metrics } = useProspectingMetrics()
   const { data: searches } = useProspectingSearches()
   const { data: prospects, isLoading } = useProspects({
@@ -459,7 +468,20 @@ export default function ProspectingPage() {
         </div>
       )}
 
-      {selectedId && <ProspectDetailDrawer id={selectedId} onClose={() => setSelectedId(null)} />}
+      {selectedId && (
+        <ProspectDetailDrawer
+          id={selectedId}
+          onClose={() => setSelectedId(null)}
+          onOpenConversations={(name) => setConversationLead({ id: selectedId, name })}
+        />
+      )}
+      {conversationLead && (
+        <ProspectDetailWithConversations
+          prospectId={conversationLead.id}
+          prospectName={conversationLead.name}
+          onClose={() => setConversationLead(null)}
+        />
+      )}
     </div>
   )
 }

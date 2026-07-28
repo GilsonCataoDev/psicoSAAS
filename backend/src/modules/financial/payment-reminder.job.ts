@@ -77,6 +77,7 @@ export class PaymentReminderJob implements OnModuleInit, OnModuleDestroy {
           record.patient,
           Number(record.amount),
           prefs.pixKey,
+          typeof prefs.lateReminderTemplate === 'string' ? prefs.lateReminderTemplate : undefined,
         )
         if (!result.sent) {
           this.logger.warn(`Lembrete de atraso nao enviado para financeiro ${record.id}: ${result.error ?? 'erro desconhecido'}`)

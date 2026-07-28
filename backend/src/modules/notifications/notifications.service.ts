@@ -946,7 +946,12 @@ export class NotificationsService {
     })
   }
 
-  async sendLatePaymentReminder(patient: any, amount: number, pixKey?: string): Promise<WhatsAppDeliveryResult> {
+  async sendLatePaymentReminder(
+    patient: any,
+    amount: number,
+    pixKey?: string,
+    template?: string,
+  ): Promise<WhatsAppDeliveryResult> {
     if (!patient?.phone) {
       const result = { sent: false, error: 'Paciente sem WhatsApp' }
       if (patient?.psychologistId) {
@@ -959,11 +964,14 @@ export class NotificationsService {
       return result
     }
     const firstName = patient.name.split(' ')[0]
-    const msg =
+    const defaultMessage =
       `Ola, ${firstName}!\n\n` +
       `Passando para lembrar do pagamento pendente da sessao (*R$ ${amount.toFixed(2)}*).\n\n` +
       (pixKey ? `Chave PIX: \`${pixKey}\`\n\n` : '') +
       `Qualquer duvida, e so me chamar.`
+    const msg = template
+      ? this.renderPaymentTemplate(template, patient.name, amount, pixKey)
+      : defaultMessage
     return this.sendWhatsApp(patient.phone, msg, patient.psychologistId, {
       type: 'Lembrete de pagamento',
       patientId: patient.id,
