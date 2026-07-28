@@ -271,22 +271,23 @@ export default function AgendaPage() {
   // Pré-preenchimento vindo da ficha do paciente ("Ir para agenda" na sugestão
   // de sessão recorrente) — memoizado pra não resetar o formulário a cada
   // digitação enquanto o modal estiver aberto (identidade estável entre renders).
+  const initialPatientIdParam = searchParams.get('patientId')
+  const initialDateParam = searchParams.get('date')
+  const initialRecurrenceParam = searchParams.get('recurrence')
+  const initialRepeatUntilParam = searchParams.get('repeatUntil')
+
   const initialAppointmentValues = useMemo(() => {
-    const patientId = searchParams.get('patientId')
+    const patientId = initialPatientIdParam
     if (!patientId) return undefined
-    const date = searchParams.get('date')
-    const recurrenceParam = searchParams.get('recurrence')
     const recurrence: 'weekly' | 'biweekly' | undefined =
-      recurrenceParam === 'weekly' || recurrenceParam === 'biweekly' ? recurrenceParam : undefined
-    const repeatUntil = searchParams.get('repeatUntil')
+      initialRecurrenceParam === 'weekly' || initialRecurrenceParam === 'biweekly' ? initialRecurrenceParam : undefined
     return {
       patientId,
-      ...(date ? { date } : {}),
+      ...(initialDateParam ? { date: initialDateParam } : {}),
       ...(recurrence ? { recurrence } : {}),
-      ...(repeatUntil ? { repeatUntil } : {}),
+      ...(initialRepeatUntilParam ? { repeatUntil: initialRepeatUntilParam } : {}),
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams.get('patientId'), searchParams.get('date'), searchParams.get('recurrence'), searchParams.get('repeatUntil')])
+  }, [initialPatientIdParam, initialDateParam, initialRecurrenceParam, initialRepeatUntilParam])
 
   useEffect(() => {
     if (!mobileDays.some(day => isSameDay(day, mobileDay))) {

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search, TrendingUp, MessageSquare, AlertCircle, CheckCircle, Clock, Users } from 'lucide-react'
+import { Search, TrendingUp, MessageSquare, AlertCircle, CheckCircle, Users } from 'lucide-react'
 import { ProspectDetailWithConversations } from '@/components/ProspectDetailWithConversations'
 
 /**

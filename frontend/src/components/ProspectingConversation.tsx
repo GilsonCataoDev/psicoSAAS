@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Send, Check, AlertCircle, MessageSquare, Loader2, Pause, Ban, CheckCircle } from 'lucide-react'
+import { Send, Check, MessageSquare, Loader2, Pause, Ban, CheckCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import {
   useConversation,
@@ -11,7 +11,6 @@ import {
   useOptOutConversation,
   useConvertConversation,
   type ProspectConversation,
-  type ProspectMessage,
 } from '@/hooks/api/prospecting-conversations'
 
 interface Props {
