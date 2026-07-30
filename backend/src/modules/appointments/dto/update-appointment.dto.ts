@@ -9,3 +9,8 @@ export class UpdateAppointmentDto {
   @IsString() @IsOptional() meetingUrl?: string
   @IsString() @IsOptional() notes?: string
 }
+
+export class UpdateAppointmentStatusDto {
+  @IsIn(['scheduled', 'completed', 'cancelled', 'no_show'])
+  status: 'scheduled' | 'completed' | 'cancelled' | 'no_show'
+}

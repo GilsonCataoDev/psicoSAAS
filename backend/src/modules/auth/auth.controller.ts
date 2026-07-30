@@ -128,7 +128,6 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Throttle({ short: { limit: 10, ttl: 60000 } })
   async refresh(
-    @Body() body: { refreshToken?: string },
     @Request() req: Req,
     @Response({ passthrough: true }) res: Res,
   ) {

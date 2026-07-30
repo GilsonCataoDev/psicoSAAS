@@ -15,6 +15,7 @@ import { DocType } from './entities/document.entity'
 import { pdfAttachment } from '../../common/http/content-disposition.util'
 import { AiDocumentField, AiDocumentType, AiService } from '../sessions/ai.service'
 import { AiTextQuotaService } from '../sessions/ai-text-quota.service'
+import { SendDocumentEmailDto } from './dto/send-document-email.dto'
 
 class CreateDocumentBodyDto implements CreateDocumentDto {
   @IsString() @IsNotEmpty() @MaxLength(80) patientId: string
@@ -116,9 +117,9 @@ export class DocumentsController {
   @Post(':id/send-email')
   @HttpCode(200)
   @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
-  async sendEmail(@Param('id') id: string, @Body('to') to: string, @Req() req: any) {
-    const result = await this.svc.sendDocumentByEmail(id, req.user.id, to)
-    await this.record(req, 'document.email_sent', 'document', id, { to })
+  async sendEmail(@Param('id') id: string, @Body() body: SendDocumentEmailDto, @Req() req: any) {
+    const result = await this.svc.sendDocumentByEmail(id, req.user.id, body.to)
+    await this.record(req, 'document.email_sent', 'document', id, { to: body.to })
     return result
   }
 

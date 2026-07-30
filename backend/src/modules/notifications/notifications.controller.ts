@@ -6,6 +6,7 @@ import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { NotificationsService } from './notifications.service'
 import { RemovePushSubscriptionDto, SavePushSubscriptionDto } from './dto/push-subscription.dto'
+import { TestWhatsAppDto } from './dto/test-whatsapp.dto'
 
 @Controller('notifications/whatsapp')
 @UseGuards(JwtAuthGuard)
@@ -37,8 +38,8 @@ export class NotificationsController {
 
   @Post('test')
   @UseGuards(CsrfGuard)
-  test(@Request() req: any, @Body('phone') phone?: string) {
-    return this.notifications.sendTestWhatsApp(req.user.id, phone)
+  test(@Request() req: any, @Body() body: TestWhatsAppDto) {
+    return this.notifications.sendTestWhatsApp(req.user.id, body.phone)
   }
 
   @Get('debug')
