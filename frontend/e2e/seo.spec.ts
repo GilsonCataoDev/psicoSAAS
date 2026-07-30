@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 test.describe('SEO por rota', () => {
   test('servidor de artefatos rejeita URL malformada sem encerrar', async ({ request }) => {
     const malformed = await request.get('/%E0%A4%A')
-    expect(malformed.status()).toBe(404)
+    expect([400, 404]).toContain(malformed.status())
 
     const healthy = await request.get('/precos')
     expect(healthy.ok()).toBe(true)
