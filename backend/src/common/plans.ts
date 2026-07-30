@@ -6,6 +6,11 @@ type PlanLimits = Record<string, {
   neuropsychAiMonthlyLimit: number
 }>
 
+export const PLAN_PRICES: Readonly<Record<string, number>> = Object.freeze({
+  essencial: 79,
+  pro: 149,
+})
+
 // Teto mensal do Copiloto de Raciocínio Clínico (plano Pro). Configurável via
 // env para permitir ajuste de custo sem deploy de código.
 const NEUROPSYCH_AI_MONTHLY_LIMIT = Number(process.env.NEUROPSYCH_AI_MONTHLY_LIMIT ?? 30) || 30

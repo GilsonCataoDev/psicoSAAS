@@ -128,7 +128,7 @@ describe('BillingService', () => {
   // ── cancelAtPeriodEnd expiry ────────────────────────────────────────────────
 
   describe('cancelAtPeriodEnd normalization', () => {
-    it('cancels subscription when period has ended and cancelAtPeriodEnd is true', async () => {
+    it('downgrades to free when period has ended and cancelAtPeriodEnd is true', async () => {
       const sub = makeSub({
         status: 'active',
         cancelAtPeriodEnd: true,
@@ -139,9 +139,16 @@ describe('BillingService', () => {
       const result = await service.getMine(makeUser())
 
       expect(repo.save).toHaveBeenCalledWith(
-        expect.objectContaining({ status: 'canceled', cancelAtPeriodEnd: false }),
+        expect.objectContaining({
+          plan: 'free',
+          status: 'active',
+          cancelAtPeriodEnd: false,
+          gatewayCustomerId: null,
+          gatewaySubscriptionId: null,
+        }),
       )
-      expect((result as any).status).toBe('canceled')
+      expect((result as any).status).toBe('active')
+      expect((result as any).plan).toBe('free')
     })
 
     it('does not cancel when cancelAtPeriodEnd is false', async () => {

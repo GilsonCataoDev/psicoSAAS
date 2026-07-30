@@ -1,13 +1,13 @@
 import { ArrowRight, CheckCircle2, X, Zap } from 'lucide-react'
 import ReferralCard from '@/components/features/referral/ReferralCard'
 import { type Subscription } from '@/store/subscription'
+import { PRICING_PLANS } from '@/data/pricingPlans'
 
 const TRIAL_DAYS = 7
 
 interface Plan {
   id: string
   name: string
-  features: string[]
 }
 
 interface Props {
@@ -26,6 +26,12 @@ export function PlanTab({
   subscription, currentPlan, currentPlanId, isTrialing, daysLeft,
   hasCancelablePlan, cancelingPlan, setConfirmCancelPlan, navigate,
 }: Props) {
+  const currentFeatures = PRICING_PLANS
+    .find(plan => plan.id === currentPlan?.id)
+    ?.features
+    .filter(feature => feature.type === 'included')
+    .map(feature => feature.title) ?? []
+
   return (
     <>
       <div className="space-y-5">
@@ -71,7 +77,7 @@ export function PlanTab({
         <div className="card space-y-3">
           <h2 className="section-title">O que está incluído</h2>
           <ul className="space-y-2">
-            {currentPlan?.features.map(f => (
+            {currentFeatures.map(f => (
               <li key={f} className="flex items-center gap-2 text-sm text-neutral-600">
                 <CheckCircle2 className="w-4 h-4 text-sage-500 shrink-0" />{f}
               </li>

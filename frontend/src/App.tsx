@@ -159,8 +159,8 @@ export default function App() {
             <Route path="financeiro" element={<FinancialPage />} />
             <Route path="configuracoes" element={<SettingsPage />} />
             <Route path="instrumentos" element={<ProOnlyRoute><InstrumentosPage /></ProOnlyRoute>} />
-            <Route path="avaliacoes" element={<NeuropsychAssessmentsPage />} />
-            <Route path="avaliacoes/:id" element={<NeuropsychAssessmentPage />} />
+            <Route path="avaliacoes" element={<ProOnlyRoute><NeuropsychAssessmentsPage /></ProOnlyRoute>} />
+            <Route path="avaliacoes/:id" element={<ProOnlyRoute><NeuropsychAssessmentPage /></ProOnlyRoute>} />
           </Route>
         </Route>
 

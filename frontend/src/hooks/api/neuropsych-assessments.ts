@@ -6,10 +6,11 @@ type CreateNeuropsychBatteryItemInput =
   Pick<NeuropsychBatteryItem, 'name' | 'procedureType' | 'domains'>
   & Partial<Pick<NeuropsychBatteryItem, 'purpose' | 'plannedDate' | 'sortOrder'>>
 
-export function useNeuropsychAssessments() {
+export function useNeuropsychAssessments(enabled = true) {
   return useQuery<NeuropsychAssessment[]>({
     queryKey: ['neuropsych-assessments'],
     queryFn: () => api.get('/neuropsych-assessments').then(response => response.data),
+    enabled,
   })
 }
 

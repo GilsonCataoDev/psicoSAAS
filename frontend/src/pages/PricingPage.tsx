@@ -67,8 +67,7 @@ function PaidPricingPage({ publicView = false }: { publicView?: boolean }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
   const navigate = useNavigate()
   const currentPlanId = String(subscription.planId ?? subscription.plan ?? '')
-  const billingPlans = new Map(PLANS.map((plan) => [plan.id, plan]))
-  const currentPlan = billingPlans.get(currentPlanId)
+  const currentPlan = PLANS.find(plan => plan.id === currentPlanId)
 
   useEffect(() => { track(EVENTS.PLAN_PAGE_VIEWED) }, [])
 
@@ -208,7 +207,13 @@ function PaidPricingPage({ publicView = false }: { publicView?: boolean }) {
       const { data } = await api.post(endpoint, body)
       setSubscription(data)
       track(EVENTS.SUBSCRIPTION_ACTIVE, { plan: plan.id })
-      toast.success(subscription.status === 'past_due' ? `Cartao atualizado. Tentaremos cobrar no plano ${plan.name}.` : 'Teste iniciado! Voce tem 7 dias gratis.')
+      toast.success(
+        subscription.status === 'past_due'
+          ? `Cartao atualizado. Tentaremos cobrar no plano ${plan.name}.`
+          : data.status === 'trialing'
+            ? 'Teste iniciado! Voce tem 7 dias gratis.'
+            : `Plano ${plan.name} ativado. A cobranca seguira o vencimento informado.`,
+      )
     } catch (err: any) {
       toast.error(userSafeError(err, 'Cartao invalido ou pagamento recusado.'))
     } finally {
@@ -252,7 +257,7 @@ function PaidPricingPage({ publicView = false }: { publicView?: boolean }) {
       return
     }
 
-    const billingPlan = billingPlans.get(plan.id)
+    const billingPlan = PLANS.find(candidate => candidate.id === plan.id)
     if (!billingPlan) return
     const hasActivePlan = ['active', 'trialing'].includes(subscription.status)
     const isCurrentPlan = hasActivePlan && currentPlanId === plan.id
@@ -435,7 +440,7 @@ function PricingCard({
         <p className="mt-2 min-h-12 text-sm font-semibold text-neutral-600 dark:text-neutral-300">{plan.description}</p>
         <div className="mt-5">
           {plan.id === 'free' ? (
-            <span className="text-4xl font-bold text-neutral-900 dark:text-white">{plan.price}</span>
+            <span className="text-4xl font-bold text-neutral-900 dark:text-white">Grátis</span>
           ) : (
             <>
               <span className="text-sm text-neutral-400">R$ </span>

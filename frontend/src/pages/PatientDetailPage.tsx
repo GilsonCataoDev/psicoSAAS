@@ -26,6 +26,7 @@ import { track, EVENTS } from '@/lib/analytics'
 import LightweightChart from '@/components/ui/LightweightChart'
 import EditPatientModal from '@/components/features/patients/EditPatientModal'
 import RecurringSessionsCard from '@/components/features/patients/RecurringSessionsCard'
+import { useHasPlan } from '@/store/subscription'
 
 const MOODS = ['', '1', '2', '3', '4', '5']
 const WEEKDAYS = ['Domingo', 'Segunda', 'Terca', 'Quarta', 'Quinta', 'Sexta', 'Sabado']
@@ -48,6 +49,7 @@ const PRONTUARIO_FIELDS = [
 export default function PatientDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const hasProPlan = useHasPlan('pro')
   useEffect(() => { if (id) track(EVENTS.PATIENT_VIEWED) }, [id])
   const { data: patient, isLoading } = usePatient(id ?? '')
   const { data: allSessions = [] } = useSessions({ patientId: id, includeClinical: true })
@@ -62,7 +64,7 @@ export default function PatientDetailPage() {
   const { data: attachments = [] } = usePatientAttachments(id)
   const uploadAttachment = useUploadPatientAttachment(id)
   const deleteAttachment = useDeletePatientAttachment(id)
-  const { data: neuropsychAssessments = [] } = useNeuropsychAssessments()
+  const { data: neuropsychAssessments = [] } = useNeuropsychAssessments(hasProPlan)
   const createNeuropsychAssessment = useCreateNeuropsychAssessment()
   const { data: patientAppointments = [] } = useAppointments({ patientId: id })
   const lastAppointment = [...patientAppointments]
@@ -532,7 +534,7 @@ export default function PatientDetailPage() {
         </div>
       </div>
 
-      {(patient.careMode === 'neuropsychological_assessment' || latestAssessment) && (
+      {hasProPlan && (patient.careMode === 'neuropsychological_assessment' || latestAssessment) && (
         <section className="rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white p-5 shadow-card dark:border-violet-900/50 dark:from-violet-950/30 dark:to-cognia-panel">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
             <div className="flex items-start gap-3">

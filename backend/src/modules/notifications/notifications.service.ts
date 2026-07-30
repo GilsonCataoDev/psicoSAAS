@@ -11,6 +11,19 @@ import { WhatsAppDeliveryLog } from './entities/whatsapp-delivery-log.entity'
 import { SavePushSubscriptionDto } from './dto/push-subscription.dto'
 import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
 
+const WA_FETCH_TIMEOUT_MS = 10000
+
+/**
+ * fetch() nao tem timeout por padrao — sem isso, uma chamada travada na Evolution
+ * API cai indefinidamente ate o socket estourar, deixando o envio num estado
+ * ambiguo em vez de um erro claro e rapido.
+ */
+function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = WA_FETCH_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer))
+}
+
 export type WhatsAppDeliveryResult = {
   sent: boolean
   reason?: 'plan' | 'not_configured' | 'disconnected' | 'api_error' | 'invalid_content'
@@ -44,16 +57,15 @@ type WhatsAppLogMeta = {
   verifyDelivery?: boolean
 }
 
+// Formato documentado da Evolution API v2 (POST /message/sendText/{instance}):
+// https://doc.evolution-api.com/v2/api-reference/message-controller/send-text
+// `text` no nível raiz — NÃO `textMessage.text` (formato legado de v1 que essa
+// instância aceitava com 200 OK mas persistia o texto em branco no Baileys).
 type WhatsAppTextPayload = {
   number: string
-  text?: string
-  textMessage?: { text: string }
+  text: string
   delay?: number
-  options?: {
-    delay?: number
-    presence?: 'composing' | 'recording'
-    linkPreview?: boolean
-  }
+  linkPreview?: boolean
 }
 
 const COMPED_PRO_EMAILS = (process.env.COMPED_PRO_EMAILS ?? 'gilsonfilho96@outlook.com')
@@ -386,7 +398,7 @@ export class NotificationsService {
     })
   }
 
-  async sendAppointmentPushReminder(appointment: any, lead: '24h' | '2h'): Promise<PushDeliveryResult> {
+  async sendAppointmentPushReminder(appointment: any, lead: '24h' | '1h'): Promise<PushDeliveryResult> {
     if (!appointment.psychologistId) return { sent: 0, removed: 0, reason: 'no_subscription' }
     const timeLabel = String(appointment.time).slice(0, 5)
     const title = lead === '24h' ? 'Sessao amanha' : 'Sessao em breve'
@@ -608,18 +620,23 @@ export class NotificationsService {
    * enviado — a resposta síncrona do sendText só reflete o que ela recebeu, não o que o
    * Baileys efetivamente gravou/entregou.
    */
+  // Atraso de cada tentativa de verificação — cresce a cada nova tentativa pra
+  // cobrir indexação lenta do Baileys sob carga (tentativas em ~3s/6s/10s corridos).
+  private static readonly WA_VERIFY_DELAYS_MS = [3000, 3000, 4000]
+
   private async verifyWhatsAppDelivery(
     instance: string,
     messageId: string,
     expectedText: string,
-    attempt: 1 | 2 = 1,
+    attempt: 1 | 2 | 3 = 1,
   ): Promise<'ok' | 'empty' | 'unknown'> {
     // Evita atraso real e chamadas de rede extras durante os testes (mocks cobrem só o fluxo de sendText).
     if (process.env.JEST_WORKER_ID !== undefined) return 'unknown'
 
-    await new Promise(resolve => setTimeout(resolve, 3000))
+    const maxAttempts = NotificationsService.WA_VERIFY_DELAYS_MS.length as 1 | 2 | 3
+    await new Promise(resolve => setTimeout(resolve, NotificationsService.WA_VERIFY_DELAYS_MS[attempt - 1]))
     try {
-      const res = await fetch(`${this.WA_URL}/chat/findMessages/${instance}`, {
+      const res = await fetchWithTimeout(`${this.WA_URL}/chat/findMessages/${instance}`, {
         method: 'POST',
         headers: { apikey: this.WA_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({ where: { key: { id: messageId } } }),
@@ -637,8 +654,9 @@ export class NotificationsService {
       const match = records.find(record => record?.key?.id === messageId)
       if (!match) {
         // A mensagem pode ainda não ter sido indexada pelo Baileys sob carga —
-        // uma segunda tentativa evita marcar como "unknown" só por lentidão pontual.
-        if (attempt === 1) return this.verifyWhatsAppDelivery(instance, messageId, expectedText, 2)
+        // tentativas adicionais (com atraso crescente) evitam marcar como "unknown"
+        // só por lentidão pontual, sem reenviar (que criaria duplicidade).
+        if (attempt < maxAttempts) return this.verifyWhatsAppDelivery(instance, messageId, expectedText, (attempt + 1) as 1 | 2 | 3)
         return 'unknown'
       }
 
@@ -673,46 +691,20 @@ export class NotificationsService {
 
   private async postWhatsAppText(instance: string, number: string, text: string): Promise<{ res: Response; body: string }> {
     const endpoint = `${this.WA_URL}/message/sendText/${instance}`
-    const headers = { apikey: this.WA_KEY, 'Content-Type': 'application/json' }
-    const payloads = this.buildWhatsAppTextPayloads(number, text)
+    const payload = this.buildWhatsAppTextPayload(number, text)
 
-    let response = await fetch(endpoint, {
+    const response = await fetchWithTimeout(endpoint, {
       method: 'POST',
-      headers,
-      body: JSON.stringify(payloads[0]),
+      headers: { apikey: this.WA_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
     })
-    let body = await response.text().catch(() => '')
-
-    if (!response.ok && [400, 404, 422].includes(response.status)) {
-      response = await fetch(endpoint, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(payloads[1]),
-      })
-      body = await response.text().catch(() => '')
-    }
+    const body = await response.text().catch(() => '')
 
     return { res: response, body }
   }
 
-  private buildWhatsAppTextPayloads(number: string, text: string): [WhatsAppTextPayload, WhatsAppTextPayload] {
-    return [
-      {
-        number,
-        textMessage: { text },
-        options: {
-          delay: 1000,
-          presence: 'composing',
-          linkPreview: false,
-        },
-      },
-      {
-        number,
-        text,
-        delay: 1000,
-        options: { linkPreview: false },
-      },
-    ]
+  private buildWhatsAppTextPayload(number: string, text: string): WhatsAppTextPayload {
+    return { number, text, delay: 1000, linkPreview: false }
   }
 
   private isClosedConnectionError(body: string): boolean {
@@ -721,7 +713,7 @@ export class NotificationsService {
 
   private async restartWhatsAppConnection(instance: string): Promise<boolean> {
     try {
-      const restart = await fetch(`${this.WA_URL}/instance/restart/${instance}`, {
+      const restart = await fetchWithTimeout(`${this.WA_URL}/instance/restart/${instance}`, {
         method: 'PUT',
         headers: { apikey: this.WA_KEY },
       })
@@ -732,7 +724,7 @@ export class NotificationsService {
 
       for (let attempt = 0; attempt < 5; attempt++) {
         await new Promise(resolve => setTimeout(resolve, 1000))
-        const stateResponse = await fetch(`${this.WA_URL}/instance/connectionState/${instance}`, {
+        const stateResponse = await fetchWithTimeout(`${this.WA_URL}/instance/connectionState/${instance}`, {
           headers: { apikey: this.WA_KEY },
         })
         if (!stateResponse.ok) continue
@@ -847,7 +839,7 @@ export class NotificationsService {
     })
   }
 
-  async sendAppointmentReminder(appointment: any, lead: '24h' | '2h'): Promise<WhatsAppDeliveryResult> {
+  async sendAppointmentReminder(appointment: any, lead: '24h' | '1h'): Promise<WhatsAppDeliveryResult> {
     const { patient, date, time } = appointment
     const prefs = (appointment.psychologist?.preferences ?? {}) as Record<string, any>
     const pushResult = await this.sendAppointmentPushReminder(appointment, lead)
@@ -858,7 +850,7 @@ export class NotificationsService {
         : { sent: false, error: 'Paciente sem WhatsApp e push nao enviado' }
       if (!result.sent) {
         await this.recordWhatsAppLog(appointment.psychologistId, '', {
-          type: lead === '24h' ? 'Lembrete 24h' : 'Lembrete 2h',
+          type: lead === '24h' ? 'Lembrete 24h' : 'Lembrete 1h',
           patientId: patient?.id,
           patientName: patient?.name,
         }, result)
@@ -881,7 +873,8 @@ export class NotificationsService {
     const defaultMsg = lead === '24h'
       ? `Ola, ${first}!\n\nLembrando que temos nosso encontro em *${dateLabel}* as *${timeLabel}*.\n\nAte la!`
       : `Ola, ${first}!\n\nPassando para lembrar que nossa sessao e hoje as *${timeLabel}*.\n\nAte daqui a pouco!`
-    // Template específico do lead (24h/2h) tem prioridade; cai para o template
+    // Template específico do lead (24h/1h) tem prioridade; a chave reminderTemplate2h
+    // é mantida apenas para não invalidar preferências já salvas.
     // único legado (contas que customizaram antes da separação) e por fim para
     // o texto padrão embutido no código.
     const leadTemplate = lead === '24h' ? prefs.reminderTemplate24h : prefs.reminderTemplate2h
@@ -896,7 +889,7 @@ export class NotificationsService {
       : defaultMsg
 
     const whatsAppResult = await this.sendWhatsApp(patient.phone, msg, appointment.psychologistId, {
-      type: lead === '24h' ? 'Lembrete 24h' : 'Lembrete 2h',
+      type: lead === '24h' ? 'Lembrete 24h' : 'Lembrete 1h',
       patientId: patient.id,
       patientName: patient.name,
     })
@@ -1208,7 +1201,7 @@ export class NotificationsService {
     patientName: string,
     dateLabel: string,
     time: string,
-    lead: '24h' | '2h',
+    lead: '24h' | '1h',
   ): string {
     return template
       .replaceAll('{{nome}}', patientName.split(' ')[0] || patientName)

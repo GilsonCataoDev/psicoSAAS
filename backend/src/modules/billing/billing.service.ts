@@ -4,9 +4,9 @@ import { DataSource, In, Repository } from 'typeorm'
 import { User } from '../auth/entities/user.entity'
 import { AsaasService } from './asaas.service'
 import { Subscription } from './entities/subscription.entity'
+import { PLAN_PRICES } from '../../common/plans'
 
 const TRIAL_DAYS = 7
-const PLAN_PRICES: Record<string, number> = { essencial: 79, pro: 149 }
 const ACTIVATION_OFFER_CODE = 'ROTINA20'
 const REFERRAL_OFFER_CODE = 'INDICACAO20'
 const BETA_FREE_ACCESS = process.env.BETA_FREE_ACCESS !== 'false'
@@ -65,8 +65,14 @@ export class BillingService {
       && subscription.currentPeriodEnd
       && new Date(subscription.currentPeriodEnd).getTime() <= Date.now()
     ) {
-      subscription.status = 'canceled'
+      subscription.plan = 'free'
+      subscription.status = 'active'
+      subscription.gatewayCustomerId = null
+      subscription.gatewaySubscriptionId = null
       subscription.cancelAtPeriodEnd = false
+      subscription.currentPeriodEnd = new Date()
+      subscription.trialEndsAt = null
+      this.clearPromotion(subscription)
       return this.repo.save(subscription)
     }
 
@@ -291,8 +297,6 @@ export class BillingService {
     subscription.plan = plan
     subscription.cancelAtPeriodEnd = false
     this.clearPromotion(subscription)
-    if (subscription.status === 'past_due') subscription.status = 'active'
-
     return this.toPublicSubscription(await this.repo.save(subscription))
   }
 
@@ -304,17 +308,44 @@ export class BillingService {
 
     if (!subscription) throw new NotFoundException('Assinatura ativa nao encontrada')
 
-    if (subscription.gatewaySubscriptionId) {
-      await this.asaas.cancelSubscription(subscription.gatewaySubscriptionId)
-    }
-
-    const periodEnd = subscription.currentPeriodEnd
+    let periodEnd = subscription.currentPeriodEnd
       ? new Date(subscription.currentPeriodEnd)
       : null
 
+    if (subscription.gatewaySubscriptionId && subscription.status === 'active') {
+      try {
+        const snapshot = await this.asaas.getSubscriptionBilling(subscription.gatewaySubscriptionId)
+        const gatewayPeriodEnd = snapshot.subscription.nextDueDate
+          ? new Date(`${snapshot.subscription.nextDueDate}T00:00:00.000Z`)
+          : null
+        if (gatewayPeriodEnd && gatewayPeriodEnd.getTime() > Date.now()) {
+          periodEnd = gatewayPeriodEnd
+        }
+      } catch {
+        // Se a conciliação falhar, usa a data local para não impedir o cancelamento.
+      }
+    }
+
     if (subscription.status === 'active' && periodEnd && periodEnd.getTime() > Date.now()) {
       subscription.cancelAtPeriodEnd = true
-      return this.toPublicSubscription(await this.repo.save(subscription))
+      subscription.currentPeriodEnd = periodEnd
+      const scheduled = await this.repo.save(subscription)
+
+      if (subscription.gatewaySubscriptionId) {
+        try {
+          await this.asaas.cancelSubscription(subscription.gatewaySubscriptionId)
+        } catch (err) {
+          scheduled.cancelAtPeriodEnd = false
+          await this.repo.save(scheduled)
+          throw err
+        }
+      }
+
+      return this.toPublicSubscription(scheduled)
+    }
+
+    if (subscription.gatewaySubscriptionId) {
+      await this.asaas.cancelSubscription(subscription.gatewaySubscriptionId)
     }
 
     subscription.plan = 'free'

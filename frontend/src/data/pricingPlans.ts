@@ -1,3 +1,5 @@
+import { PLAN_CATALOG, type PlanCatalogEntry } from '@/config/planCatalog'
+
 export type PricingFeature = {
   type: 'included' | 'excluded'
   title: string
@@ -9,10 +11,7 @@ export type PricingRoiItem = {
   text: string
 }
 
-export type PricingPlan = {
-  id: 'free' | 'essencial' | 'pro'
-  name: string
-  price: string
+export type PricingPlan = PlanCatalogEntry & {
   pricePeriod: string
   description: string
   badge: string | null
@@ -36,9 +35,7 @@ export const PRICING_HERO = {
 
 export const PRICING_PLANS: PricingPlan[] = [
   {
-    id: 'free',
-    name: 'Grátis',
-    price: 'Grátis',
+    ...PLAN_CATALOG[0],
     pricePeriod: 'Sem prazo para expirar',
     description: 'Para psicologos com CRP ativo testarem a rotina sem custo',
     badge: null,
@@ -57,9 +54,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     roi: null,
   },
   {
-    id: 'essencial',
-    name: 'Essencial',
-    price: '79',
+    ...PLAN_CATALOG[1],
     pricePeriod: '/mes',
     description: 'Para organizar agenda, pacientes, prontuario, documentos e financeiro sem automacao',
     badge: null,
@@ -83,9 +78,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     ctaSubtext: 'Cartao necessario. Cobranca conforme o plano.',
   },
   {
-    id: 'pro',
-    name: 'Pro',
-    price: '149',
+    ...PLAN_CATALOG[2],
     pricePeriod: '/mes',
     description: 'Para automatizar lembretes, cobrancas, instrumentos e ampliar o uso de IA',
     badge: 'Mais escolhido',
@@ -94,6 +87,7 @@ export const PRICING_PLANS: PricingPlan[] = [
       { type: 'included', title: 'Sem limite de pacientes, cresca o quanto quiser', subtitle: 'Pacientes ilimitados' },
       { type: 'included', title: 'Gere declaracoes, recibos, relatorios, atestados e encaminhamentos', subtitle: 'Documentos ilimitados' },
       { type: 'included', title: 'Use escalas clinicas disponibilizadas no sistema, como PHQ-9 e GAD-7', subtitle: 'Uso e interpretacao sob responsabilidade profissional' },
+      { type: 'included', title: 'Organize avaliações neuropsicológicas do planejamento ao relatório final', subtitle: 'Módulo neuropsicológico e Copiloto clínico' },
       { type: 'included', title: 'Envie mensagens automaticas com a integracao conectada', subtitle: 'WhatsApp sujeito a configuracao e disponibilidade' },
       { type: 'included', title: 'Mensagens podem soar como voce', subtitle: 'Modelos WhatsApp personalizados' },
       { type: 'included', title: 'Envie link de cobranca para o paciente pagar em 1 clique', subtitle: 'Financeiro Pro com links' },

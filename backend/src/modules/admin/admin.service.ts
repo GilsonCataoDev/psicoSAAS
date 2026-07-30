@@ -9,6 +9,7 @@ import { EmailLog } from '../email/entities/email-log.entity'
 import { AsaasService } from '../billing/asaas.service'
 import { OverrideSubscriptionDto } from './dto/override-subscription.dto'
 import { ListAdminUsersDto } from './dto/list-admin-users.dto'
+import { PLAN_PRICES } from '../../common/plans'
 
 @Injectable()
 export class AdminService {
@@ -405,7 +406,7 @@ export class AdminService {
 
     const mrr = byPlanStatus
       .filter(r => r.status === 'active')
-      .reduce((sum, r) => sum + ({ essencial: 79, pro: 149 }[r.plan] ?? 0) * Number(r.count), 0)
+      .reduce((sum, r) => sum + (PLAN_PRICES[r.plan] ?? 0) * Number(r.count), 0)
 
     return { totalUsers, activeUsers, byPlanStatus, mrr }
   }

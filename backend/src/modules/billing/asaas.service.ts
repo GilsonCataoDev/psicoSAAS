@@ -2,11 +2,7 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import axios, { AxiosInstance } from 'axios'
 import { User } from '../auth/entities/user.entity'
-
-const PLAN_PRICES: Record<string, number> = {
-  essencial: 79,
-  pro: 149,
-}
+import { PLAN_PRICES } from '../../common/plans'
 
 export interface TokenizeCreditCardInput {
   customerId: string
@@ -169,7 +165,11 @@ export class AsaasService {
     }
   }
 
-  async updateSubscriptionPlan(subscriptionId: string, plan: string): Promise<void> {
+  async updateSubscriptionPlan(
+    subscriptionId: string,
+    plan: string,
+    options?: { updatePendingPayments?: boolean },
+  ): Promise<void> {
     const value = PLAN_PRICES[plan]
     if (!value) throw new BadRequestException('Plano invalido')
 
@@ -177,7 +177,7 @@ export class AsaasService {
       await this.api.put(`/subscriptions/${subscriptionId}`, {
         value,
         description: `UseCognia - Plano ${plan}`,
-        updatePendingPayments: true,
+        updatePendingPayments: options?.updatePendingPayments ?? false,
       })
     } catch (err: any) {
       this.logger.warn('[Asaas] Falha ao atualizar plano da assinatura', this.safeAsaasError(err))

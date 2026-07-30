@@ -39,7 +39,7 @@ export function NotifyTab({
           <>
             {([
               { key: 'reminder24h',        label: 'Lembrete 24h antes da sessão',   desc: 'Mensagem enviada via WhatsApp no dia anterior' },
-              { key: 'reminder2h',         label: 'Lembrete 2h antes da sessão',    desc: 'Mensagem rápida no dia do atendimento' },
+              { key: 'reminder2h',         label: 'Lembrete 1h antes da sessão',    desc: 'Mensagem rápida no dia do atendimento' },
               { key: 'dailyAgendaDigest',  label: 'Resumo diário da agenda',        desc: 'Envia para você, pela manhã, a lista de pacientes do dia' },
               { key: 'bookingConfirmation',label: 'Confirmação de agendamento',      desc: 'Notifica quando um horário é reservado' },
             ] as const).map(item => (

@@ -7,9 +7,10 @@ import { Booking } from '../booking/entities/booking.entity'
 import { Session } from '../sessions/entities/session.entity'
 import { AnalyticsService } from './analytics.service'
 import { AnalyticsController } from './analytics.controller'
+import { Subscription } from '../billing/entities/subscription.entity'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Patient, Appointment, FinancialRecord, Booking, Session])],
+  imports: [TypeOrmModule.forFeature([Patient, Appointment, FinancialRecord, Booking, Session, Subscription])],
   providers: [AnalyticsService],
   controllers: [AnalyticsController],
 })

@@ -113,37 +113,29 @@ describe('NotificationsService WhatsApp delivery validation', () => {
     const body = JSON.parse(String(fetchSpy.mock.calls[0][1]?.body))
     expect(body).toEqual(expect.objectContaining({
       number: '5511999999999',
-      textMessage: { text },
-      options: expect.objectContaining({ linkPreview: false }),
+      text,
+      delay: 1000,
+      linkPreview: false,
     }))
-    expect(body).not.toHaveProperty('text')
+    expect(body).not.toHaveProperty('textMessage')
+    expect(body).not.toHaveProperty('options')
   })
 
-  it('falls back to the legacy Evolution text payload when the current shape is rejected', async () => {
+  it('does not retry a rejected Evolution payload with a legacy shape', async () => {
     const text = 'Formulario simples'
-    let calls = 0
-    const accepted = () => new Response(JSON.stringify({
-        key: { id: 'legacy-message-id', fromMe: true },
-        message: { extendedTextMessage: { text } },
-        status: 'PENDING',
-      }), { status: 201, headers: { 'Content-Type': 'application/json' } })
-    const fetchSpy = jest.spyOn(global, 'fetch').mockImplementation(async () => {
-      calls += 1
-      if (calls === 1) return new Response(JSON.stringify({ message: 'invalid body' }), { status: 400 })
-      return accepted()
-    })
+    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ message: 'invalid body' }), { status: 400 }),
+    )
 
     const result = await service.sendDirectWhatsApp('11999999999', text, ownerId)
 
-    expect(result.sent).toBe(true)
-    expect(fetchSpy.mock.calls.length).toBeGreaterThanOrEqual(2)
-    const legacyBody = JSON.parse(String(fetchSpy.mock.calls[1][1]?.body))
-    expect(legacyBody).toEqual(expect.objectContaining({
-      number: '5511999999999',
-      text,
-      delay: 1000,
-      options: expect.objectContaining({ linkPreview: false }),
+    expect(result).toEqual(expect.objectContaining({
+      sent: false,
+      reason: 'api_error',
+      nonRetryable: true,
+      contentLength: text.length,
     }))
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
   })
 
   it('blocks whitespace-only messages before calling the provider', async () => {
@@ -589,18 +581,18 @@ describe('NotificationsService.sendAppointmentReminder — template por lead (24
     expect(sentText).toBe('Template24h para Marina')
   })
 
-  it('usa reminderTemplate2h no lembrete de 2h quando configurado', async () => {
+  it('usa o template curto legado no lembrete de 1h quando configurado', async () => {
     await service.sendAppointmentReminder(baseAppointment({
       reminderTemplate24h: 'Template24h para {{nome}}',
       reminderTemplate2h: 'Template2h para {{nome}}',
-    }), '2h')
+    }), '1h')
     expect(sentText).toBe('Template2h para Marina')
   })
 
   it('cai para o template único legado quando o específico do lead não está configurado', async () => {
     await service.sendAppointmentReminder(baseAppointment({
       reminderTemplate: 'Legado para {{nome}}',
-    }), '2h')
+    }), '1h')
     expect(sentText).toBe('Legado para Marina')
   })
 

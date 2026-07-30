@@ -89,4 +89,38 @@ describe('AppointmentReminderJob', () => {
       reminder24hSentAt: expect.any(Date),
     }))
   })
+
+  it('envia o lembrete curto somente quando falta no maximo 1h', async () => {
+    const psychologist = { id: 'psy-1', name: 'Dra Ana', preferences: {} }
+    const outsideWindow = {
+      id: 'appt-outside',
+      date: '2026-07-26',
+      time: '10:30',
+      status: 'scheduled',
+      psychologistId: 'psy-1',
+      psychologist,
+      patient: { id: 'pat-1', name: 'Marina', phone: '5585999999999' },
+      reminder24hSentAt: new Date(),
+    }
+    const insideWindow = {
+      id: 'appt-inside',
+      date: '2026-07-26',
+      time: '09:45',
+      status: 'scheduled',
+      psychologistId: 'psy-1',
+      psychologist,
+      patient: { id: 'pat-2', name: 'Julia', phone: '5585999999999' },
+      reminder24hSentAt: new Date(),
+    }
+    const { job, appointmentsRepo, notifications } = makeJob([outsideWindow, insideWindow])
+
+    await (job as any).runLocked()
+
+    expect(notifications.sendAppointmentReminder).toHaveBeenCalledTimes(1)
+    expect(notifications.sendAppointmentReminder).toHaveBeenCalledWith(insideWindow, '1h')
+    expect(appointmentsRepo.save).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'appt-inside',
+      reminder2hSentAt: expect.any(Date),
+    }))
+  })
 })

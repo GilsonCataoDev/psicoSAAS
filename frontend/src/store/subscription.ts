@@ -1,10 +1,11 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { migratePersistedStorage } from '@/lib/storageMigration'
+import { PLAN_CATALOG, type PlanCatalogEntry, type PlanId } from '@/config/planCatalog'
 
 migratePersistedStorage('usecognia-subscription', 'psicosaas-subscription')
 
-export type PlanId = string
+export type { PlanId }
 export type SubscriptionStatus =
   | 'pending'
   | 'trialing'
@@ -14,76 +15,9 @@ export type SubscriptionStatus =
   | 'cancelled'
   | 'none'
 
-export interface Plan {
-  id: PlanId
-  name: string
-  price: number
-  maxPatients: number
-  maxStorage: number
-  audience: string
-  features: string[]
-  highlight?: boolean
-}
+export type Plan = PlanCatalogEntry
 
-export const PLANS: Plan[] = [
-  {
-    id: 'free',
-    name: 'Grátis',
-    price: 0,
-    maxPatients: 10,
-    maxStorage: 1,
-    audience: 'Para psicólogos com CRP ativo testarem a rotina sem custo',
-    features: [
-      'Agenda basica',
-      'Ate 10 pacientes ativos',
-      'Link publico simples',
-      'Financeiro basico',
-      'Sem documentos/PDF',
-      'Sem instrumentos clinicos',
-      'Sem WhatsApp automatico',
-      'Sem transcricao de sessoes por IA',
-    ],
-  },
-  {
-    id: 'essencial',
-    name: 'Essencial',
-    price: 79,
-    maxPatients: 50,
-    maxStorage: 10,
-    audience: 'Para psicólogos organizarem agenda, pacientes, documentos e financeiro',
-    features: [
-      'Agenda, pacientes e sessões',
-      'Link público de agendamento',
-      'Até 200 documentos/PDF com verificação',
-      'Financeiro básico',
-      'WhatsApp manual com mensagem pronta',
-      'Até 10 min/mes de transcricao por IA, quando habilitada',
-      'Sem instrumentos clinicos',
-      'Até 50 pacientes ativos',
-    ],
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    price: 149,
-    maxPatients: -1,
-    maxStorage: 50,
-    audience: 'Para psicólogos que querem automação, instrumentos, WhatsApp e IA',
-    highlight: true,
-    features: [
-      'Tudo do Essencial',
-      'Pacientes ilimitados',
-      'Documentos ilimitados',
-      'Instrumentos clinicos',
-      'Financeiro Pro com links de pagamento',
-      'WhatsApp automático quando a integração estiver conectada',
-      'Lembretes de consulta e cobrança',
-      'Até 120 min/mes de gravacao e transcricao com IA, quando habilitada',
-      'Resumo de sessão com IA para rascunho de evolução',
-      'Relatórios avançados para decisão',
-    ],
-  },
-]
+export const PLANS: Plan[] = [...PLAN_CATALOG]
 
 export interface Subscription {
   id?: string
