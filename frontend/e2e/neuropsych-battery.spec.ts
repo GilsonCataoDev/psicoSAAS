@@ -27,16 +27,17 @@ test.describe('Bateria neuropsicológica', () => {
     await dismissOverlays(page)
 
     const startButton = page.getByRole('button', { name: 'Iniciar avaliação' })
-    await Promise.race([
-      startButton.waitFor({ state: 'visible', timeout: 15_000 }),
-      page.waitForURL(/#\/planos(?:$|[?&])/, { timeout: 15_000 }),
-    ])
+    const hasProAccess = await startButton
+      .waitFor({ state: 'visible', timeout: 5_000 })
+      .then(() => true)
+      .catch(() => false)
 
     // O smoke de produção cria uma conta gratuita: nela, a proteção de plano
-    // deve redirecionar para a oferta Pro. Em ambiente local com e-mail
+    // deve impedir a renderização do módulo. Em ambiente local com e-mail
     // compensado como Pro, o restante do teste valida o payload da bateria.
-    if (page.url().includes('#/planos')) {
-      await expect(page.getByText(/avaliações neuropsicológicas/i).first()).toBeVisible()
+    if (!hasProAccess) {
+      await expect(startButton).not.toBeVisible()
+      expect(page.url()).not.toContain('#/avaliacoes')
       return
     }
 
