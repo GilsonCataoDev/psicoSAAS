@@ -126,18 +126,47 @@ export function usePublicBookingDates(slug: string, month: string, modality?: st
 }
 
 export interface CreateBookingInput {
-  patientName: string
+  patientName?: string
   patientEmail?: string
   patientPhone?: string
   modality: 'presencial' | 'online'
   patientNotes?: string
   date: string
   time: string
+  useSavedContact?: boolean
+  rememberContact?: boolean
 }
 
 export function useCreateBooking(slug: string) {
   return useMutation({
     mutationFn: (data: CreateBookingInput) =>
       api.post(`/public/booking/${slug}`, data, { skipAuthRedirect: true } as AuthAxiosRequestConfig).then(r => r.data),
+  })
+}
+
+export type BookingContactMemoryPreview = {
+  available: boolean
+  name?: string
+  email?: string
+  phone?: string
+}
+
+export function useBookingContactMemory() {
+  return useQuery<BookingContactMemoryPreview>({
+    queryKey: ['booking-contact-memory'],
+    queryFn: () => api.get('/public/booking/contact-memory', {
+      skipAuthRedirect: true,
+    } as AuthAxiosRequestConfig).then(response => response.data),
+    staleTime: 60_000,
+  })
+}
+
+export function useForgetBookingContact() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.delete('/public/booking/contact-memory', {
+      skipAuthRedirect: true,
+    } as AuthAxiosRequestConfig),
+    onSuccess: () => queryClient.setQueryData(['booking-contact-memory'], { available: false }),
   })
 }

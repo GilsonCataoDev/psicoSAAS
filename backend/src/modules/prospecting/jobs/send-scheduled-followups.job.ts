@@ -106,9 +106,14 @@ export class SendScheduledFollowupsJob implements OnModuleInit, OnModuleDestroy 
       const [startHour, startMin] = start.split(':').map(Number)
       const [endHour, endMin] = end.split(':').map(Number)
 
-      const now = new Date()
-      const currentHour = now.getHours()
-      const currentMin = now.getMinutes()
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+      }).formatToParts(new Date())
+      const currentHour = Number(parts.find(part => part.type === 'hour')?.value ?? 0)
+      const currentMin = Number(parts.find(part => part.type === 'minute')?.value ?? 0)
       const currentTime = currentHour * 60 + currentMin
 
       const startTime = startHour * 60 + startMin

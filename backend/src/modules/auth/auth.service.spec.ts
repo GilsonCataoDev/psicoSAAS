@@ -18,8 +18,8 @@ import { StorageService } from '../../common/storage/storage.service'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-function mockRepo<T>(overrides: Partial<Record<string, jest.Mock>> = {}) {
-  return {
+function mockRepo(overrides: Partial<Record<string, jest.Mock>> = {}) {
+  const repo: any = {
     findOneBy:      jest.fn(),
     findOne:        jest.fn(),
     find:           jest.fn(),
@@ -27,14 +27,16 @@ function mockRepo<T>(overrides: Partial<Record<string, jest.Mock>> = {}) {
     save:           jest.fn((entity: any) => Promise.resolve(entity)),
     update:         jest.fn().mockResolvedValue(undefined),
     delete:         jest.fn().mockResolvedValue(undefined),
+    deleteStrict:   jest.fn().mockResolvedValue(undefined),
     count:          jest.fn().mockResolvedValue(0),
-    createQueryBuilder: jest.fn().mockReturnValue({
-      addSelect: jest.fn().mockReturnThis(),
-      where:     jest.fn().mockReturnThis(),
-      getOne:    jest.fn().mockResolvedValue(null),
-    }),
     ...overrides,
   }
+  repo.createQueryBuilder = overrides.createQueryBuilder ?? jest.fn(() => ({
+    addSelect: jest.fn().mockReturnThis(),
+    where:     jest.fn().mockReturnThis(),
+    getOne:    jest.fn(() => repo.findOneBy({})),
+  }))
+  return repo
 }
 
 function makeUser(overrides: Partial<User> = {}): User {
@@ -70,6 +72,13 @@ async function createService(
     transaction: jest.fn(async (cb: any) => cb({ getRepository: () => loginAttemptRepo, query: jest.fn() })),
     query:       jest.fn().mockResolvedValue([]),
   }
+  const storageMock = {
+    isConfigured: jest.fn().mockReturnValue(false),
+    upload: jest.fn(),
+    delete: jest.fn(),
+    deleteStrict: jest.fn().mockResolvedValue(undefined),
+    keyFromUrl: jest.fn(),
+  }
 
   const module: TestingModule = await Test.createTestingModule({
     providers: [
@@ -85,12 +94,12 @@ async function createService(
       { provide: AuditService,    useValue: { record: jest.fn().mockResolvedValue(undefined) } },
       { provide: RiskEngineService, useValue: { assessLoginRisk: jest.fn().mockResolvedValue({ score: 0, level: 'low', signals: {} }) } },
       { provide: SuspiciousActivityService, useValue: { isIpBlocked: jest.fn().mockResolvedValue(false), recordFailedAttempt: jest.fn().mockResolvedValue(undefined) } },
-      { provide: StorageService,  useValue: { isConfigured: jest.fn().mockReturnValue(false), upload: jest.fn(), delete: jest.fn(), keyFromUrl: jest.fn() } },
+      { provide: StorageService,  useValue: storageMock },
     ],
   }).compile()
 
   const service = module.get<AuthService>(AuthService)
-  return { service, userRepo, refreshTokenRepo, loginAttemptRepo }
+  return { service, userRepo, refreshTokenRepo, loginAttemptRepo, dataSourceMock, storageMock }
 }
 
 // ── Testes ─────────────────────────────────────────────────────────────────────
@@ -264,6 +273,22 @@ describe('AuthService', () => {
       userRepo.findOneBy.mockResolvedValue(null)
 
       await expect(service.forgotPassword('inexistente@example.com')).resolves.toBeUndefined()
+    })
+  })
+
+  describe('deleteAccount', () => {
+    it('não apaga o banco se um anexo externo não puder ser removido', async () => {
+      const { service, userRepo, dataSourceMock, storageMock } = await createService()
+      userRepo.findOneBy.mockResolvedValue(makeUser())
+      dataSourceMock.query
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ storageKey: 'patients/user-123/anexo.pdf' }])
+      storageMock.deleteStrict.mockRejectedValueOnce(new Error('storage indisponível'))
+
+      await expect(service.deleteAccount('user-123', 'correct-password'))
+        .rejects.toThrow('storage indisponível')
+
+      expect(dataSourceMock.transaction).not.toHaveBeenCalled()
     })
   })
 })

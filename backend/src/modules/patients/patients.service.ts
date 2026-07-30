@@ -10,7 +10,7 @@ import { UpdatePatientPortalIntakeDto } from './dto/patient-portal.dto'
 import { Subscription } from '../billing/entities/subscription.entity'
 import { Appointment } from '../appointments/entities/appointment.entity'
 import { PLAN_LIMITS, normalizePlan } from '../../common/plans'
-import { encrypt, hashToken, safeDecrypt } from '../../common/crypto/encrypt.util'
+import { blindIndex, encrypt, hashToken, safeDecrypt } from '../../common/crypto/encrypt.util'
 import { FinancialService } from '../financial/financial.service'
 import { formatCrpForDisplay } from '../auth/entities/user.entity'
 
@@ -108,6 +108,15 @@ export class PatientsService {
     if (dto.prontuario) encrypted.prontuario = this.encryptProntuario(dto.prontuario as Record<string, any>)
     for (const field of PATIENT_ENCRYPTED_FIELDS) {
       if (typeof dto[field] === 'string' && dto[field].length > 0) encrypted[field] = encrypt(dto[field])
+    }
+    if (Object.prototype.hasOwnProperty.call(dto, 'email')) {
+      encrypted.emailHash = dto.email
+        ? blindIndex(String(dto.email), 'patient-email')
+        : null
+    }
+    if (Object.prototype.hasOwnProperty.call(dto, 'phone')) {
+      const phone = dto.phone ? String(dto.phone).replace(/\D/g, '') : ''
+      encrypted.phoneHash = phone ? blindIndex(phone, 'patient-phone') : null
     }
     return encrypted
   }
@@ -212,7 +221,6 @@ export class PatientsService {
   async findAll(psychologistId: string): Promise<PatientListItemDto[]> {
     const patients = await this.repo.find({
       where: { psychologistId },
-      order: { name: 'ASC' },
       // Listagem nunca deve carregar prontuário, privateNotes nem ids internos de gateway.
       select: [
         'id', 'name', 'email', 'phone', 'birthDate', 'pronouns', 'race', 'gender',
@@ -223,7 +231,9 @@ export class PatientsService {
         'cpfCnpj', 'createdAt', 'updatedAt',
       ],
     })
-    return patients.map(patient => this.dec(patient) as PatientListItemDto)
+    return patients
+      .map(patient => this.dec(patient) as PatientListItemDto)
+      .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
   }
 
   async findOne(id: string, psychologistId: string): Promise<Patient> {

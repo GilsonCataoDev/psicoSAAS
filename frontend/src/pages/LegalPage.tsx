@@ -47,7 +47,7 @@ const privacySections: Array<{ title: string; content: string | string[] }> = [
   },
   {
     title: '9. Retenção, exportação e exclusão',
-    content: 'A conta oferece recurso de exportação dos dados. A exclusão deve considerar as obrigações de guarda de prontuários e documentos previstas pelas normas profissionais aplicáveis. Antes de encerrar uma conta, o profissional deve exportar e preservar os registros que precise manter. Dados técnicos, financeiros ou de auditoria poderão ser retidos pelo prazo necessário ao cumprimento de obrigação legal, prevenção de fraude e exercício regular de direitos.',
+    content: 'A conta oferece recurso de exportação dos dados. A exclusão deve considerar as obrigações de guarda de prontuários e documentos previstas pelas normas profissionais aplicáveis. Antes de encerrar uma conta, o profissional deve exportar e preservar os registros que precise manter. Para reduzir a coleta, logs de WhatsApp são eliminados em 7 dias, logs de e-mail e dados opcionais de preenchimento rápido em até 30 dias, tentativas de login em 90 dias e a trilha técnica de auditoria em 180 dias. Outros dados poderão ser mantidos pelo prazo necessário ao cumprimento de obrigação legal, prevenção de fraude e exercício regular de direitos.',
   },
   {
     title: '10. Direitos dos titulares',

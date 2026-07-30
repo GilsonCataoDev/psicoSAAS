@@ -1,4 +1,4 @@
-import { BadRequestException, Body, CanActivate, Controller, ExecutionContext, Headers, Logger, Post, UseGuards } from '@nestjs/common'
+import { BadRequestException, Body, CanActivate, Controller, ExecutionContext, Logger, Post, UseGuards } from '@nestjs/common'
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler'
 import { ProspectingMessageService } from '../messages/prospecting-message.service'
 
@@ -44,10 +44,7 @@ export class ProspectingWebhookController {
 
   @Post('inbound')
   @Throttle({ default: { limit: 100, ttl: 60000 } })
-  async receiveInbound(
-    @Body() dto: any,
-    @Headers('authorization') authHeader: string,
-  ) {
+  async receiveInbound(@Body() dto: any) {
     const { conversationId, content, providerMessageId, channel } = dto
 
     if (!conversationId || !content) {

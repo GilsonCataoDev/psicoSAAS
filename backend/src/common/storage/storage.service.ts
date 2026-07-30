@@ -89,6 +89,12 @@ export class StorageService {
     }
   }
 
+  /** Exclusão obrigatória para fluxos de privacidade: falha em vez de deixar objeto órfão. */
+  async deleteStrict(key: string): Promise<void> {
+    if (!this.client) throw new Error('Storage not configured')
+    await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }))
+  }
+
   /** Extrai a key de uma URL de CDN gerada por este serviço */
   keyFromUrl(url: string): string | null {
     if (!this.cdnUrl || !url.startsWith(this.cdnUrl)) return null

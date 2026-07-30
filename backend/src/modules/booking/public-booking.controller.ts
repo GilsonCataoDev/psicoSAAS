@@ -1,7 +1,12 @@
-import { Body, Controller, Get, Header, Param, Post, Query } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Header, Param, Post, Query, Req, Res } from '@nestjs/common'
 import { Throttle } from '@nestjs/throttler'
+import { Request, Response } from 'express'
 import { BookingService } from './booking.service'
 import { CreateBookingDto } from './dto/create-booking.dto'
+import { BookingContactMemoryService } from './booking-contact-memory.service'
+
+const CONTACT_COOKIE = 'usecognia_booking_contact'
+const CONTACT_MAX_AGE = 30 * 24 * 60 * 60 * 1000
 
 /**
  * Rotas públicas — sem autenticação.
@@ -14,7 +19,26 @@ import { CreateBookingDto } from './dto/create-booking.dto'
  */
 @Controller('public/booking')
 export class PublicBookingController {
-  constructor(private svc: BookingService) {}
+  constructor(
+    private svc: BookingService,
+    private contactMemory: BookingContactMemoryService,
+  ) {}
+
+  @Get('contact-memory')
+  @Header('Cache-Control', 'private, no-store')
+  @Throttle({ short: { limit: 20, ttl: 60000 } })
+  getContactMemory(@Req() req: Request) {
+    return this.contactMemory.preview(req.cookies?.[CONTACT_COOKIE])
+  }
+
+  @Delete('contact-memory')
+  @Header('Cache-Control', 'private, no-store')
+  @Throttle({ short: { limit: 10, ttl: 60000 } })
+  async forgetContact(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    await this.contactMemory.forget(req.cookies?.[CONTACT_COOKIE])
+    res.clearCookie(CONTACT_COOKIE, contactCookieOptions())
+    return { ok: true }
+  }
 
   /** GET /api/public/booking/:slug — dados da página pública */
   @Get(':slug')
@@ -49,8 +73,23 @@ export class PublicBookingController {
   @Post(':slug')
   @Header('Cache-Control', 'private, no-store')
   @Throttle({ short: { limit: 5, ttl: 60000 } })
-  createBooking(@Param('slug') slug: string, @Body() dto: CreateBookingDto) {
-    return this.svc.createBooking(slug, dto)
+  async createBooking(
+    @Param('slug') slug: string,
+    @Body() dto: CreateBookingDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const previousToken = req.cookies?.[CONTACT_COOKIE]
+    const result = await this.svc.createBooking(slug, dto, previousToken)
+    if (result.rememberToken) {
+      await this.contactMemory.forget(previousToken)
+      res.cookie(CONTACT_COOKIE, result.rememberToken, {
+        ...contactCookieOptions(),
+        maxAge: CONTACT_MAX_AGE,
+      })
+    }
+    const { rememberToken: _token, rememberExpiresAt: _expiry, ...safe } = result
+    return safe
   }
 
   /** GET /api/public/booking/confirm/:token — paciente confirma via link */
@@ -75,5 +114,14 @@ export class PublicBookingController {
   @Throttle({ short: { limit: 10, ttl: 60000 } })
   cancel(@Param('token') token: string, @Query('reason') reason?: string) {
     return this.svc.cancelByToken(token, reason)
+  }
+}
+
+function contactCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    path: '/api/public/booking',
   }
 }

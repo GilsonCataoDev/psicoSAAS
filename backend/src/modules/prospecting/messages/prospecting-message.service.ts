@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { ProspectMessage, MessageStatus } from '../entities/prospect-message.entity'
+import { ProspectMessage } from '../entities/prospect-message.entity'
 import { ProspectConversation } from '../entities/prospect-conversation.entity'
 import { Prospect } from '../entities/prospect.entity'
 import { ProspectActivity } from '../entities/prospect-activity.entity'

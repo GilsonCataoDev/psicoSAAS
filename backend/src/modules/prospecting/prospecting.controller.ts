@@ -167,7 +167,7 @@ export class ProspectingController {
   }
 
   @Post('messages/:id/send')
-  async sendMessage(@Param('id') messageId: string, @Request() req: any) {
+  async sendMessage(@Param('id') messageId: string) {
     const message = await this.messageSvc.getMessage(messageId)
     const conversation = await this.conversationSvc.getConversation(message.conversationId)
     const provider = this.providerFactory.getProvider(conversation.channel)

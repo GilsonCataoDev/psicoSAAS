@@ -3,6 +3,7 @@ import {
   CreateDateColumn, UpdateDateColumn, OneToMany,
 } from 'typeorm'
 import { Patient } from '../../patients/entities/patient.entity'
+import { encryptedTextTransformer } from '../../../common/crypto/encrypt.util'
 
 @Entity('users')
 export class User {
@@ -15,7 +16,7 @@ export class User {
   @Column({ unique: true })
   email: string
 
-  @Column()
+  @Column({ select: false })
   passwordHash: string
 
   @Column({ nullable: true })
@@ -43,11 +44,11 @@ export class User {
   @Column({ default: 0 })
   onboardingStep: number
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: encryptedTextTransformer })
   phone?: string
 
   /** CPF (11 dígitos) ou CNPJ (14 dígitos) — usado como customer no Asaas para assinatura */
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: encryptedTextTransformer })
   cpfCnpj?: string
 
   @Column({ type: 'timestamptz', nullable: true })
@@ -63,17 +64,17 @@ export class User {
   @Column({ default: false })
   emailVerified: boolean
 
-  @Column({ nullable: true })
-  emailVerificationToken?: string
+  @Column({ nullable: true, select: false })
+  emailVerificationToken?: string | null
 
   @Column({ type: 'timestamptz', nullable: true })
-  emailVerificationExpiry?: Date
+  emailVerificationExpiry?: Date | null
 
-  @Column({ nullable: true })
-  resetPasswordToken?: string
+  @Column({ nullable: true, select: false })
+  resetPasswordToken?: string | null
 
   @Column({ type: 'timestamptz', nullable: true })
-  resetPasswordExpiry?: Date
+  resetPasswordExpiry?: Date | null
 
   @Column({ type: 'jsonb', nullable: true })
   preferences?: Record<string, unknown>

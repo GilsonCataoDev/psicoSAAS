@@ -36,6 +36,7 @@ import { AuditInterceptor } from './modules/audit/interceptors/audit.interceptor
 import { MonitoringModule } from './common/monitoring/monitoring.module'
 import { HealthController } from './health.controller'
 import { NeuropsychAssessmentsModule } from './modules/neuropsych-assessments/neuropsych-assessments.module'
+import { PrivacyModule } from './common/privacy/privacy.module'
 
 const readPositiveInt = (value: string | undefined, fallback: number): number => {
   const parsed = Number(value)
@@ -75,6 +76,7 @@ const readPositiveInt = (value: string | undefined, fallback: number): number =>
     SecurityModule,
     AuditModule,
     MonitoringModule,
+    PrivacyModule,
     AuthModule,
     PatientsModule,
     AppointmentsModule,

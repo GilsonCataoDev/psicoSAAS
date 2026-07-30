@@ -66,7 +66,7 @@ export class DataExportService {
       neuropsychBatteryItems,
       patientAttachments,
     ] = await Promise.all([
-      this.patients.find({ where: { psychologistId: userId }, order: { name: 'ASC' } }),
+      this.patients.find({ where: { psychologistId: userId } }),
       this.appointments.find({ where: { psychologistId: userId }, order: { date: 'ASC', time: 'ASC' } }),
       this.sessions.find({ where: { psychologistId: userId }, order: { date: 'DESC' } }),
       this.financial.find({ where: { psychologistId: userId }, order: { createdAt: 'DESC' } }),

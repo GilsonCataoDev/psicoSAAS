@@ -1,4 +1,6 @@
-import { secretsMatch, hashToken, generateCsrfToken } from './encrypt.util'
+import { blindIndex, secretsMatch, hashToken, generateCsrfToken } from './encrypt.util'
+
+process.env.ENCRYPTION_KEY = 'encrypt-util-test-key-with-32-chars!'
 
 describe('secretsMatch', () => {
   it('aceita segredos iguais', () => {
@@ -30,6 +32,15 @@ describe('hashToken', () => {
     expect(hashToken(token)).toBe(hashToken(token))
     expect(hashToken(token)).not.toContain(token)
     expect(hashToken(token)).toHaveLength(64) // SHA-256 hex
+  })
+})
+
+describe('blindIndex', () => {
+  it('normaliza o valor sem permitir correlacionar contextos diferentes', () => {
+    expect(blindIndex(' Paciente@Exemplo.com ', 'patient-email'))
+      .toBe(blindIndex('paciente@exemplo.com', 'patient-email'))
+    expect(blindIndex('paciente@exemplo.com', 'patient-email'))
+      .not.toBe(blindIndex('paciente@exemplo.com', 'booking-email'))
   })
 })
 

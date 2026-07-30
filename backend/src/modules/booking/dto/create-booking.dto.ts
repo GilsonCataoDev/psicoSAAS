@@ -1,11 +1,12 @@
-import { IsString, IsEmail, IsOptional, Matches, MaxLength } from 'class-validator'
+import { IsString, IsEmail, IsOptional, Matches, MaxLength, IsBoolean } from 'class-validator'
 import { Transform } from 'class-transformer'
 
 export class CreateBookingDto {
   @IsString()
+  @IsOptional()
   @MaxLength(100)
   @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
-  patientName: string
+  patientName?: string
 
   @IsEmail()
   @IsOptional()
@@ -44,4 +45,10 @@ export class CreateBookingDto {
       : value
   )
   patientNotes?: string
+
+  @IsBoolean() @IsOptional()
+  useSavedContact?: boolean
+
+  @IsBoolean() @IsOptional()
+  rememberContact?: boolean
 }

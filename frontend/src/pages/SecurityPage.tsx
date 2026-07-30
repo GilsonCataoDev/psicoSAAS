@@ -17,7 +17,7 @@ const controls = [
   'Sessões em cookies HttpOnly, com rotação e proteção CSRF',
   'Isolamento de pacientes e registros por conta no servidor',
   'Acesso administrativo de suporte não alcança conteúdo clínico',
-  'Campos clínicos e anexos criptografados com AES-256-GCM',
+  'Campos clínicos, contatos e nomes de anexos criptografados com AES-256-GCM',
   'Limites contra força bruta e bloqueio de acessos suspeitos',
   'Validação de entradas e do conteúdo real de arquivos enviados',
   'Testes, auditoria de dependências e busca de segredos no CI',
@@ -122,7 +122,7 @@ export default function SecurityPage() {
           <FileCheck2 className="h-6 w-6 text-sage-700 dark:text-sage-300" />
           <h2 className="mt-4 text-xl font-bold dark:text-white">Privacidade e portabilidade</h2>
           <p className="mt-3 text-sm leading-relaxed text-[#5F5A51] dark:text-neutral-300">
-            O profissional pode exportar os dados da conta. Antes da exclusão, deve preservar prontuários sujeitos a prazos de guarda profissional. A política detalha finalidades, fornecedores e direitos dos titulares.
+            O profissional pode exportar os dados da conta. Ao excluir a conta, anexos externos também são removidos; se o provedor não confirmar a remoção, a exclusão é interrompida. Antes do encerramento, o profissional deve preservar prontuários sujeitos a prazos de guarda.
           </p>
           <Link to="/privacidade" className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-sage-700 hover:text-sage-900 dark:text-sage-300 dark:hover:text-sage-100">
             <Download className="h-4 w-4" /> Ler Política de Privacidade

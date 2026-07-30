@@ -6,7 +6,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { DataSource, Repository } from 'typeorm'
 import { JwtService } from '@nestjs/jwt'
 import { randomBytes } from 'crypto'
-import { generateCsrfToken, hashToken } from '../../common/crypto/encrypt.util'
+import { blindIndex, generateCsrfToken, hashToken } from '../../common/crypto/encrypt.util'
 import { hashPassword, verifyPassword, DUMMY_ARGON2_HASH } from '../../common/password/password.util'
 import { getAdminEmails } from '../../common/guards/admin.guard'
 import { RiskEngineService } from '../../common/security/risk-engine.service'
@@ -126,8 +126,8 @@ export class AuthService {
     }
 
     user.emailVerified = true
-    user.emailVerificationToken = undefined
-    user.emailVerificationExpiry = undefined
+    user.emailVerificationToken = null
+    user.emailVerificationExpiry = null
     await this.users.save(user)
 
     this.audit('EMAIL_VERIFIED', { userId: user.id })
@@ -166,7 +166,10 @@ export class AuthService {
     // Rate limit por email (brute-force direcionado)
     await this.checkLoginRateLimit(email, ip)
 
-    const user = await this.users.findOneBy({ email })
+    const user = await this.users.createQueryBuilder('user')
+      .addSelect('user.passwordHash')
+      .where('LOWER(user.email) = :email', { email })
+      .getOne()
 
     // Tempo constante mesmo se user nao existe (previne timing attack)
     const hash  = user?.passwordHash ?? DUMMY_ARGON2_HASH
@@ -374,7 +377,10 @@ export class AuthService {
   }
 
   async changePassword(id: string, currentPassword: string, newPassword: string): Promise<{ message: string }> {
-    const user = await this.users.findOneBy({ id })
+    const user = await this.users.createQueryBuilder('user')
+      .addSelect('user.passwordHash')
+      .where('user.id = :id', { id })
+      .getOne()
     if (!user) throw new NotFoundException()
     const { valid } = await verifyPassword(currentPassword, user.passwordHash)
     if (!valid) throw new UnauthorizedException('Credenciais inválidas')
@@ -409,6 +415,18 @@ export class AuthService {
       await this.asaas.cancelSubscription(subscription.gatewaySubscriptionId)
     }
 
+    const externalObjects: Array<{ storageKey: string }> = await this.dataSource.query(
+      `SELECT pa."storageKey"
+         FROM "patient_attachments" pa
+        WHERE pa."psychologistId" = $1
+          AND pa."storageKey" IS NOT NULL`,
+      [id],
+    )
+    const avatarKey = user.avatarUrl ? this.storage.keyFromUrl(user.avatarUrl) : null
+    for (const key of [...externalObjects.map(item => item.storageKey), ...(avatarKey ? [avatarKey] : [])]) {
+      await this.storage.deleteStrict(key)
+    }
+
     await this.dataSource.transaction(async (manager) => {
       await manager.query('DELETE FROM "referrals" WHERE "referrerId"::text = $1::text OR "referredId"::text = $1::text', [id])
       await manager.query('DELETE FROM "tenant_alerts" WHERE "userId" = $1', [id])
@@ -432,7 +450,9 @@ export class AuthService {
       await manager.query('DELETE FROM "refresh_tokens" WHERE "userId" = $1', [id])
       await manager.query('DELETE FROM "audit_logs" WHERE "userId"::text = $1::text', [id])
       await manager.query('DELETE FROM "login_attempts" WHERE "email" = $1', [user.email])
-      await manager.query('DELETE FROM "email_logs" WHERE "to" = $1', [user.email])
+      await manager.query('DELETE FROM "email_logs" WHERE "toHash" = $1', [
+        blindIndex(user.email, 'email-log-recipient'),
+      ])
       await manager.query('DELETE FROM "users" WHERE "id" = $1', [id])
     })
 
@@ -464,8 +484,8 @@ export class AuthService {
     }
 
     user.passwordHash        = await hashPassword(newPassword)
-    user.resetPasswordToken  = undefined
-    user.resetPasswordExpiry = undefined
+    user.resetPasswordToken  = null
+    user.resetPasswordExpiry = null
     await this.users.save(user)
 
     await this.rtRepo.update({ userId: user.id }, { revoked: true })

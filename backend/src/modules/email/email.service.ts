@@ -4,6 +4,7 @@ import { Repository } from 'typeorm'
 import { ConfigService } from '@nestjs/config'
 import { EmailLog } from './entities/email-log.entity'
 import { EmailSuppression } from './entities/email-suppression.entity'
+import { blindIndex } from '../../common/crypto/encrypt.util'
 
 interface Attachment {
   filename: string
@@ -71,7 +72,9 @@ export class EmailService {
       throw new ServiceUnavailableException('Envio de e-mail nao configurado')
     }
 
-    if (await this.suppressions?.exist({ where: { email: opts.to.toLowerCase().trim() } })) {
+    if (await this.suppressions?.exist({
+      where: { emailHash: blindIndex(opts.to, 'email-suppression') },
+    })) {
       this.logger.warn(`[Email] Envio bloqueado — endereco suprimido (bounce/spam previo)`)
       this.writeLog(opts.to, opts.subject, 'suppressed', 'Endereco na lista de supressao')
       return
@@ -113,7 +116,7 @@ export class EmailService {
           )
         }
 
-        this.logger.error(`[Resend] Erro ao enviar email status=${res.status} body=${err}`)
+        this.logger.error(`[Resend] Erro ao enviar email status=${res.status}`)
 
         if (err.includes('domain is not verified')) {
           throw new ServiceUnavailableException(
@@ -130,7 +133,7 @@ export class EmailService {
         this.writeLog(opts.to, opts.subject, 'failed', (err as Error).message)
         throw err
       }
-      this.logger.error('[Resend] Falha de conexão', err)
+      this.logger.error(`[Resend] Falha de conexao type=${err instanceof Error ? err.name : 'unknown'}`)
       this.writeLog(opts.to, opts.subject, 'failed', (err as Error)?.message ?? 'unknown')
       throw new BadGatewayException('Nao foi possivel conectar ao servico de e-mail')
     }
@@ -457,7 +460,13 @@ export class EmailService {
 
   private writeLog(to: string, subject: string, status: 'sent' | 'failed' | 'suppressed', error: string | null): void {
     if (!this.logs) return
-    this.logs.save(this.logs.create({ to, subject: subject.slice(0, 255), status, error }))
+    this.logs.save(this.logs.create({
+      to,
+      toHash: blindIndex(to, 'email-log-recipient'),
+      subject: subject.slice(0, 255),
+      status,
+      error: error ? error.slice(0, 500) : null,
+    }))
       .catch(e => this.logger.warn(`[EmailLog] Falha ao gravar log: ${e?.message}`))
   }
 

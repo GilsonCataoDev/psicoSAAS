@@ -15,6 +15,7 @@ export const JOB_LOCK_KEYS = {
   PROSPECTING_RETRY:         1010,
   PROSPECTING_METRICS:       1011,
   PROSPECTING_FOLLOWUPS:     1012,
+  PRIVACY_RETENTION:         1013,
 } as const
 
 @Injectable()

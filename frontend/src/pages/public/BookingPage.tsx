@@ -17,7 +17,14 @@ import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { track, EVENTS } from '@/lib/analytics'
-import { usePublicBookingPage, usePublicBookingSlots, useCreateBooking, usePublicBookingDates } from '@/hooks/useApi'
+import {
+  useBookingContactMemory,
+  useForgetBookingContact,
+  usePublicBookingPage,
+  usePublicBookingSlots,
+  useCreateBooking,
+  usePublicBookingDates,
+} from '@/hooks/useApi'
 
 // WhatsApp SVG icon
 function WhatsAppIcon({ className }: { className?: string }) {
@@ -30,13 +37,23 @@ function WhatsAppIcon({ className }: { className?: string }) {
 }
 
 const schema = z.object({
-  patientName:     z.string().min(2, 'Nome obrigatório'),
+  patientName:     z.string().optional(),
   patientEmail:    z.string().trim().optional().or(z.literal('')),
   patientPhone:    z.string().trim().optional().or(z.literal('')),
   modality:        z.enum(['presencial', 'online']),
   patientNotes:    z.string().optional(),
+  useSavedContact: z.boolean(),
+  rememberContact: z.boolean(),
   privacyAccepted: z.boolean().refine(Boolean, 'Voce precisa autorizar o uso dos dados para agendamento.'),
 }).superRefine((data, ctx) => {
+  if (data.useSavedContact) return
+  if (!data.patientName?.trim() || data.patientName.trim().length < 2) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['patientName'],
+      message: 'Nome obrigatório.',
+    })
+  }
   const hasEmail = !!data.patientEmail?.trim()
   const phoneDigits = data.patientPhone?.replace(/\D/g, '') ?? ''
   if (!hasEmail && !phoneDigits) {
@@ -69,37 +86,6 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>
 
 type Step = 'landing' | 'date' | 'time' | 'form' | 'success'
-
-type SavedPatientContact = Pick<FormData, 'patientName' | 'patientEmail' | 'patientPhone'>
-
-function contactStorageKey(slug?: string) {
-  return `usecognia:booking-contact:${slug || 'default'}`
-}
-
-function loadSavedPatientContact(slug?: string): Partial<SavedPatientContact> | null {
-  if (typeof window === 'undefined') return null
-  try {
-    const raw = window.localStorage.getItem(contactStorageKey(slug))
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as Partial<SavedPatientContact>
-    return {
-      patientName: typeof parsed.patientName === 'string' ? parsed.patientName : undefined,
-      patientEmail: typeof parsed.patientEmail === 'string' ? parsed.patientEmail : undefined,
-      patientPhone: typeof parsed.patientPhone === 'string' ? parsed.patientPhone : undefined,
-    }
-  } catch {
-    return null
-  }
-}
-
-function savePatientContact(slug: string | undefined, data: SavedPatientContact) {
-  if (typeof window === 'undefined') return
-  try {
-    window.localStorage.setItem(contactStorageKey(slug), JSON.stringify(data))
-  } catch {
-    // localStorage pode estar indisponivel em modo privado; o agendamento deve continuar.
-  }
-}
 
 function formatWhatsApp(raw?: string | null) {
   if (!raw) return null
@@ -135,7 +121,11 @@ export default function BookingPage() {
     defaultValues: {
       modality: 'presencial',
       privacyAccepted: false,
-      ...loadSavedPatientContact(slug),
+      patientName: '',
+      patientEmail: '',
+      patientPhone: '',
+      useSavedContact: false,
+      rememberContact: false,
     },
   })
   const selectedModality = watch('modality')
@@ -156,6 +146,9 @@ export default function BookingPage() {
   )
   const { data: slots = [], isFetching: slotsLoading } = usePublicBookingSlots(slug ?? '', selectedDate, selectedModality)
   const createBooking = useCreateBooking(slug ?? '')
+  const contactMemory = useBookingContactMemory()
+  const forgetContact = useForgetBookingContact()
+  const useSavedContact = watch('useSavedContact')
   const availableDateSet = new Set(availableDates)
   const availableDatesInMonth = availableDates
     .map(date => parseISO(date))
@@ -163,6 +156,17 @@ export default function BookingPage() {
     .sort((a, b) => a.getTime() - b.getTime())
 
   useEffect(() => { track(EVENTS.BOOKING_PAGE_VIEWED) }, [])
+
+  // Remove o formato legado que guardava contato em texto puro no navegador.
+  useEffect(() => {
+    try {
+      Object.keys(window.localStorage)
+        .filter(key => key.startsWith('usecognia:booking-contact:'))
+        .forEach(key => window.localStorage.removeItem(key))
+    } catch {
+      // Navegadores em modo privado podem bloquear storage; o fluxo segue normalmente.
+    }
+  }, [])
 
   // Mantém os metadados do navegador consistentes com o preview entregue pelo servidor.
   useEffect(() => {
@@ -196,12 +200,8 @@ export default function BookingPage() {
   }, [page, setValue])
 
   useEffect(() => {
-    const saved = loadSavedPatientContact(slug)
-    if (!saved) return
-    if (saved.patientName) setValue('patientName', saved.patientName)
-    if (saved.patientEmail) setValue('patientEmail', saved.patientEmail)
-    if (saved.patientPhone) setValue('patientPhone', saved.patientPhone)
-  }, [slug, setValue])
+    if (contactMemory.data?.available) setValue('useSavedContact', true)
+  }, [contactMemory.data?.available, setValue])
 
   function startBooking() {
     setStep('date')
@@ -244,15 +244,11 @@ export default function BookingPage() {
       const { privacyAccepted: _privacyAccepted, ...bookingData } = data
       await createBooking.mutateAsync({
         ...bookingData,
-        patientEmail: bookingData.patientEmail?.trim() || undefined,
-        patientPhone: bookingData.patientPhone?.replace(/\D/g, '') || undefined,
+        patientName: bookingData.useSavedContact ? undefined : bookingData.patientName?.trim(),
+        patientEmail: bookingData.useSavedContact ? undefined : bookingData.patientEmail?.trim() || undefined,
+        patientPhone: bookingData.useSavedContact ? undefined : bookingData.patientPhone?.replace(/\D/g, '') || undefined,
         date: selectedDate,
         time: selectedTime,
-      })
-      savePatientContact(slug, {
-        patientName: bookingData.patientName.trim(),
-        patientEmail: bookingData.patientEmail?.trim() ?? '',
-        patientPhone: bookingData.patientPhone?.replace(/\D/g, '') ?? '',
       })
       track(EVENTS.BOOKING_CONFIRMED)
       setStep('success')
@@ -713,26 +709,63 @@ export default function BookingPage() {
                 <h2 className="font-medium text-neutral-800 mb-5">Seus dados</h2>
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                  <div>
-                    <label className="label">Nome completo *</label>
-                    <input {...register('patientName')} className="input-field" placeholder="Como você se chama?" />
-                    {errors.patientName && <p className="text-rose-500 text-xs mt-1">{errors.patientName.message}</p>}
-                  </div>
-                  <div>
+                  {contactMemory.data?.available && useSavedContact ? (
+                    <div className="rounded-2xl border border-sage-200 bg-sage-50 p-4">
+                      <input {...register('useSavedContact')} type="hidden" />
+                      <p className="font-medium text-sage-800">
+                        Usar dados salvos de {contactMemory.data.name}
+                      </p>
+                      <p className="mt-1 text-sm text-sage-700">
+                        {[contactMemory.data.email, contactMemory.data.phone].filter(Boolean).join(' · ')}
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-3 text-xs">
+                        <button
+                          type="button"
+                          className="font-medium text-sage-700 underline"
+                          onClick={() => setValue('useSavedContact', false)}
+                        >
+                          Usar outros dados
+                        </button>
+                        <button
+                          type="button"
+                          className="font-medium text-neutral-500 underline"
+                          onClick={async () => {
+                            await forgetContact.mutateAsync()
+                            setValue('useSavedContact', false)
+                          }}
+                        >
+                          Esquecer deste dispositivo
+                        </button>
+                      </div>
+                    </div>
+                  ) : <>
+                    <div>
+                      <label className="label">Nome completo *</label>
+                      <input {...register('patientName')} className="input-field" placeholder="Como você se chama?" />
+                      {errors.patientName && <p className="text-rose-500 text-xs mt-1">{errors.patientName.message}</p>}
+                    </div>
                     <p className="text-xs text-neutral-500">Informe pelo menos uma forma de contato: e-mail ou WhatsApp.</p>
-                  </div>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div>
-                      <label className="label">E-mail</label>
-                      <input {...register('patientEmail')} type="email" className="input-field" placeholder="voce@email.com" />
-                      {errors.patientEmail && <p className="text-rose-500 text-xs mt-1">{errors.patientEmail.message}</p>}
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="label">E-mail</label>
+                        <input {...register('patientEmail')} type="email" className="input-field" placeholder="voce@email.com" />
+                        {errors.patientEmail && <p className="text-rose-500 text-xs mt-1">{errors.patientEmail.message}</p>}
+                      </div>
+                      <div>
+                        <label className="label">WhatsApp</label>
+                        <input {...register('patientPhone')} className="input-field" placeholder="(11) 99999-9999" />
+                        {errors.patientPhone && <p className="text-rose-500 text-xs mt-1">{errors.patientPhone.message}</p>}
+                      </div>
                     </div>
-                    <div>
-                      <label className="label">WhatsApp</label>
-                      <input {...register('patientPhone')} className="input-field" placeholder="(11) 99999-9999" />
-                      {errors.patientPhone && <p className="text-rose-500 text-xs mt-1">{errors.patientPhone.message}</p>}
-                    </div>
-                  </div>
+                    <label className="flex items-start gap-3 rounded-xl border border-neutral-200 p-3 text-sm text-neutral-600">
+                      <input
+                        type="checkbox"
+                        {...register('rememberContact')}
+                        className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-sage-600 focus:ring-sage-500"
+                      />
+                      <span>Lembrar meus dados neste dispositivo por 30 dias.</span>
+                    </label>
+                  </>}
 
                   <input {...register('modality')} type="hidden" value={selectedModality} />
                   <div>

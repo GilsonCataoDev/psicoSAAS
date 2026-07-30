@@ -4,13 +4,14 @@ import {
 } from 'typeorm'
 import { Patient } from '../../patients/entities/patient.entity'
 import { User } from '../../auth/entities/user.entity'
+import { encryptedTextTransformer } from '../../../common/crypto/encrypt.util'
 
 @Entity('financial_records')
 export class FinancialRecord {
   @PrimaryGeneratedColumn('uuid') id: string
   @Column({ type: 'text', default: 'income' }) type: 'income' | 'expense'
   @Column({ type: 'decimal', precision: 10, scale: 2 }) amount: number
-  @Column() description: string
+  @Column({ type: 'text', transformer: encryptedTextTransformer }) description: string
   @Column({ type: 'text', default: 'pending' }) status: string
   @Column({ nullable: true }) dueDate?: string
   @Column({ nullable: true }) paidAt?: string

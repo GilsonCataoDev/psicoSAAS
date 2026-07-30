@@ -11,6 +11,7 @@
  * A chave derivada é cacheada em memória para performance.
  */
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, scryptSync, timingSafeEqual } from 'crypto'
+import type { ValueTransformer } from 'typeorm'
 
 const ALG    = 'aes-256-gcm' as const
 const SALT   = 'usecognia-field-enc-v1'
@@ -113,6 +114,28 @@ export function safeDecryptSecret(value: unknown): unknown {
  */
 export function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex')
+}
+
+/**
+ * Índice determinístico e não reversível para localizar campos cifrados.
+ * O contexto impede correlação do mesmo valor entre tabelas/campos diferentes.
+ */
+export function blindIndex(value: string, context: string): string {
+  return createHmac('sha256', getKey())
+    .update(`${context}:${value.trim().toLowerCase()}`)
+    .digest('hex')
+}
+
+/** Transformer para campos sempre cifrados, inclusive quando carregados por relações TypeORM. */
+export const encryptedTextTransformer: ValueTransformer = {
+  to(value: string | null | undefined): string | null | undefined {
+    if (!value) return value
+    return encrypt(value)
+  },
+  from(value: string | null | undefined): string | null | undefined {
+    if (!value) return value
+    return safeDecrypt(value)
+  },
 }
 
 /**

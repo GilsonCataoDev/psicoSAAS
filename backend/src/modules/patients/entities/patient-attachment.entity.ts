@@ -5,6 +5,7 @@ import {
 import { Patient } from './patient.entity'
 import { User } from '../../auth/entities/user.entity'
 import { NeuropsychAssessment } from '../../neuropsych-assessments/entities/neuropsych-assessment.entity'
+import { encryptedTextTransformer } from '../../../common/crypto/encrypt.util'
 
 export type PatientAttachmentKind = 'test_result' | 'final_report' | 'supporting_document' | 'other'
 
@@ -17,7 +18,7 @@ export type PatientAttachmentKind = 'test_result' | 'final_report' | 'supporting
 export class PatientAttachment {
   @PrimaryGeneratedColumn('uuid') id: string
 
-  @Column() filename: string
+  @Column({ type: 'text', transformer: encryptedTextTransformer }) filename: string
   @Column() mimeType: string
 
   /** Tamanho original do arquivo em bytes (antes de base64 + criptografia) */

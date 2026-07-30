@@ -27,11 +27,19 @@ Esse isolamento é coberto por **testes automatizados** que simulam duas contas 
 
 Para dar suporte, a operação da plataforma pode usar um modo "ver como" (impersonação) — sempre registrado na trilha de auditoria. Esse modo **não alcança dados de pacientes**: cadastros, agenda, agendamentos, financeiro, prontuários, sessões, anexos, documentos, respostas de instrumentos e exportações integrais ficam bloqueados durante a impersonação. Ficam visíveis apenas informações operacionais da conta, sem sigilo clínico. Ações sensíveis (troca de senha, exclusão de conta e dados de cobrança) também são bloqueadas. Esse bloqueio é coberto por testes automatizados.
 
-## Dados clínicos
+## Dados clínicos e de contato
 
-- Prontuários, anotações privadas de sessão, anexos, CPF, data de nascimento e dados demográficos sensíveis são **criptografados no banco de dados** (AES-256-GCM, em nível de aplicação) — um acesso direto ao banco não expõe esses campos em texto legível.
+- Prontuários, anotações privadas de sessão, nome e contato de pacientes, nomes de anexos, CPF, data de nascimento, descrições financeiras e dados demográficos sensíveis são **criptografados no banco de dados** (AES-256-GCM, em nível de aplicação) — um acesso direto ao banco não expõe esses campos em texto legível.
+- E-mail e telefone de pacientes têm índices cegos HMAC separados por finalidade. Isso permite localizar um cadastro sem guardar uma cópia pesquisável em texto puro.
 - Logs do sistema não registram conteúdo clínico.
 - Ações sensíveis (visualização de paciente, exportação de prontuário, download de anexos, login) ficam registradas em **trilha de auditoria**.
+
+## Preenchimento facilitado no agendamento
+
+- O nome, e-mail e telefone do paciente **não ficam no `localStorage`** do navegador.
+- Se o paciente marcar “lembrar meus dados”, o navegador recebe somente um identificador aleatório em cookie `HttpOnly`, `Secure` e `SameSite=Lax`. Scripts da página não conseguem ler esse identificador.
+- Os dados correspondentes ficam criptografados no servidor por até 30 dias. A tela mostra apenas uma prévia mascarada e oferece a ação “Esquecer deste dispositivo”.
+- A limpeza automática também remove registros expirados. Chaves antigas do `localStorage` são apagadas quando a página pública é aberta.
 
 ## Documentos e links públicos
 
@@ -90,7 +98,18 @@ Para dar suporte, a operação da plataforma pode usar um modo "ver como" (imper
 
 - **Exportação**: você pode baixar todos os seus dados em PDF pela própria plataforma (`Configurações → Exportar dados`).
 - **Exclusão**: a exclusão de conta remove os dados da plataforma. **Atenção**: o Conselho Federal de Psicologia exige guarda de prontuários por prazo mínimo — antes de excluir a conta, exporte seus prontuários e mantenha-os sob sua guarda profissional.
+- Na exclusão da conta, anexos e avatar armazenados externamente também precisam ser removidos. Se o provedor de arquivos não confirmar a exclusão, o encerramento é interrompido para evitar deixar arquivos órfãos.
 - **Consentimento**: o aceite dos Termos de Uso e da Política de Privacidade é registrado com versão e data.
+
+## Retenção técnica automática
+
+- Logs de entrega de WhatsApp: 7 dias.
+- Logs de e-mail: 30 dias.
+- Dados opcionais de preenchimento rápido do agendamento: até 30 dias.
+- Tentativas de login: 90 dias.
+- Trilha técnica de auditoria: 180 dias.
+
+Esses prazos não apagam prontuários ou documentos clínicos do profissional. Registros clínicos permanecem sob o controle da conta e devem observar as obrigações profissionais de guarda.
 
 ## Limitações conhecidas (transparência)
 
@@ -114,4 +133,4 @@ Solicitações de titulares de dados, dúvidas de privacidade ou relato de vulne
 
 ---
 
-*Última revisão técnica: julho de 2026 (inclui bloqueio integral de dados de pacientes no acesso administrativo, tokens públicos protegidos e backups cifrados).*
+*Última revisão técnica: julho de 2026 (inclui contatos de pacientes cifrados, preenchimento rápido sem dados pessoais no localStorage, retenção técnica automática e exclusão coordenada de arquivos).*

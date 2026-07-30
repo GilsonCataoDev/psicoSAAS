@@ -13,16 +13,18 @@ import { FinancialRecord } from '../financial/entities/financial-record.entity'
 import { GoogleCalendarModule } from '../google-calendar/google-calendar.module'
 import { User } from '../auth/entities/user.entity'
 import { Session } from '../sessions/entities/session.entity'
+import { BookingContactMemory } from './entities/booking-contact-memory.entity'
+import { BookingContactMemoryService } from './booking-contact-memory.service'
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Booking, BookingPage, Patient, Appointment, FinancialRecord, User, Session]),
+    TypeOrmModule.forFeature([Booking, BookingPage, BookingContactMemory, Patient, Appointment, FinancialRecord, User, Session]),
     AvailabilityModule,
     NotificationsModule,
     GoogleCalendarModule,
   ],
   controllers: [BookingController, PublicBookingController],
-  providers: [BookingService],
+  providers: [BookingService, BookingContactMemoryService],
   exports: [BookingService],
 })
 export class BookingModule {}
