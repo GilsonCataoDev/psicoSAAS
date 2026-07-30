@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { NEUROPSYCH_TEST_CATALOG } from '@/lib/neuropsychTestCatalog'
 
 interface TestNameComboboxProps {
@@ -10,26 +11,48 @@ interface TestNameComboboxProps {
 
 export default function TestNameCombobox({ id, value, onChange, placeholder }: TestNameComboboxProps) {
   const [open, setOpen] = useState(false)
+  const [rect, setRect] = useState<{ top: number; left: number; width: number } | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  function updateRect() {
+    const bounds = inputRef.current?.getBoundingClientRect()
+    if (bounds) setRect({ top: bounds.bottom, left: bounds.left, width: bounds.width })
+  }
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) setOpen(false)
+    if (!open) return
+    updateRect()
+    const handleReposition = () => updateRect()
+    window.addEventListener('scroll', handleReposition, true)
+    window.addEventListener('resize', handleReposition)
+    return () => {
+      window.removeEventListener('scroll', handleReposition, true)
+      window.removeEventListener('resize', handleReposition)
     }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [open])
+
+  useEffect(() => {
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target as Node
+      if (containerRef.current?.contains(target)) return
+      setOpen(false)
+    }
+    document.addEventListener('pointerdown', handlePointerDown)
+    return () => document.removeEventListener('pointerdown', handlePointerDown)
   }, [])
 
   const query = value.trim().toLowerCase()
   const suggestions = query
     ? NEUROPSYCH_TEST_CATALOG.filter(testName => testName.toLowerCase().includes(query))
     : NEUROPSYCH_TEST_CATALOG
-  const showSuggestions = open && suggestions.length > 0
+  const showSuggestions = open && rect && suggestions.length > 0
 
   return (
     <div ref={containerRef} className="relative">
       <input
         id={id}
+        ref={inputRef}
         value={value}
         onChange={event => onChange(event.target.value)}
         onFocus={() => setOpen(true)}
@@ -37,11 +60,14 @@ export default function TestNameCombobox({ id, value, onChange, placeholder }: T
         placeholder={placeholder}
         autoComplete="off"
         role="combobox"
-        aria-expanded={showSuggestions}
+        aria-expanded={Boolean(showSuggestions)}
         aria-autocomplete="list"
       />
-      {showSuggestions && (
-        <ul className="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-neutral-200 bg-white py-1 shadow-card dark:border-white/10 dark:bg-cognia-panel">
+      {showSuggestions && rect && createPortal(
+        <ul
+          style={{ position: 'fixed', top: rect.top + 4, left: rect.left, width: rect.width }}
+          className="z-[100] max-h-64 overflow-y-auto rounded-xl border border-neutral-200 bg-white py-1 shadow-card dark:border-white/10 dark:bg-cognia-panel"
+        >
           {suggestions.map(testName => (
             <li key={testName}>
               <button
@@ -53,7 +79,8 @@ export default function TestNameCombobox({ id, value, onChange, placeholder }: T
               </button>
             </li>
           ))}
-        </ul>
+        </ul>,
+        document.body,
       )}
     </div>
   )
