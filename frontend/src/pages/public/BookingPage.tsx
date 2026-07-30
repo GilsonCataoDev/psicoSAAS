@@ -287,11 +287,11 @@ export default function BookingPage() {
   // ── LANDING ──────────────────────────────────────────────────────────────────
   if (step === 'landing') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-sage-50 via-white to-mist-50 dark:from-[#0d1713] dark:via-[#101d18] dark:to-[#12231d] flex flex-col items-center justify-center px-6 py-12 relative">
-        <div className="w-full max-w-lg flex flex-col items-center bg-white/90 dark:bg-[#17251f]/90 backdrop-blur-xl rounded-3xl border border-white dark:border-sage-200/15 shadow-lifted px-7 py-9 sm:px-10 sm:py-11">
+      <div className="min-h-screen bg-gradient-to-br from-sage-50 via-white to-mist-50 dark:from-[#0d1713] dark:via-[#101d18] dark:to-[#12231d] flex flex-col items-center justify-start px-4 py-6 sm:justify-center sm:px-6 sm:py-12">
+        <div className="w-full max-w-lg flex flex-col items-center bg-white/90 dark:bg-[#17251f]/90 backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-white dark:border-sage-200/15 shadow-lifted px-5 py-7 sm:px-10 sm:py-11">
 
           {/* Avatar */}
-          <div className="w-28 h-28 rounded-full overflow-hidden bg-neutral-100 dark:bg-sage-500/15 mb-6 ring-4 ring-white dark:ring-sage-300/20 shadow-md shrink-0">
+          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden bg-neutral-100 dark:bg-sage-500/15 mb-5 sm:mb-6 ring-4 ring-white dark:ring-sage-300/20 shadow-md shrink-0">
             {page.avatarUrl ? (
               <img src={page.avatarUrl} alt={page.psychologistName} className="w-full h-full object-cover object-center" />
             ) : (
@@ -394,7 +394,7 @@ export default function BookingPage() {
         </div>
 
         {/* Powered by */}
-        <p className="absolute bottom-6 text-xs text-neutral-400 dark:text-neutral-500">
+        <p className="mt-5 text-xs text-neutral-400 dark:text-neutral-500">
           Powered by{' '}
           <span className="font-semibold text-sage-600 dark:text-sage-300">UseCognia</span>
         </p>
@@ -407,7 +407,7 @@ export default function BookingPage() {
     <div className="min-h-screen bg-gradient-to-br from-sage-50 via-white to-mist-50 dark:from-[#0d1713] dark:via-[#101d18] dark:to-[#12231d] flex flex-col">
       {/* Header */}
       <header className="bg-white/80 dark:bg-[#17251f]/85 backdrop-blur-sm border-b border-neutral-100 dark:border-white/10 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
+        <div className="max-w-2xl mx-auto px-4 py-3 sm:py-4 flex items-center gap-3">
           <button
             onClick={() => setStep('landing')}
             className="w-10 h-10 bg-sage-50 border border-sage-100 rounded-xl overflow-hidden flex items-center justify-center shrink-0 hover:bg-sage-100 transition-colors"
@@ -419,7 +419,7 @@ export default function BookingPage() {
             )}
           </button>
           <div className="flex-1 min-w-0">
-            <p className="font-medium text-neutral-800 dark:text-neutral-100 text-sm leading-none">{page.psychologistName}</p>
+            <p className="font-medium text-neutral-800 dark:text-neutral-100 text-sm leading-snug line-clamp-2">{page.psychologistName}</p>
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
               <p className="text-xs text-neutral-400">CRP {page.psychologistCrp}</p>
               <button
@@ -436,7 +436,7 @@ export default function BookingPage() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-8">
+      <main className="flex-1 max-w-2xl mx-auto w-full px-3 py-5 sm:px-4 sm:py-8">
 
         {/* ── Sucesso ─────────────────────────────────────────────────── */}
         {step === 'success' && (
@@ -477,8 +477,8 @@ export default function BookingPage() {
         {step !== 'success' && (
           <>
             {/* Intro */}
-            <div className="mb-8">
-              <h1 className="font-display text-2xl font-light text-neutral-800 mb-2">
+            <div className="mb-6 sm:mb-8">
+              <h1 className="font-display text-xl sm:text-2xl font-light leading-tight text-neutral-800 dark:text-neutral-100 mb-2">
                 Agende sua consulta com {page.psychologistName}
               </h1>
               {page.description && (
@@ -491,32 +491,37 @@ export default function BookingPage() {
             </div>
 
             {/* Progress */}
-            <div className="flex items-center gap-2 mb-8">
+            <div className="relative grid grid-cols-3 gap-2 mb-6 sm:mb-8" aria-label="Etapas do agendamento">
+              <div className="absolute left-[16.67%] right-[16.67%] top-3.5 h-px bg-neutral-200 dark:bg-white/15" />
               {(['date', 'time', 'form'] as Step[]).map((s, i) => (
-                <div key={s} className="flex items-center gap-2">
+                <div key={s} className="relative z-[1] flex min-w-0 flex-col items-center gap-1.5 text-center">
                   <div className={cn(
                     'w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all',
                     step === s ? 'bg-sage-500 text-white' :
                     ['date','time','form'].indexOf(step) > i ? 'bg-sage-100 text-sage-700' :
-                    'bg-neutral-100 text-neutral-400'
-                  )}>
+                    'bg-neutral-100 text-neutral-400 dark:bg-[#17251f]'
+                  )}
+                    aria-current={step === s ? 'step' : undefined}
+                  >
                     {['date','time','form'].indexOf(step) > i ? <Check className="w-3.5 h-3.5" /> : i + 1}
                   </div>
-                  <span className={cn('text-sm hidden sm:block', step === s ? 'text-neutral-700 font-medium' : 'text-neutral-400')}>
+                  <span className={cn(
+                    'text-[11px] leading-tight sm:text-sm',
+                    step === s ? 'text-neutral-700 dark:text-neutral-100 font-medium' : 'text-neutral-400',
+                  )}>
                     {['Escolher data', 'Escolher horário', 'Seus dados'][i]}
                   </span>
-                  {i < 2 && <div className="w-8 h-px bg-neutral-200" />}
                 </div>
               ))}
             </div>
 
             {/* ── Step 1: Calendário ─────────────────────────────────── */}
             {step === 'date' && (
-              <div className="bg-white rounded-3xl shadow-card p-6 animate-slide-up">
+              <div className="bg-white rounded-2xl sm:rounded-3xl shadow-card p-4 sm:p-6 animate-slide-up">
                 {page.allowPresencial && page.allowOnline && (
                   <div className="mb-6">
                     <h2 className="font-medium text-neutral-800 mb-3">Escolha o tipo de atendimento</h2>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-2">
                       {(['presencial','online'] as const).map(m => (
                         <button
                           key={m}
@@ -573,7 +578,7 @@ export default function BookingPage() {
                 )}
                 {!datesLoading && (
                   <div className="mb-4 rounded-2xl border border-sage-100 bg-sage-50 px-4 py-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <p className="text-sm font-medium text-sage-800">
                         {availableDatesInMonth.length > 0
                           ? `${availableDatesInMonth.length} ${availableDatesInMonth.length === 1 ? 'data disponivel' : 'datas disponiveis'} neste mes`
@@ -664,7 +669,7 @@ export default function BookingPage() {
 
             {/* ── Step 2: Horários ───────────────────────────────────── */}
             {step === 'time' && (
-              <div className="bg-white rounded-3xl shadow-card p-6 animate-slide-up">
+              <div className="bg-white rounded-2xl sm:rounded-3xl shadow-card p-4 sm:p-6 animate-slide-up">
                 <button onClick={() => setStep('date')}
                   className="flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-700 mb-5 transition-colors">
                   <ChevronLeft className="w-4 h-4" />
@@ -699,7 +704,7 @@ export default function BookingPage() {
 
             {/* ── Step 3: Formulário ─────────────────────────────────── */}
             {step === 'form' && (
-              <div className="bg-white rounded-3xl shadow-card p-6 animate-slide-up">
+              <div className="bg-white rounded-2xl sm:rounded-3xl shadow-card p-4 sm:p-6 animate-slide-up">
                 <button onClick={() => setStep('time')}
                   className="flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-700 mb-5 transition-colors">
                   <ChevronLeft className="w-4 h-4" />
