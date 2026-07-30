@@ -12,7 +12,6 @@ import {
   useUserTimeline, useChurnAiDiagnosis, useSendChurnWhatsApp,
 } from '@/hooks/useApi'
 import { cn } from '@/lib/utils'
-import { buildWhatsAppUrl } from '@/lib/whatsapp'
 import toast from 'react-hot-toast'
 
 // ─── Risk config ─────────────────────────────────────────────────────────────
@@ -100,9 +99,9 @@ function AccountRow({ account }: { account: ChurnAccount }) {
 
   function handleSendDiagnosisWhatsApp(e: React.MouseEvent) {
     e.stopPropagation()
-    if (!account.phone || !aiDiagnose.data) return
+    if (!account.hasPhone || !aiDiagnose.data) return
     if (!window.confirm(`Enviar esta mensagem por WhatsApp para ${account.name}?`)) return
-    sendWhatsApp.mutate({ userId: account.id, phone: account.phone, message: aiDiagnose.data.explanation }, {
+    sendWhatsApp.mutate({ userId: account.id, message: aiDiagnose.data.explanation }, {
       onSuccess: (result) => {
         if (result.sent) toast.success(`WhatsApp enviado para ${account.name}`)
         else toast.error(result.error ?? 'Não foi possível enviar o WhatsApp')
@@ -119,9 +118,21 @@ function AccountRow({ account }: { account: ChurnAccount }) {
     })
   }
 
+  function handleSendReactivationWhatsApp(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!account.hasPhone) return
+    if (!window.confirm(`Enviar mensagem de reativação por WhatsApp para ${account.name}?`)) return
+    sendWhatsApp.mutate({ userId: account.id, message: whatsappMsg }, {
+      onSuccess: (result) => {
+        if (result.sent) toast.success(`WhatsApp enviado para ${account.name}`)
+        else toast.error(result.error ?? 'Não foi possível enviar o WhatsApp')
+      },
+      onError: () => toast.error('Não foi possível enviar o WhatsApp'),
+    })
+  }
+
   const whatsappMsg =
     `Olá ${account.name}! Aqui é a equipe do UseCognia. Percebemos que faz um tempo que você não acessa a plataforma. Podemos te ajudar com algo? 😊`
-  const whatsappUrl = buildWhatsAppUrl(account.phone, whatsappMsg)
 
   return (
     <Fragment>
@@ -179,15 +190,17 @@ function AccountRow({ account }: { account: ChurnAccount }) {
                 ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 : <Mail className="h-3.5 w-3.5" />}
             </button>
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Enviar WhatsApp"
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-neutral-200 text-neutral-500 hover:border-emerald-300 hover:text-emerald-700 transition-colors"
+            <button
+              type="button"
+              onClick={handleSendReactivationWhatsApp}
+              disabled={!account.hasPhone || sendWhatsApp.isPending}
+              title={account.hasPhone ? 'Enviar WhatsApp' : 'Conta sem telefone cadastrado'}
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-neutral-200 text-neutral-500 hover:border-emerald-300 hover:text-emerald-700 disabled:opacity-40 transition-colors"
             >
-              <MessageCircle className="h-3.5 w-3.5" />
-            </a>
+              {sendWhatsApp.isPending
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <MessageCircle className="h-3.5 w-3.5" />}
+            </button>
             {expanded ? <ChevronUp className="h-4 w-4 text-neutral-400 ml-1" /> : <ChevronDown className="h-4 w-4 text-neutral-400 ml-1" />}
           </div>
         </td>
@@ -241,8 +254,8 @@ function AccountRow({ account }: { account: ChurnAccount }) {
                     <button
                       type="button"
                       onClick={handleSendDiagnosisWhatsApp}
-                      disabled={!account.phone || sendWhatsApp.isPending}
-                      title={account.phone ? 'Enviar por WhatsApp' : 'Conta sem telefone cadastrado'}
+                      disabled={!account.hasPhone || sendWhatsApp.isPending}
+                      title={account.hasPhone ? 'Enviar por WhatsApp' : 'Conta sem telefone cadastrado'}
                       className="btn-secondary text-xs px-2.5 py-1 flex items-center gap-1"
                     >
                       {sendWhatsApp.isPending

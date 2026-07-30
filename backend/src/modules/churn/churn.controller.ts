@@ -1,22 +1,18 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common'
-import { IsString, MaxLength, MinLength } from 'class-validator'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
+import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { AdminGuard } from '../../common/guards/admin.guard'
 import { ChurnService } from './churn.service'
 import { RiskLevel } from './entities/tenant-health.entity'
-import { NotificationsService } from '../notifications/notifications.service'
-
-class SendChurnWhatsAppDto {
-  @IsString() @MaxLength(30) phone: string
-  @IsString() @MinLength(1) @MaxLength(2000) message: string
-}
+import { ChurnContactService } from './churn-contact.service'
+import { SendChurnWhatsAppDto } from './dto/send-churn-whatsapp.dto'
 
 @Controller('admin/churn')
-@UseGuards(JwtAuthGuard, AdminGuard)
+@UseGuards(JwtAuthGuard, CsrfGuard, AdminGuard)
 export class ChurnController {
   constructor(
     private readonly svc: ChurnService,
-    private readonly notifications: NotificationsService,
+    private readonly contacts: ChurnContactService,
   ) {}
 
   @Get('dashboard')
@@ -87,9 +83,6 @@ export class ChurnController {
    */
   @Post('user/:userId/send-whatsapp')
   sendWhatsApp(@Req() req: any, @Param('userId') userId: string, @Body() body: SendChurnWhatsAppDto) {
-    return this.notifications.sendDirectWhatsApp(body.phone, body.message, req.user.id, {
-      type: 'churn_admin_message',
-      patientId: userId,
-    })
+    return this.contacts.sendWhatsApp(userId, body.message, req.user.id)
   }
 }

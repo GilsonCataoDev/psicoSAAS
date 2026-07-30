@@ -9,11 +9,13 @@ import { ChurnController } from './churn.controller'
 import { EmailModule } from '../email/email.module'
 import { SessionsModule } from '../sessions/sessions.module'
 import { NotificationsModule } from '../notifications/notifications.module'
+import { User } from '../auth/entities/user.entity'
+import { ChurnContactService } from './churn-contact.service'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([TenantHealth, TenantActivation, TenantAlert]), EmailModule, SessionsModule, NotificationsModule],
+  imports: [TypeOrmModule.forFeature([TenantHealth, TenantActivation, TenantAlert, User]), EmailModule, SessionsModule, NotificationsModule],
   controllers: [ChurnController],
-  providers: [ChurnService, ChurnScoreJob],
+  providers: [ChurnService, ChurnScoreJob, ChurnContactService],
   exports: [ChurnService],
 })
 export class ChurnModule {}
