@@ -440,6 +440,38 @@ describe('NotificationsService WhatsApp delivery validation', () => {
     expect(sendSpy).not.toHaveBeenCalled()
   })
 
+  it('sends privacy-safe push alerts for public booking events', async () => {
+    const pushSpy = jest.spyOn(service as any, 'sendPushToUser').mockResolvedValue({ sent: 1, removed: 0 })
+    const booking = {
+      id: 'booking-push-id',
+      patientName: 'Marina Silva',
+      patientNotes: 'Informacao clinica que nao pode aparecer',
+      psychologistId: ownerId,
+      date: '2026-08-10',
+      time: '14:00',
+      publicConfirmationToken: 'confirm-token',
+      publicCancellationCode: 'cancel-token',
+      psychologist: { preferences: {} },
+    }
+    const page = {
+      psychologistId: ownerId,
+      psychologist: { preferences: {} },
+    }
+
+    await service.sendBookingRequest(booking, page)
+    await service.sendBookingCreatedToPsychologist(booking, page)
+    await service.sendBookingCancellation(booking)
+
+    expect(pushSpy).toHaveBeenCalledTimes(3)
+    for (const [, rawPayload] of pushSpy.mock.calls) {
+      const payload = rawPayload as Record<string, string>
+      expect(payload.body).toContain('2026-08-10')
+      expect(payload.body).not.toContain('Marina')
+      expect(payload.body).not.toContain('Informacao clinica')
+      expect(payload.url).toBe('https://usecognia.com.br/agendamentos')
+    }
+  })
+
   it('does not resend when the delivery check is inconclusive, avoiding duplicate messages', async () => {
     const text = 'Lembrete de sessao'
     const originalWorkerId = process.env.JEST_WORKER_ID

@@ -8,6 +8,7 @@ import Sidebar from './Sidebar'
 import BottomNav from './BottomNav'
 import TopBar from './TopBar'
 import PWAInstallBanner from '@/components/ui/PWAInstallBanner'
+import PushNotificationBanner from '@/components/ui/PushNotificationBanner'
 import { api, USE_MOCK, type AuthAxiosRequestConfig } from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 import { useSubscriptionStore } from '@/store/subscription'
@@ -419,6 +420,7 @@ export default function AppLayout() {
 
       <BottomNav />
       <PWAInstallBanner />
+      <PushNotificationBanner />
       <Suspense fallback={null}>
         <OnboardingTour />
         <FirstSessionCelebration />

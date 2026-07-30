@@ -23,7 +23,6 @@ export default defineConfig({
         background_color: '#1D352D',
         display: 'standalone',
         display_override: ['window-controls-overlay', 'standalone', 'minimal-ui'],
-        orientation: 'portrait',
         start_url: BASE_PATH,
         scope: BASE_PATH,
         lang: 'pt-BR',
@@ -63,6 +62,18 @@ export default defineConfig({
         navigateFallback: null,
         importScripts: [`${BASE_PATH}push-sw.js`],
         runtimeCaching: [
+          {
+            // Mantem dados e telas autenticadas fora do cache. Sem rede, exibe
+            // somente a pagina estatica segura, sem prontuarios ou dados pessoais.
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkOnly',
+            options: {
+              cacheName: 'usecognia-navigation',
+              precacheFallback: {
+                fallbackURL: `${BASE_PATH}offline.html`,
+              },
+            },
+          },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',

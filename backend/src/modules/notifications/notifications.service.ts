@@ -424,6 +424,26 @@ export class NotificationsService {
     return sent > 0 ? { sent, removed } : { sent, removed, reason: 'api_error' }
   }
 
+  private async sendBookingPush(
+    psychologistId: string | undefined,
+    booking: any,
+    title: string,
+  ): Promise<void> {
+    if (!psychologistId) return
+    try {
+      await this.sendPushToUser(psychologistId, {
+        title,
+        // Nomes e observacoes nao aparecem na tela bloqueada do dispositivo.
+        body: `Data: ${booking.date} as ${String(booking.time).slice(0, 5)}.`,
+        url: `${this.BASE_URL}/agendamentos`,
+        tag: `booking-${booking.id}-${title.toLowerCase().replace(/\s+/g, '-')}`,
+      })
+    } catch (err: any) {
+      // Push e complementar: uma falha nunca deve impedir o agendamento.
+      this.logger.warn(`[WebPush] Aviso de agendamento nao enviado bookingId=${booking.id}: ${err?.message ?? 'erro desconhecido'}`)
+    }
+  }
+
   private async sendWhatsApp(phone: string, text: string, ownerId: string, meta: WhatsAppLogMeta): Promise<WhatsAppDeliveryResult> {
     let result: WhatsAppDeliveryResult
     if (!await this.canUseWhatsAppAutomation(ownerId)) {
@@ -1001,6 +1021,8 @@ export class NotificationsService {
       )
     }
 
+    await this.sendBookingPush(page.psychologistId, booking, 'Nova solicitacao de agendamento')
+
     this.logger.log(`[Booking] Nova solicitacao bookingId=${booking.id} date=${booking.date} time=${booking.time}`)
   }
 
@@ -1053,7 +1075,6 @@ export class NotificationsService {
     const psychologist = page.psychologist
     const prefs = (psychologist?.preferences ?? {}) as Record<string, any>
     const phone = prefs.whatsapp || psychologist?.phone
-    if (!phone) return
 
     const modality = booking.modality === 'presencial'
       ? 'Presencial'
@@ -1070,10 +1091,13 @@ export class NotificationsService {
       patientPhone +
       notes
 
-    await this.sendWhatsApp(phone, msg, page.psychologistId, {
-      type: 'Aviso ao psicologo',
-      patientName: booking.patientName,
-    })
+    if (phone) {
+      await this.sendWhatsApp(phone, msg, page.psychologistId, {
+        type: 'Aviso ao psicologo',
+        patientName: booking.patientName,
+      })
+    }
+    await this.sendBookingPush(page.psychologistId, booking, 'Novo agendamento confirmado')
   }
 
   async sendBookingCancellation(booking: any): Promise<void> {
@@ -1103,6 +1127,7 @@ export class NotificationsService {
         reason,
       )
     }
+    await this.sendBookingPush(booking.psychologistId, booking, 'Agendamento cancelado')
 
     this.logger.log(`[Booking] Cancelamento enviado ao psicologo bookingId=${booking.id}`)
   }
