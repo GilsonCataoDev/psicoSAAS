@@ -138,8 +138,10 @@ export class ChurnService {
   async checkActivation(userId: string): Promise<TenantActivation> {
     const rows = await this.fetchAllStats({ userId })
     if (!rows.length) throw new Error(`User ${userId} not found`)
-    const row = rows[0]
+    return this.persistActivation(rows[0])
+  }
 
+  private async persistActivation(row: TenantStatsRow): Promise<TenantActivation> {
     const patients = Number(row.patientCount)
     const sessions = Number(row.sessionCount)
     const appointments = Number(row.appointmentCount)
@@ -150,9 +152,9 @@ export class ChurnService {
     const condB = patients >= 3
     const isActivated = condA || condB
 
-    let activation = await this.activationRepo.findOne({ where: { userId } })
+    let activation = await this.activationRepo.findOne({ where: { userId: row.id } })
     if (!activation) {
-      activation = this.activationRepo.create({ userId })
+      activation = this.activationRepo.create({ userId: row.id })
     }
 
     const wasActivated = activation.activated
@@ -169,7 +171,7 @@ export class ChurnService {
     if (!isActivated && daysSinceSignup >= 7 && !activation.needsOnboarding) {
       activation.needsOnboarding = true
       activation.needsOnboardingAt = new Date()
-      await this.createAlert(userId, 'not_activated_7d',
+      await this.createAlert(row.id, 'not_activated_7d',
         `${row.name} não se ativou após ${daysSinceSignup} dias do cadastro.`,
         { daysSinceSignup })
     }
@@ -221,7 +223,7 @@ export class ChurnService {
     for (const row of rows) {
       try {
         await this.persistScore(row)
-        await this.checkActivation(row.id)
+        await this.persistActivation(row)
         processed++
       } catch (err: any) {
         this.logger.error(`Score calc failed for ${row.id}: ${err?.message}`)
@@ -419,15 +421,22 @@ export class ChurnService {
 
     // Generate alerts based on score changes
     if (previousScore !== null) {
-      await this.generateAlerts(row.id, row.name, scored.score, previousScore, scored.riskLevel)
+      const daysSinceActive = row.lastActiveAt ? this.daysSince(row.lastActiveAt) : null
+      await this.generateAlerts(row.id, row.name, scored.score, previousScore, scored.riskLevel, daysSinceActive)
     }
   }
 
-  private async generateAlerts(userId: string, name: string, score: number, previousScore: number, riskLevel: RiskLevel): Promise<void> {
+  private async generateAlerts(
+    userId: string,
+    name: string,
+    score: number,
+    previousScore: number,
+    riskLevel: RiskLevel,
+    daysSinceActive: number | null,
+  ): Promise<void> {
     const drop = previousScore - score
     const wasHealthy = previousScore >= 70
     const isNowUnhealthy = score < 70
-    const daysSinceActive = await this.getUserDaysSinceActive(userId)
 
     if (drop >= 30) {
       await this.createAlertIfNew(userId, 'score_dropped',
@@ -460,14 +469,6 @@ export class ChurnService {
 
   private async createAlert(userId: string, type: AlertType, message: string, metadata: Record<string, unknown>): Promise<void> {
     await this.alertRepo.save(this.alertRepo.create({ userId, type, message, metadata }))
-  }
-
-  private async getUserDaysSinceActive(userId: string): Promise<number | null> {
-    const rows = await this.ds.query<Array<{ lastActiveAt: Date | null }>>(
-      `SELECT "lastActiveAt" FROM users WHERE id = $1 LIMIT 1`, [userId],
-    )
-    if (!rows.length || !rows[0].lastActiveAt) return null
-    return this.daysSince(rows[0].lastActiveAt)
   }
 
   // ─── Data fetching ───────────────────────────────────────────────────────────

@@ -68,9 +68,15 @@ export class PaymentReminderJob implements OnModuleInit, OnModuleDestroy {
       relations: ['patient', 'psychologist'],
     })
 
+    const whatsappAccess = new Map<string, Promise<boolean>>()
     for (const record of overdue) {
       const prefs = (record.psychologist?.preferences ?? {}) as Record<string, any>
-      const canUseWhatsApp = await this.notifications.canUseWhatsAppAutomation(record.psychologistId)
+      let access = whatsappAccess.get(record.psychologistId)
+      if (!access) {
+        access = this.notifications.canUseWhatsAppAutomation(record.psychologistId)
+        whatsappAccess.set(record.psychologistId, access)
+      }
+      const canUseWhatsApp = await access
 
       if (canUseWhatsApp && prefs.lateReminder !== false && record.patient?.phone) {
         const result = await this.notifications.sendLatePaymentReminder(
@@ -85,7 +91,10 @@ export class PaymentReminderJob implements OnModuleInit, OnModuleDestroy {
       }
 
       record.status = 'overdue'
-      await this.records.save(record)
+    }
+
+    if (overdue.length > 0) {
+      await this.records.save(overdue)
     }
 
     if (overdue.length > 0) {

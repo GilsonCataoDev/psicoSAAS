@@ -280,14 +280,20 @@ export class FinancialService {
   }
 
   async getSummary(psychologistId: string) {
-    const records = await this.repo.find({ where: { psychologistId } })
-    const income = records.filter(r => r.type === 'income')
+    const totals = await this.repo
+      .createQueryBuilder('record')
+      .select(`COALESCE(SUM(CASE WHEN record.type = 'income' THEN record.amount ELSE 0 END), 0)`, 'totalRevenue')
+      .addSelect(`COALESCE(SUM(CASE WHEN record.type = 'income' AND record.status = 'paid' THEN record.amount ELSE 0 END), 0)`, 'paid')
+      .addSelect(`COALESCE(SUM(CASE WHEN record.type = 'income' AND record.status = 'pending' THEN record.amount ELSE 0 END), 0)`, 'pending')
+      .addSelect(`COALESCE(SUM(CASE WHEN record.type = 'income' AND record.status = 'overdue' THEN record.amount ELSE 0 END), 0)`, 'overdue')
+      .where('record.psychologistId = :psychologistId', { psychologistId })
+      .getRawOne()
 
     return {
-      totalRevenue: income.reduce((s, r) => s + Number(r.amount), 0),
-      paid: income.filter(r => r.status === 'paid').reduce((s, r) => s + Number(r.amount), 0),
-      pending: income.filter(r => r.status === 'pending').reduce((s, r) => s + Number(r.amount), 0),
-      overdue: income.filter(r => r.status === 'overdue').reduce((s, r) => s + Number(r.amount), 0),
+      totalRevenue: Number(totals?.totalRevenue ?? 0),
+      paid: Number(totals?.paid ?? 0),
+      pending: Number(totals?.pending ?? 0),
+      overdue: Number(totals?.overdue ?? 0),
     }
   }
 

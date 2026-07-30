@@ -220,7 +220,8 @@ describe('FinancialService', () => {
 
   describe('getSummary', () => {
     it('retorna zeros quando não há registros', async () => {
-      repo.find.mockResolvedValue([])
+      const qb = makeQb([], null)
+      repo.createQueryBuilder.mockReturnValue(qb)
       const result = await service.getSummary(PSY_ID)
       expect(result.totalRevenue).toBe(0)
       expect(result.paid).toBe(0)
@@ -228,15 +229,21 @@ describe('FinancialService', () => {
     })
 
     it('calcula totais corretamente', async () => {
-      const records = [
-        makeRecord({ type: 'income', status: 'paid', amount: 200 }),
-        makeRecord({ id: 'rec-2', type: 'income', status: 'pending', amount: 100 }),
-      ]
-      repo.find.mockResolvedValue(records)
+      const qb = makeQb([], {
+        totalRevenue: '300',
+        paid: '200',
+        pending: '100',
+        overdue: '0',
+      })
+      repo.createQueryBuilder.mockReturnValue(qb)
       const result = await service.getSummary(PSY_ID)
       expect(result.totalRevenue).toBe(300)
       expect(result.paid).toBe(200)
       expect(result.pending).toBe(100)
+      expect(qb.where).toHaveBeenCalledWith(
+        'record.psychologistId = :psychologistId',
+        { psychologistId: PSY_ID },
+      )
     })
   })
 })

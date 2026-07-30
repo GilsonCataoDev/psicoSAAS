@@ -42,6 +42,8 @@ export class AnalyticsService {
     const weekStart  = format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd')
     const weekEnd    = format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd')
     const thirtyDaysAgo = format(subMonths(now, 1), 'yyyy-MM-dd')
+    const chartStart = format(startOfMonth(subMonths(now, 5)), 'yyyy-MM-dd')
+    const nextMonthStart = format(startOfMonth(subMonths(now, -1)), 'yyyy-MM-dd')
     const log = this.logger
 
     const [
@@ -166,23 +168,29 @@ export class AnalyticsService {
 
       // ── Gráfico de receita (últimos 6 meses) ────────────────────────────────
       safe('revenueChart', log, () =>
-        Promise.all(
-          Array.from({ length: 6 }, (_, i) => {
-            const d          = subMonths(now, 5 - i)
-            const mStart     = format(startOfMonth(d), 'yyyy-MM-dd')
-            const mNextStart = format(startOfMonth(subMonths(d, -1)), 'yyyy-MM-dd')
-            const label      = PT_MONTHS[d.getMonth()]
-            return this.financial
-              .createQueryBuilder('f')
-              .select('SUM(f.amount)', 'total')
-              .where('f.psychologistId = :userId', { userId })
-              .andWhere('f.type = :type', { type: 'income' })
-              .andWhere('f.status = :status', { status: 'paid' })
-              .andWhere('f.paidAt >= :start AND f.paidAt < :nextStart', { start: mStart, nextStart: mNextStart })
-              .getRawOne()
-              .then(r => ({ mes: label, valor: Number(r?.total ?? 0) }))
+        this.financial
+          .createQueryBuilder('f')
+          .select("SUBSTRING(f.paidAt, 1, 7)", 'month')
+          .addSelect('SUM(f.amount)', 'total')
+          .where('f.psychologistId = :userId', { userId })
+          .andWhere('f.type = :type', { type: 'income' })
+          .andWhere('f.status = :status', { status: 'paid' })
+          .andWhere('f.paidAt >= :start AND f.paidAt < :nextStart', {
+            start: chartStart,
+            nextStart: nextMonthStart,
+          })
+          .groupBy("SUBSTRING(f.paidAt, 1, 7)")
+          .getRawMany()
+          .then((rows: Array<{ month: string; total: string }>) => {
+            const totals = new Map(rows.map(row => [row.month, Number(row.total)]))
+            return Array.from({ length: 6 }, (_, i) => {
+              const date = subMonths(now, 5 - i)
+              return {
+                mes: PT_MONTHS[date.getMonth()],
+                valor: totals.get(format(date, 'yyyy-MM')) ?? 0,
+              }
+            })
           }),
-        ),
         [],
       ),
 

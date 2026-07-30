@@ -25,4 +25,52 @@ describe('ChurnService — contato por WhatsApp', () => {
     expect(dashboard.accounts[0]).toEqual(expect.objectContaining({ hasPhone: true }))
     expect(dashboard.accounts[0]).not.toHaveProperty('phone')
   })
+
+  it('recalcula score e ativação sem repetir a consulta agregada por conta', async () => {
+    const ds = {
+      query: jest.fn().mockResolvedValue([{
+        id: 'psi-1',
+        name: 'Psi Teste',
+        email: 'psi@teste.com',
+        phone: null,
+        createdAt: new Date('2026-01-01'),
+        lastActiveAt: new Date(),
+        plan: 'pro',
+        subscriptionStatus: 'active',
+        patientCount: '3',
+        sessionCount: '1',
+        sessionCountLast30d: '1',
+        appointmentCount: '1',
+        appointmentCountLast30d: '1',
+        hasWhatsappReminder: false,
+        activeDaysLast14: '1',
+        firstPatientAt: null,
+        firstSessionAt: null,
+        firstAppointmentAt: null,
+      }]),
+    }
+    const healthRepo = {
+      findOne: jest.fn().mockResolvedValue(null),
+      create: jest.fn(value => value),
+      save: jest.fn(value => value),
+    }
+    const activationRepo = {
+      findOne: jest.fn().mockResolvedValue(null),
+      create: jest.fn(value => ({ ...value, activated: false })),
+      save: jest.fn(value => value),
+    }
+    const service = new ChurnService(
+      ds as any,
+      healthRepo as any,
+      activationRepo as any,
+      {} as any,
+      {} as any,
+      {} as any,
+    )
+
+    await expect(service.recalculateAll()).resolves.toEqual({ processed: 1, errors: 0 })
+    expect(ds.query).toHaveBeenCalledTimes(1)
+    expect(healthRepo.save).toHaveBeenCalledTimes(1)
+    expect(activationRepo.save).toHaveBeenCalledTimes(1)
+  })
 })
