@@ -27,6 +27,7 @@ import LightweightChart from '@/components/ui/LightweightChart'
 import EditPatientModal from '@/components/features/patients/EditPatientModal'
 import RecurringSessionsCard from '@/components/features/patients/RecurringSessionsCard'
 import { useHasPlan } from '@/store/subscription'
+import { buildPatientDetailSummary } from '@/lib/patient-detail-summary'
 
 const MOODS = ['', '1', '2', '3', '4', '5']
 const WEEKDAYS = ['Domingo', 'Segunda', 'Terca', 'Quarta', 'Quinta', 'Sexta', 'Sabado']
@@ -34,16 +35,6 @@ const PATIENT_STATUS_OPTIONS = [
   { value: 'active', label: 'Ativo' },
   { value: 'paused', label: 'Inativo' },
   { value: 'discharged', label: 'Alta' },
-] as const
-
-const PRONTUARIO_FIELDS = [
-  { key: 'queixaPrincipal', label: 'Queixa principal' },
-  { key: 'historicoDoenca', label: 'História da situação atual' },
-  { key: 'antecedentesPessoais', label: 'Antecedentes pessoais' },
-  { key: 'historicoFamiliar', label: 'Histórico familiar' },
-  { key: 'abordagem', label: 'Abordagem' },
-  { key: 'objetivos', label: 'Objetivos terapêuticos' },
-  { key: 'frequencia', label: 'Frequência' },
 ] as const
 
 export default function PatientDetailPage() {
@@ -372,25 +363,15 @@ export default function PatientDetailPage() {
     </div>
   )
 
-  const totalPaid    = financialRecords.filter(r => r.status === 'paid').reduce((s, r) => s + Number(r.amount), 0)
-  const totalPending = financialRecords.filter(r => r.status !== 'paid').reduce((s, r) => s + Number(r.amount), 0)
-  const clinicalSessions = allSessions.filter(session => !session.tags?.some(tag => String(tag) === 'instrumento'))
-  const currentMonth = new Date().toISOString().slice(0, 7)
-  const monthlySessionsUsed = clinicalSessions.filter(session => String(session.date).startsWith(currentMonth)).length
   const prontuario = patient.prontuario ?? {}
-
-  const moodChartData = (() => {
-    const withMood = [...clinicalSessions].reverse().filter(s => s.mood)
-    if (withMood.length < 2) return []
-    return withMood.map(s => ({
-      label: formatDate(s.date),
-      humor: s.mood,
-    }))
-  })()
-  const filledProntuarioFields = PRONTUARIO_FIELDS.filter(field => {
-    const value = prontuario[field.key]
-    return typeof value === 'string' && value.trim().length > 0
-  })
+  const {
+    totalPaid,
+    totalPending,
+    clinicalSessions,
+    monthlySessionsUsed,
+    moodChartData,
+    filledProntuarioFields,
+  } = buildPatientDetailSummary(financialRecords, allSessions, prontuario)
 
   return (
     <div className="animate-slide-up space-y-5 max-w-4xl">
