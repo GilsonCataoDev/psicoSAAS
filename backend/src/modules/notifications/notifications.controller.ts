@@ -6,6 +6,7 @@ import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { NotificationsService } from './notifications.service'
 import { RemovePushSubscriptionDto, SavePushSubscriptionDto } from './dto/push-subscription.dto'
+import { RegisterNativePushTokenDto, RemoveNativePushTokenDto } from './dto/native-push-token.dto'
 import { TestWhatsAppDto } from './dto/test-whatsapp.dto'
 
 @Controller('notifications/whatsapp')
@@ -76,5 +77,17 @@ export class PushNotificationsController {
   @UseGuards(CsrfGuard)
   test(@Request() req: any) {
     return this.notifications.sendTestPush(req.user.id)
+  }
+
+  @Post('native-token')
+  @UseGuards(CsrfGuard)
+  registerNativeToken(@Request() req: any, @Body() dto: RegisterNativePushTokenDto) {
+    return this.notifications.registerNativePushToken(req.user.id, dto)
+  }
+
+  @Delete('native-token')
+  @UseGuards(CsrfGuard)
+  removeNativeToken(@Request() req: any, @Body() dto: RemoveNativePushTokenDto) {
+    return this.notifications.removeNativePushToken(req.user.id, dto.token)
   }
 }

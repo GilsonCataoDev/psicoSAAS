@@ -21,6 +21,7 @@ describe('NotificationsService WhatsApp delivery validation', () => {
   }
   const planAccess = { hasAccess: jest.fn().mockResolvedValue(true) }
   const pushSubscriptions = { countBy: jest.fn() }
+  const nativePushTokens = { countBy: jest.fn() }
   const whatsAppLogs = {
     create: jest.fn((value: Record<string, unknown>) => value),
     save: jest.fn(async (value: Record<string, unknown>) => {
@@ -41,6 +42,7 @@ describe('NotificationsService WhatsApp delivery validation', () => {
       planAccess as any,
       users as any,
       pushSubscriptions as any,
+      nativePushTokens as any,
       whatsAppLogs as any,
     )
   })
@@ -574,6 +576,7 @@ describe('NotificationsService.sendAppointmentReminder — template por lead (24
   }
   const planAccess = { hasAccess: jest.fn().mockResolvedValue(true) }
   const pushSubscriptions = { countBy: jest.fn(), findBy: jest.fn() }
+  const nativePushTokens = { countBy: jest.fn(), findBy: jest.fn() }
   const whatsAppLogs = { create: jest.fn((v: Record<string, unknown>) => v), save: jest.fn(async (v: any) => v) }
 
   let service: NotificationsService
@@ -592,7 +595,7 @@ describe('NotificationsService.sendAppointmentReminder — template por lead (24
   beforeEach(() => {
     jest.clearAllMocks()
     users.findOneBy.mockResolvedValue({ email: 'gilsonfilho96@outlook.com' })
-    service = new NotificationsService(cfg, {} as any, planAccess as any, users as any, pushSubscriptions as any, whatsAppLogs as any)
+    service = new NotificationsService(cfg, {} as any, planAccess as any, users as any, pushSubscriptions as any, nativePushTokens as any, whatsAppLogs as any)
     sentText = ''
     jest.spyOn(global, 'fetch').mockImplementation(async (_url, init: any) => {
       const body = JSON.parse(init.body)

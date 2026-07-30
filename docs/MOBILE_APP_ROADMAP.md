@@ -14,6 +14,10 @@
 - App nativo usa tokens retornados apenas para clientes Capacitor e armazenados via Preferences nativo.
 - Tela de notificacoes diferencia app nativo de Web Push/PWA para nao prometer push de loja antes da implementacao nativa.
 - Projeto iOS criado em `frontend/ios`, com plugin Preferences sincronizado e permissoes iniciais configuradas.
+- Icones e splash screens finais gerados via `@capacitor/assets` a partir do logo mestre (`public/pwa-512.png`), substituindo os placeholders anteriores.
+- Assinatura de release configurada em `android/app/build.gradle` (le `android/keystore.properties`, nunca commitado — ver `docs/ANDROID_RELEASE_CHECKLIST.md`). Novo script `npm run cap:build:android:release` gera o `.aab` assinado.
+- `versionCode`/`versionName` do Android passam a ler do `package.json` (`version` + `androidVersionCode`) em vez de valor fixo.
+- Push notification nativa implementada de ponta a ponta (Firebase Cloud Messaging): entidade `native_push_tokens`, endpoints `POST/DELETE /notifications/push/native-token`, fan-out em `NotificationsService.sendPushToUser()` (paralelo ao Web Push existente), `@capacitor/push-notifications` instalado e registrado em `frontend/src/lib/nativePush.ts`. Falta só a configuração de credenciais (`google-services.json` no app + `FIREBASE_SERVICE_ACCOUNT_JSON` no backend) — ver `docs/ANDROID_RELEASE_CHECKLIST.md`.
 
 ## Rota 1: PWA
 
@@ -43,6 +47,7 @@
 - Confirmar em aparelho fisico Android a persistencia de login validada no emulador.
 - Em Mac, instalar Xcode e validar o projeto iOS criado no Windows.
 - Confirmar em iPhone real a persistencia de login, microfone/ditado, agenda, link publico e escolha de plano.
-- Implementar notificacoes push nativas antes da loja; Web Push fica restrito ao navegador/PWA.
-- Substituir icones PNG simples pelo logo final exportado em todos os tamanhos nativos.
-- Rodar teste real em tela pequena, teclado aberto e conexao instavel.
+- Criar conta no Google Play Console (taxa unica) e projeto Firebase — nenhum dos dois existe ainda.
+- Gerar o keystore de release e configurar `google-services.json`/`FIREBASE_SERVICE_ACCOUNT_JSON` — ver `docs/ANDROID_RELEASE_CHECKLIST.md` para o passo a passo completo.
+- Rodar teste real em tela pequena, teclado aberto, conexao instavel e notificacao push chegando de verdade num aparelho fisico.
+- Screenshots reais do app (minimo 2) para a ficha da loja, tirados do aparelho fisico.

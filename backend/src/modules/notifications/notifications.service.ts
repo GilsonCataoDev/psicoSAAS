@@ -3,11 +3,15 @@ import { ConfigService } from '@nestjs/config'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import * as webpush from 'web-push'
+import { cert, getApps, initializeApp } from 'firebase-admin/app'
+import { getMessaging } from 'firebase-admin/messaging'
 import { EmailService } from '../email/email.service'
 import { User } from '../auth/entities/user.entity'
 import { PushSubscriptionEntity } from './entities/push-subscription.entity'
+import { NativePushTokenEntity, NativePushPlatform } from './entities/native-push-token.entity'
 import { WhatsAppDeliveryLog } from './entities/whatsapp-delivery-log.entity'
 import { SavePushSubscriptionDto } from './dto/push-subscription.dto'
+import { RegisterNativePushTokenDto } from './dto/native-push-token.dto'
 import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
 import { PlanAccessService } from '../../common/plan-access/plan-access.service'
 import {
@@ -90,6 +94,7 @@ export class NotificationsService {
   private readonly pushEnabled: boolean
   private readonly VAPID_PUBLIC_KEY: string
   private readonly VAPID_PRIVATE_KEY: string
+  private readonly firebaseEnabled: boolean
 
   constructor(
     private cfg: ConfigService,
@@ -97,6 +102,7 @@ export class NotificationsService {
     private readonly planAccess: PlanAccessService,
     @InjectRepository(User) private users: Repository<User>,
     @InjectRepository(PushSubscriptionEntity) private pushSubscriptions: Repository<PushSubscriptionEntity>,
+    @InjectRepository(NativePushTokenEntity) private nativePushTokens: Repository<NativePushTokenEntity>,
     @InjectRepository(WhatsAppDeliveryLog) private whatsAppLogs: Repository<WhatsAppDeliveryLog>,
   ) {
     this.BASE_URL     = cfg.get('FRONTEND_URL') ?? 'http://localhost:3000'
@@ -120,6 +126,22 @@ export class NotificationsService {
         this.VAPID_PRIVATE_KEY,
       )
     }
+
+    // Push nativo (Android/iOS via Firebase Cloud Messaging) — separado do
+    // Web Push acima. FIREBASE_SERVICE_ACCOUNT_JSON é o JSON da service account
+    // do Firebase (baixado no console) colado como uma unica variavel de ambiente,
+    // sem precisar de arquivo google-services.json no servidor.
+    const firebaseCredentialsJson = cfg.get('FIREBASE_SERVICE_ACCOUNT_JSON') ?? ''
+    let firebaseInitialized = getApps().length > 0
+    if (firebaseCredentialsJson && !firebaseInitialized) {
+      try {
+        initializeApp({ credential: cert(JSON.parse(firebaseCredentialsJson)) })
+        firebaseInitialized = true
+      } catch (err: any) {
+        this.logger.error(`[FCM] Falha ao inicializar Firebase Admin: ${err?.message ?? 'erro desconhecido'}`)
+      }
+    }
+    this.firebaseEnabled = firebaseInitialized
   }
 
   async canUseWhatsAppAutomation(userId?: string | null): Promise<boolean> {
@@ -336,14 +358,40 @@ export class NotificationsService {
 
   // ─── Web Push ─────────────────────────────────────────────────────────────
 
-  async getPushStatus(userId: string): Promise<{ configured: boolean; subscribed: boolean; publicKey: string | null; subscriptions: number }> {
+  async getPushStatus(userId: string): Promise<{
+    configured: boolean; subscribed: boolean; publicKey: string | null; subscriptions: number
+    nativeConfigured: boolean; nativeSubscribed: boolean; nativeTokens: number
+  }> {
     const count = await this.pushSubscriptions.countBy({ userId })
+    const nativeCount = await this.nativePushTokens.countBy({ userId })
     return {
       configured: this.pushEnabled,
       subscribed: count > 0,
       publicKey: this.pushEnabled ? this.VAPID_PUBLIC_KEY : null,
       subscriptions: count,
+      nativeConfigured: this.firebaseEnabled,
+      nativeSubscribed: nativeCount > 0,
+      nativeTokens: nativeCount,
     }
+  }
+
+  async registerNativePushToken(userId: string, dto: RegisterNativePushTokenDto): Promise<{ registered: boolean }> {
+    if (!this.firebaseEnabled) throw new BadRequestException('Push nativo nao configurado no servidor')
+    const existing = await this.nativePushTokens.findOneBy({ userId, token: dto.token })
+    const entity = existing ?? this.nativePushTokens.create({ userId, token: dto.token })
+    entity.platform = dto.platform as NativePushPlatform
+    await this.nativePushTokens.save(entity)
+    return { registered: true }
+  }
+
+  async removeNativePushToken(userId: string, token?: string): Promise<{ registered: boolean }> {
+    if (token) {
+      await this.nativePushTokens.delete({ userId, token })
+    } else {
+      await this.nativePushTokens.delete({ userId })
+    }
+    const count = await this.nativePushTokens.countBy({ userId })
+    return { registered: count > 0 }
   }
 
   async savePushSubscription(userId: string, subscription: SavePushSubscriptionDto, userAgent?: string): Promise<{ subscribed: boolean }> {
@@ -398,6 +446,24 @@ export class NotificationsService {
   }
 
   private async sendPushToUser(userId: string, payload: Record<string, string>): Promise<PushDeliveryResult> {
+    const [webResult, nativeResult] = await Promise.all([
+      this.sendWebPushToUser(userId, payload),
+      this.sendNativePushToUser(userId, payload),
+    ])
+
+    if (webResult.reason === 'not_configured' && nativeResult.reason === 'not_configured') {
+      return { sent: 0, removed: 0, reason: 'not_configured' }
+    }
+    const sent = webResult.sent + nativeResult.sent
+    const removed = webResult.removed + nativeResult.removed
+    if (sent > 0) return { sent, removed }
+    if (webResult.reason === 'no_subscription' && nativeResult.reason === 'no_subscription') {
+      return { sent, removed, reason: 'no_subscription' }
+    }
+    return { sent, removed, reason: 'api_error' }
+  }
+
+  private async sendWebPushToUser(userId: string, payload: Record<string, string>): Promise<PushDeliveryResult> {
     if (!this.pushEnabled) return { sent: 0, removed: 0, reason: 'not_configured' }
     const subscriptions = await this.pushSubscriptions.findBy({ userId })
     if (subscriptions.length === 0) return { sent: 0, removed: 0, reason: 'no_subscription' }
@@ -417,6 +483,36 @@ export class NotificationsService {
           removed++
         } else {
           this.logger.error(`[WebPush] Falha user=${userId} status=${err?.statusCode ?? 'unknown'}`)
+        }
+      }
+    }
+
+    return sent > 0 ? { sent, removed } : { sent, removed, reason: 'api_error' }
+  }
+
+  /** Push nativo (app Android/iOS) via Firebase Cloud Messaging — mesmo payload {title,body,url,tag} do Web Push. */
+  private async sendNativePushToUser(userId: string, payload: Record<string, string>): Promise<PushDeliveryResult> {
+    if (!this.firebaseEnabled) return { sent: 0, removed: 0, reason: 'not_configured' }
+    const tokens = await this.nativePushTokens.findBy({ userId })
+    if (tokens.length === 0) return { sent: 0, removed: 0, reason: 'no_subscription' }
+
+    let sent = 0
+    let removed = 0
+    for (const tokenRow of tokens) {
+      try {
+        await getMessaging().send({
+          token: tokenRow.token,
+          notification: { title: payload.title, body: payload.body },
+          data: { url: payload.url ?? '', tag: payload.tag ?? '' },
+        })
+        sent++
+      } catch (err: any) {
+        const code = err?.errorInfo?.code ?? err?.code
+        if (code === 'messaging/registration-token-not-registered' || code === 'messaging/invalid-registration-token') {
+          await this.nativePushTokens.delete({ id: tokenRow.id })
+          removed++
+        } else {
+          this.logger.error(`[FCM] Falha user=${userId} code=${code ?? 'unknown'}`)
         }
       }
     }

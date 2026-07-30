@@ -366,11 +366,19 @@ function useTestimonialTrigger(enabled: boolean) {
   return { open, close: () => setOpen(false) }
 }
 
+function useNativePushBoot(enabled: boolean) {
+  useEffect(() => {
+    if (!enabled) return
+    import('@/lib/nativePush').then(({ registerNativePush }) => registerNativePush())
+  }, [enabled])
+}
+
 export default function AppLayout() {
   const booting = useCsrfBoot()
   useSessionKeepAlive()
   useSubscriptionPolling()
   useCoreRoutePreload()
+  useNativePushBoot(!booting)
   const testimonial = useTestimonialTrigger(!booting)
   const location = useLocation()
   const reduce = useReducedMotion()

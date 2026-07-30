@@ -66,6 +66,7 @@ export const useAuthStore = create<AuthState>()(
       logout: () => {
         track(EVENTS.LOGOUT)
         resetAnalytics()
+        void import('@/lib/nativePush').then(({ unregisterNativePush }) => unregisterNativePush())
         void import('@/lib/nativeAuth').then(({ clearNativeTokens }) => clearNativeTokens())
         set({ user: null, isAuthenticated: false, csrfToken: null })
       },

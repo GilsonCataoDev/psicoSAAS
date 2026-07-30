@@ -5,11 +5,12 @@ import { EmailModule } from '../email/email.module'
 import { User } from '../auth/entities/user.entity'
 import { NotificationsController, PushNotificationsController } from './notifications.controller'
 import { PushSubscriptionEntity } from './entities/push-subscription.entity'
+import { NativePushTokenEntity } from './entities/native-push-token.entity'
 import { WhatsAppDeliveryLog } from './entities/whatsapp-delivery-log.entity'
 import { WhatsAppLogRetentionJob } from './whatsapp-log-retention.job'
 
 @Module({
-  imports: [EmailModule, TypeOrmModule.forFeature([User, PushSubscriptionEntity, WhatsAppDeliveryLog])],
+  imports: [EmailModule, TypeOrmModule.forFeature([User, PushSubscriptionEntity, NativePushTokenEntity, WhatsAppDeliveryLog])],
   controllers: [NotificationsController, PushNotificationsController],
   providers: [NotificationsService, WhatsAppLogRetentionJob],
   exports: [NotificationsService],
