@@ -24,8 +24,8 @@ function usageRepository(updateAffected = 1, summaryRequests = 1) {
 describe('AiTextQuotaService', () => {
   it('bloqueia conta sem plano antes de reservar uma chamada', async () => {
     const usage = usageRepository()
-    const subscriptions = { findOne: jest.fn(async () => null) } as any
-    const service = new AiTextQuotaService(usage.repository, subscriptions)
+    const planAccess = { getCurrentPlan: jest.fn().mockResolvedValue('free') } as any
+    const service = new AiTextQuotaService(usage.repository, planAccess)
 
     await expect(service.reserve('user-free', 'free@example.com')).rejects.toBeInstanceOf(ForbiddenException)
     expect(usage.repository.createQueryBuilder).not.toHaveBeenCalled()
@@ -33,10 +33,8 @@ describe('AiTextQuotaService', () => {
 
   it('reserva a franquia de forma atômica para o plano Essencial', async () => {
     const usage = usageRepository(1, 7)
-    const subscriptions = {
-      findOne: jest.fn(async () => ({ status: 'active', plan: 'essencial' })),
-    } as any
-    const service = new AiTextQuotaService(usage.repository, subscriptions)
+    const planAccess = { getCurrentPlan: jest.fn().mockResolvedValue('essencial') } as any
+    const service = new AiTextQuotaService(usage.repository, planAccess)
 
     await expect(service.reserve('user-1', 'psi@example.com')).resolves.toEqual({
       used: 7,
@@ -51,10 +49,8 @@ describe('AiTextQuotaService', () => {
 
   it('recusa a chamada quando a atualização atômica não encontra franquia', async () => {
     const usage = usageRepository(0, 30)
-    const subscriptions = {
-      findOne: jest.fn(async () => ({ status: 'active', plan: 'essencial' })),
-    } as any
-    const service = new AiTextQuotaService(usage.repository, subscriptions)
+    const planAccess = { getCurrentPlan: jest.fn().mockResolvedValue('essencial') } as any
+    const service = new AiTextQuotaService(usage.repository, planAccess)
 
     await expect(service.reserve('user-1', 'psi@example.com')).rejects.toBeInstanceOf(ForbiddenException)
   })

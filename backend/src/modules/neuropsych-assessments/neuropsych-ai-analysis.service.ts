@@ -5,10 +5,8 @@ import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
 import {
   PLAN_LIMITS,
   KnownPlan,
-  LATEST_SUBSCRIPTION_ORDER,
-  resolveEffectivePlan,
 } from '../../common/plans'
-import { Subscription } from '../billing/entities/subscription.entity'
+import { PlanAccessService } from '../../common/plan-access/plan-access.service'
 import { Patient } from '../patients/entities/patient.entity'
 import {
   AiService, CLAUDE_HAIKU_INPUT_USD_MICROS_PER_TOKEN, CLAUDE_HAIKU_OUTPUT_USD_MICROS_PER_TOKEN,
@@ -55,9 +53,9 @@ export class NeuropsychAiAnalysisService {
     @InjectRepository(NeuropsychBatteryItem) private readonly items: Repository<NeuropsychBatteryItem>,
     @InjectRepository(NeuropsychAiAnalysis) private readonly analyses: Repository<NeuropsychAiAnalysis>,
     @InjectRepository(AiUsage) private readonly aiUsage: Repository<AiUsage>,
-    @InjectRepository(Subscription) private readonly subscriptions: Repository<Subscription>,
     @InjectRepository(Patient) private readonly patients: Repository<Patient>,
     private readonly ai: AiService,
+    private readonly planAccess: PlanAccessService,
   ) {}
 
   async getUsage(userId: string, email?: string): Promise<{ used: number; limit: number; month: string }> {
@@ -198,11 +196,7 @@ export class NeuropsychAiAnalysisService {
   }
 
   private async getCurrentPlan(userId: string, email?: string): Promise<KnownPlan> {
-    const sub = await this.subscriptions.findOne({
-      where: { userId },
-      order: LATEST_SUBSCRIPTION_ORDER,
-    })
-    return resolveEffectivePlan(sub, email)
+    return this.planAccess.getCurrentPlan(userId, email)
   }
 
   /** Estimativa de custo máximo (pior caso) de uma chamada, usada para reservar orçamento global antes de saber o custo real. */

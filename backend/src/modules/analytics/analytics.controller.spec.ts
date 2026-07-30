@@ -15,11 +15,13 @@ describe('AnalyticsController plan access', () => {
     const service = {
       getDashboardStats: jest.fn().mockResolvedValue(advancedStats),
     }
-    const subscriptions = {
-      findOne: jest.fn().mockResolvedValue(subscription),
+    const planAccess = {
+      hasAccess: jest.fn().mockResolvedValue(
+        subscription?.status === 'active' && ['pro', 'premium'].includes(subscription.plan),
+      ),
     }
     return {
-      controller: new AnalyticsController(service as any, subscriptions as any),
+      controller: new AnalyticsController(service as any, planAccess as any),
       service,
     }
   }

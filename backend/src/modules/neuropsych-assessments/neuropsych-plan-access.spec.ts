@@ -13,10 +13,14 @@ describe('NeuropsychAssessmentsController plan access', () => {
   }
 
   function guardFor(subscription: any) {
-    const subscriptions = {
-      findOne: jest.fn().mockResolvedValue(subscription),
+    const currentPlan = subscription?.status === 'active' || subscription?.status === 'trialing'
+      ? subscription.plan
+      : 'free'
+    const planAccess = {
+      getCurrentPlan: jest.fn().mockResolvedValue(currentPlan),
+      hasAccess: jest.fn().mockResolvedValue(['pro', 'premium'].includes(currentPlan)),
     }
-    return new PlanGuard(new Reflector(), subscriptions as any)
+    return new PlanGuard(new Reflector(), planAccess as any)
   }
 
   it('bloqueia o modulo completo para o plano Essencial', async () => {

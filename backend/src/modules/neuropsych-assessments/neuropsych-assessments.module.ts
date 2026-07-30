@@ -5,7 +5,6 @@ import { Patient } from '../patients/entities/patient.entity'
 import { InstrumentAssignment } from '../instrument-assignments/entities/instrument-assignment.entity'
 import { SessionsModule } from '../sessions/sessions.module'
 import { AiUsage } from '../sessions/entities/ai-usage.entity'
-import { Subscription } from '../billing/entities/subscription.entity'
 import { NeuropsychAssessment } from './entities/neuropsych-assessment.entity'
 import { NeuropsychBatteryItem } from './entities/neuropsych-battery-item.entity'
 import { NeuropsychAiAnalysis } from './entities/neuropsych-ai-analysis.entity'
@@ -17,7 +16,7 @@ import { NeuropsychAiAnalysisService } from './neuropsych-ai-analysis.service'
   imports: [
     TypeOrmModule.forFeature([
       NeuropsychAssessment, NeuropsychBatteryItem, NeuropsychAiAnalysis,
-      Patient, InstrumentAssignment, AiUsage, Subscription,
+      Patient, InstrumentAssignment, AiUsage,
     ]),
     AuditModule,
     SessionsModule,

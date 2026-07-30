@@ -10,13 +10,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
 import { RequirePlan } from '../../common/decorators/require-plan.decorator'
-import {
-  LATEST_SUBSCRIPTION_ORDER,
-  PLAN_LIMITS,
-  KnownPlan,
-  resolveEffectivePlan,
-} from '../../common/plans'
-import { Subscription } from '../billing/entities/subscription.entity'
+import { PLAN_LIMITS, KnownPlan } from '../../common/plans'
+import { PlanAccessService } from '../../common/plan-access/plan-access.service'
 import { SessionsService } from './sessions.service'
 import { AiService } from './ai.service'
 import { CreateSessionDto } from './dto/create-session.dto'
@@ -35,7 +30,7 @@ export class SessionsController {
     private ai: AiService,
     private readonly aiTextQuota: AiTextQuotaService,
     @InjectRepository(AiUsage) private readonly aiUsage: Repository<AiUsage>,
-    @InjectRepository(Subscription) private readonly subscriptions: Repository<Subscription>,
+    private readonly planAccess: PlanAccessService,
   ) {}
 
   @Get() findAll(
@@ -153,11 +148,7 @@ export class SessionsController {
   }
 
   private async getCurrentPlan(userId: string, email?: string): Promise<KnownPlan> {
-    const sub = await this.subscriptions.findOne({
-      where: { userId },
-      order: LATEST_SUBSCRIPTION_ORDER,
-    })
-    return resolveEffectivePlan(sub, email)
+    return this.planAccess.getCurrentPlan(userId, email)
   }
 
   private async chargeTranscriptionQuota(userId: string, durationSeconds: number, plan: KnownPlan): Promise<void> {

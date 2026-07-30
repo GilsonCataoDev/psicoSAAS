@@ -3,11 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import {
   KnownPlan,
-  LATEST_SUBSCRIPTION_ORDER,
   PLAN_LIMITS,
-  resolveEffectivePlan,
 } from '../../common/plans'
-import { Subscription } from '../billing/entities/subscription.entity'
+import { PlanAccessService } from '../../common/plan-access/plan-access.service'
 import { AiTextUsage } from './ai.service'
 import { AiUsage } from './entities/ai-usage.entity'
 
@@ -15,7 +13,7 @@ import { AiUsage } from './entities/ai-usage.entity'
 export class AiTextQuotaService {
   constructor(
     @InjectRepository(AiUsage) private readonly usage: Repository<AiUsage>,
-    @InjectRepository(Subscription) private readonly subscriptions: Repository<Subscription>,
+    private readonly planAccess: PlanAccessService,
   ) {}
 
   async reserve(userId: string, email?: string): Promise<{ used: number; limit: number; plan: KnownPlan }> {
@@ -88,10 +86,6 @@ export class AiTextQuotaService {
   }
 
   private async currentPlan(userId: string, email?: string): Promise<KnownPlan> {
-    const subscription = await this.subscriptions.findOne({
-      where: { userId },
-      order: LATEST_SUBSCRIPTION_ORDER,
-    })
-    return resolveEffectivePlan(subscription, email)
+    return this.planAccess.getCurrentPlan(userId, email)
   }
 }

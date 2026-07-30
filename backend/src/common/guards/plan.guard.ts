@@ -2,16 +2,9 @@ import {
   Injectable, CanActivate, ExecutionContext, ForbiddenException,
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
-import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
 import { PLAN_KEY, PlanLevel } from '../decorators/require-plan.decorator'
-import { Subscription } from '../../modules/billing/entities/subscription.entity'
-import {
-  hasPlanAccess,
-  LATEST_SUBSCRIPTION_ORDER,
-  PLAN_LIMITS,
-  resolveEffectivePlan,
-} from '../plans'
+import { hasPlanAccess, PLAN_LIMITS } from '../plans'
+import { PlanAccessService } from '../plan-access/plan-access.service'
 
 export { PLAN_LIMITS }
 
@@ -19,7 +12,7 @@ export { PLAN_LIMITS }
 export class PlanGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
-    @InjectRepository(Subscription) private subs: Repository<Subscription>,
+    private readonly planAccess: PlanAccessService,
   ) {}
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
@@ -32,11 +25,7 @@ export class PlanGuard implements CanActivate {
     const userId = req.user?.id
     if (!userId) return false
 
-    const sub = await this.subs.findOne({
-      where: { userId },
-      order: LATEST_SUBSCRIPTION_ORDER,
-    })
-    const currentPlan = resolveEffectivePlan(sub, req.user?.email)
+    const currentPlan = await this.planAccess.getCurrentPlan(userId, req.user?.email)
 
     if (hasPlanAccess(currentPlan, requiredPlan)) return true
 

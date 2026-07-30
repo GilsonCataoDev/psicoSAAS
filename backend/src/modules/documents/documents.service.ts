@@ -8,8 +8,8 @@ import * as QRCode from 'qrcode'
 import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
 import { Document, DocType } from './entities/document.entity'
 import { User } from '../auth/entities/user.entity'
-import { Subscription } from '../billing/entities/subscription.entity'
-import { PLAN_LIMITS } from '../../common/guards/plan.guard'
+import { PLAN_LIMITS } from '../../common/plans'
+import { PlanAccessService } from '../../common/plan-access/plan-access.service'
 import { EmailService } from '../email/email.service'
 
 export interface CreateDocumentDto {
@@ -39,9 +39,9 @@ export class DocumentsService {
 
   constructor(
     @InjectRepository(Document) private repo: Repository<Document>,
-    @InjectRepository(Subscription) private subs: Repository<Subscription>,
     private cfg: ConfigService,
     private email: EmailService,
+    private readonly planAccess: PlanAccessService,
   ) {
     // SIGN_SECRET deve ter >= 32 chars — validado no bootstrap
     this.signSecret = cfg.getOrThrow('SIGN_SECRET')
@@ -164,13 +164,7 @@ export class DocumentsService {
   }
 
   private async checkDocumentLimit(userId: string): Promise<void> {
-    const sub = await this.subs.findOne({
-      where: { userId },
-      order: { createdAt: 'DESC' },
-    })
-    const plan = (sub?.status === 'active' || sub?.status === 'trialing')
-      ? (sub.plan as keyof typeof PLAN_LIMITS)
-      : 'free'
+    const plan = await this.planAccess.getCurrentPlan(userId)
 
     const limit = PLAN_LIMITS[plan]?.maxDocuments ?? 0
     if (limit === -1) return

@@ -7,9 +7,9 @@ import { Patient } from './entities/patient.entity'
 import { CreatePatientDto } from './dto/create-patient.dto'
 import { UpdatePatientDto } from './dto/update-patient.dto'
 import { UpdatePatientPortalIntakeDto } from './dto/patient-portal.dto'
-import { Subscription } from '../billing/entities/subscription.entity'
 import { Appointment } from '../appointments/entities/appointment.entity'
-import { LATEST_SUBSCRIPTION_ORDER, PLAN_LIMITS, normalizePlan } from '../../common/plans'
+import { PLAN_LIMITS } from '../../common/plans'
+import { PlanAccessService } from '../../common/plan-access/plan-access.service'
 import { blindIndex, encrypt, hashToken, safeDecrypt } from '../../common/crypto/encrypt.util'
 import { FinancialService } from '../financial/financial.service'
 import { formatCrpForDisplay } from '../auth/entities/user.entity'
@@ -91,9 +91,9 @@ const PATIENT_ENCRYPTED_FIELDS = [
 export class PatientsService {
   constructor(
     @InjectRepository(Patient) private repo: Repository<Patient>,
-    @InjectRepository(Subscription) private subs: Repository<Subscription>,
     @InjectRepository(Appointment) private appointments: Repository<Appointment>,
     private financial: FinancialService,
+    private readonly planAccess: PlanAccessService,
   ) {}
 
   // ─── Helpers de criptografia ────────────────────────────────────────────────
@@ -197,11 +197,7 @@ export class PatientsService {
   }
 
   async getPlanUsage(userId: string): Promise<{ plan: string; limit: number; count: number }> {
-    const sub = await this.subs.findOne({
-      where: { userId },
-      order: LATEST_SUBSCRIPTION_ORDER,
-    })
-    const plan = normalizePlan((sub?.status === 'active' || sub?.status === 'trialing') ? sub.plan : 'free')
+    const plan = await this.planAccess.getCurrentPlan(userId)
     const limit = PLAN_LIMITS[plan].maxPatients
     const count = await this.repo.count({ where: { psychologistId: userId, status: 'active' } })
     return { plan, limit, count }

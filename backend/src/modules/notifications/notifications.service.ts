@@ -4,17 +4,12 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import * as webpush from 'web-push'
 import { EmailService } from '../email/email.service'
-import { Subscription } from '../billing/entities/subscription.entity'
 import { User } from '../auth/entities/user.entity'
 import { PushSubscriptionEntity } from './entities/push-subscription.entity'
 import { WhatsAppDeliveryLog } from './entities/whatsapp-delivery-log.entity'
 import { SavePushSubscriptionDto } from './dto/push-subscription.dto'
 import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
-import {
-  hasPlanAccess,
-  LATEST_SUBSCRIPTION_ORDER,
-  resolveEffectivePlan,
-} from '../../common/plans'
+import { PlanAccessService } from '../../common/plan-access/plan-access.service'
 import {
   isMeaningfulAutomatedMessage,
   renderBookingConfirmationMessage,
@@ -99,7 +94,7 @@ export class NotificationsService {
   constructor(
     private cfg: ConfigService,
     private email: EmailService,
-    @InjectRepository(Subscription) private subs: Repository<Subscription>,
+    private readonly planAccess: PlanAccessService,
     @InjectRepository(User) private users: Repository<User>,
     @InjectRepository(PushSubscriptionEntity) private pushSubscriptions: Repository<PushSubscriptionEntity>,
     @InjectRepository(WhatsAppDeliveryLog) private whatsAppLogs: Repository<WhatsAppDeliveryLog>,
@@ -130,25 +125,14 @@ export class NotificationsService {
   async canUseWhatsAppAutomation(userId?: string | null): Promise<boolean> {
     if (!userId) return false
 
-    const [user, sub] = await Promise.all([
-      this.users.findOneBy({ id: userId }),
-      this.subs.findOne({
-        where: { userId },
-        order: LATEST_SUBSCRIPTION_ORDER,
-      }),
-    ])
-    return hasPlanAccess(resolveEffectivePlan(sub, user?.email), 'pro')
+    return this.planAccess.hasAccess(userId, 'pro')
   }
 
   /** Envio manual acionado pelo psicólogo (formulários, links). Liberado a partir do Essencial. */
   private async canSendManualWhatsApp(userId?: string | null): Promise<boolean> {
     if (!userId) return false
 
-    const [user, sub] = await Promise.all([
-      this.users.findOneBy({ id: userId }),
-      this.subs.findOne({ where: { userId }, order: LATEST_SUBSCRIPTION_ORDER }),
-    ])
-    return hasPlanAccess(resolveEffectivePlan(sub, user?.email), 'essencial')
+    return this.planAccess.hasAccess(userId, 'essencial')
   }
 
   // ─── Envio via WhatsApp (Evolution API) ──────────────────────────────────

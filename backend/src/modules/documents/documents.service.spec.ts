@@ -24,12 +24,12 @@ function makeUser(overrides: Partial<User> = {}): User {
 
 function createService() {
   const repo = mockRepo()
-  const subs = mockRepo({ findOne: jest.fn().mockResolvedValue(null) })
   const cfg = { getOrThrow: jest.fn().mockReturnValue('a'.repeat(32)) }
   const email = { sendDocumentSigned: jest.fn().mockResolvedValue(undefined) }
+  const planAccess = { getCurrentPlan: jest.fn().mockResolvedValue('free') }
 
-  const svc = new DocumentsService(repo as any, subs as any, cfg as any, email as any)
-  return { svc, repo, subs }
+  const svc = new DocumentsService(repo as any, cfg as any, email as any, planAccess as any)
+  return { svc, repo, planAccess }
 }
 
 describe('DocumentsService.create — guarda de CRP', () => {
@@ -44,8 +44,8 @@ describe('DocumentsService.create — guarda de CRP', () => {
   })
 
   it('permite gerar documento quando o usuário tem CRP', async () => {
-    const { svc, repo, subs } = createService()
-    subs.findOne.mockResolvedValue({ status: 'active', plan: 'pro' })
+    const { svc, repo, planAccess } = createService()
+    planAccess.getCurrentPlan.mockResolvedValue('pro')
     const professional = makeUser({ crp: '06/123456', isStudent: false })
 
     const result = await svc.create(professional, {

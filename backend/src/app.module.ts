@@ -25,7 +25,6 @@ import { AdminModule } from './modules/admin/admin.module'
 import { TestimonialModule } from './modules/testimonial/testimonial.module'
 import { ChurnModule } from './modules/churn/churn.module'
 import { ProspectingModule } from './modules/prospecting/prospecting.module'
-import { Subscription as BillingSubscription } from './modules/billing/entities/subscription.entity'
 import { PlanGuard } from './common/guards/plan.guard'
 import { SubscriptionGuard } from './common/guards/subscription.guard'
 import { LastActiveInterceptor } from './common/interceptors/last-active.interceptor'
@@ -37,6 +36,7 @@ import { MonitoringModule } from './common/monitoring/monitoring.module'
 import { HealthController } from './health.controller'
 import { NeuropsychAssessmentsModule } from './modules/neuropsych-assessments/neuropsych-assessments.module'
 import { PrivacyModule } from './common/privacy/privacy.module'
+import { PlanAccessModule } from './common/plan-access/plan-access.module'
 
 const readPositiveInt = (value: string | undefined, fallback: number): number => {
   const parsed = Number(value)
@@ -69,9 +69,8 @@ const readPositiveInt = (value: string | undefined, fallback: number): number =>
       }),
     }),
 
-    TypeOrmModule.forFeature([BillingSubscription]),
-
     AdvisoryLockModule,
+    PlanAccessModule,
     StorageModule,
     SecurityModule,
     AuditModule,

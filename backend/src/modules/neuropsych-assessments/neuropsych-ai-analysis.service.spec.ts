@@ -88,6 +88,12 @@ function buildService() {
   const subscriptions = {
     findOne: jest.fn().mockResolvedValue({ plan: 'pro', status: 'active' }),
   }
+  const planAccess = {
+    getCurrentPlan: jest.fn(async () => {
+      const subscription = await subscriptions.findOne()
+      return subscription?.status === 'active' ? subscription.plan : 'free'
+    }),
+  }
   const patients = {
     findOne: jest.fn().mockResolvedValue({ name: 'Paciente Teste' }),
   }
@@ -99,7 +105,7 @@ function buildService() {
   }
 
   const service = new NeuropsychAiAnalysisService(
-    assessments as any, items as any, analyses as any, aiUsage as any, subscriptions as any, patients as any, ai as any,
+    assessments as any, items as any, analyses as any, aiUsage as any, patients as any, ai as any, planAccess as any,
   )
   return { service, assessments, items, analyses, aiUsage, aiUsageQb, subscriptions, patients, ai }
 }
