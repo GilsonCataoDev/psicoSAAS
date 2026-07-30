@@ -7,6 +7,7 @@
     "build": "tsc && vite build",
     "postbuild": "node scripts/create-spa-fallbacks.mjs",
     "preview": "vite preview",
+    "preview:dist": "node scripts/serve-dist.mjs",
     "lint": "eslint src --ext ts,tsx",
     "audit:prod": "node scripts/audit-production.mjs",
     "test:e2e": "playwright test",
