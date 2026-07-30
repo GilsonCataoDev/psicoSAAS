@@ -15,7 +15,7 @@ test.describe('Bateria neuropsicológica', () => {
     if (email) await cleanupAccount(email)
   })
 
-  test('adiciona um procedimento com o payload aceito pelo backend', async ({ page }) => {
+  test('respeita o plano e, quando liberado, adiciona um procedimento', async ({ page }) => {
     const stamp = Date.now()
     email = `e2e.neuro.battery.${stamp}@example.com`
     const patientName = `Paciente Neuro ${stamp}`
@@ -26,7 +26,21 @@ test.describe('Bateria neuropsicológica', () => {
     await navigateApp(page, '/avaliacoes')
     await dismissOverlays(page)
 
-    await page.getByRole('button', { name: 'Iniciar avaliação' }).click()
+    const startButton = page.getByRole('button', { name: 'Iniciar avaliação' })
+    await Promise.race([
+      startButton.waitFor({ state: 'visible', timeout: 15_000 }),
+      page.waitForURL(/#\/planos(?:$|[?&])/, { timeout: 15_000 }),
+    ])
+
+    // O smoke de produção cria uma conta gratuita: nela, a proteção de plano
+    // deve redirecionar para a oferta Pro. Em ambiente local com e-mail
+    // compensado como Pro, o restante do teste valida o payload da bateria.
+    if (page.url().includes('#/planos')) {
+      await expect(page.getByText(/avaliações neuropsicológicas/i).first()).toBeVisible()
+      return
+    }
+
+    await startButton.click()
     const dialog = page.getByRole('dialog')
     await selectOptionByText(dialog.locator('select'), patientName)
     await dialog.getByRole('button', { name: 'Iniciar' }).click()
