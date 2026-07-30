@@ -79,6 +79,9 @@ jobs:
       - name: Audit dependencies (high+)
         run: npm run audit:prod
 
+      - name: Run unit tests
+        run: npm run test:unit
+
       - name: Build (typecheck + vite build)
         env:
           VITE_API_URL: https://psicosaas-production-2d6c.up.railway.app/api

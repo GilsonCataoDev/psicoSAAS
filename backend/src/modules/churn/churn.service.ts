@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm'
-import { DataSource, Repository } from 'typeorm'
+import { DataSource, In, Repository } from 'typeorm'
 import { TenantHealth, RiskLevel, Recommendation, ScoreBreakdown } from './entities/tenant-health.entity'
 import { TenantActivation } from './entities/tenant-activation.entity'
 import { TenantAlert, AlertType } from './entities/tenant-alert.entity'
@@ -141,7 +141,10 @@ export class ChurnService {
     return this.persistActivation(rows[0])
   }
 
-  private async persistActivation(row: TenantStatsRow): Promise<TenantActivation> {
+  private async persistActivation(
+    row: TenantStatsRow,
+    existingActivation?: TenantActivation | null,
+  ): Promise<TenantActivation> {
     const patients = Number(row.patientCount)
     const sessions = Number(row.sessionCount)
     const appointments = Number(row.appointmentCount)
@@ -152,7 +155,9 @@ export class ChurnService {
     const condB = patients >= 3
     const isActivated = condA || condB
 
-    let activation = await this.activationRepo.findOne({ where: { userId: row.id } })
+    let activation = existingActivation === undefined
+      ? await this.activationRepo.findOne({ where: { userId: row.id } })
+      : existingActivation
     if (!activation) {
       activation = this.activationRepo.create({ userId: row.id })
     }
@@ -217,13 +222,26 @@ export class ChurnService {
 
   async recalculateAll(): Promise<{ processed: number; errors: number }> {
     const rows = await this.fetchAllStats()
+    const userIds = rows.map(row => row.id)
+    const [healthRows, activationRows, unresolvedAlerts] = userIds.length
+      ? await Promise.all([
+          this.healthRepo.findBy({ userId: In(userIds) }),
+          this.activationRepo.findBy({ userId: In(userIds) }),
+          this.alertRepo.findBy({ userId: In(userIds), resolved: false }),
+        ])
+      : [[], [], []]
+    const healthByUser = new Map(healthRows.map(row => [row.userId, row]))
+    const activationByUser = new Map(activationRows.map(row => [row.userId, row]))
+    const openAlertKeys = new Set(
+      unresolvedAlerts.map(alert => `${alert.userId}:${alert.type}`),
+    )
     let processed = 0
     let errors = 0
 
     for (const row of rows) {
       try {
-        await this.persistScore(row)
-        await this.persistActivation(row)
+        await this.persistScore(row, healthByUser.get(row.id) ?? null, openAlertKeys)
+        await this.persistActivation(row, activationByUser.get(row.id) ?? null)
         processed++
       } catch (err: any) {
         this.logger.error(`Score calc failed for ${row.id}: ${err?.message}`)
@@ -401,10 +419,16 @@ export class ChurnService {
     return recs.sort((a, b) => a.priority - b.priority)
   }
 
-  private async persistScore(row: TenantStatsRow): Promise<void> {
+  private async persistScore(
+    row: TenantStatsRow,
+    existingHealth?: TenantHealth | null,
+    openAlertKeys?: Set<string>,
+  ): Promise<void> {
     const scored = this.scoreRow(row)
 
-    let health = await this.healthRepo.findOne({ where: { userId: row.id } })
+    let health = existingHealth === undefined
+      ? await this.healthRepo.findOne({ where: { userId: row.id } })
+      : existingHealth
     const previousScore = health?.score ?? null
 
     if (!health) health = this.healthRepo.create({ userId: row.id })
@@ -422,7 +446,15 @@ export class ChurnService {
     // Generate alerts based on score changes
     if (previousScore !== null) {
       const daysSinceActive = row.lastActiveAt ? this.daysSince(row.lastActiveAt) : null
-      await this.generateAlerts(row.id, row.name, scored.score, previousScore, scored.riskLevel, daysSinceActive)
+      await this.generateAlerts(
+        row.id,
+        row.name,
+        scored.score,
+        previousScore,
+        scored.riskLevel,
+        daysSinceActive,
+        openAlertKeys,
+      )
     }
   }
 
@@ -433,6 +465,7 @@ export class ChurnService {
     previousScore: number,
     riskLevel: RiskLevel,
     daysSinceActive: number | null,
+    openAlertKeys?: Set<string>,
   ): Promise<void> {
     const drop = previousScore - score
     const wasHealthy = previousScore >= 70
@@ -441,27 +474,40 @@ export class ChurnService {
     if (drop >= 30) {
       await this.createAlertIfNew(userId, 'score_dropped',
         `Health score de ${name} caiu ${drop} pontos (${previousScore} → ${score}).`,
-        { previousScore, currentScore: score, drop })
+        { previousScore, currentScore: score, drop }, openAlertKeys)
     }
     if (daysSinceActive !== null && daysSinceActive >= 7) {
       await this.createAlertIfNew(userId, 'no_login_7d',
         `${name} está sem login há ${daysSinceActive} dias.`,
-        { daysSinceActive })
+        { daysSinceActive }, openAlertKeys)
     }
     if (wasHealthy && isNowUnhealthy) {
       await this.createAlertIfNew(userId, 'lost_healthy_status',
         `${name} perdeu o status saudável (score: ${score}).`,
-        { score })
+        { score }, openAlertKeys)
     }
     if (riskLevel === 'CRITICAL') {
       await this.createAlertIfNew(userId, 'critical_risk',
         `${name} está em risco crítico (score: ${score}).`,
-        { score })
+        { score }, openAlertKeys)
     }
   }
 
-  private async createAlertIfNew(userId: string, type: AlertType, message: string, metadata: Record<string, unknown>): Promise<void> {
+  private async createAlertIfNew(
+    userId: string,
+    type: AlertType,
+    message: string,
+    metadata: Record<string, unknown>,
+    openAlertKeys?: Set<string>,
+  ): Promise<void> {
     // Avoid duplicate unresolved alerts of the same type
+    const key = `${userId}:${type}`
+    if (openAlertKeys) {
+      if (openAlertKeys.has(key)) return
+      await this.createAlert(userId, type, message, metadata)
+      openAlertKeys.add(key)
+      return
+    }
     const existing = await this.alertRepo.findOne({ where: { userId, type, resolved: false } })
     if (existing) return
     await this.createAlert(userId, type, message, metadata)

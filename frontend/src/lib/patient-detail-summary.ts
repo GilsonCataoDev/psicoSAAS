@@ -11,12 +11,7 @@ export const PRONTUARIO_FIELDS = [
   { key: 'frequencia', label: 'Frequência' },
 ] as const
 
-export function buildPatientDetailSummary(
-  financialRecords: FinancialRecord[],
-  sessions: Session[],
-  prontuario: Record<string, unknown>,
-  now = new Date(),
-) {
+export function calculateFinancialTotals(financialRecords: FinancialRecord[]) {
   const totalPaid = financialRecords
     .filter(record => record.status === 'paid')
     .reduce((sum, record) => sum + Number(record.amount), 0)
@@ -24,33 +19,54 @@ export function buildPatientDetailSummary(
     .filter(record => record.status !== 'paid')
     .reduce((sum, record) => sum + Number(record.amount), 0)
 
-  const clinicalSessions = sessions.filter(
+  return { totalPaid, totalPending }
+}
+
+export function selectClinicalSessions(sessions: Session[]) {
+  return sessions.filter(
     session => !session.tags?.some(tag => String(tag) === 'instrumento'),
   )
+}
+
+export function countMonthlySessions(clinicalSessions: Session[], now = new Date()) {
   const currentMonth = now.toISOString().slice(0, 7)
-  const monthlySessionsUsed = clinicalSessions.filter(
+  return clinicalSessions.filter(
     session => String(session.date).startsWith(currentMonth),
   ).length
+}
 
+export function buildMoodChartData(clinicalSessions: Session[]) {
   const sessionsWithMood = [...clinicalSessions].reverse().filter(session => session.mood)
-  const moodChartData = sessionsWithMood.length < 2
+  return sessionsWithMood.length < 2
     ? []
     : sessionsWithMood.map(session => ({
         label: formatDate(session.date),
         humor: session.mood,
       }))
+}
 
-  const filledProntuarioFields = PRONTUARIO_FIELDS.filter(field => {
+export function selectFilledProntuarioFields(prontuario: Record<string, unknown>) {
+  return PRONTUARIO_FIELDS.filter(field => {
     const value = prontuario[field.key]
     return typeof value === 'string' && value.trim().length > 0
   })
+}
+
+export function buildPatientDetailSummary(
+  financialRecords: FinancialRecord[],
+  sessions: Session[],
+  prontuario: Record<string, unknown>,
+  now = new Date(),
+) {
+  const { totalPaid, totalPending } = calculateFinancialTotals(financialRecords)
+  const clinicalSessions = selectClinicalSessions(sessions)
 
   return {
     totalPaid,
     totalPending,
     clinicalSessions,
-    monthlySessionsUsed,
-    moodChartData,
-    filledProntuarioFields,
+    monthlySessionsUsed: countMonthlySessions(clinicalSessions, now),
+    moodChartData: buildMoodChartData(clinicalSessions),
+    filledProntuarioFields: selectFilledProntuarioFields(prontuario),
   }
 }

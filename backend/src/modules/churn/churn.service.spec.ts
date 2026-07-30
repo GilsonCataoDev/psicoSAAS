@@ -50,26 +50,36 @@ describe('ChurnService — contato por WhatsApp', () => {
       }]),
     }
     const healthRepo = {
+      findBy: jest.fn().mockResolvedValue([]),
       findOne: jest.fn().mockResolvedValue(null),
       create: jest.fn(value => value),
       save: jest.fn(value => value),
     }
     const activationRepo = {
+      findBy: jest.fn().mockResolvedValue([]),
       findOne: jest.fn().mockResolvedValue(null),
       create: jest.fn(value => ({ ...value, activated: false })),
       save: jest.fn(value => value),
+    }
+    const alertRepo = {
+      findBy: jest.fn().mockResolvedValue([]),
     }
     const service = new ChurnService(
       ds as any,
       healthRepo as any,
       activationRepo as any,
-      {} as any,
+      alertRepo as any,
       {} as any,
       {} as any,
     )
 
     await expect(service.recalculateAll()).resolves.toEqual({ processed: 1, errors: 0 })
     expect(ds.query).toHaveBeenCalledTimes(1)
+    expect(healthRepo.findBy).toHaveBeenCalledTimes(1)
+    expect(activationRepo.findBy).toHaveBeenCalledTimes(1)
+    expect(alertRepo.findBy).toHaveBeenCalledTimes(1)
+    expect(healthRepo.findOne).not.toHaveBeenCalled()
+    expect(activationRepo.findOne).not.toHaveBeenCalled()
     expect(healthRepo.save).toHaveBeenCalledTimes(1)
     expect(activationRepo.save).toHaveBeenCalledTimes(1)
   })

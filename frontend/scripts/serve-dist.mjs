@@ -1,6 +1,6 @@
 import { createServer } from 'node:http'
 import { existsSync, statSync, createReadStream } from 'node:fs'
-import { extname, join, normalize, resolve } from 'node:path'
+import { extname, join, normalize, resolve, sep } from 'node:path'
 
 const root = resolve('dist')
 const port = Number(process.env.PORT ?? 4173)
@@ -18,13 +18,21 @@ const mimeTypes = {
 }
 
 function safePath(pathname) {
-  const decoded = decodeURIComponent(pathname).replace(/^\/+/, '')
-  const normalized = normalize(decoded).replace(/^(\.\.(\/|\\|$))+/, '')
-  return join(root, normalized)
+  try {
+    const decoded = decodeURIComponent(pathname).replace(/^\/+/, '')
+    const normalized = normalize(decoded).replace(/^(\.\.(\/|\\|$))+/, '')
+    const candidate = resolve(root, normalized)
+    return candidate === root || candidate.startsWith(`${root}${sep}`)
+      ? candidate
+      : null
+  } catch {
+    return null
+  }
 }
 
 function resolveFile(pathname) {
   const requested = safePath(pathname)
+  if (!requested) return null
   const candidates = [
     requested,
     join(requested, 'index.html'),

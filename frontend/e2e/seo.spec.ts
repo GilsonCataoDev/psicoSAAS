@@ -1,6 +1,14 @@
 import { expect, test } from '@playwright/test'
 
 test.describe('SEO por rota', () => {
+  test('servidor de artefatos rejeita URL malformada sem encerrar', async ({ request }) => {
+    const malformed = await request.get('/%E0%A4%A')
+    expect(malformed.status()).toBe(404)
+
+    const healthy = await request.get('/precos')
+    expect(healthy.ok()).toBe(true)
+  })
+
   test('preços possui metadados próprios no HTML inicial e no navegador', async ({ page, request }) => {
     const rawPath = process.env.E2E_BASE_URL?.includes('127.0.0.1')
       ? '/precos/index.html'

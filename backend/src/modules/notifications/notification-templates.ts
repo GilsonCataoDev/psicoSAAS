@@ -3,10 +3,31 @@ export function isMeaningfulAutomatedMessage(text: string): boolean {
   return normalized.length >= 8 && /[A-Za-zÀ-ÿ]{3}/.test(normalized)
 }
 
-export function renderBookingConfirmationMessage(booking: any, page?: any): string | null {
-  const prefs = (page?.psychologist?.preferences ?? {}) as Record<string, any>
+export type BookingConfirmationInput = {
+  patientName?: string | null
+  date?: string | null
+  time?: string | null
+  modality?: string | null
+}
+
+export type BookingConfirmationPage = {
+  confirmationMessage?: string | null
+  psychologistName?: string | null
+  psychologist?: {
+    name?: string | null
+    preferences?: {
+      confirmationTemplate?: string | null
+    } | null
+  } | null
+}
+
+export function renderBookingConfirmationMessage(
+  booking: BookingConfirmationInput,
+  page?: BookingConfirmationPage | null,
+): string | null {
+  const prefs = page?.psychologist?.preferences
   const pageTemplate = String(page?.confirmationMessage ?? '').trim()
-  const template = pageTemplate || String(prefs.confirmationTemplate ?? '').trim()
+  const template = pageTemplate || String(prefs?.confirmationTemplate ?? '').trim()
   if (!template) return null
 
   const firstName = String(booking.patientName ?? '').split(' ')[0] ?? ''

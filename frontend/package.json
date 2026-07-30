@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "preview:dist": "node scripts/serve-dist.mjs",
     "lint": "eslint src --ext ts,tsx",
+    "test:unit": "vitest run src",
     "audit:prod": "node scripts/audit-production.mjs",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
@@ -82,6 +83,7 @@
     "typescript-eslint": "^8.59.2",
     "vite": "^8.0.9",
     "vite-plugin-pwa": "^1.2.0",
+    "vitest": "^4.1.10",
     "workbox-window": "^7.4.0"
   }
 }
