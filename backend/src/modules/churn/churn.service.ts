@@ -6,6 +6,7 @@ import { TenantActivation } from './entities/tenant-activation.entity'
 import { TenantAlert, AlertType } from './entities/tenant-alert.entity'
 import { EmailService } from '../email/email.service'
 import { AiService } from '../sessions/ai.service'
+import { safeDecrypt } from '../../common/crypto/encrypt.util'
 
 // ─── Score weights — single source of truth, easy to adjust ──────────────────
 const WEIGHTS = {
@@ -347,7 +348,9 @@ export class ChurnService {
       id: row.id,
       name: row.name,
       email: row.email,
-      phone: row.phone,
+      // Consultas via DataSource ignoram transformers do TypeORM; decifra o campo
+      // antes de enviá-lo ao painel e ao fluxo de contato por WhatsApp.
+      phone: safeDecrypt(row.phone) ?? null,
       plan: row.plan,
       subscriptionStatus: row.subscriptionStatus,
       lastActiveAt: row.lastActiveAt,

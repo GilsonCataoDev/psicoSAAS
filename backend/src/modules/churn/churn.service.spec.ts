@@ -1,11 +1,15 @@
+process.env.ENCRYPTION_KEY = 'churn-test-encryption-key-with-32-chars!'
+
 import { ChurnService } from './churn.service'
+import { encrypt } from '../../common/crypto/encrypt.util'
 
 describe('ChurnService — contato por WhatsApp', () => {
   it('inclui o telefone da psicóloga nas contas do dashboard', async () => {
+    const encryptedPhone = encrypt('11999998888')
     const ds = {
       query: jest.fn()
         .mockResolvedValueOnce([{
-          id: 'psi-1', name: 'Psi Teste', email: 'psi@teste.com', phone: '11999998888',
+          id: 'psi-1', name: 'Psi Teste', email: 'psi@teste.com', phone: encryptedPhone,
           createdAt: new Date('2026-01-01'), lastActiveAt: new Date(), plan: 'pro',
           subscriptionStatus: 'active', patientCount: '1', sessionCount: '1',
           sessionCountLast30d: '1', appointmentCount: '1', appointmentCountLast30d: '1',
