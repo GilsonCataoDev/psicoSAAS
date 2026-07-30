@@ -10,6 +10,7 @@ import {
 import { NeuropsychAssessment, NeuropsychBatteryItem, NeuropsychDomain } from '@/types'
 import { downloadPatientAttachment, PatientAttachment } from '@/hooks/api/attachments'
 import { buildNeuropsychIntegrationDraft } from '@/lib/neuropsychDraft'
+import { NEUROPSYCH_TEST_CATALOG } from '@/lib/neuropsychTestCatalog'
 import NeuropsychCopilotPanel from '@/components/features/neuropsych/NeuropsychCopilotPanel'
 
 const DOMAINS: Array<[NeuropsychDomain, string]> = [
@@ -188,7 +189,7 @@ export default function NeuropsychAssessmentPage() {
 
       {activeStep === 'battery' && <section className="card space-y-5 p-5"><div><h2 className="font-semibold text-neutral-900 dark:text-white">2. Bateria de avaliação</h2><p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">Cadastre somente o nome e seus registros profissionais. Não copie conteúdo protegido.</p></div>
         <form onSubmit={addItem} className="rounded-2xl border border-sage-100 bg-sage-50/50 p-4 dark:border-sage-800/50 dark:bg-sage-950/10">
-          <div className="grid gap-3 md:grid-cols-2"><div><label htmlFor="battery-item-name" className="label">Teste ou procedimento</label><input id="battery-item-name" value={newItem.name} onChange={event => setNewItem(current => ({ ...current, name: event.target.value }))} className="input-field" placeholder="Nome do procedimento" /></div>
+          <div className="grid gap-3 md:grid-cols-2"><div><label htmlFor="battery-item-name" className="label">Teste ou procedimento</label><input id="battery-item-name" list="battery-test-catalog" value={newItem.name} onChange={event => setNewItem(current => ({ ...current, name: event.target.value }))} className="input-field" placeholder="Nome do procedimento" autoComplete="off" /><datalist id="battery-test-catalog">{NEUROPSYCH_TEST_CATALOG.map(testName => <option key={testName} value={testName} />)}</datalist><p className="mt-1 text-[11px] text-neutral-500 dark:text-neutral-400">Sugestões de nomes conhecidos aparecem ao digitar — você também pode escrever um nome próprio.</p></div>
             <div><label htmlFor="battery-item-type" className="label">Tipo</label><select id="battery-item-type" value={newItem.procedureType} onChange={event => setNewItem(current => ({ ...current, procedureType: event.target.value as NeuropsychBatteryItem['procedureType'] }))} className="input-field"><option value="neuropsychological_procedure">Procedimento neuropsicológico</option><option value="psychological_test">Teste psicológico</option><option value="behavioral_scale">Escala comportamental</option><option value="clinical_interview">Entrevista clínica</option><option value="observation">Observação</option><option value="other">Outro</option></select></div></div>
           <div className="mt-3"><DomainPicker selected={newItem.domains} onToggle={domain => toggleDomain(domain, 'item')} compact /></div>
           <div className="mt-3"><label htmlFor="battery-item-purpose" className="label">Finalidade</label><input id="battery-item-purpose" value={newItem.purpose} onChange={event => setNewItem(current => ({ ...current, purpose: event.target.value }))} className="input-field" placeholder="O que este procedimento pretende investigar?" /></div>
