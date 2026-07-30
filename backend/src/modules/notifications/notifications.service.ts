@@ -15,6 +15,12 @@ import {
   LATEST_SUBSCRIPTION_ORDER,
   resolveEffectivePlan,
 } from '../../common/plans'
+import {
+  isMeaningfulAutomatedMessage,
+  renderBookingConfirmationMessage,
+  renderPaymentTemplate,
+  renderReminderTemplate,
+} from './notification-templates'
 
 const WA_FETCH_TIMEOUT_MS = 10000
 
@@ -875,9 +881,9 @@ export class NotificationsService {
       ? leadTemplate
       : (typeof prefs.reminderTemplate === 'string' && prefs.reminderTemplate.trim() ? prefs.reminderTemplate : null)
     const renderedTemplate = template
-      ? this.renderReminderTemplate(template, patient.name, dateLabel, timeLabel, lead)
+      ? renderReminderTemplate(template, patient.name, dateLabel, timeLabel, lead)
       : ''
-    const msg = this.isMeaningfulAutomatedMessage(renderedTemplate)
+    const msg = isMeaningfulAutomatedMessage(renderedTemplate)
       ? renderedTemplate
       : defaultMsg
 
@@ -923,7 +929,7 @@ export class NotificationsService {
       receiptLine +
       `Obrigado(a).`
     const msg = template
-      ? this.renderPaymentTemplate(template, patient.name, amount, pixKey, includeReceipt)
+      ? renderPaymentTemplate(template, patient.name, amount, pixKey, includeReceipt)
       : defaultMessage
     return this.sendWhatsApp(patient.phone, msg, patient.psychologistId, {
       type: 'Cobranca',
@@ -956,7 +962,7 @@ export class NotificationsService {
       (pixKey ? `Chave PIX: \`${pixKey}\`\n\n` : '') +
       `Qualquer duvida, e so me chamar.`
     const msg = template
-      ? this.renderPaymentTemplate(template, patient.name, amount, pixKey)
+      ? renderPaymentTemplate(template, patient.name, amount, pixKey)
       : defaultMessage
     return this.sendWhatsApp(patient.phone, msg, patient.psychologistId, {
       type: 'Lembrete de pagamento',
@@ -1023,7 +1029,7 @@ export class NotificationsService {
 
     const cancelUrl = this.getCancellationUrl(booking)
     const first = booking.patientName.split(' ')[0]
-    const customMessage = this.renderBookingConfirmationMessage(booking, page)
+    const customMessage = renderBookingConfirmationMessage(booking, page)
 
     // WhatsApp para o paciente
     let whatsAppResult: WhatsAppDeliveryResult | undefined
@@ -1057,31 +1063,6 @@ export class NotificationsService {
       this.logger.log(`[Booking] Confirmacao enviada bookingId=${booking.id}`)
     }
     return whatsAppResult
-  }
-
-  private renderBookingConfirmationMessage(booking: any, page?: any): string | null {
-    const prefs = (page?.psychologist?.preferences ?? {}) as Record<string, any>
-    const pageTemplate = String(page?.confirmationMessage ?? '').trim()
-    const template = pageTemplate || String(prefs.confirmationTemplate ?? '').trim()
-    if (!template) return null
-
-    const first = String(booking.patientName ?? '').split(' ')[0] ?? ''
-    const time = String(booking.time ?? '').slice(0, 5)
-    const modality = booking.modality === 'presencial'
-      ? 'presencial'
-      : booking.modality === 'online'
-        ? 'online'
-        : ''
-
-    const rendered = template
-      .replace(/{{\s*nome\s*}}/gi, String(booking.patientName ?? ''))
-      .replace(/{{\s*primeiro_nome\s*}}/gi, first)
-      .replace(/{{\s*data\s*}}/gi, String(booking.date ?? ''))
-      .replace(/{{\s*hora\s*}}/gi, time)
-      .replace(/{{\s*profissional\s*}}/gi, String(page?.psychologist?.name ?? page?.psychologistName ?? ''))
-      .replace(/{{\s*modalidade\s*}}/gi, modality)
-
-    return this.isMeaningfulAutomatedMessage(rendered) ? rendered : null
   }
 
   async sendBookingCreatedToPsychologist(booking: any, page: any): Promise<void> {
@@ -1157,26 +1138,6 @@ export class NotificationsService {
     })
   }
 
-  private renderPaymentTemplate(
-    template: string,
-    patientName: string,
-    amount: number,
-    pixKey?: string,
-    includeReceipt?: boolean,
-  ): string {
-    const receiptMessage = includeReceipt ? 'Pode me enviar o comprovante por aqui depois do pagamento.' : ''
-    const rendered = template
-      .replaceAll('{{nome}}', patientName.split(' ')[0] || patientName)
-      .replaceAll('{{valor}}', `R$ ${amount.toFixed(2)}`)
-      .replaceAll('{{pix}}', pixKey ?? 'PIX nao configurado')
-      .replaceAll('{{comprovante}}', receiptMessage)
-
-    if (includeReceipt && !template.includes('{{comprovante}}')) {
-      return `${rendered}\n\n${receiptMessage}`
-    }
-    return rendered
-  }
-
   private getCancellationUrl(booking: any): string {
     const cancellationToken = booking.publicCancellationCode
       ?? safeDecrypt(booking.cancellationCodeEncrypted)
@@ -1189,22 +1150,4 @@ export class NotificationsService {
       : `${this.BASE_URL}/agendar/cancelar/${confirmationToken}`
   }
 
-  private renderReminderTemplate(
-    template: string,
-    patientName: string,
-    dateLabel: string,
-    time: string,
-    lead: '24h' | '1h',
-  ): string {
-    return template
-      .replaceAll('{{nome}}', patientName.split(' ')[0] || patientName)
-      .replaceAll('{{data}}', dateLabel)
-      .replaceAll('{{hora}}', time)
-      .replaceAll('{{antecedencia}}', lead)
-  }
-
-  private isMeaningfulAutomatedMessage(text: string): boolean {
-    const normalized = String(text ?? '').trim()
-    return normalized.length >= 8 && /[A-Za-zÀ-ÿ]{3}/.test(normalized)
-  }
 }
