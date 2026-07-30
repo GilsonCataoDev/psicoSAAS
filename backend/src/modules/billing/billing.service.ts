@@ -4,17 +4,12 @@ import { DataSource, In, Repository } from 'typeorm'
 import { User } from '../auth/entities/user.entity'
 import { AsaasService } from './asaas.service'
 import { Subscription } from './entities/subscription.entity'
-import { PLAN_PRICES } from '../../common/plans'
+import { isCompedProEmail, LATEST_SUBSCRIPTION_ORDER, PLAN_PRICES } from '../../common/plans'
 
 const TRIAL_DAYS = 7
 const ACTIVATION_OFFER_CODE = 'ROTINA20'
 const REFERRAL_OFFER_CODE = 'INDICACAO20'
 const BETA_FREE_ACCESS = process.env.BETA_FREE_ACCESS !== 'false'
-const DEFAULT_COMPED_PRO_EMAILS = ['gilsonfilho96@outlook.com']
-const COMPED_PRO_EMAILS = (process.env.COMPED_PRO_EMAILS ?? DEFAULT_COMPED_PRO_EMAILS.join(','))
-  .split(',')
-  .map(email => email.trim().toLowerCase())
-  .filter(Boolean)
 
 @Injectable()
 export class BillingService {
@@ -28,7 +23,7 @@ export class BillingService {
   async getMine(user: Pick<User, 'id' | 'email'>) {
     const subscription = await this.repo.findOne({
       where: { userId: user.id },
-      order: { createdAt: 'DESC' },
+      order: LATEST_SUBSCRIPTION_ORDER,
     })
 
     if (!subscription) {
@@ -88,7 +83,7 @@ export class BillingService {
 
     const existing = await this.repo.findOne({
       where: { userId: user.id },
-      order: { createdAt: 'DESC' },
+      order: LATEST_SUBSCRIPTION_ORDER,
     })
 
     const canUpgradeFromFree = existing?.status === 'active' && existing.plan === 'free' && !existing.gatewaySubscriptionId
@@ -181,7 +176,7 @@ export class BillingService {
   async activateFree(user: Pick<User, 'id' | 'email'>) {
     const existing = await this.repo.findOne({
       where: { userId: user.id },
-      order: { createdAt: 'DESC' },
+      order: LATEST_SUBSCRIPTION_ORDER,
     })
 
     if (existing?.gatewaySubscriptionId && existing.status !== 'canceled') {
@@ -205,7 +200,7 @@ export class BillingService {
   async getFreeUpgradeOffer(user: Pick<User, 'id' | 'email'>) {
     const subscription = await this.repo.findOne({
       where: { userId: user.id },
-      order: { createdAt: 'DESC' },
+      order: LATEST_SUBSCRIPTION_ORDER,
     })
     const plan = subscription?.plan ?? 'free'
     const activeFree = subscription?.status === 'active' && plan === 'free'
@@ -252,7 +247,7 @@ export class BillingService {
 
     const subscription = await this.repo.findOne({
       where: { userId, status: In(['active', 'past_due']) },
-      order: { createdAt: 'DESC' },
+      order: LATEST_SUBSCRIPTION_ORDER,
     })
 
     if (!subscription?.gatewaySubscriptionId) {
@@ -279,7 +274,7 @@ export class BillingService {
 
     const subscription = await this.repo.findOne({
       where: { userId: user.id, status: In(['active', 'trialing', 'past_due']) },
-      order: { createdAt: 'DESC' },
+      order: LATEST_SUBSCRIPTION_ORDER,
     })
 
     if (!subscription) throw new NotFoundException('Assinatura ativa nao encontrada')
@@ -303,7 +298,7 @@ export class BillingService {
   async cancel(user: Pick<User, 'id' | 'email'>) {
     const subscription = await this.repo.findOne({
       where: { userId: user.id, status: In(['active', 'trialing', 'past_due']) },
-      order: { createdAt: 'DESC' },
+      order: LATEST_SUBSCRIPTION_ORDER,
     })
 
     if (!subscription) throw new NotFoundException('Assinatura ativa nao encontrada')
@@ -359,13 +354,13 @@ export class BillingService {
   }
 
   private isCompedProUser(user: Pick<User, 'email'>): boolean {
-    return COMPED_PRO_EMAILS.includes(user.email.toLowerCase())
+    return isCompedProEmail(user.email)
   }
 
   private async ensureCompedProSubscription(user: Pick<User, 'id' | 'email'>) {
     const subscription = await this.repo.findOne({
       where: { userId: user.id },
-      order: { createdAt: 'DESC' },
+      order: LATEST_SUBSCRIPTION_ORDER,
     }) ?? this.repo.create({ userId: user.id })
 
     if (subscription.gatewaySubscriptionId && subscription.status !== 'canceled') {
@@ -396,7 +391,7 @@ export class BillingService {
   private async ensureBetaFreeSubscription(user: Pick<User, 'id' | 'email'>) {
     const subscription = await this.repo.findOne({
       where: { userId: user.id },
-      order: { createdAt: 'DESC' },
+      order: LATEST_SUBSCRIPTION_ORDER,
     }) ?? this.repo.create({ userId: user.id })
 
     Object.assign(subscription, {

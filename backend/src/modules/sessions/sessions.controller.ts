@@ -10,7 +10,12 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
 import { RequirePlan } from '../../common/decorators/require-plan.decorator'
-import { PLAN_LIMITS, KnownPlan, normalizePlan } from '../../common/plans'
+import {
+  LATEST_SUBSCRIPTION_ORDER,
+  PLAN_LIMITS,
+  KnownPlan,
+  resolveEffectivePlan,
+} from '../../common/plans'
 import { Subscription } from '../billing/entities/subscription.entity'
 import { SessionsService } from './sessions.service'
 import { AiService } from './ai.service'
@@ -19,10 +24,6 @@ import { AiUsage } from './entities/ai-usage.entity'
 import { AiTextQuotaService } from './ai-text-quota.service'
 
 const AI_TRANSCRIPTION_MAX_SECONDS = 15 * 60
-const COMPED_PRO_EMAILS = (process.env.COMPED_PRO_EMAILS ?? 'gilsonfilho96@outlook.com')
-  .split(',')
-  .map(email => email.trim().toLowerCase())
-  .filter(Boolean)
 
 // NoImpersonationGuard roda após o JwtAuthGuard (mesmo array) e nega acesso a
 // conteúdo clínico enquanto um admin está "vendo como" outro usuário.
@@ -152,15 +153,11 @@ export class SessionsController {
   }
 
   private async getCurrentPlan(userId: string, email?: string): Promise<KnownPlan> {
-    if (email && COMPED_PRO_EMAILS.includes(String(email).toLowerCase())) return 'pro'
-
     const sub = await this.subscriptions.findOne({
       where: { userId },
-      order: { createdAt: 'DESC' },
+      order: LATEST_SUBSCRIPTION_ORDER,
     })
-    return normalizePlan(
-      (sub?.status === 'active' || sub?.status === 'trialing') ? sub.plan : 'free',
-    )
+    return resolveEffectivePlan(sub, email)
   }
 
   private async chargeTranscriptionQuota(userId: string, durationSeconds: number, plan: KnownPlan): Promise<void> {

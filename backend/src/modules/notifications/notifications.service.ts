@@ -10,6 +10,11 @@ import { PushSubscriptionEntity } from './entities/push-subscription.entity'
 import { WhatsAppDeliveryLog } from './entities/whatsapp-delivery-log.entity'
 import { SavePushSubscriptionDto } from './dto/push-subscription.dto'
 import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
+import {
+  hasPlanAccess,
+  LATEST_SUBSCRIPTION_ORDER,
+  resolveEffectivePlan,
+} from '../../common/plans'
 
 const WA_FETCH_TIMEOUT_MS = 10000
 
@@ -68,11 +73,6 @@ type WhatsAppTextPayload = {
   linkPreview?: boolean
 }
 
-const COMPED_PRO_EMAILS = (process.env.COMPED_PRO_EMAILS ?? 'gilsonfilho96@outlook.com')
-  .split(',')
-  .map(email => email.trim().toLowerCase())
-  .filter(Boolean)
-
 /**
  * NotificationsService
  * Mensagens via WhatsApp (Evolution API) + e-mail (Resend).
@@ -128,13 +128,10 @@ export class NotificationsService {
       this.users.findOneBy({ id: userId }),
       this.subs.findOne({
         where: { userId },
-        order: { createdAt: 'DESC' },
+        order: LATEST_SUBSCRIPTION_ORDER,
       }),
     ])
-    if (user?.email && COMPED_PRO_EMAILS.includes(user.email.toLowerCase())) return true
-
-    const plan = (sub?.status === 'active' || sub?.status === 'trialing') ? sub.plan : 'free'
-    return plan === 'pro'
+    return hasPlanAccess(resolveEffectivePlan(sub, user?.email), 'pro')
   }
 
   /** Envio manual acionado pelo psicólogo (formulários, links). Liberado a partir do Essencial. */
@@ -143,13 +140,9 @@ export class NotificationsService {
 
     const [user, sub] = await Promise.all([
       this.users.findOneBy({ id: userId }),
-      this.subs.findOne({ where: { userId }, order: { createdAt: 'DESC' } }),
+      this.subs.findOne({ where: { userId }, order: LATEST_SUBSCRIPTION_ORDER }),
     ])
-    if (user?.email && COMPED_PRO_EMAILS.includes(user.email.toLowerCase())) return true
-
-    const PLAN_ORDER: Record<string, number> = { free: 0, basic: 1, essencial: 1, pro: 2, premium: 2 }
-    const plan = (sub?.status === 'active' || sub?.status === 'trialing') ? (sub.plan ?? 'free') : 'free'
-    return (PLAN_ORDER[plan] ?? 0) >= 1
+    return hasPlanAccess(resolveEffectivePlan(sub, user?.email), 'essencial')
   }
 
   // ─── Envio via WhatsApp (Evolution API) ──────────────────────────────────

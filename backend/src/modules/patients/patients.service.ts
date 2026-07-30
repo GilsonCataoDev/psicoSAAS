@@ -9,7 +9,7 @@ import { UpdatePatientDto } from './dto/update-patient.dto'
 import { UpdatePatientPortalIntakeDto } from './dto/patient-portal.dto'
 import { Subscription } from '../billing/entities/subscription.entity'
 import { Appointment } from '../appointments/entities/appointment.entity'
-import { PLAN_LIMITS, normalizePlan } from '../../common/plans'
+import { LATEST_SUBSCRIPTION_ORDER, PLAN_LIMITS, normalizePlan } from '../../common/plans'
 import { blindIndex, encrypt, hashToken, safeDecrypt } from '../../common/crypto/encrypt.util'
 import { FinancialService } from '../financial/financial.service'
 import { formatCrpForDisplay } from '../auth/entities/user.entity'
@@ -197,7 +197,10 @@ export class PatientsService {
   }
 
   async getPlanUsage(userId: string): Promise<{ plan: string; limit: number; count: number }> {
-    const sub  = await this.subs.findOne({ where: { userId } })
+    const sub = await this.subs.findOne({
+      where: { userId },
+      order: LATEST_SUBSCRIPTION_ORDER,
+    })
     const plan = normalizePlan((sub?.status === 'active' || sub?.status === 'trialing') ? sub.plan : 'free')
     const limit = PLAN_LIMITS[plan].maxPatients
     const count = await this.repo.count({ where: { psychologistId: userId, status: 'active' } })

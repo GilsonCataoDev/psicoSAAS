@@ -67,4 +67,27 @@ describe('PatientsService — edição cadastral', () => {
 
     expect(repo.remove).toHaveBeenCalledWith(patient)
   })
+
+  it('usa sempre a assinatura mais recente para calcular o limite', async () => {
+    const repo = { count: jest.fn().mockResolvedValue(12) }
+    const subscriptions = {
+      findOne: jest.fn().mockResolvedValue({ status: 'active', plan: 'essencial' }),
+    }
+    const service = new PatientsService(
+      repo as any,
+      subscriptions as any,
+      {} as any,
+      {} as any,
+    )
+
+    await expect(service.getPlanUsage('psychologist-1')).resolves.toEqual({
+      plan: 'essencial',
+      limit: 50,
+      count: 12,
+    })
+    expect(subscriptions.findOne).toHaveBeenCalledWith({
+      where: { userId: 'psychologist-1' },
+      order: { createdAt: 'DESC' },
+    })
+  })
 })

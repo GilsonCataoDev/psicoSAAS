@@ -1,15 +1,15 @@
 import { ForbiddenException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { KnownPlan, normalizePlan, PLAN_LIMITS } from '../../common/plans'
+import {
+  KnownPlan,
+  LATEST_SUBSCRIPTION_ORDER,
+  PLAN_LIMITS,
+  resolveEffectivePlan,
+} from '../../common/plans'
 import { Subscription } from '../billing/entities/subscription.entity'
 import { AiTextUsage } from './ai.service'
 import { AiUsage } from './entities/ai-usage.entity'
-
-const COMPED_PRO_EMAILS = (process.env.COMPED_PRO_EMAILS ?? 'gilsonfilho96@outlook.com')
-  .split(',')
-  .map(email => email.trim().toLowerCase())
-  .filter(Boolean)
 
 @Injectable()
 export class AiTextQuotaService {
@@ -88,15 +88,10 @@ export class AiTextQuotaService {
   }
 
   private async currentPlan(userId: string, email?: string): Promise<KnownPlan> {
-    if (email && COMPED_PRO_EMAILS.includes(String(email).toLowerCase())) return 'pro'
     const subscription = await this.subscriptions.findOne({
       where: { userId },
-      order: { createdAt: 'DESC' },
+      order: LATEST_SUBSCRIPTION_ORDER,
     })
-    return normalizePlan(
-      subscription?.status === 'active' || subscription?.status === 'trialing'
-        ? subscription.plan
-        : 'free',
-    )
+    return resolveEffectivePlan(subscription, email)
   }
 }

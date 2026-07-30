@@ -33,6 +33,40 @@ export const PLAN_LIMITS: PlanLimits = {
 
 export type KnownPlan = keyof typeof PLAN_LIMITS
 
+export const LATEST_SUBSCRIPTION_ORDER = { createdAt: 'DESC' } as const
+
+const PLAN_ORDER: Readonly<Record<KnownPlan, number>> = Object.freeze({
+  free: 0,
+  basic: 1,
+  essencial: 1,
+  pro: 2,
+  premium: 2,
+})
+
+const DEFAULT_COMPED_PRO_EMAILS = 'gilsonfilho96@outlook.com'
+
 export function normalizePlan(plan: string | null | undefined): KnownPlan {
   return plan && plan in PLAN_LIMITS ? plan as KnownPlan : 'free'
+}
+
+export function isCompedProEmail(email: string | null | undefined): boolean {
+  if (!email) return false
+  const configured = process.env.COMPED_PRO_EMAILS ?? DEFAULT_COMPED_PRO_EMAILS
+  const normalized = email.trim().toLowerCase()
+  return configured
+    .split(',')
+    .some(candidate => candidate.trim().toLowerCase() === normalized)
+}
+
+export function resolveEffectivePlan(
+  subscription: { plan?: string | null; status?: string | null } | null | undefined,
+  email?: string | null,
+): KnownPlan {
+  if (isCompedProEmail(email)) return 'pro'
+  const active = subscription?.status === 'active' || subscription?.status === 'trialing'
+  return normalizePlan(active ? subscription?.plan : 'free')
+}
+
+export function hasPlanAccess(current: KnownPlan, required: KnownPlan): boolean {
+  return PLAN_ORDER[current] >= PLAN_ORDER[required]
 }

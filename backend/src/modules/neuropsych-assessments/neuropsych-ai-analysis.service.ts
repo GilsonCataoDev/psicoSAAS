@@ -2,7 +2,12 @@ import { BadRequestException, ForbiddenException, Injectable, InternalServerErro
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
-import { PLAN_LIMITS, KnownPlan, normalizePlan } from '../../common/plans'
+import {
+  PLAN_LIMITS,
+  KnownPlan,
+  LATEST_SUBSCRIPTION_ORDER,
+  resolveEffectivePlan,
+} from '../../common/plans'
 import { Subscription } from '../billing/entities/subscription.entity'
 import { Patient } from '../patients/entities/patient.entity'
 import {
@@ -18,10 +23,6 @@ import { sanitizeClinicalText } from './neuropsych-identifier-redaction'
 import { NEUROPSYCH_AI_LIMITS } from './neuropsych-ai-limits'
 
 const ASSESSMENT_CLINICAL_FIELDS = ['referralQuestion', 'clinicalHistory', 'clinicalHypotheses', 'qualitativeObservations'] as const
-const COMPED_PRO_EMAILS = (process.env.COMPED_PRO_EMAILS ?? 'gilsonfilho96@outlook.com')
-  .split(',')
-  .map(email => email.trim().toLowerCase())
-  .filter(Boolean)
 
 // Linha "sentinela" no ai_usage que acumula o custo do Copiloto de TODAS as
 // contas no mês — não corresponde a nenhum usuário real. ai_usage.userId não
@@ -197,9 +198,11 @@ export class NeuropsychAiAnalysisService {
   }
 
   private async getCurrentPlan(userId: string, email?: string): Promise<KnownPlan> {
-    if (email && COMPED_PRO_EMAILS.includes(String(email).toLowerCase())) return 'pro'
-    const sub = await this.subscriptions.findOne({ where: { userId }, order: { createdAt: 'DESC' } })
-    return normalizePlan((sub?.status === 'active' || sub?.status === 'trialing') ? sub.plan : 'free')
+    const sub = await this.subscriptions.findOne({
+      where: { userId },
+      order: LATEST_SUBSCRIPTION_ORDER,
+    })
+    return resolveEffectivePlan(sub, email)
   }
 
   /** Estimativa de custo máximo (pior caso) de uma chamada, usada para reservar orçamento global antes de saber o custo real. */

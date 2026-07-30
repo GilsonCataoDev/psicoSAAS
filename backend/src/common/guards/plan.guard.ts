@@ -6,13 +6,12 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { PLAN_KEY, PlanLevel } from '../decorators/require-plan.decorator'
 import { Subscription } from '../../modules/billing/entities/subscription.entity'
-import { PLAN_LIMITS, normalizePlan } from '../plans'
-
-const PLAN_ORDER: Record<PlanLevel, number> = { free: 0, basic: 1, essencial: 1, pro: 2, premium: 2 }
-const COMPED_PRO_EMAILS = (process.env.COMPED_PRO_EMAILS ?? 'gilsonfilho96@outlook.com')
-  .split(',')
-  .map(email => email.trim().toLowerCase())
-  .filter(Boolean)
+import {
+  hasPlanAccess,
+  LATEST_SUBSCRIPTION_ORDER,
+  PLAN_LIMITS,
+  resolveEffectivePlan,
+} from '../plans'
 
 export { PLAN_LIMITS }
 
@@ -32,17 +31,14 @@ export class PlanGuard implements CanActivate {
     const req = ctx.switchToHttp().getRequest()
     const userId = req.user?.id
     if (!userId) return false
-    if (req.user?.email && COMPED_PRO_EMAILS.includes(String(req.user.email).toLowerCase())) return true
 
     const sub = await this.subs.findOne({
       where: { userId },
-      order: { createdAt: 'DESC' },
+      order: LATEST_SUBSCRIPTION_ORDER,
     })
-    const currentPlan = normalizePlan(
-      (sub?.status === 'active' || sub?.status === 'trialing') ? sub.plan : 'free',
-    ) as PlanLevel
+    const currentPlan = resolveEffectivePlan(sub, req.user?.email)
 
-    if (PLAN_ORDER[currentPlan] >= PLAN_ORDER[requiredPlan]) return true
+    if (hasPlanAccess(currentPlan, requiredPlan)) return true
 
     throw new ForbiddenException({
       message: `Esta funcionalidade requer o plano ${requiredPlan} ou superior.`,
