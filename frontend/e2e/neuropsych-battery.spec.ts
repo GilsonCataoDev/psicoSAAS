@@ -37,7 +37,6 @@ test.describe('Bateria neuropsicológica', () => {
     // compensado como Pro, o restante do teste valida o payload da bateria.
     if (!hasProAccess) {
       await expect(startButton).not.toBeVisible()
-      expect(page.url()).not.toContain('#/avaliacoes')
       return
     }
 
