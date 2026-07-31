@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Download, Lock, Save, FileText, Pencil, X, Sparkles } from 'lucide-react'
-import { usePatient, useUpdatePatient, useSessions, useCreateSession, useUpdateSession, useExportProntuario, useGenerateProntuarioDraft } from '@/hooks/useApi'
+import { usePatient, useUpdatePatient, useSessions, useCreateSession, useUpdateSession, useExportProntuario, useGenerateProntuarioDraft, useGenerateSessionPlan } from '@/hooks/useApi'
 import { TAG_LABELS } from '@/types'
 import { Prontuario } from '@/types/prontuario'
 import { formatDate } from '@/lib/utils'
@@ -68,11 +68,13 @@ export default function ProntuarioPage() {
   const updatePatient = useUpdatePatient()
   const exportProntuario = useExportProntuario(id ?? '')
   const generateProntuarioDraft = useGenerateProntuarioDraft()
+  const generateSessionPlan = useGenerateSessionPlan()
   const hasPro = useHasPlan('pro')
   const [evolText, setEvolText] = useState('')
   const [evolDate, setEvolDate] = useState(new Date().toISOString().split('T')[0])
   const [aiMode, setAiMode] = useState<AiProntuarioMode>('organizar')
   const [aiDraft, setAiDraft] = useState('')
+  const [sessionPlan, setSessionPlan] = useState('')
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null)
   const [editEvolDate, setEditEvolDate] = useState('')
   const [editEvolText, setEditEvolText] = useState('')
@@ -150,6 +152,28 @@ export default function ProntuarioPage() {
       toast.success('Rascunho gerado. Revise antes de salvar.')
     } catch (err: any) {
       toast.error(err?.response?.data?.message ?? 'Nao foi possivel gerar o rascunho.')
+    }
+  }
+
+  async function planNextSession() {
+    if (!hasPro) {
+      toast.error('IA disponivel a partir do plano Pro.')
+      return
+    }
+    if (sessions.length === 0) {
+      toast.error('Ainda nao ha sessoes registradas para basear o planejamento.')
+      return
+    }
+    const clinicalContext = sessions
+      .slice(0, 5)
+      .map(s => `Sessao de ${formatDate(s.date)}:\nResumo: ${s.summary ?? '(sem resumo)'}\nProximos passos: ${s.nextSteps ?? '(nao registrado)'}`)
+      .join('\n\n')
+    try {
+      const { draft } = await generateSessionPlan.mutateAsync({ clinicalContext })
+      setSessionPlan(draft)
+      toast.success('Sugestao de planejamento gerada. Revise antes de usar.')
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'Nao foi possivel gerar a sugestao de planejamento.')
     }
   }
 
@@ -359,6 +383,42 @@ export default function ProntuarioPage() {
               <Lock className="w-4 h-4 shrink-0" />
               <span>Registros de evolução são criptografados. Somente você tem acesso.</span>
             </div>
+          </div>
+
+          {/* Planejamento da próxima sessão com IA */}
+          <div className="card space-y-3 border-sage-100 bg-sage-50/40 dark:border-sage-400/20 dark:bg-sage-500/10">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-1">
+                <p className="flex items-center gap-2 text-sm font-semibold text-sage-800 dark:text-sage-100">
+                  <Sparkles className="h-4 w-4" />
+                  Planejar próxima sessão com IA
+                </p>
+                <p className="text-xs text-sage-700 dark:text-sage-200">
+                  Usa o resumo e os próximos passos das últimas sessões. Disponível a partir do Pro.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={planNextSession}
+                disabled={generateSessionPlan.isPending || !hasPro}
+                title={!hasPro ? 'IA disponivel a partir do plano Pro' : undefined}
+                className="btn-secondary flex items-center justify-center gap-2 text-sm"
+              >
+                <Sparkles className="h-4 w-4" />
+                {!hasPro ? 'IA no Pro' : generateSessionPlan.isPending ? 'Planejando...' : 'Planejar sessão'}
+              </button>
+            </div>
+            {sessionPlan && (
+              <div className="rounded-xl border border-white/70 bg-white p-3 dark:border-white/10 dark:bg-neutral-900">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Sugestão da IA</p>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-700 dark:text-neutral-100">{sessionPlan}</p>
+                <div className="mt-3 flex justify-end">
+                  <button type="button" onClick={() => setSessionPlan('')} className="btn-secondary text-sm">
+                    Descartar
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Nova entrada */}

@@ -93,3 +93,10 @@ export function useGenerateProntuarioDraft() {
       api.post<{ draft: string }>('/sessions/ai-prontuario', data).then(r => r.data),
   })
 }
+
+export function useGenerateSessionPlan() {
+  return useMutation({
+    mutationFn: (data: { clinicalContext: string }) =>
+      api.post<{ draft: string }>('/sessions/ai-session-plan', data).then(r => r.data),
+  })
+}

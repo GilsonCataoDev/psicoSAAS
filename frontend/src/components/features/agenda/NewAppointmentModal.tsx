@@ -367,7 +367,7 @@ export default function NewAppointmentModal({ open, onClose, appointment, initia
           <div className="rounded-2xl border border-mist-100 bg-mist-50 px-4 py-3">
             <p className="text-sm font-semibold text-mist-900">Teleatendimento</p>
             <p className="mt-1 text-xs leading-relaxed text-mist-700">
-              Cole o link do Google Meet, Zoom ou Whereby no campo abaixo. A agenda mostrara o botao de chamada neste horario.
+              Uma sala de vídeo é gerada automaticamente pra esta sessão. Se preferir usar Google Meet, Zoom ou Whereby, cole o link no campo abaixo.
             </p>
           </div>
         )}
@@ -375,13 +375,13 @@ export default function NewAppointmentModal({ open, onClose, appointment, initia
         <div>
           {modality === 'online' && (
             <div className="mb-4">
-              <label className="label">Link da chamada</label>
+              <label className="label">Link da chamada (opcional)</label>
               <input
                 {...register('meetingUrl')}
                 type="url"
                 inputMode="url"
                 className="input-field"
-                placeholder="https://meet.google.com/..."
+                placeholder="Deixe em branco para gerar uma sala automaticamente"
               />
             </div>
           )}

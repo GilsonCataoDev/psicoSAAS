@@ -220,6 +220,34 @@ ${transcription.slice(0, 6000)}`
     }
   }
 
+  async generateSessionPlan(clinicalContext: string): Promise<AiTextResult> {
+    const mocked = await this.mockTextIfEnabled(
+      clinicalContext, 15_000,
+      '[MOCK] Sugestao de planejamento de sessao de teste E2E. Revisar antes de usar.',
+      'Nao foi possivel gerar a sugestao de planejamento. Tente novamente.',
+    )
+    if (mocked) return mocked
+
+    const cleanInput = this.redactDirectIdentifiers(clinicalContext.trim()).slice(0, 8000)
+
+    const prompt = `Voce e um assistente de apoio clinico para psicologos e terapeutas.
+Com base no historico de sessoes anteriores abaixo (resumos e proximos passos ja registrados), sugira um plano para a PROXIMA sessao.
+Nao invente fatos, nao feche diagnostico, nao prescreva condutas e nao substitua o julgamento clinico.
+Estruture em topicos curtos: (1) retomar da sessao anterior, (2) foco sugerido para esta sessao, (3) possiveis intervencoes a considerar, (4) pontos de atencao.
+Escreva em portugues do Brasil, tom tecnico, direto, maximo 200 palavras.
+Finalize com a frase: "Sugestao gerada por IA, ajuste conforme seu julgamento clinico."
+
+Historico de sessoes anteriores:
+${cleanInput || '(sem sessoes anteriores registradas)'}`
+
+    try {
+      return await this.callTextModel(prompt, 700)
+    } catch (err: any) {
+      this.logger.error(`AI session plan error: ${err?.status ?? err?.name ?? 'unknown'}`)
+      throw new BadRequestException('Nao foi possivel gerar a sugestao de planejamento. Tente novamente.')
+    }
+  }
+
   async generateProntuarioDraft(input: string, mode: 'resumo' | 'evolucao' | 'organizar'): Promise<AiTextResult> {
     const mocked = await this.mockTextIfEnabled(
       input, 15_000,

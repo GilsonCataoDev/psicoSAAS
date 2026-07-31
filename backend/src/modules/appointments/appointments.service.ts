@@ -113,6 +113,9 @@ export class AppointmentsService {
 
     if (dto.meetingUrl !== undefined) dto.meetingUrl = this.cleanMeetingUrl(dto.meetingUrl)
     Object.assign(appointment, dto)
+    if (appointment.modality === 'online' && !appointment.meetingUrl) {
+      appointment.meetingUrl = this.generateJitsiRoomUrl()
+    }
     const saved = await this.repo.save(appointment)
     await this.syncLinkedBookingFromAppointment(saved)
     this.googleCalendar.syncAppointment(saved).catch(err => this.logCalendarError('sync', saved.id, err))
@@ -182,6 +185,9 @@ export class AppointmentsService {
         || (dto.duration !== undefined && Number(dto.duration) !== Number(appt.duration))
       if (changedSlot) this.resetReminderTracking(appt)
       Object.assign(appt, dto)
+      if (appt.modality === 'online' && !appt.meetingUrl) {
+        appt.meetingUrl = this.generateJitsiRoomUrl()
+      }
     }
     const saved = await this.repo.save(toUpdate)
     for (const appt of saved) {
@@ -218,7 +224,7 @@ export class AppointmentsService {
         time: dto.time,
         duration: dto.duration,
         modality: dto.modality,
-        meetingUrl: this.cleanMeetingUrl(dto.meetingUrl),
+        meetingUrl: this.resolveMeetingUrl(dto.modality, dto.meetingUrl),
         notes: dto.notes,
         psychologistId,
         isRecurring: dto.recurrence === 'weekly' || dto.recurrence === 'biweekly',
@@ -289,6 +295,18 @@ export class AppointmentsService {
   private cleanMeetingUrl(value?: string): string | undefined {
     const trimmed = value?.trim()
     return trimmed || undefined
+  }
+
+  // Sala de video gerada automaticamente (Jitsi Meet, publico e gratuito) quando o
+  // psicologo marca a sessao como online sem colar um link proprio (Zoom/Meet/Whereby).
+  private generateJitsiRoomUrl(): string {
+    return `https://meet.jit.si/UseCognia-${randomUUID().replace(/-/g, '')}`
+  }
+
+  private resolveMeetingUrl(modality: string | undefined, meetingUrl: string | undefined): string | undefined {
+    const cleaned = this.cleanMeetingUrl(meetingUrl)
+    if (cleaned) return cleaned
+    return modality === 'online' ? this.generateJitsiRoomUrl() : undefined
   }
 
   private timeToMinutes(time: string): number {

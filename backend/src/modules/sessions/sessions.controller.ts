@@ -132,6 +132,27 @@ export class SessionsController {
     return { draft: result.text }
   }
 
+  @Post('ai-session-plan')
+  @RequirePlan('pro')
+  @Throttle({ default: { limit: 20, ttl: 60 * 1000 } })
+  async aiSessionPlan(
+    @Body('clinicalContext') clinicalContext: string,
+    @Request() req?: any,
+  ) {
+    if (!clinicalContext?.trim()) throw new BadRequestException('Historico de sessões ausente')
+    if (clinicalContext.length > 12000) throw new BadRequestException('O historico deve ter no máximo 12.000 caracteres.')
+    await this.aiTextQuota.reserve(req.user.id, req.user.email)
+    let result
+    try {
+      result = await this.ai.generateSessionPlan(clinicalContext)
+    } catch (error) {
+      await this.aiTextQuota.release(req.user.id).catch(() => {})
+      throw error
+    }
+    await this.aiTextQuota.recordUsage(req.user.id, result.usage)
+    return { draft: result.text }
+  }
+
   private parseDuration(value?: string): number {
     const duration = Math.ceil(Number(value))
     if (!Number.isFinite(duration) || duration <= 0) {
