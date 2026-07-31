@@ -39,17 +39,25 @@ async function main() {
     process.exit(1)
   }
 
+  // Watchdog: o processo TEM que sair sozinho logo após rodar o job — é um
+  // Railway Cron Service, cobrado pelo tempo que fica de pé. Se algo (pool do
+  // Postgres, cliente Redis, listener não fechado por outro módulo do
+  // AppModule) travar o graceful shutdown, forçamos a saída de qualquer jeito.
+  const watchdog = setTimeout(() => {
+    console.error(`[CronProspecting] watchdog: saída forçada após timeout`)
+    process.exit(1)
+  }, 5 * 60 * 1000)
+  watchdog.unref()
+
   const app = await NestFactory.createApplicationContext(AppModule, { logger: ['error', 'warn', 'log'] })
-  try {
-    const job = app.get(JobClass)
-    logger.log(`Executando job "${jobName}"...`)
-    await job.run()
-    logger.log(`Job "${jobName}" concluído.`)
-  } finally {
-    await app.close()
-  }
+  const job = app.get(JobClass)
+  logger.log(`Executando job "${jobName}"...`)
+  await job.run()
+  logger.log(`Job "${jobName}" concluído. Saindo (sem esperar shutdown gracioso).`)
+  // Saída imediata e forçada: o container é efêmero, não precisa de
+  // app.close() — esperar por ele é justamente o que estava prendendo o
+  // processo vivo (memória sustentada) na primeira versão deste script.
+  process.exit(0)
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch(err => { console.error(err); process.exit(1) })
+main().catch(err => { console.error(err); process.exit(1) })
