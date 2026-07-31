@@ -71,6 +71,7 @@ export const PRICING_PLANS: PricingPlan[] = [
       { type: 'included', title: 'Envie link de cobranca para o paciente pagar em 1 clique', subtitle: 'Cobranca com links' },
       { type: 'included', title: 'Lembretes automaticos 24h e 1h antes', subtitle: 'Lembretes automaticos' },
       { type: 'included', title: 'Grave, transcreva e gere rascunhos com IA quando habilitada', subtitle: 'Ate 120 min/mes de transcricao' },
+      { type: 'included', title: 'Sala de video gerada na hora, ou cole seu link de Meet/Zoom se preferir', subtitle: 'Sessoes online (Jitsi automatico, opcional)' },
       { type: 'included', title: 'Acompanhe faltas, comparecimento e receita registrada', subtitle: 'Relatorios avancados' },
     ],
     roi: {
@@ -94,6 +95,7 @@ export const PRICING_COMPARISON = {
     { title: 'Lembretes', free: 'Sem lembretes automaticos', pro: '24h e 1h antes, quando o WhatsApp estiver disponivel' },
     { title: 'Cobranca', free: 'Financeiro basico, sem cobranca automatizada', pro: 'Link e mensagem quando o provedor de pagamentos estiver configurado' },
     { title: 'IA', free: 'Sem transcricao/rascunho por IA', pro: 'Ate 120 min/mes de transcricao, quando a IA estiver habilitada' },
+    { title: 'Sessao online', free: 'Sem sala de video integrada', pro: 'Sala Jitsi automatica ao marcar online (pode desativar e usar seu proprio link)' },
     { title: 'Documentos', free: 'Sem documentos/PDF', pro: 'Documentos ilimitados com verificacao' },
     { title: 'Instrumentos clinicos', free: 'Nao disponivel', pro: 'Escalas e instrumentos clinicos' },
     { title: 'Escalabilidade', free: 'Ate 10 pacientes ativos', pro: '50+, 100+. O sistema aguenta' },

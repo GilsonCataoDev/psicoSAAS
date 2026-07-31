@@ -15,6 +15,7 @@ type FormData = {
   duration: number
   modality: 'presencial' | 'online'
   meetingUrl: string
+  autoVideoRoom: boolean
   notes: string
   recurrence: 'none' | 'weekly' | 'biweekly'
   repeatUntil: string
@@ -44,6 +45,7 @@ function buildAppointmentUpdatePayload(data: FormData) {
     duration: Number(data.duration),
     modality: data.modality,
     meetingUrl: data.meetingUrl || undefined,
+    autoVideoRoom: data.autoVideoRoom,
     notes: data.notes || undefined,
   }
 }
@@ -64,6 +66,7 @@ export default function NewAppointmentModal({ open, onClose, appointment, initia
       duration: 50,
       modality: 'presencial',
       meetingUrl: '',
+      autoVideoRoom: true,
       notes: '',
       recurrence: 'none',
       repeatUntil: '',
@@ -77,6 +80,7 @@ export default function NewAppointmentModal({ open, onClose, appointment, initia
   const duration = Number(watch('duration') || 50)
   const repeatUntil = watch('repeatUntil')
   const modality = watch('modality')
+  const autoVideoRoom = watch('autoVideoRoom')
   const selectedPatient = patients.find(p => p.id === patientId)
   const fixedLabel = fixedScheduleLabel(selectedPatient)
   const { data: dayAppointments = [] } = useAppointments({
@@ -117,6 +121,7 @@ export default function NewAppointmentModal({ open, onClose, appointment, initia
         duration: appointment.duration,
         modality: appointment.modality,
         meetingUrl: appointment.meetingUrl ?? '',
+        autoVideoRoom: true,
         notes: appointment.notes ?? '',
         recurrence: 'none',
         repeatUntil: '',
@@ -131,6 +136,7 @@ export default function NewAppointmentModal({ open, onClose, appointment, initia
       duration: 50,
       modality: 'presencial',
       meetingUrl: '',
+      autoVideoRoom: true,
       notes: '',
       recurrence: 'none',
       repeatUntil: '',
@@ -151,6 +157,10 @@ export default function NewAppointmentModal({ open, onClose, appointment, initia
   }
 
   async function onSubmit(data: FormData) {
+    if (data.modality === 'online' && !data.autoVideoRoom && !data.meetingUrl?.trim()) {
+      toast.error('Cole o link da chamada ou ative a sala automática.')
+      return
+    }
     try {
       const duration = Number(data.duration)
       if (isEditing && appointment) {
@@ -164,6 +174,7 @@ export default function NewAppointmentModal({ open, onClose, appointment, initia
               duration: updatePayload.duration,
               modality: updatePayload.modality,
               meetingUrl: updatePayload.meetingUrl,
+              autoVideoRoom: updatePayload.autoVideoRoom,
               notes: updatePayload.notes,
             },
           })
@@ -367,21 +378,27 @@ export default function NewAppointmentModal({ open, onClose, appointment, initia
           <div className="rounded-2xl border border-mist-100 bg-mist-50 px-4 py-3">
             <p className="text-sm font-semibold text-mist-900">Teleatendimento</p>
             <p className="mt-1 text-xs leading-relaxed text-mist-700">
-              Uma sala de vídeo é gerada automaticamente pra esta sessão. Se preferir usar Google Meet, Zoom ou Whereby, cole o link no campo abaixo.
+              {autoVideoRoom
+                ? 'Uma sala de vídeo é gerada automaticamente pra esta sessão. Se preferir usar Google Meet, Zoom ou Whereby, cole o link no campo abaixo.'
+                : 'Sala automática desativada. Cole abaixo o link da chamada (Google Meet, Zoom, Whereby etc.).'}
             </p>
+            <label className="mt-3 flex items-center gap-2 text-xs font-medium text-mist-800">
+              <input type="checkbox" {...register('autoVideoRoom')} className="h-4 w-4 rounded border-mist-300" />
+              Gerar sala automática (Jitsi) se eu não colar um link
+            </label>
           </div>
         )}
 
         <div>
           {modality === 'online' && (
             <div className="mb-4">
-              <label className="label">Link da chamada (opcional)</label>
+              <label className="label">Link da chamada {autoVideoRoom ? '(opcional)' : ''}</label>
               <input
                 {...register('meetingUrl')}
                 type="url"
                 inputMode="url"
                 className="input-field"
-                placeholder="Deixe em branco para gerar uma sala automaticamente"
+                placeholder={autoVideoRoom ? 'Deixe em branco para gerar uma sala automaticamente' : 'Cole o link da chamada'}
               />
             </div>
           )}

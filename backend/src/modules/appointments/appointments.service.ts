@@ -112,8 +112,9 @@ export class AppointmentsService {
     }
 
     if (dto.meetingUrl !== undefined) dto.meetingUrl = this.cleanMeetingUrl(dto.meetingUrl)
-    Object.assign(appointment, dto)
-    if (appointment.modality === 'online' && !appointment.meetingUrl) {
+    const { autoVideoRoom = true, ...appointmentDto } = dto
+    Object.assign(appointment, appointmentDto)
+    if (appointment.modality === 'online' && !appointment.meetingUrl && autoVideoRoom) {
       appointment.meetingUrl = this.generateJitsiRoomUrl()
     }
     const saved = await this.repo.save(appointment)
@@ -170,22 +171,23 @@ export class AppointmentsService {
     const all = await this.repo.find({ where: { recurringGroupId, psychologistId }, relations: ['patient'] })
     if (!all.length) throw new NotFoundException()
     if (dto.meetingUrl !== undefined) dto.meetingUrl = this.cleanMeetingUrl(dto.meetingUrl)
+    const { autoVideoRoom = true, ...groupDto } = dto
     const toUpdate = all.filter(a => a.date >= fromDate)
     for (const appt of toUpdate) {
       await this.assertSlotAvailable(
         psychologistId,
         appt.date,
-        dto.time ?? appt.time,
-        dto.duration ?? appt.duration,
+        groupDto.time ?? appt.time,
+        groupDto.duration ?? appt.duration,
         appt.id,
       )
     }
     for (const appt of toUpdate) {
-      const changedSlot = (dto.time !== undefined && dto.time !== appt.time)
-        || (dto.duration !== undefined && Number(dto.duration) !== Number(appt.duration))
+      const changedSlot = (groupDto.time !== undefined && groupDto.time !== appt.time)
+        || (groupDto.duration !== undefined && Number(groupDto.duration) !== Number(appt.duration))
       if (changedSlot) this.resetReminderTracking(appt)
-      Object.assign(appt, dto)
-      if (appt.modality === 'online' && !appt.meetingUrl) {
+      Object.assign(appt, groupDto)
+      if (appt.modality === 'online' && !appt.meetingUrl && autoVideoRoom) {
         appt.meetingUrl = this.generateJitsiRoomUrl()
       }
     }
@@ -224,7 +226,7 @@ export class AppointmentsService {
         time: dto.time,
         duration: dto.duration,
         modality: dto.modality,
-        meetingUrl: this.resolveMeetingUrl(dto.modality, dto.meetingUrl),
+        meetingUrl: this.resolveMeetingUrl(dto.modality, dto.meetingUrl, dto.autoVideoRoom),
         notes: dto.notes,
         psychologistId,
         isRecurring: dto.recurrence === 'weekly' || dto.recurrence === 'biweekly',
@@ -303,10 +305,14 @@ export class AppointmentsService {
     return `https://meet.jit.si/UseCognia-${randomUUID().replace(/-/g, '')}`
   }
 
-  private resolveMeetingUrl(modality: string | undefined, meetingUrl: string | undefined): string | undefined {
+  private resolveMeetingUrl(
+    modality: string | undefined,
+    meetingUrl: string | undefined,
+    autoVideoRoom = true,
+  ): string | undefined {
     const cleaned = this.cleanMeetingUrl(meetingUrl)
     if (cleaned) return cleaned
-    return modality === 'online' ? this.generateJitsiRoomUrl() : undefined
+    return modality === 'online' && autoVideoRoom ? this.generateJitsiRoomUrl() : undefined
   }
 
   private timeToMinutes(time: string): number {

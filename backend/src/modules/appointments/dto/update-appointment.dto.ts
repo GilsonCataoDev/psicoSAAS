@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNumber, IsIn } from 'class-validator'
+import { IsString, IsOptional, IsNumber, IsIn, IsBoolean } from 'class-validator'
 import { Type } from 'class-transformer'
 
 export class UpdateAppointmentDto {
@@ -8,6 +8,7 @@ export class UpdateAppointmentDto {
   @IsIn(['presencial','online']) @IsOptional() modality?: string
   @IsString() @IsOptional() meetingUrl?: string
   @IsString() @IsOptional() notes?: string
+  @IsBoolean() @IsOptional() autoVideoRoom?: boolean
 }
 
 export class UpdateAppointmentStatusDto {

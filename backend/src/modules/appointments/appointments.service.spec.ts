@@ -67,6 +67,15 @@ describe('AppointmentsService — sala de vídeo automática (Jitsi)', () => {
     expect(saved.meetingUrl).toBeUndefined()
   })
 
+  it('não gera sala quando autoVideoRoom é desativado e nenhum link foi informado', async () => {
+    const { service, repo } = buildService()
+
+    await service.update('appt-1', { modality: 'online', autoVideoRoom: false } as any, 'psi-1')
+
+    const saved = repo.save.mock.calls[0][0]
+    expect(saved.meetingUrl).toBeUndefined()
+  })
+
   it('gera salas Jitsi únicas a cada chamada', async () => {
     const { service } = buildService()
     const { service: service2 } = buildService()

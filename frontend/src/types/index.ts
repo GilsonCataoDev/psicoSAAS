@@ -150,6 +150,7 @@ export interface Appointment {
   status: 'scheduled' | 'completed' | 'cancelled' | 'no_show'
   modality: 'presencial' | 'online'
   meetingUrl?: string
+  autoVideoRoom?: boolean
   notes?: string
   isRecurring?: boolean
   recurringFrequency?: 'weekly' | 'biweekly'
