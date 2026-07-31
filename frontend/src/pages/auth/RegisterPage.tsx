@@ -133,8 +133,9 @@ export default function RegisterPage() {
           ? 'Plano gratis liberado! Seja bem-vindo(a)'
           : 'Conta criada! Vamos terminar a ativacao do plano gratis no painel.',
       )
+      // 'essencial' mantido no fallback por compatibilidade com links antigos (plano descontinuado, vira Pro).
       const requestedPlan = searchParams.get('plano')
-      navigate(requestedPlan === 'essencial' || requestedPlan === 'pro' ? `/planos?plano=${requestedPlan}` : '/')
+      navigate(requestedPlan === 'essencial' || requestedPlan === 'pro' ? '/planos?plano=pro' : '/')
     } catch (err: any) {
       const status = err?.response?.status
       const msg = err?.response?.data?.message

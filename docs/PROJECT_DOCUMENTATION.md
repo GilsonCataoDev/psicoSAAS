@@ -187,8 +187,7 @@ frontend/src/
 ### Planos e Billing
 
 - Plano Free.
-- Plano Essencial.
-- Plano Pro.
+- Plano Pro (R$ 97,90/mês).
 - Trial de 7 dias com cartao.
 - Renovacao a cada 30 dias.
 - Troca de plano pelo fluxo de billing.
@@ -323,9 +322,9 @@ Referencia: `backend/.env.example`.
 
 ### IA clinica
 
-- Transcricao de audio: disponivel a partir do plano Essencial, com cota mensal por plano.
-- Resumo, rascunho de prontuario e assistência a campos de documentos: disponíveis a partir do plano Essencial via `ANTHROPIC_API_KEY`.
-- A franquia compartilhada usa `AI_TEXT_ESSENCIAL_MONTHLY_LIMIT` (30 por padrão) e `AI_TEXT_PRO_MONTHLY_LIMIT` (150 por padrão); 0 desativa o recurso no plano.
+- Transcricao de audio: disponivel a partir do plano Pro, com cota mensal.
+- Resumo, rascunho de prontuario e assistência a campos de documentos: disponíveis a partir do plano Pro via `ANTHROPIC_API_KEY`.
+- A franquia compartilhada usa `AI_TEXT_PRO_MONTHLY_LIMIT` (150 por padrão); 0 desativa o recurso no plano.
 - O uso mensal fica em `ai_usage`: `transcriptionSeconds`, `summaryRequests`, `aiInputTokens`, `aiOutputTokens` e `aiCostUsdMicros`.
 - Custo estimado para Claude Haiku 4.5: US$1 por 1M tokens de entrada e US$5 por 1M tokens de saida.
 

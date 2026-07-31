@@ -256,7 +256,7 @@ export default function GenerateDocModal({
       handleClose()
     } catch (err: any) {
       if (err?.response?.status === 403) {
-        toast.error('Plano Essencial necessário para gerar documentos.')
+        toast.error('Plano Pro necessário para gerar documentos.')
       } else {
         toast.error('Erro ao gerar documento.')
       }

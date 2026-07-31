@@ -165,7 +165,7 @@ Campos criptografados: `summary`, `privateNotes`, `nextSteps`.
 
 | Método | Rota | Proteção | Descrição |
 |---|---|---|---|
-| POST | `/documents` | 🔑✍ + plano Essencial | Cria e assina (HMAC-SHA256) |
+| POST | `/documents` | 🔑✍ + plano Pro | Cria e assina (HMAC-SHA256) |
 | GET | `/documents` | 🔑 | Lista |
 | GET | `/documents/:id/pdf` | 🔑 | PDF com QR code de verificação |
 | POST | `/documents/:id/send-email` | 🔑✍ | Envia por e-mail (Resend, anexo base64) |
@@ -203,7 +203,7 @@ Tipos: `declaracao`, `recibo`, `relatorio`, `atestado`, `encaminhamento`. Conte�
 ```
 
 Estados extras: `pending` (tokenização em andamento), `free` (plano gratuito/Beta).
-Planos: `free` · `essencial` (R$ 79/mês) · `pro` (R$ 149/mês).
+Planos: `free` · `pro` (R$ 97,90/mês).
 
 ---
 

@@ -9,7 +9,7 @@ import { AsaasService } from '../asaas.service'
 const makeSub = (overrides: Partial<Subscription> = {}): Subscription => ({
   id: 'sub-1',
   userId: 'user-1',
-  plan: 'essencial',
+  plan: 'pro',
   status: 'trialing',
   gatewayCustomerId: null,
   gatewaySubscriptionId: null,
@@ -175,7 +175,7 @@ describe('BillingService', () => {
 
       const user = { ...makeUser(), name: 'Test', createdAt: new Date() } as any
 
-      await service.subscribe(user, 'essencial', 'card-token')
+      await service.subscribe(user, 'pro', 'card-token')
 
       expect(repo.save).toHaveBeenCalledWith(
         expect.objectContaining({ hasUsedTrial: true, status: 'active' }),
@@ -192,7 +192,7 @@ describe('BillingService', () => {
     it('throws when no credit card token provided', async () => {
       const user = { ...makeUser(), name: 'Test', createdAt: new Date() } as any
 
-      await expect(service.subscribe(user, 'essencial'))
+      await expect(service.subscribe(user, 'pro'))
         .rejects.toThrow(BadRequestException)
     })
   })

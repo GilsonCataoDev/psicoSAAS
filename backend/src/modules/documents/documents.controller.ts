@@ -46,10 +46,10 @@ export class DocumentsController {
     private readonly aiTextQuota: AiTextQuotaService,
   ) {}
 
-  /** Gerar e assinar um novo documento (requer plano Essencial ou superior) */
+  /** Gerar e assinar um novo documento (requer plano Pro ou superior) */
   @Post()
   @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
-  @RequirePlan('essencial')
+  @RequirePlan('pro')
   async create(@Req() req: any, @Body() body: CreateDocumentBodyDto) {
     const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
               ?? req.socket?.remoteAddress
@@ -68,7 +68,7 @@ export class DocumentsController {
   /** Organiza um campo do documento sem salvar nem assinar automaticamente. */
   @Post('ai-draft')
   @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
-  @RequirePlan('essencial')
+  @RequirePlan('pro')
   @Throttle({ default: { limit: 10, ttl: 60 * 1000 } })
   async generateAiDraft(@Req() req: any, @Body() body: GenerateDocumentAiDraftDto) {
     if (!DOCUMENT_AI_FIELDS[body.documentType].includes(body.field)) {

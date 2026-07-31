@@ -8,12 +8,7 @@ import {
 
 describe('plan catalog', () => {
   it('mantem os planos pagos com preco e limites operacionais', () => {
-    expect(PLAN_PRICES).toEqual({ essencial: 79, pro: 149 })
-    expect(PLAN_LIMITS.essencial).toMatchObject({
-      maxPatients: 50,
-      maxDocuments: 200,
-      transcriptionMonthlySeconds: 10 * 60,
-    })
+    expect(PLAN_PRICES).toEqual({ pro: 97.90 })
     expect(PLAN_LIMITS.pro).toMatchObject({
       maxPatients: -1,
       maxDocuments: -1,
@@ -21,11 +16,11 @@ describe('plan catalog', () => {
     })
   })
 
-  it('resolve plano efetivo e aliases em um único lugar', () => {
-    expect(resolveEffectivePlan({ status: 'active', plan: 'basic' }, 'psi@example.com')).toBe('basic')
+  it('resolve plano efetivo em um único lugar', () => {
+    expect(resolveEffectivePlan({ status: 'active', plan: 'pro' }, 'psi@example.com')).toBe('pro')
     expect(resolveEffectivePlan({ status: 'past_due', plan: 'pro' }, 'psi@example.com')).toBe('free')
-    expect(hasPlanAccess('basic', 'essencial')).toBe(true)
-    expect(hasPlanAccess('essencial', 'pro')).toBe(false)
+    expect(hasPlanAccess('free', 'pro')).toBe(false)
+    expect(hasPlanAccess('pro', 'pro')).toBe(true)
   })
 
   it('reconhece acesso Pro cortesia por e-mail exato', () => {

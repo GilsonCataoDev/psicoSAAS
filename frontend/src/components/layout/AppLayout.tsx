@@ -193,7 +193,7 @@ function SubscriptionBanner() {
 type UpgradeOffer = {
   eligible: boolean
   offerCode: string | null
-  discount: { essencial: string; pro: string } | null
+  discount: { pro: string } | null
   title: string
   message: string
   benefits: string[]
@@ -231,14 +231,9 @@ function FreeUpgradeOfferBanner() {
           </p>
           <div className="mt-3 flex flex-wrap gap-2 text-xs">
             {data.discount && (
-              <>
-                <span className="rounded-full bg-sage-50 px-2.5 py-1 font-semibold text-sage-700 dark:bg-sage-400/10 dark:text-sage-200">
-                  Essencial: {data.discount.essencial}
-                </span>
-                <span className="rounded-full bg-purple-50 px-2.5 py-1 font-semibold text-purple-700 dark:bg-purple-400/10 dark:text-purple-200">
-                  Pro: {data.discount.pro}
-                </span>
-              </>
+              <span className="rounded-full bg-purple-50 px-2.5 py-1 font-semibold text-purple-700 dark:bg-purple-400/10 dark:text-purple-200">
+                Pro: {data.discount.pro}
+              </span>
             )}
           </div>
         </div>

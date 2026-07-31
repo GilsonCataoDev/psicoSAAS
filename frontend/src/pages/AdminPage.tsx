@@ -105,7 +105,7 @@ function OverrideModal({ user, onClose }: { user: AdminUser; onClose: () => void
               className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-sage-400 focus:outline-none"
             >
               <option value="">— sem alteração —</option>
-              {['free', 'essencial', 'pro'].map(p => (
+              {['free', 'pro'].map(p => (
                 <option key={p} value={p}>{p}</option>
               ))}
             </select>
@@ -206,7 +206,6 @@ function UsersTab() {
           >
             <option value="">Todos os planos</option>
             <option value="free">Free</option>
-            <option value="essencial">Essencial</option>
             <option value="pro">Pro</option>
           </select>
           <select
@@ -613,14 +612,14 @@ function computeFactors(u: HealthScore) {
   const patientPts = u.patientCount >= 5 ? 15 : u.patientCount >= 3 ? 10 : u.patientCount >= 1 ? 5 : 0
   const sessionPts = u.sessionsLast30d >= 10 ? 25 : u.sessionsLast30d >= 4 ? 17 : u.sessionsLast30d >= 1 ? 8 : 0
   const financialPts = u.hasFinancialLast30d ? 10 : 0
-  const hasAiPlan = u.plan === 'essencial' || u.plan === 'pro'
+  const hasAiPlan = u.plan === 'pro'
   const aiPts = hasAiPlan && u.hasAiUsageLast30d ? 10 : 0
   return [
     { label: 'Recência de login', pts: recencyPts, max: 40 },
     { label: 'Pacientes cadastrados', pts: patientPts, max: 15 },
     { label: 'Sessões (últimos 30d)', pts: sessionPts, max: 25 },
     { label: 'Financeiro ativo', pts: financialPts, max: 10 },
-    { label: 'Uso de IA (Essencial+)', pts: aiPts, max: hasAiPlan ? 10 : 0 },
+    { label: 'Uso de IA (Pro)', pts: aiPts, max: hasAiPlan ? 10 : 0 },
   ]
 }
 
@@ -756,7 +755,7 @@ function HealthScoresTab() {
                   <th className="px-4 py-3">Pacientes</th>
                   <th className="px-4 py-3">Sessões 30d</th>
                   <th className="px-4 py-3" title="Uso financeiro nos últimos 30 dias">Fin.</th>
-                  <th className="px-4 py-3" title="Uso de IA nos últimos 30 dias (Essencial+)">IA</th>
+                  <th className="px-4 py-3" title="Uso de IA nos últimos 30 dias (Pro)">IA</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>

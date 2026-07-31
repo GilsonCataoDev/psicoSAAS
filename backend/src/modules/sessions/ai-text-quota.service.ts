@@ -23,8 +23,8 @@ export class AiTextQuotaService {
 
     if (limit <= 0) {
       throw new ForbiddenException({
-        message: 'Recursos de texto por IA estão disponíveis a partir do plano Essencial.',
-        requiredPlan: 'essencial',
+        message: 'Recursos de texto por IA estão disponíveis a partir do plano Pro.',
+        requiredPlan: 'pro',
         currentPlan: plan,
         upgradeUrl: '/planos',
       })

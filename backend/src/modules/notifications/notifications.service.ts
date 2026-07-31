@@ -150,11 +150,11 @@ export class NotificationsService {
     return this.planAccess.hasAccess(userId, 'pro')
   }
 
-  /** Envio manual acionado pelo psicólogo (formulários, links). Liberado a partir do Essencial. */
+  /** Envio manual acionado pelo psicólogo (formulários, links). Liberado a partir do Pro. */
   private async canSendManualWhatsApp(userId?: string | null): Promise<boolean> {
     if (!userId) return false
 
-    return this.planAccess.hasAccess(userId, 'essencial')
+    return this.planAccess.hasAccess(userId, 'pro')
   }
 
   // ─── Envio via WhatsApp (Evolution API) ──────────────────────────────────
@@ -566,7 +566,7 @@ export class NotificationsService {
   async sendDirectWhatsApp(phone: string, text: string, ownerId: string, meta: WhatsAppLogMeta = { type: 'manual' }): Promise<WhatsAppDeliveryResult> {
     let result: WhatsAppDeliveryResult
     if (!await this.canSendManualWhatsApp(ownerId)) {
-      result = { sent: false, reason: 'plan', error: 'Envio via WhatsApp disponível a partir do plano Essencial' }
+      result = { sent: false, reason: 'plan', error: 'Envio via WhatsApp disponível a partir do plano Pro' }
       await this.recordWhatsAppLog(ownerId, phone, meta, result)
       return result
     }

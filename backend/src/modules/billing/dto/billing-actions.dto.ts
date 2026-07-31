@@ -11,8 +11,8 @@ import {
 } from 'class-validator'
 
 export class PaidPlanDto {
-  @IsIn(['essencial', 'pro'])
-  plan: 'essencial' | 'pro'
+  @IsIn(['pro'])
+  plan: 'pro'
 }
 
 export class SubscribeDto extends PaidPlanDto {
@@ -29,8 +29,8 @@ export class UpdateCardDto {
   creditCardToken: string
 
   @IsOptional()
-  @IsIn(['essencial', 'pro'])
-  plan?: 'essencial' | 'pro'
+  @IsIn(['pro'])
+  plan?: 'pro'
 }
 
 class CreditCardDto {

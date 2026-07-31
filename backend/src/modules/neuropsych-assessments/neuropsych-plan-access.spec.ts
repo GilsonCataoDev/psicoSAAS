@@ -18,13 +18,13 @@ describe('NeuropsychAssessmentsController plan access', () => {
       : 'free'
     const planAccess = {
       getCurrentPlan: jest.fn().mockResolvedValue(currentPlan),
-      hasAccess: jest.fn().mockResolvedValue(['pro', 'premium'].includes(currentPlan)),
+      hasAccess: jest.fn().mockResolvedValue(currentPlan === 'pro'),
     }
     return new PlanGuard(new Reflector(), planAccess as any)
   }
 
-  it('bloqueia o modulo completo para o plano Essencial', async () => {
-    const guard = guardFor({ plan: 'essencial', status: 'active' })
+  it('bloqueia o modulo completo para o plano Free', async () => {
+    const guard = guardFor({ plan: 'free', status: 'active' })
 
     await expect(guard.canActivate(context({ id: 'psychologist-1' })))
       .rejects.toBeInstanceOf(ForbiddenException)

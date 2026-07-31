@@ -8,7 +8,7 @@ import { Subscription } from '../entities/subscription.entity'
 const makeSubscription = (overrides: Partial<Subscription> = {}): Subscription => ({
   id: 'local-sub-1',
   userId: 'user-1',
-  plan: 'essencial',
+  plan: 'pro',
   status: 'active',
   gatewayCustomerId: 'customer-1',
   gatewaySubscriptionId: 'gateway-sub-1',
@@ -72,7 +72,7 @@ describe('BillingService regressions', () => {
     service = module.get(BillingService)
   })
 
-  it('keeps an overdue subscription blocked until payment is confirmed', async () => {
+  it('re-selecting the same plan while overdue is a no-op that does not touch the gateway', async () => {
     const subscription = makeSubscription({ status: 'past_due' })
     repo.findOne.mockResolvedValue(subscription)
 
@@ -81,10 +81,8 @@ describe('BillingService regressions', () => {
       'pro',
     )
 
-    expect(asaas.updateSubscriptionPlan).toHaveBeenCalledWith('gateway-sub-1', 'pro')
-    expect(repo.save).toHaveBeenCalledWith(
-      expect.objectContaining({ plan: 'pro', status: 'past_due' }),
-    )
+    expect(asaas.updateSubscriptionPlan).not.toHaveBeenCalled()
+    expect(repo.save).not.toHaveBeenCalled()
     expect((result as any).status).toBe('past_due')
   })
 

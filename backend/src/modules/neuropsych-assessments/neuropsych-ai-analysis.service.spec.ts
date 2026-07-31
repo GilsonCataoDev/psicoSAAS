@@ -111,9 +111,9 @@ function buildService() {
 }
 
 describe('NeuropsychAiAnalysisService', () => {
-  it('bloqueia planos sem acesso ao Copiloto (free/essencial)', async () => {
+  it('bloqueia planos sem acesso ao Copiloto (free)', async () => {
     const { service, subscriptions } = buildService()
-    subscriptions.findOne.mockResolvedValue({ plan: 'essencial', status: 'active' })
+    subscriptions.findOne.mockResolvedValue({ plan: 'free', status: 'active' })
     await expect(service.generate(ASSESSMENT_ID, ['clinicalHistory'], PSYCHOLOGIST_ID, undefined))
       .rejects.toThrow(ForbiddenException)
   })

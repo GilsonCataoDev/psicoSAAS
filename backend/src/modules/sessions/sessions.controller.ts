@@ -55,7 +55,7 @@ export class SessionsController {
   @Delete(':id') remove(@Param('id') id: string, @Request() req: any) { return this.svc.remove(id, req.user.id) }
 
   @Post('transcribe')
-  @RequirePlan('essencial')
+  @RequirePlan('pro')
   @Throttle({ default: { limit: 10, ttl: 60 * 1000 } })
   @UseInterceptors(FileInterceptor('audio', {
     limits: {
@@ -86,7 +86,7 @@ export class SessionsController {
   }
 
   @Post('ai-summary')
-  @RequirePlan('essencial')
+  @RequirePlan('pro')
   @Throttle({ default: { limit: 20, ttl: 60 * 1000 } })
   async aiSummary(
     @Body('transcription') transcription: string,
@@ -107,7 +107,7 @@ export class SessionsController {
   }
 
   @Post('ai-prontuario')
-  @RequirePlan('essencial')
+  @RequirePlan('pro')
   @Throttle({ default: { limit: 20, ttl: 60 * 1000 } })
   async aiProntuario(
     @Body('input') input: string,
@@ -156,8 +156,8 @@ export class SessionsController {
     const limit = PLAN_LIMITS[plan].transcriptionMonthlySeconds
     if (limit <= 0) {
       throw new ForbiddenException({
-        message: 'Transcrição por IA está disponível a partir do plano Essencial.',
-        requiredPlan: 'essencial',
+        message: 'Transcrição por IA está disponível a partir do plano Pro.',
+        requiredPlan: 'pro',
         currentPlan: plan,
         upgradeUrl: '/planos',
       })

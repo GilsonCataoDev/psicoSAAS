@@ -374,8 +374,8 @@ export class AdminService {
     // Uso financeiro — 10 pts
     const financialPts = r.hasFinancialLast30d ? 10 : 0
 
-    // Uso de IA (Essencial+) - 10 pts; Free nunca marca aqui.
-    const hasAiPlan = r.plan === 'essencial' || r.plan === 'pro'
+    // Uso de IA (Pro) - 10 pts; Free nunca marca aqui.
+    const hasAiPlan = r.plan === 'pro'
     const aiPts = hasAiPlan && r.hasAiUsageLast30d ? 10 : 0
 
     const rawScore = recency + patientPts + sessionPts + financialPts + aiPts

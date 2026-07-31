@@ -641,7 +641,6 @@ function PricingComparison() {
             <tr className="border-b border-neutral-200 dark:border-white/10">
               <th className="w-40 px-5 py-4 text-sm font-semibold text-neutral-500 dark:text-neutral-400">Recurso</th>
               <th className="px-5 py-4 text-sm font-bold text-neutral-700 dark:text-neutral-200">Grátis</th>
-              <th className="bg-sage-50 px-5 py-4 text-sm font-bold text-sage-700 dark:bg-sage-500/10 dark:text-sage-200">Essencial</th>
               <th className="bg-purple-50 px-5 py-4 text-sm font-bold text-purple-700 dark:bg-purple-500/10 dark:text-purple-200">Pro</th>
             </tr>
           </thead>
@@ -656,7 +655,6 @@ function PricingComparison() {
               >
                 <td className="px-5 py-4 text-sm font-semibold text-neutral-800 dark:text-neutral-100">{row.title}</td>
                 <td className="px-5 py-4 text-sm text-neutral-600 dark:text-neutral-300">{row.free}</td>
-                <td className="bg-sage-50/40 px-5 py-4 text-sm text-neutral-700 dark:bg-sage-500/5 dark:text-neutral-300">{row.essencial}</td>
                 <td className="bg-purple-50/40 px-5 py-4 text-sm text-neutral-700 dark:bg-purple-500/5 dark:text-neutral-300">{row.pro}</td>
               </tr>
             ))}
@@ -672,10 +670,6 @@ function PricingComparison() {
               <div className="rounded-xl bg-neutral-50 p-4 dark:bg-white/5">
                 <p className="mb-1 font-semibold text-neutral-600 dark:text-neutral-300">Grátis</p>
                 <p className="text-sm text-neutral-700 dark:text-neutral-300">{row.free}</p>
-              </div>
-              <div className="rounded-xl bg-sage-50 p-4 dark:bg-sage-500/10">
-                <p className="mb-1 font-semibold text-sage-700 dark:text-sage-200">Essencial</p>
-                <p className="text-sm text-neutral-700 dark:text-neutral-300">{row.essencial}</p>
               </div>
               <div className="rounded-xl bg-purple-50 p-4 dark:bg-purple-500/10">
                 <p className="mb-1 font-semibold text-purple-700 dark:text-purple-200">Pro</p>

@@ -83,9 +83,9 @@ export const useSubscriptionStore = create<SubscriptionState>()(
   ),
 )
 
-const PLAN_ORDER: Record<string, number> = { free: 0, basic: 1, essencial: 1, pro: 2, premium: 2 }
+const PLAN_ORDER: Record<string, number> = { free: 0, pro: 1 }
 
-export function useHasPlan(minPlan: 'essencial' | 'pro' | 'premium'): boolean {
+export function useHasPlan(minPlan: 'pro'): boolean {
   const { subscription } = useSubscriptionStore()
   const active = subscription.status === 'active' || subscription.status === 'trialing'
   const plan = subscription.plan ?? 'free'

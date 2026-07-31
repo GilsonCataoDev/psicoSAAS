@@ -68,7 +68,7 @@ export default function ProntuarioPage() {
   const updatePatient = useUpdatePatient()
   const exportProntuario = useExportProntuario(id ?? '')
   const generateProntuarioDraft = useGenerateProntuarioDraft()
-  const hasEssencial = useHasPlan('essencial')
+  const hasPro = useHasPlan('pro')
   const [evolText, setEvolText] = useState('')
   const [evolDate, setEvolDate] = useState(new Date().toISOString().split('T')[0])
   const [aiMode, setAiMode] = useState<AiProntuarioMode>('organizar')
@@ -133,8 +133,8 @@ export default function ProntuarioPage() {
   }
 
   async function generateAiDraft() {
-    if (!hasEssencial) {
-      toast.error('IA disponivel a partir do plano Essencial.')
+    if (!hasPro) {
+      toast.error('IA disponivel a partir do plano Pro.')
       return
     }
     if (!evolText.trim()) {
@@ -395,7 +395,7 @@ export default function ProntuarioPage() {
                     Apoio de IA no prontuario
                   </p>
                   <p className="text-xs text-sage-700 dark:text-sage-200">
-                    A IA gera um rascunho. Disponivel a partir do Essencial.
+                    A IA gera um rascunho. Disponivel a partir do Pro.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row">
@@ -411,12 +411,12 @@ export default function ProntuarioPage() {
                   <button
                     type="button"
                     onClick={generateAiDraft}
-                    disabled={generateProntuarioDraft.isPending || !hasEssencial}
-                    title={!hasEssencial ? 'IA disponivel a partir do plano Essencial' : undefined}
+                    disabled={generateProntuarioDraft.isPending || !hasPro}
+                    title={!hasPro ? 'IA disponivel a partir do plano Pro' : undefined}
                     className="btn-secondary flex items-center justify-center gap-2 text-sm"
                   >
                     <Sparkles className="h-4 w-4" />
-                    {!hasEssencial ? 'IA no Essencial' : generateProntuarioDraft.isPending ? 'Gerando...' : 'Gerar rascunho'}
+                    {!hasPro ? 'IA no Pro' : generateProntuarioDraft.isPending ? 'Gerando...' : 'Gerar rascunho'}
                   </button>
                 </div>
               </div>

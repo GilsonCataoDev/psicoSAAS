@@ -7,8 +7,7 @@ type PlanLimits = Record<string, {
 }>
 
 export const PLAN_PRICES: Readonly<Record<string, number>> = Object.freeze({
-  essencial: 79,
-  pro: 149,
+  pro: 97.90,
 })
 
 // Teto mensal do Copiloto de Raciocínio Clínico (plano Pro). Configurável via
@@ -20,15 +19,11 @@ function nonNegativeIntEnv(name: string, fallback: number): number {
   return Number.isInteger(value) && value >= 0 ? value : fallback
 }
 
-const AI_TEXT_ESSENCIAL_MONTHLY_LIMIT = nonNegativeIntEnv('AI_TEXT_ESSENCIAL_MONTHLY_LIMIT', 30)
 const AI_TEXT_PRO_MONTHLY_LIMIT = nonNegativeIntEnv('AI_TEXT_PRO_MONTHLY_LIMIT', 150)
 
 export const PLAN_LIMITS: PlanLimits = {
-  free:      { maxPatients: 10, maxDocuments: 0, transcriptionMonthlySeconds: 0, aiTextMonthlyLimit: 0, neuropsychAiMonthlyLimit: 0 },
-  basic:     { maxPatients: 50, maxDocuments: 200, transcriptionMonthlySeconds: 10 * 60, aiTextMonthlyLimit: AI_TEXT_ESSENCIAL_MONTHLY_LIMIT, neuropsychAiMonthlyLimit: 0 },
-  essencial: { maxPatients: 50, maxDocuments: 200, transcriptionMonthlySeconds: 10 * 60, aiTextMonthlyLimit: AI_TEXT_ESSENCIAL_MONTHLY_LIMIT, neuropsychAiMonthlyLimit: 0 },
-  pro:       { maxPatients: -1, maxDocuments: -1, transcriptionMonthlySeconds: 120 * 60, aiTextMonthlyLimit: AI_TEXT_PRO_MONTHLY_LIMIT, neuropsychAiMonthlyLimit: NEUROPSYCH_AI_MONTHLY_LIMIT },
-  premium:   { maxPatients: -1, maxDocuments: -1, transcriptionMonthlySeconds: 120 * 60, aiTextMonthlyLimit: AI_TEXT_PRO_MONTHLY_LIMIT, neuropsychAiMonthlyLimit: NEUROPSYCH_AI_MONTHLY_LIMIT },
+  free: { maxPatients: 10, maxDocuments: 0, transcriptionMonthlySeconds: 0, aiTextMonthlyLimit: 0, neuropsychAiMonthlyLimit: 0 },
+  pro:  { maxPatients: -1, maxDocuments: -1, transcriptionMonthlySeconds: 120 * 60, aiTextMonthlyLimit: AI_TEXT_PRO_MONTHLY_LIMIT, neuropsychAiMonthlyLimit: NEUROPSYCH_AI_MONTHLY_LIMIT },
 }
 
 export type KnownPlan = keyof typeof PLAN_LIMITS
@@ -37,10 +32,7 @@ export const LATEST_SUBSCRIPTION_ORDER = { createdAt: 'DESC' } as const
 
 const PLAN_ORDER: Readonly<Record<KnownPlan, number>> = Object.freeze({
   free: 0,
-  basic: 1,
-  essencial: 1,
-  pro: 2,
-  premium: 2,
+  pro: 1,
 })
 
 const DEFAULT_COMPED_PRO_EMAILS = 'gilsonfilho96@outlook.com'

@@ -57,10 +57,10 @@ Para dar suporte, a operação da plataforma pode usar um modo "ver como" (imper
 
 ## Textos assistidos por IA
 
-- A partir do plano Essencial, a IA pode organizar transcrições, anotações de prontuário e campos de relatório, atestado ou encaminhamento. Ela gera somente um rascunho; nunca salva, assina ou envia um documento automaticamente.
+- A partir do plano Pro, a IA pode organizar transcrições, anotações de prontuário e campos de relatório, atestado ou encaminhamento. Ela gera somente um rascunho; nunca salva, assina ou envia um documento automaticamente.
 - Nos documentos, o profissional envia apenas as anotações do campo escolhido. Nome do paciente e dados cadastrais não são buscados nem enviados. O backend também reduz padrões de e-mail, CPF e telefone antes da chamada externa, mas o profissional deve evitar identificadores desnecessários.
 - A sugestão aparece separada e só substitui o campo após confirmação explícita. A revisão e a responsabilidade técnica continuam sendo do profissional.
-- A franquia mensal compartilhada é aplicada de forma atômica no servidor: 30 textos no Essencial e 150 no Pro por padrão. Os limites podem ser alterados ou desativados com `AI_TEXT_ESSENCIAL_MONTHLY_LIMIT` e `AI_TEXT_PRO_MONTHLY_LIMIT`.
+- A franquia mensal compartilhada é aplicada de forma atômica no servidor: 150 textos no Pro por padrão. O limite pode ser alterado ou desativado com `AI_TEXT_PRO_MONTHLY_LIMIT`.
 - Falhas do provedor devolvem a reserva da franquia. Tokens e custo estimado das respostas concluídas ficam contabilizados em `ai_usage`; prompts e conteúdo dos rascunhos de documentos não são persistidos pelo UseCognia.
 
 ## Copiloto de Raciocínio Clínico Neuropsicológico (plano Pro)

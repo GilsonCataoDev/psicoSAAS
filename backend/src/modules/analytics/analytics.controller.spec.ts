@@ -17,7 +17,7 @@ describe('AnalyticsController plan access', () => {
     }
     const planAccess = {
       hasAccess: jest.fn().mockResolvedValue(
-        subscription?.status === 'active' && ['pro', 'premium'].includes(subscription.plan),
+        subscription?.status === 'active' && subscription.plan === 'pro',
       ),
     }
     return {
@@ -26,8 +26,8 @@ describe('AnalyticsController plan access', () => {
     }
   }
 
-  it('nao expoe indicadores avancados para plano Essencial', async () => {
-    const { controller } = makeController({ plan: 'essencial', status: 'active' })
+  it('nao expoe indicadores avancados para plano Free', async () => {
+    const { controller } = makeController({ plan: 'free', status: 'active' })
 
     const result = await controller.dashboard({ user: { id: 'psychologist-1' } })
 

@@ -229,14 +229,12 @@ export class BillingService {
       sessions,
       offerCode: eligible ? 'ROTINA20' : null,
       discount: eligible ? {
-        essencial: '20% nos 3 primeiros meses',
         pro: '30% nos 3 primeiros meses',
       } : null,
       title: 'Sua rotina ja comecou. Agora libere mais limite.',
       message: 'Continue com documentos, mais pacientes, transcricao por IA e automacoes para reduzir retrabalho.',
       benefits: [
-        'Essencial: 50 pacientes, documentos/PDF e 10 min de transcricao',
-        'Pro: pacientes ilimitados, WhatsApp automatico, instrumentos e 120 min de IA',
+        'Pro: pacientes ilimitados, documentos, WhatsApp automatico, instrumentos e 120 min de IA',
       ],
     }
   }

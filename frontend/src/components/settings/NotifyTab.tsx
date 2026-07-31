@@ -28,7 +28,7 @@ export function NotifyTab({
         {!hasProAutomation && (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
             <p className="font-medium">Automacoes de WhatsApp ficam no plano Pro.</p>
-            <p className="mt-1">No Essencial, os botoes manuais de WhatsApp continuam liberados na agenda e nos agendamentos.</p>
+            <p className="mt-1">No Grátis, os botoes manuais de WhatsApp continuam liberados na agenda e nos agendamentos.</p>
           </div>
         )}
         {loadingPrefs ? (

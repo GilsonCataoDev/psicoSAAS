@@ -31,25 +31,25 @@ describe('AiTextQuotaService', () => {
     expect(usage.repository.createQueryBuilder).not.toHaveBeenCalled()
   })
 
-  it('reserva a franquia de forma atômica para o plano Essencial', async () => {
+  it('reserva a franquia de forma atômica para o plano Pro', async () => {
     const usage = usageRepository(1, 7)
-    const planAccess = { getCurrentPlan: jest.fn().mockResolvedValue('essencial') } as any
+    const planAccess = { getCurrentPlan: jest.fn().mockResolvedValue('pro') } as any
     const service = new AiTextQuotaService(usage.repository, planAccess)
 
     await expect(service.reserve('user-1', 'psi@example.com')).resolves.toEqual({
       used: 7,
-      limit: 30,
-      plan: 'essencial',
+      limit: 150,
+      plan: 'pro',
     })
     expect(usage.builder.where).toHaveBeenCalledWith(
       '"userId" = :userId AND month = :month AND "summaryRequests" < :limit',
-      expect.objectContaining({ userId: 'user-1', limit: 30 }),
+      expect.objectContaining({ userId: 'user-1', limit: 150 }),
     )
   })
 
   it('recusa a chamada quando a atualização atômica não encontra franquia', async () => {
-    const usage = usageRepository(0, 30)
-    const planAccess = { getCurrentPlan: jest.fn().mockResolvedValue('essencial') } as any
+    const usage = usageRepository(0, 150)
+    const planAccess = { getCurrentPlan: jest.fn().mockResolvedValue('pro') } as any
     const service = new AiTextQuotaService(usage.repository, planAccess)
 
     await expect(service.reserve('user-1', 'psi@example.com')).rejects.toBeInstanceOf(ForbiddenException)

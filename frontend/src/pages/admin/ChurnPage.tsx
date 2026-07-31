@@ -462,7 +462,6 @@ export default function ChurnPage() {
         >
           <option value="">Todos os planos</option>
           <option value="free">Gratuito</option>
-          <option value="essencial">Essencial</option>
           <option value="pro">Pro</option>
         </select>
         {(riskFilter || planFilter || search) && (

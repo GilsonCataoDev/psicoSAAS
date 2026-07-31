@@ -32,7 +32,7 @@ export function PaymentTab({
       {!hasProAutomation && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <p className="font-medium">Links, cartão e cobranças automáticas são recursos Pro.</p>
-          <p className="mt-1">No Essencial, o controle financeiro manual continua liberado.</p>
+          <p className="mt-1">No Grátis, o controle financeiro manual continua liberado.</p>
         </div>
       )}
       <div className="card space-y-4">

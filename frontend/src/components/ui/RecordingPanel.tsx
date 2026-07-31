@@ -21,7 +21,7 @@ export default function RecordingPanel({
   onApplySummary,
   transcriptionActionLabel = 'Copiar para notas privadas',
 }: Props) {
-  const hasEssencial = useHasPlan('essencial')
+  const hasPro = useHasPlan('pro')
   const [step, setStep] = useState<Step>('idle')
   const [elapsed, setElapsed] = useState(0)
   const [transcription, setTranscription] = useState('')
@@ -247,7 +247,7 @@ export default function RecordingPanel({
             className="flex-1 rounded-xl border border-sage-300 py-2 text-xs font-medium text-sage-700 hover:bg-sage-100">
             {transcriptionActionLabel}
           </button>
-          {hasEssencial ? (
+          {hasPro ? (
             <button type="button" onClick={handleGenerateSummary} disabled={step === 'generating'}
               className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-sage-600 py-2 text-xs font-semibold text-white hover:bg-sage-700 disabled:opacity-50">
               {step === 'generating'
@@ -255,9 +255,9 @@ export default function RecordingPanel({
                 : <><Sparkles className="h-3.5 w-3.5" /> Gerar resumo com IA</>}
             </button>
           ) : (
-            <button type="button" disabled title="Resumo automático disponível a partir do plano Essencial"
+            <button type="button" disabled title="Resumo automático disponível a partir do plano Pro"
               className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-neutral-100 py-2 text-xs font-semibold text-neutral-400">
-              <Sparkles className="h-3.5 w-3.5" /> Resumo no Essencial
+              <Sparkles className="h-3.5 w-3.5" /> Resumo no Pro
             </button>
           )}
         </div>
@@ -266,12 +266,12 @@ export default function RecordingPanel({
   }
 
   // ── Idle ─────────────────────────────────────────────────────────────────────
-  if (!hasEssencial) {
+  if (!hasPro) {
     return (
       <button
         type="button"
         disabled
-        title="Transcrição por IA disponível a partir do plano Essencial"
+        title="Transcrição por IA disponível a partir do plano Pro"
         className="flex items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs text-neutral-400"
       >
         <Mic className="h-3.5 w-3.5" /> Gravar sessão

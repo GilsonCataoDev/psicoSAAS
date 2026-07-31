@@ -7,7 +7,7 @@ test.describe('Preços públicos', () => {
     await expect(page).toHaveURL(/\/precos$/)
     await expect(page.getByRole('heading', { name: 'Escolha como quer usar o UseCognia' })).toBeVisible()
 
-    await page.getByRole('button', { name: /Contratar Essencial/ }).click()
-    await expect(page).toHaveURL(/\/cadastro\?plano=essencial$/)
+    await page.getByRole('button', { name: /Contratar Pro/ }).click()
+    await expect(page).toHaveURL(/\/cadastro\?plano=pro$/)
   })
 })

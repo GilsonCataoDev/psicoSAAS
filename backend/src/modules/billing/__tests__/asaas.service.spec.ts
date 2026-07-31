@@ -19,7 +19,7 @@ describe('AsaasService plan changes', () => {
     await service.updateSubscriptionPlan('gateway-sub-1', 'pro')
 
     expect(put).toHaveBeenCalledWith('/subscriptions/gateway-sub-1', {
-      value: 149,
+      value: 97.90,
       description: 'UseCognia - Plano pro',
       updatePendingPayments: false,
     })
@@ -28,13 +28,13 @@ describe('AsaasService plan changes', () => {
   it('can explicitly update a pending charge when a promotion ends', async () => {
     await service.updateSubscriptionPlan(
       'gateway-sub-1',
-      'essencial',
+      'pro',
       { updatePendingPayments: true },
     )
 
     expect(put).toHaveBeenCalledWith('/subscriptions/gateway-sub-1', {
-      value: 79,
-      description: 'UseCognia - Plano essencial',
+      value: 97.90,
+      description: 'UseCognia - Plano pro',
       updatePendingPayments: true,
     })
   })

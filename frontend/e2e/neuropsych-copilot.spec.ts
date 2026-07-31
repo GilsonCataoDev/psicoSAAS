@@ -265,7 +265,7 @@ test.describe('Copiloto Neuropsicológico — falhas do provedor (mesma conta Pr
   })
 })
 
-test.describe('Copiloto Neuropsicológico — planos Grátis e Essencial', () => {
+test.describe('Copiloto Neuropsicológico — plano Grátis', () => {
   let email = ''
   const patientName = `Paciente Free ${Date.now()}`
 
