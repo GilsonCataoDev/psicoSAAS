@@ -59,14 +59,22 @@ export class NeuropsychAssessmentsService {
     })
     if (active) throw new BadRequestException('Esta pessoa já possui uma avaliação neuropsicológica ativa')
 
-    const saved = await this.assessments.save(this.assessments.create({
-      ...this.encryptFields(input, ASSESSMENT_CLINICAL_FIELDS),
-      patientId: patient.id,
-      psychologistId,
-      startedAt: input.startedAt?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
-      evaluatedDomains: (input.evaluatedDomains ?? []) as any,
-      status: 'planning',
-    }))
+    let saved: NeuropsychAssessment
+    try {
+      saved = await this.assessments.save(this.assessments.create({
+        ...this.encryptFields(input, ASSESSMENT_CLINICAL_FIELDS),
+        patientId: patient.id,
+        psychologistId,
+        startedAt: input.startedAt?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
+        evaluatedDomains: (input.evaluatedDomains ?? []) as any,
+        status: 'planning',
+      }))
+    } catch (error: any) {
+      // Corrida entre requisições concorrentes: o check acima passou pros dois, mas o
+      // indice unico parcial (UQ_neuropsych_assessments_active_patient) barra o segundo insert.
+      if (error?.code === '23505') throw new BadRequestException('Esta pessoa já possui uma avaliação neuropsicológica ativa')
+      throw error
+    }
 
     if (patient.careMode !== 'neuropsychological_assessment') {
       patient.careMode = 'neuropsychological_assessment'

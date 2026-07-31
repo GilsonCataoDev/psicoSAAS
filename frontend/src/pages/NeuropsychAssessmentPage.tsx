@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import {
   useCreateNeuropsychBatteryItem, useDeleteNeuropsychBatteryItem,
   useNeuropsychAssessment, useUpdateNeuropsychAssessment, useUpdateNeuropsychBatteryItem,
-  usePatientAttachments, useUploadPatientAttachment,
+  usePatientAttachments, useUploadPatientAttachment, useInstrumentAssignments,
 } from '@/hooks/useApi'
 import { NeuropsychAssessment, NeuropsychBatteryItem, NeuropsychDomain } from '@/types'
 import { downloadPatientAttachment, PatientAttachment } from '@/hooks/api/attachments'
@@ -38,6 +38,8 @@ export default function NeuropsychAssessmentPage() {
   const deleteItem = useDeleteNeuropsychBatteryItem(id)
   const { data: attachments = [] } = usePatientAttachments(assessment?.patientId, id)
   const uploadAttachment = useUploadPatientAttachment(assessment?.patientId, id)
+  const { data: instrumentAssignments = [] } = useInstrumentAssignments(assessment?.patientId)
+  const completedInstruments = instrumentAssignments.filter(item => item.status === 'completed')
   const [attachmentKind, setAttachmentKind] = useState<PatientAttachment['kind']>('test_result')
   const [activeStep, setActiveStep] = useState<AssessmentStep>('planning')
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
@@ -50,7 +52,8 @@ export default function NeuropsychAssessmentPage() {
     procedureType: NeuropsychBatteryItem['procedureType']
     domains: NeuropsychDomain[]
     purpose: string
-  }>({ name: '', procedureType: 'neuropsychological_procedure', domains: [], purpose: '' })
+    instrumentAssignmentId: string
+  }>({ name: '', procedureType: 'neuropsychological_procedure', domains: [], purpose: '', instrumentAssignmentId: '' })
 
   useEffect(() => {
     if (!assessment || hydratedAssessmentId.current === assessment.id) return
@@ -90,8 +93,8 @@ export default function NeuropsychAssessmentPage() {
     event.preventDefault()
     if (!newItem.name.trim()) return toast.error('Informe o nome do procedimento')
     try {
-      await createItem.mutateAsync(newItem)
-      setNewItem({ name: '', procedureType: 'neuropsychological_procedure', domains: [], purpose: '' })
+      await createItem.mutateAsync({ ...newItem, instrumentAssignmentId: newItem.instrumentAssignmentId || undefined })
+      setNewItem({ name: '', procedureType: 'neuropsychological_procedure', domains: [], purpose: '', instrumentAssignmentId: '' })
       toast.success('Procedimento adicionado')
     } catch (error: any) { toast.error(error?.response?.data?.message ?? 'Não foi possível adicionar') }
   }
@@ -193,10 +196,14 @@ export default function NeuropsychAssessmentPage() {
             <div><label htmlFor="battery-item-type" className="label">Tipo</label><select id="battery-item-type" value={newItem.procedureType} onChange={event => setNewItem(current => ({ ...current, procedureType: event.target.value as NeuropsychBatteryItem['procedureType'] }))} className="input-field"><option value="neuropsychological_procedure">Procedimento neuropsicológico</option><option value="psychological_test">Teste psicológico</option><option value="behavioral_scale">Escala comportamental</option><option value="clinical_interview">Entrevista clínica</option><option value="observation">Observação</option><option value="other">Outro</option></select></div></div>
           <div className="mt-3"><DomainPicker selected={newItem.domains} onToggle={domain => toggleDomain(domain, 'item')} compact /></div>
           <div className="mt-3"><label htmlFor="battery-item-purpose" className="label">Finalidade</label><input id="battery-item-purpose" value={newItem.purpose} onChange={event => setNewItem(current => ({ ...current, purpose: event.target.value }))} className="input-field" placeholder="O que este procedimento pretende investigar?" /></div>
+          {completedInstruments.length > 0 && <div className="mt-3"><label htmlFor="battery-item-instrument" className="label">Vincular a um instrumento respondido (opcional)</label><select id="battery-item-instrument" value={newItem.instrumentAssignmentId} onChange={event => setNewItem(current => ({ ...current, instrumentAssignmentId: event.target.value }))} className="input-field"><option value="">Nenhum</option>{completedInstruments.map(instrument => <option key={instrument.id} value={instrument.id}>{instrument.title}{instrument.completedAt ? ` — respondido em ${new Date(instrument.completedAt).toLocaleDateString('pt-BR')}` : ''}</option>)}</select></div>}
           <div className="mt-3 flex justify-end"><button className="btn-primary flex items-center gap-2"><Plus className="h-4 w-4" />Adicionar à bateria</button></div>
         </form>
         <div className="space-y-3">{assessment.batteryItems.length === 0 ? <p className="rounded-xl border border-dashed border-neutral-200 p-6 text-center text-sm text-neutral-500 dark:border-white/10 dark:text-neutral-400">Nenhum procedimento planejado.</p> : assessment.batteryItems.map(item => (
-          <article key={item.id} className="rounded-2xl border border-neutral-100 p-4 dark:border-white/10"><div className="flex items-start justify-between gap-3"><div><h3 className="font-semibold text-neutral-800 dark:text-neutral-100">{item.name}</h3><p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">{item.purpose || 'Sem finalidade registrada'}</p></div><div className="flex gap-2"><select value={item.status} onChange={event => updateItem.mutate({ itemId: item.id, data: { status: event.target.value as any } })} className="rounded-lg border border-neutral-200 bg-white px-2 py-1 text-xs dark:border-white/10 dark:bg-cognia-panel dark:text-neutral-200"><option value="planned">Planejado</option><option value="applied">Aplicado</option><option value="integrated">Integrado</option><option value="not_applied">Não aplicado</option></select><button onClick={() => confirm('Remover este procedimento?') && deleteItem.mutate(item.id)} className="rounded-lg p-1.5 text-neutral-400 hover:bg-rose-50 hover:text-rose-600" aria-label="Remover"><Trash2 className="h-4 w-4" /></button></div></div>
+          <article key={item.id} className="rounded-2xl border border-neutral-100 p-4 dark:border-white/10"><div className="flex items-start justify-between gap-3"><div><h3 className="font-semibold text-neutral-800 dark:text-neutral-100">{item.name}</h3><p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">{item.purpose || 'Sem finalidade registrada'}</p>{item.instrumentAssignmentId && (() => {
+              const linked = instrumentAssignments.find(instrument => instrument.id === item.instrumentAssignmentId)
+              return linked ? <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-sage-50 px-2 py-0.5 text-[11px] font-medium text-sage-700 dark:bg-sage-950/40 dark:text-sage-200">Vinculado: {linked.title}</span> : null
+            })()}</div><div className="flex gap-2"><select value={item.status} onChange={event => updateItem.mutate({ itemId: item.id, data: { status: event.target.value as any } })} className="rounded-lg border border-neutral-200 bg-white px-2 py-1 text-xs dark:border-white/10 dark:bg-cognia-panel dark:text-neutral-200"><option value="planned">Planejado</option><option value="applied">Aplicado</option><option value="integrated">Integrado</option><option value="not_applied">Não aplicado</option></select><button onClick={() => confirm('Remover este procedimento?') && deleteItem.mutate(item.id)} className="rounded-lg p-1.5 text-neutral-400 hover:bg-rose-50 hover:text-rose-600" aria-label="Remover"><Trash2 className="h-4 w-4" /></button></div></div>
             <div className="mt-3 grid gap-3 lg:grid-cols-2"><Field label="Resultado escrito" value={item.resultSummary ?? ''} onBlur={value => updateItem.mutate({ itemId: item.id, data: { resultSummary: value } })} /><Field label="Observações qualitativas" value={item.qualitativeNotes ?? ''} onBlur={value => updateItem.mutate({ itemId: item.id, data: { qualitativeNotes: value } })} /></div>
           </article>))}</div>
       </section>}

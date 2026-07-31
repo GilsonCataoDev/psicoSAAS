@@ -49,6 +49,7 @@ export interface NeuropsychBatteryItem {
   procedureType: 'psychological_test' | 'neuropsychological_procedure' | 'behavioral_scale' | 'clinical_interview' | 'observation' | 'other'
   domains: NeuropsychDomain[]
   status: 'planned' | 'applied' | 'integrated' | 'not_applied'
+  instrumentAssignmentId?: string
   purpose?: string
   resultSummary?: string
   qualitativeNotes?: string

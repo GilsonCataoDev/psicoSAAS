@@ -4,7 +4,7 @@ import { NeuropsychAiAnalysis, NeuropsychAiAnalysisField, NeuropsychAiUsage, Neu
 
 type CreateNeuropsychBatteryItemInput =
   Pick<NeuropsychBatteryItem, 'name' | 'procedureType' | 'domains'>
-  & Partial<Pick<NeuropsychBatteryItem, 'purpose' | 'plannedDate' | 'sortOrder'>>
+  & Partial<Pick<NeuropsychBatteryItem, 'purpose' | 'plannedDate' | 'sortOrder' | 'instrumentAssignmentId'>>
 
 export function useNeuropsychAssessments(enabled = true) {
   return useQuery<NeuropsychAssessment[]>({
