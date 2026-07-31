@@ -444,7 +444,7 @@ function PricingCard({
           ) : (
             <>
               <span className="text-sm text-neutral-400">R$ </span>
-              <span className="text-4xl font-bold text-neutral-900 dark:text-white">{plan.price}</span>
+              <span className="text-4xl font-bold text-neutral-900 dark:text-white">{plan.price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               <span className="ml-1 text-sm text-neutral-500 dark:text-neutral-400">{plan.pricePeriod}</span>
             </>
           )}
@@ -615,7 +615,7 @@ function PlanMiniCard({ label, plan, muted = false }: { label: string; plan?: Pl
       <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">{label}</p>
       <p className="mt-1 text-sm font-semibold text-neutral-800">{plan?.name ?? 'Sem plano'}</p>
       <p className="mt-1 text-xs text-neutral-500">
-        {plan ? (plan.price === 0 ? 'Grátis' : `R$ ${plan.price}/mês`) : 'Sem cobrança ativa'}
+        {plan ? (plan.price === 0 ? 'Grátis' : `R$ ${plan.price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mês`) : 'Sem cobrança ativa'}
       </p>
     </div>
   )
