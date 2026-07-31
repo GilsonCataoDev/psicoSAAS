@@ -26,6 +26,10 @@ export class DiscoverProspectsJob implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit(): void {
     if (process.env.PROSPECTING_ENABLED !== 'true') return
+    // PROSPECTING_CRON_EXTERNAL=true: job roda via Railway Cron Service
+    // separado (node dist/cron-prospecting.js discover) em vez de setInterval
+    // no processo sempre-ativo da API. Ver docs/RAILWAY_CRON_PROSPECTING.md.
+    if (process.env.PROSPECTING_CRON_EXTERNAL === 'true') return
     this.timer = setInterval(() => this.run().catch(err => this.logger.error('Falha no job discoverProspects', err)), INTERVAL_MS)
     this.initialTimer = setTimeout(() => this.run().catch(err => this.logger.error('Falha na execução inicial de discoverProspects', err)), INITIAL_DELAY_MS)
   }

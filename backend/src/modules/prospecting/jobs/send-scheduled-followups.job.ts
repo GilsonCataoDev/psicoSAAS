@@ -24,6 +24,10 @@ export class SendScheduledFollowupsJob implements OnModuleInit, OnModuleDestroy 
 
   onModuleInit(): void {
     if (process.env.PROSPECTING_OUTREACH_ENABLED !== 'true') return
+    // PROSPECTING_CRON_EXTERNAL=true: job roda via Railway Cron Service
+    // separado (node dist/cron-prospecting.js followups) em vez de setInterval
+    // no processo sempre-ativo da API. Ver docs/RAILWAY_CRON_PROSPECTING.md.
+    if (process.env.PROSPECTING_CRON_EXTERNAL === 'true') return
     this.logger.log('SendScheduledFollowupsJob iniciado (PROSPECTING_OUTREACH_ENABLED=true)')
 
     this.timer = setInterval(() => this.run().catch(err => this.logger.error('SendScheduledFollowupsJob falha', err)), INTERVAL_MS)
