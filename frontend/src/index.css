@@ -301,12 +301,131 @@
     color: #b7dfcd;
   }
 
+  .dark .bg-amber-50  { background-color: rgb(245 158 11 / 0.12); }
   .dark .bg-amber-100 { background-color: rgb(245 158 11 / 0.18); }
-  .dark .text-amber-700 { color: #fcd34d; }
+  .dark .bg-amber-200 { background-color: rgb(245 158 11 / 0.26); }
+  .dark .border-amber-100,
+  .dark .border-amber-200,
+  .dark .border-amber-300,
+  .dark .border-amber-400 { border-color: rgb(255 255 255 / 0.10); }
+  .dark .ring-amber-200 { --tw-ring-color: rgb(255 255 255 / 0.15); }
+  .dark .text-amber-200,
+  .dark .text-amber-300,
+  .dark .text-amber-500,
+  .dark .text-amber-600,
+  .dark .text-amber-700,
+  .dark .text-amber-800,
+  .dark .text-amber-900,
+  .dark .text-amber-950 { color: #fcd34d; }
+
+  .dark .bg-rose-50  { background-color: rgb(244 63 94 / 0.12); }
   .dark .bg-rose-100 { background-color: rgb(244 63 94 / 0.18); }
-  .dark .text-rose-700 { color: #fda4af; }
+  .dark .bg-rose-200 { background-color: rgb(244 63 94 / 0.26); }
+  .dark .border-rose-100,
+  .dark .border-rose-200,
+  .dark .border-rose-300,
+  .dark .border-rose-400,
+  .dark .border-rose-500 { border-color: rgb(255 255 255 / 0.10); }
+  .dark .ring-rose-200 { --tw-ring-color: rgb(255 255 255 / 0.15); }
+  .dark .text-rose-400,
+  .dark .text-rose-500,
+  .dark .text-rose-600,
+  .dark .text-rose-700,
+  .dark .text-rose-800 { color: #fda4af; }
+
   .dark .bg-mist-100 { background-color: rgb(77 168 218 / 0.18); }
   .dark .text-mist-700 { color: #a8d9f2; }
+
+  /* Status/severity badge colors — Tailwind default palette families not
+     covered by the custom sage/mist/neutral system above. Same formula:
+     light bg shades -> family-500 tinted at low opacity, text shades ->
+     family-300 hex tint for readable contrast on the dark background,
+     borders/rings -> generic translucent white (matches neutral borders). */
+
+  .dark .bg-blue-100 { background-color: rgb(59 130 246 / 0.18); }
+  .dark .bg-blue-200 { background-color: rgb(59 130 246 / 0.26); }
+  .dark .text-blue-700 { color: #93c5fd; }
+
+  .dark .bg-cyan-100 { background-color: rgb(6 182 212 / 0.18); }
+  .dark .bg-cyan-200 { background-color: rgb(6 182 212 / 0.26); }
+  .dark .text-cyan-700 { color: #67e8f9; }
+
+  .dark .bg-emerald-50  { background-color: rgb(16 185 129 / 0.12); }
+  .dark .bg-emerald-100 { background-color: rgb(16 185 129 / 0.18); }
+  .dark .bg-emerald-200 { background-color: rgb(16 185 129 / 0.26); }
+  .dark .border-emerald-100,
+  .dark .border-emerald-200,
+  .dark .border-emerald-300,
+  .dark .border-emerald-400 { border-color: rgb(255 255 255 / 0.10); }
+  .dark .ring-emerald-200 { --tw-ring-color: rgb(255 255 255 / 0.15); }
+  .dark .text-emerald-100,
+  .dark .text-emerald-500,
+  .dark .text-emerald-600,
+  .dark .text-emerald-700,
+  .dark .text-emerald-800 { color: #6ee7b7; }
+
+  .dark .bg-indigo-50  { background-color: rgb(99 102 241 / 0.12); }
+  .dark .bg-indigo-100 { background-color: rgb(99 102 241 / 0.18); }
+  .dark .ring-indigo-200 { --tw-ring-color: rgb(255 255 255 / 0.15); }
+  .dark .text-indigo-600,
+  .dark .text-indigo-700 { color: #a5b4fc; }
+
+  .dark .bg-orange-50  { background-color: rgb(249 115 22 / 0.12); }
+  .dark .bg-orange-100 { background-color: rgb(249 115 22 / 0.18); }
+  .dark .border-orange-200 { border-color: rgb(255 255 255 / 0.10); }
+  .dark .ring-orange-200 { --tw-ring-color: rgb(255 255 255 / 0.15); }
+  .dark .text-orange-600,
+  .dark .text-orange-700 { color: #fdba74; }
+
+  .dark .bg-pink-100 { background-color: rgb(236 72 153 / 0.18); }
+  .dark .bg-pink-200 { background-color: rgb(236 72 153 / 0.26); }
+  .dark .text-pink-700 { color: #f9a8d4; }
+
+  .dark .bg-purple-50  { background-color: rgb(168 85 247 / 0.12); }
+  .dark .bg-purple-100 { background-color: rgb(168 85 247 / 0.18); }
+  .dark .bg-purple-200 { background-color: rgb(168 85 247 / 0.26); }
+  .dark .border-purple-500,
+  .dark .border-purple-600 { border-color: rgb(255 255 255 / 0.10); }
+  .dark .ring-purple-100 { --tw-ring-color: rgb(255 255 255 / 0.15); }
+  .dark .text-purple-600,
+  .dark .text-purple-700 { color: #d8b4fe; }
+
+  .dark .bg-red-50  { background-color: rgb(239 68 68 / 0.12); }
+  .dark .bg-red-100 { background-color: rgb(239 68 68 / 0.18); }
+  .dark .border-red-100,
+  .dark .border-red-200 { border-color: rgb(255 255 255 / 0.10); }
+  .dark .text-red-500,
+  .dark .text-red-600,
+  .dark .text-red-700,
+  .dark .text-red-800 { color: #fca5a5; }
+
+  .dark .bg-sky-50  { background-color: rgb(14 165 233 / 0.12); }
+  .dark .bg-sky-100 { background-color: rgb(14 165 233 / 0.18); }
+  .dark .ring-sky-200 { --tw-ring-color: rgb(255 255 255 / 0.15); }
+  .dark .text-sky-600,
+  .dark .text-sky-700 { color: #7dd3fc; }
+
+  .dark .bg-teal-50 { background-color: rgb(20 184 166 / 0.12); }
+  .dark .ring-teal-200 { --tw-ring-color: rgb(255 255 255 / 0.15); }
+  .dark .text-teal-600 { color: #5eead4; }
+
+  .dark .bg-violet-50  { background-color: rgb(139 92 246 / 0.12); }
+  .dark .bg-violet-100 { background-color: rgb(139 92 246 / 0.18); }
+  .dark .bg-violet-200 { background-color: rgb(139 92 246 / 0.26); }
+  .dark .border-violet-100,
+  .dark .border-violet-200,
+  .dark .border-violet-300,
+  .dark .border-violet-400 { border-color: rgb(255 255 255 / 0.10); }
+  .dark .text-violet-600,
+  .dark .text-violet-700,
+  .dark .text-violet-800,
+  .dark .text-violet-900 { color: #c4b5fd; }
+
+  .dark .bg-yellow-50  { background-color: rgb(234 179 8 / 0.12); }
+  .dark .bg-yellow-100 { background-color: rgb(234 179 8 / 0.18); }
+  .dark .border-yellow-100 { border-color: rgb(255 255 255 / 0.10); }
+  .dark .text-yellow-600,
+  .dark .text-yellow-700 { color: #fde047; }
 
   .dark .shadow-card,
   .dark .shadow-lifted,
