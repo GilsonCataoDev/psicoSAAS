@@ -7,7 +7,8 @@ import { Subscription } from './entities/subscription.entity'
 import { isCompedProEmail, LATEST_SUBSCRIPTION_ORDER, PLAN_PRICES } from '../../common/plans'
 
 const TRIAL_DAYS = 7
-const ACTIVATION_OFFER_CODE = 'ROTINA20'
+const ACTIVATION_OFFER_CODE = 'PRO3790'
+const ACTIVATION_OFFER_VALUE = 37.90
 const REFERRAL_OFFER_CODE = 'INDICACAO20'
 const BETA_FREE_ACCESS = process.env.BETA_FREE_ACCESS !== 'false'
 
@@ -132,8 +133,10 @@ export class BillingService {
         creditCardToken,
         nextDueDate,
         promo ? {
-          valueOverride: this.discountedValue(plan, promo.discountPercent),
-          descriptionSuffix: `${promo.code} ${promo.discountPercent}% por ${promo.cycles} meses`,
+          valueOverride: promo.fixedValue ?? this.discountedValue(plan, promo.discountPercent),
+          descriptionSuffix: promo.fixedValue
+            ? `${promo.code} por ${promo.cycles} ciclo`
+            : `${promo.code} ${promo.discountPercent}% por ${promo.cycles} meses`,
         } : undefined,
       )
     } catch (err) {
@@ -153,6 +156,8 @@ export class BillingService {
           promoCyclesUsed: previousSubscription.promoCyclesUsed,
           regularMonthlyValue: previousSubscription.regularMonthlyValue,
           lastPromoPaymentId: previousSubscription.lastPromoPaymentId,
+          upgradeOfferViewedAt: previousSubscription.upgradeOfferViewedAt,
+          activationOfferRedeemedAt: previousSubscription.activationOfferRedeemedAt,
         })
         await this.repo.save(saved)
       } else {
@@ -168,6 +173,9 @@ export class BillingService {
       trialEndsAt,
       hasUsedTrial: true,
       currentPeriodEnd: null,
+      activationOfferRedeemedAt: promo?.code === ACTIVATION_OFFER_CODE
+        ? new Date()
+        : saved.activationOfferRedeemedAt,
     })
 
     return this.toPublicSubscription(await this.repo.save(saved))
@@ -205,38 +213,44 @@ export class BillingService {
     const plan = subscription?.plan ?? 'free'
     const activeFree = subscription?.status === 'active' && plan === 'free'
 
-    type Row = { daysSinceSignup: string; patients: string; sessions: string }
-    const [row] = await this.dataSource.query<Row[]>(`
-      SELECT
-        FLOOR(EXTRACT(EPOCH FROM (NOW() - u."createdAt")) / 86400)::int AS "daysSinceSignup",
-        (SELECT COUNT(*)::int FROM patients p WHERE p."psychologistId" = u.id) AS patients,
-        (SELECT COUNT(*)::int FROM sessions s WHERE s."psychologistId" = u.id) AS sessions
-      FROM users u
-      WHERE u.id = $1
-      LIMIT 1
-    `, [user.id])
-
-    const daysSinceSignup = Number(row?.daysSinceSignup ?? 0)
-    const patients = Number(row?.patients ?? 0)
-    const sessions = Number(row?.sessions ?? 0)
-    const activated = patients >= 2 || sessions >= 1
-    const eligible = activeFree && daysSinceSignup >= 7 && activated
+    const eligible = activeFree && !subscription?.activationOfferRedeemedAt
 
     return {
       eligible,
-      daysSinceSignup,
-      patients,
-      sessions,
-      offerCode: eligible ? 'ROTINA20' : null,
+      shouldNotify: eligible && !subscription?.upgradeOfferViewedAt,
+      offerCode: eligible ? ACTIVATION_OFFER_CODE : null,
+      promotionalPrice: eligible ? ACTIVATION_OFFER_VALUE : null,
+      regularPrice: PLAN_PRICES.pro,
+      includesTrial: eligible && !subscription?.hasUsedTrial,
       discount: eligible ? {
-        pro: '30% nos 3 primeiros meses',
+        pro: '1º mês por R$ 37,90; depois R$ 97,90/mês',
       } : null,
-      title: 'Sua rotina ja comecou. Agora libere mais limite.',
-      message: 'Continue com documentos, mais pacientes, transcricao por IA e automacoes para reduzir retrabalho.',
+      title: 'O UseCognia Pro ficou ainda mais completo',
+      message: 'Conheça as novidades e organize toda a rotina clínica em um só lugar.',
       benefits: [
-        'Pro: pacientes ilimitados, documentos, WhatsApp automatico, instrumentos e 120 min de IA',
+        'Pacientes ilimitados, prontuário, documentos e financeiro completo',
+        'WhatsApp, lembretes, teleatendimento e Google Agenda',
+        'Instrumentos, avaliação neuropsicológica e apoio de IA',
       ],
     }
+  }
+
+  async acknowledgeFreeUpgradeOffer(userId: string) {
+    const subscription = await this.repo.findOne({
+      where: { userId },
+      order: LATEST_SUBSCRIPTION_ORDER,
+    })
+
+    if (
+      subscription?.status === 'active'
+      && subscription.plan === 'free'
+      && !subscription.upgradeOfferViewedAt
+    ) {
+      subscription.upgradeOfferViewedAt = new Date()
+      await this.repo.save(subscription)
+    }
+
+    return { acknowledged: true }
   }
 
   async updateCard(userId: string, creditCardToken?: string, plan?: string) {
@@ -424,7 +438,7 @@ export class BillingService {
     user: Pick<User, 'id' | 'email'>,
     plan: string,
     existing?: Subscription | null,
-  ): Promise<{ code: string; discountPercent: number; cycles: number } | null> {
+  ): Promise<{ code: string; discountPercent: number; cycles: number; fixedValue?: number } | null> {
     if (!PLAN_PRICES[plan]) return null
     if (existing?.gatewaySubscriptionId) return null
 
@@ -432,8 +446,9 @@ export class BillingService {
     if (activationOffer.eligible) {
       return {
         code: ACTIVATION_OFFER_CODE,
-        discountPercent: plan === 'pro' ? 30 : 20,
-        cycles: 3,
+        discountPercent: 0,
+        cycles: 1,
+        fixedValue: ACTIVATION_OFFER_VALUE,
       }
     }
 

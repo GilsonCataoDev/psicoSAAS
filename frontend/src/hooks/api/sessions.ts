@@ -37,6 +37,18 @@ export function useCreateSession() {
   })
 }
 
+export function useCreateHistoricalSession() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: Partial<Session>) => api.post('/sessions/historical', data).then(r => r.data),
+    onSuccess: (session) => {
+      qc.invalidateQueries({ queryKey: ['sessions'] })
+      if (session?.patientId) qc.invalidateQueries({ queryKey: ['patients', session.patientId] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+}
+
 export function useUpdateSession() {
   const qc = useQueryClient()
   return useMutation({

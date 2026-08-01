@@ -1,15 +1,19 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Query, UseGuards } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { AdminGuard } from '../../common/guards/admin.guard'
 import { AdminService } from './admin.service'
 import { OverrideSubscriptionDto } from './dto/override-subscription.dto'
 import { ListAdminUsersDto } from './dto/list-admin-users.dto'
+import { AdminCampaignService } from './admin-campaign.service'
 
 @UseGuards(JwtAuthGuard, CsrfGuard, AdminGuard)
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly admin: AdminService) {}
+  constructor(
+    private readonly admin: AdminService,
+    private readonly campaigns: AdminCampaignService,
+  ) {}
 
   @Get('health-scores')
   getHealthScores() {
@@ -47,5 +51,10 @@ export class AdminController {
   @Delete('cleanup-test-users')
   cleanupTestUsers() {
     return this.admin.cleanupTestUsers()
+  }
+
+  @Post('campaigns/pro-upgrade/send')
+  sendProUpgradeCampaign() {
+    return this.campaigns.sendProUpgradeOffer()
   }
 }

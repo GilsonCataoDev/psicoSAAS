@@ -32,6 +32,7 @@ const makeSubscription = (overrides: Partial<Subscription> = {}): Subscription =
 describe('BillingWebhookService', () => {
   let service: BillingWebhookService
   let subscriptions: { findOne: jest.Mock; save: jest.Mock }
+  let asaas: { updateSubscriptionPlan: jest.Mock }
 
   beforeEach(async () => {
     subscriptions = {
@@ -42,6 +43,7 @@ describe('BillingWebhookService', () => {
       create: jest.fn(value => value),
       save: jest.fn(value => Promise.resolve(value)),
     }
+    asaas = { updateSubscriptionPlan: jest.fn().mockResolvedValue(undefined) }
 
     const module = await Test.createTestingModule({
       providers: [
@@ -51,7 +53,7 @@ describe('BillingWebhookService', () => {
         { provide: getRepositoryToken(User), useValue: { findOne: jest.fn() } },
         { provide: ConfigService, useValue: { get: jest.fn(() => 'webhook-secret') } },
         { provide: EmailService, useValue: { send: jest.fn() } },
-        { provide: AsaasService, useValue: { updateSubscriptionPlan: jest.fn() } },
+        { provide: AsaasService, useValue: asaas },
       ],
     }).compile()
 
@@ -118,5 +120,32 @@ describe('BillingWebhookService', () => {
         gatewaySubscriptionId: null,
       }),
     )
+  })
+
+  it('restores R$ 97,90 after the single promotional payment', async () => {
+    const subscription = makeSubscription({
+      promoCode: 'PRO3790',
+      promoDiscountPercent: 0,
+      promoCyclesTotal: 1,
+      promoCyclesUsed: 0,
+      regularMonthlyValue: '97.90',
+    })
+    subscriptions.findOne.mockResolvedValue(subscription)
+
+    await service.process({
+      event: 'PAYMENT_RECEIVED',
+      payment: { id: 'payment-promo-1', subscription: 'gateway-sub-1' },
+    })
+
+    expect(asaas.updateSubscriptionPlan).toHaveBeenCalledWith(
+      'gateway-sub-1',
+      'pro',
+      { updatePendingPayments: true },
+    )
+    expect(subscriptions.save).toHaveBeenCalledWith(expect.objectContaining({
+      promoCode: null,
+      promoCyclesTotal: 0,
+      promoCyclesUsed: 1,
+    }))
   })
 })

@@ -10,6 +10,8 @@ import { User } from '../../auth/entities/user.entity'
 import { Appointment } from '../../appointments/entities/appointment.entity'
 import { Booking } from '../../booking/entities/booking.entity'
 
+process.env.ENCRYPTION_KEY = 'sessions-service-test-key-with-32-chars!'
+
 const PSY_ID = 'psy-1'
 const PAT_ID = 'pat-1'
 
@@ -214,6 +216,39 @@ describe('SessionsService', () => {
       expect(result.paymentStatus).toBe('included')
       expect(financial.ensureMonthlyPackageCharge).toHaveBeenCalledWith(patient, expect.any(Date))
       expect(financial.create).not.toHaveBeenCalled()
+    })
+
+    it('importa sessao historica sem gerar cobranca mesmo para paciente de pacote', async () => {
+      const patient = {
+        id: PAT_ID,
+        name: 'Joana',
+        psychologistId: PSY_ID,
+        status: 'active',
+        billingType: 'monthly_package',
+        monthlyPackagePrice: 600,
+      } as Patient
+      patientRepo.findOne.mockResolvedValue(patient)
+      sessionRepo.create.mockImplementation((value) => ({ id: 'sess-historica', ...value }))
+      sessionRepo.save.mockImplementation(async (value) => value)
+
+      const result = await service.createHistorical({
+        patientId: PAT_ID,
+        date: '2025-07-15',
+        summary: 'Registro migrado e revisado.',
+      }, PSY_ID)
+
+      expect(result.paymentStatus).toBe('waived')
+      expect(financial.ensureMonthlyPackageCharge).not.toHaveBeenCalled()
+      expect(financial.create).not.toHaveBeenCalled()
+    })
+
+    it('rejeita data futura na importacao historica', async () => {
+      await expect(service.createHistorical({
+        patientId: PAT_ID,
+        date: '2999-01-01',
+        summary: 'Registro revisado.',
+      }, PSY_ID)).rejects.toThrow('não pode estar no futuro')
+      expect(sessionRepo.save).not.toHaveBeenCalled()
     })
   })
 })

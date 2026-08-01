@@ -1,11 +1,10 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common'
+import { Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { AdminGuard } from '../../common/guards/admin.guard'
 import { ChurnService } from './churn.service'
 import { RiskLevel } from './entities/tenant-health.entity'
 import { ChurnContactService } from './churn-contact.service'
-import { SendChurnWhatsAppDto } from './dto/send-churn-whatsapp.dto'
 
 @Controller('admin/churn')
 @UseGuards(JwtAuthGuard, CsrfGuard, AdminGuard)
@@ -76,13 +75,8 @@ export class ChurnController {
     return this.svc.sendReactivationEmail(userId)
   }
 
-  /**
-   * Envia uma mensagem (ex.: diagnóstico gerado por IA) pelo WhatsApp da
-   * própria conta do admin — não existe um número "da UseCognia" no Evolution
-   * API, cada psicólogo tem sua própria instância conectada.
-   */
   @Post('user/:userId/send-whatsapp')
-  sendWhatsApp(@Req() req: any, @Param('userId') userId: string, @Body() body: SendChurnWhatsAppDto) {
-    return this.contacts.sendWhatsApp(userId, body.message, req.user.id)
+  sendWhatsApp(@Req() req: any, @Param('userId') userId: string) {
+    return this.contacts.sendReactivationWhatsApp(userId, req.user.id)
   }
 }

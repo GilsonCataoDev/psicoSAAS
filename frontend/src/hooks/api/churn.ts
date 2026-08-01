@@ -138,8 +138,8 @@ export type WhatsAppDeliveryResult = {
 
 export function useSendChurnWhatsApp() {
   return useMutation({
-    mutationFn: ({ userId, message }: { userId: string; message: string }) =>
-      api.post<WhatsAppDeliveryResult>(`/admin/churn/user/${userId}/send-whatsapp`, { message }).then(r => r.data),
+    mutationFn: (userId: string) =>
+      api.post<WhatsAppDeliveryResult>(`/admin/churn/user/${userId}/send-whatsapp`).then(r => r.data),
   })
 }
 

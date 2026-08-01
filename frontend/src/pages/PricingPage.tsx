@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { BadgeDollarSign, CheckCircle2, Clock3, CreditCard, Loader2, Target, TrendingUp, XCircle } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
+import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/auth'
@@ -68,6 +69,18 @@ function PaidPricingPage({ publicView = false }: { publicView?: boolean }) {
   const navigate = useNavigate()
   const currentPlanId = String(subscription.planId ?? subscription.plan ?? '')
   const currentPlan = PLANS.find(plan => plan.id === currentPlanId)
+  const activeFree = subscription.status === 'active' && currentPlanId === 'free'
+  const { data: upgradeOffer } = useQuery({
+    queryKey: ['billing', 'upgrade-offer'],
+    queryFn: () => api.get<{
+      eligible: boolean
+      promotionalPrice: number | null
+      regularPrice: number
+      includesTrial: boolean
+    }>('/billing/upgrade-offer').then(response => response.data),
+    enabled: !publicView && isAuthenticated && activeFree,
+    staleTime: 60 * 60 * 1000,
+  })
 
   useEffect(() => { track(EVENTS.PLAN_PAGE_VIEWED) }, [])
 
@@ -280,6 +293,18 @@ function PaidPricingPage({ publicView = false }: { publicView?: boolean }) {
   return (
     <div className="mx-auto max-w-7xl space-y-12 pb-12">
       <PricingHero subscriptionStatus={subscription.status} />
+
+      {upgradeOffer?.eligible && (
+        <aside className="mx-auto max-w-3xl rounded-2xl border border-sage-200 bg-sage-50 px-5 py-4 text-center text-sage-900 dark:border-sage-400/30 dark:bg-sage-500/15 dark:text-sage-100">
+          <p className="text-xs font-bold uppercase tracking-[0.14em]">Condição especial da sua conta</p>
+          <p className="mt-1 text-lg font-semibold">
+            Pro por R$ 37,90 no primeiro mês; depois R$ 97,90/mês.
+          </p>
+          {upgradeOffer.includesTrial && (
+            <p className="mt-1 text-sm">Antes da primeira cobrança, você ainda tem 7 dias grátis.</p>
+          )}
+        </aside>
+      )}
 
       {subscription.status === 'active' && (
         <div className="mx-auto max-w-3xl rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">

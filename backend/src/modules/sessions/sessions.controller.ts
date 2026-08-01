@@ -51,6 +51,9 @@ export class SessionsController {
   @Get('dashboard') dashboard(@Request() req: any) { return this.svc.getDashboard(req.user.id) }
   @Get(':id') findOne(@Param('id') id: string, @Request() req: any) { return this.svc.findOne(id, req.user.id) }
   @Post() create(@Body() dto: CreateSessionDto, @Request() req: any) { return this.svc.create(dto, req.user.id) }
+  @Post('historical') createHistorical(@Body() dto: CreateSessionDto, @Request() req: any) {
+    return this.svc.createHistorical(dto, req.user.id)
+  }
   @Patch(':id') update(@Param('id') id: string, @Body() dto: Partial<CreateSessionDto>, @Request() req: any) { return this.svc.update(id, dto, req.user.id) }
   @Delete(':id') remove(@Param('id') id: string, @Request() req: any) { return this.svc.remove(id, req.user.id) }
 

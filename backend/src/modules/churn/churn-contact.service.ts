@@ -11,10 +11,10 @@ export class ChurnContactService {
     private readonly notifications: NotificationsService,
   ) {}
 
-  async sendWhatsApp(targetUserId: string, message: string, adminUserId: string) {
+  async sendReactivationWhatsApp(targetUserId: string, adminUserId: string) {
     const target = await this.users.findOne({
       where: { id: targetUserId, isActive: true },
-      select: ['id', 'phone'],
+      select: ['id', 'name', 'phone'],
     })
 
     if (!target) throw new NotFoundException('Conta não encontrada')
@@ -22,13 +22,12 @@ export class ChurnContactService {
     const phone = this.normalizeBrazilianPhone(target.phone)
     if (!phone) throw new BadRequestException('Conta sem WhatsApp válido cadastrado')
 
-    const normalizedMessage = typeof message === 'string' ? message.trim() : ''
-    if (!normalizedMessage || normalizedMessage.length > 2000) {
-      throw new BadRequestException('Mensagem inválida')
-    }
+    const firstName = target.name?.trim().split(/\s+/)[0]?.replace(/[\r\n\t]/g, '') ?? ''
+    const greeting = firstName ? `Olá, ${firstName}!` : 'Olá!'
+    const message = `${greeting} Aqui é a equipe do UseCognia. Vimos que faz um tempo desde seu último acesso e queremos saber se podemos ajudar com alguma dúvida ou dificuldade. 😊`
 
-    return this.notifications.sendDirectWhatsApp(phone, normalizedMessage, adminUserId, {
-      type: 'churn_admin_message',
+    return this.notifications.sendDirectWhatsApp(phone, message, adminUserId, {
+      type: 'churn_reactivation',
     })
   }
 

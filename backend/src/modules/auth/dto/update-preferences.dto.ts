@@ -14,6 +14,7 @@ export class UpdatePreferencesDto {
   @IsOptional() @IsBoolean() chargeAfterSession?: boolean
   @IsOptional() @IsBoolean() bookingConfirmation?: boolean
   @IsOptional() @IsBoolean() googleCalendarInvitePatients?: boolean
+  @IsOptional() @IsBoolean() marketingEmails?: boolean
 
   // ── PIX ────────────────────────────────────────────────────────────────────
   @IsOptional() @IsString() @MaxLength(20)  pixKeyType?: string
