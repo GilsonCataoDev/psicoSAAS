@@ -474,6 +474,44 @@ describe('NotificationsService WhatsApp delivery validation', () => {
     }
   })
 
+  it('tags cancellation/confirmation links with utm_source=whatsapp only in the WhatsApp message body', async () => {
+    const sendSpy = jest.spyOn(service as any, 'sendWhatsApp').mockResolvedValue({ sent: true })
+
+    await service.sendBookingRequest({
+      id: 'booking-id',
+      patientName: 'Marina Silva',
+      patientPhone: '11999999999',
+      psychologistId: ownerId,
+      date: '2026-08-10',
+      time: '14:00',
+      publicConfirmationToken: 'confirm-token',
+      publicCancellationCode: 'cancel-token',
+      psychologist: { phone: '11988888888', preferences: {} },
+    }, {
+      psychologistId: ownerId,
+      psychologist: { phone: '11988888888', preferences: {} },
+    })
+
+    const patientMsg = sendSpy.mock.calls.find(call => call[0] === '11999999999')?.[1]
+    const psychMsg = sendSpy.mock.calls.find(call => call[0] === '11988888888')?.[1]
+    expect(patientMsg).toContain('/c/cancel-token?utm_source=whatsapp&utm_medium=message')
+    expect(psychMsg).toContain('/agendar/confirmar/confirm-token?utm_source=whatsapp&utm_medium=message')
+
+    sendSpy.mockClear()
+    await service.sendBookingConfirmation({
+      id: 'booking-id',
+      patientName: 'Marina Silva',
+      patientPhone: '11999999999',
+      patientEmail: '',
+      psychologistId: ownerId,
+      date: '2026-08-10',
+      time: '14:00',
+      publicCancellationCode: 'cancel-token',
+    })
+    const confirmationMsg = sendSpy.mock.calls[0]?.[1]
+    expect(confirmationMsg).toContain('/c/cancel-token?utm_source=whatsapp&utm_medium=message')
+  })
+
   it('does not resend when the delivery check is inconclusive, avoiding duplicate messages', async () => {
     const text = 'Lembrete de sessao'
     const originalWorkerId = process.env.JEST_WORKER_ID

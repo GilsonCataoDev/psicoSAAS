@@ -1086,7 +1086,7 @@ export class NotificationsService {
         `Ola, ${booking.patientName.split(' ')[0]}!\n\n` +
         `Recebemos sua solicitacao para *${booking.date}* as *${String(booking.time).slice(0, 5)}*.\n\n` +
         `Assim que confirmarmos, voce recebera uma mensagem.\n` +
-        `Precisando cancelar: ${cancelUrl}\n\nAte breve.`
+        `Precisando cancelar: ${this.withWhatsAppUtm(cancelUrl)}\n\nAte breve.`
       await this.sendWhatsApp(booking.patientPhone, patientMsg, page.psychologistId, {
         type: 'Solicitacao de agenda',
         patientName: booking.patientName,
@@ -1099,7 +1099,7 @@ export class NotificationsService {
         `*Nova solicitacao de sessao*\n\n` +
         `Pessoa: ${booking.patientName}\n` +
         `Data: ${booking.date} as ${String(booking.time).slice(0, 5)}\n` +
-        `\nConfirmar: ${confirmUrl}`
+        `\nConfirmar: ${this.withWhatsAppUtm(confirmUrl)}`
       await this.sendWhatsApp(page.psychologist.phone, psychMsg, page.psychologistId, {
         type: 'Aviso ao psicologo',
         patientName: booking.patientName,
@@ -1136,11 +1136,12 @@ export class NotificationsService {
     // WhatsApp para o paciente
     let whatsAppResult: WhatsAppDeliveryResult | undefined
     if (booking.patientPhone) {
+      const cancelUrlWhatsApp = this.withWhatsAppUtm(cancelUrl)
       const msg = customMessage
-        ? `${customMessage}\n\nPrecisando cancelar: ${cancelUrl}`
+        ? `${customMessage}\n\nPrecisando cancelar: ${cancelUrlWhatsApp}`
         : `Ola, ${first}!\n\n` +
           `Sua sessao foi confirmada para *${booking.date}* as *${String(booking.time).slice(0, 5)}*.\n\n` +
-          `Precisando cancelar: ${cancelUrl}\n\nNos vemos la.`
+          `Precisando cancelar: ${cancelUrlWhatsApp}\n\nNos vemos la.`
       whatsAppResult = await this.sendWhatsApp(booking.patientPhone, msg, booking.psychologistId, {
         type: 'Confirmacao de agenda',
         patientName: booking.patientName,
@@ -1241,6 +1242,12 @@ export class NotificationsService {
       type: 'Lembrete de pagamento',
       patientName: booking.patientName,
     })
+  }
+
+  /** Marca o link com utm_source=whatsapp só na mensagem enviada por WhatsApp — a versão de e-mail continua sem UTM. */
+  private withWhatsAppUtm(url: string): string {
+    const separator = url.includes('?') ? '&' : '?'
+    return `${url}${separator}utm_source=whatsapp&utm_medium=message`
   }
 
   private getCancellationUrl(booking: any): string {

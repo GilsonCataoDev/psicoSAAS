@@ -309,9 +309,10 @@ export class InstrumentAssignmentsService {
     return item.tokenEncrypted ? (safeDecrypt(item.tokenEncrypted) ?? item.token) : item.token
   }
 
+  // Link só circula por WhatsApp (envio automático ou copiado pelo psicólogo pra colar no WhatsApp) — utm_source fixo aqui é seguro.
   private publicUrl(token: string): string {
     const frontendUrl = (this.config.get<string>('FRONTEND_URL') ?? 'https://usecognia.com.br').replace(/\/$/, '')
-    return `${frontendUrl}/instrumentos/responder/${token}`
+    return `${frontendUrl}/instrumentos/responder/${token}?utm_source=whatsapp&utm_medium=message`
   }
 
   private toDto(item: InstrumentAssignment) {
