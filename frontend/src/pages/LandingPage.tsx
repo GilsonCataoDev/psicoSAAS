@@ -19,9 +19,9 @@ import { usePublicTestimonials } from '@/hooks/api/testimonial'
 import { track, EVENTS } from '@/lib/analytics'
 
 const trustSignals = [
-  'Plano grátis',
-  'Para psicólogos com CRP ativo',
-  'Sem cartão para começar',
+  'Sem cartão',
+  'Até 10 pacientes no plano grátis',
+  'Sem prazo para expirar',
 ]
 
 const pains = [
@@ -132,7 +132,7 @@ const faqs = [
   },
   {
     question: 'A plataforma é compatível com as normas do CFP?',
-    answer: 'A UseCognia foi desenvolvida com atenção às resoluções do Conselho Federal de Psicologia sobre prontuários e registros clínicos. O profissional continua sendo o responsável pelo conteúdo inserido e pelo cumprimento das normas éticas.',
+    answer: 'O UseCognia oferece recursos de organização, controle de acesso e registro que apoiam a rotina profissional. A adequação de cada documento e atendimento às normas aplicáveis continua sob responsabilidade do psicólogo.',
   },
   {
     question: 'Consigo emitir declarações e atestados em PDF?',
@@ -233,15 +233,10 @@ export default function LandingPage() {
       source: new URLSearchParams(window.location.search).get('utm_source') ?? 'direct',
     })
 
-    if (document.querySelector('script[src*="js.hsforms.net"]')) return
-    const script = document.createElement('script')
-    script.src = 'https://js.hsforms.net/forms/embed/51719933.js'
-    script.defer = true
-    document.head.appendChild(script)
   }, [])
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#F7F8F5] text-[#211F1C]">
+    <main className="min-h-screen overflow-x-hidden bg-[#F7F8F5] pb-16 text-[#211F1C] sm:pb-0">
       <header className="sticky top-0 z-20 border-b border-[#E7E4DA] bg-[#F7F8F5]/95 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-5">
           <Link to="/inicio" className="flex min-w-0 items-center gap-2.5">
@@ -262,11 +257,12 @@ export default function LandingPage() {
             </Link>
             <MotionLink
               to={signupPath}
+              onClick={() => track(EVENTS.LANDING_CTA_CLICKED, { location: 'header', destination: 'signup' })}
               whileHover={reduce ? undefined : { scale: 1.03 }}
               whileTap={reduce ? undefined : { scale: 0.97 }}
               className="hidden rounded-md bg-sage-800 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sage-900 sm:inline-flex"
             >
-              Quero testar
+              Criar conta grátis
             </MotionLink>
           </div>
         </div>
@@ -283,15 +279,15 @@ export default function LandingPage() {
           >
             <motion.p variants={fadeUp} className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-3 py-1 text-sm font-semibold text-sage-200">
               <Sparkles className="h-4 w-4" />
-              Plano grátis para psicólogos com CRP ativo
+              Gestão clínica para psicólogos com CRP ativo
             </motion.p>
 
             <motion.h1 variants={fadeUp} className="mt-6 max-w-[21rem] text-[2.1rem] font-bold leading-[1.06] tracking-normal text-white sm:max-w-2xl sm:text-5xl lg:text-6xl">
-              Terminou a sessão? Organize o prontuário e o restante da clínica sem voltar para planilhas.
+              Menos tempo organizando a clínica. Mais clareza para atender.
             </motion.h1>
 
             <motion.p variants={fadeUp} className="mt-6 max-w-[22rem] text-base leading-relaxed text-white/76 sm:max-w-xl sm:text-lg">
-              Registre evoluções, organize pacientes, agenda e pagamentos em um só fluxo — com plano grátis, sem cartão e sem prazo para expirar.
+              Agenda, pacientes, prontuário e financeiro conectados em um único fluxo. Comece grátis com até 10 pacientes.
             </motion.p>
 
             <motion.div variants={fadeUp} className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -302,15 +298,15 @@ export default function LandingPage() {
                 whileTap={reduce ? undefined : { scale: 0.975 }}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-sage-200 px-5 text-sm font-bold text-sage-900 shadow-lg shadow-sage-200/15 hover:bg-sage-100"
               >
-                Começar grátis <ArrowRight className="h-4 w-4" />
+                Criar minha conta grátis <ArrowRight className="h-4 w-4" />
               </MotionLink>
               <motion.a
-                href="#produto"
+                href="#como-funciona"
                 whileHover={reduce ? undefined : { scale: 1.025 }}
                 whileTap={reduce ? undefined : { scale: 0.975 }}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-md border border-white/14 bg-white/6 px-5 text-sm font-semibold text-white hover:bg-white/10"
               >
-                Ver como funciona <ChevronRight className="h-4 w-4" />
+                Ver o fluxo completo <ChevronRight className="h-4 w-4" />
               </motion.a>
             </motion.div>
 
@@ -320,7 +316,7 @@ export default function LandingPage() {
                 onClick={() => track(EVENTS.LANDING_CTA_CLICKED, { location: 'hero', destination: 'free_tool' })}
                 className="text-sm font-semibold text-sage-200 underline decoration-sage-200/40 underline-offset-4 hover:text-white"
               >
-                Prefere experimentar primeiro? Gere uma evolução psicológica grátis
+                Prefere experimentar primeiro? Organize um rascunho de evolução com segurança
               </Link>
             </motion.div>
 
@@ -413,6 +409,39 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <section className="border-y border-[#E7E4DA] bg-white">
+        <div className="mx-auto max-w-6xl px-5 py-16">
+          <motion.div
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '-80px' }}
+            variants={fadeUp}
+            className="mx-auto max-w-3xl text-center"
+          >
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Antes e depois</p>
+            <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Troque tarefas espalhadas por um fluxo que se conecta.</h2>
+          </motion.div>
+          <div className="mt-8 grid gap-4 md:grid-cols-2">
+            <div className="rounded-xl border border-rose-100 bg-rose-50/60 p-6">
+              <p className="text-sm font-bold uppercase tracking-wide text-rose-700">Sem o UseCognia</p>
+              <ul className="mt-4 space-y-3 text-sm text-[#5F5A51]">
+                {['Horários negociados por mensagem', 'Anotações em caderno ou arquivos separados', 'Pagamentos conferidos de memória', 'Documentos montados manualmente'].map(item => (
+                  <li key={item} className="flex gap-3"><span aria-hidden="true" className="text-rose-500">×</span>{item}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-xl border border-sage-200 bg-sage-50/70 p-6">
+              <p className="text-sm font-bold uppercase tracking-wide text-sage-800">Com o UseCognia</p>
+              <ul className="mt-4 space-y-3 text-sm font-medium text-[#49443D]">
+                {['Link público ligado à sua disponibilidade', 'Histórico do paciente e evoluções juntos', 'Pendências e recebimentos visíveis', 'Documentos em PDF com código de verificação'].map(item => (
+                  <li key={item} className="flex gap-3"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-sage-600" />{item}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section id="produto" className="border-y border-[#E7E4DA] bg-[#FFFFFF]">
         <div className="mx-auto max-w-6xl px-5 py-16">
           <motion.div
@@ -452,7 +481,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="border-b border-[#E7E4DA] bg-[#F7F8F5]">
+      <section id="como-funciona" className="border-b border-[#E7E4DA] bg-[#F7F8F5]">
         <div className="mx-auto max-w-6xl px-5 py-16">
           <motion.div
             className="max-w-2xl"
@@ -555,7 +584,9 @@ export default function LandingPage() {
                   ))}
                 </div>
               )}
-              <blockquote className="text-sm leading-relaxed text-[#49443D]">"{quote}"</blockquote>
+              {rating != null
+                ? <blockquote className="text-sm leading-relaxed text-[#49443D]">“{quote}”</blockquote>
+                : <p className="text-sm leading-relaxed text-[#49443D]">{quote}</p>}
               <figcaption className="mt-4 flex items-center gap-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sage-100 text-sm font-bold text-sage-700">
                   {initial}
@@ -609,6 +640,7 @@ export default function LandingPage() {
           </ul>
           <MotionLink
             to={signupPath}
+            onClick={() => track(EVENTS.LANDING_CTA_CLICKED, { location: 'free_plan', destination: 'signup' })}
             whileHover={reduce ? undefined : { scale: 1.02 }}
             whileTap={reduce ? undefined : { scale: 0.98 }}
             className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-md bg-sage-800 text-sm font-bold text-white hover:bg-sage-900"
@@ -664,22 +696,18 @@ export default function LandingPage() {
             Pronto para deixar o consultório com cara de operação profissional?
           </h2>
           <p className="mx-auto mt-4 max-w-lg text-white/70">
-            Crie sua conta grátis em menos de dois minutos — sem cartão, sem contrato.
+            Crie sua conta grátis em poucos passos — sem cartão e sem contrato.
           </p>
-          <div className="mt-8 rounded-xl bg-white p-6 text-left">
-            <div
-              className="hs-form-frame"
-              data-region="na1"
-              data-form-id="f14df2cf-6509-4c6a-ac71-7d110ac0568e"
-              data-portal-id="51719933"
-            />
-          </div>
-          <p className="mt-4 text-sm text-white/50">
-            Prefere começar direto?{' '}
-            <Link to={signupPath} className="underline hover:text-white">
-              Crie sua conta gratis <ArrowRight className="inline h-3 w-3" />
-            </Link>
-          </p>
+          <MotionLink
+            to={signupPath}
+            onClick={() => track(EVENTS.LANDING_CTA_CLICKED, { location: 'final', destination: 'signup' })}
+            whileHover={reduce ? undefined : { scale: 1.025 }}
+            whileTap={reduce ? undefined : { scale: 0.975 }}
+            className="mx-auto mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-md bg-sage-200 px-6 text-sm font-bold text-sage-900 hover:bg-sage-100"
+          >
+            Criar minha conta grátis <ArrowRight className="h-4 w-4" />
+          </MotionLink>
+          <p className="mt-4 text-sm text-white/60">Sem cartão · até 10 pacientes · configuração guiada</p>
           <div className="mt-6 flex justify-center gap-4 text-sm text-white/60">
             <Link to="/acessibilidade" className="hover:text-white">Acessibilidade</Link>
             <Link to="/privacidade" className="hover:text-white">Privacidade</Link>
@@ -740,6 +768,16 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[#D9D5C9] bg-white/95 p-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur sm:hidden">
+        <Link
+          to={signupPath}
+          onClick={() => track(EVENTS.LANDING_CTA_CLICKED, { location: 'mobile_sticky', destination: 'signup' })}
+          className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-sage-800 text-sm font-bold text-white"
+        >
+          Criar conta grátis <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
     </main>
   )
 }

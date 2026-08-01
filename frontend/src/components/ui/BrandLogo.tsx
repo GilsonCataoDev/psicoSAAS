@@ -1,3 +1,5 @@
+import { useId } from 'react'
+
 type BrandLogoProps = {
   compact?: boolean
   light?: boolean
@@ -5,6 +7,8 @@ type BrandLogoProps = {
 }
 
 export default function BrandLogo({ compact = false, light = false, className }: BrandLogoProps) {
+  const gradientId = `cognia-mark-${useId().replace(/:/g, '')}`
+
   return (
     <div className={['flex items-center gap-2.5', className].filter(Boolean).join(' ')}>
       <svg
@@ -14,7 +18,7 @@ export default function BrandLogo({ compact = false, light = false, className }:
         aria-label="UseCognia"
       >
         <defs>
-          <linearGradient id="cognia-mark" x1="8" y1="6" x2="42" y2="42" gradientUnits="userSpaceOnUse">
+          <linearGradient id={gradientId} x1="8" y1="6" x2="42" y2="42" gradientUnits="userSpaceOnUse">
             <stop stopColor="#2F7657" />
             <stop offset="1" stopColor="#4DA8DA" />
           </linearGradient>
@@ -22,14 +26,14 @@ export default function BrandLogo({ compact = false, light = false, className }:
         <path
           d="M28 7.5C16.6 7.5 8 15.5 8 24s8.6 16.5 20 16.5"
           fill="none"
-          stroke="url(#cognia-mark)"
+          stroke={`url(#${gradientId})`}
           strokeWidth="8"
           strokeLinecap="round"
         />
         <path
           d="M28.5 14.5c4.6 0 8.5 3.6 8.8 8.2 2.9.8 5.1 3.5 5.1 6.7 0 3.7-2.9 6.8-6.6 7"
           fill="none"
-          stroke="url(#cognia-mark)"
+          stroke={`url(#${gradientId})`}
           strokeWidth="2.8"
           strokeLinecap="round"
           strokeLinejoin="round"

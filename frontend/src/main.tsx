@@ -125,9 +125,6 @@ window.addEventListener('load', () => {
             </div>
           ), { duration: 10000 })
         },
-        onOfflineReady() {
-          toast.success('UseCognia pronto para abrir mais rapido neste dispositivo.')
-        },
       })
     })
 }, { once: true })
