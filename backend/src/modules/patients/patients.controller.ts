@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Request, Res, UseGuards } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Request, Res, UseGuards } from '@nestjs/common'
 import { Throttle } from '@nestjs/throttler'
 import { Response } from 'express'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
@@ -9,6 +9,7 @@ import { CreatePatientDto } from './dto/create-patient.dto'
 import { UpdatePatientDto } from './dto/update-patient.dto'
 import { AuditService } from '../audit/audit.service'
 import { pdfAttachment } from '../../common/http/content-disposition.util'
+import { ExportProntuarioQueryDto } from './dto/export-prontuario.dto'
 
 @Controller('patients')
 @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
@@ -22,14 +23,27 @@ export class PatientsController {
 
   @Get(':id/prontuario/export')
   @Throttle({ long: { limit: 5, ttl: 60 * 60 * 1000 } })
-  async exportProntuario(@Param('id') id: string, @Request() req: any, @Res() res: Response) {
+  async exportProntuario(
+    @Param('id') id: string,
+    @Query() query: ExportProntuarioQueryDto,
+    @Request() req: any,
+    @Res() res: Response,
+  ) {
     const { filename, buffer } = await this.svc.exportProntuario(
       id,
       req.user.id,
       req.user.name,
       req.user.crp ?? '',
+      query,
     )
-    await this.record(req, 'patient.prontuario_exported', 'patient', id)
+    const patientCopy = query.audience === 'patient'
+    await this.record(
+      req,
+      patientCopy ? 'patient.prontuario_patient_copy_exported' : 'patient.prontuario_exported',
+      'patient',
+      id,
+      patientCopy ? { fromDate: query.fromDate, toDate: query.toDate, sections: query.sections } : undefined,
+    )
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': pdfAttachment(filename),
