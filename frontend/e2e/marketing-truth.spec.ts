@@ -1,10 +1,18 @@
 import { expect, test } from '@playwright/test'
 
 test.describe('Promessas públicas verificáveis', () => {
+  test('landing mantém a paleta pública legível mesmo com preferência de tema escuro', async ({ page }) => {
+    await page.addInitScript(() => document.documentElement.classList.add('dark'))
+    await page.goto('/')
+
+    await expect(page.locator('html')).not.toHaveClass(/dark/)
+    await expect(page.getByText('Por que agora', { exact: true })).toHaveCSS('color', 'rgb(36, 77, 61)')
+  })
+
   test('landing descreve o público que consegue concluir o cadastro', async ({ page }) => {
     await page.goto('/')
 
-    await expect(page.getByText('Para psicólogos com CRP ativo', { exact: true })).toBeVisible()
+    await expect(page.getByText('Gestão clínica para psicólogos com CRP ativo', { exact: true })).toBeVisible()
     await expect(page.locator('body')).not.toContainText(/terapeutas e estagiários|estagiários clínicos/i)
   })
 

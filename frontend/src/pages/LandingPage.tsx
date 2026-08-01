@@ -228,11 +228,21 @@ export default function LandingPage() {
   const signupPath = `/cadastro${window.location.search}`
 
   useEffect(() => {
+    // A landing tem uma paleta própria, predominantemente clara. O tema escuro
+    // global do painel remapeia utilitários como bg-white e text-sage-700,
+    // causando texto claro sobre seções claras nesta página pública.
+    const html = document.documentElement
+    const wasDark = html.classList.contains('dark')
+    html.classList.remove('dark')
+
     track(EVENTS.LANDING_VIEWED, {
       path: window.location.pathname,
       source: new URLSearchParams(window.location.search).get('utm_source') ?? 'direct',
     })
 
+    return () => {
+      if (wasDark) html.classList.add('dark')
+    }
   }, [])
 
   return (
