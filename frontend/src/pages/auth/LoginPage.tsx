@@ -7,7 +7,7 @@ import { Eye, EyeOff, LogIn, ShieldCheck } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
 import toast from 'react-hot-toast'
-import { track, EVENTS } from '@/lib/analytics'
+import { track, EVENTS, trackReactivationIfNeeded } from '@/lib/analytics'
 
 const schema = z.object({
   email: z.string().email('E-mail inválido'),
@@ -43,6 +43,7 @@ export default function LoginPage() {
       setAuth(res.data.user)
       if (res.data.csrfToken) setCsrfToken(res.data.csrfToken)
       track(EVENTS.LOGIN)
+      trackReactivationIfNeeded()
       navigate('/')
     } catch (err: any) {
       logout()

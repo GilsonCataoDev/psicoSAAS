@@ -25,7 +25,7 @@ type AnalyticsValue = string | number | boolean
 type AnalyticsProps = Record<string, AnalyticsValue>
 
 const ALLOWED_PROPERTIES = new Set([
-  'abordagem', 'ciclo', 'landing_path', 'location', 'marketing_landing_path',
+  'abordagem', 'ciclo', 'days_inactive', 'landing_path', 'location', 'marketing_landing_path',
   'plan', 'step', 'type', 'use_number',
   ...UTM_FIELDS,
   ...UTM_FIELDS.map(f => `first_${f}`),
@@ -187,6 +187,23 @@ export function track(event: string, props?: AnalyticsProps) {
   void loadAnalytics().then(ph => ph?.capture(event, safeProps))
 }
 
+const LAST_SEEN_KEY = 'usecognia.last_seen_at'
+const REACTIVATION_THRESHOLD_DAYS = 3
+
+/** Fires USER_REACTIVATED when the gap since the last recorded visit on this browser crosses the threshold. Call on explicit login. */
+export function trackReactivationIfNeeded() {
+  try {
+    const now = Date.now()
+    const stored = window.localStorage.getItem(LAST_SEEN_KEY)
+    window.localStorage.setItem(LAST_SEEN_KEY, String(now))
+    if (!stored) return
+    const daysInactive = Math.floor((now - Number(stored)) / 86400000)
+    if (daysInactive >= REACTIVATION_THRESHOLD_DAYS) {
+      track(EVENTS.USER_REACTIVATED, { days_inactive: daysInactive })
+    }
+  } catch { /* storage blocked */ }
+}
+
 /** Unlinks identity on logout. Anonymous tracking continues. */
 export function resetAnalytics() {
   identityGeneration += 1
@@ -214,6 +231,8 @@ export const EVENTS = {
   PLAN_PAGE_VIEWED:     'plan_page_viewed',
   CHECKOUT_STARTED:     'checkout_started',
   SUBSCRIPTION_ACTIVE:  'subscription_activated',
+  SUBSCRIPTION_CANCELED: 'subscription_canceled',
+  USER_REACTIVATED:     'user_reactivated',
   PAYMENT_SENT:         'payment_whatsapp_sent',
   REFERRAL_COPIED:      'referral_code_copied',
   REFERRAL_SHARED:      'referral_shared',
