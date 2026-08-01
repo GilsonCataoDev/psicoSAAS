@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Download, Lock, Save, FileText, Pencil, X, Sparkles } from 'lucide-react'
+import { ArrowLeft, Download, Lock, Save, FileText, Pencil, X, Sparkles, Send } from 'lucide-react'
 import { usePatient, useUpdatePatient, useSessions, useCreateSession, useUpdateSession, useExportProntuario, useGenerateProntuarioDraft, useGenerateSessionPlan } from '@/hooks/useApi'
 import { TAG_LABELS } from '@/types'
 import { Prontuario } from '@/types/prontuario'
@@ -9,6 +9,7 @@ import toast from 'react-hot-toast'
 import DictationButton from '@/components/ui/DictationButton'
 import RecordingPanel from '@/components/ui/RecordingPanel'
 import { useHasPlan } from '@/store/subscription'
+import PatientRecordDeliveryModal from '@/components/features/patients/PatientRecordDeliveryModal'
 
 const TABS = [
   { id: 'identificacao', label: 'Identificação' },
@@ -79,6 +80,7 @@ export default function ProntuarioPage() {
   const [editEvolDate, setEditEvolDate] = useState('')
   const [editEvolText, setEditEvolText] = useState('')
   const [form, setForm] = useState<Partial<Prontuario>>({})
+  const [deliveryOpen, setDeliveryOpen] = useState(false)
 
   // Inicializa form quando o paciente carregar
   useEffect(() => {
@@ -206,12 +208,19 @@ export default function ProntuarioPage() {
         </div>
         <div className="flex gap-2 shrink-0">
           <button
-            onClick={() => exportProntuario.mutate()}
+            onClick={() => exportProntuario.mutate({ audience: 'professional' })}
             disabled={exportProntuario.isPending}
             className="btn-secondary flex items-center gap-2 text-sm hidden sm:flex disabled:opacity-50"
           >
             <Download className="w-4 h-4" />
-            {exportProntuario.isPending ? 'Gerando…' : 'Exportar PDF'}
+            {exportProntuario.isPending ? 'Gerando…' : 'Backup profissional'}
+          </button>
+
+          <button
+            onClick={() => setDeliveryOpen(true)}
+            className="btn-secondary flex items-center gap-2 text-sm hidden sm:flex"
+          >
+            <Send className="w-4 h-4" />Entrega ao paciente
           </button>
 
           <Link to={`/documentos?patient=${id}`}
@@ -635,13 +644,23 @@ export default function ProntuarioPage() {
 
       {/* Save button mobile */}
       <div className="sm:hidden flex gap-2">
-        <button onClick={() => exportProntuario.mutate()} disabled={exportProntuario.isPending} className="btn-secondary flex-1 flex items-center justify-center gap-2 text-sm disabled:opacity-50">
-          <Download className="w-4 h-4" />{exportProntuario.isPending ? 'Gerando…' : 'PDF'}
+        <button onClick={() => exportProntuario.mutate({ audience: 'professional' })} disabled={exportProntuario.isPending} className="btn-secondary flex-1 flex items-center justify-center gap-2 text-sm disabled:opacity-50">
+          <Download className="w-4 h-4" />{exportProntuario.isPending ? 'Gerando…' : 'Backup'}
+        </button>
+        <button onClick={() => setDeliveryOpen(true)} className="btn-secondary flex-1 flex items-center justify-center gap-2 text-sm">
+          <Send className="w-4 h-4" />Entregar
         </button>
         <button onClick={save} className="btn-primary flex-1 flex items-center justify-center gap-2 text-sm">
           <Save className="w-4 h-4" />Salvar
         </button>
       </div>
+
+      <PatientRecordDeliveryModal
+        open={deliveryOpen}
+        onClose={() => setDeliveryOpen(false)}
+        patientId={id ?? ''}
+        patientName={patient.name}
+      />
     </div>
   )
 }
