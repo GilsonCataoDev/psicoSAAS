@@ -1,8 +1,14 @@
 import { useEffect, useState, useMemo } from 'react'
-import { Search, Download, X, MessageSquare } from 'lucide-react'
+import { Search, Download, X, MessageSquare, Repeat2, Pause, Play, Trash2 } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
-import { useCreateInstrumentAssignment, usePatients } from '@/hooks/useApi'
+import {
+  useCreateInstrumentAssignment,
+  useDeleteInstrumentSchedule,
+  useInstrumentSchedules,
+  useSetInstrumentScheduleActive,
+  usePatients,
+} from '@/hooks/useApi'
 import {
   CARD_ACCENTS,
   CAT_COLOR,
@@ -267,6 +273,71 @@ function InstrumentCard({
   )
 }
 
+// ── Recorrências ativas ──────────────────────────────────────────────────────
+
+const RECURRENCE_LABEL: Record<string, string> = {
+  weekly: 'Toda semana',
+  biweekly: 'De 15 em 15 dias',
+  monthly: 'Todo mês',
+}
+
+function ScheduleList() {
+  const { data: schedules = [] } = useInstrumentSchedules()
+  const setActive = useSetInstrumentScheduleActive()
+  const deleteSchedule = useDeleteInstrumentSchedule()
+
+  if (schedules.length === 0) return null
+
+  return (
+    <div className="card p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <Repeat2 className="w-4 h-4 text-sage-600" />
+        <p className="text-sm font-semibold text-neutral-800">Recorrências ativas</p>
+        <span className="text-xs text-neutral-400">({schedules.length})</span>
+      </div>
+      <div className="divide-y divide-neutral-100">
+        {schedules.map(schedule => (
+          <div key={schedule.id} className="flex items-center justify-between gap-3 py-2.5">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-neutral-700 truncate">
+                {schedule.title} — {schedule.patientName ?? 'Paciente'}
+              </p>
+              <p className="text-xs text-neutral-400">
+                {RECURRENCE_LABEL[schedule.recurrence] ?? schedule.recurrence}
+                {schedule.active ? ` • próximo envio em ${new Date(schedule.nextSendAt).toLocaleDateString('pt-BR')}` : ' • pausada'}
+              </p>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                title={schedule.active ? 'Pausar' : 'Retomar'}
+                onClick={() => setActive.mutate({ id: schedule.id, active: !schedule.active })}
+                disabled={setActive.isPending}
+                className="p-1.5 rounded-lg text-neutral-400 hover:text-sage-600 hover:bg-sage-50"
+              >
+                {schedule.active ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+              </button>
+              <button
+                type="button"
+                title="Cancelar recorrência"
+                onClick={() => {
+                  if (confirm('Cancelar esta recorrência? O envio automático para.')) {
+                    deleteSchedule.mutate(schedule.id)
+                  }
+                }}
+                disabled={deleteSchedule.isPending}
+                className="p-1.5 rounded-lg text-neutral-400 hover:text-red-600 hover:bg-red-50"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ── Página principal ─────────────────────────────────────────────────────────
 
 const ALL_CATEGORIES: Array<{ value: InstrumentCategory | 'all'; label: string }> = [
@@ -296,12 +367,14 @@ function SendInstrumentModal({
   const [patientId, setPatientId] = useState('')
   const [sendWhatsApp, setSendWhatsApp] = useState(true)
   const [extraAnamneseQuestions, setExtraAnamneseQuestions] = useState('')
+  const [recurrence, setRecurrence] = useState<'none' | 'weekly' | 'biweekly' | 'monthly'>('none')
   const selectedPatient = patients.find(p => p.id === patientId)
   const shouldSendWhatsApp = sendWhatsApp && !!selectedPatient?.phone
   const isAnamnese = instrument?.tags.some(tag => tag.toLowerCase() === 'anamnese') ?? false
 
   useEffect(() => {
     setExtraAnamneseQuestions('')
+    setRecurrence('none')
   }, [instrument?.id])
 
   function templateWithExtraAnamneseQuestions() {
@@ -332,13 +405,15 @@ function SendInstrumentModal({
         category: instrument.category,
         template: templateWithExtraAnamneseQuestions(),
         sendWhatsApp: shouldSendWhatsApp,
+        recurrence: recurrence === 'none' ? undefined : recurrence,
       })
 
+      const recurrenceNote = recurrence !== 'none' ? ' • recorrência ativada' : ''
       if (!shouldSendWhatsApp) {
         if (result.url) await navigator.clipboard.writeText(result.url)
-        toast.success('Link copiado para a área de transferência')
+        toast.success(`Link copiado para a área de transferência${recurrenceNote}`)
       } else if (result.whatsAppSent) {
-        toast.success('Formulário enviado via WhatsApp')
+        toast.success(`Formulário enviado via WhatsApp${recurrenceNote}`)
       } else {
         // Formulário criado mas WhatsApp não enviou — copia o link como fallback
         if (result.url) await navigator.clipboard.writeText(result.url)
@@ -404,6 +479,28 @@ function SendInstrumentModal({
           </span>
         </label>
 
+        <label className="block">
+          <span className="label flex items-center gap-1.5">
+            <Repeat2 className="w-3.5 h-3.5 text-neutral-400" />
+            Repetir envio
+          </span>
+          <select
+            value={recurrence}
+            onChange={e => setRecurrence(e.target.value as typeof recurrence)}
+            className="input-field"
+          >
+            <option value="none">Não repetir (só esta vez)</option>
+            <option value="weekly">Toda semana</option>
+            <option value="biweekly">De 15 em 15 dias</option>
+            <option value="monthly">Todo mês</option>
+          </select>
+          {recurrence !== 'none' && (
+            <span className="mt-1 block text-xs text-neutral-400">
+              Um novo link é gerado e enviado automaticamente na frequência escolhida, sem você precisar lembrar. Pode pausar ou cancelar depois.
+            </span>
+          )}
+        </label>
+
         <div className="rounded-xl border border-sage-100 bg-sage-50 px-3 py-2">
           <p className="text-xs leading-relaxed text-sage-800">
             O link expira em 7 dias e fica vinculado a este paciente. Depois do envio, a resposta aparece no prontuário.
@@ -450,6 +547,8 @@ export default function InstrumentosPage() {
         <h1 className="page-title">Instrumentos Clínicos</h1>
         <p className="page-subtitle">Formulários, escalas e registros para apoio clínico</p>
       </div>
+
+      <ScheduleList />
 
       {/* Busca */}
       <div className="relative">
