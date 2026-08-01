@@ -169,7 +169,7 @@ export default function EvolucaoPsicologicaPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-sage-50/30">
+    <div className="public-tool-readable min-h-screen bg-gradient-to-br from-slate-50 via-white to-sage-50/30">
       {/* Nav */}
       <header className="sticky top-0 z-40 border-b border-neutral-100 bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
@@ -261,7 +261,7 @@ export default function EvolucaoPsicologicaPage() {
             type="button"
             onClick={handleGenerate}
             disabled={!isFormValid || loading}
-            className="btn-primary w-full flex items-center justify-center gap-2 py-3 text-base disabled:opacity-50"
+            className="btn-primary w-full flex items-center justify-center gap-2 py-3 text-base disabled:bg-sage-700 disabled:text-white disabled:opacity-70"
           >
             {loading
               ? <><Loader2 className="h-5 w-5 animate-spin" /> Organizando rascunho…</>

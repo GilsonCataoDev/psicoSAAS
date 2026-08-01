@@ -63,6 +63,26 @@
 
 @layer components {
 
+  /* Contraste reforçado nas páginas públicas de aquisição. */
+  .landing-readable .text-\[\#7C776B\] { color: #57534b; }
+  .landing-readable .text-\[\#A9A394\] { color: #625d54; }
+  .landing-readable .text-\[\#5F5A51\] { color: #49443d; }
+  .landing-readable .text-white\/45 { color: rgb(255 255 255 / 0.72); }
+  .landing-readable .text-white\/50 { color: rgb(255 255 255 / 0.76); }
+  .landing-readable .text-white\/58,
+  .landing-readable .text-white\/60,
+  .landing-readable .text-white\/70,
+  .landing-readable .text-white\/76 { color: rgb(255 255 255 / 0.88); }
+
+  .public-tool-readable .text-neutral-300,
+  .public-tool-readable .text-neutral-400 { color: #625d54; }
+  .public-tool-readable .text-neutral-500 { color: #57534b; }
+  .public-tool-readable .input-field::placeholder {
+    color: #68635a;
+    opacity: 1;
+  }
+
+
   .skip-link {
     @apply fixed left-3 top-3 z-[9999] -translate-y-20 rounded-lg bg-sage-800 px-4 py-2 text-sm font-semibold text-white shadow-xl transition-transform;
   }
