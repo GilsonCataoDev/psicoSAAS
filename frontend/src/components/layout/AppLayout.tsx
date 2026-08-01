@@ -9,6 +9,7 @@ import BottomNav from './BottomNav'
 import TopBar from './TopBar'
 import PWAInstallBanner from '@/components/ui/PWAInstallBanner'
 import PushNotificationBanner from '@/components/ui/PushNotificationBanner'
+import Modal from '@/components/ui/Modal'
 import { api, USE_MOCK, type AuthAxiosRequestConfig } from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 import { useSubscriptionStore } from '@/store/subscription'
@@ -192,18 +193,23 @@ function SubscriptionBanner() {
 
 type UpgradeOffer = {
   eligible: boolean
+  shouldNotify: boolean
   offerCode: string | null
+  promotionalPrice: number | null
+  regularPrice: number
+  includesTrial: boolean
   discount: { pro: string } | null
   title: string
   message: string
   benefits: string[]
 }
 
-function FreeUpgradeOfferBanner() {
+function FreeUpgradeOfferModal() {
   const subscription = useSubscriptionStore((s) => s.subscription)
   const plan = String(subscription.planId ?? subscription.plan ?? 'free')
-  const [dismissed, setDismissed] = useState(() => localStorage.getItem('usecognia-free-upgrade-offer-dismissed') === 'true')
-  const enabled = subscription.status === 'active' && plan === 'free' && !dismissed
+  const queryClient = useQueryClient()
+  const [hidden, setHidden] = useState(false)
+  const enabled = subscription.status === 'active' && plan === 'free'
   const { data } = useQuery({
     queryKey: ['billing', 'upgrade-offer'],
     queryFn: () => api.get<UpgradeOffer>('/billing/upgrade-offer').then(res => res.data),
@@ -211,42 +217,55 @@ function FreeUpgradeOfferBanner() {
     staleTime: 60 * 60 * 1000,
   })
 
-  if (!enabled || !data?.eligible) return null
+  if (!enabled || hidden || !data?.shouldNotify) return null
 
   function dismiss() {
-    localStorage.setItem('usecognia-free-upgrade-offer-dismissed', 'true')
-    setDismissed(true)
+    setHidden(true)
+    queryClient.setQueryData<UpgradeOffer>(['billing', 'upgrade-offer'], current => (
+      current ? { ...current, shouldNotify: false } : current
+    ))
+    void api.post('/billing/upgrade-offer/viewed').catch(() => {
+      queryClient.invalidateQueries({ queryKey: ['billing', 'upgrade-offer'] })
+    })
   }
 
   return (
-    <div className="mb-4 rounded-2xl border border-sage-200 bg-white px-4 py-4 shadow-card dark:border-sage-400/20 dark:bg-cognia-panel">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-sage-700 dark:text-sage-300">
-            Oferta de ativação {data.offerCode ? `· ${data.offerCode}` : ''}
-          </p>
-          <h2 className="mt-1 text-base font-semibold text-neutral-900 dark:text-white">{data.title}</h2>
-          <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
-            {data.message} O desconto e aplicado automaticamente ao assinar.
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2 text-xs">
-            {data.discount && (
-              <span className="rounded-full bg-purple-50 px-2.5 py-1 font-semibold text-purple-700 dark:bg-purple-400/10 dark:text-purple-200">
-                Pro: {data.discount.pro}
-              </span>
-            )}
-          </div>
+    <Modal
+      open
+      onClose={dismiss}
+      title="Novidades no UseCognia Pro"
+      description="Uma condição especial para sua conta Free"
+      size="md"
+    >
+      <div className="overflow-hidden rounded-2xl border border-sage-200 bg-gradient-to-br from-sage-50 to-white p-5 dark:border-sage-400/20 dark:from-sage-500/15 dark:to-cognia-panel">
+        <p className="text-sm font-medium text-sage-700 dark:text-sage-200">{data.title}</p>
+        <div className="mt-3 flex flex-wrap items-end gap-x-3 gap-y-1">
+          <span className="font-display text-4xl font-semibold text-sage-700 dark:text-sage-200">R$ 37,90</span>
+          <span className="pb-1 text-sm text-neutral-600 dark:text-neutral-300">no primeiro mês</span>
         </div>
-        <div className="flex shrink-0 gap-2">
-          <button type="button" onClick={dismiss} className="btn-secondary text-xs">
-            Depois
-          </button>
-          <Link to="/planos" className="btn-primary text-xs">
-            Ver planos
-          </Link>
-        </div>
+        <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-300">
+          Depois, R$ 97,90/mês. {data.includesTrial ? 'Você ainda começa com 7 dias grátis.' : 'Sem fidelidade.'}
+        </p>
       </div>
-    </div>
+
+      <p className="mt-5 text-sm text-neutral-600 dark:text-neutral-300">{data.message}</p>
+      <ul className="mt-4 space-y-2 text-sm text-neutral-700 dark:text-neutral-200">
+        {data.benefits.map(benefit => (
+          <li key={benefit} className="flex gap-2">
+            <span aria-hidden="true" className="text-sage-600">✓</span>
+            <span>{benefit}</span>
+          </li>
+        ))}
+      </ul>
+
+      <p className="mt-4 text-xs text-neutral-500 dark:text-neutral-400">
+        Oferta aplicada automaticamente uma vez por conta elegível.
+      </p>
+      <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <button type="button" onClick={dismiss} className="btn-secondary">Agora não</button>
+        <Link to="/planos" onClick={dismiss} className="btn-primary text-center">Conhecer o Pro</Link>
+      </div>
+    </Modal>
   )
 }
 
@@ -405,7 +424,7 @@ export default function AppLayout() {
           <div className="max-w-7xl mx-auto">
             <EmailVerificationBanner />
             <SubscriptionBanner />
-            <FreeUpgradeOfferBanner />
+            <FreeUpgradeOfferModal />
             <AnimatePresence mode="wait">
               <motion.div
                 key={location.pathname}

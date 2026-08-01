@@ -70,6 +70,15 @@ export class Subscription {
   @Column({ type: 'varchar', nullable: true })
   lastPromoPaymentId?: string | null
 
+  @Column({ type: 'timestamptz', nullable: true })
+  upgradeOfferViewedAt?: Date | null
+
+  @Column({ type: 'timestamptz', nullable: true })
+  activationOfferRedeemedAt?: Date | null
+
+  @Column({ type: 'timestamptz', nullable: true })
+  upgradeOfferEmailedAt?: Date | null
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date
 }

@@ -47,6 +47,7 @@ const EDITABLE_PREF_KEYS = [
   'reminder24h',
   'reminder2h',
   'dailyAgendaDigest',
+  'marketingEmails',
   'chargeAfterSession',
   'bookingConfirmation',
   'googleCalendarInvitePatients',

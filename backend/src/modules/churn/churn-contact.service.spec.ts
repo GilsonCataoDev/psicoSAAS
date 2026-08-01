@@ -13,29 +13,40 @@ describe('ChurnContactService', () => {
     jest.clearAllMocks()
   })
 
-  it('busca e usa o telefone atual da conta', async () => {
-    findOne.mockResolvedValue({ id: 'psi-1', phone: '(87) 99922-9780' })
+  it('gera no servidor uma mensagem segura sem expor o diagnóstico interno', async () => {
+    findOne.mockResolvedValue({ id: 'psi-1', name: 'Ana Souza', phone: '(87) 99922-9780' })
     sendDirectWhatsApp.mockResolvedValue({ sent: true })
 
-    await expect(service.sendWhatsApp('psi-1', '  Mensagem segura  ', 'admin-1'))
+    await service.sendReactivationWhatsApp('psi-1', 'admin-1')
+
+    const sentText = sendDirectWhatsApp.mock.calls[0][1] as string
+    expect(sentText).toContain('Olá, Ana!')
+    expect(sentText).not.toMatch(/diagnóstico|risco|score|cancelamento/i)
+  })
+
+  it('busca e usa o telefone atual da conta', async () => {
+    findOne.mockResolvedValue({ id: 'psi-1', name: 'Ana Souza', phone: '(87) 99922-9780' })
+    sendDirectWhatsApp.mockResolvedValue({ sent: true })
+
+    await expect(service.sendReactivationWhatsApp('psi-1', 'admin-1'))
       .resolves.toEqual({ sent: true })
 
     expect(findOne).toHaveBeenCalledWith({
       where: { id: 'psi-1', isActive: true },
-      select: ['id', 'phone'],
+      select: ['id', 'name', 'phone'],
     })
     expect(sendDirectWhatsApp).toHaveBeenCalledWith(
       '5587999229780',
-      'Mensagem segura',
+      expect.stringContaining('Olá, Ana!'),
       'admin-1',
-      { type: 'churn_admin_message' },
+      { type: 'churn_reactivation' },
     )
   })
 
   it.each([null, '', '1234'])('bloqueia telefone ausente ou inválido: %p', async (phone) => {
     findOne.mockResolvedValue({ id: 'psi-1', phone })
 
-    await expect(service.sendWhatsApp('psi-1', 'Mensagem', 'admin-1'))
+    await expect(service.sendReactivationWhatsApp('psi-1', 'admin-1'))
       .rejects.toBeInstanceOf(BadRequestException)
     expect(sendDirectWhatsApp).not.toHaveBeenCalled()
   })
@@ -43,16 +54,8 @@ describe('ChurnContactService', () => {
   it('bloqueia conta inexistente ou inativa', async () => {
     findOne.mockResolvedValue(null)
 
-    await expect(service.sendWhatsApp('psi-1', 'Mensagem', 'admin-1'))
+    await expect(service.sendReactivationWhatsApp('psi-1', 'admin-1'))
       .rejects.toBeInstanceOf(NotFoundException)
-    expect(sendDirectWhatsApp).not.toHaveBeenCalled()
-  })
-
-  it.each(['   ', 'x'.repeat(2001)])('bloqueia mensagem inválida', async (message) => {
-    findOne.mockResolvedValue({ id: 'psi-1', phone: '87999229780' })
-
-    await expect(service.sendWhatsApp('psi-1', message, 'admin-1'))
-      .rejects.toBeInstanceOf(BadRequestException)
     expect(sendDirectWhatsApp).not.toHaveBeenCalled()
   })
 })

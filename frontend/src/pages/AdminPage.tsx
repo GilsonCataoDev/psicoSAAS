@@ -25,7 +25,7 @@ import {
   Webhook,
   X,
 } from 'lucide-react'
-import { useAdminStats, useAdminUsers, useAdminOverrideSubscription, useAdminMonitor, useAdminHealthScores, useCleanupTestUsers, useImpersonateUser, AdminUser, HealthScore } from '@/hooks/useApi'
+import { useAdminStats, useAdminUsers, useAdminOverrideSubscription, useAdminMonitor, useAdminHealthScores, useCleanupTestUsers, useImpersonateUser, useSendProUpgradeCampaign, AdminUser, HealthScore } from '@/hooks/useApi'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { useAuthStore } from '@/store/auth'
 import { useSubscriptionStore } from '@/store/subscription'
@@ -141,6 +141,7 @@ function UsersTab() {
   const [copiedEmail, setCopiedEmail] = useState<string | null>(null)
   const { data: users, isLoading } = useAdminUsers({ page, search: search.trim() || undefined, plan: plan || undefined, status: status || undefined })
   const impersonate = useImpersonateUser()
+  const sendProCampaign = useSendProUpgradeCampaign()
   const setAuth = useAuthStore(s => s.setAuth)
   const setCsrfToken = useAuthStore(s => s.setCsrfToken)
   const setSubscription = useSubscriptionStore(s => s.setSubscription)
@@ -185,11 +186,21 @@ function UsersTab() {
     }
   }
 
+  async function sendCampaign() {
+    if (!window.confirm('Enviar uma única vez a oferta Pro para todas as contas Free ativas, verificadas e ainda não contatadas?')) return
+    try {
+      const result = await sendProCampaign.mutateAsync()
+      toast.success(`${result.sent} e-mail(s) enviado(s).${result.failed ? ` ${result.failed} falharam.` : ''}`)
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message ?? 'Não foi possível enviar a campanha.')
+    }
+  }
+
   return (
     <>
       {/* Filters */}
       <div className="rounded-2xl border border-neutral-100 bg-white p-3 shadow-sm">
-        <div className="grid gap-2 md:grid-cols-[1fr_160px_160px_auto]">
+        <div className="grid gap-2 md:grid-cols-[1fr_160px_160px_auto_auto]">
           <label className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
             <input
@@ -226,6 +237,15 @@ function UsersTab() {
           >
             <X className="h-4 w-4" />
             Limpar
+          </button>
+          <button
+            type="button"
+            onClick={sendCampaign}
+            disabled={sendProCampaign.isPending}
+            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-sage-600 px-3 text-sm font-semibold text-white hover:bg-sage-700 disabled:opacity-50"
+          >
+            <Mail className="h-4 w-4" />
+            {sendProCampaign.isPending ? 'Enviando…' : 'Enviar oferta Pro'}
           </button>
         </div>
       </div>

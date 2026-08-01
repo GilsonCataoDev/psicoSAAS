@@ -128,3 +128,13 @@ export function useCleanupTestUsers() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin'] }),
   })
 }
+
+export function useSendProUpgradeCampaign() {
+  return useMutation({
+    mutationFn: () => api.post('/admin/campaigns/pro-upgrade/send').then(r => r.data as {
+      eligible: number
+      sent: number
+      failed: number
+    }),
+  })
+}

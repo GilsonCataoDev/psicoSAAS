@@ -15,16 +15,15 @@ describe('ChurnController — autorização', () => {
     expect(guards).toContain(AdminGuard)
   })
 
-  it('encaminha apenas usuário, mensagem e admin ao serviço de contato', async () => {
-    const sendWhatsApp = jest.fn().mockResolvedValue({ sent: true })
-    const controller = new ChurnController({} as any, { sendWhatsApp } as any)
+  it('encaminha apenas usuário e admin; o cliente não controla o texto', async () => {
+    const sendReactivationWhatsApp = jest.fn().mockResolvedValue({ sent: true })
+    const controller = new ChurnController({} as any, { sendReactivationWhatsApp } as any)
 
     await controller.sendWhatsApp(
       { user: { id: 'admin-1' } },
       'psi-1',
-      { message: 'Mensagem' },
     )
 
-    expect(sendWhatsApp).toHaveBeenCalledWith('psi-1', 'Mensagem', 'admin-1')
+    expect(sendReactivationWhatsApp).toHaveBeenCalledWith('psi-1', 'admin-1')
   })
 })

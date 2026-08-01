@@ -118,6 +118,12 @@ export class BillingController {
     return this.billing.getFreeUpgradeOffer(req.user)
   }
 
+  @Post('upgrade-offer/viewed')
+  @UseGuards(JwtAuthGuard, CsrfGuard)
+  acknowledgeUpgradeOffer(@Request() req: any) {
+    return this.billing.acknowledgeFreeUpgradeOffer(req.user.id)
+  }
+
   private isMetricsAdmin(email?: string): boolean {
     const admins = (process.env.ADMIN_EMAILS ?? 'gilsonfilho96@outlook.com')
       .split(',')

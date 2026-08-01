@@ -26,6 +26,7 @@ import { track, EVENTS } from '@/lib/analytics'
 import LightweightChart from '@/components/ui/LightweightChart'
 import EditPatientModal from '@/components/features/patients/EditPatientModal'
 import RecurringSessionsCard from '@/components/features/patients/RecurringSessionsCard'
+import LegacyNotesMigrationModal from '@/components/features/patients/LegacyNotesMigrationModal'
 import { useHasPlan } from '@/store/subscription'
 import { buildPatientDetailSummary, buildScaleEvolutionSeries } from '@/lib/patient-detail-summary'
 
@@ -145,6 +146,7 @@ export default function PatientDetailPage() {
   }
   const [tab, setTab] = useState<'record' | 'timeline' | 'responses' | 'notes' | 'financial'>('record')
   const [showSessionModal, setShowSessionModal] = useState(false)
+  const [showLegacyMigration, setShowLegacyMigration] = useState(false)
   const [showEditPatientModal, setShowEditPatientModal] = useState(false)
   const [editingResponse, setEditingResponse] = useState<InstrumentAssignment | null>(null)
   const [editedAnswers, setEditedAnswers] = useState<Record<string, string>>({})
@@ -831,7 +833,7 @@ export default function PatientDetailPage() {
           </div>
 
           <div className="card">
-            <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
               <div className="flex items-center gap-2">
                 <CalendarDays className="h-4 w-4 text-sage-600" />
                 <h2 className="section-title mb-0">Evoluções</h2>
@@ -874,7 +876,7 @@ export default function PatientDetailPage() {
 
           {/* ── Documentos anexados ─────────────────────────────────── */}
           <div className="card">
-            <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
               <div>
                 <div className="flex items-center gap-2">
                   <Paperclip className="h-4 w-4 text-sage-600" />
@@ -884,19 +886,24 @@ export default function PatientDetailPage() {
                   Material anterior de evolução, laudos e outros documentos deste paciente. PDF, JPG ou PNG até 10 MB.
                 </p>
               </div>
-              <label className={`btn-secondary shrink-0 cursor-pointer text-sm ${uploadAttachment.isPending ? 'pointer-events-none opacity-60' : ''}`}>
-                {uploadAttachment.isPending ? 'Enviando...' : 'Anexar arquivo'}
-                <input
-                  type="file"
-                  accept="application/pdf,image/jpeg,image/png"
-                  className="hidden"
-                  disabled={uploadAttachment.isPending}
-                  onChange={event => {
-                    handleAttachmentUpload(event.target.files?.[0])
-                    event.target.value = ''
-                  }}
-                />
-              </label>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => setShowLegacyMigration(true)} className="btn-primary shrink-0 text-sm">
+                  Migrar anotações em papel
+                </button>
+                <label className={`btn-secondary shrink-0 cursor-pointer text-sm ${uploadAttachment.isPending ? 'pointer-events-none opacity-60' : ''}`}>
+                  {uploadAttachment.isPending ? 'Enviando...' : 'Anexar arquivo'}
+                  <input
+                    type="file"
+                    accept="application/pdf,image/jpeg,image/png"
+                    className="hidden"
+                    disabled={uploadAttachment.isPending}
+                    onChange={event => {
+                      handleAttachmentUpload(event.target.files?.[0])
+                      event.target.value = ''
+                    }}
+                  />
+                </label>
+              </div>
             </div>
 
             {attachments.length === 0 ? (
@@ -1210,6 +1217,14 @@ export default function PatientDetailPage() {
         open={showSessionModal}
         onClose={() => setShowSessionModal(false)}
         defaultPatientId={patient.id}
+      />
+
+      <LegacyNotesMigrationModal
+        open={showLegacyMigration}
+        onClose={() => setShowLegacyMigration(false)}
+        patientId={patient.id}
+        patientName={patient.name}
+        sessionDuration={patient.sessionDuration}
       />
 
       <Modal

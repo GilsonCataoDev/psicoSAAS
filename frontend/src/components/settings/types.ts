@@ -2,6 +2,7 @@ export const DEFAULT_PREFS = {
   reminder24h: true,
   reminder2h: true,
   dailyAgendaDigest: false,
+  marketingEmails: true,
   chargeAfterSession: false,
   bookingConfirmation: true,
   pixKeyType: 'phone',

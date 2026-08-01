@@ -97,19 +97,6 @@ function AccountRow({ account }: { account: ChurnAccount }) {
     })
   }
 
-  function handleSendDiagnosisWhatsApp(e: React.MouseEvent) {
-    e.stopPropagation()
-    if (!account.hasPhone || !aiDiagnose.data) return
-    if (!window.confirm(`Enviar esta mensagem por WhatsApp para ${account.name}?`)) return
-    sendWhatsApp.mutate({ userId: account.id, message: aiDiagnose.data.explanation }, {
-      onSuccess: (result) => {
-        if (result.sent) toast.success(`WhatsApp enviado para ${account.name}`)
-        else toast.error(result.error ?? 'Não foi possível enviar o WhatsApp')
-      },
-      onError: () => toast.error('Não foi possível enviar o WhatsApp'),
-    })
-  }
-
   function handleEmail(e: React.MouseEvent) {
     e.stopPropagation()
     sendEmail.mutate(account.id, {
@@ -122,7 +109,7 @@ function AccountRow({ account }: { account: ChurnAccount }) {
     e.stopPropagation()
     if (!account.hasPhone) return
     if (!window.confirm(`Enviar mensagem de reativação por WhatsApp para ${account.name}?`)) return
-    sendWhatsApp.mutate({ userId: account.id, message: whatsappMsg }, {
+    sendWhatsApp.mutate(account.id, {
       onSuccess: (result) => {
         if (result.sent) toast.success(`WhatsApp enviado para ${account.name}`)
         else toast.error(result.error ?? 'Não foi possível enviar o WhatsApp')
@@ -130,9 +117,6 @@ function AccountRow({ account }: { account: ChurnAccount }) {
       onError: () => toast.error('Não foi possível enviar o WhatsApp'),
     })
   }
-
-  const whatsappMsg =
-    `Olá ${account.name}! Aqui é a equipe do UseCognia. Percebemos que faz um tempo que você não acessa a plataforma. Podemos te ajudar com algo? 😊`
 
   return (
     <Fragment>
@@ -246,24 +230,13 @@ function AccountRow({ account }: { account: ChurnAccount }) {
 
             <div className="mt-3 rounded-xl border border-neutral-100 bg-white p-4 text-sm" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between gap-2">
-                <p className="font-semibold text-neutral-700 flex items-center gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5 text-sage-600" /> Diagnóstico com IA
-                </p>
+                <div>
+                  <p className="font-semibold text-neutral-700 flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-sage-600" /> Diagnóstico interno com IA
+                  </p>
+                  <p className="mt-0.5 text-xs text-neutral-400">Uso exclusivo da equipe; nunca é enviado ao psicólogo.</p>
+                </div>
                 <div className="flex items-center gap-1.5">
-                  {aiDiagnose.data && (
-                    <button
-                      type="button"
-                      onClick={handleSendDiagnosisWhatsApp}
-                      disabled={!account.hasPhone || sendWhatsApp.isPending}
-                      title={account.hasPhone ? 'Enviar por WhatsApp' : 'Conta sem telefone cadastrado'}
-                      className="btn-secondary text-xs px-2.5 py-1 flex items-center gap-1"
-                    >
-                      {sendWhatsApp.isPending
-                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        : <MessageCircle className="h-3.5 w-3.5" />}
-                      Enviar por WhatsApp
-                    </button>
-                  )}
                   <button
                     type="button"
                     onClick={handleAiDiagnose}
