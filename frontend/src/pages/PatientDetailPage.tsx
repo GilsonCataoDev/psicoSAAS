@@ -27,7 +27,7 @@ import LightweightChart from '@/components/ui/LightweightChart'
 import EditPatientModal from '@/components/features/patients/EditPatientModal'
 import RecurringSessionsCard from '@/components/features/patients/RecurringSessionsCard'
 import { useHasPlan } from '@/store/subscription'
-import { buildPatientDetailSummary } from '@/lib/patient-detail-summary'
+import { buildPatientDetailSummary, buildScaleEvolutionSeries } from '@/lib/patient-detail-summary'
 
 const MOODS = ['', '1', '2', '3', '4', '5']
 const WEEKDAYS = ['Domingo', 'Segunda', 'Terca', 'Quarta', 'Quinta', 'Sexta', 'Sabado']
@@ -372,6 +372,7 @@ export default function PatientDetailPage() {
     moodChartData,
     filledProntuarioFields,
   } = buildPatientDetailSummary(financialRecords, allSessions, prontuario)
+  const scaleEvolutionSeries = buildScaleEvolutionSeries(instrumentAssignments)
 
   return (
     <div className="animate-slide-up space-y-5 max-w-4xl">
@@ -1013,6 +1014,33 @@ export default function PatientDetailPage() {
       {/* ── Respostas de formulários ─────────────────────────────────── */}
       {tab === 'responses' && (
         <div className="space-y-3">
+          {scaleEvolutionSeries.length > 0 && (
+            <div className="space-y-3">
+              {scaleEvolutionSeries.map(series => {
+                const thresholds = SCALE_CONFIGS[series.instrumentId]?.thresholds
+                const maxScore = thresholds?.[thresholds.length - 1]?.max
+                return (
+                  <div key={series.instrumentId} className="card">
+                    <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-3">
+                      Evolução · {series.title}
+                    </p>
+                    <div className="h-[100px]">
+                      <LightweightChart
+                        data={series.points}
+                        height={100}
+                        color="#4DA8DA"
+                        fillOpacity={0.1}
+                        min={0}
+                        max={maxScore}
+                        showYAxis
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
           {instrumentAssignments.filter(item => item.status === 'completed').length === 0 ? (
             <div className="card py-12 text-center">
               <FileText className="mx-auto h-9 w-9 text-neutral-300" />

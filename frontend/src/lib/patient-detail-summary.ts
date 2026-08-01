@@ -45,6 +45,50 @@ export function buildMoodChartData(clinicalSessions: Session[]) {
       }))
 }
 
+export type ScaleEvolutionAssignment = {
+  instrumentId: string
+  title: string
+  status: string
+  score?: number | null
+  completedAt?: string
+  createdAt: string
+}
+
+export type ScaleEvolutionSeries = {
+  instrumentId: string
+  title: string
+  points: Array<{ label: string; value: number }>
+}
+
+/** Uma série por instrumento, só para os que têm 2+ respostas pontuadas — dá pra traçar uma linha de evolução. */
+export function buildScaleEvolutionSeries(assignments: ScaleEvolutionAssignment[]): ScaleEvolutionSeries[] {
+  const byInstrument = new Map<string, ScaleEvolutionAssignment[]>()
+  for (const item of assignments) {
+    if (item.status !== 'completed' || item.score == null) continue
+    const list = byInstrument.get(item.instrumentId) ?? []
+    list.push(item)
+    byInstrument.set(item.instrumentId, list)
+  }
+
+  const series: ScaleEvolutionSeries[] = []
+  for (const [instrumentId, items] of byInstrument) {
+    if (items.length < 2) continue
+    const sorted = [...items].sort((a, b) =>
+      new Date(a.completedAt ?? a.createdAt).getTime() - new Date(b.completedAt ?? b.createdAt).getTime(),
+    )
+    series.push({
+      instrumentId,
+      title: sorted[0].title,
+      points: sorted.map(item => ({
+        label: formatDate(item.completedAt ?? item.createdAt),
+        value: Number(item.score),
+      })),
+    })
+  }
+
+  return series.sort((a, b) => a.title.localeCompare(b.title, 'pt-BR'))
+}
+
 export function selectFilledProntuarioFields(prontuario: Record<string, unknown>) {
   return PRONTUARIO_FIELDS.filter(field => {
     const value = prontuario[field.key]
