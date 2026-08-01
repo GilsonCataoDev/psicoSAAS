@@ -14,4 +14,5 @@ export class CreateFinancialDto {
   @IsDateString() @IsOptional() dueDate?: string
   @IsDateString() @IsOptional() paidAt?: string
   @IsIn(['pix','credit_card','debit_card','cash','transfer','manual']) @IsOptional() method?: string
+  @IsString() @MaxLength(40) @IsOptional() category?: string
 }

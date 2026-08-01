@@ -1,5 +1,5 @@
-import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator'
-import { Transform } from 'class-transformer'
+import { IsBoolean, IsNumber, IsOptional, IsString, Min, MaxLength } from 'class-validator'
+import { Transform, Type } from 'class-transformer'
 
 /**
  * Preferências do psicólogo — todos os campos são opcionais.
@@ -34,4 +34,7 @@ export class UpdatePreferencesDto {
   @IsOptional() @IsString() @MaxLength(500) reminderTemplate?: string
   @IsOptional() @IsString() @MaxLength(500) reminderTemplate24h?: string
   @IsOptional() @IsString() @MaxLength(500) reminderTemplate2h?: string
+
+  // ── Financeiro ─────────────────────────────────────────────────────────────
+  @IsOptional() @IsNumber() @Min(0) @Type(() => Number) monthlyRevenueGoal?: number
 }

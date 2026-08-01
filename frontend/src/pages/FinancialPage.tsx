@@ -1,14 +1,24 @@
 import { lazy, Suspense, useMemo, useRef, useState } from 'react'
-import { Wallet, TrendingUp, Clock, CheckCircle, Plus, Download, Trash2, Percent, ReceiptText, AlertCircle } from 'lucide-react'
+import {
+  Wallet, TrendingUp, TrendingDown, Scale, Clock, CheckCircle, Plus, Download, Trash2,
+  Percent, ReceiptText, AlertCircle, Repeat2, Pause, Play, Target, CalendarClock,
+} from 'lucide-react'
 import StatCard from '@/components/ui/StatCard'
 import Avatar from '@/components/ui/Avatar'
+import Modal from '@/components/ui/Modal'
 import { StatusBadge } from '@/components/ui/Badge'
 import LightweightChart from '@/components/ui/LightweightChart'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { useFinancial, useMarkFinancialPaid, useDeleteFinancial } from '@/hooks/useApi'
+import {
+  useFinancial, useMarkFinancialPaid, useDeleteFinancial,
+  useRecurringExpenses, useCreateRecurringExpense, useSetRecurringExpenseActive, useDeleteRecurringExpense,
+} from '@/hooks/useApi'
 import { FinancialRecord } from '@/types'
 import toast from 'react-hot-toast'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import { EXPENSE_CATEGORIES, expenseCategoryLabel, projectCashFlow } from '@/lib/financial-forecast'
+import { useAuthStore } from '@/store/auth'
+import { api } from '@/lib/api'
 
 const NewPaymentModal = lazy(() => import('@/components/features/financial/NewPaymentModal'))
 const MarkPaidModal = lazy(() => import('@/components/features/financial/MarkPaidModal'))
@@ -45,13 +55,16 @@ export default function FinancialPage() {
   })
 
   const financialSummary = useMemo(() => {
-    return records.reduce((summary, record) => {
+    const summary = records.reduce((summary, record) => {
       const amount = Number(record.amount)
       if (record.type === 'income') {
         summary.total += amount
         if (record.status === 'paid') summary.paid += amount
         if (record.status === 'pending') summary.pending += amount
         if (record.status === 'overdue') summary.overdue += amount
+      } else {
+        summary.expenseTotal += amount
+        if (record.status === 'paid') summary.expensePaid += amount
       }
       summary.counts[record.status] = (summary.counts[record.status] ?? 0) + 1
       return summary
@@ -60,8 +73,11 @@ export default function FinancialPage() {
       paid: 0,
       pending: 0,
       overdue: 0,
+      expenseTotal: 0,
+      expensePaid: 0,
       counts: {} as Record<string, number>,
     })
+    return { ...summary, net: summary.total - summary.expenseTotal }
   }, [records])
 
   const financialHealth = useMemo(() => {
@@ -91,6 +107,52 @@ export default function FinancialPage() {
     () => filter === 'all' ? records : records.filter(r => r.status === filter),
     [filter, records],
   )
+
+  const expensesByCategory = useMemo(() => {
+    const totals = records
+      .filter(r => r.type === 'expense')
+      .reduce((acc, r) => {
+        const key = r.category ?? 'outros'
+        acc[key] = (acc[key] ?? 0) + Number(r.amount)
+        return acc
+      }, {} as Record<string, number>)
+    return Object.entries(totals).sort(([, a], [, b]) => b - a).slice(0, 5)
+  }, [records])
+
+  const { data: recurringExpenses = [] } = useRecurringExpenses()
+  const createRecurringExpense = useCreateRecurringExpense()
+  const setRecurringExpenseActive = useSetRecurringExpenseActive()
+  const deleteRecurringExpense = useDeleteRecurringExpense()
+  const [showNewRecurring, setShowNewRecurring] = useState(false)
+
+  const forecast = useMemo(
+    () => projectCashFlow(records, recurringExpenses, 30),
+    [records, recurringExpenses],
+  )
+
+  const authUser = useAuthStore(s => s.user)
+  const updateAuthUser = useAuthStore(s => s.updateUser)
+  const [goalInput, setGoalInput] = useState(() => String(authUser?.preferences?.monthlyRevenueGoal ?? ''))
+  const [savingGoal, setSavingGoal] = useState(false)
+  const monthlyRevenueGoal = Number(authUser?.preferences?.monthlyRevenueGoal) || 0
+
+  async function saveGoal() {
+    const value = Number(goalInput)
+    if (!Number.isFinite(value) || value < 0) {
+      toast.error('Informe um valor válido.')
+      return
+    }
+    setSavingGoal(true)
+    try {
+      await api.patch('/auth/preferences', { monthlyRevenueGoal: value })
+      updateAuthUser({ preferences: { ...authUser?.preferences, monthlyRevenueGoal: value } })
+      toast.success('Meta salva')
+    } catch {
+      toast.error('Erro ao salvar meta.')
+    } finally {
+      setSavingGoal(false)
+    }
+  }
 
   // Constroi grafico dos ultimos 6 meses a partir dos registros reais
   const revenueData = useMemo(() => {
@@ -190,7 +252,7 @@ export default function FinancialPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
         <StatCard label="Receita total"  value={formatCurrency(financialSummary.total)}
           icon={<Wallet className="w-5 h-5" />}       accent="sage" />
         <StatCard label="Recebido"       value={formatCurrency(financialSummary.paid)}
@@ -199,6 +261,10 @@ export default function FinancialPage() {
           icon={<Clock className="w-5 h-5" />}        accent="amber" />
         <StatCard label="Em atraso"      value={formatCurrency(financialSummary.overdue)}
           icon={<TrendingUp className="w-5 h-5" />}   accent={financialSummary.overdue > 0 ? 'rose' : 'sage'} />
+        <StatCard label="Despesas"       value={formatCurrency(financialSummary.expenseTotal)}
+          icon={<TrendingDown className="w-5 h-5" />} accent="rose" />
+        <StatCard label="Lucro líquido"  value={formatCurrency(financialSummary.net)}
+          icon={<Scale className="w-5 h-5" />}        accent={financialSummary.net >= 0 ? 'sage' : 'rose'} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-4">
@@ -282,6 +348,159 @@ export default function FinancialPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Meta mensal, projeção de fluxo de caixa e despesas por categoria */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-4">
+        <div className="card">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="section-title mb-0">Meta mensal</h2>
+            <Target className="h-4 w-4 text-neutral-400" />
+          </div>
+          {(() => {
+            const currentMonthRevenue = revenueData[revenueData.length - 1]?.valor ?? 0
+            const progress = monthlyRevenueGoal > 0 ? Math.min(100, Math.round((currentMonthRevenue / monthlyRevenueGoal) * 100)) : 0
+            return (
+              <>
+                {monthlyRevenueGoal > 0 && (
+                  <>
+                    <p className="text-sm text-neutral-500">
+                      {formatCurrency(currentMonthRevenue)} de {formatCurrency(monthlyRevenueGoal)}
+                    </p>
+                    <div className="mt-2 h-2 rounded-full bg-neutral-100">
+                      <div className="h-2 rounded-full bg-sage-500" style={{ width: `${Math.max(4, progress)}%` }} />
+                    </div>
+                    <p className="mt-1 text-xs text-neutral-400">{progress}% da meta este mês</p>
+                  </>
+                )}
+                <div className="mt-3 flex items-center gap-2">
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={goalInput}
+                    onChange={e => setGoalInput(e.target.value)}
+                    placeholder="Ex: 8000"
+                    className="input-field text-sm"
+                  />
+                  <button type="button" onClick={saveGoal} disabled={savingGoal} className="btn-secondary shrink-0 text-xs">
+                    Salvar
+                  </button>
+                </div>
+              </>
+            )
+          })()}
+        </div>
+
+        <div className="card">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="section-title mb-0">Próximos 30 dias</h2>
+            <CalendarClock className="h-4 w-4 text-neutral-400" />
+          </div>
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-neutral-500">Entradas previstas</span>
+              <span className="font-semibold text-sage-600">{formatCurrency(forecast.expectedIncome)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-neutral-500">Saídas previstas</span>
+              <span className="font-semibold text-rose-600">{formatCurrency(forecast.expectedExpense)}</span>
+            </div>
+            <div className="flex items-center justify-between border-t border-neutral-100 pt-2">
+              <span className="text-neutral-500">Saldo projetado</span>
+              <span className={`font-semibold ${forecast.net >= 0 ? 'text-sage-600' : 'text-rose-600'}`}>
+                {formatCurrency(forecast.net)}
+              </span>
+            </div>
+          </div>
+          <p className="mt-3 text-xs text-neutral-400">
+            Baseado em lançamentos pendentes/atrasados e despesas fixas recorrentes ainda não geradas neste mês.
+          </p>
+        </div>
+
+        <div className="card">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="section-title mb-0">Despesas por categoria</h2>
+            <TrendingDown className="h-4 w-4 text-neutral-400" />
+          </div>
+          {expensesByCategory.length === 0 ? (
+            <p className="text-sm text-neutral-400">Nenhuma despesa registrada ainda.</p>
+          ) : (
+            <div className="space-y-3">
+              {expensesByCategory.map(([category, amount]) => (
+                <div key={category}>
+                  <div className="mb-1 flex items-center justify-between gap-2 text-sm">
+                    <span className="text-neutral-500">{expenseCategoryLabel(category)}</span>
+                    <span className="font-semibold text-neutral-800">{formatCurrency(amount)}</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-neutral-100">
+                    <div
+                      className="h-2 rounded-full bg-rose-400"
+                      style={{ width: `${financialSummary.expenseTotal > 0 ? Math.max(8, Math.round((amount / financialSummary.expenseTotal) * 100)) : 0}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Despesas recorrentes */}
+      <div className="card">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Repeat2 className="h-4 w-4 text-neutral-400" />
+            <h2 className="section-title mb-0">Despesas recorrentes</h2>
+          </div>
+          <button type="button" onClick={() => setShowNewRecurring(true)} className="btn-secondary text-xs flex items-center gap-1.5">
+            <Plus className="w-3.5 h-3.5" />
+            Nova despesa fixa
+          </button>
+        </div>
+        {recurringExpenses.length === 0 ? (
+          <p className="text-sm text-neutral-400">
+            Nenhuma despesa fixa cadastrada. Aluguel, assinaturas e supervisão podem ser lançados automaticamente todo mês.
+          </p>
+        ) : (
+          <div className="divide-y divide-neutral-100">
+            {recurringExpenses.map(expense => (
+              <div key={expense.id} className="flex items-center justify-between gap-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-neutral-700 truncate">{expense.description}</p>
+                  <p className="text-xs text-neutral-400">
+                    {expenseCategoryLabel(expense.category)} · {formatCurrency(expense.amount)} · todo dia {expense.dayOfMonth}
+                    {!expense.active && ' · pausada'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    title={expense.active ? 'Pausar' : 'Retomar'}
+                    onClick={() => setRecurringExpenseActive.mutate({ id: expense.id, active: !expense.active })}
+                    disabled={setRecurringExpenseActive.isPending}
+                    className="p-1.5 rounded-lg text-neutral-400 hover:text-sage-600 hover:bg-sage-50"
+                  >
+                    {expense.active ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                  </button>
+                  <button
+                    type="button"
+                    title="Excluir despesa recorrente"
+                    onClick={() => {
+                      if (confirm('Excluir esta despesa recorrente? Lançamentos já gerados não são apagados.')) {
+                        deleteRecurringExpense.mutate(expense.id)
+                      }
+                    }}
+                    disabled={deleteRecurringExpense.isPending}
+                    className="p-1.5 rounded-lg text-neutral-400 hover:text-rose-600 hover:bg-rose-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Grafico de receita mensal */}
@@ -400,7 +619,86 @@ export default function FinancialPage() {
         onClose={() => setRecordToDelete(null)}
         onConfirm={handleDeleteRecord}
       />
+      <NewRecurringExpenseModal
+        open={showNewRecurring}
+        onClose={() => setShowNewRecurring(false)}
+        onCreate={data => createRecurringExpense.mutateAsync(data)}
+      />
     </div>
+  )
+}
+
+// --- Nova despesa recorrente ---------------------------------------------------
+function NewRecurringExpenseModal({ open, onClose, onCreate }: {
+  open: boolean
+  onClose: () => void
+  onCreate: (data: { description: string; amount: number; category?: string; dayOfMonth: number }) => Promise<unknown>
+}) {
+  const [description, setDescription] = useState('')
+  const [amount, setAmount] = useState('')
+  const [category, setCategory] = useState('')
+  const [dayOfMonth, setDayOfMonth] = useState('5')
+  const [submitting, setSubmitting] = useState(false)
+
+  function resetAndClose() {
+    setDescription(''); setAmount(''); setCategory(''); setDayOfMonth('5')
+    onClose()
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const amountValue = Number(amount)
+    const dayValue = Number(dayOfMonth)
+    if (!description.trim()) { toast.error('Informe uma descrição.'); return }
+    if (!Number.isFinite(amountValue) || amountValue <= 0) { toast.error('Informe um valor maior que zero.'); return }
+    if (!Number.isInteger(dayValue) || dayValue < 1 || dayValue > 28) { toast.error('O dia deve ser entre 1 e 28.'); return }
+
+    setSubmitting(true)
+    try {
+      await onCreate({ description: description.trim(), amount: amountValue, category: category || undefined, dayOfMonth: dayValue })
+      toast.success('Despesa recorrente criada')
+      resetAndClose()
+    } catch {
+      toast.error('Erro ao criar despesa recorrente.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <Modal open={open} onClose={resetAndClose} title="Nova despesa fixa"
+      description="Lançada automaticamente todo mês no dia escolhido.">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="label">Descrição</label>
+          <input value={description} onChange={e => setDescription(e.target.value)} className="input-field" placeholder="Ex: Aluguel da sala" />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="label">Valor (R$)</label>
+            <input value={amount} onChange={e => setAmount(e.target.value)} type="number" step="0.01" min="0.01" className="input-field" placeholder="0,00" />
+          </div>
+          <div>
+            <label className="label">Dia do mês</label>
+            <input value={dayOfMonth} onChange={e => setDayOfMonth(e.target.value)} type="number" min="1" max="28" className="input-field" />
+          </div>
+        </div>
+        <div>
+          <label className="label">Categoria</label>
+          <select value={category} onChange={e => setCategory(e.target.value)} className="input-field">
+            <option value="">Sem categoria</option>
+            {EXPENSE_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+          </select>
+        </div>
+        <div className="flex justify-end gap-3 pt-1">
+          <button type="button" onClick={resetAndClose} className="btn-secondary">Cancelar</button>
+          <button type="submit" disabled={submitting} className="btn-primary flex items-center gap-2">
+            {submitting && <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+            Salvar despesa fixa
+          </button>
+        </div>
+      </form>
+    </Modal>
   )
 }
 
@@ -426,6 +724,7 @@ function FinancialRow({ record, onMarkPaid, onDelete }: {
             ? `Vence ${formatDate(record.dueDate)}`
             : '-'}
           {record.method && ` · ${METHOD_LABELS[record.method] ?? record.method}`}
+          {record.type === 'expense' && record.category && ` · ${expenseCategoryLabel(record.category)}`}
         </p>
       </div>
 

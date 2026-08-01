@@ -13,6 +13,7 @@ export class FinancialRecord {
   @Column({ type: 'decimal', precision: 10, scale: 2 }) amount: number
   @Column({ type: 'text', transformer: encryptedTextTransformer }) description: string
   @Column({ type: 'text', default: 'pending' }) status: string
+  @Column({ length: 40, nullable: true }) category?: string
   @Column({ nullable: true }) dueDate?: string
   @Column({ nullable: true }) paidAt?: string
   @Column({ nullable: true }) method?: string

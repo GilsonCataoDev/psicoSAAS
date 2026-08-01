@@ -28,6 +28,7 @@ import { Patient } from '../../modules/patients/entities/patient.entity'
 import { PatientAttachment } from '../../modules/patients/entities/patient-attachment.entity'
 import { Session } from '../../modules/sessions/entities/session.entity'
 import { FinancialRecord } from '../../modules/financial/entities/financial-record.entity'
+import { RecurringExpense } from '../../modules/financial/entities/recurring-expense.entity'
 import { Document } from '../../modules/documents/entities/document.entity'
 import { Appointment } from '../../modules/appointments/entities/appointment.entity'
 import { Booking } from '../../modules/booking/entities/booking.entity'
@@ -183,6 +184,7 @@ describe('Isolamento entre contas — psicólogo A não acessa dados de B', () =
         providers: [
           FinancialService,
           { provide: getRepositoryToken(FinancialRecord), useValue: fakeRepo(financialRecords) },
+          { provide: getRepositoryToken(RecurringExpense), useValue: fakeRepo() },
           { provide: getRepositoryToken(User),        useValue: fakeRepo() },
           { provide: getRepositoryToken(Patient),     useValue: fakeRepo(patients) },
           { provide: getRepositoryToken(Session),     useValue: fakeRepo(sessions) },

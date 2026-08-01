@@ -190,6 +190,7 @@ export interface FinancialRecord {
   amount: number
   description: string
   status: 'paid' | 'pending' | 'overdue'
+  category?: string
   dueDate?: string
   paidAt?: string
   method?: 'pix' | 'credit_card' | 'debit_card' | 'cash' | 'transfer' | 'manual'
