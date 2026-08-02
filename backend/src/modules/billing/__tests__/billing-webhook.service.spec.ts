@@ -124,7 +124,7 @@ describe('BillingWebhookService', () => {
 
   it('restores R$ 97,90 after the single promotional payment', async () => {
     const subscription = makeSubscription({
-      promoCode: 'PRO3790',
+      promoCode: 'PRO3490',
       promoDiscountPercent: 0,
       promoCyclesTotal: 1,
       promoCyclesUsed: 0,

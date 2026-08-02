@@ -7,8 +7,8 @@ import { Subscription } from './entities/subscription.entity'
 import { isCompedProEmail, LATEST_SUBSCRIPTION_ORDER, PLAN_PRICES } from '../../common/plans'
 
 const TRIAL_DAYS = 7
-const ACTIVATION_OFFER_CODE = 'PRO3790'
-const ACTIVATION_OFFER_VALUE = 37.90
+const ACTIVATION_OFFER_CODE = 'PRO3490'
+const ACTIVATION_OFFER_VALUE = 34.90
 const REFERRAL_OFFER_CODE = 'INDICACAO20'
 const BETA_FREE_ACCESS = process.env.BETA_FREE_ACCESS !== 'false'
 
@@ -223,7 +223,7 @@ export class BillingService {
       regularPrice: PLAN_PRICES.pro,
       includesTrial: eligible && !subscription?.hasUsedTrial,
       discount: eligible ? {
-        pro: '1º mês por R$ 37,90; depois R$ 97,90/mês',
+        pro: '1º mês por R$ 34,90; depois R$ 97,90/mês',
       } : null,
       title: 'O UseCognia Pro ficou ainda mais completo',
       message: 'Conheça as novidades e organize toda a rotina clínica em um só lugar.',

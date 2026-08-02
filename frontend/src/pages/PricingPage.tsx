@@ -298,7 +298,7 @@ function PaidPricingPage({ publicView = false }: { publicView?: boolean }) {
         <aside className="mx-auto max-w-3xl rounded-2xl border border-sage-200 bg-sage-50 px-5 py-4 text-center text-sage-900 dark:border-sage-400/30 dark:bg-sage-500/15 dark:text-sage-100">
           <p className="text-xs font-bold uppercase tracking-[0.14em]">Condição especial da sua conta</p>
           <p className="mt-1 text-lg font-semibold">
-            Pro por R$ 37,90 no primeiro mês; depois R$ 97,90/mês.
+            Pro por R$ 34,90 no primeiro mês; depois R$ 97,90/mês.
           </p>
           {upgradeOffer.includesTrial && (
             <p className="mt-1 text-sm">Antes da primeira cobrança, você ainda tem 7 dias grátis.</p>

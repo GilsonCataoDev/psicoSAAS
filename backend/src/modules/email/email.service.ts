@@ -334,7 +334,7 @@ export class EmailService {
     const firstName = this.escapeHtml(name.trim().split(/\s+/)[0] || 'profissional')
     await this.send({
       to: email,
-      subject: 'Novidades no UseCognia + Pro por R$ 37,90 no primeiro mês',
+      subject: 'Novidades no UseCognia + Pro por R$ 34,90 no primeiro mês',
       html: this.wrap(`
         <h1 style="color:#2F7657;font-weight:300;font-size:26px">Olá, ${firstName}!</h1>
         <p style="color:#555;font-size:16px;line-height:1.6">
@@ -349,7 +349,7 @@ export class EmailService {
         </ul>
         <div style="background:#eef8f3;border:1px solid #cfe5d9;border-radius:14px;padding:18px;margin:24px 0">
           <p style="margin:0;color:#21372d;font-size:17px;line-height:1.5">
-            Para contas Free elegíveis, o <strong>primeiro mês do plano Pro sai por R$ 37,90</strong>.
+            Para contas Free elegíveis, o <strong>primeiro mês do plano Pro sai por R$ 34,90</strong>.
             Depois, o valor volta para R$ 97,90 por mês. Sem fidelidade.
           </p>
         </div>

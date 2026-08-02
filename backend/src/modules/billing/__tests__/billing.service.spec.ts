@@ -204,7 +204,7 @@ describe('BillingService', () => {
   })
 
   describe('one-time Pro activation offer', () => {
-    it('shows the R$ 37,90 offer once to an active Free account', async () => {
+    it('shows the R$ 34,90 offer once to an active Free account', async () => {
       const sub = makeSub({
         plan: 'free',
         status: 'active',
@@ -218,8 +218,8 @@ describe('BillingService', () => {
       expect(first).toEqual(expect.objectContaining({
         eligible: true,
         shouldNotify: true,
-        offerCode: 'PRO3790',
-        promotionalPrice: 37.90,
+        offerCode: 'PRO3490',
+        promotionalPrice: 34.90,
         regularPrice: 97.90,
       }))
 
@@ -230,7 +230,7 @@ describe('BillingService', () => {
       expect(afterAcknowledgement.shouldNotify).toBe(false)
     })
 
-    it('charges R$ 37,90 for one cycle and records redemption', async () => {
+    it('charges R$ 34,90 for one cycle and records redemption', async () => {
       const sub = makeSub({
         plan: 'free',
         status: 'active',
@@ -253,10 +253,10 @@ describe('BillingService', () => {
         'sub-1',
         'card-token',
         expect.any(String),
-        expect.objectContaining({ valueOverride: 37.90 }),
+        expect.objectContaining({ valueOverride: 34.90 }),
       )
       expect(repo.save).toHaveBeenLastCalledWith(expect.objectContaining({
-        promoCode: 'PRO3790',
+        promoCode: 'PRO3490',
         promoCyclesTotal: 1,
         activationOfferRedeemedAt: expect.any(Date),
       }))

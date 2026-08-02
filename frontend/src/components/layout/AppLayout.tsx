@@ -240,7 +240,7 @@ function FreeUpgradeOfferModal() {
       <div className="overflow-hidden rounded-2xl border border-sage-200 bg-gradient-to-br from-sage-50 to-white p-5 dark:border-sage-400/20 dark:from-sage-500/15 dark:to-cognia-panel">
         <p className="text-sm font-medium text-sage-700 dark:text-sage-200">{data.title}</p>
         <div className="mt-3 flex flex-wrap items-end gap-x-3 gap-y-1">
-          <span className="font-display text-4xl font-semibold text-sage-700 dark:text-sage-200">R$ 37,90</span>
+          <span className="font-display text-4xl font-semibold text-sage-700 dark:text-sage-200">R$ 34,90</span>
           <span className="pb-1 text-sm text-neutral-600 dark:text-neutral-300">no primeiro mês</span>
         </div>
         <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-300">
