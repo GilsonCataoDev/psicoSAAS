@@ -47,7 +47,11 @@ async function dismissFirstAccessOverlays(
         return true
       }).catch(() => false)
     }
-    for (const name of ['Fechar onboarding', 'Não, obrigado']) {
+    // 'Fechar' fecha a oferta de upgrade Pro (FreeUpgradeOfferModal) — sem
+    // isso, a oferta pode renderizar entre navegações e bloquear cliques em
+    // botoes por baixo dela (a busca da oferta é assíncrona, então o quanto
+    // isso aparece varia por corrida entre a query e o clique do teste).
+    for (const name of ['Fechar onboarding', 'Não, obrigado', 'Fechar']) {
       const button = page.getByRole('button', { name, exact: true }).filter({ visible: true })
       if (await button.count()) {
         dismissed = await button.first().click({ timeout: 1_500 }).then(() => true).catch(() => false) || dismissed
