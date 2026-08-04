@@ -19,6 +19,9 @@ import { AiUsage } from './entities/ai-usage.entity'
 import { AiTextQuotaService } from './ai-text-quota.service'
 
 const AI_TRANSCRIPTION_MAX_SECONDS = 15 * 60
+// Transcrição de chamada cobre a sessão inteira (não um trecho ditado), então
+// precisa de um teto bem maior que o do ditado avulso.
+const CALL_TRANSCRIPTION_MAX_SECONDS = 90 * 60
 
 // NoImpersonationGuard roda após o JwtAuthGuard (mesmo array) e nega acesso a
 // conteúdo clínico enquanto um admin está "vendo como" outro usuário.
@@ -84,6 +87,37 @@ export class SessionsController {
       return { text }
     } catch (error) {
       await this.releaseTranscriptionQuota(req.user.id, duration).catch(() => {})
+      throw error
+    }
+  }
+
+  @Post('transcribe-call')
+  @RequirePlan('pro')
+  @Throttle({ default: { limit: 5, ttl: 60 * 1000 } })
+  @UseInterceptors(FileInterceptor('audio', {
+    limits: {
+      fileSize: 30 * 1024 * 1024,
+      files: 1,
+      fields: 2,
+      parts: 6,
+      fieldNameSize: 32,
+      fieldSize: 32,
+    },
+  }))
+  async transcribeCall(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('durationSeconds') durationSeconds: string,
+    @Request() req: any,
+  ) {
+    if (!file?.buffer?.length) throw new BadRequestException('Arquivo de áudio ausente')
+    this.parseCallDuration(durationSeconds)
+    const plan = await this.getCurrentPlan(req.user.id, req.user.email)
+    await this.chargeCallTranscriptionQuota(req.user.id, plan)
+    try {
+      const text = await this.ai.transcribeAudio(file.buffer, file.mimetype)
+      return { text }
+    } catch (error) {
+      await this.releaseCallTranscriptionQuota(req.user.id).catch(() => {})
       throw error
     }
   }
@@ -167,6 +201,17 @@ export class SessionsController {
     return duration
   }
 
+  private parseCallDuration(value?: string): number {
+    const duration = Math.ceil(Number(value))
+    if (!Number.isFinite(duration) || duration <= 0) {
+      throw new BadRequestException('Duração da gravação ausente')
+    }
+    if (duration > CALL_TRANSCRIPTION_MAX_SECONDS) {
+      throw new BadRequestException('Cada chamada transcrita pode ter no máximo 90 minutos.')
+    }
+    return duration
+  }
+
   private currentMonth(): string {
     return new Date().toISOString().slice(0, 7)
   }
@@ -225,6 +270,58 @@ export class SessionsController {
       .update()
       .set({
         transcriptionSeconds: () => `GREATEST("transcriptionSeconds" - ${durationSeconds}, 0)`,
+      })
+      .where('"userId" = :userId AND month = :month', { userId, month })
+      .execute()
+  }
+
+  private async chargeCallTranscriptionQuota(userId: string, plan: KnownPlan): Promise<void> {
+    const month = this.currentMonth()
+    const limit = PLAN_LIMITS[plan].callTranscriptionMonthlyLimit
+    if (limit <= 0) {
+      throw new ForbiddenException({
+        message: 'Transcrição de chamada está disponível a partir do plano Pro.',
+        requiredPlan: 'pro',
+        currentPlan: plan,
+        upgradeUrl: '/planos',
+      })
+    }
+    await this.aiUsage
+      .createQueryBuilder()
+      .insert()
+      .values({ userId, month })
+      .orIgnore()
+      .execute()
+    const result = await this.aiUsage
+      .createQueryBuilder()
+      .update()
+      .set({ callTranscriptions: () => '"callTranscriptions" + 1' })
+      .where(
+        '"userId" = :userId AND month = :month AND "callTranscriptions" + 1 <= :limit',
+        { userId, month, limit },
+      )
+      .execute()
+
+    if (!result.affected) {
+      const usage = await this.aiUsage.findOne({ where: { userId, month } })
+      const used = usage?.callTranscriptions ?? 0
+      throw new ForbiddenException({
+        message: `Limite mensal de transcrição de chamadas atingido (${used}/${limit} sessões).`,
+        used,
+        limit,
+        currentPlan: plan,
+        upgradeUrl: plan === 'pro' ? undefined : '/planos',
+      })
+    }
+  }
+
+  private async releaseCallTranscriptionQuota(userId: string): Promise<void> {
+    const month = this.currentMonth()
+    await this.aiUsage
+      .createQueryBuilder()
+      .update()
+      .set({
+        callTranscriptions: () => 'GREATEST("callTranscriptions" - 1, 0)',
       })
       .where('"userId" = :userId AND month = :month', { userId, month })
       .execute()

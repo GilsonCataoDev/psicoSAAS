@@ -160,7 +160,7 @@ export default function DashboardPage() {
   const onboardingCompleted = useOnboardingStore(s => s.completed)
   const onboardingProfile = useOnboardingStore(s => s.profile)
   const firstName = user?.name?.split(' ')[0] ?? 'Psicólogo(a)'
-  const [sessionDefaults, setSessionDefaults] = useState<{ patientId: string; date: string; appointmentId: string } | null>(null)
+  const [sessionDefaults, setSessionDefaults] = useState<{ patientId: string; date: string; appointmentId: string; modality?: 'presencial' | 'online' } | null>(null)
 
 
   const today = format(new Date(), 'yyyy-MM-dd')
@@ -322,7 +322,7 @@ export default function DashboardPage() {
             <div className="flex flex-wrap gap-2">
               {completedWithoutRecord.map((appointment: any) => (
                 <button key={appointment.id} type="button"
-                  onClick={() => setSessionDefaults({ patientId: appointment.patientId, date: appointment.date, appointmentId: appointment.id })}
+                  onClick={() => setSessionDefaults({ patientId: appointment.patientId, date: appointment.date, appointmentId: appointment.id, modality: appointment.modality })}
                   className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 hover:bg-amber-100 dark:border-amber-300/20 dark:bg-amber-400/10 dark:text-amber-100">
                   <NotebookPen className="h-3.5 w-3.5" /> {appointment.patient?.name ?? appointment.patientName ?? 'Paciente'}
                 </button>
@@ -633,7 +633,7 @@ export default function DashboardPage() {
                     )}
                     {appt.status !== 'completed' && (
                       <button
-                        onClick={() => setSessionDefaults({ patientId: appt.patientId, date: appt.date, appointmentId: appt.id })}
+                        onClick={() => setSessionDefaults({ patientId: appt.patientId, date: appt.date, appointmentId: appt.id, modality: appt.modality })}
                         title="Preparar ou registrar sessão"
                         className="opacity-100 transition-opacity flex items-center gap-1 rounded-xl bg-sage-50 border border-sage-200 px-2 py-1 text-xs font-medium text-sage-700 hover:bg-sage-100 dark:border-sage-300/20 dark:bg-sage-400/10 dark:text-sage-100 dark:hover:bg-sage-400/15 sm:opacity-0 sm:group-hover:opacity-100"
                       >

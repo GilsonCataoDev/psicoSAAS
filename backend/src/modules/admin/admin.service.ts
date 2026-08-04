@@ -305,7 +305,7 @@ export class AdminService {
            SELECT 1 FROM ai_usage au
            WHERE au."userId" = u.id::text
              AND au."updatedAt" > NOW() - INTERVAL '30 days'
-             AND (au."transcriptionSeconds" > 0 OR au."summaryRequests" > 0)
+             AND (au."transcriptionSeconds" > 0 OR au."summaryRequests" > 0 OR au."callTranscriptions" > 0)
          ))                                                    AS "hasAiUsageLast30d"
       FROM users u
       LEFT JOIN LATERAL (

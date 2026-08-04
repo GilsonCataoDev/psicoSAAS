@@ -4,6 +4,7 @@ type PlanLimits = Record<string, {
   transcriptionMonthlySeconds: number
   aiTextMonthlyLimit: number
   neuropsychAiMonthlyLimit: number
+  callTranscriptionMonthlyLimit: number
 }>
 
 export const PLAN_PRICES: Readonly<Record<string, number>> = Object.freeze({
@@ -21,9 +22,16 @@ function nonNegativeIntEnv(name: string, fallback: number): number {
 
 const AI_TEXT_PRO_MONTHLY_LIMIT = nonNegativeIntEnv('AI_TEXT_PRO_MONTHLY_LIMIT', 150)
 
+// Cota separada da transcrição manual (transcriptionMonthlySeconds, em
+// minutos/mês, pensada pra ditado avulso de evolução). Transcrição de
+// chamada grava a sessão inteira, então é contada por número de sessões/mês
+// em vez de minutos — do contrário, um psicólogo com agenda cheia estoura o
+// teto de minutos em poucos dias. Configurável via env pra ajustar sem deploy.
+const CALL_TRANSCRIPTION_PRO_MONTHLY_LIMIT = nonNegativeIntEnv('CALL_TRANSCRIPTION_PRO_MONTHLY_LIMIT', 30)
+
 export const PLAN_LIMITS: PlanLimits = {
-  free: { maxPatients: 10, maxDocuments: 0, transcriptionMonthlySeconds: 0, aiTextMonthlyLimit: 0, neuropsychAiMonthlyLimit: 0 },
-  pro:  { maxPatients: -1, maxDocuments: -1, transcriptionMonthlySeconds: 120 * 60, aiTextMonthlyLimit: AI_TEXT_PRO_MONTHLY_LIMIT, neuropsychAiMonthlyLimit: NEUROPSYCH_AI_MONTHLY_LIMIT },
+  free: { maxPatients: 10, maxDocuments: 0, transcriptionMonthlySeconds: 0, aiTextMonthlyLimit: 0, neuropsychAiMonthlyLimit: 0, callTranscriptionMonthlyLimit: 0 },
+  pro:  { maxPatients: -1, maxDocuments: -1, transcriptionMonthlySeconds: 120 * 60, aiTextMonthlyLimit: AI_TEXT_PRO_MONTHLY_LIMIT, neuropsychAiMonthlyLimit: NEUROPSYCH_AI_MONTHLY_LIMIT, callTranscriptionMonthlyLimit: CALL_TRANSCRIPTION_PRO_MONTHLY_LIMIT },
 }
 
 export type KnownPlan = keyof typeof PLAN_LIMITS

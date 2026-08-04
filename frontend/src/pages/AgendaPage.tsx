@@ -1002,6 +1002,7 @@ export default function AgendaPage() {
               date: appointmentToEvolve.date,
               duration: appointmentToEvolve.duration,
               appointmentId: appointmentToEvolve.id,
+              modality: appointmentToEvolve.modality,
             }}
           />
         )}

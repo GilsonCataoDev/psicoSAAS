@@ -92,6 +92,19 @@ export function useTranscribeAudio() {
   })
 }
 
+export function useTranscribeCall() {
+  return useMutation({
+    mutationFn: async ({ blob, durationSeconds }: { blob: Blob; durationSeconds: number }) => {
+      const form = new FormData()
+      form.append('audio', blob, 'call.webm')
+      form.append('durationSeconds', String(Math.max(1, Math.ceil(durationSeconds))))
+      return api.post<{ text: string }>('/sessions/transcribe-call', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }).then(r => r.data)
+    },
+  })
+}
+
 export function useGenerateAiSummary() {
   return useMutation({
     mutationFn: (data: { transcription: string; patientName?: string }) =>

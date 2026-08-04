@@ -52,6 +52,7 @@ Para dar suporte, a operação da plataforma pode usar um modo "ver como" (imper
 
 - A Vercel envia HSTS, `X-Content-Type-Options`, proteção contra incorporação em iframe, política de referência e restrições de permissões do navegador.
 - O uso do microfone fica disponível apenas para a própria origem, quando o profissional inicia voluntariamente uma gravação.
+- Em sessões online, o profissional pode transcrever a chamada inteira (captura de áudio da guia do navegador, opt-in por sessão, com confirmação de consentimento do paciente). Como a gravação e o ditado avulso, o áudio não é armazenado — só o texto transcrito. A franquia é separada da de ditado avulso e contada por sessão/mês (30 no Pro por padrão, `CALL_TRANSCRIPTION_PRO_MONTHLY_LIMIT`), já que cobre a chamada inteira em vez de um trecho curto.
 - O canal padronizado de divulgação responsável fica publicado em `/.well-known/security.txt`.
 - A Política de Privacidade pública descreve papéis, finalidades, fornecedores, direitos, retenção e limitações atuais.
 
