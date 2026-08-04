@@ -889,7 +889,7 @@ export default function AgendaPage() {
       {/* ── Desktop: grade semanal ─────────────────────────────────── */}
       <div className="agenda-grid order-3 hidden overflow-hidden rounded-3xl p-0 shadow-sm lg:block">
        <div className="overflow-x-auto">
-        <div className="agenda-grid-header agenda-grid-line grid grid-cols-[64px_repeat(7,minmax(150px,1fr))] border-b border-neutral-100 bg-white/95 backdrop-blur-sm dark:bg-[#18241f]">
+        <div className="agenda-grid-header agenda-grid-line grid grid-cols-[64px_repeat(7,minmax(240px,1fr))] border-b border-neutral-100 bg-white/95 backdrop-blur-sm dark:bg-[#18241f]">
           <div className="p-3" />
           {days.map(day => (
             <div key={day.toISOString()}
@@ -903,7 +903,7 @@ export default function AgendaPage() {
         </div>
         <div className="max-h-[560px] overflow-y-auto">
           {visibleHours.map(hour => (
-            <div key={hour} className="agenda-grid-line grid min-h-[76px] grid-cols-[64px_repeat(7,minmax(150px,1fr))] border-b border-neutral-50">
+            <div key={hour} className="agenda-grid-line grid min-h-[76px] grid-cols-[64px_repeat(7,minmax(240px,1fr))] border-b border-neutral-50">
               <div className="p-2 text-xs text-neutral-400 dark:text-neutral-300 text-right pr-3 pt-2">{hour}:00</div>
               {days.map(day => {
                 const dayKey = format(day, 'yyyy-MM-dd')
@@ -958,6 +958,24 @@ export default function AgendaPage() {
                             title="Alterar esta ocorrencia"
                           >
                             <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => changeAppointmentStatus(appt, 'no_show')}
+                            disabled={updateStatus.isPending || appt.status === 'no_show'}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sage-200 bg-white text-sage-700 shadow-sm transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40 dark:border-white/10 dark:bg-white/10 dark:text-neutral-100 dark:hover:bg-rose-500/20 dark:hover:text-rose-200"
+                            title="Registrar falta"
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setAppointmentToRemove(appt)}
+                            disabled={deleteAppointment.isPending}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sage-200 bg-white text-sage-700 shadow-sm transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40 dark:border-white/10 dark:bg-white/10 dark:text-neutral-100 dark:hover:bg-rose-500/20 dark:hover:text-rose-200"
+                            title="Remover agendamento"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                         {(appt.isRecurring || appt.isFixedScheduleException) && (
