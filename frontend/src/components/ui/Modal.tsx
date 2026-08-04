@@ -9,6 +9,15 @@ interface ModalProps {
   description?: string
   children: React.ReactNode
   size?: 'sm' | 'md' | 'lg' | 'xl'
+  /**
+   * Nome acessível do botão de fechar (X). Deixe undefined para dialogs de
+   * tarefa (formularios, confirmacoes) — dar um nome generico como "Fechar"
+   * a todo modal faz helpers de e2e que fecham overlays por esse nome
+   * (dismissOverlays) fecharem tambem dialogs que o teste ainda esta
+   * preenchendo. Use só em modais informativos/promocionais que devem
+   * poder ser descartados a qualquer momento sem perder estado.
+   */
+  closeLabel?: string
 }
 
 const sizes = {
@@ -18,7 +27,7 @@ const sizes = {
   xl: 'sm:max-w-5xl',
 }
 
-export default function Modal({ open, onClose, title, description, children, size = 'md' }: ModalProps) {
+export default function Modal({ open, onClose, title, description, children, size = 'md', closeLabel }: ModalProps) {
   return (
     <Dialog.Root open={open} onOpenChange={(v) => !v && onClose()}>
       <Dialog.Portal>
@@ -54,7 +63,7 @@ export default function Modal({ open, onClose, title, description, children, siz
                 )}
               </div>
               <Dialog.Close asChild>
-                <button aria-label="Fechar" className="p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-white/10 text-neutral-400 hover:text-neutral-600 dark:hover:text-white transition-colors ml-4 shrink-0">
+                <button aria-label={closeLabel} className="p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-white/10 text-neutral-400 hover:text-neutral-600 dark:hover:text-white transition-colors ml-4 shrink-0">
                   <X className="w-4 h-4" />
                 </button>
               </Dialog.Close>
