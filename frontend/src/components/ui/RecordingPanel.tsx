@@ -309,7 +309,8 @@ export default function RecordingPanel({
             className="flex-1 rounded-xl border border-sage-300 py-2 text-xs font-medium text-sage-700 hover:bg-sage-100">
             {transcriptionActionLabel}
           </button>
-          {hasPro ? (
+          {/* Transcrição de chamada fica só com o texto — sem síntese automática por IA. */}
+          {source === 'call' ? null : hasPro ? (
             <button type="button" onClick={handleGenerateSummary} disabled={step === 'generating'}
               className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-sage-600 py-2 text-xs font-semibold text-white hover:bg-sage-700 disabled:opacity-50">
               {step === 'generating'
