@@ -207,7 +207,7 @@ export class AiService {
     )
     if (mocked) return mocked
 
-    const prompt = `Você é um assistente de apoio clínico para psicólogos e terapeutas. Com base na transcrição abaixo de uma sessão clínica, elabore um rascunho conciso de nota de evolução clínica. Escreva em linguagem técnica, primeira pessoa do profissional, sem diagnóstico. Inclua: demanda trabalhada, intervenções realizadas, resposta observada e próximos passos sugeridos. Máximo 250 palavras. O profissional revisará e editará antes de salvar.
+    const prompt = `Você é um assistente de apoio clínico para psicólogos e terapeutas. Com base na transcrição abaixo de uma sessão clínica, elabore um rascunho conciso de nota de evolução clínica. Escreva em linguagem técnica, primeira pessoa do profissional, sem diagnóstico. Inclua: demanda trabalhada, intervenções realizadas, resposta observada e próximos passos sugeridos. Preserve com exatidão datas, prazos, contagens de ocorrências e detalhes de eventos históricos ou secundários mencionados — não os substitua por descrições vagas mesmo quando o fato mais recente da sessão dominar o restante do texto. Máximo 250 palavras. O profissional revisará e editará antes de salvar.
 
 Transcrição:
 ${transcription.slice(0, 6000)}`
@@ -267,6 +267,7 @@ ${cleanInput || '(sem sessoes anteriores registradas)'}`
 Use o texto abaixo somente para organizar um rascunho de prontuario.
 Nao invente fatos, nao feche diagnostico, nao prescreva condutas e nao substitua o julgamento clinico.
 Nao inclua dados pessoais identificaveis. Se houver nome, telefone, email, CPF, endereco ou identificadores, omita.
+Preserve com exatidao todo dado factual especifico do texto original: datas, prazos, contagens de ocorrencias (ex. "terceira vez em 2 meses"), metodos e detalhes de eventos historicos ou secundarios (ex. uma tentativa ou ocorrencia anterior mencionada de passagem). Nunca substitua um fato especifico por uma descricao vaga como "historico previo" sem o detalhe original — isso vale mesmo quando o fato mais recente domina o restante do texto.
 Escreva em portugues do Brasil, tom tecnico e claro.
 Tarefa: ${modeInstruction}
 Finalize com a frase: "Rascunho gerado por IA, revisar antes de salvar."
