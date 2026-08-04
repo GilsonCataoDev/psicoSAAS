@@ -1,4 +1,4 @@
-import { request, type Locator, type Page } from '@playwright/test'
+import { expect, request, type Locator, type Page } from '@playwright/test'
 
 export const apiBaseUrl = `${(process.env.E2E_API_URL ?? 'https://psicosaas-production-2d6c.up.railway.app/api').replace(/\/$/, '')}/`
 export const appBaseUrl = process.env.E2E_BASE_URL ?? 'https://usecognia.com.br'
@@ -104,10 +104,12 @@ export async function registerAndActivateFree(page: Page, email: string, name = 
   // Em alguns ambientes (ex.: BETA_FREE_ACCESS=true localmente) a conta já
   // nasce com o plano grátis ativo e esse botão nunca aparece — segue direto.
   await page.getByRole('button', { name: 'Comece gratis agora' }).click({ timeout: 8_000 }).catch(() => undefined)
-  await Promise.race([
-    page.getByText('Seu plano foi ativado').waitFor({ timeout: 15_000 }),
-    page.getByText(/Plano Gr[aá]tis ativo/i).waitFor({ timeout: 15_000 }),
-  ]).catch(() => undefined)
+  // Falha alto e claro se a ativação não completar — antes, esse aguardo era
+  // engolido por um .catch(), então uma ativação lenta/travada não derrubava
+  // este passo e só estourava 60s depois, num clique sem relação num teste
+  // seguinte (ex.: createPatient tentando abrir /pacientes sem sessão pronta).
+  await expect(page, 'conta não chegou ao dashboard após o cadastro — ativação do plano grátis falhou ou demorou demais')
+    .toHaveURL(/\/dashboard$/, { timeout: 20_000 })
   await dismissOverlays(page)
 }
 

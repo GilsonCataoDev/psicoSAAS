@@ -54,7 +54,7 @@ export default function Modal({ open, onClose, title, description, children, siz
                 )}
               </div>
               <Dialog.Close asChild>
-                <button className="p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-white/10 text-neutral-400 hover:text-neutral-600 dark:hover:text-white transition-colors ml-4 shrink-0">
+                <button aria-label="Fechar" className="p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-white/10 text-neutral-400 hover:text-neutral-600 dark:hover:text-white transition-colors ml-4 shrink-0">
                   <X className="w-4 h-4" />
                 </button>
               </Dialog.Close>
