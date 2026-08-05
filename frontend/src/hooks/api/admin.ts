@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
 
 export interface AdminUser {
@@ -95,6 +96,7 @@ export function useAdminOverrideSubscription() {
     mutationFn: ({ userId, status, plan }: { userId: string; status?: string; plan?: string }) =>
       api.patch(`/admin/users/${userId}/subscription`, { status, plan }).then(r => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin'] }),
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Erro ao atualizar a assinatura. Tente novamente.'),
   })
 }
 

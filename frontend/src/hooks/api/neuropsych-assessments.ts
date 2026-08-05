@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
 import { NeuropsychAiAnalysis, NeuropsychAiAnalysisField, NeuropsychAiUsage, NeuropsychAssessment, NeuropsychBatteryItem } from '@/types'
 
@@ -61,6 +62,7 @@ export function useUpdateNeuropsychBatteryItem(assessmentId: string) {
     mutationFn: ({ itemId, data }: { itemId: string; data: Partial<NeuropsychBatteryItem> }) =>
       api.patch(`/neuropsych-assessments/${assessmentId}/battery-items/${itemId}`, data).then(response => response.data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['neuropsych-assessments', assessmentId] }),
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Erro ao salvar. Tente novamente.'),
   })
 }
 
@@ -69,6 +71,7 @@ export function useDeleteNeuropsychBatteryItem(assessmentId: string) {
   return useMutation({
     mutationFn: (itemId: string) => api.delete(`/neuropsych-assessments/${assessmentId}/battery-items/${itemId}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['neuropsych-assessments', assessmentId] }),
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Erro ao remover. Tente novamente.'),
   })
 }
 

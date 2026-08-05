@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 import { FinancialRecord } from '@/types'
@@ -93,6 +94,7 @@ export function useSetRecurringExpenseActive() {
     mutationFn: ({ id, active }: { id: string; active: boolean }) =>
       api.patch(`/financial/recurring-expenses/${id}`, { active }).then(r => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['recurring-expenses'] }),
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Erro ao atualizar despesa recorrente. Tente novamente.'),
   })
 }
 
@@ -101,5 +103,6 @@ export function useDeleteRecurringExpense() {
   return useMutation({
     mutationFn: (id: string) => api.delete(`/financial/recurring-expenses/${id}`).then(r => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['recurring-expenses'] }),
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Erro ao remover despesa recorrente. Tente novamente.'),
   })
 }
