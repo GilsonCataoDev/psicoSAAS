@@ -894,7 +894,7 @@ export default function AgendaPage() {
       {/* ── Desktop: grade semanal ─────────────────────────────────── */}
       <div className="agenda-grid order-3 hidden overflow-hidden rounded-3xl p-0 shadow-sm lg:block">
        <div className="overflow-x-auto">
-        <div className="agenda-grid-header agenda-grid-line grid grid-cols-[64px_repeat(7,minmax(240px,1fr))] border-b border-neutral-100 bg-white/95 backdrop-blur-sm dark:bg-[#18241f]">
+        <div className="agenda-grid-header agenda-grid-line grid grid-cols-[56px_repeat(7,minmax(130px,1fr))] border-b border-neutral-100 bg-white/95 backdrop-blur-sm dark:bg-[#18241f]">
           <div className="p-3" />
           {days.map(day => (
             <div key={day.toISOString()}
@@ -908,7 +908,7 @@ export default function AgendaPage() {
         </div>
         <div className="max-h-[560px] overflow-y-auto">
           {visibleHours.map(hour => (
-            <div key={hour} className="agenda-grid-line grid min-h-[76px] grid-cols-[64px_repeat(7,minmax(240px,1fr))] border-b border-neutral-50">
+            <div key={hour} className="agenda-grid-line grid min-h-[76px] grid-cols-[56px_repeat(7,minmax(130px,1fr))] border-b border-neutral-50">
               <div className="p-2 text-xs text-neutral-400 dark:text-neutral-300 text-right pr-3 pt-2">{hour}:00</div>
               {days.map(day => {
                 const dayKey = format(day, 'yyyy-MM-dd')
@@ -929,7 +929,7 @@ export default function AgendaPage() {
                         <p className="text-sm text-sage-900 dark:text-neutral-50 font-semibold truncate mt-1.5">
                           {appt.patient?.name?.split(' ')[0] ?? 'Paciente'}
                         </p>
-                        <div className="mt-2 flex items-center gap-1 border-t border-sage-200/60 pt-2 dark:border-white/10">
+                        <div className="mt-2 flex flex-wrap items-center gap-1 border-t border-sage-200/60 pt-2 dark:border-white/10">
                           <button
                             type="button"
                             onClick={() => evolveAppointment(appt)}
