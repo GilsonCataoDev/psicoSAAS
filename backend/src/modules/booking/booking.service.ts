@@ -889,12 +889,18 @@ export class BookingService {
       if (prefs.autoCharge === false) return
 
       const pixKey = String(prefs.pixKey ?? page.pixKey ?? '').trim()
-      if (!pixKey) return
+      if (!pixKey) {
+        await this.recordUpfrontChargeResult(booking, 'Chave PIX nao configurada nas preferencias')
+        return
+      }
 
       const patient = appointment.patient ?? await this.patients.findOne({
         where: { id: appointment.patientId, psychologistId: booking.psychologistId },
       })
-      if (!patient) return
+      if (!patient) {
+        await this.recordUpfrontChargeResult(booking, 'Paciente nao encontrado')
+        return
+      }
 
       const result = await this.notifications.sendPaymentRequest(
         patient,
@@ -906,9 +912,19 @@ export class BookingService {
       if (!result.sent) {
         this.logger.warn(`Cobranca antecipada nao enviada para booking ${booking.id}: ${result.error ?? 'erro desconhecido'}`)
       }
+      await this.recordUpfrontChargeResult(booking, result.sent ? null : (result.error ?? 'Cobranca nao enviada'))
     } catch (err: any) {
       this.logger.warn(`Falha ao enviar cobranca antecipada para booking ${booking.id}: ${err?.message ?? 'erro desconhecido'}`)
+      await this.recordUpfrontChargeResult(booking, err?.message ?? 'Falha ao enviar cobranca')
     }
+  }
+
+  /** Grava no lancamento financeiro pendente o motivo pelo qual a cobranca antecipada nao saiu, para o psicologo ver e reenviar manualmente. */
+  private async recordUpfrontChargeResult(booking: Booking, error: string | null): Promise<void> {
+    await this.financial.update(
+      { bookingId: booking.id, psychologistId: booking.psychologistId },
+      { chargeReminderError: error ? error.slice(0, 160) : null } as any,
+    )
   }
 
   private getStepMinutes(page: BookingPage, modality?: 'presencial' | 'online'): number {

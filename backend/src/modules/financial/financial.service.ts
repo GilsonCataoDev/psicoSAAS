@@ -53,6 +53,7 @@ export class FinancialService {
         patientId: true,
         psychologistId: true,
         createdAt: true,
+        chargeReminderError: true,
         patient: {
           id: true,
           name: true,
@@ -219,7 +220,11 @@ export class FinancialService {
       prefs.chargeTemplate,
       prefs.includeReceipt,
     )
-    if (!result.sent) throw new BadRequestException(result.error ?? 'Cobranca nao enviada')
+    if (!result.sent) {
+      await this.repo.update(record.id, { chargeReminderError: (result.error ?? 'Cobranca nao enviada').slice(0, 160) } as any)
+      throw new BadRequestException(result.error ?? 'Cobranca nao enviada')
+    }
+    await this.repo.update(record.id, { chargeReminderError: null } as any)
     return { message: 'Cobrança enviada via WhatsApp ✓' }
   }
 
