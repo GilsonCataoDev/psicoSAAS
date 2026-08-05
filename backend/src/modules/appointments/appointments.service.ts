@@ -144,7 +144,46 @@ export class AppointmentsService {
       await this.registerNoShowSession(saved, psychologistId)
     }
 
+    // Garante um lançamento pendente no Financeiro assim que a sessão é marcada
+    // como concluída — antes disso, cobrança por sessão só surgia depois que o
+    // prontuário/evolução era escrito, deixando o psicólogo sem onde registrar
+    // o pagamento se ainda não tinha documentado a sessão.
+    if (status === 'completed') {
+      await this.ensurePendingChargeForCompletedAppointment(saved, psychologistId)
+    }
+
     return saved
+  }
+
+  private async ensurePendingChargeForCompletedAppointment(appointment: Appointment, psychologistId: string): Promise<void> {
+    try {
+      const patient = await this.patients.findOne({ where: { id: appointment.patientId, psychologistId } })
+      if (!patient || patient.billingType === 'monthly_package') return
+
+      const existing = await this.financial.findOne({
+        where: [
+          { appointmentId: appointment.id, psychologistId },
+          { sessionId: appointment.id, psychologistId },
+        ],
+      })
+      if (existing) return
+
+      const amount = Number(patient.sessionPrice) || 0
+      if (amount <= 0) return
+
+      await this.financial.save(this.financial.create({
+        type: 'income',
+        amount,
+        description: `Sessão - ${patient.name}`,
+        status: 'pending',
+        dueDate: appointment.date,
+        patientId: patient.id,
+        psychologistId,
+        appointmentId: appointment.id,
+      }))
+    } catch (err: any) {
+      this.logger.warn(`Falha ao criar lancamento financeiro para agendamento ${appointment.id}: ${err?.message ?? 'erro desconhecido'}`)
+    }
   }
 
   private async registerNoShowSession(appointment: Appointment, psychologistId: string): Promise<void> {

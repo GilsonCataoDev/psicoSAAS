@@ -122,6 +122,82 @@ function buildGroupService() {
   return { service, repo, records }
 }
 
+describe('AppointmentsService — updateStatus (lançamento financeiro ao concluir)', () => {
+  function buildCompletionService(patient: any = { id: 'patient-1', billingType: 'session', sessionPrice: 150, name: 'Fulana' }) {
+    const record: any = {
+      id: 'appt-1',
+      psychologistId: 'psi-1',
+      patientId: 'patient-1',
+      date: '2026-08-10',
+      time: '14:00',
+      duration: 50,
+      modality: 'presencial',
+      status: 'scheduled',
+    }
+    const repo = {
+      findOne: jest.fn().mockImplementation(async () => record),
+      save: jest.fn().mockImplementation(async (value: any) => value),
+    }
+    const bookings = { findOne: jest.fn().mockResolvedValue(null) }
+    const patients = { findOne: jest.fn().mockResolvedValue(patient) }
+    const sessions = {}
+    const financial = {
+      findOne: jest.fn().mockResolvedValue(null),
+      create: jest.fn().mockImplementation((v: any) => v),
+      save: jest.fn().mockResolvedValue(undefined),
+    }
+    const dataSource = {}
+    const notifications = {}
+    const googleCalendar = { syncAppointment: jest.fn().mockResolvedValue(undefined), deleteAppointment: jest.fn().mockResolvedValue(undefined) }
+
+    const service = new AppointmentsService(
+      repo as any, bookings as any, patients as any, sessions as any, financial as any,
+      dataSource as any, notifications as any, googleCalendar as any,
+    )
+    return { service, financial, patients }
+  }
+
+  it('cria lançamento pendente ao marcar como concluída uma sessão avulsa sem prontuário', async () => {
+    const { service, financial } = buildCompletionService()
+
+    await service.updateStatus('appt-1', 'completed', 'psi-1')
+
+    expect(financial.create).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'income',
+      amount: 150,
+      status: 'pending',
+      appointmentId: 'appt-1',
+      patientId: 'patient-1',
+    }))
+    expect(financial.save).toHaveBeenCalled()
+  })
+
+  it('não cria lançamento para paciente de pacote mensal (já gerado pelo job diário)', async () => {
+    const { service, financial } = buildCompletionService({ id: 'patient-1', billingType: 'monthly_package', sessionPrice: 150 })
+
+    await service.updateStatus('appt-1', 'completed', 'psi-1')
+
+    expect(financial.create).not.toHaveBeenCalled()
+  })
+
+  it('não duplica lançamento se já existe um vinculado ao agendamento', async () => {
+    const { service, financial } = buildCompletionService()
+    financial.findOne.mockResolvedValue({ id: 'fin-1' })
+
+    await service.updateStatus('appt-1', 'completed', 'psi-1')
+
+    expect(financial.create).not.toHaveBeenCalled()
+  })
+
+  it('não cria lançamento quando o paciente não tem valor de sessão configurado', async () => {
+    const { service, financial } = buildCompletionService({ id: 'patient-1', billingType: 'session', sessionPrice: 0 })
+
+    await service.updateStatus('appt-1', 'completed', 'psi-1')
+
+    expect(financial.create).not.toHaveBeenCalled()
+  })
+})
+
 describe('AppointmentsService — updateGroup (esta e as próximas)', () => {
   it('desloca a data de todas as ocorrências futuras pelo mesmo número de dias que a âncora foi movida', async () => {
     const { service, repo } = buildGroupService()
