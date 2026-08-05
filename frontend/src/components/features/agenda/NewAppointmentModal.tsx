@@ -215,7 +215,7 @@ export default function NewAppointmentModal({ open, onClose, appointment, initia
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label className="label">Pessoa</label>
-          <select {...register('patientId', { required: true })} className="input-field" disabled={isEditing}>
+          <select {...register('patientId', { required: !isEditing })} className="input-field" disabled={isEditing}>
             <option value="">Selecione...</option>
             {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
