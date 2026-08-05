@@ -13,7 +13,6 @@ import {
   useFinancial, useMarkFinancialPaid, useDeleteFinancial,
   useRecurringExpenses, useCreateRecurringExpense, useSetRecurringExpenseActive, useDeleteRecurringExpense,
 } from '@/hooks/useApi'
-import { useSendCharge } from '@/hooks/api/financial'
 import { FinancialRecord } from '@/types'
 import toast from 'react-hot-toast'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
@@ -45,7 +44,6 @@ export default function FinancialPage() {
   const { data: records = [], isLoading } = useFinancial()
   const markPaid = useMarkFinancialPaid()
   const deleteRecord = useDeleteFinancial()
-  const sendCharge = useSendCharge()
   const [filter, setFilter] = useState<'all' | 'paid' | 'pending' | 'overdue'>('all')
   const [showNew, setShowNew] = useState(false)
   const [markRecord, setMarkRecord] = useState<FinancialRecord | null>(null)
@@ -216,15 +214,6 @@ export default function FinancialPage() {
       setRecordToDelete(null)
     } catch {
       toast.error('Erro ao excluir lancamento')
-    }
-  }
-
-  async function handleResendCharge(id: string) {
-    try {
-      await sendCharge.mutateAsync(id)
-      toast.success('Cobranca reenviada')
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message ?? 'Erro ao reenviar cobranca.')
     }
   }
 
@@ -598,7 +587,6 @@ export default function FinancialPage() {
             <FinancialRow key={record.id} record={record}
               onMarkPaid={() => setMarkRecord(record)}
               onDelete={() => setRecordToDelete(record)}
-              onResendCharge={() => handleResendCharge(record.id)}
             />
           ))}
         </div>
@@ -715,11 +703,10 @@ function NewRecurringExpenseModal({ open, onClose, onCreate }: {
 }
 
 // --- Linha de lancamento ------------------------------------------------------
-function FinancialRow({ record, onMarkPaid, onDelete, onResendCharge }: {
+function FinancialRow({ record, onMarkPaid, onDelete }: {
   record: FinancialRecord
   onMarkPaid: () => void
   onDelete: () => void
-  onResendCharge: () => void
 }) {
   const isPending = record.status === 'pending' || record.status === 'overdue'
   const patientName = record.patient?.name ?? record.description
@@ -739,17 +726,6 @@ function FinancialRow({ record, onMarkPaid, onDelete, onResendCharge }: {
           {record.method && ` · ${METHOD_LABELS[record.method] ?? record.method}`}
           {record.type === 'expense' && record.category && ` · ${expenseCategoryLabel(record.category)}`}
         </p>
-        {isPending && record.chargeReminderError && (
-          <button
-            type="button"
-            onClick={onResendCharge}
-            title={record.chargeReminderError}
-            className="mt-1 flex items-center gap-1 text-xs font-medium text-amber-600 hover:text-amber-800"
-          >
-            <AlertCircle className="w-3 h-3 shrink-0" />
-            Cobrança não enviada — reenviar
-          </button>
-        )}
       </div>
 
       <div className="flex items-center gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">

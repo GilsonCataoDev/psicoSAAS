@@ -195,7 +195,6 @@ export interface FinancialRecord {
   paidAt?: string
   method?: 'pix' | 'credit_card' | 'debit_card' | 'cash' | 'transfer' | 'manual'
   receiptUrl?: string
-  chargeReminderError?: string | null
   createdAt: string
 }
 

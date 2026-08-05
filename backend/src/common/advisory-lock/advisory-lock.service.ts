@@ -18,7 +18,6 @@ export const JOB_LOCK_KEYS = {
   PRIVACY_RETENTION:         1013,
   INSTRUMENT_RECURRENCE:     1014,
   RECURRING_EXPENSE:         1015,
-  DATABASE_BACKUP:           1016,
 } as const
 
 @Injectable()

@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
 
 /**
  * Abstração sobre S3/R2 para armazenamento de arquivos.
@@ -93,15 +93,6 @@ export class StorageService {
   async deleteStrict(key: string): Promise<void> {
     if (!this.client) throw new Error('Storage not configured')
     await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }))
-  }
-
-  /** Lista objetos privados sob um prefixo — usado por jobs de manutenção (ex.: limpeza de backups antigos). */
-  async list(prefix: string): Promise<Array<{ key: string; lastModified?: Date }>> {
-    if (!this.client) return []
-    const result = await this.client.send(new ListObjectsV2Command({ Bucket: this.bucket, Prefix: prefix }))
-    return (result.Contents ?? [])
-      .filter((o): o is typeof o & { Key: string } => Boolean(o.Key))
-      .map(o => ({ key: o.Key, lastModified: o.LastModified }))
   }
 
   /** Extrai a key de uma URL de CDN gerada por este serviço */
