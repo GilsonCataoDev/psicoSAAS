@@ -19,6 +19,7 @@ import {
   useDeleteAppointment,
   useDeleteAppointmentGroup,
   useExtraAvailability,
+  usePatients,
   useRemoveExtraAvailability,
   useUpdateAppointmentStatus,
 } from '@/hooks/useApi'
@@ -137,6 +138,10 @@ export default function AgendaPage() {
   const { data: availability = [] } = useAvailability()
   const { data: extraAvailability = [] } = useExtraAvailability()
   const { data: blockedDates = [] } = useBlockedDates()
+  // Pre-aquece o cache de pacientes assim que a Agenda monta, ja que o NewAppointmentModal
+  // e lazy-loaded: sem isso, o primeiro clique em "Agendar"/"Alterar" da sessao dispara o
+  // fetch de /patients do zero, e o campo Pessoa renderiza vazio ate a resposta chegar.
+  usePatients()
   const { appointmentsByDate, appointmentsByDateHour, visibleHours } = useMemo(() => {
     const byDate = new Map<string, typeof appointments>()
     const byDateHour = new Map<string, typeof appointments>()
