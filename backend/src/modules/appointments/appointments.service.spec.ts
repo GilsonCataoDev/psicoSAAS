@@ -86,3 +86,61 @@ describe('AppointmentsService — sala de vídeo automática (Jitsi)', () => {
     expect(r1.meetingUrl).not.toBe(r2.meetingUrl)
   })
 })
+
+function buildGroupService() {
+  const records: any[] = [
+    { id: 'appt-1', psychologistId: 'psi-1', recurringGroupId: 'group-1', date: '2026-08-11', time: '09:00', duration: 50, modality: 'presencial', meetingUrl: undefined },
+    { id: 'appt-2', psychologistId: 'psi-1', recurringGroupId: 'group-1', date: '2026-08-18', time: '09:00', duration: 50, modality: 'presencial', meetingUrl: undefined },
+  ]
+  const noConflictQb = () => {
+    const qb: any = {}
+    qb.where = () => qb
+    qb.andWhere = () => qb
+    qb.getOne = async () => null
+    return qb
+  }
+  const repo = {
+    find: jest.fn().mockResolvedValue(records),
+    save: jest.fn().mockImplementation(async (value: any) => value),
+    createQueryBuilder: jest.fn(() => noConflictQb()),
+  }
+  const bookings = {
+    findOne: jest.fn().mockResolvedValue(null),
+    createQueryBuilder: jest.fn(() => noConflictQb()),
+  }
+  const patients = {}
+  const sessions = {}
+  const financial = {}
+  const dataSource = {}
+  const notifications = {}
+  const googleCalendar = { syncAppointment: jest.fn().mockResolvedValue(undefined) }
+
+  const service = new AppointmentsService(
+    repo as any, bookings as any, patients as any, sessions as any, financial as any,
+    dataSource as any, notifications as any, googleCalendar as any,
+  )
+  return { service, repo, records }
+}
+
+describe('AppointmentsService — updateGroup (esta e as próximas)', () => {
+  it('desloca a data de todas as ocorrências futuras pelo mesmo número de dias que a âncora foi movida', async () => {
+    const { service, repo } = buildGroupService()
+
+    const result = await service.updateGroup('group-1', '2026-08-11', { date: '2026-08-12', time: '09:00' } as any, 'psi-1')
+
+    expect(result.updated).toBe(2)
+    const saved = repo.save.mock.calls[0][0]
+    expect(saved.find((a: any) => a.id === 'appt-1').date).toBe('2026-08-12')
+    expect(saved.find((a: any) => a.id === 'appt-2').date).toBe('2026-08-19')
+  })
+
+  it('mantém a data original quando nenhuma nova data é enviada', async () => {
+    const { service, repo } = buildGroupService()
+
+    await service.updateGroup('group-1', '2026-08-11', { time: '10:00' } as any, 'psi-1')
+
+    const saved = repo.save.mock.calls[0][0]
+    expect(saved.find((a: any) => a.id === 'appt-1').date).toBe('2026-08-11')
+    expect(saved.find((a: any) => a.id === 'appt-2').date).toBe('2026-08-18')
+  })
+})

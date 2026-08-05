@@ -79,11 +79,15 @@ export class AppointmentsService {
   async create(dto: CreateAppointmentDto, psychologistId: string) {
     await this.assertPatientBelongsToPsychologist(dto.patientId, psychologistId)
 
-    const dates = this.buildOccurrenceDates(dto.date, dto.recurrence, dto.repeatUntil)
-    if (dates.length > 1) {
+    const isRecurring = dto.recurrence === 'weekly' || dto.recurrence === 'biweekly'
+    if (isRecurring) {
+      const dates = this.buildOccurrenceDates(dto.date, dto.recurrence, dto.repeatUntil)
       for (const date of dates) {
         await this.assertSlotAvailable(psychologistId, date, dto.time, dto.duration)
       }
+      // Sempre gera recurringGroupId aqui, mesmo se so 1 data sair do range (ex.: repeatUntil
+      // proximo da data inicial) - senao o appointment nasce com isRecurring:true e
+      // recurringGroupId:null, e a UI oferece "alterar esta e as proximas" sem ter grupo pra editar.
       const recurringGroupId = randomUUID()
       const saved: Appointment[] = []
       for (const date of dates) {
@@ -171,22 +175,31 @@ export class AppointmentsService {
     const all = await this.repo.find({ where: { recurringGroupId, psychologistId }, relations: ['patient'] })
     if (!all.length) throw new NotFoundException()
     if (dto.meetingUrl !== undefined) dto.meetingUrl = this.cleanMeetingUrl(dto.meetingUrl)
-    const { autoVideoRoom = true, ...groupDto } = dto
+    const { autoVideoRoom = true, date: newAnchorDate, ...groupDto } = dto
     const toUpdate = all.filter(a => a.date >= fromDate)
+    // Move a serie inteira pelo mesmo numero de dias que a ocorrencia-ancora (fromDate) foi
+    // arrastada, preservando o espacamento entre as demais ocorrencias futuras. Sem isso, o
+    // campo "date" era descartado silenciosamente (nao existia no DTO) e mudar a data no modo
+    // "esta e as proximas" nao tinha nenhum efeito.
+    const dayShift = newAnchorDate ? this.daysBetween(fromDate, newAnchorDate) : 0
     for (const appt of toUpdate) {
+      const nextDate = dayShift ? this.addDays(appt.date, dayShift) : appt.date
       await this.assertSlotAvailable(
         psychologistId,
-        appt.date,
+        nextDate,
         groupDto.time ?? appt.time,
         groupDto.duration ?? appt.duration,
         appt.id,
       )
     }
     for (const appt of toUpdate) {
+      const nextDate = dayShift ? this.addDays(appt.date, dayShift) : appt.date
       const changedSlot = (groupDto.time !== undefined && groupDto.time !== appt.time)
         || (groupDto.duration !== undefined && Number(groupDto.duration) !== Number(appt.duration))
+        || nextDate !== appt.date
       if (changedSlot) this.resetReminderTracking(appt)
       Object.assign(appt, groupDto)
+      appt.date = nextDate
       if (appt.modality === 'online' && !appt.meetingUrl && autoVideoRoom) {
         appt.meetingUrl = this.generateJitsiRoomUrl()
       }
@@ -315,6 +328,18 @@ export class AppointmentsService {
     return modality === 'online' && autoVideoRoom ? this.generateJitsiRoomUrl() : undefined
   }
 
+  private daysBetween(fromDate: string, toDate: string): number {
+    const from = new Date(`${fromDate}T00:00:00`)
+    const to = new Date(`${toDate}T00:00:00`)
+    return Math.round((to.getTime() - from.getTime()) / 86400000)
+  }
+
+  private addDays(date: string, days: number): string {
+    const result = new Date(`${date}T00:00:00`)
+    result.setDate(result.getDate() + days)
+    return result.toISOString().slice(0, 10)
+  }
+
   private timeToMinutes(time: string): number {
     const [hours, minutes] = time.slice(0, 5).split(':').map(Number)
     return (hours * 60) + (minutes || 0)
@@ -365,6 +390,7 @@ export class AppointmentsService {
     const start = new Date(`${date}T00:00:00`)
     const end = repeatUntil ? new Date(`${repeatUntil}T00:00:00`) : new Date(start)
     if (!repeatUntil) end.setMonth(end.getMonth() + 3)
+    if (end < start) return [date]
 
     const stepDays = recurrence === 'biweekly' ? 14 : 7
     const dates: string[] = []

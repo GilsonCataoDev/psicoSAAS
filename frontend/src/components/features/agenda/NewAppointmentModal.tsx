@@ -170,6 +170,7 @@ export default function NewAppointmentModal({ open, onClose, appointment, initia
             groupId: appointment.recurringGroupId,
             fromDate: appointment.date,
             data: {
+              date: updatePayload.date,
               time: updatePayload.time,
               duration: updatePayload.duration,
               modality: updatePayload.modality,
