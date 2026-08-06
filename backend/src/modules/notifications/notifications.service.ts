@@ -1106,7 +1106,8 @@ export class NotificationsService {
       })
     }
 
-    // E-mail de backup para o psicólogo
+    // E-mail de backup para o psicólogo — best-effort: falha de e-mail não pode
+    // derrubar a criação do agendamento (mesmo padrão do WhatsApp acima).
     if (page.psychologist?.email) {
       await this.email.sendBookingRequest(
         booking.patientName,
@@ -1114,7 +1115,7 @@ export class NotificationsService {
         booking.date,
         booking.time,
         confirmUrl,
-      )
+      ).catch(err => this.logger.warn(`[Booking] E-mail de solicitacao nao enviado bookingId=${booking.id}: ${err?.message ?? 'erro desconhecido'}`))
     }
 
     await this.sendBookingPush(page.psychologistId, booking, 'Nova solicitacao de agendamento')
@@ -1148,7 +1149,8 @@ export class NotificationsService {
       })
     }
 
-    // E-mail para o paciente
+    // E-mail para o paciente — best-effort: falha de e-mail não pode
+    // derrubar a confirmação do agendamento (mesmo padrão do WhatsApp acima).
     if (booking.patientEmail) {
       await this.email.sendBookingConfirmation(
         booking.patientName,
@@ -1157,7 +1159,7 @@ export class NotificationsService {
         booking.time,
         cancelUrl,
         customMessage,
-      )
+      ).catch(err => this.logger.warn(`[Booking] E-mail de confirmacao nao enviado bookingId=${booking.id}: ${err?.message ?? 'erro desconhecido'}`))
     }
 
     if (whatsAppResult?.sent === false) {
@@ -1215,6 +1217,7 @@ export class NotificationsService {
         patientName: booking.patientName,
       })
     }
+    // best-effort: falha de e-mail não pode derrubar o cancelamento do agendamento.
     if (psychologist?.email) {
       await this.email.sendBookingCancellation(
         booking.patientName,
@@ -1222,7 +1225,7 @@ export class NotificationsService {
         booking.date,
         String(booking.time).slice(0, 5),
         reason,
-      )
+      ).catch(err => this.logger.warn(`[Booking] E-mail de cancelamento nao enviado bookingId=${booking.id}: ${err?.message ?? 'erro desconhecido'}`))
     }
     await this.sendBookingPush(booking.psychologistId, booking, 'Agendamento cancelado')
 

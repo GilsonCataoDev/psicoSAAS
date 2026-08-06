@@ -59,6 +59,8 @@ const readPositiveInt = (value: string | undefined, fallback: number): number =>
         url: cfg.getOrThrow<string>('DATABASE_URL'),
         autoLoadEntities: true,
         synchronize: cfg.get<string>('TYPEORM_SYNC') === 'true' && cfg.get<string>('NODE_ENV') !== 'production',
+        // Só usado por test/env-setup.ts — nunca em produção (guardado pelo mesmo NODE_ENV acima).
+        dropSchema: cfg.get<string>('TYPEORM_DROP_SCHEMA') === 'true' && cfg.get<string>('NODE_ENV') !== 'production',
         logging: ['error'],
         extra: {
           max: readPositiveInt(cfg.get<string>('DB_POOL_MAX'), 10),

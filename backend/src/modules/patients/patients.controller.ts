@@ -29,7 +29,7 @@ export class PatientsController {
     @Request() req: any,
     @Res() res: Response,
   ) {
-    const { filename, buffer } = await this.svc.exportProntuario(
+    const { filename, stream } = await this.svc.exportProntuario(
       id,
       req.user.id,
       req.user.name,
@@ -47,10 +47,16 @@ export class PatientsController {
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': pdfAttachment(filename),
-      'Content-Length': buffer.length,
       'Cache-Control': 'private, no-store',
+      // Sem Content-Length: o tamanho final só é conhecido ao fim do stream.
+      // Express/Node cuidam do chunked transfer encoding automaticamente.
     })
-    res.end(buffer)
+    stream.on('error', () => {
+      if (!res.headersSent) res.status(500)
+      res.end()
+    })
+    stream.pipe(res)
+    stream.end()
   }
 
   // O guard de classe bloqueia toda a area de pacientes durante impersonacao.

@@ -396,7 +396,7 @@ export class PatientsService {
     psychologistName: string,
     psychologistCrp: string,
     exportOptions: ProntuarioExportOptions = {},
-  ): Promise<{ filename: string; buffer: Buffer }> {
+  ): Promise<{ filename: string; stream: PDFKit.PDFDocument }> {
     const patient = await this.findRaw(patientId, psychologistId, ['sessions'])
     const p = this.dec(patient)
     const options = normalizeProntuarioExportOptions(exportOptions)
@@ -415,8 +415,6 @@ export class PatientsService {
       Subject: 'Prontuário Clínico',
       Keywords: 'UseCognia, prontuário, psicologia',
     } })
-    const done = this.collectPdf(pdf)
-
     const W = pdf.page.width
     const H = pdf.page.height
     const L = 44, R = W - 44
@@ -640,20 +638,12 @@ export class PatientsService {
       drawFooter(i + 1, range.count)
     }
 
-    pdf.end()
-
     const safeName = p.name.replace(/[^a-zA-Z0-9À-ɏ\s]/g, '').trim().replace(/\s+/g, '_')
     const filename = `${patientCopy ? 'Copia_Prontuario' : 'Backup_Profissional'}_${safeName}_${new Date().toISOString().slice(0, 10)}.pdf`
 
-    return { filename, buffer: await done }
-  }
-
-  private collectPdf(pdf: PDFKit.PDFDocument): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
-      const chunks: Buffer[] = []
-      pdf.on('data', chunk => chunks.push(Buffer.from(chunk)))
-      pdf.on('end', () => resolve(Buffer.concat(chunks)))
-      pdf.on('error', reject)
-    })
+    // Não bufferizamos o PDF inteiro em memória (chunks[] + Buffer.concat) — o
+    // chamador faz pdf.pipe(res) e só então chama pdf.end(), deixando o stream
+    // fluir direto pro socket em vez de duplicar o documento inteiro no heap.
+    return { filename, stream: pdf }
   }
 }
