@@ -56,7 +56,7 @@
     "rxjs": "^7.8.1",
     "svix": "^1.96.1",
     "typeorm": "^0.3.31",
-    "typescript": "^5.5.4",
+    "typescript": "^7.0.2",
     "uuid": "^14.0.0",
     "web-push": "^3.6.7"
   },
