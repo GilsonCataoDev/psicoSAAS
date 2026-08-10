@@ -6,6 +6,9 @@ type PageSeo = {
   canonicalPath: string
   type?: 'website' | 'article'
   image?: string
+  publishedTime?: string
+  modifiedTime?: string
+  section?: string
   jsonLd?: Record<string, unknown>
 }
 
@@ -29,7 +32,7 @@ function setMeta(selector: string, attribute: 'name' | 'property', key: string, 
   }
 }
 
-export function usePageSeo({ title, description, canonicalPath, type = 'website', image = DEFAULT_IMAGE, jsonLd }: PageSeo) {
+export function usePageSeo({ title, description, canonicalPath, type = 'website', image = DEFAULT_IMAGE, publishedTime, modifiedTime, section, jsonLd }: PageSeo) {
   useEffect(() => {
     const previousTitle = document.title
     const canonicalUrl = new URL(canonicalPath, SITE_URL).toString()
@@ -49,11 +52,19 @@ export function usePageSeo({ title, description, canonicalPath, type = 'website'
       setMeta('meta[property="og:description"]', 'property', 'og:description', description),
       setMeta('meta[property="og:type"]', 'property', 'og:type', type),
       setMeta('meta[property="og:url"]', 'property', 'og:url', canonicalUrl),
+      setMeta('meta[property="og:site_name"]', 'property', 'og:site_name', 'UseCognia'),
       setMeta('meta[property="og:image"]', 'property', 'og:image', image),
+      setMeta('meta[property="og:image:alt"]', 'property', 'og:image:alt', title),
       setMeta('meta[name="twitter:title"]', 'name', 'twitter:title', title),
       setMeta('meta[name="twitter:description"]', 'name', 'twitter:description', description),
       setMeta('meta[name="twitter:image"]', 'name', 'twitter:image', image),
+      setMeta('meta[name="twitter:image:alt"]', 'name', 'twitter:image:alt', title),
     ]
+    if (type === 'article') {
+      if (publishedTime) restoreMeta.push(setMeta('meta[property="article:published_time"]', 'property', 'article:published_time', publishedTime))
+      if (modifiedTime) restoreMeta.push(setMeta('meta[property="article:modified_time"]', 'property', 'article:modified_time', modifiedTime))
+      if (section) restoreMeta.push(setMeta('meta[property="article:section"]', 'property', 'article:section', section))
+    }
     let script: HTMLScriptElement | undefined
     if (jsonLd) {
       script = document.createElement('script')
@@ -68,5 +79,5 @@ export function usePageSeo({ title, description, canonicalPath, type = 'website'
       script?.remove()
       restoreMeta.forEach(restore => restore())
     }
-  }, [canonicalPath, description, image, jsonLd, title, type])
+  }, [canonicalPath, description, image, jsonLd, modifiedTime, publishedTime, section, title, type])
 }
