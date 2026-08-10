@@ -1110,7 +1110,7 @@ export class NotificationsService {
 
     const defaultMsg = lead === '24h'
       ? `Ola, ${first}!\n\nLembrando que temos nosso encontro em *${dateLabel}* as *${timeLabel}*.\n\nAte la!`
-      : `Ola, ${first}!\n\nPassando para lembrar que nossa sessao e hoje as *${timeLabel}*.\n\nAte daqui a pouco!`
+      : `Ola, ${first}!\n\nPassando para lembrar que nossa sessao acontece em *${dateLabel}* as *${timeLabel}*.\n\nAte daqui a pouco!`
     // Template específico do lead (24h/1h) tem prioridade; a chave reminderTemplate2h
     // é mantida apenas para não invalidar preferências já salvas.
     // único legado (contas que customizaram antes da separação) e por fim para

@@ -20,7 +20,7 @@ export const DEFAULT_PREFS = {
   confirmationTemplate: 'Ola, {{nome}}! Sua sessao esta confirmada para {{data}} as {{hora}}. Se precisar cancelar ou remarcar, me avise com antecedencia.',
   reminderTemplate: 'Ola, {{nome}}! Passando para lembrar da nossa sessao em {{data}} as {{hora}}. Qualquer imprevisto, me avise.',
   reminderTemplate24h: 'Ola, {{nome}}! Lembrando que temos nosso encontro em {{data}} as {{hora}}. Ate la!',
-  reminderTemplate2h: 'Ola, {{nome}}! Passando para lembrar que nossa sessao e hoje as {{hora}}. Ate daqui a pouco!',
+  reminderTemplate2h: 'Ola, {{nome}}! Passando para lembrar que nossa sessao acontece em {{data}} as {{hora}}. Ate daqui a pouco!',
 }
 
 export type Prefs = typeof DEFAULT_PREFS

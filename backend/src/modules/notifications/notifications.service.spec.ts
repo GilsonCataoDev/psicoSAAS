@@ -731,6 +731,30 @@ describe('NotificationsService.sendAppointmentReminder — template por lead (24
     expect(sentText).toContain('Lembrando que temos nosso encontro em')
   })
 
+  it('informa a data real no lembrete de 1h em vez de afirmar que a sessao e hoje', async () => {
+    await service.sendAppointmentReminder({
+      ...baseAppointment({}),
+      date: '2026-08-11',
+      time: '00:30',
+    }, '1h')
+
+    expect(sentText).toContain('11 de agosto')
+    expect(sentText.toLowerCase()).not.toContain('sessao e hoje')
+  })
+
+  it('corrige o modelo curto antigo que tinha a palavra hoje fixa', async () => {
+    await service.sendAppointmentReminder({
+      ...baseAppointment({
+        reminderTemplate2h: 'Ola, {{nome}}! Nossa sessao e hoje as {{hora}}.',
+      }),
+      date: '2026-08-11',
+      time: '00:30',
+    }, '1h')
+
+    expect(sentText).toContain('11 de agosto')
+    expect(sentText.toLowerCase()).not.toContain('sessao e hoje')
+  })
+
   it('ignora template que renderiza somente o horario e usa a mensagem completa', async () => {
     await service.sendAppointmentReminder(baseAppointment({
       reminderTemplate24h: '{{hora}}',
