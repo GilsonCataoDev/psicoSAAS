@@ -1,0 +1,67 @@
+[
+  {
+    "slug": "como-organizar-prontuario-psicologico-com-seguranca",
+    "title": "Como organizar o prontuário psicológico com mais segurança",
+    "description": "Um roteiro prático para manter registros psicológicos organizados, atualizados e protegidos, com atenção ao sigilo profissional e à LGPD.",
+    "category": "Prontuário e segurança",
+    "publishedAt": "2026-08-10",
+    "updatedAt": "2026-08-10",
+    "readingMinutes": 7,
+    "author": "Equipe UseCognia",
+    "keywords": ["prontuário psicológico", "prontuário eletrônico para psicólogos", "LGPD para psicólogos", "segurança de dados na psicologia"],
+    "intro": [
+      "O prontuário não é apenas um arquivo de anotações. Ele ajuda a acompanhar o serviço prestado, sustentar decisões profissionais e preservar a continuidade do atendimento.",
+      "Na prática, segurança depende de duas coisas: uma rotina de registro consistente e ferramentas que reduzam acessos indevidos, perdas e compartilhamentos acidentais."
+    ],
+    "sections": [
+      {
+        "heading": "1. Registre o necessário de forma objetiva",
+        "paragraphs": [
+          "A Resolução CFP nº 001/2009 estabelece que o registro deve contemplar, de forma sucinta, o trabalho prestado, a descrição e a evolução da atividade e os procedimentos técnico-científicos adotados.",
+          "Evite transformar a evolução em uma transcrição completa da sessão. Priorize informações que ajudem a compreender o acompanhamento e as decisões profissionais, usando linguagem técnica, clara e respeitosa."
+        ]
+      },
+      {
+        "heading": "2. Mantenha os registros atualizados e organizados",
+        "paragraphs": [
+          "Registrar vários dias depois aumenta a chance de omissões e confusões. Uma rotina simples é reservar alguns minutos após cada atendimento para finalizar a evolução e conferir os próximos passos.",
+          "Use uma estrutura consistente para facilitar consultas futuras. Por exemplo: contexto relevante, procedimentos realizados, evolução observada e encaminhamentos. A estrutura deve apoiar o raciocínio do profissional, sem engessá-lo."
+        ]
+      },
+      {
+        "heading": "3. Trate informações de saúde como dados sensíveis",
+        "paragraphs": [
+          "A LGPD classifica dados referentes à saúde como dados pessoais sensíveis. Por isso, prontuários, anexos e informações clínicas exigem controles proporcionais ao risco.",
+          "Na escolha de uma ferramenta, verifique conexão HTTPS, autenticação individual, controle de acesso, registro de atividades, política de backups e procedimentos de exportação e exclusão. Não compartilhe senhas entre profissionais."
+        ]
+      },
+      {
+        "heading": "4. Separe comunicação administrativa de conteúdo clínico",
+        "paragraphs": [
+          "Mensagens de confirmação e lembretes devem conter apenas informações operacionais, como data, horário e orientação para reagendamento. Diagnósticos, hipóteses e detalhes da sessão não devem aparecer em mensagens administrativas.",
+          "Ao enviar documentos, confirme destinatário, finalidade e canal. Links temporários e mecanismos de verificação ajudam a reduzir exposição desnecessária."
+        ]
+      },
+      {
+        "heading": "5. Prepare-se para solicitações de acesso",
+        "paragraphs": [
+          "Manter o prontuário organizado facilita localizar registros e responder a solicitações sem reunir arquivos manualmente em diferentes aplicativos.",
+          "Antes de entregar qualquer material, avalie o tipo de registro, a identidade de quem solicita e as orientações profissionais aplicáveis ao caso. Em situações de dúvida, consulte o Conselho Regional de Psicologia."
+        ]
+      }
+    ],
+    "checklist": [
+      "Registrar cada atendimento em prazo próximo à sessão",
+      "Usar linguagem objetiva e profissional",
+      "Manter acesso individual, sem senhas compartilhadas",
+      "Evitar conteúdo clínico em lembretes e cobranças",
+      "Conferir destinatário e finalidade antes de enviar documentos",
+      "Revisar periodicamente acessos, backups e políticas de retenção"
+    ],
+    "references": [
+      {"label": "Resolução CFP nº 001/2009 — registro documental", "url": "https://site.cfp.org.br/wp-content/uploads/2009/04/resolucao2009_01.pdf"},
+      {"label": "Lei nº 13.709/2018 — Lei Geral de Proteção de Dados Pessoais", "url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709compilado.htm"},
+      {"label": "Manual orientativo de registro e elaboração de documentos psicológicos — CFP", "url": "https://site.cfp.org.br/publicacao/manual-orientativo-de-registro-e-elaboracao-de-documentos-psicologicos/"}
+    ]
+  }
+]

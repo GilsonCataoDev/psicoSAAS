@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Blog UseCognia</title>
+    <link>https://usecognia.com.br/blog</link>
+    <description>Conteúdos sobre organização, prontuário, privacidade e gestão para psicólogos.</description>
+    <language>pt-BR</language>
+    <atom:link href="https://usecognia.com.br/feed.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Como organizar o prontuário psicológico com mais segurança</title>
+      <link>https://usecognia.com.br/blog/como-organizar-prontuario-psicologico-com-seguranca</link>
+      <guid isPermaLink="true">https://usecognia.com.br/blog/como-organizar-prontuario-psicologico-com-seguranca</guid>
+      <pubDate>Mon, 10 Aug 2026 12:00:00 GMT</pubDate>
+      <description>Um roteiro prático para manter registros psicológicos organizados, atualizados e protegidos.</description>
+    </item>
+  </channel>
+</rss>

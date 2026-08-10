@@ -30,6 +30,8 @@ const LegalPage           = lazy(() => import('@/pages/LegalPage'))
 const SecurityPage        = lazy(() => import('@/pages/SecurityPage'))
 const DpaPage             = lazy(() => import('@/pages/DpaPage'))
 const AccessibilityPage   = lazy(() => import('@/pages/AccessibilityPage'))
+const BlogPage            = lazy(() => import('@/pages/BlogPage'))
+const BlogPostPage        = lazy(() => import('@/pages/BlogPostPage'))
 const InstrumentosPage    = lazy(() => import('@/pages/InstrumentosPage'))
 const AdminPage           = lazy(() => import('@/pages/AdminPage'))
 const TestimonialsPage    = lazy(() => import('@/pages/admin/TestimonialsPage'))
@@ -114,6 +116,8 @@ export default function App() {
         <Route path="/seguranca" element={<SecurityPage />} />
         <Route path="/dpa" element={<DpaPage />} />
         <Route path="/acessibilidade" element={<AccessibilityPage />} />
+        <Route path="/blog" element={<BlogPage />} />
+        <Route path="/blog/:slug" element={<BlogPostPage />} />
         <Route path="/precos" element={<PricingPage publicView />} />
 
         {/* ── Rotas públicas de autenticação ──────────────────────── */}
