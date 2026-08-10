@@ -259,6 +259,7 @@ export default function LandingPage() {
             <a href="#produto" className="hover:text-sage-700">Produto</a>
             <a href="#grátis" className="hover:text-sage-700">Plano grátis</a>
             <button onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-sage-700">Dúvidas</button>
+            <Link to="/blog" className="hover:text-sage-700">Blog</Link>
             <Link to="/seguranca" className="hover:text-sage-700">Segurança</Link>
           </nav>
           <div className="flex items-center gap-2">
@@ -751,6 +752,7 @@ export default function LandingPage() {
                 <li><a href="#grátis" className="hover:text-sage-700">Plano grátis</a></li>
                 <li><Link to="/precos" className="hover:text-sage-700">Planos pagos</Link></li>
                 <li><Link to="/seguranca" className="hover:text-sage-700">Segurança</Link></li>
+                <li><Link to="/blog" className="hover:text-sage-700">Blog</Link></li>
               </ul>
             </div>
 

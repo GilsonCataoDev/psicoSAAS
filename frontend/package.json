@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "postbuild": "node scripts/create-spa-fallbacks.mjs",
+    "postbuild": "node scripts/create-spa-fallbacks.mjs && node scripts/prerender-blog.mjs",
     "preview": "vite preview",
     "preview:dist": "node scripts/serve-dist.mjs",
     "lint": "eslint src --ext ts,tsx",
