@@ -51,7 +51,7 @@ export default function BrandLogo({ compact = false, light = false, className }:
       </svg>
       {!compact && (
         <span className={`font-display text-xl font-bold tracking-tight ${light ? 'text-white' : 'text-neutral-900'}`}>
-          Use<span className={light ? 'text-[#B7DFCD]' : 'text-[#2F7657]'}>Cognia</span>
+          Use<span className={light ? 'text-[#B7DFCD]' : 'text-[#2F7657] dark:text-[#B7DFCD]'}>Cognia</span>
         </span>
       )}
     </div>
