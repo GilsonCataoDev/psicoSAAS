@@ -4,12 +4,14 @@ export type BlogPost = {
   slug: string
   title: string
   description: string
+  image: string
   category: string
   publishedAt: string
   updatedAt: string
   readingMinutes: number
   author: string
   keywords: string[]
+  relatedSlugs: string[]
   intro: string[]
   sections: BlogSection[]
   checklist: string[]

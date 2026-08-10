@@ -30,6 +30,7 @@ export default function BlogPage() {
           <div className="grid gap-6 md:grid-cols-2">
             {posts.map(post => (
               <article key={post.slug} className="group flex flex-col rounded-2xl border border-[#DDE5DC] bg-white p-6 shadow-card transition hover:-translate-y-0.5 hover:border-sage-300 hover:shadow-lifted sm:p-7">
+                <Link to={`/blog/${post.slug}`} className="-mx-6 -mt-6 mb-6 overflow-hidden rounded-t-2xl sm:-mx-7 sm:-mt-7" tabIndex={-1} aria-hidden="true"><img src={post.image} alt="" width="1200" height="630" loading="lazy" className="aspect-[1200/630] w-full object-cover transition duration-300 group-hover:scale-[1.02]" /></Link>
                 <div className="flex flex-wrap items-center gap-3 text-xs font-semibold"><span className="rounded-full bg-sage-50 px-3 py-1.5 text-sage-800">{post.category}</span><span className="inline-flex items-center gap-1.5 text-[#7C776B] dark:text-neutral-300"><CalendarDays className="h-3.5 w-3.5" /> {dateFormatter.format(new Date(`${post.publishedAt}T00:00:00Z`))}</span></div>
                 <h3 className="mt-5 text-2xl font-bold leading-snug group-hover:text-sage-800"><Link to={`/blog/${post.slug}`}>{post.title}</Link></h3>
                 <p className="mt-3 flex-1 leading-relaxed text-[#5F5A51] dark:text-neutral-300">{post.description}</p>
