@@ -567,7 +567,16 @@ export class NotificationsService {
     const outbox = meta.idempotencyKey
       ? await this.claimOutbox(ownerId, phone, text, meta)
       : null
-    if (outbox?.duplicate) return { sent: true, providerStatus: 'idempotent_duplicate' }
+    if (outbox?.duplicate) {
+      return outbox.completed
+        ? { sent: true, providerStatus: 'idempotent_duplicate' }
+        : {
+            sent: false,
+            reason: 'api_error',
+            error: 'Mensagem aguardando confirmacao ou nova tentativa',
+            providerStatus: 'retry_pending',
+          }
+    }
     result = useCloud
       ? await this.cloudWhatsApp.send({ ownerId, phone, text, template: meta.cloudTemplate })
       : await this.deliverWhatsApp(phone, text, ownerId, true, meta.verifyDelivery ?? true)
@@ -576,7 +585,7 @@ export class NotificationsService {
     return result
   }
 
-  private async claimOutbox(ownerId: string, phone: string, text: string, meta: WhatsAppLogMeta): Promise<{ duplicate: boolean; entity?: WhatsAppOutbox }> {
+  private async claimOutbox(ownerId: string, phone: string, text: string, meta: WhatsAppLogMeta): Promise<{ duplicate: boolean; completed?: boolean; entity?: WhatsAppOutbox }> {
     const key = meta.idempotencyKey!
     await this.whatsAppOutbox.createQueryBuilder().insert().values({
       userId: ownerId,
@@ -587,8 +596,13 @@ export class NotificationsService {
       content: text,
     }).orIgnore().execute()
     const entity = await this.whatsAppOutbox.findOneOrFail({ where: { idempotencyKey: key } })
-    if (['accepted', 'delivered', 'read'].includes(entity.status)) return { duplicate: true }
-    if (entity.status === 'sending' && Date.now() - entity.updatedAt.getTime() < 5 * 60_000) return { duplicate: true }
+    if (['accepted', 'delivered', 'read'].includes(entity.status)) return { duplicate: true, completed: true }
+    if (entity.status === 'sending' && Date.now() - entity.updatedAt.getTime() < 5 * 60_000) {
+      return { duplicate: true, completed: false }
+    }
+    if (entity.status === 'failed' && entity.nextAttemptAt && entity.nextAttemptAt.getTime() > Date.now()) {
+      return { duplicate: true, completed: false }
+    }
     entity.status = 'sending'
     entity.provider = this.cloudWhatsApp.isEnabledFor(ownerId) && meta.cloudTemplate ? 'cloud_api' : 'evolution'
     entity.attempts += 1
@@ -606,10 +620,7 @@ export class NotificationsService {
     await this.whatsAppOutbox.save(entity)
   }
 
-  /**
-   * Reprocessa apenas falhas confirmadas da Evolution. Resultados aceitos ou
-   * ambiguos ficam de fora para nao duplicar uma mensagem possivelmente entregue.
-   */
+  /** Reprocessa falhas da Evolution respeitando backoff e limite de tentativas. */
   async retryDueWhatsAppOutbox(now = new Date(), limit = 20): Promise<number> {
     const staleSending = new Date(now.getTime() - 5 * 60_000)
     const candidates = await this.whatsAppOutbox.find({
@@ -763,10 +774,21 @@ export class NotificationsService {
           return acceptedResult
         }
 
-        // Uma consulta inconclusiva não prova falha. Reenviar nesse estado cria
-        // duplicidade quando a primeira mensagem só demorou para ser indexada.
+        // A resposta sincrona da Evolution nao comprova entrega. Se a consulta
+        // posterior continuar inconclusiva, a outbox agenda uma nova tentativa.
         if (verification === 'unknown') {
-          this.logger.warn(`[WhatsApp] Verificacao inconclusiva instance=${instance} messageId=${provider.messageId}; envio nao repetido para evitar duplicidade`)
+          this.logger.warn(`[WhatsApp] Verificacao inconclusiva instance=${instance} messageId=${provider.messageId}; envio mantido pendente`)
+          return {
+            sent: false,
+            reason: 'api_error',
+            error: 'Evolution aceitou a mensagem, mas a entrega nao foi confirmada',
+            providerMessageId: provider.messageId,
+            providerStatus: 'unverified',
+            contentLength: provider.text.trim().length,
+          }
+        }
+
+        if (verification === 'skipped') {
           return { ...acceptedResult, providerStatus: 'unverified' }
         }
 
@@ -835,9 +857,9 @@ export class NotificationsService {
     messageId: string,
     expectedText: string,
     attempt: 1 | 2 | 3 = 1,
-  ): Promise<'ok' | 'empty' | 'mismatch' | 'unknown'> {
+  ): Promise<'ok' | 'empty' | 'mismatch' | 'unknown' | 'skipped'> {
     // Evita atraso real e chamadas de rede extras durante os testes (mocks cobrem só o fluxo de sendText).
-    if (process.env.JEST_WORKER_ID !== undefined) return 'unknown'
+    if (process.env.JEST_WORKER_ID !== undefined) return 'skipped'
 
     const maxAttempts = NotificationsService.WA_VERIFY_DELAYS_MS.length as 1 | 2 | 3
     await new Promise(resolve => setTimeout(resolve, NotificationsService.WA_VERIFY_DELAYS_MS[attempt - 1]))
@@ -847,7 +869,12 @@ export class NotificationsService {
         headers: { apikey: this.WA_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({ where: { key: { id: messageId } } }),
       })
-      if (!res.ok) return 'unknown'
+      if (!res.ok) {
+        if (attempt < maxAttempts) {
+          return this.verifyWhatsAppDelivery(instance, messageId, expectedText, (attempt + 1) as 1 | 2 | 3)
+        }
+        return 'unknown'
+      }
 
       const data = await res.json().catch(() => null) as any
       const records: any[] = Array.isArray(data)
@@ -875,6 +902,9 @@ export class NotificationsService {
       if (!persistedText.trim()) return 'empty'
       return persistedText.trim() === expectedText.trim() ? 'ok' : 'mismatch'
     } catch {
+      if (attempt < maxAttempts) {
+        return this.verifyWhatsAppDelivery(instance, messageId, expectedText, (attempt + 1) as 1 | 2 | 3)
+      }
       return 'unknown'
     }
   }
