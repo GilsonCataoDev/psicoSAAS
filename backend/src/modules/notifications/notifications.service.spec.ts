@@ -3,6 +3,22 @@ import { NotificationsService } from './notifications.service'
 
 process.env.ENCRYPTION_KEY = 'notifications-test-key-with-32-chars!'
 
+function makeOutboxRepo() {
+  const builder: any = {}
+  builder.insert = jest.fn(() => builder)
+  builder.values = jest.fn(() => builder)
+  builder.orIgnore = jest.fn(() => builder)
+  builder.execute = jest.fn(async () => ({}))
+  return {
+    createQueryBuilder: jest.fn(() => builder),
+    find: jest.fn().mockResolvedValue([]),
+    findOneOrFail: jest.fn(async () => ({ status: 'pending', attempts: 0 })),
+    save: jest.fn(async (value: any) => value),
+  }
+}
+
+const disabledCloudProvider = { isEnabledFor: jest.fn(() => false), isConfigured: jest.fn(() => false), send: jest.fn() }
+
 describe('NotificationsService WhatsApp delivery validation', () => {
   const ownerId = 'psychologist-id'
   const savedLogs: Record<string, unknown>[] = []
@@ -29,6 +45,19 @@ describe('NotificationsService WhatsApp delivery validation', () => {
       return value
     }),
   }
+  const outboxEntity: any = { status: 'pending', attempts: 0 }
+  const outboxBuilder: any = {}
+  outboxBuilder.insert = jest.fn(() => outboxBuilder)
+  outboxBuilder.values = jest.fn(() => outboxBuilder)
+  outboxBuilder.orIgnore = jest.fn(() => outboxBuilder)
+  outboxBuilder.execute = jest.fn(async () => ({}))
+  const whatsAppOutbox = {
+    createQueryBuilder: jest.fn(() => outboxBuilder),
+    find: jest.fn().mockResolvedValue([]),
+    findOneOrFail: jest.fn(async () => ({ ...outboxEntity })),
+    save: jest.fn(async (value: any) => value),
+  }
+  const cloudWhatsApp = { isEnabledFor: jest.fn(() => false), isConfigured: jest.fn(() => false), send: jest.fn() }
 
   let service: NotificationsService
 
@@ -44,6 +73,8 @@ describe('NotificationsService WhatsApp delivery validation', () => {
       pushSubscriptions as any,
       nativePushTokens as any,
       whatsAppLogs as any,
+      whatsAppOutbox as any,
+      cloudWhatsApp as any,
     )
   })
 
@@ -211,7 +242,54 @@ describe('NotificationsService WhatsApp delivery validation', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1)
   })
 
-  it('resends once when the provider confirms sendText but persists the message blank', async () => {
+  it('does not resend when persisted content differs from the requested message', async () => {
+    const text = 'Mensagem correta'
+    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+      key: { id: 'message-id', fromMe: true },
+      message: { extendedTextMessage: { text } },
+      status: 'PENDING',
+    }), { status: 201, headers: { 'Content-Type': 'application/json' } }))
+    jest.spyOn(service as any, 'verifyWhatsAppDelivery').mockResolvedValue('mismatch')
+
+    const result = await service.sendDirectWhatsApp('11999999999', text, ownerId)
+
+    expect(result).toEqual(expect.objectContaining({
+      sent: false,
+      nonRetryable: true,
+      providerMessageId: 'message-id',
+    }))
+    expect(result.error).toContain('duplicidade')
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('retries a due Evolution outbox item and marks it accepted', async () => {
+    const text = 'Lembrete confirmado'
+    const entity = {
+      id: 'outbox-id',
+      userId: ownerId,
+      provider: 'evolution',
+      status: 'failed',
+      attempts: 1,
+      recipientPhone: '11999999999',
+      content: text,
+      nextAttemptAt: new Date('2026-08-10T10:00:00Z'),
+    }
+    whatsAppOutbox.find.mockResolvedValueOnce([entity])
+    jest.spyOn(global, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+      key: { id: 'retried-message-id', fromMe: true },
+      message: { extendedTextMessage: { text } },
+      status: 'PENDING',
+    }), { status: 201, headers: { 'Content-Type': 'application/json' } }))
+
+    const processed = await service.retryDueWhatsAppOutbox(new Date('2026-08-10T11:00:00Z'))
+
+    expect(processed).toBe(1)
+    expect(entity.attempts).toBe(2)
+    expect(entity.status).toBe('accepted')
+    expect(entity.nextAttemptAt).toBeNull()
+  })
+
+  it('does not immediately resend when the provider persists a blank message', async () => {
     const text = 'Sua sessao foi confirmada'
     const originalWorkerId = process.env.JEST_WORKER_ID
     delete process.env.JEST_WORKER_ID
@@ -226,33 +304,24 @@ describe('NotificationsService WhatsApp delivery validation', () => {
         .mockResolvedValueOnce(new Response(JSON.stringify({
           messages: { records: [{ key: { id: 'first-message-id' }, message: { extendedTextMessage: { text: '' } } }] },
         }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
-        .mockResolvedValueOnce(new Response(JSON.stringify({
-          key: { id: 'second-message-id', fromMe: true },
-          message: { extendedTextMessage: { text } },
-          status: 'PENDING',
-        }), { status: 201, headers: { 'Content-Type': 'application/json' } }))
-        .mockResolvedValueOnce(new Response(JSON.stringify({
-          messages: { records: [{ key: { id: 'second-message-id' }, message: { extendedTextMessage: { text } } }] },
-        }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
 
       const result = await service.sendDirectWhatsApp('11999999999', text, ownerId)
 
       expect(result).toEqual(expect.objectContaining({
-        sent: true,
-        providerMessageId: 'second-message-id',
+        sent: false,
+        providerMessageId: 'first-message-id',
       }))
-      expect(fetchSpy).toHaveBeenCalledTimes(4)
+      expect(result.error).toContain('intervalo')
+      expect(fetchSpy).toHaveBeenCalledTimes(2)
       expect(String(fetchSpy.mock.calls[1][0])).toContain('/chat/findMessages/')
-      expect(String(fetchSpy.mock.calls[2][0])).toContain('/message/sendText/')
-      expect(String(fetchSpy.mock.calls[3][0])).toContain('/chat/findMessages/')
       expect(savedLogs).toHaveLength(1)
-      expect(savedLogs[0]).toEqual(expect.objectContaining({ status: 'sent', providerMessageId: 'second-message-id' }))
+      expect(savedLogs[0]).toEqual(expect.objectContaining({ status: 'failed', providerMessageId: 'first-message-id' }))
     } finally {
       if (originalWorkerId !== undefined) process.env.JEST_WORKER_ID = originalWorkerId
     }
   }, 10000)
 
-  it('reports failure when both the original confirmation and its retry persist blank', async () => {
+  it('marks a blank persisted confirmation as retryable for the outbox', async () => {
     const text = 'Sua sessao foi confirmada para 22/07 as 14:00'
     const originalWorkerId = process.env.JEST_WORKER_ID
     delete process.env.JEST_WORKER_ID
@@ -270,8 +339,6 @@ describe('NotificationsService WhatsApp delivery validation', () => {
       const fetchSpy = jest.spyOn(global, 'fetch')
         .mockResolvedValueOnce(accepted('first-confirmation-id'))
         .mockResolvedValueOnce(blankPersisted('first-confirmation-id'))
-        .mockResolvedValueOnce(accepted('retry-confirmation-id'))
-        .mockResolvedValueOnce(blankPersisted('retry-confirmation-id'))
 
       const result = await service.sendDirectWhatsApp('11999999999', text, ownerId, {
         type: 'Confirmacao de agenda',
@@ -280,10 +347,11 @@ describe('NotificationsService WhatsApp delivery validation', () => {
       expect(result).toEqual(expect.objectContaining({
         sent: false,
         reason: 'api_error',
-        providerMessageId: 'retry-confirmation-id',
+        providerMessageId: 'first-confirmation-id',
       }))
-      expect(result.error).toContain('sem conteúdo')
-      expect(fetchSpy).toHaveBeenCalledTimes(4)
+      expect(result.error).toMatch(/sem conte/)
+      expect(result.nonRetryable).not.toBe(true)
+      expect(fetchSpy).toHaveBeenCalledTimes(2)
       expect(savedLogs).toEqual([expect.objectContaining({ status: 'failed' })])
     } finally {
       if (originalWorkerId !== undefined) process.env.JEST_WORKER_ID = originalWorkerId
@@ -313,10 +381,6 @@ describe('NotificationsService WhatsApp delivery validation', () => {
     expect(result).toEqual(failure)
   })
 
-    // Um resultado inconclusivo (falha na consulta de verificação, por exemplo)
-    // é tratado com a mesma urgência de um vazio confirmado — reenvia antes de
-    // aceitar, já que a psicóloga pode ver a mensagem certa na própria conversa
-    // mesmo quando o paciente recebe em branco.
   it('uses the public booking page confirmation message when present', async () => {
     const sendSpy = jest.spyOn(service as any, 'sendWhatsApp').mockResolvedValue({ sent: true })
 
@@ -633,7 +697,7 @@ describe('NotificationsService.sendAppointmentReminder — template por lead (24
   beforeEach(() => {
     jest.clearAllMocks()
     users.findOneBy.mockResolvedValue({ email: 'gilsonfilho96@outlook.com' })
-    service = new NotificationsService(cfg, {} as any, planAccess as any, users as any, pushSubscriptions as any, nativePushTokens as any, whatsAppLogs as any)
+    service = new NotificationsService(cfg, {} as any, planAccess as any, users as any, pushSubscriptions as any, nativePushTokens as any, whatsAppLogs as any, makeOutboxRepo() as any, disabledCloudProvider as any)
     sentText = ''
     jest.spyOn(global, 'fetch').mockImplementation(async (_url, init: any) => {
       const body = JSON.parse(init.body)

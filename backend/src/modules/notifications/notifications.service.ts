@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { LessThanOrEqual, Repository } from 'typeorm'
 import * as webpush from 'web-push'
 import { cert, getApps, initializeApp } from 'firebase-admin/app'
 import { getMessaging } from 'firebase-admin/messaging'
@@ -10,6 +10,9 @@ import { User } from '../auth/entities/user.entity'
 import { PushSubscriptionEntity } from './entities/push-subscription.entity'
 import { NativePushTokenEntity, NativePushPlatform } from './entities/native-push-token.entity'
 import { WhatsAppDeliveryLog } from './entities/whatsapp-delivery-log.entity'
+import { WhatsAppOutbox } from './entities/whatsapp-outbox.entity'
+import { CloudWhatsAppProvider } from './providers/cloud-whatsapp.provider'
+import { WhatsAppTemplate } from './providers/whatsapp-provider'
 import { SavePushSubscriptionDto } from './dto/push-subscription.dto'
 import { RegisterNativePushTokenDto } from './dto/native-push-token.dto'
 import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
@@ -65,6 +68,8 @@ type WhatsAppLogMeta = {
   patientId?: string | null
   patientName?: string | null
   verifyDelivery?: boolean
+  idempotencyKey?: string
+  cloudTemplate?: WhatsAppTemplate
 }
 
 // Formato documentado da Evolution API v2 (POST /message/sendText/{instance}):
@@ -104,6 +109,8 @@ export class NotificationsService {
     @InjectRepository(PushSubscriptionEntity) private pushSubscriptions: Repository<PushSubscriptionEntity>,
     @InjectRepository(NativePushTokenEntity) private nativePushTokens: Repository<NativePushTokenEntity>,
     @InjectRepository(WhatsAppDeliveryLog) private whatsAppLogs: Repository<WhatsAppDeliveryLog>,
+    @InjectRepository(WhatsAppOutbox) private whatsAppOutbox: Repository<WhatsAppOutbox>,
+    private readonly cloudWhatsApp: CloudWhatsAppProvider,
   ) {
     this.BASE_URL     = cfg.get('FRONTEND_URL') ?? 'http://localhost:3000'
     this.WA_URL       = cfg.get('WHATSAPP_API_URL') ?? ''
@@ -549,16 +556,103 @@ export class NotificationsService {
       return result
     }
 
-    if (!this.waEnabled) {
+    const useCloud = this.cloudWhatsApp.isEnabledFor(ownerId) && this.cloudWhatsApp.isConfigured() && !!meta.cloudTemplate
+    if (!this.waEnabled && !useCloud) {
       this.logger.log(`[WhatsApp DEV] envio simulado owner=${ownerId ?? 'unknown'} chars=${text.length}`)
       result = { sent: false, reason: 'not_configured', error: 'WhatsApp nao configurado' }
       await this.recordWhatsAppLog(ownerId, phone, meta, result)
       return result
     }
 
-    result = await this.deliverWhatsApp(phone, text, ownerId, true, meta.verifyDelivery ?? true)
+    const outbox = meta.idempotencyKey
+      ? await this.claimOutbox(ownerId, phone, text, meta)
+      : null
+    if (outbox?.duplicate) return { sent: true, providerStatus: 'idempotent_duplicate' }
+    result = useCloud
+      ? await this.cloudWhatsApp.send({ ownerId, phone, text, template: meta.cloudTemplate })
+      : await this.deliverWhatsApp(phone, text, ownerId, true, meta.verifyDelivery ?? true)
+    if (outbox?.entity) await this.finishOutbox(outbox.entity, result)
     await this.recordWhatsAppLog(ownerId, phone, meta, result)
     return result
+  }
+
+  private async claimOutbox(ownerId: string, phone: string, text: string, meta: WhatsAppLogMeta): Promise<{ duplicate: boolean; entity?: WhatsAppOutbox }> {
+    const key = meta.idempotencyKey!
+    await this.whatsAppOutbox.createQueryBuilder().insert().values({
+      userId: ownerId,
+      idempotencyKey: key,
+      type: meta.type,
+      patientId: meta.patientId ?? null,
+      recipientPhone: phone,
+      content: text,
+    }).orIgnore().execute()
+    const entity = await this.whatsAppOutbox.findOneOrFail({ where: { idempotencyKey: key } })
+    if (['accepted', 'delivered', 'read'].includes(entity.status)) return { duplicate: true }
+    if (entity.status === 'sending' && Date.now() - entity.updatedAt.getTime() < 5 * 60_000) return { duplicate: true }
+    entity.status = 'sending'
+    entity.provider = this.cloudWhatsApp.isEnabledFor(ownerId) && meta.cloudTemplate ? 'cloud_api' : 'evolution'
+    entity.attempts += 1
+    entity.nextAttemptAt = null
+    await this.whatsAppOutbox.save(entity)
+    return { duplicate: false, entity }
+  }
+
+  private async finishOutbox(entity: WhatsAppOutbox, result: WhatsAppDeliveryResult): Promise<void> {
+    entity.status = result.sent ? 'accepted' : 'failed'
+    entity.providerMessageId = result.providerMessageId ?? null
+    entity.providerStatus = result.providerStatus ?? null
+    entity.lastError = result.sent ? null : (result.error ?? result.reason ?? 'Falha no envio').slice(0, 240)
+    entity.nextAttemptAt = result.sent || result.nonRetryable ? null : new Date(Date.now() + Math.min(30, 2 ** entity.attempts) * 60_000)
+    await this.whatsAppOutbox.save(entity)
+  }
+
+  /**
+   * Reprocessa apenas falhas confirmadas da Evolution. Resultados aceitos ou
+   * ambiguos ficam de fora para nao duplicar uma mensagem possivelmente entregue.
+   */
+  async retryDueWhatsAppOutbox(now = new Date(), limit = 20): Promise<number> {
+    const staleSending = new Date(now.getTime() - 5 * 60_000)
+    const candidates = await this.whatsAppOutbox.find({
+      where: [
+        { provider: 'evolution', status: 'pending' },
+        { provider: 'evolution', status: 'failed', nextAttemptAt: LessThanOrEqual(now) },
+        { provider: 'evolution', status: 'sending', updatedAt: LessThanOrEqual(staleSending) },
+      ],
+      order: { createdAt: 'ASC' },
+      take: Math.max(1, Math.min(limit, 100)),
+    })
+
+    let processed = 0
+    for (const entity of candidates) {
+      if (entity.attempts >= 5) {
+        entity.status = 'failed'
+        entity.nextAttemptAt = null
+        entity.lastError = entity.lastError ?? 'Limite de tentativas atingido'
+        await this.whatsAppOutbox.save(entity)
+        continue
+      }
+
+      entity.status = 'sending'
+      entity.attempts += 1
+      entity.nextAttemptAt = null
+      await this.whatsAppOutbox.save(entity)
+
+      if (/sem conteudo|vazia/i.test(entity.lastError ?? '')) {
+        await this.restartWhatsAppConnection(this.getWhatsAppInstance(entity.userId))
+      }
+
+      const result = await this.deliverWhatsApp(
+        entity.recipientPhone,
+        entity.content,
+        entity.userId,
+        true,
+        true,
+        false,
+      )
+      await this.finishOutbox(entity, result)
+      processed += 1
+    }
+    return processed
   }
 
   // ─── Agendamentos internos ─────────────────────────────────────────────────
@@ -676,16 +770,16 @@ export class NotificationsService {
           return { ...acceptedResult, providerStatus: 'unverified' }
         }
 
-        if (allowEmptyDeliveryRetry) {
-          this.logger.warn(`[WhatsApp] Entrega vazia confirmada apos envio; reenviando uma vez instance=${instance} messageId=${provider.messageId}`)
-          return this.deliverWhatsApp(
-            phone,
-            normalizedText,
-            ownerId,
-            allowClosedConnectionRecovery,
-            true,
-            false,
-          )
+        if (verification === 'empty' && allowEmptyDeliveryRetry) {
+          this.logger.warn(`[WhatsApp] Entrega vazia confirmada instance=${instance} messageId=${provider.messageId}; reenvio imediato bloqueado`)
+          return {
+            sent: false,
+            reason: 'api_error',
+            error: 'WhatsApp persistiu mensagem sem conteudo; uma nova tentativa sera feita com intervalo',
+            providerMessageId: provider.messageId,
+            providerStatus: provider.status,
+            contentLength: 0,
+          }
         }
 
         if (verification === 'empty') {
@@ -698,6 +792,19 @@ export class NotificationsService {
             providerMessageId: provider.messageId,
             providerStatus: provider.status,
             contentLength: 0,
+          }
+        }
+
+        if (verification === 'mismatch') {
+          this.logger.error(`[WhatsApp] Conteudo persistido divergente instance=${instance} messageId=${provider.messageId}; reenvio bloqueado`)
+          return {
+            sent: false,
+            reason: 'api_error',
+            error: 'WhatsApp persistiu conteudo diferente; reenvio automatico bloqueado para evitar duplicidade',
+            nonRetryable: true,
+            providerMessageId: provider.messageId,
+            providerStatus: provider.status,
+            contentLength: provider.text.trim().length,
           }
         }
 
@@ -728,7 +835,7 @@ export class NotificationsService {
     messageId: string,
     expectedText: string,
     attempt: 1 | 2 | 3 = 1,
-  ): Promise<'ok' | 'empty' | 'unknown'> {
+  ): Promise<'ok' | 'empty' | 'mismatch' | 'unknown'> {
     // Evita atraso real e chamadas de rede extras durante os testes (mocks cobrem só o fluxo de sendText).
     if (process.env.JEST_WORKER_ID !== undefined) return 'unknown'
 
@@ -765,7 +872,8 @@ export class NotificationsService {
       ].find(value => typeof value === 'string')
       if (typeof persistedText !== 'string') return 'unknown'
 
-      return persistedText.trim() === expectedText.trim() ? 'ok' : 'empty'
+      if (!persistedText.trim()) return 'empty'
+      return persistedText.trim() === expectedText.trim() ? 'ok' : 'mismatch'
     } catch {
       return 'unknown'
     }
@@ -807,7 +915,7 @@ export class NotificationsService {
   }
 
   private isClosedConnectionError(body: string): boolean {
-    return /connection\s+closed/i.test(body)
+    return /connection\s+closed|not\s+connected|instance\s+(?:is\s+)?(?:disconnected|closed)|stream\s+(?:errored|closed)|socket\s+closed/i.test(body)
   }
 
   private async restartWhatsAppConnection(instance: string): Promise<boolean> {
@@ -821,8 +929,9 @@ export class NotificationsService {
       const restartBody = await restart.json().catch(() => null) as Record<string, any> | null
       if (restartBody?.instance?.state === 'open') return true
 
-      for (let attempt = 0; attempt < 5; attempt++) {
-        await new Promise(resolve => setTimeout(resolve, 1000))
+      const delays = [1000, 1500, 2000, 2500, 3000, 4000]
+      for (const delay of delays) {
+        await new Promise(resolve => setTimeout(resolve, delay))
         const stateResponse = await fetchWithTimeout(`${this.WA_URL}/instance/connectionState/${instance}`, {
           headers: { apikey: this.WA_KEY },
         })
@@ -991,6 +1100,11 @@ export class NotificationsService {
       type: lead === '24h' ? 'Lembrete 24h' : 'Lembrete 1h',
       patientId: patient.id,
       patientName: patient.name,
+      idempotencyKey: `appointment-reminder:${appointment.id}:${lead}:v1`,
+      cloudTemplate: this.cloudTemplate(
+        lead === '24h' ? 'WHATSAPP_CLOUD_REMINDER_24H_TEMPLATE' : 'WHATSAPP_CLOUD_REMINDER_1H_TEMPLATE',
+        [first, dateLabel, timeLabel],
+      ),
     })
     if (whatsAppResult.sent || pushResult.sent > 0) return { sent: true }
     return whatsAppResult
@@ -1146,6 +1260,8 @@ export class NotificationsService {
       whatsAppResult = await this.sendWhatsApp(booking.patientPhone, msg, booking.psychologistId, {
         type: 'Confirmacao de agenda',
         patientName: booking.patientName,
+        idempotencyKey: `booking-confirmation:${booking.id}:v1`,
+        cloudTemplate: this.cloudTemplate('WHATSAPP_CLOUD_BOOKING_CONFIRMATION_TEMPLATE', [first, booking.date, String(booking.time).slice(0, 5), cancelUrl]),
       })
     }
 
@@ -1248,6 +1364,16 @@ export class NotificationsService {
   }
 
   /** Marca o link com utm_source=whatsapp só na mensagem enviada por WhatsApp — a versão de e-mail continua sem UTM. */
+  private cloudTemplate(envKey: string, bodyParameters: string[]): WhatsAppTemplate | undefined {
+    const name = this.cfg.get<string>(envKey)?.trim()
+    if (!name) return undefined
+    return {
+      name,
+      language: this.cfg.get<string>('WHATSAPP_CLOUD_TEMPLATE_LANGUAGE') ?? 'pt_BR',
+      bodyParameters,
+    }
+  }
+
   private withWhatsAppUtm(url: string): string {
     const separator = url.includes('?') ? '&' : '?'
     return `${url}${separator}utm_source=whatsapp&utm_medium=message`

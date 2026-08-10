@@ -8,11 +8,15 @@ import { PushSubscriptionEntity } from './entities/push-subscription.entity'
 import { NativePushTokenEntity } from './entities/native-push-token.entity'
 import { WhatsAppDeliveryLog } from './entities/whatsapp-delivery-log.entity'
 import { WhatsAppLogRetentionJob } from './whatsapp-log-retention.job'
+import { WhatsAppOutbox } from './entities/whatsapp-outbox.entity'
+import { CloudWhatsAppProvider } from './providers/cloud-whatsapp.provider'
+import { WhatsAppCloudWebhookController } from './whatsapp-cloud-webhook.controller'
+import { WhatsAppOutboxRetryJob } from './whatsapp-outbox-retry.job'
 
 @Module({
-  imports: [EmailModule, TypeOrmModule.forFeature([User, PushSubscriptionEntity, NativePushTokenEntity, WhatsAppDeliveryLog])],
-  controllers: [NotificationsController, PushNotificationsController],
-  providers: [NotificationsService, WhatsAppLogRetentionJob],
+  imports: [EmailModule, TypeOrmModule.forFeature([User, PushSubscriptionEntity, NativePushTokenEntity, WhatsAppDeliveryLog, WhatsAppOutbox])],
+  controllers: [NotificationsController, PushNotificationsController, WhatsAppCloudWebhookController],
+  providers: [NotificationsService, WhatsAppLogRetentionJob, WhatsAppOutboxRetryJob, CloudWhatsAppProvider],
   exports: [NotificationsService],
 })
 export class NotificationsModule {}

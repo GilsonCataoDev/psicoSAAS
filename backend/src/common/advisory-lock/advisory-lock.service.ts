@@ -18,6 +18,7 @@ export const JOB_LOCK_KEYS = {
   PRIVACY_RETENTION:         1013,
   INSTRUMENT_RECURRENCE:     1014,
   RECURRING_EXPENSE:         1015,
+  WHATSAPP_OUTBOX_RETRY:     1016,
 } as const
 
 @Injectable()
