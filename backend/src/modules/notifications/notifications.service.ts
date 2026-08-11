@@ -1206,7 +1206,7 @@ export class NotificationsService {
       (pixKey ? `Chave PIX: \`${pixKey}\`\n\n` : '') +
       `Qualquer duvida, e so me chamar.`
     const msg = template
-      ? renderPaymentTemplate(template, patient.name, amount, pixKey)
+      ? renderPaymentTemplate(template, patient.name, amount, pixKey, false)
       : defaultMessage
     return this.sendWhatsApp(patient.phone, msg, patient.psychologistId, {
       type: 'Lembrete de pagamento',
