@@ -16,20 +16,36 @@ function buildService(overrides: { record?: any } = {}) {
   const repo = {
     findOne: jest.fn().mockImplementation(async () => record),
     save: jest.fn().mockImplementation(async (value: any) => value),
+    createQueryBuilder: jest.fn(() => {
+      const qb: any = {}
+      qb.where = () => qb
+      qb.andWhere = () => qb
+      qb.getOne = async () => null
+      return qb
+    }),
   }
-  const bookings = { findOne: jest.fn().mockResolvedValue(null) }
+  const bookings = {
+    findOne: jest.fn().mockResolvedValue(null),
+    createQueryBuilder: jest.fn(() => {
+      const qb: any = {}
+      qb.where = () => qb
+      qb.andWhere = () => qb
+      qb.getOne = async () => null
+      return qb
+    }),
+  }
   const patients = {}
   const sessions = {}
   const financial = {}
   const dataSource = {}
-  const notifications = {}
+  const notifications = { supersedeAppointmentReminders: jest.fn().mockResolvedValue(undefined) }
   const googleCalendar = { syncAppointment: jest.fn().mockResolvedValue(undefined) }
 
   const service = new AppointmentsService(
     repo as any, bookings as any, patients as any, sessions as any, financial as any,
     dataSource as any, notifications as any, googleCalendar as any,
   )
-  return { service, repo, bookings }
+  return { service, repo, bookings, notifications }
 }
 
 describe('AppointmentsService — sala de vídeo automática (Jitsi)', () => {
@@ -85,6 +101,14 @@ describe('AppointmentsService — sala de vídeo automática (Jitsi)', () => {
 
     expect(r1.meetingUrl).not.toBe(r2.meetingUrl)
   })
+
+  it('supersedes pending reminders when the appointment is rescheduled', async () => {
+    const { service, notifications } = buildService()
+
+    await service.update('appt-1', { date: '2026-08-11', time: '15:00' } as any, 'psi-1')
+
+    expect(notifications.supersedeAppointmentReminders).toHaveBeenCalledWith('appt-1')
+  })
 })
 
 function buildGroupService() {
@@ -112,7 +136,7 @@ function buildGroupService() {
   const sessions = {}
   const financial = {}
   const dataSource = {}
-  const notifications = {}
+  const notifications = { supersedeAppointmentReminders: jest.fn().mockResolvedValue(undefined) }
   const googleCalendar = { syncAppointment: jest.fn().mockResolvedValue(undefined) }
 
   const service = new AppointmentsService(
