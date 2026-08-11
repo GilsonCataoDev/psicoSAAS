@@ -146,4 +146,23 @@ describe('AppointmentReminderJob', () => {
     expect(appointmentsRepo.save).not.toHaveBeenCalled()
     expect(appointment).not.toHaveProperty('reminder24hSentAt')
   })
+
+  it('waits for reconciliation without sending a duplicate email fallback', async () => {
+    const psychologist = { id: 'psy-1', name: 'Dra Ana', preferences: {} }
+    const appointment = {
+      id: 'appt-unknown', date: '2026-07-26', time: '13:00', status: 'scheduled',
+      psychologistId: 'psy-1', psychologist,
+      patient: { id: 'pat-1', name: 'Marina', phone: '5587999999999', email: 'marina@example.com' },
+    }
+    const { job, appointmentsRepo, notifications, email } = makeJob([appointment])
+    notifications.sendAppointmentReminder.mockResolvedValueOnce({
+      sent: false,
+      pendingReconciliation: true,
+    } as any)
+
+    await (job as any).runLocked()
+
+    expect(email.sendSessionReminder).not.toHaveBeenCalled()
+    expect(appointmentsRepo.save).not.toHaveBeenCalled()
+  })
 })

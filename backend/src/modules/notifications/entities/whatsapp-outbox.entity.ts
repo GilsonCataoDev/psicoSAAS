@@ -1,7 +1,7 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm'
 import { encryptedTextTransformer } from '../../../common/crypto/encrypt.util'
 
-export type WhatsAppOutboxStatus = 'pending' | 'sending' | 'accepted' | 'delivered' | 'read' | 'failed'
+export type WhatsAppOutboxStatus = 'pending' | 'sending' | 'delivery_unknown' | 'accepted' | 'delivered' | 'read' | 'failed'
 
 @Entity('whatsapp_outbox')
 @Index(['idempotencyKey'], { unique: true })

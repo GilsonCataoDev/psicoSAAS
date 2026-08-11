@@ -8,10 +8,11 @@ function makeOutboxRepo() {
   builder.insert = jest.fn(() => builder)
   builder.values = jest.fn(() => builder)
   builder.orIgnore = jest.fn(() => builder)
-  builder.execute = jest.fn(async () => ({}))
+  builder.returning = jest.fn(() => builder)
+  builder.execute = jest.fn(async () => ({ raw: [{ id: 'outbox-id' }] }))
   return {
     createQueryBuilder: jest.fn(() => builder),
-    manager: { query: jest.fn(async () => [{ id: 'outbox-id' }]) },
+    manager: { query: jest.fn(async () => [[{ id: 'outbox-id' }], 1]) },
     find: jest.fn().mockResolvedValue([]),
     findOneOrFail: jest.fn(async () => ({ id: 'outbox-id', status: 'sending', attempts: 1 })),
     save: jest.fn(async (value: any) => value),
@@ -51,10 +52,11 @@ describe('NotificationsService WhatsApp delivery validation', () => {
   outboxBuilder.insert = jest.fn(() => outboxBuilder)
   outboxBuilder.values = jest.fn(() => outboxBuilder)
   outboxBuilder.orIgnore = jest.fn(() => outboxBuilder)
-  outboxBuilder.execute = jest.fn(async () => ({}))
+  outboxBuilder.returning = jest.fn(() => outboxBuilder)
+  outboxBuilder.execute = jest.fn(async () => ({ raw: [{ id: 'outbox-id' }] }))
   const whatsAppOutbox = {
     createQueryBuilder: jest.fn(() => outboxBuilder),
-    manager: { query: jest.fn(async () => [{ id: 'outbox-id' }]) },
+    manager: { query: jest.fn(async () => [[{ id: 'outbox-id' }], 1]) },
     find: jest.fn().mockResolvedValue([]),
     findOneOrFail: jest.fn(async () => ({ ...outboxEntity })),
     save: jest.fn(async (value: any) => value),
@@ -66,7 +68,8 @@ describe('NotificationsService WhatsApp delivery validation', () => {
   beforeEach(() => {
     savedLogs.length = 0
     jest.clearAllMocks()
-    whatsAppOutbox.manager.query.mockReset().mockResolvedValue([{ id: 'outbox-id' }])
+    whatsAppOutbox.manager.query.mockReset().mockResolvedValue([[{ id: 'outbox-id' }], 1])
+    outboxBuilder.execute.mockReset().mockResolvedValue({ raw: [{ id: 'outbox-id' }] })
     whatsAppOutbox.findOneOrFail.mockReset().mockImplementation(async () => ({ ...outboxEntity }))
     users.findOneBy.mockResolvedValue({ email: 'gilsonfilho96@outlook.com' })
     service = new NotificationsService(
@@ -286,7 +289,8 @@ describe('NotificationsService WhatsApp delivery validation', () => {
 
   it('does not bypass the outbox backoff while a retry is scheduled', async () => {
     const futureRetry = new Date(Date.now() + 5 * 60_000)
-    whatsAppOutbox.manager.query.mockResolvedValueOnce([])
+    outboxBuilder.execute.mockResolvedValueOnce({ raw: [] })
+    whatsAppOutbox.manager.query.mockResolvedValueOnce([[], 0])
     whatsAppOutbox.findOneOrFail.mockResolvedValueOnce({
       status: 'failed',
       attempts: 1,
@@ -299,7 +303,7 @@ describe('NotificationsService WhatsApp delivery validation', () => {
       idempotencyKey: 'appointment-reminder:appt-1:24h:v1',
     })
 
-    expect(claim).toEqual({ duplicate: true, completed: false })
+    expect(claim).toEqual({ duplicate: true, completed: false, pendingReconciliation: false })
     expect(whatsAppOutbox.save).not.toHaveBeenCalled()
   })
 
@@ -309,14 +313,15 @@ describe('NotificationsService WhatsApp delivery validation', () => {
       patient: { id: 'patient-1', name: 'Marina Silva', phone: '11999999999' },
       psychologist: { preferences: {} },
     }
-    let claims = 0
-    whatsAppOutbox.manager.query.mockImplementation(async () => {
-      claims += 1
-      return claims === 1 ? [{ id: 'outbox-race' }] : []
+    let inserts = 0
+    outboxBuilder.execute.mockImplementation(async () => {
+      inserts += 1
+      return inserts === 1 ? { raw: [{ id: 'outbox-race' }] } : { raw: [] }
     })
-    whatsAppOutbox.findOneOrFail.mockImplementation(async () => claims === 0
-      ? { id: 'outbox-race', status: 'pending', attempts: 0, updatedAt: new Date() }
-      : { id: 'outbox-race', status: 'sending', attempts: 1, updatedAt: new Date() })
+    whatsAppOutbox.manager.query.mockResolvedValue([[], 0])
+    whatsAppOutbox.findOneOrFail.mockResolvedValue({
+      id: 'outbox-race', status: 'sending', attempts: 1, updatedAt: new Date(),
+    })
     jest.spyOn(service, 'sendAppointmentPushReminder').mockResolvedValue({ sent: 0, removed: 0 })
     const fetchSpy = jest.spyOn(global, 'fetch').mockImplementation(async () => new Response(JSON.stringify({
       key: { id: 'provider-id' }, message: { conversation: 'Lembrete' }, status: 'PENDING',
@@ -330,7 +335,7 @@ describe('NotificationsService WhatsApp delivery validation', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1)
   })
 
-  it('keeps an accepted but unverified automated reminder out of retry', async () => {
+  it('keeps an unverified automated reminder pending reconciliation', async () => {
     const entity: any = { id: 'outbox-unverified', status: 'sending', attempts: 1, updatedAt: new Date() }
     whatsAppOutbox.findOneOrFail.mockResolvedValueOnce(entity)
     jest.spyOn(service, 'sendAppointmentPushReminder').mockResolvedValue({ sent: 0, removed: 0 })
@@ -351,10 +356,66 @@ describe('NotificationsService WhatsApp delivery validation', () => {
       psychologist: { preferences: {} },
     }, '24h')
 
-    expect(result.sent).toBe(true)
-    expect(entity.status).toBe('accepted')
+    expect(result).toEqual(expect.objectContaining({
+      sent: false,
+      pendingReconciliation: true,
+    }))
+    expect(entity.status).toBe('delivery_unknown')
     expect(entity.providerMessageId).toBe('provider-unverified')
     expect(entity.nextAttemptAt).toBeNull()
+  })
+
+  it('reconciles an unknown delivery when Evolution later confirms its content', async () => {
+    const entity: any = {
+      id: 'outbox-unknown', userId: ownerId, provider: 'evolution', status: 'delivery_unknown',
+      providerMessageId: 'provider-unknown', recipientPhone: '11999999999', content: 'Lembrete',
+      updatedAt: new Date('2026-08-10T10:00:00Z'),
+    }
+    whatsAppOutbox.find.mockResolvedValueOnce([entity])
+    jest.spyOn(service as any, 'verifyWhatsAppDelivery').mockResolvedValue('ok')
+
+    const processed = await service.reconcileWhatsAppOutbox(new Date('2026-08-10T10:05:00Z'))
+
+    expect(processed).toBe(1)
+    expect(entity.status).toBe('accepted')
+    expect(entity.providerStatus).toBe('reconciled')
+  })
+
+  it('moves stale sending records to an explicit unknown state instead of leaving them stuck', async () => {
+    const entity: any = {
+      id: 'outbox-stale', userId: ownerId, provider: 'evolution', status: 'sending',
+      providerMessageId: null, recipientPhone: '11999999999', content: 'Lembrete',
+      updatedAt: new Date('2026-08-10T09:00:00Z'),
+    }
+    whatsAppOutbox.find.mockResolvedValueOnce([entity])
+
+    const processed = await service.reconcileWhatsAppOutbox(new Date('2026-08-10T10:05:00Z'))
+
+    expect(processed).toBe(1)
+    expect(entity.status).toBe('delivery_unknown')
+    expect(entity.providerStatus).toBe('outcome_unknown')
+  })
+
+  it('keeps an automated reminder with an ambiguous reconnect outcome for reconciliation', async () => {
+    const entity: any = { id: 'outbox-reconnect', status: 'sending', attempts: 1, updatedAt: new Date() }
+    whatsAppOutbox.findOneOrFail.mockResolvedValueOnce(entity)
+    jest.spyOn(service, 'sendAppointmentPushReminder').mockResolvedValue({ sent: 0, removed: 0 })
+    jest.spyOn(global, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        status: 500,
+        response: { message: 'Connection Closed' },
+      }), { status: 500 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ instance: { state: 'open' } }), { status: 200 }))
+
+    const result = await service.sendAppointmentReminder({
+      id: 'appt-reconnect', psychologistId: ownerId, date: '2026-08-12', time: '14:00',
+      patient: { id: 'patient-1', name: 'Marina', phone: '11999999999' },
+      psychologist: { preferences: {} },
+    }, '24h')
+
+    expect(result.pendingReconciliation).toBe(true)
+    expect(entity.status).toBe('delivery_unknown')
+    expect(entity.providerStatus).toBe('connection_recovered_no_retry')
   })
 
   it('includes the scheduled date and time in the reminder idempotency key', async () => {
