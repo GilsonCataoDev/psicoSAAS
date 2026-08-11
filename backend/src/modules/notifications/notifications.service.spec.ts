@@ -299,7 +299,7 @@ describe('NotificationsService WhatsApp delivery validation', () => {
       idempotencyKey: 'appointment-reminder:appt-1:24h:v1',
     })
 
-    expect(claim).toEqual({ duplicate: true, completed: false })
+    expect(claim).toEqual({ duplicate: true, completed: false, pendingReconciliation: false })
     expect(whatsAppOutbox.save).not.toHaveBeenCalled()
   })
 
@@ -330,7 +330,7 @@ describe('NotificationsService WhatsApp delivery validation', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1)
   })
 
-  it('keeps an accepted but unverified automated reminder out of retry', async () => {
+  it('keeps an unverified automated reminder pending reconciliation', async () => {
     const entity: any = { id: 'outbox-unverified', status: 'sending', attempts: 1, updatedAt: new Date() }
     whatsAppOutbox.findOneOrFail.mockResolvedValueOnce(entity)
     jest.spyOn(service, 'sendAppointmentPushReminder').mockResolvedValue({ sent: 0, removed: 0 })
@@ -351,10 +351,66 @@ describe('NotificationsService WhatsApp delivery validation', () => {
       psychologist: { preferences: {} },
     }, '24h')
 
-    expect(result.sent).toBe(true)
-    expect(entity.status).toBe('accepted')
+    expect(result).toEqual(expect.objectContaining({
+      sent: false,
+      pendingReconciliation: true,
+    }))
+    expect(entity.status).toBe('delivery_unknown')
     expect(entity.providerMessageId).toBe('provider-unverified')
     expect(entity.nextAttemptAt).toBeNull()
+  })
+
+  it('reconciles an unknown delivery when Evolution later confirms its content', async () => {
+    const entity: any = {
+      id: 'outbox-unknown', userId: ownerId, provider: 'evolution', status: 'delivery_unknown',
+      providerMessageId: 'provider-unknown', recipientPhone: '11999999999', content: 'Lembrete',
+      updatedAt: new Date('2026-08-10T10:00:00Z'),
+    }
+    whatsAppOutbox.find.mockResolvedValueOnce([entity])
+    jest.spyOn(service as any, 'verifyWhatsAppDelivery').mockResolvedValue('ok')
+
+    const processed = await service.reconcileWhatsAppOutbox(new Date('2026-08-10T10:05:00Z'))
+
+    expect(processed).toBe(1)
+    expect(entity.status).toBe('accepted')
+    expect(entity.providerStatus).toBe('reconciled')
+  })
+
+  it('moves stale sending records to an explicit unknown state instead of leaving them stuck', async () => {
+    const entity: any = {
+      id: 'outbox-stale', userId: ownerId, provider: 'evolution', status: 'sending',
+      providerMessageId: null, recipientPhone: '11999999999', content: 'Lembrete',
+      updatedAt: new Date('2026-08-10T09:00:00Z'),
+    }
+    whatsAppOutbox.find.mockResolvedValueOnce([entity])
+
+    const processed = await service.reconcileWhatsAppOutbox(new Date('2026-08-10T10:05:00Z'))
+
+    expect(processed).toBe(1)
+    expect(entity.status).toBe('delivery_unknown')
+    expect(entity.providerStatus).toBe('outcome_unknown')
+  })
+
+  it('keeps an automated reminder with an ambiguous reconnect outcome for reconciliation', async () => {
+    const entity: any = { id: 'outbox-reconnect', status: 'sending', attempts: 1, updatedAt: new Date() }
+    whatsAppOutbox.findOneOrFail.mockResolvedValueOnce(entity)
+    jest.spyOn(service, 'sendAppointmentPushReminder').mockResolvedValue({ sent: 0, removed: 0 })
+    jest.spyOn(global, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        status: 500,
+        response: { message: 'Connection Closed' },
+      }), { status: 500 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ instance: { state: 'open' } }), { status: 200 }))
+
+    const result = await service.sendAppointmentReminder({
+      id: 'appt-reconnect', psychologistId: ownerId, date: '2026-08-12', time: '14:00',
+      patient: { id: 'patient-1', name: 'Marina', phone: '11999999999' },
+      psychologist: { preferences: {} },
+    }, '24h')
+
+    expect(result.pendingReconciliation).toBe(true)
+    expect(entity.status).toBe('delivery_unknown')
+    expect(entity.providerStatus).toBe('connection_recovered_no_retry')
   })
 
   it('includes the scheduled date and time in the reminder idempotency key', async () => {

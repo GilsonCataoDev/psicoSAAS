@@ -37,7 +37,12 @@ function buildService(overrides: { record?: any } = {}) {
   const patients = {}
   const sessions = {}
   const financial = {}
-  const dataSource = {}
+  const manager = {
+    save: jest.fn(async (_entity: any, value: any) => repo.save(value)),
+  }
+  const dataSource = {
+    transaction: jest.fn(async (callback: (manager: any) => Promise<any>) => callback(manager)),
+  }
   const notifications = { supersedeAppointmentReminders: jest.fn().mockResolvedValue(undefined) }
   const googleCalendar = { syncAppointment: jest.fn().mockResolvedValue(undefined) }
 
@@ -45,7 +50,7 @@ function buildService(overrides: { record?: any } = {}) {
     repo as any, bookings as any, patients as any, sessions as any, financial as any,
     dataSource as any, notifications as any, googleCalendar as any,
   )
-  return { service, repo, bookings, notifications }
+  return { service, repo, bookings, notifications, dataSource, manager }
 }
 
 describe('AppointmentsService — sala de vídeo automática (Jitsi)', () => {
@@ -102,12 +107,14 @@ describe('AppointmentsService — sala de vídeo automática (Jitsi)', () => {
     expect(r1.meetingUrl).not.toBe(r2.meetingUrl)
   })
 
-  it('supersedes pending reminders when the appointment is rescheduled', async () => {
-    const { service, notifications } = buildService()
+  it('supersedes reminders and saves the rescheduled appointment in one transaction', async () => {
+    const { service, notifications, dataSource, manager } = buildService()
 
     await service.update('appt-1', { date: '2026-08-11', time: '15:00' } as any, 'psi-1')
 
-    expect(notifications.supersedeAppointmentReminders).toHaveBeenCalledWith('appt-1')
+    expect(dataSource.transaction).toHaveBeenCalledTimes(1)
+    expect(notifications.supersedeAppointmentReminders).toHaveBeenCalledWith('appt-1', manager)
+    expect(manager.save).toHaveBeenCalled()
   })
 })
 
@@ -135,7 +142,12 @@ function buildGroupService() {
   const patients = {}
   const sessions = {}
   const financial = {}
-  const dataSource = {}
+  const manager = {
+    save: jest.fn(async (_entity: any, value: any) => repo.save(value)),
+  }
+  const dataSource = {
+    transaction: jest.fn(async (callback: (manager: any) => Promise<any>) => callback(manager)),
+  }
   const notifications = { supersedeAppointmentReminders: jest.fn().mockResolvedValue(undefined) }
   const googleCalendar = { syncAppointment: jest.fn().mockResolvedValue(undefined) }
 
@@ -143,7 +155,7 @@ function buildGroupService() {
     repo as any, bookings as any, patients as any, sessions as any, financial as any,
     dataSource as any, notifications as any, googleCalendar as any,
   )
-  return { service, repo, records }
+  return { service, repo, records, dataSource, manager, notifications }
 }
 
 describe('AppointmentsService — updateStatus (lançamento financeiro ao concluir)', () => {

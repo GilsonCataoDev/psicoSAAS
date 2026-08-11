@@ -85,6 +85,8 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
           appointment.reminder24hSentAt = new Date()
           await this.appointments.save(appointment)
           sent++
+        } else if ('pendingReconciliation' in result && result.pendingReconciliation) {
+          this.logger.warn(`Lembrete 24h aguardando reconciliacao: appointment ${appointment.id}`)
         } else if (appointment.patient?.email) {
           try {
             const psychologistName = (appointment.psychologist as any)?.name ?? 'seu psicólogo(a)'
@@ -124,6 +126,8 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
           appointment.reminder2hSentAt = new Date()
           await this.appointments.save(appointment)
           sent++
+        } else if ('pendingReconciliation' in result && result.pendingReconciliation) {
+          this.logger.warn(`Lembrete 1h aguardando reconciliacao: appointment ${appointment.id}`)
         } else if (appointment.patient?.email) {
           try {
             const psychologistName = (appointment.psychologist as any)?.name ?? 'seu psicólogo(a)'

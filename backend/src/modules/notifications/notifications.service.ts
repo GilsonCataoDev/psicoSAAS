@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { InjectRepository } from '@nestjs/typeorm'
-import { LessThanOrEqual, Repository } from 'typeorm'
+import { EntityManager, LessThanOrEqual, Repository } from 'typeorm'
 import * as webpush from 'web-push'
 import { cert, getApps, initializeApp } from 'firebase-admin/app'
 import { getMessaging } from 'firebase-admin/messaging'
@@ -42,6 +42,7 @@ export type WhatsAppDeliveryResult = {
   reason?: 'plan' | 'not_configured' | 'disconnected' | 'api_error' | 'invalid_content'
   error?: string
   nonRetryable?: boolean
+  pendingReconciliation?: boolean
   providerMessageId?: string
   providerStatus?: string
   contentLength?: number
@@ -570,6 +571,8 @@ export class NotificationsService {
     if (outbox?.duplicate) {
       return outbox.completed
         ? { sent: true, providerStatus: 'idempotent_duplicate' }
+        : outbox.pendingReconciliation
+          ? { sent: false, pendingReconciliation: true, providerStatus: 'delivery_unknown' }
         : {
             sent: false,
             reason: 'api_error',
@@ -579,13 +582,13 @@ export class NotificationsService {
     }
     result = useCloud
       ? await this.cloudWhatsApp.send({ ownerId, phone, text, template: meta.cloudTemplate })
-      : await this.deliverWhatsApp(phone, text, ownerId, true, meta.verifyDelivery ?? true)
+      : await this.deliverWhatsApp(phone, text, ownerId, true, meta.verifyDelivery ?? true, true, !!outbox?.entity)
     if (outbox?.entity) await this.finishOutbox(outbox.entity, result)
     await this.recordWhatsAppLog(ownerId, phone, meta, result)
     return result
   }
 
-  private async claimOutbox(ownerId: string, phone: string, text: string, meta: WhatsAppLogMeta): Promise<{ duplicate: boolean; completed?: boolean; entity?: WhatsAppOutbox }> {
+  private async claimOutbox(ownerId: string, phone: string, text: string, meta: WhatsAppLogMeta): Promise<{ duplicate: boolean; completed?: boolean; pendingReconciliation?: boolean; entity?: WhatsAppOutbox }> {
     const key = meta.idempotencyKey!
     await this.whatsAppOutbox.createQueryBuilder().insert().values({
       userId: ownerId,
@@ -618,7 +621,8 @@ export class NotificationsService {
       return {
         duplicate: true,
         completed: ['accepted', 'delivered', 'read'].includes(existing.status)
-          || existing.providerStatus === 'unverified',
+          || (existing.providerStatus === 'unverified' && existing.status !== 'delivery_unknown'),
+        pendingReconciliation: existing.status === 'delivery_unknown',
       }
     }
 
@@ -627,11 +631,13 @@ export class NotificationsService {
   }
 
   private async finishOutbox(entity: WhatsAppOutbox, result: WhatsAppDeliveryResult): Promise<void> {
-    entity.status = result.sent ? 'accepted' : 'failed'
+    entity.status = result.pendingReconciliation ? 'delivery_unknown' : result.sent ? 'accepted' : 'failed'
     entity.providerMessageId = result.providerMessageId ?? null
     entity.providerStatus = result.providerStatus ?? null
-    entity.lastError = result.sent ? null : (result.error ?? result.reason ?? 'Falha no envio').slice(0, 240)
-    entity.nextAttemptAt = result.sent || result.nonRetryable ? null : new Date(Date.now() + Math.min(30, 2 ** entity.attempts) * 60_000)
+    entity.lastError = result.sent || result.pendingReconciliation ? null : (result.error ?? result.reason ?? 'Falha no envio').slice(0, 240)
+    entity.nextAttemptAt = result.sent || result.nonRetryable || result.pendingReconciliation
+      ? null
+      : new Date(Date.now() + Math.min(30, 2 ** entity.attempts) * 60_000)
     await this.whatsAppOutbox.save(entity)
   }
 
@@ -700,12 +706,68 @@ export class NotificationsService {
     return processed
   }
 
-  async supersedeAppointmentReminders(appointmentId: string): Promise<void> {
-    await this.whatsAppOutbox.createQueryBuilder()
+  async reconcileWhatsAppOutbox(now = new Date(), limit = 20): Promise<number> {
+    const staleBefore = new Date(now.getTime() - 5 * 60_000)
+    const candidates = await this.whatsAppOutbox.find({
+      where: [
+        { provider: 'evolution', status: 'delivery_unknown', updatedAt: LessThanOrEqual(staleBefore) },
+        { provider: 'evolution', status: 'sending', updatedAt: LessThanOrEqual(staleBefore) },
+      ],
+      order: { updatedAt: 'ASC' },
+      take: Math.max(1, Math.min(limit, 100)),
+    })
+
+    let processed = 0
+    for (const entity of candidates) {
+      if (entity.status === 'sending') {
+        entity.status = 'delivery_unknown'
+        entity.providerStatus = 'outcome_unknown'
+        entity.nextAttemptAt = null
+      }
+
+      if (!entity.providerMessageId) {
+        await this.whatsAppOutbox.save(entity)
+        processed += 1
+        continue
+      }
+
+      const verification = await this.verifyWhatsAppDelivery(
+        this.getWhatsAppInstance(entity.userId),
+        entity.providerMessageId,
+        entity.content,
+      )
+      if (verification === 'ok') {
+        entity.status = 'accepted'
+        entity.providerStatus = 'reconciled'
+        entity.lastError = null
+      } else if (verification === 'empty') {
+        entity.status = 'failed'
+        entity.providerStatus = 'empty'
+        entity.lastError = 'Evolution persistiu mensagem vazia'
+        entity.nextAttemptAt = now
+      } else if (verification === 'mismatch') {
+        entity.status = 'failed'
+        entity.providerStatus = 'mismatch'
+        entity.lastError = 'Evolution persistiu conteudo divergente'
+        entity.nextAttemptAt = null
+      } else {
+        entity.status = 'delivery_unknown'
+        entity.providerStatus = 'unverified'
+        entity.nextAttemptAt = null
+      }
+      await this.whatsAppOutbox.save(entity)
+      processed += 1
+    }
+    return processed
+  }
+
+  async supersedeAppointmentReminders(appointmentId: string, manager?: EntityManager): Promise<void> {
+    const repo = manager ? manager.getRepository(WhatsAppOutbox) : this.whatsAppOutbox
+    await repo.createQueryBuilder()
       .update(WhatsAppOutbox)
       .set({ status: 'failed', nextAttemptAt: null, providerStatus: 'superseded' })
       .where('"idempotencyKey" LIKE :prefix', { prefix: `appointment-reminder:${appointmentId}:%` })
-      .andWhere('"status" IN (:...statuses)', { statuses: ['pending', 'failed'] })
+      .andWhere('"status" IN (:...statuses)', { statuses: ['pending', 'failed', 'delivery_unknown'] })
       .execute()
   }
 
@@ -738,6 +800,7 @@ export class NotificationsService {
     allowClosedConnectionRecovery = true,
     allowDeliveryVerification = true,
     allowEmptyDeliveryRetry = true,
+    trackAmbiguousDelivery = false,
   ): Promise<WhatsAppDeliveryResult> {
     const normalizedText = typeof text === 'string' ? text.trim() : ''
     if (!normalizedText) {
@@ -773,7 +836,8 @@ export class NotificationsService {
               sent: false,
               reason: 'api_error',
               error: 'Conexao recuperada; confirme o envio antes de tentar novamente',
-              nonRetryable: true,
+              nonRetryable: !trackAmbiguousDelivery,
+              pendingReconciliation: trackAmbiguousDelivery,
               providerStatus: 'connection_recovered_no_retry',
               contentLength: normalizedText.length,
             }
@@ -828,14 +892,32 @@ export class NotificationsService {
           return acceptedResult
         }
 
-        // A resposta sincrona da Evolution nao comprova entrega. Se a consulta
-        // posterior continuar inconclusiva, a outbox agenda uma nova tentativa.
+        // A resposta sincrona da Evolution nao comprova entrega. Envios com outbox
+        // ficam em estado ambiguo ate o job de reconciliacao consultar o provedor.
         if (verification === 'unknown') {
-          this.logger.warn(`[WhatsApp] Verificacao inconclusiva instance=${instance} messageId=${provider.messageId}; aceito sem reenvio automatico`)
+          this.logger.warn(`[WhatsApp] Verificacao inconclusiva instance=${instance} messageId=${provider.messageId}; reenvio automatico bloqueado`)
+          if (trackAmbiguousDelivery) {
+            return {
+              sent: false,
+              pendingReconciliation: true,
+              providerMessageId: provider.messageId,
+              providerStatus: 'unverified',
+              contentLength: provider.text.trim().length,
+            }
+          }
           return { ...acceptedResult, providerStatus: 'unverified' }
         }
 
         if (verification === 'skipped') {
+          if (trackAmbiguousDelivery) {
+            return {
+              sent: false,
+              pendingReconciliation: true,
+              providerMessageId: provider.messageId,
+              providerStatus: 'unverified',
+              contentLength: provider.text.trim().length,
+            }
+          }
           return { ...acceptedResult, providerStatus: 'unverified' }
         }
 
@@ -885,7 +967,8 @@ export class NotificationsService {
         sent: false,
         reason: 'disconnected',
         error: 'WhatsApp desconectado ou indisponivel',
-        nonRetryable: true,
+        nonRetryable: !trackAmbiguousDelivery,
+        pendingReconciliation: trackAmbiguousDelivery,
         providerStatus: 'request_outcome_unknown',
         contentLength: normalizedText.length,
       }
