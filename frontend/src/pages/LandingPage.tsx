@@ -17,23 +17,41 @@ import BrandLogo from '@/components/ui/BrandLogo'
 import { usePublicTestimonials } from '@/hooks/api/testimonial'
 
 const trustSignals = [
-  'Plano grátis',
-  'Para psicólogos, terapeutas e estagiários clínicos',
-  'Sem cartão para começar',
+  'Desenvolvido para psicólogos com CRP ativo',
+  'Dados protegidos com criptografia',
+  'Sem cartão de crédito',
 ]
 
 const pains = [
   {
-    title: 'Paciente fica perguntando horário',
-    text: 'Quando tudo depende de conversa no WhatsApp, o profissional perde tempo oferecendo datas até encontrar uma opção.',
+    title: 'Quantas horas por semana você perde remarcando sessões no WhatsApp?',
+    text: 'Disponibilize seus horários em um link público e deixe o paciente escolher entre as opções que você liberou.',
   },
   {
-    title: 'Faltas e cobranças viram constrangimento',
-    text: 'Lembretes, confirmações e cobranças manuais quebram o ritmo da clínica e desgastam a relação.',
+    title: 'Quanto você deixa de receber por não acompanhar cobranças e pagamentos?',
+    text: 'Visualize valores pendentes e recebidos sem depender de planilhas, anotações ou memória.',
   },
   {
-    title: 'Prontuário e financeiro ficam espalhados',
-    text: 'Sessões, histórico, documentos e recebimentos precisam conversar entre si para a rotina não depender de planilhas soltas.',
+    title: 'Quantos pacientes você precisa lembrar manualmente antes de cada consulta?',
+    text: 'Centralize agenda, confirmações e histórico para reduzir tarefas repetitivas e evitar informações espalhadas.',
+  },
+]
+
+const howItWorks = [
+  {
+    step: '1',
+    title: 'Crie sua conta',
+    text: 'Informe seus dados profissionais e entre no sistema em menos de dois minutos.',
+  },
+  {
+    step: '2',
+    title: 'Cadastre o primeiro paciente',
+    text: 'Organize contato, histórico, sessões e documentos em uma ficha única.',
+  },
+  {
+    step: '3',
+    title: 'Centralize sua rotina',
+    text: 'Use agenda, prontuário e financeiro juntos, sem precisar configurar tudo de uma vez.',
   },
 ]
 
@@ -211,6 +229,7 @@ export default function LandingPage() {
             <a href="#produto" className="hover:text-sage-700">Produto</a>
             <a href="#grátis" className="hover:text-sage-700">Plano grátis</a>
             <button onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-sage-700">Dúvidas</button>
+            <Link to="/blog" className="hover:text-sage-700">Blog</Link>
             <Link to="/seguranca" className="hover:text-sage-700">Segurança</Link>
           </nav>
           <div className="flex items-center gap-2">
@@ -223,7 +242,7 @@ export default function LandingPage() {
               whileTap={reduce ? undefined : { scale: 0.97 }}
               className="hidden rounded-md bg-sage-800 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sage-900 sm:inline-flex"
             >
-              Quero testar
+              Criar conta grátis
             </MotionLink>
           </div>
         </div>
@@ -231,46 +250,39 @@ export default function LandingPage() {
 
       <section className="relative overflow-hidden bg-[#1D352D] text-white">
         <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
-        <div className="mx-auto grid w-full max-w-6xl min-w-0 grid-cols-[minmax(0,1fr)] items-center gap-10 px-5 py-16 sm:py-20 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:py-24">
+        <div className="mx-auto w-full max-w-4xl px-5 py-16 text-center sm:py-20 lg:py-24">
           <motion.div
-            className="w-full min-w-0 max-w-full sm:max-w-2xl"
+            className="mx-auto w-full max-w-4xl"
             initial="hidden"
             animate="show"
             variants={stagger}
           >
             <motion.p variants={fadeUp} className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-3 py-1 text-sm font-semibold text-sage-200">
               <Sparkles className="h-4 w-4" />
-              Plano grátis para psicólogos, terapeutas e estagiários
+              Gestão clínica simples para psicólogos
             </motion.p>
 
-            <motion.h1 variants={fadeUp} className="mt-6 max-w-[21rem] text-[2.1rem] font-bold leading-[1.06] tracking-normal text-white sm:max-w-2xl sm:text-5xl lg:text-6xl">
-              Agenda, prontuário e cobranças para psicólogos e terapeutas trabalharem com menos sobrecarga.
+            <motion.h1 variants={fadeUp} className="mx-auto mt-6 max-w-[22rem] text-[2.1rem] font-bold leading-[1.06] tracking-normal text-white sm:max-w-4xl sm:text-5xl lg:text-6xl">
+              Sua clínica organizada. Mais tempo para cuidar de quem importa.
             </motion.h1>
 
-            <motion.p variants={fadeUp} className="mt-6 max-w-[22rem] text-base leading-relaxed text-white/76 sm:max-w-xl sm:text-lg">
-              Organize pacientes, mostre datas disponíveis no link público, registre sessões e acompanhe pagamentos em uma rotina simples de colocar para funcionar.
+            <motion.p variants={fadeUp} className="mx-auto mt-6 max-w-[23rem] text-base leading-relaxed text-white/80 sm:max-w-2xl sm:text-lg">
+              Agenda, pacientes, prontuário e financeiro em um só lugar. Comece gratuitamente com até 10 pacientes, sem cadastrar cartão.
             </motion.p>
 
-            <motion.div variants={fadeUp} className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <motion.div variants={fadeUp} className="mt-8 flex flex-col items-center gap-3">
               <MotionLink
                 to="/cadastro"
                 whileHover={reduce ? undefined : { scale: 1.025 }}
                 whileTap={reduce ? undefined : { scale: 0.975 }}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-sage-200 px-5 text-sm font-bold text-sage-900 shadow-lg shadow-sage-200/15 hover:bg-sage-100"
+                className="inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-md bg-[#CFF3DE] px-6 text-sm font-bold text-[#143D2D] shadow-lg shadow-black/15 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
               >
-                Começar grátis <ArrowRight className="h-4 w-4" />
+                Criar minha conta grátis <ArrowRight className="h-4 w-4" />
               </MotionLink>
-              <motion.a
-                href="#produto"
-                whileHover={reduce ? undefined : { scale: 1.025 }}
-                whileTap={reduce ? undefined : { scale: 0.975 }}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-md border border-white/14 bg-white/6 px-5 text-sm font-semibold text-white hover:bg-white/10"
-              >
-                Ver como funciona <ChevronRight className="h-4 w-4" />
-              </motion.a>
+              <span className="text-sm text-white/75">Leva menos de 2 minutos</span>
             </motion.div>
 
-            <motion.div variants={fadeUp} className="mt-8 flex flex-col gap-2 text-sm text-white/70 sm:flex-row sm:flex-wrap">
+            <motion.div variants={fadeUp} className="mt-7 flex flex-col justify-center gap-2 text-sm text-white/80 sm:flex-row sm:flex-wrap">
               {trustSignals.map((item) => (
                 <span key={item} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
                   <CheckCircle2 className="h-4 w-4 text-sage-200" />
@@ -278,14 +290,6 @@ export default function LandingPage() {
                 </span>
               ))}
             </motion.div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: reduce ? 0 : 28 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: reduce ? 0.01 : 0.7, delay: reduce ? 0 : 0.22, ease: EASE }}
-          >
-            <ProductPreview />
           </motion.div>
         </div>
       </section>
@@ -320,6 +324,32 @@ export default function LandingPage() {
             </div>
           </motion.div>
         </div>
+        {realTestimonials.length > 0 && (
+          <div className="mx-auto max-w-6xl px-5 pb-10">
+            <p className="mb-5 text-center text-sm font-bold uppercase tracking-[0.18em] text-sage-700">
+              Quem usa recomenda
+            </p>
+            <div className="grid gap-4 md:grid-cols-3">
+              {realTestimonials.slice(0, 3).map(item => (
+                <motion.figure
+                  key={`${item.firstName}-${item.text}`}
+                  variants={fadeUp}
+                  className="rounded-xl border border-[#E7E4DA] bg-[#F7F8F5] p-5"
+                >
+                  <div className="mb-3 flex gap-0.5" aria-label={`Nota ${item.rating ?? 0} de 5`}>
+                    {[1, 2, 3, 4, 5].map(n => (
+                      <Star key={n} className={`h-3.5 w-3.5 ${n <= (item.rating ?? 0) ? 'fill-sage-600 text-sage-600' : 'text-[#D6D1C5]'}`} />
+                    ))}
+                  </div>
+                  <blockquote className="text-sm leading-relaxed text-[#49443D]">“{item.text}”</blockquote>
+                  <figcaption className="mt-4 text-sm font-semibold text-[#211F1C]">
+                    {item.firstName} · psicóloga usuária do UseCognia
+                  </figcaption>
+                </motion.figure>
+              ))}
+            </div>
+          </div>
+        )}
       </motion.section>
 
       <section className="mx-auto max-w-6xl px-5 py-16">
@@ -333,7 +363,7 @@ export default function LandingPage() {
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Por que agora</p>
             <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Você não estudou para virar administrador de agenda.</h2>
             <p className="mt-4 leading-relaxed text-[#5F5A51]">
-              A clínica exige presença. Mas a rotina ao redor dela costuma virar uma mistura de WhatsApp, planilha, agenda, caderno, cobranças e lembretes soltos. O UseCognia começa pelo que mais pesa no dia a dia.
+              Seu trabalho precisa de presença e escuta. Quando agenda, lembretes, registros e pagamentos ficam espalhados, a burocracia ocupa o tempo que deveria voltar para você e seus pacientes.
             </p>
           </motion.div>
           <motion.div
@@ -368,12 +398,38 @@ export default function LandingPage() {
             viewport={{ once: true, margin: '-80px' }}
             variants={fadeUp}
           >
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Produto</p>
-            <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">O essencial da rotina clínica em um só lugar.</h2>
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Como funciona</p>
+            <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Da primeira configuração à rotina organizada em três passos.</h2>
+            <p className="mt-4 leading-relaxed text-[#5F5A51]">
+              Você começa pelo essencial e adiciona recursos conforme sua clínica precisar.
+            </p>
           </motion.div>
 
+          <div className="mt-10 grid items-center gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+            <ProductPreview />
+            <motion.ol
+              className="space-y-4"
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, margin: '-80px' }}
+              variants={stagger}
+            >
+              {howItWorks.map(item => (
+                <motion.li key={item.step} variants={fadeUp} className="flex gap-4 rounded-lg border border-[#E7E4DA] bg-[#F7F8F5] p-5">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sage-800 text-sm font-bold text-white">
+                    {item.step}
+                  </span>
+                  <div>
+                    <h3 className="font-semibold text-[#211F1C]">{item.title}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-[#6D675D]">{item.text}</p>
+                  </div>
+                </motion.li>
+              ))}
+            </motion.ol>
+          </div>
+
           <motion.div
-            className="mt-8 grid gap-4 md:grid-cols-4"
+            className="mt-10 grid gap-4 md:grid-cols-4"
             initial="hidden"
             whileInView="show"
             viewport={{ once: true, margin: '-80px' }}
@@ -393,92 +449,13 @@ export default function LandingPage() {
               </motion.article>
             ))}
           </motion.div>
-        </div>
-      </section>
 
-      <section className="mx-auto max-w-6xl px-5 py-16">
-        <motion.div
-          className="text-center mb-10"
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: '-80px' }}
-          variants={fadeUp}
-        >
-          <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">
-            {realTestimonials.length >= 3 ? 'Quem usa recomenda' : 'Por que começar agora'}
-          </p>
-          <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">
-            {realTestimonials.length >= 3
-              ? 'Psicólogos e terapeutas que já organizaram a rotina com o UseCognia.'
-              : 'Uma rotina clínica mais organizada desde o primeiro paciente.'}
-          </h2>
-        </motion.div>
-        <motion.div
-          className="grid gap-5 md:grid-cols-3"
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: '-80px' }}
-          variants={stagger}
-        >
-          {(realTestimonials.length >= 3
-            ? realTestimonials.slice(0, 3).map(item => ({
-                quote: item.text ?? '',
-                name: item.firstName,
-                role: null,
-                initial: item.firstName.charAt(0).toUpperCase(),
-                rating: item.rating,
-              }))
-            : [
-                {
-                  quote: 'Você começa pelo que mais pesa na rotina: agenda, pacientes, prontuário e documentos em um só lugar.',
-                  name: 'Começo simples',
-                  role: 'Sem precisar configurar tudo de uma vez',
-                  initial: 'A',
-                  rating: null,
-                },
-                {
-                  quote: 'O sistema ajuda a reduzir a dependência de caderno, planilha e mensagens soltas no WhatsApp.',
-                  name: 'Menos retrabalho',
-                  role: 'Mais clareza para operar a clínica',
-                  initial: 'P',
-                  rating: null,
-                },
-                {
-                  quote: 'Quando a rotina crescer, os planos pagos liberam documentos, automações, instrumentos e IA.',
-                  name: 'Cresce com você',
-                  role: 'Do plano grátis ao Pro',
-                  initial: 'S',
-                  rating: null,
-                },
-              ]
-          ).map(({ quote, name, role, initial, rating }) => (
-            <motion.figure
-              key={name}
-              variants={fadeUp}
-              whileHover={reduce ? undefined : { y: -3 }}
-              transition={{ duration: 0.2 }}
-              className="rounded-xl border border-[#E7E4DA] bg-[#FFFFFF] p-6 shadow-sm transition-shadow hover:shadow-md"
-            >
-              {rating != null && (
-                <div className="mb-2 flex gap-0.5" aria-label={`Nota ${rating} de 5`}>
-                  {[1, 2, 3, 4, 5].map(n => (
-                    <Star key={n} className={`h-3.5 w-3.5 ${n <= rating ? 'fill-sage-500 text-sage-500' : 'text-[#E7E4DA]'}`} />
-                  ))}
-                </div>
-              )}
-              <blockquote className="text-sm leading-relaxed text-[#49443D]">"{quote}"</blockquote>
-              <figcaption className="mt-4 flex items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sage-100 text-sm font-bold text-sage-700">
-                  {initial}
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-[#211F1C]">{name}</p>
-                  {role && <p className="text-xs text-[#7C776B]">{role}</p>}
-                </div>
-              </figcaption>
-            </motion.figure>
-          ))}
-        </motion.div>
+          <div className="mt-8 text-center">
+            <a href="#grátis" className="inline-flex items-center gap-2 text-sm font-semibold text-sage-800 underline underline-offset-4 hover:text-sage-950">
+              Ver o que está incluído no plano grátis <ChevronRight className="h-4 w-4" />
+            </a>
+          </div>
+        </div>
       </section>
 
       <section id="grátis" className="mx-auto grid max-w-6xl gap-8 px-5 py-16 lg:grid-cols-[0.9fr_1fr]">
@@ -524,9 +501,9 @@ export default function LandingPage() {
             whileTap={reduce ? undefined : { scale: 0.98 }}
             className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-md bg-sage-800 text-sm font-bold text-white hover:bg-sage-900"
           >
-            Começar grátis
+            Criar minha conta grátis
           </MotionLink>
-          <p className="mt-3 text-center text-xs text-[#A9A394]">Sem cartão. Você pode mudar de plano depois.</p>
+          <p className="mt-3 text-center text-xs text-[#6D675D]">Leva menos de 2 minutos · sem cartão de crédito</p>
         </motion.div>
       </section>
 
@@ -572,26 +549,21 @@ export default function LandingPage() {
         >
           <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-200">Comece hoje</p>
           <h2 className="mt-4 text-3xl font-bold leading-snug">
-            Pronto para deixar o consultório com cara de operação profissional?
+            Configure sua conta em 5 minutos e organize seu primeiro paciente hoje.
           </h2>
-          <p className="mx-auto mt-4 max-w-lg text-white/70">
-            Crie sua conta grátis em menos de dois minutos — sem cartão, sem contrato.
+          <p className="mx-auto mt-4 max-w-lg text-white/80">
+            Comece com agenda, pacientes, prontuário e financeiro reunidos em uma rotina mais leve.
           </p>
-          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+          <div className="mt-8 flex flex-col items-center gap-3">
             <MotionLink
               to="/cadastro"
               whileHover={reduce ? undefined : { scale: 1.03 }}
               whileTap={reduce ? undefined : { scale: 0.97 }}
-              className="inline-flex h-12 items-center gap-2 rounded-md bg-sage-200 px-6 text-sm font-bold text-sage-900 shadow-lg hover:bg-sage-100"
+              className="inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-md bg-[#CFF3DE] px-6 text-sm font-bold text-[#143D2D] shadow-lg hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
             >
-              Criar conta grátis <ArrowRight className="h-4 w-4" />
+              Criar minha conta grátis <ArrowRight className="h-4 w-4" />
             </MotionLink>
-            <a
-              href="mailto:usecognia@gmail.com"
-              className="inline-flex h-12 items-center gap-2 rounded-md border border-white/20 px-6 text-sm font-semibold text-white hover:bg-white/10"
-            >
-              Falar com a equipe
-            </a>
+            <p className="text-sm text-white/75">Sem cartão · até 10 pacientes · cancele quando quiser</p>
           </div>
         </motion.div>
       </section>
@@ -621,6 +593,7 @@ export default function LandingPage() {
                 <li><a href="#grátis" className="hover:text-sage-700">Plano grátis</a></li>
                 <li><Link to="/precos" className="hover:text-sage-700">Planos pagos</Link></li>
                 <li><Link to="/seguranca" className="hover:text-sage-700">Segurança</Link></li>
+                <li><Link to="/blog" className="hover:text-sage-700">Blog</Link></li>
               </ul>
             </div>
 
