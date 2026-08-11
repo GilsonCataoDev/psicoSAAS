@@ -590,28 +590,40 @@ export class NotificationsService {
 
   private async claimOutbox(ownerId: string, phone: string, text: string, meta: WhatsAppLogMeta): Promise<{ duplicate: boolean; completed?: boolean; pendingReconciliation?: boolean; entity?: WhatsAppOutbox }> {
     const key = meta.idempotencyKey!
-    await this.whatsAppOutbox.createQueryBuilder().insert().values({
-      userId: ownerId,
-      idempotencyKey: key,
-      type: meta.type,
-      patientId: meta.patientId ?? null,
-      recipientPhone: phone,
-      content: text,
-    }).orIgnore().execute()
     const provider = this.cloudWhatsApp.isEnabledFor(ownerId)
       && this.cloudWhatsApp.isConfigured()
       && meta.cloudTemplate
       ? 'cloud_api'
       : 'evolution'
+    const inserted = await this.whatsAppOutbox.createQueryBuilder().insert().values({
+      userId: ownerId,
+      idempotencyKey: key,
+      type: meta.type,
+      provider,
+      status: 'sending',
+      attempts: 1,
+      patientId: meta.patientId ?? null,
+      recipientPhone: phone,
+      content: text,
+    }).orIgnore().returning(['id']).execute()
+
+    // A restricao unica do banco e a trava: somente quem inseriu a chave pode enviar.
+    // Isso evita a janela entre INSERT e UPDATE que permitia duas chamadas concorrentes.
+    const insertedId = inserted.raw?.[0]?.id
+    if (insertedId) {
+      const entity = await this.whatsAppOutbox.findOneOrFail({ where: { id: insertedId } })
+      return { duplicate: false, entity }
+    }
+
+    // Uma chave existente so pode ser retomada quando uma tentativa falhou e o backoff venceu.
     const claimed: Array<{ id: string }> = await this.whatsAppOutbox.manager.query(`
       UPDATE "whatsapp_outbox"
       SET "status" = 'sending', "provider" = $2, "attempts" = "attempts" + 1,
           "nextAttemptAt" = NULL, "updatedAt" = now()
       WHERE "idempotencyKey" = $1
-        AND (
-          "status" = 'pending'
-          OR ("status" = 'failed' AND "nextAttemptAt" IS NOT NULL AND "nextAttemptAt" <= now())
-        )
+        AND "status" = 'failed'
+        AND "nextAttemptAt" IS NOT NULL
+        AND "nextAttemptAt" <= now()
         AND COALESCE("providerStatus", '') <> 'unverified'
       RETURNING "id"
     `, [key, provider])

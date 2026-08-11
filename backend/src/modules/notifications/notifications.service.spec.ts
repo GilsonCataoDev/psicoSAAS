@@ -8,7 +8,8 @@ function makeOutboxRepo() {
   builder.insert = jest.fn(() => builder)
   builder.values = jest.fn(() => builder)
   builder.orIgnore = jest.fn(() => builder)
-  builder.execute = jest.fn(async () => ({}))
+  builder.returning = jest.fn(() => builder)
+  builder.execute = jest.fn(async () => ({ raw: [{ id: 'outbox-id' }] }))
   return {
     createQueryBuilder: jest.fn(() => builder),
     manager: { query: jest.fn(async () => [{ id: 'outbox-id' }]) },
@@ -51,7 +52,8 @@ describe('NotificationsService WhatsApp delivery validation', () => {
   outboxBuilder.insert = jest.fn(() => outboxBuilder)
   outboxBuilder.values = jest.fn(() => outboxBuilder)
   outboxBuilder.orIgnore = jest.fn(() => outboxBuilder)
-  outboxBuilder.execute = jest.fn(async () => ({}))
+  outboxBuilder.returning = jest.fn(() => outboxBuilder)
+  outboxBuilder.execute = jest.fn(async () => ({ raw: [{ id: 'outbox-id' }] }))
   const whatsAppOutbox = {
     createQueryBuilder: jest.fn(() => outboxBuilder),
     manager: { query: jest.fn(async () => [{ id: 'outbox-id' }]) },
@@ -67,6 +69,7 @@ describe('NotificationsService WhatsApp delivery validation', () => {
     savedLogs.length = 0
     jest.clearAllMocks()
     whatsAppOutbox.manager.query.mockReset().mockResolvedValue([{ id: 'outbox-id' }])
+    outboxBuilder.execute.mockReset().mockResolvedValue({ raw: [{ id: 'outbox-id' }] })
     whatsAppOutbox.findOneOrFail.mockReset().mockImplementation(async () => ({ ...outboxEntity }))
     users.findOneBy.mockResolvedValue({ email: 'gilsonfilho96@outlook.com' })
     service = new NotificationsService(
@@ -286,6 +289,7 @@ describe('NotificationsService WhatsApp delivery validation', () => {
 
   it('does not bypass the outbox backoff while a retry is scheduled', async () => {
     const futureRetry = new Date(Date.now() + 5 * 60_000)
+    outboxBuilder.execute.mockResolvedValueOnce({ raw: [] })
     whatsAppOutbox.manager.query.mockResolvedValueOnce([])
     whatsAppOutbox.findOneOrFail.mockResolvedValueOnce({
       status: 'failed',
@@ -309,14 +313,15 @@ describe('NotificationsService WhatsApp delivery validation', () => {
       patient: { id: 'patient-1', name: 'Marina Silva', phone: '11999999999' },
       psychologist: { preferences: {} },
     }
-    let claims = 0
-    whatsAppOutbox.manager.query.mockImplementation(async () => {
-      claims += 1
-      return claims === 1 ? [{ id: 'outbox-race' }] : []
+    let inserts = 0
+    outboxBuilder.execute.mockImplementation(async () => {
+      inserts += 1
+      return inserts === 1 ? { raw: [{ id: 'outbox-race' }] } : { raw: [] }
     })
-    whatsAppOutbox.findOneOrFail.mockImplementation(async () => claims === 0
-      ? { id: 'outbox-race', status: 'pending', attempts: 0, updatedAt: new Date() }
-      : { id: 'outbox-race', status: 'sending', attempts: 1, updatedAt: new Date() })
+    whatsAppOutbox.manager.query.mockResolvedValue([])
+    whatsAppOutbox.findOneOrFail.mockResolvedValue({
+      id: 'outbox-race', status: 'sending', attempts: 1, updatedAt: new Date(),
+    })
     jest.spyOn(service, 'sendAppointmentPushReminder').mockResolvedValue({ sent: 0, removed: 0 })
     const fetchSpy = jest.spyOn(global, 'fetch').mockImplementation(async () => new Response(JSON.stringify({
       key: { id: 'provider-id' }, message: { conversation: 'Lembrete' }, status: 'PENDING',
