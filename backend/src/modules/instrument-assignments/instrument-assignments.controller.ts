@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Header, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common'
-import { ArrayMaxSize, IsArray, IsBoolean, IsNumber, IsOptional, IsString, MaxLength, ValidateNested } from 'class-validator'
+import { Body, Controller, Delete, Get, Header, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common'
+import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsNumber, IsOptional, IsString, MaxLength, ValidateNested } from 'class-validator'
 import { Type } from 'class-transformer'
 import { Throttle } from '@nestjs/throttler'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
@@ -19,6 +19,11 @@ class CreateInstrumentAssignmentDto {
   @IsString() @MaxLength(40) category: string
   @IsString() @MaxLength(20000) template: string
   @IsBoolean() @IsOptional() sendWhatsApp?: boolean
+  @IsIn(['weekly', 'biweekly', 'monthly']) @IsOptional() recurrence?: 'weekly' | 'biweekly' | 'monthly'
+}
+
+class SetScheduleActiveDto {
+  @IsBoolean() active: boolean
 }
 
 class SubscaleDto {
@@ -101,6 +106,27 @@ export class InstrumentAssignmentsController {
       : null
 
     return { draft: result.text, criticalAlert }
+  }
+
+  @Get('instrument-schedules')
+  @UseGuards(JwtAuthGuard, NoImpersonationGuard)
+  @RequirePlan('pro')
+  findSchedules(@Req() req: any, @Query('patientId') patientId?: string) {
+    return this.svc.findSchedules(req.user.id, patientId)
+  }
+
+  @Patch('instrument-schedules/:id')
+  @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
+  @RequirePlan('pro')
+  setScheduleActive(@Req() req: any, @Param('id') id: string, @Body() body: SetScheduleActiveDto) {
+    return this.svc.setScheduleActive(id, req.user.id, body.active)
+  }
+
+  @Delete('instrument-schedules/:id')
+  @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
+  @RequirePlan('pro')
+  deleteSchedule(@Req() req: any, @Param('id') id: string) {
+    return this.svc.deleteSchedule(id, req.user.id)
   }
 
   @Get('public/instruments/:token')

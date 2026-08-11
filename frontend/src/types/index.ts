@@ -49,6 +49,7 @@ export interface NeuropsychBatteryItem {
   procedureType: 'psychological_test' | 'neuropsychological_procedure' | 'behavioral_scale' | 'clinical_interview' | 'observation' | 'other'
   domains: NeuropsychDomain[]
   status: 'planned' | 'applied' | 'integrated' | 'not_applied'
+  instrumentAssignmentId?: string
   purpose?: string
   resultSummary?: string
   qualitativeNotes?: string
@@ -149,6 +150,7 @@ export interface Appointment {
   status: 'scheduled' | 'completed' | 'cancelled' | 'no_show'
   modality: 'presencial' | 'online'
   meetingUrl?: string
+  autoVideoRoom?: boolean
   notes?: string
   isRecurring?: boolean
   recurringFrequency?: 'weekly' | 'biweekly'
@@ -188,6 +190,7 @@ export interface FinancialRecord {
   amount: number
   description: string
   status: 'paid' | 'pending' | 'overdue'
+  category?: string
   dueDate?: string
   paidAt?: string
   method?: 'pix' | 'credit_card' | 'debit_card' | 'cash' | 'transfer' | 'manual'

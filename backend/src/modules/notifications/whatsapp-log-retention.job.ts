@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { InjectRepository } from '@nestjs/typeorm'
 import { LessThan, Repository } from 'typeorm'
 import { WhatsAppDeliveryLog } from './entities/whatsapp-delivery-log.entity'
+import { AdvisoryLockService, JOB_LOCK_KEYS } from '../../common/advisory-lock/advisory-lock.service'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const RETENTION_DAYS = 7
@@ -10,10 +11,12 @@ const RETENTION_DAYS = 7
 export class WhatsAppLogRetentionJob implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(WhatsAppLogRetentionJob.name)
   private timer?: NodeJS.Timeout
+  private running = false
 
   constructor(
     @InjectRepository(WhatsAppDeliveryLog)
     private readonly logs: Repository<WhatsAppDeliveryLog>,
+    private readonly lock: AdvisoryLockService,
   ) {}
 
   onModuleInit(): void {
@@ -25,7 +28,17 @@ export class WhatsAppLogRetentionJob implements OnModuleInit, OnModuleDestroy {
     if (this.timer) clearInterval(this.timer)
   }
 
-  async run(now = new Date()): Promise<number> {
+  async run(now = new Date()): Promise<number | undefined> {
+    if (this.running) return undefined
+    this.running = true
+    try {
+      return await this.lock.withLock(JOB_LOCK_KEYS.WHATSAPP_LOG_RETENTION, () => this.runLocked(now))
+    } finally {
+      this.running = false
+    }
+  }
+
+  private async runLocked(now = new Date()): Promise<number> {
     const cutoff = new Date(now.getTime() - RETENTION_DAYS * DAY_MS)
     const result = await this.logs.delete({ createdAt: LessThan(cutoff) })
     const removed = result.affected ?? 0

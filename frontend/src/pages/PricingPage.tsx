@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { BadgeDollarSign, CheckCircle2, Clock3, CreditCard, Loader2, Target, TrendingUp, XCircle } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
+import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/store/auth'
 import { PLANS, Plan, useSubscriptionStore } from '@/store/subscription'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
+import BrandLogo from '@/components/ui/BrandLogo'
 import Modal from '@/components/ui/Modal'
 import { PRICING_COMPARISON, PRICING_FAQ, PRICING_HERO, PRICING_PLANS, PricingPlan, PricingRoiItem } from '@/data/pricingPlans'
 import { userSafeError } from '@/lib/userSafeError'
@@ -19,11 +22,34 @@ function statusMessage(status: string) {
   return 'Escolha um plano para continuar'
 }
 
-export default function PricingPage() {
-  return <PaidPricingPage />
+export default function PricingPage({ publicView = false }: { publicView?: boolean }) {
+  if (!publicView) return <PaidPricingPage />
+
+  return (
+    <main className="min-h-screen bg-neutral-50">
+      <header className="border-b border-sage-100 bg-white">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5">
+          <Link to="/plataforma" aria-label="Voltar para a página inicial">
+            <BrandLogo className="h-10 w-auto" />
+          </Link>
+          <div className="flex items-center gap-3">
+            <Link to="/login" className="text-sm font-semibold text-sage-700 hover:text-sage-900">
+              Entrar
+            </Link>
+            <Link to="/cadastro" className="rounded-xl bg-sage-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sage-700">
+              Começar grátis
+            </Link>
+          </div>
+        </div>
+      </header>
+      <div className="mx-auto max-w-7xl px-5 py-8">
+        <PaidPricingPage publicView />
+      </div>
+    </main>
+  )
 }
 
-function PaidPricingPage() {
+function PaidPricingPage({ publicView = false }: { publicView?: boolean }) {
 
   const checkoutRef = useRef<HTMLElement | null>(null)
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
@@ -39,9 +65,22 @@ function PaidPricingPage() {
   const [planChangeTarget, setPlanChangeTarget] = useState<Plan | null>(null)
   const [confirmCancelToFree, setConfirmCancelToFree] = useState(false)
   const { subscription, setSubscription } = useSubscriptionStore()
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  const navigate = useNavigate()
   const currentPlanId = String(subscription.planId ?? subscription.plan ?? '')
-  const billingPlans = new Map(PLANS.map((plan) => [plan.id, plan]))
-  const currentPlan = billingPlans.get(currentPlanId)
+  const currentPlan = PLANS.find(plan => plan.id === currentPlanId)
+  const activeFree = subscription.status === 'active' && currentPlanId === 'free'
+  const { data: upgradeOffer } = useQuery({
+    queryKey: ['billing', 'upgrade-offer'],
+    queryFn: () => api.get<{
+      eligible: boolean
+      promotionalPrice: number | null
+      regularPrice: number
+      includesTrial: boolean
+    }>('/billing/upgrade-offer').then(response => response.data),
+    enabled: !publicView && isAuthenticated && activeFree,
+    staleTime: 60 * 60 * 1000,
+  })
 
   useEffect(() => { track(EVENTS.PLAN_PAGE_VIEWED) }, [])
 
@@ -181,7 +220,13 @@ function PaidPricingPage() {
       const { data } = await api.post(endpoint, body)
       setSubscription(data)
       track(EVENTS.SUBSCRIPTION_ACTIVE, { plan: plan.id })
-      toast.success(subscription.status === 'past_due' ? `Cartao atualizado. Tentaremos cobrar no plano ${plan.name}.` : 'Teste iniciado! Voce tem 7 dias gratis.')
+      toast.success(
+        subscription.status === 'past_due'
+          ? `Cartao atualizado. Tentaremos cobrar no plano ${plan.name}.`
+          : data.status === 'trialing'
+            ? 'Teste iniciado! Voce tem 7 dias gratis.'
+            : `Plano ${plan.name} ativado. A cobranca seguira o vencimento informado.`,
+      )
     } catch (err: any) {
       toast.error(userSafeError(err, 'Cartao invalido ou pagamento recusado.'))
     } finally {
@@ -220,7 +265,12 @@ function PaidPricingPage() {
   }
 
   function handlePlanClick(plan: PricingPlan) {
-    const billingPlan = billingPlans.get(plan.id)
+    if (publicView) {
+      navigate(isAuthenticated ? '/planos' : `/cadastro?plano=${plan.id}`)
+      return
+    }
+
+    const billingPlan = PLANS.find(candidate => candidate.id === plan.id)
     if (!billingPlan) return
     const hasActivePlan = ['active', 'trialing'].includes(subscription.status)
     const isCurrentPlan = hasActivePlan && currentPlanId === plan.id
@@ -243,6 +293,18 @@ function PaidPricingPage() {
   return (
     <div className="mx-auto max-w-7xl space-y-12 pb-12">
       <PricingHero subscriptionStatus={subscription.status} />
+
+      {upgradeOffer?.eligible && (
+        <aside className="mx-auto max-w-3xl rounded-2xl border border-sage-200 bg-sage-50 px-5 py-4 text-center text-sage-900 dark:border-sage-400/30 dark:bg-sage-500/15 dark:text-sage-100">
+          <p className="text-xs font-bold uppercase tracking-[0.14em]">Condição especial da sua conta</p>
+          <p className="mt-1 text-lg font-semibold">
+            Pro por R$ 34,90 no primeiro mês; depois R$ 97,90/mês.
+          </p>
+          {upgradeOffer.includesTrial && (
+            <p className="mt-1 text-sm">Antes da primeira cobrança, você ainda tem 7 dias grátis.</p>
+          )}
+        </aside>
+      )}
 
       {subscription.status === 'active' && (
         <div className="mx-auto max-w-3xl rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
@@ -277,6 +339,11 @@ function PaidPricingPage() {
           />
         ))}
       </section>
+
+      <aside className="mx-auto max-w-4xl rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm leading-6 text-amber-900 dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-100">
+        <p>WhatsApp, pagamentos e IA dependem da configuração e disponibilidade dos respectivos provedores externos.</p>
+        <p className="mt-1">A IA é um apoio opcional e pode ficar indisponível quando o provedor não estiver configurado.</p>
+      </aside>
 
       {selectedPlan && (
         <CheckoutForm
@@ -398,16 +465,18 @@ function PricingCard({
         <p className="mt-2 min-h-12 text-sm font-semibold text-neutral-600 dark:text-neutral-300">{plan.description}</p>
         <div className="mt-5">
           {plan.id === 'free' ? (
-            <span className="text-4xl font-bold text-neutral-900 dark:text-white">{plan.price}</span>
+            <span className="text-4xl font-bold text-neutral-900 dark:text-white">Grátis</span>
           ) : (
             <>
               <span className="text-sm text-neutral-400">R$ </span>
-              <span className="text-4xl font-bold text-neutral-900 dark:text-white">{plan.price}</span>
+              <span className="text-4xl font-bold text-neutral-900 dark:text-white">{plan.price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               <span className="ml-1 text-sm text-neutral-500 dark:text-neutral-400">{plan.pricePeriod}</span>
             </>
           )}
         </div>
-        <p className="mt-2 text-xs text-neutral-400">{plan.priceAnnual ?? plan.pricePeriod}</p>
+        <p className="mt-2 text-xs text-neutral-400">
+          {plan.id === 'free' ? plan.pricePeriod : 'Cobrança mensal'}
+        </p>
       </div>
 
       {plan.roi && (
@@ -571,7 +640,7 @@ function PlanMiniCard({ label, plan, muted = false }: { label: string; plan?: Pl
       <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">{label}</p>
       <p className="mt-1 text-sm font-semibold text-neutral-800">{plan?.name ?? 'Sem plano'}</p>
       <p className="mt-1 text-xs text-neutral-500">
-        {plan ? (plan.price === 0 ? 'Grátis' : `R$ ${plan.price}/mês`) : 'Sem cobrança ativa'}
+        {plan ? (plan.price === 0 ? 'Grátis' : `R$ ${plan.price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mês`) : 'Sem cobrança ativa'}
       </p>
     </div>
   )
@@ -587,16 +656,45 @@ function RoiIcon({ type }: { type: PricingRoiItem['type'] }) {
 
 function PricingComparison() {
   return (
-    <section className="mx-auto max-w-4xl px-1">
+    <section className="mx-auto max-w-5xl px-1">
       <h2 className="mb-8 text-center text-3xl font-bold text-neutral-900 dark:text-white">{PRICING_COMPARISON.title}</h2>
-      <div className="space-y-4">
+
+      {/* Tabela em telas médias+; cards empilhados em mobile pra não espremer 4 colunas numa tela estreita */}
+      <div className="hidden overflow-hidden rounded-2xl border border-neutral-200 shadow-card dark:border-white/10 sm:block">
+        <table className="w-full border-collapse bg-white text-left dark:bg-cognia-panel">
+          <thead>
+            <tr className="border-b border-neutral-200 dark:border-white/10">
+              <th className="w-40 px-5 py-4 text-sm font-semibold text-neutral-500 dark:text-neutral-400">Recurso</th>
+              <th className="px-5 py-4 text-sm font-bold text-neutral-700 dark:text-neutral-200">Grátis</th>
+              <th className="bg-purple-50 px-5 py-4 text-sm font-bold text-purple-700 dark:bg-purple-500/10 dark:text-purple-200">Pro</th>
+            </tr>
+          </thead>
+          <tbody>
+            {PRICING_COMPARISON.sections.map((row, index) => (
+              <tr
+                key={row.title}
+                className={cn(
+                  'border-b border-neutral-100 last:border-0 dark:border-white/5',
+                  index % 2 === 1 && 'bg-neutral-50/60 dark:bg-white/[0.02]',
+                )}
+              >
+                <td className="px-5 py-4 text-sm font-semibold text-neutral-800 dark:text-neutral-100">{row.title}</td>
+                <td className="px-5 py-4 text-sm text-neutral-600 dark:text-neutral-300">{row.free}</td>
+                <td className="bg-purple-50/40 px-5 py-4 text-sm text-neutral-700 dark:bg-purple-500/5 dark:text-neutral-300">{row.pro}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="space-y-4 sm:hidden">
         {PRICING_COMPARISON.sections.map((row) => (
           <div key={row.title} className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-card dark:border-white/10 dark:bg-cognia-panel">
             <h3 className="mb-4 text-lg font-bold text-neutral-900 dark:text-white">{row.title}</h3>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-xl bg-sage-50 p-4 dark:bg-sage-500/10">
-                <p className="mb-1 font-semibold text-sage-700 dark:text-sage-200">Essencial</p>
-                <p className="text-sm text-neutral-700 dark:text-neutral-300">{row.essencial}</p>
+            <div className="space-y-3">
+              <div className="rounded-xl bg-neutral-50 p-4 dark:bg-white/5">
+                <p className="mb-1 font-semibold text-neutral-600 dark:text-neutral-300">Grátis</p>
+                <p className="text-sm text-neutral-700 dark:text-neutral-300">{row.free}</p>
               </div>
               <div className="rounded-xl bg-purple-50 p-4 dark:bg-purple-500/10">
                 <p className="mb-1 font-semibold text-purple-700 dark:text-purple-200">Pro</p>

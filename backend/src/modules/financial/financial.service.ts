@@ -2,7 +2,9 @@ import { BadRequestException, Injectable, NotFoundException, Logger } from '@nes
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { FinancialRecord } from './entities/financial-record.entity'
+import { RecurringExpense } from './entities/recurring-expense.entity'
 import { CreateFinancialDto } from './dto/create-financial.dto'
+import { CreateRecurringExpenseDto, UpdateRecurringExpenseDto } from './dto/recurring-expense.dto'
 import { NotificationsService } from '../notifications/notifications.service'
 import { User } from '../auth/entities/user.entity'
 import { Patient } from '../patients/entities/patient.entity'
@@ -16,6 +18,7 @@ export class FinancialService {
 
   constructor(
     @InjectRepository(FinancialRecord) private repo: Repository<FinancialRecord>,
+    @InjectRepository(RecurringExpense) private recurringExpenses: Repository<RecurringExpense>,
     @InjectRepository(User) private users: Repository<User>,
     @InjectRepository(Patient) private patients: Repository<Patient>,
     @InjectRepository(Session) private sessions: Repository<Session>,
@@ -38,6 +41,7 @@ export class FinancialService {
         amount: true,
         description: true,
         status: true,
+        category: true,
         dueDate: true,
         paidAt: true,
         method: true,
@@ -68,6 +72,7 @@ export class FinancialService {
         amount: true,
         description: true,
         status: true,
+        category: true,
         dueDate: true,
         paidAt: true,
         method: true,
@@ -280,15 +285,79 @@ export class FinancialService {
   }
 
   async getSummary(psychologistId: string) {
-    const records = await this.repo.find({ where: { psychologistId } })
-    const income = records.filter(r => r.type === 'income')
+    const totals = await this.repo
+      .createQueryBuilder('record')
+      .select(`COALESCE(SUM(CASE WHEN record.type = 'income' THEN record.amount ELSE 0 END), 0)`, 'totalRevenue')
+      .addSelect(`COALESCE(SUM(CASE WHEN record.type = 'income' AND record.status = 'paid' THEN record.amount ELSE 0 END), 0)`, 'paid')
+      .addSelect(`COALESCE(SUM(CASE WHEN record.type = 'income' AND record.status = 'pending' THEN record.amount ELSE 0 END), 0)`, 'pending')
+      .addSelect(`COALESCE(SUM(CASE WHEN record.type = 'income' AND record.status = 'overdue' THEN record.amount ELSE 0 END), 0)`, 'overdue')
+      .addSelect(`COALESCE(SUM(CASE WHEN record.type = 'expense' THEN record.amount ELSE 0 END), 0)`, 'totalExpense')
+      .where('record.psychologistId = :psychologistId', { psychologistId })
+      .getRawOne()
+
+    const totalRevenue = Number(totals?.totalRevenue ?? 0)
+    const totalExpense = Number(totals?.totalExpense ?? 0)
 
     return {
-      totalRevenue: income.reduce((s, r) => s + Number(r.amount), 0),
-      paid: income.filter(r => r.status === 'paid').reduce((s, r) => s + Number(r.amount), 0),
-      pending: income.filter(r => r.status === 'pending').reduce((s, r) => s + Number(r.amount), 0),
-      overdue: income.filter(r => r.status === 'overdue').reduce((s, r) => s + Number(r.amount), 0),
+      totalRevenue,
+      paid: Number(totals?.paid ?? 0),
+      pending: Number(totals?.pending ?? 0),
+      overdue: Number(totals?.overdue ?? 0),
+      totalExpense,
+      net: totalRevenue - totalExpense,
     }
+  }
+
+  // ── Despesas recorrentes ────────────────────────────────────────────────────
+
+  async findRecurringExpenses(psychologistId: string) {
+    return this.recurringExpenses.find({
+      where: { psychologistId },
+      order: { createdAt: 'DESC' },
+    })
+  }
+
+  async createRecurringExpense(dto: CreateRecurringExpenseDto, psychologistId: string) {
+    const expense = this.recurringExpenses.create({ ...dto, psychologistId, active: true })
+    return this.recurringExpenses.save(expense)
+  }
+
+  async updateRecurringExpense(id: string, dto: UpdateRecurringExpenseDto, psychologistId: string) {
+    const expense = await this.recurringExpenses.findOne({ where: { id, psychologistId } })
+    if (!expense) throw new NotFoundException('Despesa recorrente não encontrada')
+    Object.assign(expense, dto)
+    return this.recurringExpenses.save(expense)
+  }
+
+  async deleteRecurringExpense(id: string, psychologistId: string) {
+    const expense = await this.recurringExpenses.findOne({ where: { id, psychologistId } })
+    if (!expense) throw new NotFoundException('Despesa recorrente não encontrada')
+    await this.recurringExpenses.remove(expense)
+    return { ok: true }
+  }
+
+  /** Gera o lançamento (FinancialRecord) do mês atual pra uma despesa recorrente, se ainda não gerado. Usado pelo RecurringExpenseJob. */
+  async ensureRecurringExpenseCharge(expense: RecurringExpense, referenceDate: Date): Promise<FinancialRecord | null> {
+    const year = referenceDate.getFullYear()
+    const month = referenceDate.getMonth() + 1
+    const currentMonth = `${year}-${String(month).padStart(2, '0')}`
+    if (expense.lastGeneratedMonth === currentMonth) return null
+
+    const lastDay = new Date(year, month, 0).getDate()
+    const dueDay = Math.min(expense.dayOfMonth, lastDay)
+    const record = this.repo.create({
+      type: 'expense',
+      amount: expense.amount,
+      description: expense.description,
+      category: expense.category,
+      status: 'pending',
+      dueDate: `${currentMonth}-${String(dueDay).padStart(2, '0')}`,
+      psychologistId: expense.psychologistId,
+    })
+    const saved = await this.repo.save(record)
+    expense.lastGeneratedMonth = currentMonth
+    await this.recurringExpenses.save(expense)
+    return saved
   }
 
   private async assertPatientBelongsToPsychologist(patientId: string, psychologistId: string): Promise<void> {

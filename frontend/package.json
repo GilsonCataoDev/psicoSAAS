@@ -1,13 +1,18 @@
 {
   "name": "usecognia-frontend",
   "version": "0.1.0",
+  "androidVersionCode": 1,
   "private": true,
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/gen-blog-og-images.mjs",
     "build": "tsc && vite build",
-    "postbuild": "node scripts/create-spa-fallbacks.mjs",
+    "postbuild": "node scripts/create-spa-fallbacks.mjs && node scripts/prerender-blog.mjs",
     "preview": "vite preview",
+    "preview:dist": "node scripts/serve-dist.mjs",
     "lint": "eslint src --ext ts,tsx",
+    "test:unit": "vitest run src",
+    "audit:prod": "node scripts/audit-production.mjs",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "cap:sync": "npm run build && cap sync",
@@ -15,6 +20,7 @@
     "cap:add:android": "cap add android",
     "cap:add:ios": "cap add ios",
     "cap:build:android": "npm run cap:sync && node scripts/build-android-debug.mjs",
+    "cap:build:android:release": "npm run cap:sync && node scripts/build-android-release.mjs",
     "cap:install:android": "node scripts/install-android-debug.mjs",
     "cap:open:android": "cap open android",
     "cap:open:ios": "cap open ios",
@@ -23,6 +29,7 @@
   "dependencies": {
     "@capacitor/core": "^8.4.0",
     "@capacitor/preferences": "^8.0.1",
+    "@capacitor/push-notifications": "^8.0.1",
     "@hookform/resolvers": "^3.9.0",
     "@radix-ui/react-avatar": "^1.1.0",
     "@radix-ui/react-dialog": "^1.1.1",
@@ -47,14 +54,16 @@
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.53.0",
     "react-hot-toast": "^2.4.1",
-    "react-router-dom": "^6.26.0",
+    "react-router-dom": "7.18.2",
     "recharts": "^2.12.7",
     "tailwind-merge": "^2.5.2",
     "zod": "^3.23.8",
     "zustand": "^4.5.5"
   },
   "overrides": {
-    "serialize-javascript": "^7.0.5"
+    "serialize-javascript": "^7.0.5",
+    "brace-expansion": "5.0.9",
+    "dompurify": "^3.4.13"
   },
   "devDependencies": {
     "@capacitor/android": "^8.4.0",
@@ -79,6 +88,7 @@
     "typescript-eslint": "^8.59.2",
     "vite": "^8.0.9",
     "vite-plugin-pwa": "^1.2.0",
+    "vitest": "^4.1.10",
     "workbox-window": "^7.4.0"
   }
 }

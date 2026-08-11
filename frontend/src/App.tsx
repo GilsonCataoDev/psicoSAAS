@@ -30,12 +30,15 @@ const LegalPage           = lazy(() => import('@/pages/LegalPage'))
 const SecurityPage        = lazy(() => import('@/pages/SecurityPage'))
 const DpaPage             = lazy(() => import('@/pages/DpaPage'))
 const AccessibilityPage   = lazy(() => import('@/pages/AccessibilityPage'))
+const BlogPage            = lazy(() => import('@/pages/BlogPage'))
+const BlogPostPage        = lazy(() => import('@/pages/BlogPostPage'))
 const InstrumentosPage    = lazy(() => import('@/pages/InstrumentosPage'))
 const AdminPage           = lazy(() => import('@/pages/AdminPage'))
 const TestimonialsPage    = lazy(() => import('@/pages/admin/TestimonialsPage'))
 const ChurnPage           = lazy(() => import('@/pages/admin/ChurnPage'))
 const NeuropsychAssessmentsPage = lazy(() => import('@/pages/NeuropsychAssessmentsPage'))
 const NeuropsychAssessmentPage = lazy(() => import('@/pages/NeuropsychAssessmentPage'))
+const ProspectingPage     = lazy(() => import('@/pages/admin/ProspectingPage'))
 
 // Public pages — lazy loaded
 const BookingPage         = lazy(() => import('@/pages/public/BookingPage'))
@@ -113,6 +116,9 @@ export default function App() {
         <Route path="/seguranca" element={<SecurityPage />} />
         <Route path="/dpa" element={<DpaPage />} />
         <Route path="/acessibilidade" element={<AccessibilityPage />} />
+        <Route path="/blog" element={<BlogPage />} />
+        <Route path="/blog/:slug" element={<BlogPostPage />} />
+        <Route path="/precos" element={<PricingPage publicView />} />
 
         {/* ── Rotas públicas de autenticação ──────────────────────── */}
         <Route path="/register" element={<Navigate to="/cadastro" replace />} />
@@ -144,6 +150,7 @@ export default function App() {
           <Route path="admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
           <Route path="admin/depoimentos" element={<AdminRoute><TestimonialsPage /></AdminRoute>} />
           <Route path="admin/churn" element={<AdminRoute><ChurnPage /></AdminRoute>} />
+          <Route path="admin/prospeccao" element={<AdminRoute><ProspectingPage /></AdminRoute>} />
           <Route element={<SubscriptionRoute />}>
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="pacientes" element={<PatientsPage />} />
@@ -156,8 +163,8 @@ export default function App() {
             <Route path="financeiro" element={<FinancialPage />} />
             <Route path="configuracoes" element={<SettingsPage />} />
             <Route path="instrumentos" element={<ProOnlyRoute><InstrumentosPage /></ProOnlyRoute>} />
-            <Route path="avaliacoes" element={<NeuropsychAssessmentsPage />} />
-            <Route path="avaliacoes/:id" element={<NeuropsychAssessmentPage />} />
+            <Route path="avaliacoes" element={<ProOnlyRoute><NeuropsychAssessmentsPage /></ProOnlyRoute>} />
+            <Route path="avaliacoes/:id" element={<ProOnlyRoute><NeuropsychAssessmentPage /></ProOnlyRoute>} />
           </Route>
         </Route>
 

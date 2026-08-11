@@ -16,6 +16,7 @@ import {
   Eye,
   Mail,
   MessageCircle,
+  Radar,
   Search,
   ShieldCheck,
   TrendingDown,
@@ -24,7 +25,7 @@ import {
   Webhook,
   X,
 } from 'lucide-react'
-import { useAdminStats, useAdminUsers, useAdminOverrideSubscription, useAdminMonitor, useAdminHealthScores, useCleanupTestUsers, useImpersonateUser, AdminUser, HealthScore } from '@/hooks/useApi'
+import { useAdminStats, useAdminUsers, useAdminOverrideSubscription, useAdminMonitor, useAdminHealthScores, useCleanupTestUsers, useImpersonateUser, useSendProUpgradeCampaign, AdminUser, HealthScore } from '@/hooks/useApi'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { useAuthStore } from '@/store/auth'
 import { useSubscriptionStore } from '@/store/subscription'
@@ -104,7 +105,7 @@ function OverrideModal({ user, onClose }: { user: AdminUser; onClose: () => void
               className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-sage-400 focus:outline-none"
             >
               <option value="">— sem alteração —</option>
-              {['free', 'essencial', 'pro'].map(p => (
+              {['free', 'pro'].map(p => (
                 <option key={p} value={p}>{p}</option>
               ))}
             </select>
@@ -140,6 +141,7 @@ function UsersTab() {
   const [copiedEmail, setCopiedEmail] = useState<string | null>(null)
   const { data: users, isLoading } = useAdminUsers({ page, search: search.trim() || undefined, plan: plan || undefined, status: status || undefined })
   const impersonate = useImpersonateUser()
+  const sendProCampaign = useSendProUpgradeCampaign()
   const setAuth = useAuthStore(s => s.setAuth)
   const setCsrfToken = useAuthStore(s => s.setCsrfToken)
   const setSubscription = useSubscriptionStore(s => s.setSubscription)
@@ -184,11 +186,21 @@ function UsersTab() {
     }
   }
 
+  async function sendCampaign() {
+    if (!window.confirm('Enviar uma única vez a oferta Pro para todas as contas Free ativas, verificadas e ainda não contatadas?')) return
+    try {
+      const result = await sendProCampaign.mutateAsync()
+      toast.success(`${result.sent} e-mail(s) enviado(s).${result.failed ? ` ${result.failed} falharam.` : ''}`)
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message ?? 'Não foi possível enviar a campanha.')
+    }
+  }
+
   return (
     <>
       {/* Filters */}
       <div className="rounded-2xl border border-neutral-100 bg-white p-3 shadow-sm">
-        <div className="grid gap-2 md:grid-cols-[1fr_160px_160px_auto]">
+        <div className="grid gap-2 md:grid-cols-[1fr_160px_160px_auto_auto]">
           <label className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
             <input
@@ -205,7 +217,6 @@ function UsersTab() {
           >
             <option value="">Todos os planos</option>
             <option value="free">Free</option>
-            <option value="essencial">Essencial</option>
             <option value="pro">Pro</option>
           </select>
           <select
@@ -226,6 +237,15 @@ function UsersTab() {
           >
             <X className="h-4 w-4" />
             Limpar
+          </button>
+          <button
+            type="button"
+            onClick={sendCampaign}
+            disabled={sendProCampaign.isPending}
+            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-sage-600 px-3 text-sm font-semibold text-white hover:bg-sage-700 disabled:opacity-50"
+          >
+            <Mail className="h-4 w-4" />
+            {sendProCampaign.isPending ? 'Enviando…' : 'Enviar oferta Pro'}
           </button>
         </div>
       </div>
@@ -612,14 +632,14 @@ function computeFactors(u: HealthScore) {
   const patientPts = u.patientCount >= 5 ? 15 : u.patientCount >= 3 ? 10 : u.patientCount >= 1 ? 5 : 0
   const sessionPts = u.sessionsLast30d >= 10 ? 25 : u.sessionsLast30d >= 4 ? 17 : u.sessionsLast30d >= 1 ? 8 : 0
   const financialPts = u.hasFinancialLast30d ? 10 : 0
-  const hasAiPlan = u.plan === 'essencial' || u.plan === 'pro'
+  const hasAiPlan = u.plan === 'pro'
   const aiPts = hasAiPlan && u.hasAiUsageLast30d ? 10 : 0
   return [
     { label: 'Recência de login', pts: recencyPts, max: 40 },
     { label: 'Pacientes cadastrados', pts: patientPts, max: 15 },
     { label: 'Sessões (últimos 30d)', pts: sessionPts, max: 25 },
     { label: 'Financeiro ativo', pts: financialPts, max: 10 },
-    { label: 'Uso de IA (Essencial+)', pts: aiPts, max: hasAiPlan ? 10 : 0 },
+    { label: 'Uso de IA (Pro)', pts: aiPts, max: hasAiPlan ? 10 : 0 },
   ]
 }
 
@@ -755,7 +775,7 @@ function HealthScoresTab() {
                   <th className="px-4 py-3">Pacientes</th>
                   <th className="px-4 py-3">Sessões 30d</th>
                   <th className="px-4 py-3" title="Uso financeiro nos últimos 30 dias">Fin.</th>
-                  <th className="px-4 py-3" title="Uso de IA nos últimos 30 dias (Essencial+)">IA</th>
+                  <th className="px-4 py-3" title="Uso de IA nos últimos 30 dias (Pro)">IA</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
@@ -900,6 +920,13 @@ export default function AdminPage() {
           >
             <MessageCircle className="h-4 w-4" />
             Depoimentos
+          </Link>
+          <Link
+            to="/admin/prospeccao"
+            className="inline-flex h-9 shrink-0 items-center gap-2 rounded-lg border border-neutral-200 px-3 text-sm font-medium text-neutral-600 hover:border-sage-300 hover:text-sage-700"
+          >
+            <Radar className="h-4 w-4" />
+            Radar de Psicólogos
           </Link>
         </div>
       </div>

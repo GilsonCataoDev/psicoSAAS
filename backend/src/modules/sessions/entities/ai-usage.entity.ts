@@ -15,6 +15,10 @@ export class AiUsage {
   @Column({ type: 'int', default: 0 })
   transcriptionSeconds: number
 
+  /** Transcrição de chamada (sessão online inteira) — contada por sessão/mês, não por minuto. */
+  @Column({ type: 'int', default: 0 })
+  callTranscriptions: number
+
   @Column({ type: 'int', default: 0 })
   summaryRequests: number
 

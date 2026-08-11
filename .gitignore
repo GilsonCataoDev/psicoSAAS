@@ -54,3 +54,8 @@ playwright-report/
 **/playwright-report/
 
 .vercel
+
+# Backend build artifacts (não commitar — gerados por `nest build`)
+backend/data-source.js
+backend/data-source.js.map
+backend/data-source.d.ts

@@ -10,6 +10,7 @@ import Avatar from '@/components/ui/Avatar'
 import { StatusBadge } from '@/components/ui/Badge'
 import { formatTime } from '@/lib/utils'
 import { patientMatchesSearch } from '@/lib/patientSearch'
+import ExtraAvailabilityCard from '@/components/features/agenda/ExtraAvailabilityCard'
 import {
   useAppointments,
   useAvailability,
@@ -18,6 +19,7 @@ import {
   useDeleteAppointment,
   useDeleteAppointmentGroup,
   useExtraAvailability,
+  usePatients,
   useRemoveExtraAvailability,
   useUpdateAppointmentStatus,
 } from '@/hooks/useApi'
@@ -112,7 +114,7 @@ function appointmentMatchesSearch(appt: any, query: string) {
 }
 
 export default function AgendaPage() {
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }))
   const [showModal, setShowModal] = useState(false)
   const [editingAppointment, setEditingAppointment] = useState<any | null>(null)
@@ -136,6 +138,10 @@ export default function AgendaPage() {
   const { data: availability = [] } = useAvailability()
   const { data: extraAvailability = [] } = useExtraAvailability()
   const { data: blockedDates = [] } = useBlockedDates()
+  // Pre-aquece o cache de pacientes assim que a Agenda monta, ja que o NewAppointmentModal
+  // e lazy-loaded: sem isso, o primeiro clique em "Agendar"/"Alterar" da sessao dispara o
+  // fetch de /patients do zero, e o campo Pessoa renderiza vazio ate a resposta chegar.
+  usePatients()
   const { appointmentsByDate, appointmentsByDateHour, visibleHours } = useMemo(() => {
     const byDate = new Map<string, typeof appointments>()
     const byDateHour = new Map<string, typeof appointments>()
@@ -267,6 +273,27 @@ export default function AgendaPage() {
     }
   }, [searchParams])
 
+  // Pré-preenchimento vindo da ficha do paciente ("Ir para agenda" na sugestão
+  // de sessão recorrente) — memoizado pra não resetar o formulário a cada
+  // digitação enquanto o modal estiver aberto (identidade estável entre renders).
+  const initialPatientIdParam = searchParams.get('patientId')
+  const initialDateParam = searchParams.get('date')
+  const initialRecurrenceParam = searchParams.get('recurrence')
+  const initialRepeatUntilParam = searchParams.get('repeatUntil')
+
+  const initialAppointmentValues = useMemo(() => {
+    const patientId = initialPatientIdParam
+    if (!patientId) return undefined
+    const recurrence: 'weekly' | 'biweekly' | undefined =
+      initialRecurrenceParam === 'weekly' || initialRecurrenceParam === 'biweekly' ? initialRecurrenceParam : undefined
+    return {
+      patientId,
+      ...(initialDateParam ? { date: initialDateParam } : {}),
+      ...(recurrence ? { recurrence } : {}),
+      ...(initialRepeatUntilParam ? { repeatUntil: initialRepeatUntilParam } : {}),
+    }
+  }, [initialPatientIdParam, initialDateParam, initialRecurrenceParam, initialRepeatUntilParam])
+
   useEffect(() => {
     if (!mobileDays.some(day => isSameDay(day, mobileDay))) {
       setMobileDay(weekStart)
@@ -350,6 +377,7 @@ export default function AgendaPage() {
   function closeModal() {
     setShowModal(false)
     setEditingAppointment(null)
+    if (searchParams.toString()) setSearchParams({}, { replace: true })
   }
 
   async function addExtraSlot() {
@@ -665,96 +693,15 @@ export default function AgendaPage() {
         )}
       </div>
 
-      <details className="order-6 card group">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
-          <div>
-            <h2 className="section-title">Horário extra</h2>
-            <p className="text-sm text-neutral-500 dark:text-neutral-300">
-              Libere um horário pontual no link público quando precisar.
-            </p>
-          </div>
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sage-50 text-lg text-sage-700 transition-transform group-open:rotate-45 dark:bg-sage-500/15 dark:text-sage-200">+</span>
-        </summary>
-        <div className="mt-4 space-y-4 border-t border-neutral-100 pt-4 dark:border-white/10">
-        <div className="grid gap-3 md:grid-cols-[1fr_120px_120px_150px_auto]">
-          <input
-            type="date"
-            value={extraForm.date}
-            onChange={e => setExtraForm(form => ({ ...form, date: e.target.value }))}
-            className="input-field"
-          />
-          <input
-            type="time"
-            value={extraForm.startTime}
-            onChange={e => setExtraForm(form => ({ ...form, startTime: e.target.value }))}
-            className="input-field"
-          />
-          <input
-            type="time"
-            value={extraForm.endTime}
-            onChange={e => setExtraForm(form => ({ ...form, endTime: e.target.value }))}
-            className="input-field"
-          />
-          <select
-            value={extraForm.modality}
-            onChange={e => setExtraForm(form => ({ ...form, modality: e.target.value as 'presencial' | 'online' }))}
-            className="input-field"
-          >
-            <option value="online">Online</option>
-            <option value="presencial">Presencial</option>
-          </select>
-          <button
-            type="button"
-            onClick={addExtraSlot}
-            disabled={addExtraAvailability.isPending}
-            className="btn-primary whitespace-nowrap"
-          >
-            {addExtraAvailability.isPending ? 'Abrindo...' : 'Abrir horario'}
-          </button>
-        </div>
-        <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-3 dark:border-white/10 dark:bg-white/5">
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-300">
-              Horarios extras abertos
-            </p>
-            <span className="text-xs text-neutral-400">
-              {upcomingExtraAvailability.length} {upcomingExtraAvailability.length === 1 ? 'ativo' : 'ativos'}
-            </span>
-          </div>
-          {upcomingExtraAvailability.length === 0 ? (
-            <p className="text-sm text-neutral-400">Nenhum horario extra aberto.</p>
-          ) : (
-            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-              {upcomingExtraAvailability.map(slot => (
-                <div
-                  key={slot.id}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-sage-100 bg-white px-3 py-2 text-sm text-neutral-700 dark:border-white/10 dark:bg-neutral-900 dark:text-neutral-100"
-                >
-                  <div className="min-w-0">
-                    <p className="font-semibold">
-                      {format(parseISO(String(slot.date).slice(0, 10)), 'dd/MM/yyyy', { locale: ptBR })}
-                    </p>
-                    <p className="text-xs text-neutral-500 dark:text-neutral-300">
-                      {formatTime(slot.startTime)} - {formatTime(slot.endTime)} · {slot.modality === 'online' ? 'Online' : 'Presencial'}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeExtraAvailability.mutateAsync(slot.id)}
-                    disabled={removeExtraAvailability.isPending}
-                    className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-rose-100 px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-60 dark:border-rose-400/30 dark:text-rose-200 dark:hover:bg-rose-400/10"
-                    title="Retirar horario extra"
-                  >
-                    <XCircle className="h-3.5 w-3.5" />
-                    Retirar
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        </div>
-      </details>
+      <ExtraAvailabilityCard
+        form={extraForm}
+        onFormChange={setExtraForm}
+        slots={upcomingExtraAvailability}
+        onAddSlot={addExtraSlot}
+        onRemoveSlot={id => removeExtraAvailability.mutateAsync(id)}
+        isAdding={addExtraAvailability.isPending}
+        isRemoving={removeExtraAvailability.isPending}
+      />
 
       <div className="order-4 card space-y-4">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
@@ -946,7 +893,8 @@ export default function AgendaPage() {
 
       {/* ── Desktop: grade semanal ─────────────────────────────────── */}
       <div className="agenda-grid order-3 hidden overflow-hidden rounded-3xl p-0 shadow-sm lg:block">
-        <div className="agenda-grid-header agenda-grid-line grid grid-cols-[64px_repeat(7,1fr)] border-b border-neutral-100 bg-white/95 backdrop-blur-sm dark:bg-[#18241f]">
+       <div className="overflow-x-auto">
+        <div className="agenda-grid-header agenda-grid-line grid grid-cols-[56px_repeat(7,minmax(130px,1fr))] border-b border-neutral-100 bg-white/95 backdrop-blur-sm dark:bg-[#18241f]">
           <div className="p-3" />
           {days.map(day => (
             <div key={day.toISOString()}
@@ -960,7 +908,7 @@ export default function AgendaPage() {
         </div>
         <div className="max-h-[560px] overflow-y-auto">
           {visibleHours.map(hour => (
-            <div key={hour} className="agenda-grid-line grid min-h-[76px] grid-cols-[64px_repeat(7,1fr)] border-b border-neutral-50">
+            <div key={hour} className="agenda-grid-line grid min-h-[76px] grid-cols-[56px_repeat(7,minmax(130px,1fr))] border-b border-neutral-50">
               <div className="p-2 text-xs text-neutral-400 dark:text-neutral-300 text-right pr-3 pt-2">{hour}:00</div>
               {days.map(day => {
                 const dayKey = format(day, 'yyyy-MM-dd')
@@ -981,7 +929,7 @@ export default function AgendaPage() {
                         <p className="text-sm text-sage-900 dark:text-neutral-50 font-semibold truncate mt-1.5">
                           {appt.patient?.name?.split(' ')[0] ?? 'Paciente'}
                         </p>
-                        <div className="mt-2 flex items-center gap-1 border-t border-sage-200/60 pt-2 dark:border-white/10">
+                        <div className="mt-2 flex flex-wrap items-center gap-1 border-t border-sage-200/60 pt-2 dark:border-white/10">
                           <button
                             type="button"
                             onClick={() => evolveAppointment(appt)}
@@ -1016,6 +964,24 @@ export default function AgendaPage() {
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => changeAppointmentStatus(appt, 'no_show')}
+                            disabled={updateStatus.isPending || appt.status === 'no_show'}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sage-200 bg-white text-sage-700 shadow-sm transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40 dark:border-white/10 dark:bg-white/10 dark:text-neutral-100 dark:hover:bg-rose-500/20 dark:hover:text-rose-200"
+                            title="Registrar falta"
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setAppointmentToRemove(appt)}
+                            disabled={deleteAppointment.isPending}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sage-200 bg-white text-sage-700 shadow-sm transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40 dark:border-white/10 dark:bg-white/10 dark:text-neutral-100 dark:hover:bg-rose-500/20 dark:hover:text-rose-200"
+                            title="Remover agendamento"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                         {(appt.isRecurring || appt.isFixedScheduleException) && (
                           <p className="text-[10px] font-medium text-sage-700/80 dark:text-neutral-200/80 mt-1">
@@ -1032,6 +998,7 @@ export default function AgendaPage() {
             </div>
           ))}
         </div>
+       </div>
       </div>
 
       <Suspense fallback={(
@@ -1041,7 +1008,14 @@ export default function AgendaPage() {
           </div>
         </div>
       )}>
-        {showModal && <NewAppointmentModal open onClose={closeModal} appointment={editingAppointment} />}
+        {showModal && (
+          <NewAppointmentModal
+            open
+            onClose={closeModal}
+            appointment={editingAppointment}
+            initialValues={editingAppointment ? undefined : initialAppointmentValues}
+          />
+        )}
         {appointmentToEvolve && (
           <NewSessionModal
             open
@@ -1051,6 +1025,7 @@ export default function AgendaPage() {
               date: appointmentToEvolve.date,
               duration: appointmentToEvolve.duration,
               appointmentId: appointmentToEvolve.id,
+              modality: appointmentToEvolve.modality,
             }}
           />
         )}

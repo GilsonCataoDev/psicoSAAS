@@ -15,7 +15,7 @@ export interface ChurnAccount {
   id: string
   name: string
   email: string
-  phone: string | null
+  hasPhone: boolean
   plan: string | null
   subscriptionStatus: string | null
   lastActiveAt: string | null
@@ -138,8 +138,8 @@ export type WhatsAppDeliveryResult = {
 
 export function useSendChurnWhatsApp() {
   return useMutation({
-    mutationFn: ({ userId, phone, message }: { userId: string; phone: string; message: string }) =>
-      api.post<WhatsAppDeliveryResult>(`/admin/churn/user/${userId}/send-whatsapp`, { phone, message }).then(r => r.data),
+    mutationFn: (userId: string) =>
+      api.post<WhatsAppDeliveryResult>(`/admin/churn/user/${userId}/send-whatsapp`).then(r => r.data),
   })
 }
 

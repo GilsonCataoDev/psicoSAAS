@@ -222,7 +222,7 @@ export function MessagesTab({
       </div>
 
       <div className="card space-y-4">
-        <h2 className="section-title">Modelo de lembrete — 2h antes</h2>
+        <h2 className="section-title">Modelo de lembrete — 1h antes</h2>
         {messageTemplates.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {messageTemplates.map(template => (
@@ -252,7 +252,7 @@ export function MessagesTab({
         </div>
         <button type="button" className="btn-secondary text-xs w-fit"
           disabled={!hasProAutomation || createTemplate.isPending}
-          onClick={() => saveTemplate('whatsapp_message', 'Lembrete 2h personalizado', prefs.reminderTemplate2h)}>
+          onClick={() => saveTemplate('whatsapp_message', 'Lembrete 1h personalizado', prefs.reminderTemplate2h)}>
           Salvar como template
         </button>
       </div>

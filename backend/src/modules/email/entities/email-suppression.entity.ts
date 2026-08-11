@@ -1,4 +1,5 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm'
+import { encryptedTextTransformer } from '../../../common/crypto/encrypt.util'
 
 /**
  * Endereços que tiveram bounce permanente ou marcaram um e-mail como spam.
@@ -10,8 +11,11 @@ export class EmailSuppression {
   @PrimaryGeneratedColumn('uuid')
   id: string
 
-  @Column({ type: 'varchar', length: 320, unique: true })
+  @Column({ type: 'text', transformer: encryptedTextTransformer })
   email: string
+
+  @Column({ type: 'varchar', length: 64, unique: true })
+  emailHash: string
 
   @Column({ type: 'varchar', length: 20 })
   reason: 'bounced' | 'complained'

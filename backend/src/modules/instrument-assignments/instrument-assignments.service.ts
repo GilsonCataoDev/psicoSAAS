@@ -2,8 +2,10 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { ConfigService } from '@nestjs/config'
 import { InjectRepository } from '@nestjs/typeorm'
 import { randomBytes } from 'crypto'
+import { addDays, addMonths, addWeeks } from 'date-fns'
 import { Repository } from 'typeorm'
 import { InstrumentAssignment } from './entities/instrument-assignment.entity'
+import { InstrumentSchedule, InstrumentRecurrence } from './entities/instrument-schedule.entity'
 import { Patient } from '../patients/entities/patient.entity'
 import { NotificationsService } from '../notifications/notifications.service'
 import { encrypt, hashToken, safeDecrypt } from '../../common/crypto/encrypt.util'
@@ -23,6 +25,7 @@ type CreateAssignmentInput = {
   category: string
   template: string
   sendWhatsApp?: boolean
+  recurrence?: InstrumentRecurrence
 }
 
 @Injectable()
@@ -30,6 +33,8 @@ export class InstrumentAssignmentsService {
   constructor(
     @InjectRepository(InstrumentAssignment)
     private readonly assignments: Repository<InstrumentAssignment>,
+    @InjectRepository(InstrumentSchedule)
+    private readonly schedules: Repository<InstrumentSchedule>,
     @InjectRepository(Patient)
     private readonly patients: Repository<Patient>,
     private readonly notifications: NotificationsService,
@@ -41,6 +46,41 @@ export class InstrumentAssignmentsService {
     if (!patient) throw new NotFoundException('Pessoa nao encontrada')
     if (!input.template?.trim()) throw new BadRequestException('Instrumento sem template')
 
+    const { assignment, url, whatsAppSent, whatsAppError } = await this.createOccurrence(input, patient, psychologistId)
+
+    if (input.recurrence) {
+      await this.schedules.save(this.schedules.create({
+        patientId: patient.id,
+        psychologistId,
+        instrumentId: input.instrumentId,
+        title: input.title,
+        description: input.description,
+        category: input.category,
+        template: input.template,
+        sendWhatsApp: input.sendWhatsApp ?? false,
+        recurrence: input.recurrence,
+        nextSendAt: this.nextOccurrence(new Date(), input.recurrence),
+        active: true,
+        lastAssignmentId: assignment.id,
+      }))
+    }
+
+    return {
+      ...this.toDto(assignment),
+      url,
+      patientName: patient.name,
+      patientPhone: patient.phone ?? null,
+      whatsAppSent,
+      whatsAppError,
+    }
+  }
+
+  /** Cria uma unica ocorrencia (assignment + envio opcional por WhatsApp), usado tanto na criacao manual quanto pelo InstrumentRecurrenceJob. */
+  async createOccurrence(
+    input: Pick<CreateAssignmentInput, 'instrumentId' | 'title' | 'description' | 'category' | 'template' | 'sendWhatsApp'>,
+    patient: Patient,
+    psychologistId: string,
+  ) {
     const expiresAt = new Date()
     expiresAt.setDate(expiresAt.getDate() + 7)
 
@@ -70,20 +110,54 @@ export class InstrumentAssignmentsService {
         patient.phone,
         `Ola, ${first}. A profissional enviou um formulario pelo UseCognia para voce responder com calma.\n\nAcesse: ${url}\n\nO link e individual, seguro e expira em 7 dias. Responda em um ambiente reservado.`,
         psychologistId,
-        { type: 'Formulario', patientId: patient.id, patientName: patient.name },
+        { type: 'Formulario', patientId: patient.id, patientName: patient.name, verifyDelivery: false },
       )
       whatsAppSent = result.sent
       if (!result.sent) whatsAppError = result.error
     }
 
-    return {
-      ...this.toDto(assignment),
-      url,
-      patientName: patient.name,
-      patientPhone: patient.phone ?? null,
-      whatsAppSent,
-      whatsAppError,
-    }
+    return { assignment, url, whatsAppSent, whatsAppError }
+  }
+
+  nextOccurrence(from: Date, recurrence: InstrumentRecurrence): Date {
+    if (recurrence === 'weekly') return addWeeks(from, 1)
+    if (recurrence === 'biweekly') return addDays(from, 14)
+    return addMonths(from, 1)
+  }
+
+  async findSchedules(psychologistId: string, patientId?: string) {
+    const items = await this.schedules.find({
+      where: { psychologistId, ...(patientId ? { patientId } : {}) },
+      relations: ['patient'],
+      order: { createdAt: 'DESC' },
+    })
+    return items.map(item => ({
+      id: item.id,
+      instrumentId: item.instrumentId,
+      title: item.title,
+      category: item.category,
+      recurrence: item.recurrence,
+      nextSendAt: item.nextSendAt,
+      active: item.active,
+      patientId: item.patientId,
+      patientName: item.patient?.name ?? null,
+      createdAt: item.createdAt,
+    }))
+  }
+
+  async setScheduleActive(id: string, psychologistId: string, active: boolean) {
+    const schedule = await this.schedules.findOne({ where: { id, psychologistId } })
+    if (!schedule) throw new NotFoundException('Recorrencia nao encontrada')
+    schedule.active = active
+    await this.schedules.save(schedule)
+    return { id: schedule.id, active: schedule.active }
+  }
+
+  async deleteSchedule(id: string, psychologistId: string) {
+    const schedule = await this.schedules.findOne({ where: { id, psychologistId } })
+    if (!schedule) throw new NotFoundException('Recorrencia nao encontrada')
+    await this.schedules.remove(schedule)
+    return { ok: true }
   }
 
   async findOwned(id: string, psychologistId: string): Promise<InstrumentAssignment> {
@@ -235,9 +309,10 @@ export class InstrumentAssignmentsService {
     return item.tokenEncrypted ? (safeDecrypt(item.tokenEncrypted) ?? item.token) : item.token
   }
 
+  // Link só circula por WhatsApp (envio automático ou copiado pelo psicólogo pra colar no WhatsApp) — utm_source fixo aqui é seguro.
   private publicUrl(token: string): string {
     const frontendUrl = (this.config.get<string>('FRONTEND_URL') ?? 'https://usecognia.com.br').replace(/\/$/, '')
-    return `${frontendUrl}/instrumentos/responder/${token}`
+    return `${frontendUrl}/instrumentos/responder/${token}?utm_source=whatsapp&utm_medium=message`
   }
 
   private toDto(item: InstrumentAssignment) {

@@ -106,10 +106,21 @@ export async function downloadPatientsImportTemplate() {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
+export type ProntuarioExportOptions = {
+  audience?: 'professional' | 'patient'
+  fromDate?: string
+  toDate?: string
+  sections?: Array<'identification' | 'anamnesis' | 'treatment_plan' | 'evolutions'>
+}
+
 export function useExportProntuario(patientId: string) {
   return useMutation({
-    mutationFn: async () => {
-      const res = await api.get(`/patients/${patientId}/prontuario/export`, { responseType: 'blob' })
+    mutationFn: async (options: ProntuarioExportOptions = {}) => {
+      const params = {
+        ...options,
+        sections: options.sections?.join(','),
+      }
+      const res = await api.get(`/patients/${patientId}/prontuario/export`, { params, responseType: 'blob' })
       const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
       const a = document.createElement('a')
       const cd = res.headers['content-disposition'] as string | undefined

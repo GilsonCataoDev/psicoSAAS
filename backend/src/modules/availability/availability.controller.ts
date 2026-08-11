@@ -2,6 +2,11 @@ import { Body, Controller, Delete, Get, Param, Post, Request, UseGuards } from '
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { AvailabilityService } from './availability.service'
+import {
+  BlockedDateDto,
+  ExtraAvailabilitySlotDto,
+  SaveAvailabilitySlotsDto,
+} from './dto/availability.dto'
 
 @Controller('availability')
 @UseGuards(JwtAuthGuard, CsrfGuard)
@@ -12,7 +17,7 @@ export class AvailabilityController {
   getSlots(@Request() req: any) { return this.svc.findAll(req.user.id) }
 
   @Post('slots')
-  saveSlots(@Request() req: any, @Body() body: { slots: { weekday: number; startTime: string; endTime: string; modality?: 'presencial' | 'online' }[] }) {
+  saveSlots(@Request() req: any, @Body() body: SaveAvailabilitySlotsDto) {
     return this.svc.saveSlots(req.user.id, body.slots)
   }
 
@@ -20,7 +25,7 @@ export class AvailabilityController {
   getExtraSlots(@Request() req: any) { return this.svc.getExtraSlots(req.user.id) }
 
   @Post('extra')
-  addExtraSlot(@Request() req: any, @Body() body: { date: string; startTime: string; endTime: string; modality?: 'presencial' | 'online' }) {
+  addExtraSlot(@Request() req: any, @Body() body: ExtraAvailabilitySlotDto) {
     return this.svc.addExtraSlot(req.user.id, body)
   }
 
@@ -33,12 +38,12 @@ export class AvailabilityController {
   getBlocked(@Request() req: any) { return this.svc.getBlockedDates(req.user.id) }
 
   @Post('blocked')
-  addBlocked(@Request() req: any, @Body() body: { date: string; reason?: string }) {
+  addBlocked(@Request() req: any, @Body() body: BlockedDateDto) {
     return this.svc.addBlockedDate(req.user.id, body.date, body.reason)
   }
 
   @Post('blocked/week')
-  addBlockedWeek(@Request() req: any, @Body() body: { date: string; reason?: string }) {
+  addBlockedWeek(@Request() req: any, @Body() body: BlockedDateDto) {
     return this.svc.addBlockedWeek(req.user.id, body.date, body.reason)
   }
 

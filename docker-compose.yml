@@ -27,6 +27,7 @@ services:
     environment:
       NODE_ENV: development
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/psicosaas
+      TYPEORM_SYNC: 'true'
       JWT_SECRET: dev-secret-change-in-prod
       FRONTEND_URL: http://localhost:3000
     ports:

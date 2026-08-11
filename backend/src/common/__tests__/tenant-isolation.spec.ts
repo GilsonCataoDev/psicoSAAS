@@ -21,16 +21,18 @@ import { SessionsService } from '../../modules/sessions/sessions.service'
 import { FinancialService } from '../../modules/financial/financial.service'
 import { DocumentsService } from '../../modules/documents/documents.service'
 import { AppointmentsService } from '../../modules/appointments/appointments.service'
+import { StorageService } from '../storage/storage.service'
+import { PlanAccessService } from '../plan-access/plan-access.service'
 
 import { Patient } from '../../modules/patients/entities/patient.entity'
 import { PatientAttachment } from '../../modules/patients/entities/patient-attachment.entity'
 import { Session } from '../../modules/sessions/entities/session.entity'
 import { FinancialRecord } from '../../modules/financial/entities/financial-record.entity'
+import { RecurringExpense } from '../../modules/financial/entities/recurring-expense.entity'
 import { Document } from '../../modules/documents/entities/document.entity'
 import { Appointment } from '../../modules/appointments/entities/appointment.entity'
 import { Booking } from '../../modules/booking/entities/booking.entity'
 import { User } from '../../modules/auth/entities/user.entity'
-import { Subscription } from '../../modules/billing/entities/subscription.entity'
 import { NeuropsychAssessment } from '../../modules/neuropsych-assessments/entities/neuropsych-assessment.entity'
 
 import { FinancialService as FinService } from '../../modules/financial/financial.service'
@@ -116,9 +118,9 @@ describe('Isolamento entre contas — psicólogo A não acessa dados de B', () =
         providers: [
           PatientsService,
           { provide: getRepositoryToken(Patient),      useValue: fakeRepo(patients) },
-          { provide: getRepositoryToken(Subscription), useValue: fakeRepo() },
           { provide: getRepositoryToken(Appointment),  useValue: fakeRepo(appointments) },
           { provide: FinService, useValue: stub() },
+          { provide: PlanAccessService, useValue: { getCurrentPlan: jest.fn().mockResolvedValue('pro') } },
         ],
       }).compile()
       svc = mod.get(PatientsService)
@@ -182,6 +184,7 @@ describe('Isolamento entre contas — psicólogo A não acessa dados de B', () =
         providers: [
           FinancialService,
           { provide: getRepositoryToken(FinancialRecord), useValue: fakeRepo(financialRecords) },
+          { provide: getRepositoryToken(RecurringExpense), useValue: fakeRepo() },
           { provide: getRepositoryToken(User),        useValue: fakeRepo() },
           { provide: getRepositoryToken(Patient),     useValue: fakeRepo(patients) },
           { provide: getRepositoryToken(Session),     useValue: fakeRepo(sessions) },
@@ -214,9 +217,9 @@ describe('Isolamento entre contas — psicólogo A não acessa dados de B', () =
         providers: [
           DocumentsService,
           { provide: getRepositoryToken(Document),     useValue: fakeRepo(documents) },
-          { provide: getRepositoryToken(Subscription), useValue: fakeRepo() },
           { provide: ConfigService, useValue: { get: jest.fn(), getOrThrow: jest.fn().mockReturnValue('sign-secret-de-teste-com-32-chars!') } },
           { provide: EmailService,  useValue: stub() },
+          { provide: PlanAccessService, useValue: { getCurrentPlan: jest.fn().mockResolvedValue('pro') } },
         ],
       }).compile()
       svc = mod.get(DocumentsService)
@@ -274,6 +277,7 @@ describe('Isolamento entre contas — psicólogo A não acessa dados de B', () =
           { provide: getRepositoryToken(PatientAttachment), useValue: fakeRepo(attachments) },
           { provide: getRepositoryToken(Patient),           useValue: fakeRepo(patients) },
           { provide: getRepositoryToken(NeuropsychAssessment), useValue: fakeRepo(neuropsychAssessments) },
+          { provide: StorageService, useValue: { isPrivateConfigured: () => false } },
         ],
       }).compile()
       svc = mod.get(PatientAttachmentsService)

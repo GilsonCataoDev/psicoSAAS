@@ -64,7 +64,6 @@ export class PatientAttachmentsController {
     const attachment = await this.svc.add(patientId, req.user.id, file, body)
     await this.record(req, 'patient.attachment_added', patientId, {
       attachmentId: attachment.id,
-      filename: attachment.filename,
       size: attachment.size,
       kind: attachment.kind,
       assessmentId: attachment.assessmentId,
@@ -80,7 +79,7 @@ export class PatientAttachmentsController {
     @Res() res: Response,
   ) {
     const { filename, mimeType, buffer } = await this.svc.download(attachmentId, patientId, req.user.id)
-    await this.record(req, 'patient.attachment_downloaded', patientId, { attachmentId, filename })
+    await this.record(req, 'patient.attachment_downloaded', patientId, { attachmentId })
     res.set({
       'Content-Type': mimeType,
       'Content-Disposition': pdfAttachment(filename),

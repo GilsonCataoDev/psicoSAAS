@@ -17,7 +17,7 @@ import {
   usePatientAttachments, useUploadPatientAttachment, useDeletePatientAttachment,
   downloadPatientAttachment, previewPatientAttachment, type PatientAttachment,
   useCreateNeuropsychAssessment, useNeuropsychAssessments,
-  useAssessmentAiInterpretation,
+  useAssessmentAiInterpretation, useAppointments,
 } from '@/hooks/useApi'
 import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 import Modal from '@/components/ui/Modal'
@@ -25,6 +25,10 @@ import toast from 'react-hot-toast'
 import { track, EVENTS } from '@/lib/analytics'
 import LightweightChart from '@/components/ui/LightweightChart'
 import EditPatientModal from '@/components/features/patients/EditPatientModal'
+import RecurringSessionsCard from '@/components/features/patients/RecurringSessionsCard'
+import LegacyNotesMigrationModal from '@/components/features/patients/LegacyNotesMigrationModal'
+import { useHasPlan } from '@/store/subscription'
+import { buildPatientDetailSummary, buildScaleEvolutionSeries } from '@/lib/patient-detail-summary'
 
 const MOODS = ['', '1', '2', '3', '4', '5']
 const WEEKDAYS = ['Domingo', 'Segunda', 'Terca', 'Quarta', 'Quinta', 'Sexta', 'Sabado']
@@ -34,19 +38,10 @@ const PATIENT_STATUS_OPTIONS = [
   { value: 'discharged', label: 'Alta' },
 ] as const
 
-const PRONTUARIO_FIELDS = [
-  { key: 'queixaPrincipal', label: 'Queixa principal' },
-  { key: 'historicoDoenca', label: 'História da situação atual' },
-  { key: 'antecedentesPessoais', label: 'Antecedentes pessoais' },
-  { key: 'historicoFamiliar', label: 'Histórico familiar' },
-  { key: 'abordagem', label: 'Abordagem' },
-  { key: 'objetivos', label: 'Objetivos terapêuticos' },
-  { key: 'frequencia', label: 'Frequência' },
-] as const
-
 export default function PatientDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const hasProPlan = useHasPlan('pro')
   useEffect(() => { if (id) track(EVENTS.PATIENT_VIEWED) }, [id])
   const { data: patient, isLoading } = usePatient(id ?? '')
   const { data: allSessions = [] } = useSessions({ patientId: id, includeClinical: true })
@@ -61,8 +56,12 @@ export default function PatientDetailPage() {
   const { data: attachments = [] } = usePatientAttachments(id)
   const uploadAttachment = useUploadPatientAttachment(id)
   const deleteAttachment = useDeletePatientAttachment(id)
-  const { data: neuropsychAssessments = [] } = useNeuropsychAssessments()
+  const { data: neuropsychAssessments = [] } = useNeuropsychAssessments(hasProPlan)
   const createNeuropsychAssessment = useCreateNeuropsychAssessment()
+  const { data: patientAppointments = [] } = useAppointments({ patientId: id })
+  const lastAppointment = [...patientAppointments]
+    .filter(a => a.status !== 'cancelled')
+    .sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`))[0] ?? null
   const patientAssessments = neuropsychAssessments.filter(assessment => assessment.patientId === id)
   const activeAssessment = patientAssessments.find(assessment => ['planning', 'in_progress', 'integration'].includes(assessment.status))
   const latestAssessment = activeAssessment ?? patientAssessments[0]
@@ -147,6 +146,7 @@ export default function PatientDetailPage() {
   }
   const [tab, setTab] = useState<'record' | 'timeline' | 'responses' | 'notes' | 'financial'>('record')
   const [showSessionModal, setShowSessionModal] = useState(false)
+  const [showLegacyMigration, setShowLegacyMigration] = useState(false)
   const [showEditPatientModal, setShowEditPatientModal] = useState(false)
   const [editingResponse, setEditingResponse] = useState<InstrumentAssignment | null>(null)
   const [editedAnswers, setEditedAnswers] = useState<Record<string, string>>({})
@@ -365,25 +365,16 @@ export default function PatientDetailPage() {
     </div>
   )
 
-  const totalPaid    = financialRecords.filter(r => r.status === 'paid').reduce((s, r) => s + Number(r.amount), 0)
-  const totalPending = financialRecords.filter(r => r.status !== 'paid').reduce((s, r) => s + Number(r.amount), 0)
-  const clinicalSessions = allSessions.filter(session => !session.tags?.some(tag => String(tag) === 'instrumento'))
-  const currentMonth = new Date().toISOString().slice(0, 7)
-  const monthlySessionsUsed = clinicalSessions.filter(session => String(session.date).startsWith(currentMonth)).length
   const prontuario = patient.prontuario ?? {}
-
-  const moodChartData = (() => {
-    const withMood = [...clinicalSessions].reverse().filter(s => s.mood)
-    if (withMood.length < 2) return []
-    return withMood.map(s => ({
-      label: formatDate(s.date),
-      humor: s.mood,
-    }))
-  })()
-  const filledProntuarioFields = PRONTUARIO_FIELDS.filter(field => {
-    const value = prontuario[field.key]
-    return typeof value === 'string' && value.trim().length > 0
-  })
+  const {
+    totalPaid,
+    totalPending,
+    clinicalSessions,
+    monthlySessionsUsed,
+    moodChartData,
+    filledProntuarioFields,
+  } = buildPatientDetailSummary(financialRecords, allSessions, prontuario)
+  const scaleEvolutionSeries = buildScaleEvolutionSeries(instrumentAssignments)
 
   return (
     <div className="animate-slide-up space-y-5 max-w-4xl">
@@ -527,7 +518,7 @@ export default function PatientDetailPage() {
         </div>
       </div>
 
-      {(patient.careMode === 'neuropsychological_assessment' || latestAssessment) && (
+      {hasProPlan && (patient.careMode === 'neuropsychological_assessment' || latestAssessment) && (
         <section className="rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white p-5 shadow-card dark:border-violet-900/50 dark:from-violet-950/30 dark:to-cognia-panel">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
             <div className="flex items-start gap-3">
@@ -542,6 +533,14 @@ export default function PatientDetailPage() {
             {activeAssessment ? <button type="button" onClick={openOrStartNeuropsychAssessment} className="btn-primary shrink-0">Abrir avaliação</button> : latestAssessment ? <Link to={`/avaliacoes/${latestAssessment.id}`} className="btn-secondary shrink-0 text-center">Ver última avaliação</Link> : <button type="button" onClick={openOrStartNeuropsychAssessment} disabled={createNeuropsychAssessment.isPending} className="btn-primary shrink-0">{createNeuropsychAssessment.isPending ? 'Iniciando...' : 'Iniciar avaliação'}</button>}
           </div>
         </section>
+      )}
+
+      {patient.hasFixedSchedule && (
+        <RecurringSessionsCard
+          patient={patient}
+          anchorDate={lastAppointment?.date ?? null}
+          anchorLabel={lastAppointment ? `Última sessão em ${formatDate(lastAppointment.date)}` : 'Sem sessões registradas ainda'}
+        />
       )}
 
       <EditPatientModal
@@ -834,7 +833,7 @@ export default function PatientDetailPage() {
           </div>
 
           <div className="card">
-            <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
               <div className="flex items-center gap-2">
                 <CalendarDays className="h-4 w-4 text-sage-600" />
                 <h2 className="section-title mb-0">Evoluções</h2>
@@ -877,7 +876,7 @@ export default function PatientDetailPage() {
 
           {/* ── Documentos anexados ─────────────────────────────────── */}
           <div className="card">
-            <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
               <div>
                 <div className="flex items-center gap-2">
                   <Paperclip className="h-4 w-4 text-sage-600" />
@@ -887,19 +886,24 @@ export default function PatientDetailPage() {
                   Material anterior de evolução, laudos e outros documentos deste paciente. PDF, JPG ou PNG até 10 MB.
                 </p>
               </div>
-              <label className={`btn-secondary shrink-0 cursor-pointer text-sm ${uploadAttachment.isPending ? 'pointer-events-none opacity-60' : ''}`}>
-                {uploadAttachment.isPending ? 'Enviando...' : 'Anexar arquivo'}
-                <input
-                  type="file"
-                  accept="application/pdf,image/jpeg,image/png"
-                  className="hidden"
-                  disabled={uploadAttachment.isPending}
-                  onChange={event => {
-                    handleAttachmentUpload(event.target.files?.[0])
-                    event.target.value = ''
-                  }}
-                />
-              </label>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => setShowLegacyMigration(true)} className="btn-primary shrink-0 text-sm">
+                  Migrar anotações em papel
+                </button>
+                <label className={`btn-secondary shrink-0 cursor-pointer text-sm ${uploadAttachment.isPending ? 'pointer-events-none opacity-60' : ''}`}>
+                  {uploadAttachment.isPending ? 'Enviando...' : 'Anexar arquivo'}
+                  <input
+                    type="file"
+                    accept="application/pdf,image/jpeg,image/png"
+                    className="hidden"
+                    disabled={uploadAttachment.isPending}
+                    onChange={event => {
+                      handleAttachmentUpload(event.target.files?.[0])
+                      event.target.value = ''
+                    }}
+                  />
+                </label>
+              </div>
             </div>
 
             {attachments.length === 0 ? (
@@ -1017,6 +1021,33 @@ export default function PatientDetailPage() {
       {/* ── Respostas de formulários ─────────────────────────────────── */}
       {tab === 'responses' && (
         <div className="space-y-3">
+          {scaleEvolutionSeries.length > 0 && (
+            <div className="space-y-3">
+              {scaleEvolutionSeries.map(series => {
+                const thresholds = SCALE_CONFIGS[series.instrumentId]?.thresholds
+                const maxScore = thresholds?.[thresholds.length - 1]?.max
+                return (
+                  <div key={series.instrumentId} className="card">
+                    <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-3">
+                      Evolução · {series.title}
+                    </p>
+                    <div className="h-[100px]">
+                      <LightweightChart
+                        data={series.points}
+                        height={100}
+                        color="#4DA8DA"
+                        fillOpacity={0.1}
+                        min={0}
+                        max={maxScore}
+                        showYAxis
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
           {instrumentAssignments.filter(item => item.status === 'completed').length === 0 ? (
             <div className="card py-12 text-center">
               <FileText className="mx-auto h-9 w-9 text-neutral-300" />
@@ -1186,6 +1217,14 @@ export default function PatientDetailPage() {
         open={showSessionModal}
         onClose={() => setShowSessionModal(false)}
         defaultPatientId={patient.id}
+      />
+
+      <LegacyNotesMigrationModal
+        open={showLegacyMigration}
+        onClose={() => setShowLegacyMigration(false)}
+        patientId={patient.id}
+        patientName={patient.name}
+        sessionDuration={patient.sessionDuration}
       />
 
       <Modal

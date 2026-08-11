@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import toast from 'react-hot-toast'
 import { api, type AuthAxiosRequestConfig } from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 
@@ -56,8 +57,53 @@ export function useCreateInstrumentAssignment() {
       category: string
       template: string
       sendWhatsApp?: boolean
+      recurrence?: 'weekly' | 'biweekly' | 'monthly'
     }) => api.post('/instrument-assignments', data).then(r => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['instrument-assignments'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['instrument-assignments'] })
+      qc.invalidateQueries({ queryKey: ['instrument-schedules'] })
+    },
+  })
+}
+
+export type InstrumentSchedule = {
+  id: string
+  instrumentId: string
+  title: string
+  category: string
+  recurrence: 'weekly' | 'biweekly' | 'monthly'
+  nextSendAt: string
+  active: boolean
+  patientId: string
+  patientName: string | null
+  createdAt: string
+}
+
+export function useInstrumentSchedules(patientId?: string) {
+  const userId = useAuthStore(s => s.user?.id)
+  return useQuery<InstrumentSchedule[]>({
+    queryKey: ['instrument-schedules', userId, patientId],
+    queryFn: () => api.get('/instrument-schedules', { params: { patientId } }).then(r => r.data),
+    enabled: !!userId,
+  })
+}
+
+export function useSetInstrumentScheduleActive() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, active }: { id: string; active: boolean }) =>
+      api.patch(`/instrument-schedules/${id}`, { active }).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['instrument-schedules'] }),
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Erro ao atualizar o envio recorrente. Tente novamente.'),
+  })
+}
+
+export function useDeleteInstrumentSchedule() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/instrument-schedules/${id}`).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['instrument-schedules'] }),
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Erro ao cancelar o envio recorrente. Tente novamente.'),
   })
 }
 

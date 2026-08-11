@@ -15,6 +15,7 @@ import { NeuropsychAiAnalysisService } from './neuropsych-ai-analysis.service'
 
 @Controller('neuropsych-assessments')
 @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
+@RequirePlan('pro')
 export class NeuropsychAssessmentsController {
   constructor(
     private readonly service: NeuropsychAssessmentsService,

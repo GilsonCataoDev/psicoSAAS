@@ -79,11 +79,15 @@ export class AppointmentsService {
   async create(dto: CreateAppointmentDto, psychologistId: string) {
     await this.assertPatientBelongsToPsychologist(dto.patientId, psychologistId)
 
-    const dates = this.buildOccurrenceDates(dto.date, dto.recurrence, dto.repeatUntil)
-    if (dates.length > 1) {
+    const isRecurring = dto.recurrence === 'weekly' || dto.recurrence === 'biweekly'
+    if (isRecurring) {
+      const dates = this.buildOccurrenceDates(dto.date, dto.recurrence, dto.repeatUntil)
       for (const date of dates) {
         await this.assertSlotAvailable(psychologistId, date, dto.time, dto.duration)
       }
+      // Sempre gera recurringGroupId aqui, mesmo se so 1 data sair do range (ex.: repeatUntil
+      // proximo da data inicial) - senao o appointment nasce com isRecurring:true e
+      // recurringGroupId:null, e a UI oferece "alterar esta e as proximas" sem ter grupo pra editar.
       const recurringGroupId = randomUUID()
       const saved: Appointment[] = []
       for (const date of dates) {
@@ -108,11 +112,21 @@ export class AppointmentsService {
       appointment.isFixedScheduleException = true
       appointment.originalDate = appointment.originalDate ?? appointment.date
       appointment.originalTime = appointment.originalTime ?? appointment.time
+      this.resetReminderTracking(appointment)
     }
 
     if (dto.meetingUrl !== undefined) dto.meetingUrl = this.cleanMeetingUrl(dto.meetingUrl)
-    Object.assign(appointment, dto)
-    const saved = await this.repo.save(appointment)
+    const { autoVideoRoom = true, ...appointmentDto } = dto
+    Object.assign(appointment, appointmentDto)
+    if (appointment.modality === 'online' && !appointment.meetingUrl && autoVideoRoom) {
+      appointment.meetingUrl = this.generateJitsiRoomUrl()
+    }
+    const saved = changedSlot
+      ? await this.dataSource.transaction(async manager => {
+          await this.notifications.supersedeAppointmentReminders(id, manager)
+          return manager.save(Appointment, appointment)
+        })
+      : await this.repo.save(appointment)
     await this.syncLinkedBookingFromAppointment(saved)
     this.googleCalendar.syncAppointment(saved).catch(err => this.logCalendarError('sync', saved.id, err))
     return this.findOne(saved.id, psychologistId)
@@ -135,7 +149,46 @@ export class AppointmentsService {
       await this.registerNoShowSession(saved, psychologistId)
     }
 
+    // Garante um lançamento pendente no Financeiro assim que a sessão é marcada
+    // como concluída — antes disso, cobrança por sessão só surgia depois que o
+    // prontuário/evolução era escrito, deixando o psicólogo sem onde registrar
+    // o pagamento se ainda não tinha documentado a sessão.
+    if (status === 'completed') {
+      await this.ensurePendingChargeForCompletedAppointment(saved, psychologistId)
+    }
+
     return saved
+  }
+
+  private async ensurePendingChargeForCompletedAppointment(appointment: Appointment, psychologistId: string): Promise<void> {
+    try {
+      const patient = await this.patients.findOne({ where: { id: appointment.patientId, psychologistId } })
+      if (!patient || patient.billingType === 'monthly_package') return
+
+      const existing = await this.financial.findOne({
+        where: [
+          { appointmentId: appointment.id, psychologistId },
+          { sessionId: appointment.id, psychologistId },
+        ],
+      })
+      if (existing) return
+
+      const amount = Number(patient.sessionPrice) || 0
+      if (amount <= 0) return
+
+      await this.financial.save(this.financial.create({
+        type: 'income',
+        amount,
+        description: `Sessão - ${patient.name}`,
+        status: 'pending',
+        dueDate: appointment.date,
+        patientId: patient.id,
+        psychologistId,
+        appointmentId: appointment.id,
+      }))
+    } catch (err: any) {
+      this.logger.warn(`Falha ao criar lancamento financeiro para agendamento ${appointment.id}: ${err?.message ?? 'erro desconhecido'}`)
+    }
   }
 
   private async registerNoShowSession(appointment: Appointment, psychologistId: string): Promise<void> {
@@ -166,18 +219,47 @@ export class AppointmentsService {
     const all = await this.repo.find({ where: { recurringGroupId, psychologistId }, relations: ['patient'] })
     if (!all.length) throw new NotFoundException()
     if (dto.meetingUrl !== undefined) dto.meetingUrl = this.cleanMeetingUrl(dto.meetingUrl)
+    const { autoVideoRoom = true, date: newAnchorDate, ...groupDto } = dto
     const toUpdate = all.filter(a => a.date >= fromDate)
+    // Move a serie inteira pelo mesmo numero de dias que a ocorrencia-ancora (fromDate) foi
+    // arrastada, preservando o espacamento entre as demais ocorrencias futuras. Sem isso, o
+    // campo "date" era descartado silenciosamente (nao existia no DTO) e mudar a data no modo
+    // "esta e as proximas" nao tinha nenhum efeito.
+    const dayShift = newAnchorDate ? this.daysBetween(fromDate, newAnchorDate) : 0
+    const changedAppointmentIds: string[] = []
     for (const appt of toUpdate) {
+      const nextDate = dayShift ? this.addDays(appt.date, dayShift) : appt.date
       await this.assertSlotAvailable(
         psychologistId,
-        appt.date,
-        dto.time ?? appt.time,
-        dto.duration ?? appt.duration,
+        nextDate,
+        groupDto.time ?? appt.time,
+        groupDto.duration ?? appt.duration,
         appt.id,
       )
     }
-    for (const appt of toUpdate) Object.assign(appt, dto)
-    const saved = await this.repo.save(toUpdate)
+    for (const appt of toUpdate) {
+      const nextDate = dayShift ? this.addDays(appt.date, dayShift) : appt.date
+      const changedSlot = (groupDto.time !== undefined && groupDto.time !== appt.time)
+        || (groupDto.duration !== undefined && Number(groupDto.duration) !== Number(appt.duration))
+        || nextDate !== appt.date
+      if (changedSlot) {
+        changedAppointmentIds.push(appt.id)
+        this.resetReminderTracking(appt)
+      }
+      Object.assign(appt, groupDto)
+      appt.date = nextDate
+      if (appt.modality === 'online' && !appt.meetingUrl && autoVideoRoom) {
+        appt.meetingUrl = this.generateJitsiRoomUrl()
+      }
+    }
+    const saved = changedAppointmentIds.length
+      ? await this.dataSource.transaction(async manager => {
+          for (const appointmentId of changedAppointmentIds) {
+            await this.notifications.supersedeAppointmentReminders(appointmentId, manager)
+          }
+          return manager.save(Appointment, toUpdate)
+        })
+      : await this.repo.save(toUpdate)
     for (const appt of saved) {
       await this.syncLinkedBookingFromAppointment(appt)
       this.googleCalendar.syncAppointment(appt).catch(err => this.logCalendarError('sync', appt.id, err))
@@ -212,7 +294,7 @@ export class AppointmentsService {
         time: dto.time,
         duration: dto.duration,
         modality: dto.modality,
-        meetingUrl: this.cleanMeetingUrl(dto.meetingUrl),
+        meetingUrl: this.resolveMeetingUrl(dto.modality, dto.meetingUrl, dto.autoVideoRoom),
         notes: dto.notes,
         psychologistId,
         isRecurring: dto.recurrence === 'weekly' || dto.recurrence === 'biweekly',
@@ -233,6 +315,11 @@ export class AppointmentsService {
   private logCalendarError(action: 'sync' | 'delete', appointmentId: string, err: unknown): void {
     const message = err instanceof Error ? err.message : 'erro desconhecido'
     this.logger.warn(`google_calendar.${action}.failed appointmentId=${appointmentId} message=${message}`)
+  }
+
+  private resetReminderTracking(appointment: Appointment): void {
+    appointment.reminder24hSentAt = null
+    appointment.reminder2hSentAt = null
   }
 
   private async assertSlotAvailable(
@@ -278,6 +365,34 @@ export class AppointmentsService {
   private cleanMeetingUrl(value?: string): string | undefined {
     const trimmed = value?.trim()
     return trimmed || undefined
+  }
+
+  // Sala de video gerada automaticamente (Jitsi Meet, publico e gratuito) quando o
+  // psicologo marca a sessao como online sem colar um link proprio (Zoom/Meet/Whereby).
+  private generateJitsiRoomUrl(): string {
+    return `https://meet.jit.si/UseCognia-${randomUUID().replace(/-/g, '')}`
+  }
+
+  private resolveMeetingUrl(
+    modality: string | undefined,
+    meetingUrl: string | undefined,
+    autoVideoRoom = true,
+  ): string | undefined {
+    const cleaned = this.cleanMeetingUrl(meetingUrl)
+    if (cleaned) return cleaned
+    return modality === 'online' && autoVideoRoom ? this.generateJitsiRoomUrl() : undefined
+  }
+
+  private daysBetween(fromDate: string, toDate: string): number {
+    const from = new Date(`${fromDate}T00:00:00`)
+    const to = new Date(`${toDate}T00:00:00`)
+    return Math.round((to.getTime() - from.getTime()) / 86400000)
+  }
+
+  private addDays(date: string, days: number): string {
+    const result = new Date(`${date}T00:00:00`)
+    result.setDate(result.getDate() + days)
+    return result.toISOString().slice(0, 10)
   }
 
   private timeToMinutes(time: string): number {
@@ -330,6 +445,7 @@ export class AppointmentsService {
     const start = new Date(`${date}T00:00:00`)
     const end = repeatUntil ? new Date(`${repeatUntil}T00:00:00`) : new Date(start)
     if (!repeatUntil) end.setMonth(end.getMonth() + 3)
+    if (end < start) return [date]
 
     const stepDays = recurrence === 'biweekly' ? 14 : 7
     const dates: string[] = []

@@ -131,7 +131,7 @@ export default function NeuropsychCopilotPanel({ assessment, onAddToDraft }: Pro
   }
 
   return (
-    <section className="card space-y-5 p-5">
+    <section className="card space-y-5 p-5" aria-busy={generate.isPending}>
       <div>
         <h2 className="flex items-center gap-2 font-semibold text-neutral-900 dark:text-white">
           <Sparkles className="h-5 w-5 text-violet-600" /> Copiloto clínico (IA)
@@ -161,9 +161,10 @@ export default function NeuropsychCopilotPanel({ assessment, onAddToDraft }: Pro
               type="button"
               aria-pressed={selectedFields.includes(option.id)}
               onClick={() => toggleField(option.id)}
+              disabled={generate.isPending}
               className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${selectedFields.includes(option.id)
                 ? 'border-violet-400 bg-violet-100 text-violet-800 dark:bg-violet-900/50 dark:text-violet-100'
-                : 'border-neutral-200 text-neutral-500 hover:border-violet-300 dark:border-white/10 dark:text-neutral-300'}`}
+                : 'border-neutral-200 text-neutral-500 hover:border-violet-300 dark:border-white/10 dark:text-neutral-300'} disabled:cursor-not-allowed disabled:opacity-60`}
             >
               {option.label}
             </button>
@@ -182,6 +183,33 @@ export default function NeuropsychCopilotPanel({ assessment, onAddToDraft }: Pro
             ? <><RefreshCw className="h-4 w-4 animate-spin" /> Analisando...</>
             : <><Sparkles className="h-4 w-4" /> {analyses.length > 0 ? 'Gerar nova análise' : 'Analisar com IA'}</>}
         </button>
+      )}
+
+      {generate.isPending && (
+        <div
+          role="status"
+          aria-live="polite"
+          aria-label="Análise clínica em andamento"
+          className="rounded-2xl border border-violet-200 bg-violet-50/80 p-4 text-violet-900 dark:border-violet-700/60 dark:bg-violet-950/30 dark:text-violet-100"
+        >
+          <div className="flex items-center gap-3">
+            <RefreshCw className="h-5 w-5 shrink-0 animate-spin" />
+            <div>
+              <p className="text-sm font-semibold">Organizando as informações selecionadas</p>
+              <p className="mt-0.5 text-xs text-violet-700 dark:text-violet-200">
+                A análise pode levar de 15 a 30 segundos. Aguarde nesta página; o resultado aparecerá automaticamente.
+              </p>
+            </div>
+          </div>
+          <div
+            role="progressbar"
+            aria-label="Progresso da análise"
+            aria-valuetext="Processando a análise"
+            className="mt-3 h-1.5 overflow-hidden rounded-full bg-violet-200 dark:bg-violet-900"
+          >
+            <div className="h-full w-2/3 animate-pulse rounded-full bg-violet-600 dark:bg-violet-400" />
+          </div>
+        </div>
       )}
 
       <Modal

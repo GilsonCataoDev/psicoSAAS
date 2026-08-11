@@ -1,0 +1,172 @@
+[
+  {
+    "slug": "como-organizar-prontuario-psicologico-com-seguranca",
+    "title": "Como organizar o prontuário psicológico com mais segurança",
+    "description": "Um roteiro prático para manter registros psicológicos organizados, atualizados e protegidos, com atenção ao sigilo profissional e à LGPD.",
+    "image": "/blog/og/como-organizar-prontuario-psicologico-com-seguranca.png",
+    "category": "Prontuário e segurança",
+    "publishedAt": "2026-08-10",
+    "updatedAt": "2026-08-10",
+    "readingMinutes": 7,
+    "author": "Equipe UseCognia",
+    "keywords": ["prontuário psicológico", "prontuário eletrônico para psicólogos", "LGPD para psicólogos", "segurança de dados na psicologia"],
+    "relatedSlugs": ["software-para-psicologo-guia-completo-2026"],
+    "intro": [
+      "O prontuário não é apenas um arquivo de anotações. Ele ajuda a acompanhar o serviço prestado, sustentar decisões profissionais e preservar a continuidade do atendimento.",
+      "Na prática, segurança depende de duas coisas: uma rotina de registro consistente e ferramentas que reduzam acessos indevidos, perdas e compartilhamentos acidentais."
+    ],
+    "sections": [
+      {
+        "heading": "1. Registre o necessário de forma objetiva",
+        "paragraphs": [
+          "A Resolução CFP nº 001/2009 estabelece que o registro deve contemplar, de forma sucinta, o trabalho prestado, a descrição e a evolução da atividade e os procedimentos técnico-científicos adotados.",
+          "Evite transformar a evolução em uma transcrição completa da sessão. Priorize informações que ajudem a compreender o acompanhamento e as decisões profissionais, usando linguagem técnica, clara e respeitosa."
+        ]
+      },
+      {
+        "heading": "2. Mantenha os registros atualizados e organizados",
+        "paragraphs": [
+          "Registrar vários dias depois aumenta a chance de omissões e confusões. Uma rotina simples é reservar alguns minutos após cada atendimento para finalizar a evolução e conferir os próximos passos.",
+          "Use uma estrutura consistente para facilitar consultas futuras. Por exemplo: contexto relevante, procedimentos realizados, evolução observada e encaminhamentos. A estrutura deve apoiar o raciocínio do profissional, sem engessá-lo."
+        ]
+      },
+      {
+        "heading": "3. Trate informações de saúde como dados sensíveis",
+        "paragraphs": [
+          "A LGPD classifica dados referentes à saúde como dados pessoais sensíveis. Por isso, prontuários, anexos e informações clínicas exigem controles proporcionais ao risco.",
+          "Na escolha de uma ferramenta, verifique conexão HTTPS, autenticação individual, controle de acesso, registro de atividades, política de backups e procedimentos de exportação e exclusão. Não compartilhe senhas entre profissionais."
+        ]
+      },
+      {
+        "heading": "4. Separe comunicação administrativa de conteúdo clínico",
+        "paragraphs": [
+          "Mensagens de confirmação e lembretes devem conter apenas informações operacionais, como data, horário e orientação para reagendamento. Diagnósticos, hipóteses e detalhes da sessão não devem aparecer em mensagens administrativas.",
+          "Ao enviar documentos, confirme destinatário, finalidade e canal. Links temporários e mecanismos de verificação ajudam a reduzir exposição desnecessária."
+        ]
+      },
+      {
+        "heading": "5. Prepare-se para solicitações de acesso",
+        "paragraphs": [
+          "Manter o prontuário organizado facilita localizar registros e responder a solicitações sem reunir arquivos manualmente em diferentes aplicativos.",
+          "Antes de entregar qualquer material, avalie o tipo de registro, a identidade de quem solicita e as orientações profissionais aplicáveis ao caso. Em situações de dúvida, consulte o Conselho Regional de Psicologia."
+        ]
+      }
+    ],
+    "checklist": [
+      "Registrar cada atendimento em prazo próximo à sessão",
+      "Usar linguagem objetiva e profissional",
+      "Manter acesso individual, sem senhas compartilhadas",
+      "Evitar conteúdo clínico em lembretes e cobranças",
+      "Conferir destinatário e finalidade antes de enviar documentos",
+      "Revisar periodicamente acessos, backups e políticas de retenção"
+    ],
+    "references": [
+      {"label": "Resolução CFP nº 001/2009 — registro documental", "url": "https://site.cfp.org.br/wp-content/uploads/2009/04/resolucao2009_01.pdf"},
+      {"label": "Lei nº 13.709/2018 — Lei Geral de Proteção de Dados Pessoais", "url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709compilado.htm"},
+      {"label": "Manual orientativo de registro e elaboração de documentos psicológicos — CFP", "url": "https://site.cfp.org.br/publicacao/manual-orientativo-de-registro-e-elaboracao-de-documentos-psicologicos/"}
+    ]
+  },
+  {
+    "slug": "software-para-psicologo-guia-completo-2026",
+    "title": "Software para psicólogo: guia completo para escolher em 2026",
+    "description": "Saiba quais recursos avaliar em um software para psicólogos e como centralizar agenda, prontuário, financeiro e atendimento online com segurança.",
+    "image": "/blog/og/software-para-psicologo-guia-completo-2026.png",
+    "category": "Gestão de consultório",
+    "publishedAt": "2026-08-10",
+    "updatedAt": "2026-08-10",
+    "readingMinutes": 11,
+    "author": "Equipe UseCognia",
+    "keywords": ["software para psicólogo", "sistema para psicólogos", "gestão de consultório psicológico", "prontuário eletrônico para psicólogos", "agenda para psicólogos", "UseCognia"],
+    "relatedSlugs": ["como-organizar-prontuario-psicologico-com-seguranca"],
+    "intro": [
+      "Você já contou quanto tempo do seu dia é gasto alternando entre agenda, conversas de WhatsApp, planilhas e anotações? Para muitos psicólogos autônomos, a rotina clínica fica fragmentada: a agenda está em uma ferramenta, o prontuário em outra e o financeiro depende de conferências manuais.",
+      "Essa dispersão aumenta o trabalho administrativo e dificulta encontrar informações quando elas são necessárias. Um software especializado ajuda a centralizar a rotina para que o profissional dedique menos tempo à organização operacional e mais atenção ao atendimento."
+    ],
+    "sections": [
+      {
+        "heading": "1. O que é um software para psicólogo?",
+        "paragraphs": [
+          "É uma plataforma criada para apoiar tarefas recorrentes do consultório, como cadastro de pacientes, agenda, registros clínicos, documentos e controle financeiro. A diferença em relação a ferramentas genéricas está na conexão entre essas atividades e na adaptação ao fluxo de trabalho do profissional.",
+          "O sistema não substitui o julgamento clínico nem as responsabilidades éticas do psicólogo. Seu papel é reduzir trabalho repetitivo, organizar informações e oferecer controles adequados para dados que exigem sigilo."
+        ]
+      },
+      {
+        "heading": "2. Quando vale a pena adotar um sistema de gestão?",
+        "paragraphs": [
+          "Alguns sinais são claros: horários duplicados ou difíceis de visualizar; confirmações esquecidas; prontuários espalhados; dificuldade para resgatar o histórico; pagamentos pendentes sem acompanhamento; e confusão entre sessões avulsas, pacotes e mensalidades.",
+          "Não é preciso esperar o consultório crescer para começar. Organizar os primeiros pacientes em um fluxo consistente evita uma migração mais trabalhosa no futuro e cria uma rotina mais previsível desde o início."
+        ]
+      },
+      {
+        "heading": "3. Recursos essenciais para avaliar em 2026",
+        "paragraphs": [
+          "Agenda e comunicação: procure agendamento público, controle de disponibilidade e lembretes administrativos por WhatsApp ou e-mail. As mensagens devem usar apenas dados operacionais, como data e horário, sem expor informações clínicas.",
+          "Prontuário e documentos: verifique se o sistema organiza anamnese, evoluções, histórico e anexos. Para declarações, atestados e recibos, recursos como assinatura e QR Code de verificação ajudam a conferir autenticidade.",
+          "Financeiro: o ideal é acompanhar receitas, pendências, sessões avulsas e pacotes. Links de cobrança por Pix, boleto ou cartão podem reduzir conferências manuais, desde que o processamento seja feito por um provedor de pagamento apropriado.",
+          "Atendimento online: uma sala de vídeo integrada ou a possibilidade de usar links próprios do Google Meet, Zoom ou Whereby evita que o profissional organize a chamada separadamente.",
+          "Apoio de inteligência artificial: a IA pode ajudar a estruturar rascunhos e organizar informações, mas o conteúdo deve permanecer editável e sujeito à revisão do psicólogo antes de integrar qualquer registro clínico."
+        ]
+      },
+      {
+        "heading": "4. Avaliação neuropsicológica integrada",
+        "paragraphs": [
+          "Profissionais que realizam avaliações neuropsicológicas precisam reunir história clínica, observações, planejamento da bateria, funções avaliadas, resultados e anexos. Quando esses elementos ficam separados, a integração das informações se torna mais lenta e sujeita a retrabalho.",
+          "No UseCognia, esse fluxo fica vinculado ao paciente. O Copiloto Clínico organiza os dados selecionados pelo profissional e diferencia dado registrado, inferência cautelosa e informação ausente. Ele não corrige testes protegidos nem emite diagnóstico definitivo: a interpretação e a decisão clínica continuam sob responsabilidade do profissional."
+        ]
+      },
+      {
+        "heading": "5. O valor de um fluxo clínico conectado",
+        "paragraphs": [
+          "Um sistema especializado reduz a repetição de cadastros e facilita a continuidade entre agenda, sessão, evolução, financeiro e histórico do paciente. Em vez de procurar a mesma pessoa em diferentes arquivos, o profissional acompanha a rotina a partir de um cadastro central.",
+          "Antes de contratar, teste o fluxo completo com dados fictícios: crie um paciente, marque um horário, registre uma sessão, gere um documento e confira o financeiro. Esse teste mostra melhor a usabilidade real do que uma lista extensa de funcionalidades."
+        ]
+      },
+      {
+        "heading": "6. Segurança, privacidade e LGPD",
+        "paragraphs": [
+          "Dados referentes à saúde são dados pessoais sensíveis segundo a LGPD. Por isso, avalie conexão HTTPS, autenticação individual, isolamento entre contas, controle de acesso, criptografia aplicável, backups, registros de auditoria e processos de exportação e exclusão.",
+          "Nenhum fornecedor responsável deve prometer segurança absoluta. Procure documentação clara, canais para comunicar incidentes e explicações objetivas sobre onde os dados são processados. Também confirme como o sistema apoia o atendimento a solicitações dos titulares."
+        ]
+      },
+      {
+        "heading": "7. Como escolher o sistema ideal",
+        "paragraphs": [
+          "Comece listando o que mais consome tempo na sua rotina. Depois, defina um orçamento, compare duas ou três opções e faça um teste prático. Observe se a interface funciona bem no computador, celular e tablet, especialmente se você registra sessões pelo iPad.",
+          "Avalie ainda a qualidade do suporte, a facilidade para importar informações e a possibilidade de começar com poucos recursos. A melhor adoção costuma ser gradual: primeiro pacientes e agenda, depois prontuários, documentos e financeiro."
+        ]
+      },
+      {
+        "heading": "8. Perguntas frequentes",
+        "paragraphs": [
+          "Preciso de um software com poucos pacientes? Não é obrigatório, mas começar organizado reduz retrabalho conforme a agenda cresce. O UseCognia possui plano gratuito, sem cartão, para até 10 pacientes ativos.",
+          "Quanto custa o UseCognia? O plano Pro custa R$ 97,90 por mês. Contas Free elegíveis podem ativar a oferta de primeiro mês por R$ 34,90; depois, o valor retorna para R$ 97,90 mensais, sem fidelidade.",
+          "Funciona no celular e no tablet? Sim. O UseCognia é responsivo e pode ser instalado como PWA, oferecendo acesso semelhante ao de um aplicativo no celular ou tablet.",
+          "O sistema possui teleatendimento? No plano Pro, sessões online podem receber uma sala Jitsi gerada automaticamente. O profissional também pode desativar essa opção e informar seu próprio link de chamada.",
+          "A IA escreve o prontuário sozinha? Não. Os recursos de IA produzem sugestões e rascunhos que precisam ser revisados pelo profissional. O registro final e a decisão clínica continuam sendo do psicólogo."
+        ]
+      },
+      {
+        "heading": "9. Menos ferramentas separadas, mais clareza",
+        "paragraphs": [
+          "Adotar um software de gestão não é apenas uma decisão tecnológica. É uma forma de diminuir tarefas administrativas, manter registros mais acessíveis e acompanhar a saúde financeira do consultório com menos improviso.",
+          "O UseCognia reúne agenda, pacientes, prontuário, documentos, financeiro, teleatendimento e recursos de apoio por IA em um único fluxo. Você pode começar gratuitamente e testar a rotina antes de decidir pelo plano Pro."
+        ]
+      }
+    ],
+    "checklist": [
+      "Liste as três tarefas administrativas que mais consomem seu tempo",
+      "Teste agenda, prontuário, documentos e financeiro com dados fictícios",
+      "Confira o funcionamento no computador, celular e tablet",
+      "Leia as páginas de segurança, privacidade e termos do fornecedor",
+      "Verifique como funciona a exportação dos dados e a entrega do prontuário",
+      "Comece pela rotina essencial e adote os demais recursos gradualmente"
+    ],
+    "references": [
+      {"label": "Lei nº 13.709/2018 — Lei Geral de Proteção de Dados Pessoais", "url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709compilado.htm"},
+      {"label": "Resolução CFP nº 001/2009 — registro documental", "url": "https://site.cfp.org.br/wp-content/uploads/2009/04/resolucao2009_01.pdf"},
+      {"label": "Manual orientativo de registro e elaboração de documentos psicológicos — CFP", "url": "https://site.cfp.org.br/publicacao/manual-orientativo-de-registro-e-elaboracao-de-documentos-psicologicos/"},
+      {"label": "Segurança e privacidade no UseCognia", "url": "https://usecognia.com.br/seguranca"},
+      {"label": "Planos do UseCognia", "url": "https://usecognia.com.br/precos"}
+    ]
+  }
+]

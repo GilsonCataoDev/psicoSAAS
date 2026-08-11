@@ -78,6 +78,8 @@ test.describe('Copiloto Neuropsicológico — plano Pro', () => {
     await page.getByRole('button', { name: 'Entendi e concordo' }).click()
 
     await expect(page.getByText('Analisando...')).toBeVisible({ timeout: 5_000 })
+    await expect(page.getByRole('status', { name: 'Análise clínica em andamento' }))
+      .toContainText('A análise pode levar de 15 a 30 segundos')
     await expect(page.getByText('[MOCK] Síntese de teste E2E.')).toBeVisible({ timeout: 15_000 })
     await expect(page.getByText(/dado registrado|inferência cautelosa/).first()).toBeVisible()
     await expect(page.getByText(/fonte:/).first()).toBeVisible()
@@ -263,7 +265,7 @@ test.describe('Copiloto Neuropsicológico — falhas do provedor (mesma conta Pr
   })
 })
 
-test.describe('Copiloto Neuropsicológico — planos Grátis e Essencial', () => {
+test.describe('Copiloto Neuropsicológico — plano Grátis', () => {
   let email = ''
   const patientName = `Paciente Free ${Date.now()}`
 

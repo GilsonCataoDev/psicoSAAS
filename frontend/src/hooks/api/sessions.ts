@@ -37,6 +37,18 @@ export function useCreateSession() {
   })
 }
 
+export function useCreateHistoricalSession() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: Partial<Session>) => api.post('/sessions/historical', data).then(r => r.data),
+    onSuccess: (session) => {
+      qc.invalidateQueries({ queryKey: ['sessions'] })
+      if (session?.patientId) qc.invalidateQueries({ queryKey: ['patients', session.patientId] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+}
+
 export function useUpdateSession() {
   const qc = useQueryClient()
   return useMutation({
@@ -80,6 +92,19 @@ export function useTranscribeAudio() {
   })
 }
 
+export function useTranscribeCall() {
+  return useMutation({
+    mutationFn: async ({ blob, durationSeconds }: { blob: Blob; durationSeconds: number }) => {
+      const form = new FormData()
+      form.append('audio', blob, 'call.webm')
+      form.append('durationSeconds', String(Math.max(1, Math.ceil(durationSeconds))))
+      return api.post<{ text: string }>('/sessions/transcribe-call', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }).then(r => r.data)
+    },
+  })
+}
+
 export function useGenerateAiSummary() {
   return useMutation({
     mutationFn: (data: { transcription: string; patientName?: string }) =>
@@ -91,5 +116,12 @@ export function useGenerateProntuarioDraft() {
   return useMutation({
     mutationFn: (data: { input: string; mode: 'resumo' | 'evolucao' | 'organizar' }) =>
       api.post<{ draft: string }>('/sessions/ai-prontuario', data).then(r => r.data),
+  })
+}
+
+export function useGenerateSessionPlan() {
+  return useMutation({
+    mutationFn: (data: { clinicalContext: string }) =>
+      api.post<{ draft: string }>('/sessions/ai-session-plan', data).then(r => r.data),
   })
 }

@@ -9,7 +9,7 @@ import { AsaasService } from '../asaas.service'
 const makeSub = (overrides: Partial<Subscription> = {}): Subscription => ({
   id: 'sub-1',
   userId: 'user-1',
-  plan: 'essencial',
+  plan: 'pro',
   status: 'trialing',
   gatewayCustomerId: null,
   gatewaySubscriptionId: null,
@@ -38,6 +38,14 @@ describe('BillingService', () => {
   let service: BillingService
   let repo: ReturnType<typeof makeRepo>
   let dataSource: { query: jest.Mock }
+  let asaas: {
+    createCustomer: jest.Mock
+    createSubscription: jest.Mock
+    cancelSubscription: jest.Mock
+    updateSubscriptionNextDueDate: jest.Mock
+    postponeSubscriptionOpenPayments: jest.Mock
+    addDays: jest.Mock
+  }
 
   beforeEach(async () => {
     repo = makeRepo()
@@ -50,26 +58,24 @@ describe('BillingService', () => {
         return Promise.resolve([{ daysSinceSignup: '0', patients: '0', sessions: '0' }])
       }),
     }
+    asaas = {
+      createCustomer: jest.fn().mockResolvedValue('cus_123'),
+      createSubscription: jest.fn().mockResolvedValue('sub_gw_123'),
+      cancelSubscription: jest.fn().mockResolvedValue(undefined),
+      updateSubscriptionNextDueDate: jest.fn().mockResolvedValue(undefined),
+      postponeSubscriptionOpenPayments: jest.fn().mockResolvedValue(0),
+      addDays: jest.fn((n: number) => {
+        const d = new Date()
+        d.setDate(d.getDate() + n)
+        return d.toISOString().slice(0, 10)
+      }),
+    }
 
     const module = await Test.createTestingModule({
       providers: [
         BillingService,
         { provide: getRepositoryToken(Subscription), useValue: repo },
-        {
-          provide: AsaasService,
-          useValue: {
-            createCustomer: jest.fn().mockResolvedValue('cus_123'),
-            createSubscription: jest.fn().mockResolvedValue('sub_gw_123'),
-            cancelSubscription: jest.fn().mockResolvedValue(undefined),
-            updateSubscriptionNextDueDate: jest.fn().mockResolvedValue(undefined),
-            postponeSubscriptionOpenPayments: jest.fn().mockResolvedValue(0),
-            addDays: jest.fn((n: number) => {
-              const d = new Date()
-              d.setDate(d.getDate() + n)
-              return d.toISOString().slice(0, 10)
-            }),
-          },
-        },
+        { provide: AsaasService, useValue: asaas },
         { provide: DataSource, useValue: dataSource },
       ],
     }).compile()
@@ -128,7 +134,7 @@ describe('BillingService', () => {
   // ── cancelAtPeriodEnd expiry ────────────────────────────────────────────────
 
   describe('cancelAtPeriodEnd normalization', () => {
-    it('cancels subscription when period has ended and cancelAtPeriodEnd is true', async () => {
+    it('downgrades to free when period has ended and cancelAtPeriodEnd is true', async () => {
       const sub = makeSub({
         status: 'active',
         cancelAtPeriodEnd: true,
@@ -139,9 +145,16 @@ describe('BillingService', () => {
       const result = await service.getMine(makeUser())
 
       expect(repo.save).toHaveBeenCalledWith(
-        expect.objectContaining({ status: 'canceled', cancelAtPeriodEnd: false }),
+        expect.objectContaining({
+          plan: 'free',
+          status: 'active',
+          cancelAtPeriodEnd: false,
+          gatewayCustomerId: null,
+          gatewaySubscriptionId: null,
+        }),
       )
-      expect((result as any).status).toBe('canceled')
+      expect((result as any).status).toBe('active')
+      expect((result as any).plan).toBe('free')
     })
 
     it('does not cancel when cancelAtPeriodEnd is false', async () => {
@@ -168,7 +181,7 @@ describe('BillingService', () => {
 
       const user = { ...makeUser(), name: 'Test', createdAt: new Date() } as any
 
-      await service.subscribe(user, 'essencial', 'card-token')
+      await service.subscribe(user, 'pro', 'card-token')
 
       expect(repo.save).toHaveBeenCalledWith(
         expect.objectContaining({ hasUsedTrial: true, status: 'active' }),
@@ -185,8 +198,81 @@ describe('BillingService', () => {
     it('throws when no credit card token provided', async () => {
       const user = { ...makeUser(), name: 'Test', createdAt: new Date() } as any
 
-      await expect(service.subscribe(user, 'essencial'))
+      await expect(service.subscribe(user, 'pro'))
         .rejects.toThrow(BadRequestException)
+    })
+  })
+
+  describe('one-time Pro activation offer', () => {
+    it('shows the R$ 34,90 offer once to an active Free account', async () => {
+      const sub = makeSub({
+        plan: 'free',
+        status: 'active',
+        gatewaySubscriptionId: null,
+        upgradeOfferViewedAt: null,
+        activationOfferRedeemedAt: null,
+      })
+      repo.findOne.mockResolvedValue(sub)
+
+      const first = await service.getFreeUpgradeOffer(makeUser())
+      expect(first).toEqual(expect.objectContaining({
+        eligible: true,
+        shouldNotify: true,
+        offerCode: 'PRO3490',
+        promotionalPrice: 34.90,
+        regularPrice: 97.90,
+      }))
+
+      await service.acknowledgeFreeUpgradeOffer('user-1')
+      const afterAcknowledgement = await service.getFreeUpgradeOffer(makeUser())
+
+      expect(afterAcknowledgement.eligible).toBe(true)
+      expect(afterAcknowledgement.shouldNotify).toBe(false)
+    })
+
+    it('charges R$ 34,90 for one cycle and records redemption', async () => {
+      const sub = makeSub({
+        plan: 'free',
+        status: 'active',
+        gatewayCustomerId: null,
+        gatewaySubscriptionId: null,
+        hasUsedTrial: true,
+        activationOfferRedeemedAt: null,
+      })
+      repo.findOne.mockResolvedValue(sub)
+
+      await service.subscribe(
+        { ...makeUser(), name: 'Test', createdAt: new Date() } as any,
+        'pro',
+        'card-token',
+      )
+
+      expect(asaas.createSubscription).toHaveBeenCalledWith(
+        'cus_123',
+        'pro',
+        'sub-1',
+        'card-token',
+        expect.any(String),
+        expect.objectContaining({ valueOverride: 34.90 }),
+      )
+      expect(repo.save).toHaveBeenLastCalledWith(expect.objectContaining({
+        promoCode: 'PRO3490',
+        promoCyclesTotal: 1,
+        activationOfferRedeemedAt: expect.any(Date),
+      }))
+    })
+
+    it('does not offer the campaign again after redemption', async () => {
+      repo.findOne.mockResolvedValue(makeSub({
+        plan: 'free',
+        status: 'active',
+        activationOfferRedeemedAt: new Date(),
+      }))
+
+      const offer = await service.getFreeUpgradeOffer(makeUser())
+
+      expect(offer.eligible).toBe(false)
+      expect(offer.shouldNotify).toBe(false)
     })
   })
 })

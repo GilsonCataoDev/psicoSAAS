@@ -1,28 +1,40 @@
 import { useRef, useState } from 'react'
-import { Mic, MicOff, Loader2, Sparkles, AlertCircle } from 'lucide-react'
+import { Mic, MicOff, Loader2, Sparkles, AlertCircle, Video } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { useTranscribeAudio, useGenerateAiSummary } from '@/hooks/useApi'
+import { useTranscribeAudio, useTranscribeCall, useGenerateAiSummary } from '@/hooks/useApi'
 import { useHasPlan } from '@/store/subscription'
 
 type Step = 'idle' | 'consent' | 'recording' | 'ready' | 'transcribing' | 'transcribed' | 'generating'
+type Source = 'mic' | 'call'
 
 type Props = {
   patientName?: string
   onApplyTranscription: (text: string) => void
   onApplySummary: (text: string) => void
   transcriptionActionLabel?: string
+  /** Mostra a opção "Transcrever chamada" — só faz sentido pra sessões online. */
+  allowCallCapture?: boolean
 }
 
-const MAX_RECORDING_SECONDS = 15 * 60
+const MAX_RECORDING_SECONDS: Record<Source, number> = {
+  mic: 15 * 60,
+  call: 90 * 60,
+}
+
+// Bitrate baixo o bastante pra 90 min de fala caberem no limite de upload do
+// endpoint de chamada (30MB) — ~32kbps mono é suficiente pra transcrição de voz.
+const CALL_AUDIO_BITS_PER_SECOND = 32_000
 
 export default function RecordingPanel({
   patientName,
   onApplyTranscription,
   onApplySummary,
   transcriptionActionLabel = 'Copiar para notas privadas',
+  allowCallCapture = false,
 }: Props) {
-  const hasEssencial = useHasPlan('essencial')
+  const hasPro = useHasPlan('pro')
   const [step, setStep] = useState<Step>('idle')
+  const [source, setSource] = useState<Source>('mic')
   const [elapsed, setElapsed] = useState(0)
   const [transcription, setTranscription] = useState('')
   const [consentGiven, setConsentGiven] = useState(false)
@@ -32,37 +44,77 @@ export default function RecordingPanel({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const audioBlobRef = useRef<Blob | null>(null)
 
-  const transcribe = useTranscribeAudio()
+  const transcribeMic = useTranscribeAudio()
+  const transcribeCall = useTranscribeCall()
   const generateSummary = useGenerateAiSummary()
+
+  function openConsent(next: Source) {
+    setSource(next)
+    setConsentGiven(false)
+    setStep('consent')
+  }
+
+  async function startMicRecording() {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    return { stream, recordStream: stream }
+  }
+
+  async function startCallRecording() {
+    // getDisplayMedia exige video, mesmo quando só queremos áudio — paramos a
+    // faixa de vídeo assim que capturamos, pra não gravar nem enviar imagem.
+    const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
+    const audioTracks = stream.getAudioTracks()
+    stream.getVideoTracks().forEach(t => t.stop())
+    if (audioTracks.length === 0) {
+      stream.getTracks().forEach(t => t.stop())
+      throw new Error('no-audio-track')
+    }
+    return { stream, recordStream: new MediaStream(audioTracks) }
+  }
 
   async function startRecording() {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mr = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm' })
+      const { stream, recordStream } = source === 'call'
+        ? await startCallRecording()
+        : await startMicRecording()
+
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm'
+      const mr = new MediaRecorder(recordStream, source === 'call'
+        ? { mimeType, audioBitsPerSecond: CALL_AUDIO_BITS_PER_SECOND }
+        : { mimeType })
       chunksRef.current = []
       mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data) }
       mr.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: mr.mimeType })
         audioBlobRef.current = blob
         stream.getTracks().forEach(t => t.stop())
+        recordStream.getTracks().forEach(t => t.stop())
         setStep('ready')
       }
       mr.start(1000)
       mediaRecorderRef.current = mr
       setElapsed(0)
+      const maxSeconds = MAX_RECORDING_SECONDS[source]
+      const maxMinutes = Math.round(maxSeconds / 60)
       timerRef.current = setInterval(() => {
         setElapsed(s => {
           const next = s + 1
-          if (next >= MAX_RECORDING_SECONDS) {
+          if (next >= maxSeconds) {
             window.setTimeout(stopRecording, 0)
-            toast('Limite de 15 minutos por transcrição atingido.')
+            toast(`Limite de ${maxMinutes} minutos atingido.`)
           }
           return next
         })
       }, 1000)
       setStep('recording')
-    } catch {
-      toast.error('Não foi possível acessar o microfone. Verifique as permissões.')
+    } catch (err) {
+      if (err instanceof Error && err.message === 'no-audio-track') {
+        toast.error('Nenhum áudio capturado. Ao compartilhar, marque "Compartilhar áudio da guia".')
+        return
+      }
+      toast.error(source === 'call'
+        ? 'Não foi possível capturar o áudio da chamada. Verifique as permissões e tente novamente.'
+        : 'Não foi possível acessar o microfone. Verifique as permissões.')
     }
   }
 
@@ -91,7 +143,8 @@ export default function RecordingPanel({
   async function handleTranscribe(blob: Blob) {
     setStep('transcribing')
     try {
-      const { text } = await transcribe.mutateAsync({ blob, durationSeconds: elapsed })
+      const mutation = source === 'call' ? transcribeCall : transcribeMic
+      const { text } = await mutation.mutateAsync({ blob, durationSeconds: elapsed })
       setTranscription(text)
       setStep('transcribed')
     } catch (err) {
@@ -139,8 +192,15 @@ export default function RecordingPanel({
           <div className="space-y-1">
             <p className="text-sm font-semibold text-amber-800">Consentimento para gravação</p>
             <p className="text-xs text-amber-700 leading-relaxed">
-              O áudio é enviado ao servidor apenas para transcrição e não é armazenado. Apenas o texto transcrito é salvo, criptografado, no prontuário.
+              {source === 'call'
+                ? 'O áudio da chamada inteira (as duas vozes) é enviado ao servidor apenas para transcrição e não é armazenado. Apenas o texto transcrito é salvo, criptografado, no prontuário.'
+                : 'O áudio é enviado ao servidor apenas para transcrição e não é armazenado. Apenas o texto transcrito é salvo, criptografado, no prontuário.'}
             </p>
+            {source === 'call' && (
+              <p className="text-xs text-amber-700 leading-relaxed">
+                Ao clicar em "Iniciar gravação", escolha a guia da chamada (Jitsi) na janela do navegador e marque a opção <strong>"Compartilhar áudio da guia"</strong> — sem isso, a voz do paciente não é capturada.
+              </p>
+            )}
           </div>
         </div>
         <label className="flex items-start gap-2 cursor-pointer">
@@ -178,7 +238,9 @@ export default function RecordingPanel({
               <span className="h-3 w-3 animate-pulse rounded-full bg-red-500" />
             </span>
             <div>
-              <p className="text-sm font-semibold text-red-700">Gravando...</p>
+              <p className="text-sm font-semibold text-red-700">
+                {source === 'call' ? 'Gravando chamada...' : 'Gravando...'}
+              </p>
               <p className="text-xs text-red-500">{fmt(elapsed)}</p>
             </div>
           </div>
@@ -247,7 +309,8 @@ export default function RecordingPanel({
             className="flex-1 rounded-xl border border-sage-300 py-2 text-xs font-medium text-sage-700 hover:bg-sage-100">
             {transcriptionActionLabel}
           </button>
-          {hasEssencial ? (
+          {/* Transcrição de chamada fica só com o texto — sem síntese automática por IA. */}
+          {source === 'call' ? null : hasPro ? (
             <button type="button" onClick={handleGenerateSummary} disabled={step === 'generating'}
               className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-sage-600 py-2 text-xs font-semibold text-white hover:bg-sage-700 disabled:opacity-50">
               {step === 'generating'
@@ -255,9 +318,9 @@ export default function RecordingPanel({
                 : <><Sparkles className="h-3.5 w-3.5" /> Gerar resumo com IA</>}
             </button>
           ) : (
-            <button type="button" disabled title="Resumo automático disponível a partir do plano Essencial"
+            <button type="button" disabled title="Resumo automático disponível a partir do plano Pro"
               className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-neutral-100 py-2 text-xs font-semibold text-neutral-400">
-              <Sparkles className="h-3.5 w-3.5" /> Resumo no Essencial
+              <Sparkles className="h-3.5 w-3.5" /> Resumo no Pro
             </button>
           )}
         </div>
@@ -266,12 +329,12 @@ export default function RecordingPanel({
   }
 
   // ── Idle ─────────────────────────────────────────────────────────────────────
-  if (!hasEssencial) {
+  if (!hasPro) {
     return (
       <button
         type="button"
         disabled
-        title="Transcrição por IA disponível a partir do plano Essencial"
+        title="Transcrição por IA disponível a partir do plano Pro"
         className="flex items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs text-neutral-400"
       >
         <Mic className="h-3.5 w-3.5" /> Gravar sessão
@@ -280,9 +343,17 @@ export default function RecordingPanel({
   }
 
   return (
-    <button type="button" onClick={() => setStep('consent')}
-      className="flex items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs text-neutral-500 hover:border-sage-300 hover:text-sage-700">
-      <Mic className="h-3.5 w-3.5" /> Gravar sessão
-    </button>
+    <div className="flex items-center gap-2">
+      <button type="button" onClick={() => openConsent('mic')}
+        className="flex items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs text-neutral-500 hover:border-sage-300 hover:text-sage-700">
+        <Mic className="h-3.5 w-3.5" /> Gravar sessão
+      </button>
+      {allowCallCapture && (
+        <button type="button" onClick={() => openConsent('call')}
+          className="flex items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs text-neutral-500 hover:border-sage-300 hover:text-sage-700">
+          <Video className="h-3.5 w-3.5" /> Transcrever chamada
+        </button>
+      )}
+    </div>
   )
 }

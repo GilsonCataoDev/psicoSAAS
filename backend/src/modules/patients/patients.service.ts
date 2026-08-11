@@ -7,11 +7,13 @@ import { Patient } from './entities/patient.entity'
 import { CreatePatientDto } from './dto/create-patient.dto'
 import { UpdatePatientDto } from './dto/update-patient.dto'
 import { UpdatePatientPortalIntakeDto } from './dto/patient-portal.dto'
-import { Subscription } from '../billing/entities/subscription.entity'
 import { Appointment } from '../appointments/entities/appointment.entity'
-import { PLAN_LIMITS, normalizePlan } from '../../common/plans'
-import { encrypt, hashToken, safeDecrypt } from '../../common/crypto/encrypt.util'
+import { PLAN_LIMITS } from '../../common/plans'
+import { PlanAccessService } from '../../common/plan-access/plan-access.service'
+import { blindIndex, encrypt, hashToken, safeDecrypt } from '../../common/crypto/encrypt.util'
 import { FinancialService } from '../financial/financial.service'
+import { formatCrpForDisplay } from '../auth/entities/user.entity'
+import { ProntuarioExportOptions, canIncludePrivateNotes, filterProntuarioSessions, normalizeProntuarioExportOptions } from './prontuario-export.util'
 
 type EncryptedProntuario = {
   __encrypted: 'usecognia.prontuario.v1' | 'psicosaas.prontuario.v1'
@@ -90,9 +92,9 @@ const PATIENT_ENCRYPTED_FIELDS = [
 export class PatientsService {
   constructor(
     @InjectRepository(Patient) private repo: Repository<Patient>,
-    @InjectRepository(Subscription) private subs: Repository<Subscription>,
     @InjectRepository(Appointment) private appointments: Repository<Appointment>,
     private financial: FinancialService,
+    private readonly planAccess: PlanAccessService,
   ) {}
 
   // ─── Helpers de criptografia ────────────────────────────────────────────────
@@ -107,6 +109,15 @@ export class PatientsService {
     if (dto.prontuario) encrypted.prontuario = this.encryptProntuario(dto.prontuario as Record<string, any>)
     for (const field of PATIENT_ENCRYPTED_FIELDS) {
       if (typeof dto[field] === 'string' && dto[field].length > 0) encrypted[field] = encrypt(dto[field])
+    }
+    if (Object.prototype.hasOwnProperty.call(dto, 'email')) {
+      encrypted.emailHash = dto.email
+        ? blindIndex(String(dto.email), 'patient-email')
+        : null
+    }
+    if (Object.prototype.hasOwnProperty.call(dto, 'phone')) {
+      const phone = dto.phone ? String(dto.phone).replace(/\D/g, '') : ''
+      encrypted.phoneHash = phone ? blindIndex(phone, 'patient-phone') : null
     }
     return encrypted
   }
@@ -187,8 +198,7 @@ export class PatientsService {
   }
 
   async getPlanUsage(userId: string): Promise<{ plan: string; limit: number; count: number }> {
-    const sub  = await this.subs.findOne({ where: { userId } })
-    const plan = normalizePlan((sub?.status === 'active' || sub?.status === 'trialing') ? sub.plan : 'free')
+    const plan = await this.planAccess.getCurrentPlan(userId)
     const limit = PLAN_LIMITS[plan].maxPatients
     const count = await this.repo.count({ where: { psychologistId: userId, status: 'active' } })
     return { plan, limit, count }
@@ -211,7 +221,6 @@ export class PatientsService {
   async findAll(psychologistId: string): Promise<PatientListItemDto[]> {
     const patients = await this.repo.find({
       where: { psychologistId },
-      order: { name: 'ASC' },
       // Listagem nunca deve carregar prontuário, privateNotes nem ids internos de gateway.
       select: [
         'id', 'name', 'email', 'phone', 'birthDate', 'pronouns', 'race', 'gender',
@@ -222,7 +231,9 @@ export class PatientsService {
         'cpfCnpj', 'createdAt', 'updatedAt',
       ],
     })
-    return patients.map(patient => this.dec(patient) as PatientListItemDto)
+    return patients
+      .map(patient => this.dec(patient) as PatientListItemDto)
+      .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
   }
 
   async findOne(id: string, psychologistId: string): Promise<Patient> {
@@ -297,7 +308,7 @@ export class PatientsService {
       },
       psychologist: {
         name: patient.psychologist?.name ?? 'Profissional responsável',
-        crp: patient.psychologist?.crp ?? null,
+        crp: patient.psychologist ? formatCrpForDisplay(patient.psychologist) : null,
       },
       appointments: upcoming.map(appointment => ({
         id: appointment.id,
@@ -384,22 +395,26 @@ export class PatientsService {
     psychologistId: string,
     psychologistName: string,
     psychologistCrp: string,
-  ): Promise<{ filename: string; buffer: Buffer }> {
+    exportOptions: ProntuarioExportOptions = {},
+  ): Promise<{ filename: string; stream: PDFKit.PDFDocument }> {
     const patient = await this.findRaw(patientId, psychologistId, ['sessions'])
     const p = this.dec(patient)
+    const options = normalizeProntuarioExportOptions(exportOptions)
+    const patientCopy = options.audience === 'patient'
+    const includePrivateNotes = canIncludePrivateNotes(options)
 
-    const sessions = (p.sessions ?? [])
-      .filter(s => s.summary || s.privateNotes || s.nextSteps)
-      .sort((a, b) => a.date.localeCompare(b.date))
+    const sessions = options.sections.has('evolutions')
+      ? filterProntuarioSessions(p.sessions ?? [], options)
+        .filter(s => s.summary || (includePrivateNotes && s.privateNotes) || s.nextSteps)
+        .sort((a, b) => a.date.localeCompare(b.date))
+      : []
 
     const pdf = new PDFDocument({ size: 'A4', margin: 42, bufferPages: true, info: {
-      Title: `Prontuário — ${p.name}`,
+      Title: `${patientCopy ? 'Cópia do Prontuário' : 'Prontuário'} — ${p.name}`,
       Author: psychologistName,
       Subject: 'Prontuário Clínico',
       Keywords: 'UseCognia, prontuário, psicologia',
     } })
-    const done = this.collectPdf(pdf)
-
     const W = pdf.page.width
     const H = pdf.page.height
     const L = 44, R = W - 44
@@ -421,7 +436,7 @@ export class PatientsService {
       const fy = H - 38
       pdf.strokeColor(line).lineWidth(0.8).moveTo(L, fy).lineTo(R, fy).stroke()
       pdf.fillColor(muted).font('Helvetica').fontSize(7)
-        .text(`UseCognia  |  Prontuário Clínico — ${p.name}`, L, fy + 8, { width: CW - 80, lineBreak: false })
+        .text(`UseCognia  |  ${patientCopy ? 'Cópia entregue ao paciente' : 'Prontuário Clínico'} — ${p.name}`, L, fy + 8, { width: CW - 80, lineBreak: false })
       pdf.text(`Página ${page} de ${total}`, R - 60, fy + 8, { width: 60, align: 'right', lineBreak: false })
     }
 
@@ -473,7 +488,7 @@ export class PatientsService {
     pdf.fillColor(sageDark).font('Helvetica-Bold').fontSize(10).text('UseCognia', L, 24, { lineBreak: false })
     pdf.fillColor(muted).font('Helvetica').fontSize(7).text('Plataforma para psicólogos e terapeutas', L, 38, { lineBreak: false })
 
-    pdf.fillColor(ink).font('Helvetica-Bold').fontSize(18).text('Prontuário Clínico', L, 56, { width: CW })
+    pdf.fillColor(ink).font('Helvetica-Bold').fontSize(18).text(patientCopy ? 'Cópia do Prontuário' : 'Prontuário Clínico', L, 56, { width: CW })
     pdf.fillColor(sage).font('Helvetica-Bold').fontSize(12).text(p.name, L, 78, { width: CW })
 
     pdf.strokeColor(line).lineWidth(1).moveTo(L, 110).lineTo(R, 110).stroke()
@@ -496,13 +511,15 @@ export class PatientsService {
     pdf.y = 178
 
     // ── Dados do Paciente ─────────────────────────────────────────────────────
-    sectionTitle('Dados do Paciente')
-    fieldPair('NOME COMPLETO', p.name, 'STATUS', p.status === 'active' ? 'Em atendimento' : p.status === 'paused' ? 'Pausado' : 'Alta')
-    fieldPair('DATA DE NASCIMENTO', p.birthDate ? new Date(p.birthDate).toLocaleDateString('pt-BR') : undefined, 'CPF / CNPJ', p.cpfCnpj)
-    fieldPair('E-MAIL', p.email, 'TELEFONE', p.phone)
-    fieldPair('INÍCIO DO ACOMPANHAMENTO', p.startDate ? new Date(p.startDate).toLocaleDateString('pt-BR') : undefined, 'PRONOMES', p.pronouns)
+    if (options.sections.has('identification')) {
+      sectionTitle('Dados do Paciente')
+      fieldPair('NOME COMPLETO', p.name, 'STATUS', p.status === 'active' ? 'Em atendimento' : p.status === 'paused' ? 'Pausado' : 'Alta')
+      fieldPair('DATA DE NASCIMENTO', p.birthDate ? new Date(p.birthDate).toLocaleDateString('pt-BR') : undefined, 'CPF / CNPJ', p.cpfCnpj)
+      fieldPair('E-MAIL', p.email, 'TELEFONE', p.phone)
+      fieldPair('INÍCIO DO ACOMPANHAMENTO', p.startDate ? new Date(p.startDate).toLocaleDateString('pt-BR') : undefined, 'PRONOMES', p.pronouns)
+    }
 
-    if (p.privateNotes?.trim()) {
+    if (includePrivateNotes && p.privateNotes?.trim()) {
       checkPageBreak(40)
       field('ANOTAÇÕES PRIVADAS', p.privateNotes, { wide: true })
     }
@@ -515,7 +532,7 @@ export class PatientsService {
       const hasPlano    = pr.abordagem || pr.objetivos || pr.frequencia || pr.duracaoPrevista
       const hasDados    = pr.escolaridade || pr.profissao || pr.estadoCivil || pr.religiao
 
-      if (hasAnamnese) {
+      if (hasAnamnese && options.sections.has('anamnesis')) {
         checkPageBreak(80)
         sectionTitle('Anamnese')
         field('QUEIXA PRINCIPAL', pr.queixaPrincipal, { wide: true })
@@ -526,7 +543,7 @@ export class PatientsService {
         field('CONDIÇÕES MÉDICAS', pr.condicoesMedicas, { wide: true })
       }
 
-      if (hasPlano) {
+      if (hasPlano && options.sections.has('treatment_plan')) {
         checkPageBreak(80)
         sectionTitle('Plano Terapêutico')
         field('ABORDAGEM', pr.abordagem, { wide: true })
@@ -534,14 +551,14 @@ export class PatientsService {
         fieldPair('FREQUÊNCIA', pr.frequencia, 'DURAÇÃO PREVISTA', pr.duracaoPrevista)
       }
 
-      if (hasDados) {
+      if (hasDados && options.sections.has('identification')) {
         checkPageBreak(60)
         sectionTitle('Dados Complementares')
         fieldPair('ESCOLARIDADE', pr.escolaridade, 'PROFISSÃO', pr.profissao)
         fieldPair('ESTADO CIVIL', pr.estadoCivil, 'RELIGIÃO', pr.religiao)
       }
 
-      if (pr.contatoEmergenciaNome) {
+      if (!patientCopy && pr.contatoEmergenciaNome && options.sections.has('identification')) {
         checkPageBreak(50)
         sectionTitle('Contato de Emergência')
         fieldPair('NOME', pr.contatoEmergenciaNome, 'RELAÇÃO', pr.contatoEmergenciaRelacao)
@@ -550,7 +567,7 @@ export class PatientsService {
     }
 
     // ── Evolução (sessões) ────────────────────────────────────────────────────
-    if (sessions.length > 0) {
+    if (sessions.length > 0 && options.sections.has('evolutions')) {
       checkPageBreak(60)
       sectionTitle('Evolução — Registro de Sessões')
 
@@ -591,7 +608,7 @@ export class PatientsService {
           pdf.moveDown(0.6)
         }
 
-        if (s.privateNotes?.trim()) {
+        if (includePrivateNotes && s.privateNotes?.trim()) {
           checkPageBreak(40)
           pdf.rect(L, pdf.y, 3, 0).fill(sage)
           pdf.fillColor(muted).font('Helvetica-Bold').fontSize(6.8).text('ANOTAÇÕES PRIVADAS', L + 6, pdf.y, { width: CW - 12, lineBreak: false })
@@ -609,9 +626,11 @@ export class PatientsService {
     pdf.moveDown(1)
     pdf.roundedRect(L, pdf.y, CW, 38, 6).fillAndStroke('#EEF8F3', '#CFE5D9')
     pdf.fillColor(sageDark).font('Helvetica-Bold').fontSize(7.5)
-      .text('DOCUMENTO CONFIDENCIAL', L + 14, pdf.y + 8, { width: CW - 28, lineBreak: false })
+      .text(patientCopy ? 'CÓPIA DISPONIBILIZADA AO PACIENTE' : 'DOCUMENTO CONFIDENCIAL', L + 14, pdf.y + 8, { width: CW - 28, lineBreak: false })
     pdf.fillColor(muted).font('Helvetica').fontSize(7)
-      .text('Este prontuário contém informações sigilosas protegidas pelo sigilo profissional (CFP). Uso restrito ao profissional responsável.', L + 14, pdf.y + 10, { width: CW - 28, lineGap: 1.2 })
+      .text(patientCopy
+        ? 'Documento com dados pessoais e clínicos. Armazene e compartilhe de forma segura. Anotações privadas do profissional não fazem parte desta cópia.'
+        : 'Este prontuário contém informações sigilosas protegidas pelo sigilo profissional (CFP). Uso restrito ao profissional responsável.', L + 14, pdf.y + 10, { width: CW - 28, lineGap: 1.2 })
 
     const range = pdf.bufferedPageRange()
     for (let i = range.start; i < range.start + range.count; i++) {
@@ -619,20 +638,12 @@ export class PatientsService {
       drawFooter(i + 1, range.count)
     }
 
-    pdf.end()
-
     const safeName = p.name.replace(/[^a-zA-Z0-9À-ɏ\s]/g, '').trim().replace(/\s+/g, '_')
-    const filename = `Prontuario_${safeName}_${new Date().toISOString().slice(0, 10)}.pdf`
+    const filename = `${patientCopy ? 'Copia_Prontuario' : 'Backup_Profissional'}_${safeName}_${new Date().toISOString().slice(0, 10)}.pdf`
 
-    return { filename, buffer: await done }
-  }
-
-  private collectPdf(pdf: PDFKit.PDFDocument): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
-      const chunks: Buffer[] = []
-      pdf.on('data', chunk => chunks.push(Buffer.from(chunk)))
-      pdf.on('end', () => resolve(Buffer.concat(chunks)))
-      pdf.on('error', reject)
-    })
+    // Não bufferizamos o PDF inteiro em memória (chunks[] + Buffer.concat) — o
+    // chamador faz pdf.pipe(res) e só então chama pdf.end(), deixando o stream
+    // fluir direto pro socket em vez de duplicar o documento inteiro no heap.
+    return { filename, stream: pdf }
   }
 }

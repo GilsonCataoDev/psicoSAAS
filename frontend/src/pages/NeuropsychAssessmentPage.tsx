@@ -5,12 +5,13 @@ import toast from 'react-hot-toast'
 import {
   useCreateNeuropsychBatteryItem, useDeleteNeuropsychBatteryItem,
   useNeuropsychAssessment, useUpdateNeuropsychAssessment, useUpdateNeuropsychBatteryItem,
-  usePatientAttachments, useUploadPatientAttachment,
+  usePatientAttachments, useUploadPatientAttachment, useInstrumentAssignments,
 } from '@/hooks/useApi'
-import { NeuropsychBatteryItem, NeuropsychDomain } from '@/types'
+import { NeuropsychAssessment, NeuropsychBatteryItem, NeuropsychDomain } from '@/types'
 import { downloadPatientAttachment, PatientAttachment } from '@/hooks/api/attachments'
 import { buildNeuropsychIntegrationDraft } from '@/lib/neuropsychDraft'
 import NeuropsychCopilotPanel from '@/components/features/neuropsych/NeuropsychCopilotPanel'
+import TestNameCombobox from '@/components/features/neuropsych/TestNameCombobox'
 
 const DOMAINS: Array<[NeuropsychDomain, string]> = [
   ['intelligence', 'Inteligência'], ['attention', 'Atenção'], ['memory', 'Memória'],
@@ -37,10 +38,13 @@ export default function NeuropsychAssessmentPage() {
   const deleteItem = useDeleteNeuropsychBatteryItem(id)
   const { data: attachments = [] } = usePatientAttachments(assessment?.patientId, id)
   const uploadAttachment = useUploadPatientAttachment(assessment?.patientId, id)
+  const { data: instrumentAssignments = [] } = useInstrumentAssignments(assessment?.patientId)
+  const completedInstruments = instrumentAssignments.filter(item => item.status === 'completed')
   const [attachmentKind, setAttachmentKind] = useState<PatientAttachment['kind']>('test_result')
   const [activeStep, setActiveStep] = useState<AssessmentStep>('planning')
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
+  const [statusSaveState, setStatusSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const hydratedAssessmentId = useRef<string | null>(null)
   const [form, setForm] = useState({ referralQuestion: '', clinicalHistory: '', clinicalHypotheses: '', qualitativeObservations: '', integrationDraft: '', professionalConclusion: '', evaluatedDomains: [] as NeuropsychDomain[] })
   const [newItem, setNewItem] = useState<{
@@ -48,7 +52,8 @@ export default function NeuropsychAssessmentPage() {
     procedureType: NeuropsychBatteryItem['procedureType']
     domains: NeuropsychDomain[]
     purpose: string
-  }>({ name: '', procedureType: 'neuropsychological_procedure', domains: [], purpose: '' })
+    instrumentAssignmentId: string
+  }>({ name: '', procedureType: 'neuropsychological_procedure', domains: [], purpose: '', instrumentAssignmentId: '' })
 
   useEffect(() => {
     if (!assessment || hydratedAssessmentId.current === assessment.id) return
@@ -88,10 +93,22 @@ export default function NeuropsychAssessmentPage() {
     event.preventDefault()
     if (!newItem.name.trim()) return toast.error('Informe o nome do procedimento')
     try {
-      await createItem.mutateAsync({ ...newItem, status: 'planned' })
-      setNewItem({ name: '', procedureType: 'neuropsychological_procedure', domains: [], purpose: '' })
+      await createItem.mutateAsync({ ...newItem, instrumentAssignmentId: newItem.instrumentAssignmentId || undefined })
+      setNewItem({ name: '', procedureType: 'neuropsychological_procedure', domains: [], purpose: '', instrumentAssignmentId: '' })
       toast.success('Procedimento adicionado')
     } catch (error: any) { toast.error(error?.response?.data?.message ?? 'Não foi possível adicionar') }
+  }
+
+  async function changeAssessmentStatus(status: NeuropsychAssessment['status']) {
+    setStatusSaveState('saving')
+    try {
+      await update.mutateAsync({ status, version: assessment!.version })
+      setLastSavedAt(new Date())
+      setStatusSaveState('saved')
+    } catch (error: any) {
+      setStatusSaveState('error')
+      toast.error(error?.response?.data?.message ?? 'Não foi possível alterar o status')
+    }
   }
 
   async function upload(file?: File) {
@@ -133,9 +150,27 @@ export default function NeuropsychAssessmentPage() {
         <div><Link to="/avaliacoes" className="mb-2 inline-flex items-center gap-1 text-xs font-medium text-neutral-500 hover:text-sage-700"><ArrowLeft className="h-3.5 w-3.5" /> Avaliações</Link>
           <h1 className="page-title flex items-center gap-2"><BrainCircuit className="h-6 w-6 text-sage-600" />{assessment.patient?.name}</h1>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs"><span className="text-neutral-500 dark:text-neutral-400">Etapa {activeStepIndex + 1} de {STEPS.length} · rascunho clínico protegido</span><span className={`rounded-full px-2 py-0.5 font-medium ${hasUnsavedChanges ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-200' : 'bg-sage-50 text-sage-700 dark:bg-sage-950/40 dark:text-sage-200'}`}>{hasUnsavedChanges ? 'Alterações não salvas' : lastSavedAt ? `Salvo às ${lastSavedAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : 'Tudo salvo'}</span></div></div>
-        <div className="flex flex-col gap-2 min-[430px]:flex-row"><select aria-label="Status da avaliação" value={assessment.status} onChange={event => update.mutate({ status: event.target.value as any, version: assessment.version })} className="input-field min-[430px]:w-44">
-          <option value="planning">Planejamento</option><option value="in_progress">Em aplicação</option><option value="integration">Integração</option><option value="completed">Concluída</option><option value="archived">Arquivada</option>
-        </select><button onClick={save} disabled={update.isPending || !hasUnsavedChanges} className="btn-primary flex items-center justify-center gap-2"><Check className="h-4 w-4" />{update.isPending ? 'Salvando...' : 'Salvar'}</button></div>
+        <div className="flex flex-col gap-2 min-[430px]:flex-row min-[430px]:items-start">
+          <div>
+            <select
+              aria-label="Status da avaliação"
+              value={assessment.status}
+              disabled={update.isPending}
+              onChange={event => void changeAssessmentStatus(event.target.value as NeuropsychAssessment['status'])}
+              className="input-field min-[430px]:w-44"
+            >
+              <option value="planning">Planejamento</option><option value="in_progress">Em aplicação</option><option value="integration">Integração</option><option value="completed">Concluída</option><option value="archived">Arquivada</option>
+            </select>
+            <span role="status" aria-label="Salvamento automático do status" aria-live="polite" className={`mt-1 block min-h-4 text-[11px] ${
+              statusSaveState === 'error' ? 'text-rose-600 dark:text-rose-300' : 'text-neutral-500 dark:text-neutral-400'
+            }`}>
+              {statusSaveState === 'saving' && 'Salvando status...'}
+              {statusSaveState === 'saved' && 'Status salvo automaticamente'}
+              {statusSaveState === 'error' && 'Status não salvo; tente novamente'}
+            </span>
+          </div>
+          <button onClick={save} disabled={update.isPending || !hasUnsavedChanges} className="btn-primary flex items-center justify-center gap-2"><Check className="h-4 w-4" />{update.isPending && statusSaveState !== 'saving' ? 'Salvando...' : 'Salvar'}</button>
+        </div>
       </header>
 
       <nav aria-label="Etapas da avaliação" className="grid grid-cols-2 gap-2 lg:grid-cols-4">
@@ -157,14 +192,18 @@ export default function NeuropsychAssessmentPage() {
 
       {activeStep === 'battery' && <section className="card space-y-5 p-5"><div><h2 className="font-semibold text-neutral-900 dark:text-white">2. Bateria de avaliação</h2><p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">Cadastre somente o nome e seus registros profissionais. Não copie conteúdo protegido.</p></div>
         <form onSubmit={addItem} className="rounded-2xl border border-sage-100 bg-sage-50/50 p-4 dark:border-sage-800/50 dark:bg-sage-950/10">
-          <div className="grid gap-3 md:grid-cols-2"><div><label htmlFor="battery-item-name" className="label">Teste ou procedimento</label><input id="battery-item-name" value={newItem.name} onChange={event => setNewItem(current => ({ ...current, name: event.target.value }))} className="input-field" placeholder="Nome do procedimento" /></div>
+          <div className="grid gap-3 md:grid-cols-2"><div><label htmlFor="battery-item-name" className="label">Teste ou procedimento</label><TestNameCombobox id="battery-item-name" value={newItem.name} onChange={value => setNewItem(current => ({ ...current, name: value }))} placeholder="Nome do procedimento" /><p className="mt-1 text-[11px] text-neutral-500 dark:text-neutral-400">Sugestões de nomes conhecidos aparecem ao digitar — você também pode escrever um nome próprio.</p></div>
             <div><label htmlFor="battery-item-type" className="label">Tipo</label><select id="battery-item-type" value={newItem.procedureType} onChange={event => setNewItem(current => ({ ...current, procedureType: event.target.value as NeuropsychBatteryItem['procedureType'] }))} className="input-field"><option value="neuropsychological_procedure">Procedimento neuropsicológico</option><option value="psychological_test">Teste psicológico</option><option value="behavioral_scale">Escala comportamental</option><option value="clinical_interview">Entrevista clínica</option><option value="observation">Observação</option><option value="other">Outro</option></select></div></div>
           <div className="mt-3"><DomainPicker selected={newItem.domains} onToggle={domain => toggleDomain(domain, 'item')} compact /></div>
           <div className="mt-3"><label htmlFor="battery-item-purpose" className="label">Finalidade</label><input id="battery-item-purpose" value={newItem.purpose} onChange={event => setNewItem(current => ({ ...current, purpose: event.target.value }))} className="input-field" placeholder="O que este procedimento pretende investigar?" /></div>
+          {completedInstruments.length > 0 && <div className="mt-3"><label htmlFor="battery-item-instrument" className="label">Vincular a um instrumento respondido (opcional)</label><select id="battery-item-instrument" value={newItem.instrumentAssignmentId} onChange={event => setNewItem(current => ({ ...current, instrumentAssignmentId: event.target.value }))} className="input-field"><option value="">Nenhum</option>{completedInstruments.map(instrument => <option key={instrument.id} value={instrument.id}>{instrument.title}{instrument.completedAt ? ` — respondido em ${new Date(instrument.completedAt).toLocaleDateString('pt-BR')}` : ''}</option>)}</select></div>}
           <div className="mt-3 flex justify-end"><button className="btn-primary flex items-center gap-2"><Plus className="h-4 w-4" />Adicionar à bateria</button></div>
         </form>
         <div className="space-y-3">{assessment.batteryItems.length === 0 ? <p className="rounded-xl border border-dashed border-neutral-200 p-6 text-center text-sm text-neutral-500 dark:border-white/10 dark:text-neutral-400">Nenhum procedimento planejado.</p> : assessment.batteryItems.map(item => (
-          <article key={item.id} className="rounded-2xl border border-neutral-100 p-4 dark:border-white/10"><div className="flex items-start justify-between gap-3"><div><h3 className="font-semibold text-neutral-800 dark:text-neutral-100">{item.name}</h3><p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">{item.purpose || 'Sem finalidade registrada'}</p></div><div className="flex gap-2"><select value={item.status} onChange={event => updateItem.mutate({ itemId: item.id, data: { status: event.target.value as any } })} className="rounded-lg border border-neutral-200 bg-white px-2 py-1 text-xs dark:border-white/10 dark:bg-cognia-panel dark:text-neutral-200"><option value="planned">Planejado</option><option value="applied">Aplicado</option><option value="integrated">Integrado</option><option value="not_applied">Não aplicado</option></select><button onClick={() => confirm('Remover este procedimento?') && deleteItem.mutate(item.id)} className="rounded-lg p-1.5 text-neutral-400 hover:bg-rose-50 hover:text-rose-600" aria-label="Remover"><Trash2 className="h-4 w-4" /></button></div></div>
+          <article key={item.id} className="rounded-2xl border border-neutral-100 p-4 dark:border-white/10"><div className="flex items-start justify-between gap-3"><div><h3 className="font-semibold text-neutral-800 dark:text-neutral-100">{item.name}</h3><p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">{item.purpose || 'Sem finalidade registrada'}</p>{item.instrumentAssignmentId && (() => {
+              const linked = instrumentAssignments.find(instrument => instrument.id === item.instrumentAssignmentId)
+              return linked ? <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-sage-50 px-2 py-0.5 text-[11px] font-medium text-sage-700 dark:bg-sage-950/40 dark:text-sage-200">Vinculado: {linked.title}</span> : null
+            })()}</div><div className="flex gap-2"><select value={item.status} onChange={event => updateItem.mutate({ itemId: item.id, data: { status: event.target.value as any } })} className="rounded-lg border border-neutral-200 bg-white px-2 py-1 text-xs dark:border-white/10 dark:bg-cognia-panel dark:text-neutral-200"><option value="planned">Planejado</option><option value="applied">Aplicado</option><option value="integrated">Integrado</option><option value="not_applied">Não aplicado</option></select><button onClick={() => confirm('Remover este procedimento?') && deleteItem.mutate(item.id)} className="rounded-lg p-1.5 text-neutral-400 hover:bg-rose-50 hover:text-rose-600" aria-label="Remover"><Trash2 className="h-4 w-4" /></button></div></div>
             <div className="mt-3 grid gap-3 lg:grid-cols-2"><Field label="Resultado escrito" value={item.resultSummary ?? ''} onBlur={value => updateItem.mutate({ itemId: item.id, data: { resultSummary: value } })} /><Field label="Observações qualitativas" value={item.qualitativeNotes ?? ''} onBlur={value => updateItem.mutate({ itemId: item.id, data: { qualitativeNotes: value } })} /></div>
           </article>))}</div>
       </section>}

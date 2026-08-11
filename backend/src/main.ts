@@ -34,14 +34,31 @@ async function bootstrap() {
   if (process.env.NODE_ENV === 'production' && !process.env.ASAAS_WEBHOOK_TOKEN) {
     throw new Error('ASAAS_WEBHOOK_TOKEN obrigatório em produção para validar webhooks do Asaas')
   }
+  if (process.env.NODE_ENV === 'production' && process.env.TYPEORM_SYNC === 'true') {
+    throw new Error('TYPEORM_SYNC=true é proibido em produção. Use migrations: npm run migration:run')
+  }
 
   // ── Sentry (erros em produção) ─────────────────────────────────────────────
+  // Nunca deve receber dados clínicos: sendDefaultPii fica explicitamente
+  // desligado e beforeSend remove cookies/Authorization e faz uma varredura
+  // best-effort por padrões de e-mail/telefone em campos livres (defesa
+  // extra — o ideal é nunca colocar PII em `extra`, mas erros futuros podem
+  // vazar algo sem essa camada).
   if (process.env.SENTRY_DSN) {
     const Sentry = await import('@sentry/node')
     Sentry.init({
       dsn: process.env.SENTRY_DSN,
       environment: process.env.NODE_ENV ?? 'development',
       tracesSampleRate: 0.1,   // 10% das transações
+      sendDefaultPii: false,
+      beforeSend(event) {
+        if (event.request) {
+          delete event.request.cookies
+          if (event.request.headers) delete event.request.headers['authorization']
+        }
+        scrubPiiPatterns(event)
+        return event
+      },
     })
   }
 
@@ -49,13 +66,10 @@ async function bootstrap() {
   // para verificar a assinatura Svix do webhook do Resend sobre os bytes
   // exatos recebidos — o body-parser padrão já reconstrói o JSON, o que
   // invalidaria a assinatura HMAC calculada sobre o payload original.
-  if (process.env.NODE_ENV === 'production' && process.env.TYPEORM_SYNC === 'true') {
-    throw new Error('TYPEORM_SYNC=true em produção é proibido — use migrations')
-  }
-
   const app = await NestFactory.create(AppModule, { rawBody: true })
 
-  // Necessário para obter o IP real do cliente atrás de Railway/Vercel/Nginx
+  // Confia no X-Forwarded-For do primeiro proxy (Railway/Vercel/Cloudflare).
+  // Sem isso, req.ip é sempre o IP do proxy e o rate-limit por IP não funciona.
   app.getHttpAdapter().getInstance().set('trust proxy', 1)
 
   // ── Headers de segurança HTTP (Helmet) ─────────────────────────────────────
@@ -137,3 +151,23 @@ async function bootstrap() {
   new Logger('Bootstrap').log(`UseCognia API rodando na porta ${port}`)
 }
 bootstrap()
+
+const EMAIL_PATTERN = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g
+const PHONE_PATTERN = /(?:\+?55)?\s*\(?\d{2}\)?\s*9?\d{4}-?\d{4}/g
+
+/** Redação best-effort de e-mail/telefone em campos livres antes de enviar ao Sentry. */
+function scrubPiiPatterns(event: Record<string, any>): void {
+  const redact = (value: unknown): unknown => {
+    if (typeof value === 'string') {
+      return value.replace(EMAIL_PATTERN, '[redacted-email]').replace(PHONE_PATTERN, '[redacted-phone]')
+    }
+    if (Array.isArray(value)) return value.map(redact)
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, redact(v)]))
+    }
+    return value
+  }
+
+  if (event.message) event.message = redact(event.message)
+  if (event.extra) event.extra = redact(event.extra)
+}

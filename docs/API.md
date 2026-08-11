@@ -13,11 +13,19 @@ Legenda de proteção: 🔓 pública · 🔑 JWT · 🔑✍ JWT + CSRF · 👑 J
 
 ---
 
+## Health — `/health`
+
+| Método | Rota | Proteção | Descrição |
+|---|---|---|---|
+| GET | `/health` | 🔓 | Status do serviço + checagem real de conectividade com o banco (`checks.database: "ok"\|"error"`). Sempre 200 (mesmo `degraded`) para não disparar falso alarme de infra em falha transitória. Nunca expõe stack trace, connection string ou nomes de variável de ambiente. |
+
+---
+
 ## Auth — `/auth`
 
 | Método | Rota | Proteção | Descrição |
 |---|---|---|---|
-| POST | `/auth/register` | 🔓 | Cadastro (requer `termsAccepted`); envia e-mail de verificação |
+| POST | `/auth/register` | 🔓 | Cadastro (requer `termsAccepted` e `phone` — telefone obrigatório, 10-11 dígitos); envia e-mail de verificação |
 | POST | `/auth/login` | 🔓 | Login; retorna user + csrfToken; cookies setados |
 | POST | `/auth/refresh` | 🔓 (cookie) | Rotaciona refresh token |
 | POST | `/auth/logout` | 🔑✍ | Revoga sessão |
@@ -49,6 +57,17 @@ O campo `user.isAdmin` é derivado de `ADMIN_EMAILS` e retornado em login/me.
 | DELETE | `/patients/:id` | 🔑✍ | Soft delete |
 
 Campos criptografados (AES-256-GCM): `privateNotes`, `prontuario` (JSON inteiro).
+
+### Anexos — `/patients/:patientId/attachments`
+
+| Método | Rota | Proteção | Descrição |
+|---|---|---|---|
+| GET | `/patients/:patientId/attachments` | 🔑✍ | Lista anexos (opcional `?assessmentId=` para filtrar por avaliação) |
+| POST | `/patients/:patientId/attachments` | 🔑✍ | Upload (PDF/JPG/PNG, máx 10MB, valida assinatura binária real do arquivo, não só o mimetype declarado) |
+| GET | `/patients/:patientId/attachments/:attachmentId/download` | 🔑✍ | Stream do arquivo descriptografado |
+| DELETE | `/patients/:patientId/attachments/:attachmentId` | 🔑✍ | Remove |
+
+Armazenamento: driver `postgres` (padrão, base64 criptografado no banco) ou `r2` (opcional, `ATTACHMENTS_STORAGE_DRIVER=r2`) — bucket privado no Cloudflare R2, conteúdo sempre criptografado antes do upload, nunca em URL/CDN pública. Isolamento por psicólogo reforçado na própria key do objeto no bucket. Ver `docs/cloudflare.md`.
 
 ## Portal do Paciente — `/patient-portal` 🔓
 
@@ -146,7 +165,7 @@ Campos criptografados: `summary`, `privateNotes`, `nextSteps`.
 
 | Método | Rota | Proteção | Descrição |
 |---|---|---|---|
-| POST | `/documents` | 🔑✍ + plano Essencial | Cria e assina (HMAC-SHA256) |
+| POST | `/documents` | 🔑✍ + plano Pro | Cria e assina (HMAC-SHA256) |
 | GET | `/documents` | 🔑 | Lista |
 | GET | `/documents/:id/pdf` | 🔑 | PDF com QR code de verificação |
 | POST | `/documents/:id/send-email` | 🔑✍ | Envia por e-mail (Resend, anexo base64) |
@@ -184,7 +203,7 @@ Tipos: `declaracao`, `recibo`, `relatorio`, `atestado`, `encaminhamento`. Conte�
 ```
 
 Estados extras: `pending` (tokenização em andamento), `free` (plano gratuito/Beta).
-Planos: `free` · `essencial` (R$ 79/mês) · `pro` (R$ 149/mês).
+Planos: `free` · `pro` (R$ 97,90/mês).
 
 ---
 
@@ -221,6 +240,26 @@ Planos: `free` · `essencial` (R$ 79/mês) · `pro` (R$ 149/mês).
 | POST | `/public/instruments/:token` | 🔓 | Paciente envia respostas |
 
 Biblioteca: 16 formulários clínicos + 13 escalas validadas (PHQ-9, GAD-7, DASS-21, PCL-5, SRQ-20, AUDIT, ISI, ESS, MEEM, WHODAS 2.0, SDQ, GAF, IES-R, C-SSRS, ASRS-v1.1).
+
+---
+
+## Avaliação Neuropsicológica — `/neuropsych-assessments`
+
+| Método | Rota | Proteção | Descrição |
+|---|---|---|---|
+| GET | `/neuropsych-assessments` | 🔑✍ | Lista avaliações do psicólogo |
+| GET | `/neuropsych-assessments/:id` | 🔑✍ | Detalhe |
+| POST | `/neuropsych-assessments` | 🔑✍ | Cria avaliação |
+| PATCH | `/neuropsych-assessments/:id` | 🔑✍ | Atualiza |
+| POST | `/neuropsych-assessments/:id/battery-items` | 🔑✍ | Adiciona item de bateria de testes |
+| PATCH | `/neuropsych-assessments/:id/battery-items/:itemId` | 🔑✍ | Atualiza item |
+| DELETE | `/neuropsych-assessments/:id/battery-items/:itemId` | 🔑✍ | Remove item |
+| GET | `/neuropsych-assessments/:id/ai-usage` | 🔑✍ | Cota de uso de IA consumida no período |
+| GET | `/neuropsych-assessments/:id/ai-analysis` | 🔑✍ | Lista análises geradas por IA |
+| POST | `/neuropsych-assessments/:id/ai-analysis` | 🔑✍ | Gera análise ("Copiloto de Raciocínio Clínico Neuropsicológico") — rascunho para revisão, nunca diagnóstico fechado |
+| DELETE | `/neuropsych-assessments/:id/ai-analysis/:analysisId` | 🔑✍ | Remove análise |
+
+Guards: `JwtAuthGuard, CsrfGuard, NoImpersonationGuard` (admin em modo "ver como" nunca acessa dados clínicos de avaliação). Ver `docs/especificacao-avaliacao-neuropsicologica.md` para o modelo clínico completo e citações regulatórias (CFP).
 
 ---
 
@@ -261,6 +300,28 @@ Protegido por `AdminGuard` (e-mail em `ADMIN_EMAILS`).
 | GET | `/admin/churn/user/:userId/timeline` | Linha do tempo de comportamento do usuário |
 | GET | `/admin/churn/user/:userId/activation` | Status de ativação do usuário |
 | POST | `/admin/churn/user/:userId/send-reactivation` | Dispara e-mail de reativação manualmente |
+
+## Admin Prospecção — `/admin/prospecting` 👑
+
+Radar de Psicólogos — ferramenta interna de geração de leads B2B (não é uma feature vista pelos psicólogos-clientes). Desligada por padrão (`PROSPECTING_ENABLED=false`); ver `docs/PROSPECTING_RADAR.md`.
+
+| Método | Rota | Descrição |
+|---|---|---|
+| POST | `/admin/prospecting/searches/preview` | Simula uma busca (não persiste nada) |
+| POST | `/admin/prospecting/searches` | Executa busca (persiste prospects descobertos) |
+| GET | `/admin/prospecting/searches` | Histórico de buscas |
+| GET | `/admin/prospecting/prospects` | Lista prospects (filtros de status/fonte) |
+| GET | `/admin/prospecting/prospects/:id` | Detalhe |
+| POST | `/admin/prospecting/prospects/:id/analyze` | Faz crawling do site próprio (se aplicável) e calcula score |
+| POST | `/admin/prospecting/prospects/:id/approve` | Aprova lead |
+| POST | `/admin/prospecting/prospects/:id/discard` | Descarta |
+| POST | `/admin/prospecting/prospects/:id/do-not-contact` | Marca para nunca contatar |
+| DELETE | `/admin/prospecting/prospects/:id` | Exclui |
+| GET | `/admin/prospecting/prospects/:id/export` | Exporta dados do prospect |
+| POST | `/admin/prospecting/prospects/:id/draft` | Gera rascunho de mensagem (só após aprovação; nunca envia automaticamente) |
+| GET | `/admin/prospecting/metrics` | Métricas agregadas (descobertos/analisados/qualificados/aprovados) |
+
+Guards: `JwtAuthGuard, AdminGuard`. Sem scraping de LinkedIn/PsyMeet, sem SSRF (`SsrfGuard`), sem dado sensível/de paciente, sem envio automático de mensagem.
 
 ---
 

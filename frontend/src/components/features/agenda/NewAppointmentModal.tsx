@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { addDays, addMonths, format, isAfter, parseISO } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { AlertTriangle, CalendarClock, Repeat2 } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
 import { usePatients, useAppointments, useCreateAppointment, useUpdateAppointment, useUpdateAppointmentGroup } from '@/hooks/useApi'
-import { Appointment, Patient } from '@/types'
+import { Appointment } from '@/types'
+import { calcSessionPreview, fixedScheduleLabel, nextOccurrenceFromAnchor } from '@/lib/recurringSchedule'
 
 type FormData = {
   patientId: string
@@ -14,6 +15,7 @@ type FormData = {
   duration: number
   modality: 'presencial' | 'online'
   meetingUrl: string
+  autoVideoRoom: boolean
   notes: string
   recurrence: 'none' | 'weekly' | 'biweekly'
   repeatUntil: string
@@ -23,42 +25,11 @@ type Props = {
   open: boolean
   onClose: () => void
   appointment?: Appointment | null
-}
-
-const WEEKDAY_LABELS = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado']
-
-function calcSessionPreview(
-  dateStr: string,
-  recurrence: 'weekly' | 'biweekly',
-  repeatUntilStr: string,
-): { count: number; lastDate: Date; effectiveUntil: Date } | null {
-  if (!dateStr) return null
-  const start = parseISO(dateStr)
-  const effectiveUntil = repeatUntilStr ? parseISO(repeatUntilStr) : addMonths(start, 3)
-  const step = recurrence === 'weekly' ? 7 : 14
-  let count = 0
-  let current = start
-  let lastDate = start
-  while (!isAfter(current, effectiveUntil) && count < 52) {
-    lastDate = current
-    count += 1
-    current = addDays(current, step)
-  }
-  return count > 0 ? { count, lastDate, effectiveUntil } : null
+  initialValues?: Partial<FormData>
 }
 
 function nextDateForWeekday(weekday: number): string {
-  const today = new Date()
-  const diff = (weekday - today.getDay() + 7) % 7
-  return format(addDays(today, diff), 'yyyy-MM-dd')
-}
-
-function fixedScheduleLabel(patient?: Patient): string {
-  if (!patient?.hasFixedSchedule || patient.fixedScheduleWeekday === undefined || !patient.fixedScheduleTime) {
-    return ''
-  }
-  const frequency = patient.fixedScheduleFrequency === 'biweekly' ? 'de 15 em 15 dias' : 'toda semana'
-  return `${frequency}, ${WEEKDAY_LABELS[patient.fixedScheduleWeekday]} as ${patient.fixedScheduleTime}`
+  return nextOccurrenceFromAnchor(null, weekday, 'weekly')
 }
 
 function timeToMinutes(time?: string): number {
@@ -74,11 +45,12 @@ function buildAppointmentUpdatePayload(data: FormData) {
     duration: Number(data.duration),
     modality: data.modality,
     meetingUrl: data.meetingUrl || undefined,
+    autoVideoRoom: data.autoVideoRoom,
     notes: data.notes || undefined,
   }
 }
 
-export default function NewAppointmentModal({ open, onClose, appointment }: Props) {
+export default function NewAppointmentModal({ open, onClose, appointment, initialValues }: Props) {
   const { data: patients = [] } = usePatients()
   const [editScope, setEditScope] = useState<'single' | 'future'>('single')
   const createAppointment = useCreateAppointment()
@@ -94,6 +66,7 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
       duration: 50,
       modality: 'presencial',
       meetingUrl: '',
+      autoVideoRoom: true,
       notes: '',
       recurrence: 'none',
       repeatUntil: '',
@@ -107,6 +80,7 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
   const duration = Number(watch('duration') || 50)
   const repeatUntil = watch('repeatUntil')
   const modality = watch('modality')
+  const autoVideoRoom = watch('autoVideoRoom')
   const selectedPatient = patients.find(p => p.id === patientId)
   const fixedLabel = fixedScheduleLabel(selectedPatient)
   const { data: dayAppointments = [] } = useAppointments({
@@ -147,6 +121,7 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
         duration: appointment.duration,
         modality: appointment.modality,
         meetingUrl: appointment.meetingUrl ?? '',
+        autoVideoRoom: true,
         notes: appointment.notes ?? '',
         recurrence: 'none',
         repeatUntil: '',
@@ -161,11 +136,13 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
       duration: 50,
       modality: 'presencial',
       meetingUrl: '',
+      autoVideoRoom: true,
       notes: '',
       recurrence: 'none',
       repeatUntil: '',
+      ...initialValues,
     })
-  }, [open, appointment, reset])
+  }, [open, appointment, reset, initialValues])
 
   function applyFixedSchedule() {
     if (!selectedPatient?.hasFixedSchedule || selectedPatient.fixedScheduleWeekday === undefined || !selectedPatient.fixedScheduleTime) {
@@ -180,6 +157,10 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
   }
 
   async function onSubmit(data: FormData) {
+    if (data.modality === 'online' && !data.autoVideoRoom && !data.meetingUrl?.trim()) {
+      toast.error('Cole o link da chamada ou ative a sala automática.')
+      return
+    }
     try {
       const duration = Number(data.duration)
       if (isEditing && appointment) {
@@ -189,10 +170,12 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
             groupId: appointment.recurringGroupId,
             fromDate: appointment.date,
             data: {
+              date: updatePayload.date,
               time: updatePayload.time,
               duration: updatePayload.duration,
               modality: updatePayload.modality,
               meetingUrl: updatePayload.meetingUrl,
+              autoVideoRoom: updatePayload.autoVideoRoom,
               notes: updatePayload.notes,
             },
           })
@@ -233,7 +216,7 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label className="label">Pessoa</label>
-          <select {...register('patientId', { required: true })} className="input-field" disabled={isEditing}>
+          <select {...register('patientId', { required: !isEditing })} className="input-field" disabled={isEditing}>
             <option value="">Selecione...</option>
             {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
@@ -396,21 +379,27 @@ export default function NewAppointmentModal({ open, onClose, appointment }: Prop
           <div className="rounded-2xl border border-mist-100 bg-mist-50 px-4 py-3">
             <p className="text-sm font-semibold text-mist-900">Teleatendimento</p>
             <p className="mt-1 text-xs leading-relaxed text-mist-700">
-              Cole o link do Google Meet, Zoom ou Whereby no campo abaixo. A agenda mostrara o botao de chamada neste horario.
+              {autoVideoRoom
+                ? 'Uma sala de vídeo é gerada automaticamente pra esta sessão. Se preferir usar Google Meet, Zoom ou Whereby, cole o link no campo abaixo.'
+                : 'Sala automática desativada. Cole abaixo o link da chamada (Google Meet, Zoom, Whereby etc.).'}
             </p>
+            <label className="mt-3 flex items-center gap-2 text-xs font-medium text-mist-800">
+              <input type="checkbox" {...register('autoVideoRoom')} className="h-4 w-4 rounded border-mist-300" />
+              Gerar sala automática (Jitsi) se eu não colar um link
+            </label>
           </div>
         )}
 
         <div>
           {modality === 'online' && (
             <div className="mb-4">
-              <label className="label">Link da chamada</label>
+              <label className="label">Link da chamada {autoVideoRoom ? '(opcional)' : ''}</label>
               <input
                 {...register('meetingUrl')}
                 type="url"
                 inputMode="url"
                 className="input-field"
-                placeholder="https://meet.google.com/..."
+                placeholder={autoVideoRoom ? 'Deixe em branco para gerar uma sala automaticamente' : 'Cole o link da chamada'}
               />
             </div>
           )}

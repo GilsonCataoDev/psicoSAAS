@@ -10,6 +10,17 @@ const INITIAL_DELAY_MS = 15 * 1000
 const BATCH_SIZE = 5
 const BATCH_DELAY_MS = 2_000
 const PAID_STATUSES = new Set(['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'])
+const BLOCKED_PAYMENT_STATUSES = new Set([
+  'OVERDUE',
+  'DELETED',
+  'REFUNDED',
+  'PARTIALLY_REFUNDED',
+  'REFUND_IN_PROGRESS',
+  'CHARGEBACK_REQUESTED',
+  'CHARGEBACK_DISPUTE',
+  'AWAITING_CHARGEBACK_REVERSAL',
+  'RECEIVED_IN_CASH_UNDONE',
+])
 
 @Injectable()
 export class BillingReconciliationJob implements OnModuleInit, OnModuleDestroy {
@@ -82,10 +93,12 @@ export class BillingReconciliationJob implements OnModuleInit, OnModuleDestroy {
   private async reconcile(subscription: Subscription): Promise<void> {
     const snapshot = await this.asaas.getSubscriptionBilling(subscription.gatewaySubscriptionId!)
     const previousStatus = subscription.status
+    const previousState = this.reconciliationState(subscription)
 
     if (['INACTIVE', 'EXPIRED'].includes(snapshot.subscription.status)) {
-      subscription.status = 'canceled'
-      subscription.cancelAtPeriodEnd = false
+      if (!this.hasPaidThroughAccess(subscription)) {
+        this.downgradeToFree(subscription)
+      }
     } else {
       const today = new Date().toISOString().slice(0, 10)
       const duePayments = snapshot.payments
@@ -93,7 +106,12 @@ export class BillingReconciliationJob implements OnModuleInit, OnModuleDestroy {
         .sort((a, b) => b.dueDate.localeCompare(a.dueDate))
       const latestDuePayment = duePayments[0]
 
-      if (!latestDuePayment && snapshot.subscription.status === 'ACTIVE') {
+      if (
+        !latestDuePayment
+        && snapshot.subscription.status === 'ACTIVE'
+        && !this.hasActiveTrial(subscription)
+        && !this.hasPaidThroughAccess(subscription)
+      ) {
         // Assinatura recém-criada: nenhum pagamento vencido ainda, mas Asaas confirma que está ativa.
         subscription.status = 'active'
         subscription.trialEndsAt = null
@@ -104,14 +122,14 @@ export class BillingReconciliationJob implements OnModuleInit, OnModuleDestroy {
         subscription.trialEndsAt = null
         subscription.cancelAtPeriodEnd = false
         subscription.currentPeriodEnd = this.parseDate(snapshot.subscription.nextDueDate)
-      } else if (latestDuePayment?.status === 'OVERDUE') {
+      } else if (latestDuePayment && BLOCKED_PAYMENT_STATUSES.has(latestDuePayment.status)) {
         subscription.status = 'past_due'
         subscription.trialEndsAt = null
       }
       // PENDING / AWAITING_RISK_ANALYSIS → aguarda webhook, não altera status local
     }
 
-    if (subscription.status === previousStatus) return
+    if (this.reconciliationState(subscription) === previousState) return
 
     await this.subscriptions.save(subscription)
     this.logger.log(
@@ -121,5 +139,45 @@ export class BillingReconciliationJob implements OnModuleInit, OnModuleDestroy {
 
   private parseDate(value: string | null): Date | null {
     return value ? new Date(`${value}T00:00:00.000Z`) : null
+  }
+
+  private reconciliationState(subscription: Subscription): string {
+    return JSON.stringify({
+      plan: subscription.plan,
+      status: subscription.status,
+      gatewayCustomerId: subscription.gatewayCustomerId,
+      gatewaySubscriptionId: subscription.gatewaySubscriptionId,
+      currentPeriodEnd: subscription.currentPeriodEnd,
+      trialEndsAt: subscription.trialEndsAt,
+      cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+    })
+  }
+
+  private hasActiveTrial(subscription: Subscription): boolean {
+    return subscription.status === 'trialing'
+      && !!subscription.trialEndsAt
+      && new Date(subscription.trialEndsAt).getTime() > Date.now()
+  }
+
+  private hasPaidThroughAccess(subscription: Subscription): boolean {
+    return subscription.cancelAtPeriodEnd
+      && !!subscription.currentPeriodEnd
+      && new Date(subscription.currentPeriodEnd).getTime() > Date.now()
+  }
+
+  private downgradeToFree(subscription: Subscription): void {
+    subscription.plan = 'free'
+    subscription.status = 'active'
+    subscription.gatewayCustomerId = null
+    subscription.gatewaySubscriptionId = null
+    subscription.currentPeriodEnd = new Date()
+    subscription.trialEndsAt = null
+    subscription.cancelAtPeriodEnd = false
+    subscription.promoCode = null
+    subscription.promoDiscountPercent = 0
+    subscription.promoCyclesTotal = 0
+    subscription.promoCyclesUsed = 0
+    subscription.regularMonthlyValue = null
+    subscription.lastPromoPaymentId = null
   }
 }

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 import { FinancialRecord } from '@/types'
@@ -55,5 +56,53 @@ export function useDeleteFinancial() {
       qc.invalidateQueries({ queryKey: ['financial'] })
       qc.invalidateQueries({ queryKey: ['dashboard'] })
     },
+  })
+}
+
+export type RecurringExpense = {
+  id: string
+  description: string
+  amount: number
+  category?: string
+  dayOfMonth: number
+  active: boolean
+  lastGeneratedMonth?: string
+  createdAt: string
+}
+
+export function useRecurringExpenses() {
+  const userId = useAuthStore(s => s.user?.id)
+  return useQuery<RecurringExpense[]>({
+    queryKey: ['recurring-expenses', userId],
+    queryFn: () => api.get('/financial/recurring-expenses').then(r => r.data),
+    enabled: !!userId,
+  })
+}
+
+export function useCreateRecurringExpense() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: { description: string; amount: number; category?: string; dayOfMonth: number }) =>
+      api.post('/financial/recurring-expenses', data).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['recurring-expenses'] }),
+  })
+}
+
+export function useSetRecurringExpenseActive() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, active }: { id: string; active: boolean }) =>
+      api.patch(`/financial/recurring-expenses/${id}`, { active }).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['recurring-expenses'] }),
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Erro ao atualizar despesa recorrente. Tente novamente.'),
+  })
+}
+
+export function useDeleteRecurringExpense() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/financial/recurring-expenses/${id}`).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['recurring-expenses'] }),
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Erro ao remover despesa recorrente. Tente novamente.'),
   })
 }

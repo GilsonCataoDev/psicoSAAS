@@ -27,11 +27,19 @@ Esse isolamento é coberto por **testes automatizados** que simulam duas contas 
 
 Para dar suporte, a operação da plataforma pode usar um modo "ver como" (impersonação) — sempre registrado na trilha de auditoria. Esse modo **não alcança dados de pacientes**: cadastros, agenda, agendamentos, financeiro, prontuários, sessões, anexos, documentos, respostas de instrumentos e exportações integrais ficam bloqueados durante a impersonação. Ficam visíveis apenas informações operacionais da conta, sem sigilo clínico. Ações sensíveis (troca de senha, exclusão de conta e dados de cobrança) também são bloqueadas. Esse bloqueio é coberto por testes automatizados.
 
-## Dados clínicos
+## Dados clínicos e de contato
 
-- Prontuários, anotações privadas de sessão, anexos, CPF, data de nascimento e dados demográficos sensíveis são **criptografados no banco de dados** (AES-256-GCM, em nível de aplicação) — um acesso direto ao banco não expõe esses campos em texto legível.
+- Prontuários, anotações privadas de sessão, nome e contato de pacientes, nomes de anexos, CPF, data de nascimento, descrições financeiras e dados demográficos sensíveis são **criptografados no banco de dados** (AES-256-GCM, em nível de aplicação) — um acesso direto ao banco não expõe esses campos em texto legível.
+- E-mail e telefone de pacientes têm índices cegos HMAC separados por finalidade. Isso permite localizar um cadastro sem guardar uma cópia pesquisável em texto puro.
 - Logs do sistema não registram conteúdo clínico.
 - Ações sensíveis (visualização de paciente, exportação de prontuário, download de anexos, login) ficam registradas em **trilha de auditoria**.
+
+## Preenchimento facilitado no agendamento
+
+- O nome, e-mail e telefone do paciente **não ficam no `localStorage`** do navegador.
+- Se o paciente marcar “lembrar meus dados”, o navegador recebe somente um identificador aleatório em cookie `HttpOnly`, `Secure` e `SameSite=Lax`. Scripts da página não conseguem ler esse identificador.
+- Os dados correspondentes ficam criptografados no servidor por até 30 dias. A tela mostra apenas uma prévia mascarada e oferece a ação “Esquecer deste dispositivo”.
+- A limpeza automática também remove registros expirados. Chaves antigas do `localStorage` são apagadas quando a página pública é aberta.
 
 ## Documentos e links públicos
 
@@ -44,15 +52,16 @@ Para dar suporte, a operação da plataforma pode usar um modo "ver como" (imper
 
 - A Vercel envia HSTS, `X-Content-Type-Options`, proteção contra incorporação em iframe, política de referência e restrições de permissões do navegador.
 - O uso do microfone fica disponível apenas para a própria origem, quando o profissional inicia voluntariamente uma gravação.
+- Em sessões online, o profissional pode transcrever a chamada inteira (captura de áudio da guia do navegador, opt-in por sessão, com confirmação de consentimento do paciente). Como a gravação e o ditado avulso, o áudio não é armazenado — só o texto transcrito. A franquia é separada da de ditado avulso e contada por sessão/mês (30 no Pro por padrão, `CALL_TRANSCRIPTION_PRO_MONTHLY_LIMIT`), já que cobre a chamada inteira em vez de um trecho curto.
 - O canal padronizado de divulgação responsável fica publicado em `/.well-known/security.txt`.
 - A Política de Privacidade pública descreve papéis, finalidades, fornecedores, direitos, retenção e limitações atuais.
 
 ## Textos assistidos por IA
 
-- A partir do plano Essencial, a IA pode organizar transcrições, anotações de prontuário e campos de relatório, atestado ou encaminhamento. Ela gera somente um rascunho; nunca salva, assina ou envia um documento automaticamente.
+- A partir do plano Pro, a IA pode organizar transcrições, anotações de prontuário e campos de relatório, atestado ou encaminhamento. Ela gera somente um rascunho; nunca salva, assina ou envia um documento automaticamente.
 - Nos documentos, o profissional envia apenas as anotações do campo escolhido. Nome do paciente e dados cadastrais não são buscados nem enviados. O backend também reduz padrões de e-mail, CPF e telefone antes da chamada externa, mas o profissional deve evitar identificadores desnecessários.
 - A sugestão aparece separada e só substitui o campo após confirmação explícita. A revisão e a responsabilidade técnica continuam sendo do profissional.
-- A franquia mensal compartilhada é aplicada de forma atômica no servidor: 30 textos no Essencial e 150 no Pro por padrão. Os limites podem ser alterados ou desativados com `AI_TEXT_ESSENCIAL_MONTHLY_LIMIT` e `AI_TEXT_PRO_MONTHLY_LIMIT`.
+- A franquia mensal compartilhada é aplicada de forma atômica no servidor: 150 textos no Pro por padrão. O limite pode ser alterado ou desativado com `AI_TEXT_PRO_MONTHLY_LIMIT`.
 - Falhas do provedor devolvem a reserva da franquia. Tokens e custo estimado das respostas concluídas ficam contabilizados em `ai_usage`; prompts e conteúdo dos rascunhos de documentos não são persistidos pelo UseCognia.
 
 ## Copiloto de Raciocínio Clínico Neuropsicológico (plano Pro)
@@ -69,7 +78,7 @@ Para dar suporte, a operação da plataforma pode usar um modo "ver como" (imper
 
 **Responsabilidade profissional**: a sugestão da IA nunca é aplicada automaticamente à conclusão ou ao relatório final — o profissional decide, campo a campo, o que aproveitar, sempre com confirmação explícita antes de qualquer inclusão no rascunho de integração.
 
-**Uso de provedor externo**: as chamadas usam a API da Anthropic (modelo Claude Haiku), sempre feitas pelo backend — a chave de API nunca é exposta ao navegador ou ao bundle da aplicação. A chamada só ocorre depois de o backend validar, no servidor, que a avaliação pertence ao psicólogo autenticado e que a conta está no plano Pro (`@RequirePlan('pro')`, verificado no servidor — a interface bloqueia visualmente, mas quem impede de fato é o backend).
+**Uso de provedor externo**: as chamadas usam a API da Groq (modelo Llama 3.3 70B) como provedor primário, com fallback automático para a Anthropic (Claude Haiku) caso a Groq não esteja configurada — sempre feitas pelo backend, nunca pelo navegador. A chave de API nunca é exposta ao navegador ou ao bundle da aplicação. A chamada só ocorre depois de o backend validar, no servidor, que a avaliação pertence ao psicólogo autenticado e que a conta está no plano Pro (`@RequirePlan('pro')`, verificado no servidor — a interface bloqueia visualmente, mas quem impede de fato é o backend).
 
 **Retenção**: o texto enviado ao provedor (prompt) não é armazenado. Apenas a resposta estruturada da IA é persistida, e sempre **criptografada** (AES-256-GCM, com IV/nonce aleatório a cada gravação) — junto de metadados não sensíveis (modelo, versão do prompt, tokens consumidos e custo estimado). Os campos que compuseram cada análise ficam registrados apenas pelo nome do campo (ex.: "história clínica"), nunca pelo conteúdo. Erros de descriptografia nunca retornam conteúdo parcial — o registro é tratado como indisponível.
 
@@ -90,7 +99,18 @@ Para dar suporte, a operação da plataforma pode usar um modo "ver como" (imper
 
 - **Exportação**: você pode baixar todos os seus dados em PDF pela própria plataforma (`Configurações → Exportar dados`).
 - **Exclusão**: a exclusão de conta remove os dados da plataforma. **Atenção**: o Conselho Federal de Psicologia exige guarda de prontuários por prazo mínimo — antes de excluir a conta, exporte seus prontuários e mantenha-os sob sua guarda profissional.
+- Na exclusão da conta, anexos e avatar armazenados externamente também precisam ser removidos. Se o provedor de arquivos não confirmar a exclusão, o encerramento é interrompido para evitar deixar arquivos órfãos.
 - **Consentimento**: o aceite dos Termos de Uso e da Política de Privacidade é registrado com versão e data.
+
+## Retenção técnica automática
+
+- Logs de entrega de WhatsApp: 7 dias.
+- Logs de e-mail: 30 dias.
+- Dados opcionais de preenchimento rápido do agendamento: até 30 dias.
+- Tentativas de login: 90 dias.
+- Trilha técnica de auditoria: 180 dias.
+
+Esses prazos não apagam prontuários ou documentos clínicos do profissional. Registros clínicos permanecem sob o controle da conta e devem observar as obrigações profissionais de guarda.
 
 ## Limitações conhecidas (transparência)
 
@@ -99,6 +119,14 @@ Para dar suporte, a operação da plataforma pode usar um modo "ver como" (imper
 - Logs de entrega do WhatsApp guardam apenas metadados necessários para diagnóstico, com nome, telefone e erro criptografados. Esses registros são eliminados automaticamente após sete dias.
 - A adequação à LGPD é um processo contínuo: os controles técnicos descritos aqui existem e são testados, mas **este documento não é um parecer jurídico**.
 
+## Exceção de dependência registrada
+
+- Em 27/07/2026, o React Router 7.18.1 possui o alerta
+  [GHSA-qwww-vcr4-c8h2](https://github.com/advisories/GHSA-qwww-vcr4-c8h2), aplicável somente às APIs
+  instáveis de React Server Components (RSC). O UseCognia é uma SPA declarativa e não usa essas APIs.
+- O CI aceita exclusivamente esse alerta enquanto ele não for aplicável. Qualquer outro aviso de
+  produção ou a introdução de uma API de RSC volta a bloquear a compilação automaticamente.
+
 ## Contato para privacidade e incidentes
 
 Solicitações de titulares de dados, dúvidas de privacidade ou relato de vulnerabilidade:
@@ -106,4 +134,4 @@ Solicitações de titulares de dados, dúvidas de privacidade ou relato de vulne
 
 ---
 
-*Última revisão técnica: julho de 2026 (inclui bloqueio integral de dados de pacientes no acesso administrativo, tokens públicos protegidos e backups cifrados).*
+*Última revisão técnica: julho de 2026 (inclui contatos de pacientes cifrados, preenchimento rápido sem dados pessoais no localStorage, retenção técnica automática e exclusão coordenada de arquivos).*

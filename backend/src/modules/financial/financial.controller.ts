@@ -9,6 +9,7 @@ import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard
 import { FinancialService } from './financial.service'
 import { CreateFinancialDto } from './dto/create-financial.dto'
 import { MarkPaidDto } from './dto/mark-paid.dto'
+import { CreateRecurringExpenseDto, UpdateRecurringExpenseDto } from './dto/recurring-expense.dto'
 import { RequirePlan } from '../../common/decorators/require-plan.decorator'
 import { secretsMatch } from '../../common/crypto/encrypt.util'
 
@@ -57,6 +58,26 @@ export class FinancialController {
   @Delete(':id')
   remove(@Param('id') id: string, @Request() req: any) {
     return this.svc.remove(id, req.user.id)
+  }
+
+  @Get('recurring-expenses')
+  findRecurringExpenses(@Request() req: any) {
+    return this.svc.findRecurringExpenses(req.user.id)
+  }
+
+  @Post('recurring-expenses')
+  createRecurringExpense(@Body() dto: CreateRecurringExpenseDto, @Request() req: any) {
+    return this.svc.createRecurringExpense(dto, req.user.id)
+  }
+
+  @Patch('recurring-expenses/:id')
+  updateRecurringExpense(@Param('id') id: string, @Body() dto: UpdateRecurringExpenseDto, @Request() req: any) {
+    return this.svc.updateRecurringExpense(id, dto, req.user.id)
+  }
+
+  @Delete('recurring-expenses/:id')
+  deleteRecurringExpense(@Param('id') id: string, @Request() req: any) {
+    return this.svc.deleteRecurringExpense(id, req.user.id)
   }
 }
 

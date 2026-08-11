@@ -2,8 +2,11 @@ import { BadRequestException, ForbiddenException, Injectable, InternalServerErro
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
-import { PLAN_LIMITS, KnownPlan, normalizePlan } from '../../common/plans'
-import { Subscription } from '../billing/entities/subscription.entity'
+import {
+  PLAN_LIMITS,
+  KnownPlan,
+} from '../../common/plans'
+import { PlanAccessService } from '../../common/plan-access/plan-access.service'
 import { Patient } from '../patients/entities/patient.entity'
 import {
   AiService, CLAUDE_HAIKU_INPUT_USD_MICROS_PER_TOKEN, CLAUDE_HAIKU_OUTPUT_USD_MICROS_PER_TOKEN,
@@ -18,10 +21,6 @@ import { sanitizeClinicalText } from './neuropsych-identifier-redaction'
 import { NEUROPSYCH_AI_LIMITS } from './neuropsych-ai-limits'
 
 const ASSESSMENT_CLINICAL_FIELDS = ['referralQuestion', 'clinicalHistory', 'clinicalHypotheses', 'qualitativeObservations'] as const
-const COMPED_PRO_EMAILS = (process.env.COMPED_PRO_EMAILS ?? 'gilsonfilho96@outlook.com')
-  .split(',')
-  .map(email => email.trim().toLowerCase())
-  .filter(Boolean)
 
 // Linha "sentinela" no ai_usage que acumula o custo do Copiloto de TODAS as
 // contas no mês — não corresponde a nenhum usuário real. ai_usage.userId não
@@ -54,9 +53,9 @@ export class NeuropsychAiAnalysisService {
     @InjectRepository(NeuropsychBatteryItem) private readonly items: Repository<NeuropsychBatteryItem>,
     @InjectRepository(NeuropsychAiAnalysis) private readonly analyses: Repository<NeuropsychAiAnalysis>,
     @InjectRepository(AiUsage) private readonly aiUsage: Repository<AiUsage>,
-    @InjectRepository(Subscription) private readonly subscriptions: Repository<Subscription>,
     @InjectRepository(Patient) private readonly patients: Repository<Patient>,
     private readonly ai: AiService,
+    private readonly planAccess: PlanAccessService,
   ) {}
 
   async getUsage(userId: string, email?: string): Promise<{ used: number; limit: number; month: string }> {
@@ -197,9 +196,7 @@ export class NeuropsychAiAnalysisService {
   }
 
   private async getCurrentPlan(userId: string, email?: string): Promise<KnownPlan> {
-    if (email && COMPED_PRO_EMAILS.includes(String(email).toLowerCase())) return 'pro'
-    const sub = await this.subscriptions.findOne({ where: { userId }, order: { createdAt: 'DESC' } })
-    return normalizePlan((sub?.status === 'active' || sub?.status === 'trialing') ? sub.plan : 'free')
+    return this.planAccess.getCurrentPlan(userId, email)
   }
 
   /** Estimativa de custo máximo (pior caso) de uma chamada, usada para reservar orçamento global antes de saber o custo real. */

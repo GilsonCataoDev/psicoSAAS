@@ -1,10 +1,11 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { migratePersistedStorage } from '@/lib/storageMigration'
+import { PLAN_CATALOG, type PlanCatalogEntry, type PlanId } from '@/config/planCatalog'
 
 migratePersistedStorage('usecognia-subscription', 'psicosaas-subscription')
 
-export type PlanId = string
+export type { PlanId }
 export type SubscriptionStatus =
   | 'pending'
   | 'trialing'
@@ -14,80 +15,9 @@ export type SubscriptionStatus =
   | 'cancelled'
   | 'none'
 
-export interface Plan {
-  id: PlanId
-  name: string
-  price: number
-  priceYearly: number
-  maxPatients: number
-  maxStorage: number
-  audience: string
-  features: string[]
-  highlight?: boolean
-}
+export type Plan = PlanCatalogEntry
 
-export const PLANS: Plan[] = [
-  {
-    id: 'free',
-    name: 'Grátis',
-    price: 0,
-    priceYearly: 0,
-    maxPatients: 10,
-    maxStorage: 1,
-    audience: 'Para estagiários e profissionais testarem a rotina sem custo',
-    features: [
-      'Agenda basica',
-      'Ate 10 pacientes ativos',
-      'Link publico simples',
-      'Financeiro basico',
-      'Sem documentos/PDF',
-      'Sem instrumentos clinicos',
-      'Sem WhatsApp automatico',
-      'Sem transcricao de sessoes por IA',
-    ],
-  },
-  {
-    id: 'essencial',
-    name: 'Essencial',
-    price: 79,
-    priceYearly: 63,
-    maxPatients: 50,
-    maxStorage: 10,
-    audience: 'Para psicólogo ou terapeuta solo organizar agenda, pacientes, documentos e financeiro',
-    features: [
-      'Agenda, pacientes e sessões',
-      'Link público de agendamento',
-      'Até 200 documentos/PDF com verificação',
-      'Financeiro básico',
-      'WhatsApp manual com mensagem pronta',
-      '10 min/mes de transcricao por IA para testar',
-      'Sem instrumentos clinicos',
-      'Até 50 pacientes ativos',
-    ],
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    price: 149,
-    priceYearly: 119,
-    maxPatients: -1,
-    maxStorage: 50,
-    audience: 'Para psicólogos e terapeutas que querem automação, instrumentos, WhatsApp e IA',
-    highlight: true,
-    features: [
-      'Tudo do Essencial',
-      'Pacientes ilimitados',
-      'Documentos ilimitados',
-      'Instrumentos clinicos',
-      'Financeiro Pro com links de pagamento',
-      'WhatsApp automático e modelos personalizados',
-      'Lembretes de consulta e cobrança',
-      '120 min/mes de gravacao e transcricao com IA',
-      'Resumo de sessão com IA para rascunho de evolução',
-      'Relatórios avançados para decisão',
-    ],
-  },
-]
+export const PLANS: Plan[] = [...PLAN_CATALOG]
 
 export interface Subscription {
   id?: string
@@ -153,9 +83,9 @@ export const useSubscriptionStore = create<SubscriptionState>()(
   ),
 )
 
-const PLAN_ORDER: Record<string, number> = { free: 0, basic: 1, essencial: 1, pro: 2, premium: 2 }
+const PLAN_ORDER: Record<string, number> = { free: 0, pro: 1 }
 
-export function useHasPlan(minPlan: 'essencial' | 'pro' | 'premium'): boolean {
+export function useHasPlan(minPlan: 'pro'): boolean {
   const { subscription } = useSubscriptionStore()
   const active = subscription.status === 'active' || subscription.status === 'trialing'
   const plan = subscription.plan ?? 'free'

@@ -24,7 +24,7 @@ import { TemplatesModule } from './modules/templates/templates.module'
 import { AdminModule } from './modules/admin/admin.module'
 import { TestimonialModule } from './modules/testimonial/testimonial.module'
 import { ChurnModule } from './modules/churn/churn.module'
-import { Subscription as BillingSubscription } from './modules/billing/entities/subscription.entity'
+import { ProspectingModule } from './modules/prospecting/prospecting.module'
 import { PlanGuard } from './common/guards/plan.guard'
 import { SubscriptionGuard } from './common/guards/subscription.guard'
 import { LastActiveInterceptor } from './common/interceptors/last-active.interceptor'
@@ -32,8 +32,16 @@ import { AdvisoryLockModule } from './common/advisory-lock/advisory-lock.module'
 import { StorageModule } from './common/storage/storage.module'
 import { SecurityModule } from './common/security/security.module'
 import { AuditInterceptor } from './modules/audit/interceptors/audit.interceptor'
+import { MonitoringModule } from './common/monitoring/monitoring.module'
 import { HealthController } from './health.controller'
 import { NeuropsychAssessmentsModule } from './modules/neuropsych-assessments/neuropsych-assessments.module'
+import { PrivacyModule } from './common/privacy/privacy.module'
+import { PlanAccessModule } from './common/plan-access/plan-access.module'
+
+const readPositiveInt = (value: string | undefined, fallback: number): number => {
+  const parsed = Number(value)
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback
+}
 
 @Module({
   imports: [
@@ -48,24 +56,28 @@ import { NeuropsychAssessmentsModule } from './modules/neuropsych-assessments/ne
       inject: [ConfigService],
       useFactory: (cfg: ConfigService) => ({
         type: 'postgres',
-        url: cfg.get('DATABASE_URL'),
+        url: cfg.getOrThrow<string>('DATABASE_URL'),
         autoLoadEntities: true,
-        synchronize: cfg.get('NODE_ENV') !== 'production' || cfg.get('TYPEORM_SYNC') === 'true',
+        synchronize: cfg.get<string>('TYPEORM_SYNC') === 'true' && cfg.get<string>('NODE_ENV') !== 'production',
+        // Só usado por test/env-setup.ts — nunca em produção (guardado pelo mesmo NODE_ENV acima).
+        dropSchema: cfg.get<string>('TYPEORM_DROP_SCHEMA') === 'true' && cfg.get<string>('NODE_ENV') !== 'production',
         logging: ['error'],
         extra: {
-          max: 10,
-          idleTimeoutMillis: 30_000,
-          connectionTimeoutMillis: 5_000,
+          max: readPositiveInt(cfg.get<string>('DB_POOL_MAX'), 10),
+          idleTimeoutMillis: readPositiveInt(cfg.get<string>('DB_IDLE_TIMEOUT_MS'), 30_000),
+          connectionTimeoutMillis: readPositiveInt(cfg.get<string>('DB_CONNECTION_TIMEOUT_MS'), 5_000),
+          application_name: cfg.get<string>('DB_APPLICATION_NAME') ?? 'usecognia-api',
         },
       }),
     }),
 
-    TypeOrmModule.forFeature([BillingSubscription]),
-
     AdvisoryLockModule,
+    PlanAccessModule,
     StorageModule,
     SecurityModule,
     AuditModule,
+    MonitoringModule,
+    PrivacyModule,
     AuthModule,
     PatientsModule,
     AppointmentsModule,
@@ -87,6 +99,7 @@ import { NeuropsychAssessmentsModule } from './modules/neuropsych-assessments/ne
     AdminModule,
     TestimonialModule,
     ChurnModule,
+    ProspectingModule,
   ],
   controllers: [HealthController],
   providers: [

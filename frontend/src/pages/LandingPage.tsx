@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, useReducedMotion, type Variants } from 'framer-motion'
 import {
@@ -15,10 +16,12 @@ import {
 } from 'lucide-react'
 import BrandLogo from '@/components/ui/BrandLogo'
 import { usePublicTestimonials } from '@/hooks/api/testimonial'
+import { track, EVENTS } from '@/lib/analytics'
 
 const trustSignals = [
   'Desenvolvido para psicólogos com CRP ativo',
   'Dados protegidos com criptografia',
+  'Até 10 pacientes no plano grátis',
   'Sem cartão de crédito',
 ]
 
@@ -60,21 +63,25 @@ const features = [
     icon: CalendarCheck2,
     title: 'Link público com datas disponíveis',
     text: 'O paciente escolhe uma data real da sua agenda, sem ficar testando dia por dia ou esperando resposta.',
+    accent: 'text-sky-600 bg-sky-50',
   },
   {
     icon: FileSignature,
     title: 'Prontuário clínico digital',
     text: 'Registre evoluções, acompanhe histórico e mantenha dados clínicos em uma rotina mais segura.',
+    accent: 'text-sage-600 bg-sage-50',
   },
   {
     icon: WalletCards,
     title: 'Cobranças e recebimentos organizados',
     text: 'Acompanhe pendências, registre pagamentos e envie cobranças de forma mais profissional.',
+    accent: 'text-amber-600 bg-amber-50',
   },
   {
     icon: MessageSquareText,
     title: 'Mensagens e lembretes',
     text: 'Padronize comunicações importantes e reduza trabalho repetitivo antes e depois das sessões.',
+    accent: 'text-purple-600 bg-purple-50',
   },
 ]
 
@@ -83,7 +90,7 @@ const freeItems = [
   'Agenda online com link público',
   'Cadastro de até 10 pacientes',
   'Prontuário e evoluções em um só lugar',
-  'Ideal para estagiários, psicólogos e terapeutas no início da rotina',
+  'Ideal para psicólogos com CRP ativo no início da rotina',
 ]
 
 const faqs = [
@@ -93,15 +100,15 @@ const faqs = [
   },
   {
     question: 'Quem pode usar o UseCognia?',
-    answer: 'Psicólogos, terapeutas e estagiários clínicos no Brasil que querem organizar agenda, pacientes, prontuário e rotina de atendimento.',
+    answer: 'Hoje o cadastro é destinado a psicólogos com CRP ativo no Brasil que querem organizar agenda, pacientes, prontuário e rotina de atendimento.',
   },
   {
     question: 'Meus dados e os dos meus pacientes ficam seguros?',
-    answer: 'Sim. Os dados trafegam por HTTPS, senhas são armazenadas com hash seguro e cada profissional acessa apenas seus próprios registros.',
+    answer: 'O UseCognia aplica HTTPS, hash seguro de senhas, controle de acesso e isolamento entre contas. Nenhum sistema é absolutamente seguro; consulte a página de Segurança para conhecer os controles e limites.',
   },
   {
-    question: 'Os documentos gerados têm validade?',
-    answer: 'Cada PDF gerado pela plataforma recebe um código único e um QR Code de verificação. Qualquer pessoa pode confirmar a autenticidade do documento pelo link público — útil para declarações de comparecimento e outros registros.',
+    question: 'Como os documentos podem ser verificados?',
+    answer: 'Cada PDF gerado pela plataforma recebe um código único e um QR Code de verificação. O link confirma a integridade e a origem no UseCognia, mas não substitui assinatura qualificada, requisitos legais ou a responsabilidade do profissional.',
   },
   {
     question: 'O paciente precisa instalar aplicativo?',
@@ -121,7 +128,7 @@ const faqs = [
   },
   {
     question: 'A plataforma é compatível com as normas do CFP?',
-    answer: 'A UseCognia foi desenvolvida com atenção às resoluções do Conselho Federal de Psicologia sobre prontuários e registros clínicos. O profissional continua sendo o responsável pelo conteúdo inserido e pelo cumprimento das normas éticas.',
+    answer: 'O UseCognia oferece recursos de organização, controle de acesso e registro que apoiam a rotina profissional. A adequação de cada documento e atendimento às normas aplicáveis continua sob responsabilidade do psicólogo.',
   },
   {
     question: 'Consigo emitir declarações e atestados em PDF?',
@@ -214,9 +221,28 @@ export default function LandingPage() {
   const { fadeUp, stagger, reduce } = useLandingMotion()
   const { data: publicFeedback } = usePublicTestimonials()
   const realTestimonials = publicFeedback?.items ?? []
+  const signupPath = `/cadastro${window.location.search}`
+
+  useEffect(() => {
+    // A landing tem uma paleta própria, predominantemente clara. O tema escuro
+    // global do painel remapeia utilitários como bg-white e text-sage-700,
+    // causando texto claro sobre seções claras nesta página pública.
+    const html = document.documentElement
+    const wasDark = html.classList.contains('dark')
+    html.classList.remove('dark')
+
+    track(EVENTS.LANDING_VIEWED, {
+      path: window.location.pathname,
+      source: new URLSearchParams(window.location.search).get('utm_source') ?? 'direct',
+    })
+
+    return () => {
+      if (wasDark) html.classList.add('dark')
+    }
+  }, [])
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#F7F8F5] text-[#211F1C]">
+    <main className="landing-readable min-h-screen overflow-x-hidden bg-[#F7F8F5] pb-16 text-[#211F1C] sm:pb-0">
       <header className="sticky top-0 z-20 border-b border-[#E7E4DA] bg-[#F7F8F5]/95 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-5">
           <Link to="/inicio" className="flex min-w-0 items-center gap-2.5">
@@ -237,7 +263,8 @@ export default function LandingPage() {
               Entrar
             </Link>
             <MotionLink
-              to="/cadastro"
+              to={signupPath}
+              onClick={() => track(EVENTS.LANDING_CTA_CLICKED, { location: 'header', destination: 'signup' })}
               whileHover={reduce ? undefined : { scale: 1.03 }}
               whileTap={reduce ? undefined : { scale: 0.97 }}
               className="hidden rounded-md bg-sage-800 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sage-900 sm:inline-flex"
@@ -259,7 +286,7 @@ export default function LandingPage() {
           >
             <motion.p variants={fadeUp} className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-3 py-1 text-sm font-semibold text-sage-200">
               <Sparkles className="h-4 w-4" />
-              Gestão clínica simples para psicólogos
+              Gestão clínica para psicólogos com CRP ativo
             </motion.p>
 
             <motion.h1 variants={fadeUp} className="mx-auto mt-6 max-w-[22rem] text-[2.1rem] font-bold leading-[1.06] tracking-normal text-white sm:max-w-4xl sm:text-5xl lg:text-6xl">
@@ -272,7 +299,8 @@ export default function LandingPage() {
 
             <motion.div variants={fadeUp} className="mt-8 flex flex-col items-center gap-3">
               <MotionLink
-                to="/cadastro"
+                to={signupPath}
+                onClick={() => track(EVENTS.LANDING_CTA_CLICKED, { location: 'hero', destination: 'signup' })}
                 whileHover={reduce ? undefined : { scale: 1.025 }}
                 whileTap={reduce ? undefined : { scale: 0.975 }}
                 className="inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-md bg-[#CFF3DE] px-6 text-sm font-bold text-[#143D2D] shadow-lg shadow-black/15 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
@@ -319,8 +347,8 @@ export default function LandingPage() {
           <motion.div variants={fadeUp} className="flex items-start gap-3">
             <WalletCards className="mt-0.5 h-5 w-5 text-sage-600" />
             <div>
-              <p className="text-sm font-semibold text-[#211F1C]">Construído com usuários reais</p>
-              <p className="mt-1 text-sm text-[#7C776B]">Criado para a rotina de psicólogos, terapeutas e estagiários clínicos.</p>
+              <p className="text-sm font-semibold text-[#211F1C]">Construído com feedback profissional</p>
+              <p className="mt-1 text-sm text-[#7C776B]">Criado a partir de conversas sobre a rotina de psicólogos com CRP ativo.</p>
             </div>
           </motion.div>
         </div>
@@ -389,6 +417,39 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <section className="border-y border-[#E7E4DA] bg-white">
+        <div className="mx-auto max-w-6xl px-5 py-16">
+          <motion.div
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '-80px' }}
+            variants={fadeUp}
+            className="mx-auto max-w-3xl text-center"
+          >
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Antes e depois</p>
+            <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Troque tarefas espalhadas por um fluxo que se conecta.</h2>
+          </motion.div>
+          <div className="mt-8 grid gap-4 md:grid-cols-2">
+            <div className="rounded-xl border border-rose-100 bg-rose-50/60 p-6">
+              <p className="text-sm font-bold uppercase tracking-wide text-rose-700">Sem o UseCognia</p>
+              <ul className="mt-4 space-y-3 text-sm text-[#5F5A51]">
+                {['Horários negociados por mensagem', 'Anotações em caderno ou arquivos separados', 'Pagamentos conferidos de memória', 'Documentos montados manualmente'].map(item => (
+                  <li key={item} className="flex gap-3"><span aria-hidden="true" className="text-rose-500">×</span>{item}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-xl border border-sage-200 bg-sage-50/70 p-6">
+              <p className="text-sm font-bold uppercase tracking-wide text-sage-800">Com o UseCognia</p>
+              <ul className="mt-4 space-y-3 text-sm font-medium text-[#49443D]">
+                {['Link público ligado à sua disponibilidade', 'Histórico do paciente e evoluções juntos', 'Pendências e recebimentos visíveis', 'Documentos em PDF com código de verificação'].map(item => (
+                  <li key={item} className="flex gap-3"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-sage-600" />{item}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section id="produto" className="border-y border-[#E7E4DA] bg-[#FFFFFF]">
         <div className="mx-auto max-w-6xl px-5 py-16">
           <motion.div
@@ -435,7 +496,7 @@ export default function LandingPage() {
             viewport={{ once: true, margin: '-80px' }}
             variants={stagger}
           >
-            {features.map(({ icon: Icon, title, text }) => (
+            {features.map(({ icon: Icon, title, text, accent }) => (
               <motion.article
                 key={title}
                 variants={fadeUp}
@@ -443,7 +504,9 @@ export default function LandingPage() {
                 transition={{ duration: 0.2 }}
                 className="rounded-lg border border-[#E7E4DA] bg-[#F7F8F5] p-5 transition-shadow hover:shadow-md"
               >
-                <Icon className="mb-4 h-5 w-5 text-sage-600" />
+                <span className={`mb-4 inline-flex h-9 w-9 items-center justify-center rounded-lg ${accent}`}>
+                  <Icon className="h-5 w-5" />
+                </span>
                 <h3 className="font-semibold text-[#211F1C]">{title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-[#7C776B]">{text}</p>
               </motion.article>
@@ -496,7 +559,8 @@ export default function LandingPage() {
             ))}
           </ul>
           <MotionLink
-            to="/cadastro"
+            to={signupPath}
+            onClick={() => track(EVENTS.LANDING_CTA_CLICKED, { location: 'free_plan', destination: 'signup' })}
             whileHover={reduce ? undefined : { scale: 1.02 }}
             whileTap={reduce ? undefined : { scale: 0.98 }}
             className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-md bg-sage-800 text-sm font-bold text-white hover:bg-sage-900"
@@ -556,7 +620,8 @@ export default function LandingPage() {
           </p>
           <div className="mt-8 flex flex-col items-center gap-3">
             <MotionLink
-              to="/cadastro"
+              to={signupPath}
+              onClick={() => track(EVENTS.LANDING_CTA_CLICKED, { location: 'final', destination: 'signup' })}
               whileHover={reduce ? undefined : { scale: 1.03 }}
               whileTap={reduce ? undefined : { scale: 0.97 }}
               className="inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-md bg-[#CFF3DE] px-6 text-sm font-bold text-[#143D2D] shadow-lg hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
@@ -564,6 +629,11 @@ export default function LandingPage() {
               Criar minha conta grátis <ArrowRight className="h-4 w-4" />
             </MotionLink>
             <p className="text-sm text-white/75">Sem cartão · até 10 pacientes · cancele quando quiser</p>
+            <div className="mt-2 flex justify-center gap-4 text-sm text-white/60">
+              <Link to="/acessibilidade" className="hover:text-white">Acessibilidade</Link>
+              <Link to="/privacidade" className="hover:text-white">Privacidade</Link>
+              <Link to="/termos" className="hover:text-white">Termos</Link>
+            </div>
           </div>
         </motion.div>
       </section>
@@ -579,7 +649,7 @@ export default function LandingPage() {
                 </span>
               </Link>
               <p className="mt-3 text-sm leading-relaxed text-[#7C776B]">
-                Agenda, prontuário e cobranças para psicólogos e terapeutas.
+                Agenda, prontuário e cobranças para psicólogos.
               </p>
               <a href="mailto:usecognia@gmail.com" className="mt-3 block text-sm text-sage-700 hover:underline">
                 usecognia@gmail.com
@@ -617,10 +687,20 @@ export default function LandingPage() {
 
           <div className="mt-10 flex flex-col gap-2 border-t border-[#E7E4DA] pt-8 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-[#A9A394]">© {new Date().getFullYear()} UseCognia. Todos os direitos reservados.</p>
-            <p className="text-xs text-[#A9A394]">Desenvolvido para psicólogos, terapeutas e estagiários clínicos no Brasil.</p>
+            <p className="text-xs text-[#A9A394]">Desenvolvido para psicólogos com CRP ativo no Brasil.</p>
           </div>
         </div>
       </footer>
+
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[#D9D5C9] bg-white/95 p-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur sm:hidden">
+        <Link
+          to={signupPath}
+          onClick={() => track(EVENTS.LANDING_CTA_CLICKED, { location: 'mobile_sticky', destination: 'signup' })}
+          className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-sage-800 text-sm font-bold text-white"
+        >
+          Criar conta grátis <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
     </main>
   )
 }

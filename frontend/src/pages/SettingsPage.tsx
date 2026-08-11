@@ -13,6 +13,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { disableWebPush, enableWebPush, getPushStatus, sendTestWebPush } from '@/lib/pushNotifications'
 import { isNativeApp } from '@/lib/nativeAuth'
 import { userSafeError } from '@/lib/userSafeError'
+import { track, EVENTS } from '@/lib/analytics'
 import { DEFAULT_PREFS, type Prefs, type AuditLog, type WhatsAppLog, type WhatsAppStatus } from '@/components/settings/types'
 import { ProfileTab } from '@/components/settings/ProfileTab'
 import { NotifyTab } from '@/components/settings/NotifyTab'
@@ -47,6 +48,7 @@ const EDITABLE_PREF_KEYS = [
   'reminder24h',
   'reminder2h',
   'dailyAgendaDigest',
+  'marketingEmails',
   'chargeAfterSession',
   'bookingConfirmation',
   'googleCalendarInvitePatients',
@@ -57,6 +59,7 @@ const EDITABLE_PREF_KEYS = [
   'lateReminder',
   'includeReceipt',
   'chargeTemplate',
+  'lateReminderTemplate',
   'whatsapp',
   'confirmationTemplate',
   'reminderTemplate',
@@ -482,6 +485,7 @@ export default function SettingsPage() {
     try {
       const { data } = await api.post('/billing/cancel')
       setSubscription(data)
+      track(EVENTS.SUBSCRIPTION_CANCELED, { plan: subscription.plan ?? 'free', type: isTrialing ? 'trial' : 'paid' })
       toast.success(data.cancelAtPeriodEnd ? 'Plano cancelado. Acesso mantido ate o fim do periodo.' : 'Plano cancelado.')
     } catch (e: any) {
       toast.error(userSafeError(e, 'Erro ao cancelar assinatura.'))

@@ -1,21 +1,19 @@
 import { ForbiddenException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { KnownPlan, normalizePlan, PLAN_LIMITS } from '../../common/plans'
-import { Subscription } from '../billing/entities/subscription.entity'
+import {
+  KnownPlan,
+  PLAN_LIMITS,
+} from '../../common/plans'
+import { PlanAccessService } from '../../common/plan-access/plan-access.service'
 import { AiTextUsage } from './ai.service'
 import { AiUsage } from './entities/ai-usage.entity'
-
-const COMPED_PRO_EMAILS = (process.env.COMPED_PRO_EMAILS ?? 'gilsonfilho96@outlook.com')
-  .split(',')
-  .map(email => email.trim().toLowerCase())
-  .filter(Boolean)
 
 @Injectable()
 export class AiTextQuotaService {
   constructor(
     @InjectRepository(AiUsage) private readonly usage: Repository<AiUsage>,
-    @InjectRepository(Subscription) private readonly subscriptions: Repository<Subscription>,
+    private readonly planAccess: PlanAccessService,
   ) {}
 
   async reserve(userId: string, email?: string): Promise<{ used: number; limit: number; plan: KnownPlan }> {
@@ -25,8 +23,8 @@ export class AiTextQuotaService {
 
     if (limit <= 0) {
       throw new ForbiddenException({
-        message: 'Recursos de texto por IA estão disponíveis a partir do plano Essencial.',
-        requiredPlan: 'essencial',
+        message: 'Recursos de texto por IA estão disponíveis a partir do plano Pro.',
+        requiredPlan: 'pro',
         currentPlan: plan,
         upgradeUrl: '/planos',
       })
@@ -88,15 +86,6 @@ export class AiTextQuotaService {
   }
 
   private async currentPlan(userId: string, email?: string): Promise<KnownPlan> {
-    if (email && COMPED_PRO_EMAILS.includes(String(email).toLowerCase())) return 'pro'
-    const subscription = await this.subscriptions.findOne({
-      where: { userId },
-      order: { createdAt: 'DESC' },
-    })
-    return normalizePlan(
-      subscription?.status === 'active' || subscription?.status === 'trialing'
-        ? subscription.plan
-        : 'free',
-    )
+    return this.planAccess.getCurrentPlan(userId, email)
   }
 }

@@ -3,9 +3,15 @@ import { Throttle } from '@nestjs/throttler'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
-import { AsaasService, TokenizeCreditCardInput } from './asaas.service'
+import { AsaasService } from './asaas.service'
 import { BillingWebhookService } from './billing-webhook.service'
 import { BillingService } from './billing.service'
+import {
+  PaidPlanDto,
+  SubscribeDto,
+  TokenizeCreditCardDto,
+  UpdateCardDto,
+} from './dto/billing-actions.dto'
 
 @Controller('billing')
 export class BillingController {
@@ -19,10 +25,9 @@ export class BillingController {
 
   @Post('tokenize')
   @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
-  async tokenize(@Request() req: any, @Body() body: TokenizeCreditCardInput) {
-    const payload = body as TokenizeCreditCardInput & Record<string, any>
-    const card = payload.creditCard ?? payload
-    const holder = payload.creditCardHolderInfo ?? payload
+  async tokenize(@Request() req: any, @Body() body: TokenizeCreditCardDto) {
+    const card = body.creditCard
+    const holder = body.creditCardHolderInfo
     const remoteIp = req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim()
       || req.ip
       || req.socket?.remoteAddress
@@ -60,10 +65,9 @@ export class BillingController {
   @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
   subscribe(
     @Request() req: any,
-    @Body('plan') plan?: string,
-    @Body('creditCardToken') creditCardToken?: string,
+    @Body() body: SubscribeDto,
   ) {
-    return this.billing.subscribe(req.user, plan, creditCardToken)
+    return this.billing.subscribe(req.user, body.plan, body.creditCardToken)
   }
 
   @Post('free')
@@ -76,16 +80,15 @@ export class BillingController {
   @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
   updateCard(
     @Request() req: any,
-    @Body('creditCardToken') creditCardToken?: string,
-    @Body('plan') plan?: string,
+    @Body() body: UpdateCardDto,
   ) {
-    return this.billing.updateCard(req.user.id, creditCardToken, plan)
+    return this.billing.updateCard(req.user.id, body.creditCardToken, body.plan)
   }
 
   @Post('change-plan')
   @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
-  changePlan(@Request() req: any, @Body('plan') plan?: string) {
-    return this.billing.changePlan(req.user, plan)
+  changePlan(@Request() req: any, @Body() body: PaidPlanDto) {
+    return this.billing.changePlan(req.user, body.plan)
   }
 
   @Post('cancel')
@@ -113,6 +116,12 @@ export class BillingController {
   @UseGuards(JwtAuthGuard)
   upgradeOffer(@Request() req: any) {
     return this.billing.getFreeUpgradeOffer(req.user)
+  }
+
+  @Post('upgrade-offer/viewed')
+  @UseGuards(JwtAuthGuard, CsrfGuard)
+  acknowledgeUpgradeOffer(@Request() req: any) {
+    return this.billing.acknowledgeFreeUpgradeOffer(req.user.id)
   }
 
   private isMetricsAdmin(email?: string): boolean {

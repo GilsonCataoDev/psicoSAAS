@@ -15,6 +15,7 @@ import { DocType } from './entities/document.entity'
 import { pdfAttachment } from '../../common/http/content-disposition.util'
 import { AiDocumentField, AiDocumentType, AiService } from '../sessions/ai.service'
 import { AiTextQuotaService } from '../sessions/ai-text-quota.service'
+import { SendDocumentEmailDto } from './dto/send-document-email.dto'
 
 class CreateDocumentBodyDto implements CreateDocumentDto {
   @IsString() @IsNotEmpty() @MaxLength(80) patientId: string
@@ -45,10 +46,10 @@ export class DocumentsController {
     private readonly aiTextQuota: AiTextQuotaService,
   ) {}
 
-  /** Gerar e assinar um novo documento (requer plano Essencial ou superior) */
+  /** Gerar e assinar um novo documento (requer plano Pro ou superior) */
   @Post()
   @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
-  @RequirePlan('essencial')
+  @RequirePlan('pro')
   async create(@Req() req: any, @Body() body: CreateDocumentBodyDto) {
     const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
               ?? req.socket?.remoteAddress
@@ -67,7 +68,7 @@ export class DocumentsController {
   /** Organiza um campo do documento sem salvar nem assinar automaticamente. */
   @Post('ai-draft')
   @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
-  @RequirePlan('essencial')
+  @RequirePlan('pro')
   @Throttle({ default: { limit: 10, ttl: 60 * 1000 } })
   async generateAiDraft(@Req() req: any, @Body() body: GenerateDocumentAiDraftDto) {
     if (!DOCUMENT_AI_FIELDS[body.documentType].includes(body.field)) {
@@ -116,9 +117,9 @@ export class DocumentsController {
   @Post(':id/send-email')
   @HttpCode(200)
   @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
-  async sendEmail(@Param('id') id: string, @Body('to') to: string, @Req() req: any) {
-    const result = await this.svc.sendDocumentByEmail(id, req.user.id, to)
-    await this.record(req, 'document.email_sent', 'document', id, { to })
+  async sendEmail(@Param('id') id: string, @Body() body: SendDocumentEmailDto, @Req() req: any) {
+    const result = await this.svc.sendDocumentByEmail(id, req.user.id, body.to)
+    await this.record(req, 'document.email_sent', 'document', id, { to: body.to })
     return result
   }
 

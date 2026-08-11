@@ -219,14 +219,14 @@ function BookingCard({ booking, onConfirm, onReject, onMarkPaid }: {
   const [messageModalOpen, setMessageModalOpen] = useState(false)
   const [messageDraft, setMessageDraft] = useState('')
 
+  // Usado só na mensagem de WhatsApp pro paciente (defaultPatientMessage/insertCancellationLink) — utm_source fixo aqui é seguro.
   function getCancellationUrl() {
     const token = booking.cancellationCode ?? booking.confirmationToken
     if (!token) return ''
 
     const appBaseUrl = new URL(import.meta.env.BASE_URL || '/', window.location.origin).toString()
-    return booking.cancellationCode
-      ? `${appBaseUrl}c/${token}`
-      : `${appBaseUrl}agendar/cancelar/${token}`
+    const path = booking.cancellationCode ? `c/${token}` : `agendar/cancelar/${token}`
+    return `${appBaseUrl}${path}?utm_source=whatsapp&utm_medium=message`
   }
 
   function defaultPatientMessage() {

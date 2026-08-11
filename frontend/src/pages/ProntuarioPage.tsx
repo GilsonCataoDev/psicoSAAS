@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Download, Lock, Save, FileText, Pencil, X, Sparkles } from 'lucide-react'
-import { usePatient, useUpdatePatient, useSessions, useCreateSession, useUpdateSession, useExportProntuario, useGenerateProntuarioDraft } from '@/hooks/useApi'
+import { ArrowLeft, Download, Lock, Save, FileText, Pencil, X, Sparkles, Send } from 'lucide-react'
+import { usePatient, useUpdatePatient, useSessions, useCreateSession, useUpdateSession, useExportProntuario, useGenerateProntuarioDraft, useGenerateSessionPlan } from '@/hooks/useApi'
 import { TAG_LABELS } from '@/types'
 import { Prontuario } from '@/types/prontuario'
 import { formatDate } from '@/lib/utils'
@@ -9,6 +9,7 @@ import toast from 'react-hot-toast'
 import DictationButton from '@/components/ui/DictationButton'
 import RecordingPanel from '@/components/ui/RecordingPanel'
 import { useHasPlan } from '@/store/subscription'
+import PatientRecordDeliveryModal from '@/components/features/patients/PatientRecordDeliveryModal'
 
 const TABS = [
   { id: 'identificacao', label: 'Identificação' },
@@ -68,15 +69,18 @@ export default function ProntuarioPage() {
   const updatePatient = useUpdatePatient()
   const exportProntuario = useExportProntuario(id ?? '')
   const generateProntuarioDraft = useGenerateProntuarioDraft()
-  const hasEssencial = useHasPlan('essencial')
+  const generateSessionPlan = useGenerateSessionPlan()
+  const hasPro = useHasPlan('pro')
   const [evolText, setEvolText] = useState('')
   const [evolDate, setEvolDate] = useState(new Date().toISOString().split('T')[0])
   const [aiMode, setAiMode] = useState<AiProntuarioMode>('organizar')
   const [aiDraft, setAiDraft] = useState('')
+  const [sessionPlan, setSessionPlan] = useState('')
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null)
   const [editEvolDate, setEditEvolDate] = useState('')
   const [editEvolText, setEditEvolText] = useState('')
   const [form, setForm] = useState<Partial<Prontuario>>({})
+  const [deliveryOpen, setDeliveryOpen] = useState(false)
 
   // Inicializa form quando o paciente carregar
   useEffect(() => {
@@ -133,8 +137,8 @@ export default function ProntuarioPage() {
   }
 
   async function generateAiDraft() {
-    if (!hasEssencial) {
-      toast.error('IA disponivel a partir do plano Essencial.')
+    if (!hasPro) {
+      toast.error('IA disponivel a partir do plano Pro.')
       return
     }
     if (!evolText.trim()) {
@@ -150,6 +154,28 @@ export default function ProntuarioPage() {
       toast.success('Rascunho gerado. Revise antes de salvar.')
     } catch (err: any) {
       toast.error(err?.response?.data?.message ?? 'Nao foi possivel gerar o rascunho.')
+    }
+  }
+
+  async function planNextSession() {
+    if (!hasPro) {
+      toast.error('IA disponivel a partir do plano Pro.')
+      return
+    }
+    if (sessions.length === 0) {
+      toast.error('Ainda nao ha sessoes registradas para basear o planejamento.')
+      return
+    }
+    const clinicalContext = sessions
+      .slice(0, 5)
+      .map(s => `Sessao de ${formatDate(s.date)}:\nResumo: ${s.summary ?? '(sem resumo)'}\nProximos passos: ${s.nextSteps ?? '(nao registrado)'}`)
+      .join('\n\n')
+    try {
+      const { draft } = await generateSessionPlan.mutateAsync({ clinicalContext })
+      setSessionPlan(draft)
+      toast.success('Sugestao de planejamento gerada. Revise antes de usar.')
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'Nao foi possivel gerar a sugestao de planejamento.')
     }
   }
 
@@ -182,12 +208,19 @@ export default function ProntuarioPage() {
         </div>
         <div className="flex gap-2 shrink-0">
           <button
-            onClick={() => exportProntuario.mutate()}
+            onClick={() => exportProntuario.mutate({ audience: 'professional' })}
             disabled={exportProntuario.isPending}
             className="btn-secondary flex items-center gap-2 text-sm hidden sm:flex disabled:opacity-50"
           >
             <Download className="w-4 h-4" />
-            {exportProntuario.isPending ? 'Gerando…' : 'Exportar PDF'}
+            {exportProntuario.isPending ? 'Gerando…' : 'Backup profissional'}
+          </button>
+
+          <button
+            onClick={() => setDeliveryOpen(true)}
+            className="btn-secondary flex items-center gap-2 text-sm hidden sm:flex"
+          >
+            <Send className="w-4 h-4" />Entrega ao paciente
           </button>
 
           <Link to={`/documentos?patient=${id}`}
@@ -361,6 +394,42 @@ export default function ProntuarioPage() {
             </div>
           </div>
 
+          {/* Planejamento da próxima sessão com IA */}
+          <div className="card space-y-3 border-sage-100 bg-sage-50/40 dark:border-sage-400/20 dark:bg-sage-500/10">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-1">
+                <p className="flex items-center gap-2 text-sm font-semibold text-sage-800 dark:text-sage-100">
+                  <Sparkles className="h-4 w-4" />
+                  Planejar próxima sessão com IA
+                </p>
+                <p className="text-xs text-sage-700 dark:text-sage-200">
+                  Usa o resumo e os próximos passos das últimas sessões. Disponível a partir do Pro.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={planNextSession}
+                disabled={generateSessionPlan.isPending || !hasPro}
+                title={!hasPro ? 'IA disponivel a partir do plano Pro' : undefined}
+                className="btn-secondary flex items-center justify-center gap-2 text-sm"
+              >
+                <Sparkles className="h-4 w-4" />
+                {!hasPro ? 'IA no Pro' : generateSessionPlan.isPending ? 'Planejando...' : 'Planejar sessão'}
+              </button>
+            </div>
+            {sessionPlan && (
+              <div className="rounded-xl border border-white/70 bg-white p-3 dark:border-white/10 dark:bg-neutral-900">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Sugestão da IA</p>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-700 dark:text-neutral-100">{sessionPlan}</p>
+                <div className="mt-3 flex justify-end">
+                  <button type="button" onClick={() => setSessionPlan('')} className="btn-secondary text-sm">
+                    Descartar
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Nova entrada */}
           <div className="card space-y-3">
             <h2 className="section-title">Nova evolução clínica</h2>
@@ -395,7 +464,7 @@ export default function ProntuarioPage() {
                     Apoio de IA no prontuario
                   </p>
                   <p className="text-xs text-sage-700 dark:text-sage-200">
-                    A IA gera um rascunho. Disponivel a partir do Essencial.
+                    A IA gera um rascunho. Disponivel a partir do Pro.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row">
@@ -411,12 +480,12 @@ export default function ProntuarioPage() {
                   <button
                     type="button"
                     onClick={generateAiDraft}
-                    disabled={generateProntuarioDraft.isPending || !hasEssencial}
-                    title={!hasEssencial ? 'IA disponivel a partir do plano Essencial' : undefined}
+                    disabled={generateProntuarioDraft.isPending || !hasPro}
+                    title={!hasPro ? 'IA disponivel a partir do plano Pro' : undefined}
                     className="btn-secondary flex items-center justify-center gap-2 text-sm"
                   >
                     <Sparkles className="h-4 w-4" />
-                    {!hasEssencial ? 'IA no Essencial' : generateProntuarioDraft.isPending ? 'Gerando...' : 'Gerar rascunho'}
+                    {!hasPro ? 'IA no Pro' : generateProntuarioDraft.isPending ? 'Gerando...' : 'Gerar rascunho'}
                   </button>
                 </div>
               </div>
@@ -575,13 +644,23 @@ export default function ProntuarioPage() {
 
       {/* Save button mobile */}
       <div className="sm:hidden flex gap-2">
-        <button onClick={() => exportProntuario.mutate()} disabled={exportProntuario.isPending} className="btn-secondary flex-1 flex items-center justify-center gap-2 text-sm disabled:opacity-50">
-          <Download className="w-4 h-4" />{exportProntuario.isPending ? 'Gerando…' : 'PDF'}
+        <button onClick={() => exportProntuario.mutate({ audience: 'professional' })} disabled={exportProntuario.isPending} className="btn-secondary flex-1 flex items-center justify-center gap-2 text-sm disabled:opacity-50">
+          <Download className="w-4 h-4" />{exportProntuario.isPending ? 'Gerando…' : 'Backup'}
+        </button>
+        <button onClick={() => setDeliveryOpen(true)} className="btn-secondary flex-1 flex items-center justify-center gap-2 text-sm">
+          <Send className="w-4 h-4" />Entregar
         </button>
         <button onClick={save} className="btn-primary flex-1 flex items-center justify-center gap-2 text-sm">
           <Save className="w-4 h-4" />Salvar
         </button>
       </div>
+
+      <PatientRecordDeliveryModal
+        open={deliveryOpen}
+        onClose={() => setDeliveryOpen(false)}
+        patientId={id ?? ''}
+        patientName={patient.name}
+      />
     </div>
   )
 }

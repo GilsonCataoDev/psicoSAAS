@@ -1,6 +1,6 @@
-import { request, type Locator, type Page } from '@playwright/test'
+import { expect, request, type Locator, type Page } from '@playwright/test'
 
-export const apiBaseUrl = process.env.E2E_API_URL ?? 'https://psicosaas-production-2d6c.up.railway.app/api'
+export const apiBaseUrl = `${(process.env.E2E_API_URL ?? 'https://psicosaas-production-2d6c.up.railway.app/api').replace(/\/$/, '')}/`
 export const appBaseUrl = process.env.E2E_BASE_URL ?? 'https://usecognia.com.br'
 export const testPassword = process.env.E2E_TEST_PASSWORD ?? 'Teste@12345'
 
@@ -94,6 +94,7 @@ export async function registerAndActivateFree(page: Page, email: string, name = 
   await page.goto(appPath('/cadastro'))
   await page.getByPlaceholder('Nome completo').fill(name)
   await page.getByPlaceholder('seu@email.com').fill(email)
+  await page.getByPlaceholder('(00) 00000-0000').fill('11987654321')
   await page.getByPlaceholder('06/123456').fill('06/123456')
   await page.getByPlaceholder('Mínimo 8 caracteres').fill(testPassword)
   await page.locator('#crpConfirmed').check()
@@ -103,10 +104,12 @@ export async function registerAndActivateFree(page: Page, email: string, name = 
   // Em alguns ambientes (ex.: BETA_FREE_ACCESS=true localmente) a conta já
   // nasce com o plano grátis ativo e esse botão nunca aparece — segue direto.
   await page.getByRole('button', { name: 'Comece gratis agora' }).click({ timeout: 8_000 }).catch(() => undefined)
-  await Promise.race([
-    page.getByText('Seu plano foi ativado').waitFor({ timeout: 15_000 }),
-    page.getByText(/Plano Gr[aá]tis ativo/i).waitFor({ timeout: 15_000 }),
-  ]).catch(() => undefined)
+  // Falha alto e claro se a ativação não completar — antes, esse aguardo era
+  // engolido por um .catch(), então uma ativação lenta/travada não derrubava
+  // este passo e só estourava 60s depois, num clique sem relação num teste
+  // seguinte (ex.: createPatient tentando abrir /pacientes sem sessão pronta).
+  await expect(page, 'conta não chegou ao dashboard após o cadastro — ativação do plano grátis falhou ou demorou demais')
+    .toHaveURL(/\/dashboard$/, { timeout: 20_000 })
   await dismissOverlays(page)
 }
 
@@ -139,7 +142,7 @@ export async function logout(page: Page) {
 export async function cleanupAccount(email: string) {
   const api = await request.newContext({ baseURL: apiBaseUrl })
   try {
-    const login = await api.post('/auth/login', { data: { email, password: testPassword } })
+    const login = await api.post('auth/login', { data: { email, password: testPassword } })
     if (!login.ok()) {
       console.warn(`[cleanup] login falhou para ${email}: HTTP ${login.status()} — globalTeardown irá limpar`)
       return
@@ -149,7 +152,7 @@ export async function cleanupAccount(email: string) {
       console.warn(`[cleanup] csrfToken ausente para ${email} — globalTeardown irá limpar`)
       return
     }
-    const del = await api.delete('/auth/account', {
+    const del = await api.delete('auth/account', {
       headers: { 'X-CSRF-Token': csrfToken },
       data: { password: testPassword, confirmation: 'EXCLUIR' },
     })

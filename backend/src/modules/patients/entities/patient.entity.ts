@@ -5,6 +5,7 @@ import {
 import { User } from '../../auth/entities/user.entity'
 import { Session } from '../../sessions/entities/session.entity'
 import { Appointment } from '../../appointments/entities/appointment.entity'
+import { encryptedTextTransformer } from '../../../common/crypto/encrypt.util'
 
 export type PatientStatus = 'active' | 'paused' | 'discharged'
 export type PatientBillingType = 'per_session' | 'monthly_package'
@@ -14,9 +15,11 @@ export type PatientCareMode = 'psychotherapy' | 'neuropsychological_assessment'
 export class Patient {
   @PrimaryGeneratedColumn('uuid') id: string
 
-  @Column() name: string
-  @Column({ nullable: true }) email?: string
-  @Column({ nullable: true }) phone?: string
+  @Column({ type: 'text', transformer: encryptedTextTransformer }) name: string
+  @Column({ type: 'text', nullable: true, transformer: encryptedTextTransformer }) email?: string
+  @Column({ type: 'text', nullable: true, transformer: encryptedTextTransformer }) phone?: string
+  @Column({ type: 'varchar', length: 64, nullable: true, select: false }) emailHash?: string
+  @Column({ type: 'varchar', length: 64, nullable: true, select: false }) phoneHash?: string
   @Column({ nullable: true }) birthDate?: string
   @Column({ nullable: true }) pronouns?: string
   @Column({ nullable: true }) race?: string

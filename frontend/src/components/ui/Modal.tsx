@@ -8,16 +8,26 @@ interface ModalProps {
   title: string
   description?: string
   children: React.ReactNode
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'sm' | 'md' | 'lg' | 'xl'
+  /**
+   * Nome acessível do botão de fechar (X). Deixe undefined para dialogs de
+   * tarefa (formularios, confirmacoes) — dar um nome generico como "Fechar"
+   * a todo modal faz helpers de e2e que fecham overlays por esse nome
+   * (dismissOverlays) fecharem tambem dialogs que o teste ainda esta
+   * preenchendo. Use só em modais informativos/promocionais que devem
+   * poder ser descartados a qualquer momento sem perder estado.
+   */
+  closeLabel?: string
 }
 
 const sizes = {
   sm: 'sm:max-w-md',
   md: 'sm:max-w-lg',
   lg: 'sm:max-w-2xl',
+  xl: 'sm:max-w-5xl',
 }
 
-export default function Modal({ open, onClose, title, description, children, size = 'md' }: ModalProps) {
+export default function Modal({ open, onClose, title, description, children, size = 'md', closeLabel }: ModalProps) {
   return (
     <Dialog.Root open={open} onOpenChange={(v) => !v && onClose()}>
       <Dialog.Portal>
@@ -34,7 +44,7 @@ export default function Modal({ open, onClose, title, description, children, siz
             {...(!description ? { 'aria-describedby': undefined } : {})}
             className={cn(
               // Base — aplica em qualquer tamanho
-              'bg-white w-full max-h-[92dvh] overflow-y-auto shadow-lifted animate-slide-up',
+              'bg-white dark:bg-cognia-panel dark:border dark:border-white/10 w-full max-h-[92dvh] overflow-y-auto shadow-lifted animate-slide-up',
               // Mobile: bottom sheet com cantos arredondados no topo
               'rounded-t-3xl p-5',
               // Desktop: modal com cantos completamente arredondados
@@ -47,13 +57,13 @@ export default function Modal({ open, onClose, title, description, children, siz
 
             <div className="flex items-start justify-between mb-5">
               <div>
-                <Dialog.Title className="text-lg font-display font-medium text-neutral-800">{title}</Dialog.Title>
+                <Dialog.Title className="text-lg font-display font-medium text-neutral-800 dark:text-white">{title}</Dialog.Title>
                 {description && (
-                  <Dialog.Description className="text-sm text-neutral-500 mt-0.5">{description}</Dialog.Description>
+                  <Dialog.Description className="text-sm text-neutral-500 dark:text-neutral-300 mt-0.5">{description}</Dialog.Description>
                 )}
               </div>
               <Dialog.Close asChild>
-                <button className="p-2 rounded-xl hover:bg-neutral-100 text-neutral-400 hover:text-neutral-600 transition-colors ml-4 shrink-0">
+                <button aria-label={closeLabel} className="p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-white/10 text-neutral-400 hover:text-neutral-600 dark:hover:text-white transition-colors ml-4 shrink-0">
                   <X className="w-4 h-4" />
                 </button>
               </Dialog.Close>

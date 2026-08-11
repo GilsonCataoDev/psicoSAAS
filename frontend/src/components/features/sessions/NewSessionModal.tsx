@@ -23,6 +23,7 @@ type NewSessionDefaults = {
   date?: string
   duration?: number
   appointmentId?: string
+  modality?: 'presencial' | 'online'
 }
 
 export default function NewSessionModal({ open, onClose, defaultPatientId, defaults }: {
@@ -255,6 +256,7 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
                 patientName={patients.find(p => p.id === watch('patientId'))?.name}
                 onApplyTranscription={text => setValue('privateNotes', (watch('privateNotes') ? watch('privateNotes') + '\n\n' : '') + text)}
                 onApplySummary={text => setValue('summary', text)}
+                allowCallCapture={defaults?.modality === 'online'}
               />
               <DictationButton value={watch('summary') ?? ''} onChange={value => setValue('summary', value)} />
             </div>

@@ -9,6 +9,7 @@ import { EmailLog } from '../email/entities/email-log.entity'
 import { AsaasService } from '../billing/asaas.service'
 import { OverrideSubscriptionDto } from './dto/override-subscription.dto'
 import { ListAdminUsersDto } from './dto/list-admin-users.dto'
+import { PLAN_PRICES } from '../../common/plans'
 
 @Injectable()
 export class AdminService {
@@ -304,7 +305,7 @@ export class AdminService {
            SELECT 1 FROM ai_usage au
            WHERE au."userId" = u.id::text
              AND au."updatedAt" > NOW() - INTERVAL '30 days'
-             AND (au."transcriptionSeconds" > 0 OR au."summaryRequests" > 0)
+             AND (au."transcriptionSeconds" > 0 OR au."summaryRequests" > 0 OR au."callTranscriptions" > 0)
          ))                                                    AS "hasAiUsageLast30d"
       FROM users u
       LEFT JOIN LATERAL (
@@ -373,8 +374,8 @@ export class AdminService {
     // Uso financeiro — 10 pts
     const financialPts = r.hasFinancialLast30d ? 10 : 0
 
-    // Uso de IA (Essencial+) - 10 pts; Free nunca marca aqui.
-    const hasAiPlan = r.plan === 'essencial' || r.plan === 'pro'
+    // Uso de IA (Pro) - 10 pts; Free nunca marca aqui.
+    const hasAiPlan = r.plan === 'pro'
     const aiPts = hasAiPlan && r.hasAiUsageLast30d ? 10 : 0
 
     const rawScore = recency + patientPts + sessionPts + financialPts + aiPts
@@ -405,7 +406,7 @@ export class AdminService {
 
     const mrr = byPlanStatus
       .filter(r => r.status === 'active')
-      .reduce((sum, r) => sum + ({ essencial: 79, pro: 149 }[r.plan] ?? 0) * Number(r.count), 0)
+      .reduce((sum, r) => sum + (PLAN_PRICES[r.plan] ?? 0) * Number(r.count), 0)
 
     return { totalUsers, activeUsers, byPlanStatus, mrr }
   }

@@ -19,12 +19,14 @@ UseCognia é indicado para psicólogos, terapeutas e estagiários clínicos que 
 ## Planos
 
 - Gratuito: até 10 pacientes, sem cartão de crédito
-- Essencial: R$79/mês — agenda, pacientes, documentos, financeiro básico
-- Pro: R$149/mês — recursos ilimitados, instrumentos clínicos, WhatsApp automático, IA
+- Pro: R$97,90/mês — recursos ilimitados, documentos, instrumentos clínicos, WhatsApp automático, IA
 
 ## Links
 
 - Site: https://usecognia.com.br
+- Blog: https://usecognia.com.br/blog
+- Guia sobre prontuário psicológico: https://usecognia.com.br/blog/como-organizar-prontuario-psicologico-com-seguranca
+- Guia de software para psicólogo em 2026: https://usecognia.com.br/blog/software-para-psicologo-guia-completo-2026
 - Cadastro gratuito: https://usecognia.com.br/cadastro
 - Perguntas frequentes: https://usecognia.com.br/plataforma#faq
 - Política de privacidade: https://usecognia.com.br/privacidade

@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException, Logger } from '@nestjs/common'
+import { BadRequestException, ConflictException, Injectable, NotFoundException, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Not, Repository } from 'typeorm'
 import { Session } from './entities/session.entity'
@@ -114,6 +114,31 @@ export class SessionsService {
   }
 
   async create(dto: CreateSessionDto, psychologistId: string): Promise<Session & { firstSession: boolean }> {
+    return this.createInternal(dto, psychologistId, false)
+  }
+
+  /** Registra prontuário legado sem criar cobrança, mensalidade ou vínculo com agenda. */
+  async createHistorical(dto: CreateSessionDto, psychologistId: string): Promise<Session & { firstSession: boolean }> {
+    if (!dto.summary?.trim()) throw new BadRequestException('A transcrição revisada é obrigatória')
+    if (dto.summary.trim().length > 12000) throw new BadRequestException('A transcrição deve ter no máximo 12.000 caracteres')
+    const parsedDate = new Date(`${dto.date}T00:00:00.000Z`)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dto.date) || Number.isNaN(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== dto.date) {
+      throw new BadRequestException('A data da sessão histórica é inválida')
+    }
+    if (dto.date > new Date().toISOString().slice(0, 10)) throw new BadRequestException('A data da sessão histórica não pode estar no futuro')
+    return this.createInternal({
+      ...dto,
+      appointmentId: undefined,
+      paymentStatus: 'waived',
+      summary: dto.summary.trim(),
+    }, psychologistId, true)
+  }
+
+  private async createInternal(
+    dto: CreateSessionDto,
+    psychologistId: string,
+    historical: boolean,
+  ): Promise<Session & { firstSession: boolean }> {
     const patient = await this.assertPatientBelongsToPsychologist(dto.patientId, psychologistId)
     if (dto.appointmentId) {
       await this.assertAppointmentBelongsToPsychologist(dto.appointmentId, psychologistId, dto.patientId)
@@ -123,7 +148,9 @@ export class SessionsService {
     const previousSessions = await this.repo.count({ where: { psychologistId } })
 
     // Criptografa campos clínicos antes de persistir
-    const effectiveDto = patient.billingType === 'monthly_package'
+    const effectiveDto = historical
+      ? { ...dto, paymentStatus: 'waived' }
+      : patient.billingType === 'monthly_package'
       ? { ...dto, paymentStatus: 'included' }
       : dto
     const encrypted = this.encryptFields(effectiveDto)
@@ -136,7 +163,7 @@ export class SessionsService {
 
     // Auto-cria FinancialRecord para sessões pagas ou pendentes
     // Usa dto original (não criptografado) para paymentStatus, date, patientId
-    if (patient.billingType === 'monthly_package') {
+    if (!historical && patient.billingType === 'monthly_package') {
       try {
         const existingFinancial = dto.appointmentId
           ? await this.financial.findByAppointmentId(dto.appointmentId, psychologistId)
@@ -146,7 +173,7 @@ export class SessionsService {
       } catch (err: any) {
         this.logger.warn(`Falha ao criar pacote mensal para sessao ${saved.id}: ${err?.message ?? 'erro desconhecido'}`)
       }
-    } else if (dto.paymentStatus !== 'waived' && dto.patientId) {
+    } else if (!historical && dto.paymentStatus !== 'waived' && dto.patientId) {
       try {
         const patient = await this.patients.findOne({
           where: { id: dto.patientId, psychologistId },

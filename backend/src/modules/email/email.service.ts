@@ -4,6 +4,7 @@ import { Repository } from 'typeorm'
 import { ConfigService } from '@nestjs/config'
 import { EmailLog } from './entities/email-log.entity'
 import { EmailSuppression } from './entities/email-suppression.entity'
+import { blindIndex } from '../../common/crypto/encrypt.util'
 
 interface Attachment {
   filename: string
@@ -71,7 +72,9 @@ export class EmailService {
       throw new ServiceUnavailableException('Envio de e-mail nao configurado')
     }
 
-    if (await this.suppressions?.exist({ where: { email: opts.to.toLowerCase().trim() } })) {
+    if (await this.suppressions?.exist({
+      where: { emailHash: blindIndex(opts.to, 'email-suppression') },
+    })) {
       this.logger.warn(`[Email] Envio bloqueado — endereco suprimido (bounce/spam previo)`)
       this.writeLog(opts.to, opts.subject, 'suppressed', 'Endereco na lista de supressao')
       return
@@ -113,7 +116,7 @@ export class EmailService {
           )
         }
 
-        this.logger.error(`[Resend] Erro ao enviar email status=${res.status} body=${err}`)
+        this.logger.error(`[Resend] Erro ao enviar email status=${res.status}`)
 
         if (err.includes('domain is not verified')) {
           throw new ServiceUnavailableException(
@@ -130,7 +133,7 @@ export class EmailService {
         this.writeLog(opts.to, opts.subject, 'failed', (err as Error).message)
         throw err
       }
-      this.logger.error('[Resend] Falha de conexão', err)
+      this.logger.error(`[Resend] Falha de conexao type=${err instanceof Error ? err.name : 'unknown'}`)
       this.writeLog(opts.to, opts.subject, 'failed', (err as Error)?.message ?? 'unknown')
       throw new BadGatewayException('Nao foi possivel conectar ao servico de e-mail')
     }
@@ -327,6 +330,41 @@ export class EmailService {
     })[char]!)
   }
 
+  async sendProUpgradeOffer(name: string, email: string) {
+    const firstName = this.escapeHtml(name.trim().split(/\s+/)[0] || 'profissional')
+    await this.send({
+      to: email,
+      subject: 'Novidades no UseCognia + Pro por R$ 34,90 no primeiro mês',
+      html: this.wrap(`
+        <h1 style="color:#2F7657;font-weight:300;font-size:26px">Olá, ${firstName}!</h1>
+        <p style="color:#555;font-size:16px;line-height:1.6">
+          O UseCognia ganhou novos recursos para deixar a rotina clínica mais organizada:
+        </p>
+        <ul style="color:#555;font-size:15px;line-height:1.9;padding-left:20px">
+          <li>agenda e link público de agendamento;</li>
+          <li>prontuário, documentos e assinatura digital;</li>
+          <li>financeiro, lembretes e integração com WhatsApp;</li>
+          <li>instrumentos e avaliação neuropsicológica;</li>
+          <li>migração de anotações em papel para a ficha do paciente.</li>
+        </ul>
+        <div style="background:#eef8f3;border:1px solid #cfe5d9;border-radius:14px;padding:18px;margin:24px 0">
+          <p style="margin:0;color:#21372d;font-size:17px;line-height:1.5">
+            Para contas Free elegíveis, o <strong>primeiro mês do plano Pro sai por R$ 34,90</strong>.
+            Depois, o valor volta para R$ 97,90 por mês. Sem fidelidade.
+          </p>
+        </div>
+        <a href="${this.appUrl('/planos')}" style="display:inline-block;background:#2F7657;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:600">
+          Conhecer o plano Pro
+        </a>
+        <p style="color:#888;font-size:13px;line-height:1.5;margin-top:28px">
+          Você recebeu esta mensagem por possuir uma conta no UseCognia.
+          As preferências de comunicação podem ser alteradas em
+          <a href="${this.appUrl('/configuracoes')}" style="color:#2F7657">Configurações</a>.
+        </p>
+      `),
+    })
+  }
+
   async sendTrialEndingReminder(name: string, email: string, daysLeft: number) {
     await this.send({
       to: email,
@@ -457,7 +495,13 @@ export class EmailService {
 
   private writeLog(to: string, subject: string, status: 'sent' | 'failed' | 'suppressed', error: string | null): void {
     if (!this.logs) return
-    this.logs.save(this.logs.create({ to, subject: subject.slice(0, 255), status, error }))
+    this.logs.save(this.logs.create({
+      to,
+      toHash: blindIndex(to, 'email-log-recipient'),
+      subject: subject.slice(0, 255),
+      status,
+      error: error ? error.slice(0, 500) : null,
+    }))
       .catch(e => this.logger.warn(`[EmailLog] Falha ao gravar log: ${e?.message}`))
   }
 

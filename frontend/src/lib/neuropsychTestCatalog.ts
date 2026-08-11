@@ -1,0 +1,30 @@
+// Nomes de testes/instrumentos neuropsicológicos comumente usados no Brasil.
+// Apenas nomes — nenhum conteúdo, prancha, item ou material protegido é reproduzido aqui.
+// Serve só como sugestão de autocomplete; o campo continua aceitando texto livre.
+export const NEUROPSYCH_TEST_CATALOG: string[] = [
+  'WAIS-IV — Escala Wechsler de Inteligência para Adultos',
+  'WISC-V — Escala Wechsler de Inteligência para Crianças',
+  'WASI — Escala Wechsler Abreviada de Inteligência',
+  'Matrizes Progressivas de Raven',
+  'Teste das Trilhas (TMT A e B)',
+  'Teste de Stroop',
+  'Figuras Complexas de Rey (cópia e memória)',
+  'RAVLT — Teste de Aprendizagem Auditivo-Verbal de Rey',
+  'Teste de Bender (B-SPG)',
+  'D2 — Teste de Atenção Concentrada',
+  'BPA — Bateria Psicológica para Avaliação da Atenção',
+  'FDT — Teste dos Cinco Dígitos',
+  'Teste de Fluência Verbal (fonêmica e semântica)',
+  'TDE-II — Teste de Desempenho Escolar',
+  'BPI — Bateria de Provas de Inteligência',
+  'MoCA — Montreal Cognitive Assessment',
+  'MEEM — Mini-Exame do Estado Mental',
+  'IFS — Inventário de Funções Executivas',
+  'Escala de Depressão de Beck (BDI-II)',
+  'Escala de Ansiedade de Beck (BAI)',
+  'CBCL — Child Behavior Checklist',
+  'SRS-2 — Escala de Responsividade Social',
+  'Vineland — Escala de Comportamento Adaptativo',
+  'Entrevista clínica estruturada',
+  'Observação comportamental',
+]

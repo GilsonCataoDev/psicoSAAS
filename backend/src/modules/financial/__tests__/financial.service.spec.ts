@@ -2,6 +2,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { Test } from '@nestjs/testing'
 import { FinancialRecord } from '../entities/financial-record.entity'
+import { RecurringExpense } from '../entities/recurring-expense.entity'
 import { FinancialService } from '../financial.service'
 import { NotificationsService } from '../../notifications/notifications.service'
 import { Patient } from '../../patients/entities/patient.entity'
@@ -59,6 +60,7 @@ describe('FinancialService', () => {
   let patientRepo: ReturnType<typeof makeRepo>
   let sessionRepo: ReturnType<typeof makeRepo>
   let bookingRepo: ReturnType<typeof makeRepo>
+  let recurringExpenseRepo: ReturnType<typeof makeRepo>
   let notifications: { sendPaymentRequest: jest.Mock }
 
   beforeEach(async () => {
@@ -66,12 +68,14 @@ describe('FinancialService', () => {
     patientRepo = makeRepo()
     sessionRepo = makeRepo({ update: jest.fn().mockResolvedValue({ affected: 0 }) })
     bookingRepo = makeRepo({ update: jest.fn().mockResolvedValue({ affected: 0 }) })
+    recurringExpenseRepo = makeRepo()
     notifications = { sendPaymentRequest: jest.fn() }
 
     const module = await Test.createTestingModule({
       providers: [
         FinancialService,
-        { provide: getRepositoryToken(FinancialRecord), useValue: repo },
+        { provide: getRepositoryToken(FinancialRecord),   useValue: repo },
+        { provide: getRepositoryToken(RecurringExpense),  useValue: recurringExpenseRepo },
         { provide: getRepositoryToken(Patient),         useValue: patientRepo },
         { provide: getRepositoryToken(User),            useValue: makeRepo() },
         { provide: getRepositoryToken(Session),         useValue: sessionRepo },
@@ -220,7 +224,8 @@ describe('FinancialService', () => {
 
   describe('getSummary', () => {
     it('retorna zeros quando não há registros', async () => {
-      repo.find.mockResolvedValue([])
+      const qb = makeQb([], null)
+      repo.createQueryBuilder.mockReturnValue(qb)
       const result = await service.getSummary(PSY_ID)
       expect(result.totalRevenue).toBe(0)
       expect(result.paid).toBe(0)
@@ -228,15 +233,82 @@ describe('FinancialService', () => {
     })
 
     it('calcula totais corretamente', async () => {
-      const records = [
-        makeRecord({ type: 'income', status: 'paid', amount: 200 }),
-        makeRecord({ id: 'rec-2', type: 'income', status: 'pending', amount: 100 }),
-      ]
-      repo.find.mockResolvedValue(records)
+      const qb = makeQb([], {
+        totalRevenue: '300',
+        paid: '200',
+        pending: '100',
+        overdue: '0',
+      })
+      repo.createQueryBuilder.mockReturnValue(qb)
       const result = await service.getSummary(PSY_ID)
       expect(result.totalRevenue).toBe(300)
       expect(result.paid).toBe(200)
       expect(result.pending).toBe(100)
+      expect(qb.where).toHaveBeenCalledWith(
+        'record.psychologistId = :psychologistId',
+        { psychologistId: PSY_ID },
+      )
+    })
+
+    it('calcula despesa total e lucro líquido', async () => {
+      const qb = makeQb([], {
+        totalRevenue: '1000',
+        paid: '800',
+        pending: '200',
+        overdue: '0',
+        totalExpense: '300',
+      })
+      repo.createQueryBuilder.mockReturnValue(qb)
+      const result = await service.getSummary(PSY_ID)
+      expect(result.totalExpense).toBe(300)
+      expect(result.net).toBe(700)
+    })
+  })
+
+  describe('despesas recorrentes', () => {
+    it('gera o lançamento do mês quando ainda não foi gerado', async () => {
+      const expense = {
+        id: 'exp-1',
+        description: 'Aluguel da sala',
+        amount: 500,
+        category: 'aluguel',
+        dayOfMonth: 10,
+        active: true,
+        lastGeneratedMonth: undefined,
+        psychologistId: PSY_ID,
+      } as any
+      repo.create.mockImplementation((data: any) => data)
+      repo.save.mockImplementation(async (r: any) => r)
+      recurringExpenseRepo.save.mockImplementation(async (r: any) => r)
+
+      const result = await service.ensureRecurringExpenseCharge(expense, new Date('2026-03-15T12:00:00.000Z'))
+
+      expect(result).toMatchObject({ type: 'expense', amount: 500, category: 'aluguel', dueDate: '2026-03-10' })
+      expect(expense.lastGeneratedMonth).toBe('2026-03')
+      expect(recurringExpenseRepo.save).toHaveBeenCalledWith(expense)
+    })
+
+    it('não gera duas vezes no mesmo mês', async () => {
+      const expense = {
+        id: 'exp-1',
+        description: 'Aluguel da sala',
+        amount: 500,
+        dayOfMonth: 10,
+        active: true,
+        lastGeneratedMonth: '2026-03',
+        psychologistId: PSY_ID,
+      } as any
+
+      const result = await service.ensureRecurringExpenseCharge(expense, new Date('2026-03-20T12:00:00.000Z'))
+
+      expect(result).toBeNull()
+      expect(repo.save).not.toHaveBeenCalled()
+    })
+
+    it('encerra despesa recorrente inexistente com NotFoundException', async () => {
+      recurringExpenseRepo.findOne.mockResolvedValue(null)
+      await expect(service.updateRecurringExpense('missing', { active: false }, PSY_ID))
+        .rejects.toThrow(NotFoundException)
     })
   })
 })

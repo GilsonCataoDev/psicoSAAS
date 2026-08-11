@@ -12,4 +12,5 @@ export class CreateAppointmentDto {
   @IsIn(['none','weekly','biweekly']) @IsOptional() recurrence?: 'none' | 'weekly' | 'biweekly'
   @IsString() @IsOptional() repeatUntil?: string
   @IsBoolean() @IsOptional() fromFixedSchedule?: boolean
+  @IsBoolean() @IsOptional() autoVideoRoom?: boolean
 }

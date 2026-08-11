@@ -52,17 +52,19 @@ captures/
 # Comment next line if keeping position of elements in Navigation Editor is relevant for you
 .idea/navEditor.xml
 
-# Keystore files
-# Uncomment the following lines if you do not want to check your keystore files in.
-#*.jks
-#*.keystore
+# Keystore files — NUNCA versionar. Perder o keystore de release = nunca mais
+# atualizar o app publicado. Backup fica com o desenvolvedor (gerenciador de
+# senhas + copia separada), nao no git. Ver docs/ANDROID_RELEASE_CHECKLIST.md.
+*.jks
+*.keystore
+keystore.properties
 
 # External native build folder generated in Android Studio 2.2 and later
 .externalNativeBuild
 .cxx/
 
-# Google Services (e.g. APIs or Firebase)
-# google-services.json
+# Google Services (e.g. APIs or Firebase) — contem IDs do projeto Firebase.
+google-services.json
 
 # Freeline
 freeline.py

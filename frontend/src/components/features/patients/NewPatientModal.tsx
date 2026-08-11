@@ -1,11 +1,13 @@
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
-import { EmotionalTag, TAG_LABELS } from '@/types'
+import { EmotionalTag, Patient, TAG_LABELS } from '@/types'
 import { useCreatePatient, useDefaultTemplate } from '@/hooks/useApi'
 import { track, EVENTS } from '@/lib/analytics'
+import RecurringSessionsCard from './RecurringSessionsCard'
 
 const schema = z.object({
   name: z.string().min(2, 'Nome obrigatório'),
@@ -64,6 +66,7 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
   })
   const createPatient = useCreatePatient()
   const { data: patientTemplate } = useDefaultTemplate('patient_form')
+  const [createdPatient, setCreatedPatient] = useState<Patient | null>(null)
   const selectedTags = watch('tags') ?? []
   const hasFixedSchedule = watch('hasFixedSchedule')
   const billingType = watch('billingType')
@@ -94,14 +97,43 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
         delete (payload as any).fixedScheduleFrequency
         delete (payload as any).fixedScheduleModality
       }
-      await createPatient.mutateAsync(payload as any)
+      const created = await createPatient.mutateAsync(payload as any)
       track(EVENTS.PATIENT_CREATED)
       toast.success(`${data.name} adicionada com sucesso`)
+      if (data.hasFixedSchedule) {
+        setCreatedPatient(created)
+        return
+      }
       reset()
       onClose()
     } catch (err: any) {
       toast.error(err?.response?.data?.message ?? 'Não foi possível adicionar. Tente novamente.')
     }
+  }
+
+  function finish() {
+    setCreatedPatient(null)
+    reset()
+    onClose()
+  }
+
+  if (createdPatient) {
+    return (
+      <Modal open={open} onClose={finish} title="Marcar as próximas sessões?" size="lg"
+        description={`${createdPatient.name} foi cadastrada(o) com horário fixo. Você pode marcar as próximas sessões agora ou fazer isso depois pela agenda.`}>
+        <div className="space-y-4">
+          <RecurringSessionsCard
+            patient={createdPatient}
+            anchorDate={null}
+            anchorLabel="Sem sessões anteriores"
+            onScheduled={finish}
+          />
+          <div className="flex justify-end pt-2">
+            <button type="button" onClick={finish} className="btn-secondary">Pular por agora</button>
+          </div>
+        </div>
+      </Modal>
+    )
   }
 
   return (

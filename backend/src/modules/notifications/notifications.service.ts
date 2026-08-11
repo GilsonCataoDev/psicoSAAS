@@ -1,21 +1,48 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { EntityManager, LessThanOrEqual, Repository } from 'typeorm'
 import * as webpush from 'web-push'
+import { cert, getApps, initializeApp } from 'firebase-admin/app'
+import { getMessaging } from 'firebase-admin/messaging'
 import { EmailService } from '../email/email.service'
-import { Subscription } from '../billing/entities/subscription.entity'
 import { User } from '../auth/entities/user.entity'
 import { PushSubscriptionEntity } from './entities/push-subscription.entity'
+import { NativePushTokenEntity, NativePushPlatform } from './entities/native-push-token.entity'
 import { WhatsAppDeliveryLog } from './entities/whatsapp-delivery-log.entity'
+import { WhatsAppOutbox } from './entities/whatsapp-outbox.entity'
+import { CloudWhatsAppProvider } from './providers/cloud-whatsapp.provider'
+import { WhatsAppTemplate } from './providers/whatsapp-provider'
 import { SavePushSubscriptionDto } from './dto/push-subscription.dto'
+import { RegisterNativePushTokenDto } from './dto/native-push-token.dto'
 import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
+import { PlanAccessService } from '../../common/plan-access/plan-access.service'
+import {
+  isMeaningfulAutomatedMessage,
+  renderBookingConfirmationMessage,
+  renderPaymentTemplate,
+  renderReminderTemplate,
+} from './notification-templates'
+
+const WA_FETCH_TIMEOUT_MS = 10000
+
+/**
+ * fetch() nao tem timeout por padrao — sem isso, uma chamada travada na Evolution
+ * API cai indefinidamente ate o socket estourar, deixando o envio num estado
+ * ambiguo em vez de um erro claro e rapido.
+ */
+function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = WA_FETCH_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer))
+}
 
 export type WhatsAppDeliveryResult = {
   sent: boolean
   reason?: 'plan' | 'not_configured' | 'disconnected' | 'api_error' | 'invalid_content'
   error?: string
   nonRetryable?: boolean
+  pendingReconciliation?: boolean
   providerMessageId?: string
   providerStatus?: string
   contentLength?: number
@@ -41,12 +68,21 @@ type WhatsAppLogMeta = {
   type: string
   patientId?: string | null
   patientName?: string | null
+  verifyDelivery?: boolean
+  idempotencyKey?: string
+  cloudTemplate?: WhatsAppTemplate
 }
 
-const COMPED_PRO_EMAILS = (process.env.COMPED_PRO_EMAILS ?? 'gilsonfilho96@outlook.com')
-  .split(',')
-  .map(email => email.trim().toLowerCase())
-  .filter(Boolean)
+// Formato documentado da Evolution API v2 (POST /message/sendText/{instance}):
+// https://doc.evolution-api.com/v2/api-reference/message-controller/send-text
+// `text` no nível raiz — NÃO `textMessage.text` (formato legado de v1 que essa
+// instância aceitava com 200 OK mas persistia o texto em branco no Baileys).
+type WhatsAppTextPayload = {
+  number: string
+  text: string
+  delay?: number
+  linkPreview?: boolean
+}
 
 /**
  * NotificationsService
@@ -64,14 +100,18 @@ export class NotificationsService {
   private readonly pushEnabled: boolean
   private readonly VAPID_PUBLIC_KEY: string
   private readonly VAPID_PRIVATE_KEY: string
+  private readonly firebaseEnabled: boolean
 
   constructor(
     private cfg: ConfigService,
     private email: EmailService,
-    @InjectRepository(Subscription) private subs: Repository<Subscription>,
+    private readonly planAccess: PlanAccessService,
     @InjectRepository(User) private users: Repository<User>,
     @InjectRepository(PushSubscriptionEntity) private pushSubscriptions: Repository<PushSubscriptionEntity>,
+    @InjectRepository(NativePushTokenEntity) private nativePushTokens: Repository<NativePushTokenEntity>,
     @InjectRepository(WhatsAppDeliveryLog) private whatsAppLogs: Repository<WhatsAppDeliveryLog>,
+    @InjectRepository(WhatsAppOutbox) private whatsAppOutbox: Repository<WhatsAppOutbox>,
+    private readonly cloudWhatsApp: CloudWhatsAppProvider,
   ) {
     this.BASE_URL     = cfg.get('FRONTEND_URL') ?? 'http://localhost:3000'
     this.WA_URL       = cfg.get('WHATSAPP_API_URL') ?? ''
@@ -94,37 +134,35 @@ export class NotificationsService {
         this.VAPID_PRIVATE_KEY,
       )
     }
+
+    // Push nativo (Android/iOS via Firebase Cloud Messaging) — separado do
+    // Web Push acima. FIREBASE_SERVICE_ACCOUNT_JSON é o JSON da service account
+    // do Firebase (baixado no console) colado como uma unica variavel de ambiente,
+    // sem precisar de arquivo google-services.json no servidor.
+    const firebaseCredentialsJson = cfg.get('FIREBASE_SERVICE_ACCOUNT_JSON') ?? ''
+    let firebaseInitialized = getApps().length > 0
+    if (firebaseCredentialsJson && !firebaseInitialized) {
+      try {
+        initializeApp({ credential: cert(JSON.parse(firebaseCredentialsJson)) })
+        firebaseInitialized = true
+      } catch (err: any) {
+        this.logger.error(`[FCM] Falha ao inicializar Firebase Admin: ${err?.message ?? 'erro desconhecido'}`)
+      }
+    }
+    this.firebaseEnabled = firebaseInitialized
   }
 
   async canUseWhatsAppAutomation(userId?: string | null): Promise<boolean> {
     if (!userId) return false
 
-    const [user, sub] = await Promise.all([
-      this.users.findOneBy({ id: userId }),
-      this.subs.findOne({
-        where: { userId },
-        order: { createdAt: 'DESC' },
-      }),
-    ])
-    if (user?.email && COMPED_PRO_EMAILS.includes(user.email.toLowerCase())) return true
-
-    const plan = (sub?.status === 'active' || sub?.status === 'trialing') ? sub.plan : 'free'
-    return plan === 'pro'
+    return this.planAccess.hasAccess(userId, 'pro')
   }
 
-  /** Envio manual acionado pelo psicólogo (formulários, links). Liberado a partir do Essencial. */
+  /** Envio manual acionado pelo psicólogo (formulários, links). Liberado a partir do Pro. */
   private async canSendManualWhatsApp(userId?: string | null): Promise<boolean> {
     if (!userId) return false
 
-    const [user, sub] = await Promise.all([
-      this.users.findOneBy({ id: userId }),
-      this.subs.findOne({ where: { userId }, order: { createdAt: 'DESC' } }),
-    ])
-    if (user?.email && COMPED_PRO_EMAILS.includes(user.email.toLowerCase())) return true
-
-    const PLAN_ORDER: Record<string, number> = { free: 0, basic: 1, essencial: 1, pro: 2, premium: 2 }
-    const plan = (sub?.status === 'active' || sub?.status === 'trialing') ? (sub.plan ?? 'free') : 'free'
-    return (PLAN_ORDER[plan] ?? 0) >= 1
+    return this.planAccess.hasAccess(userId, 'pro')
   }
 
   // ─── Envio via WhatsApp (Evolution API) ──────────────────────────────────
@@ -328,14 +366,40 @@ export class NotificationsService {
 
   // ─── Web Push ─────────────────────────────────────────────────────────────
 
-  async getPushStatus(userId: string): Promise<{ configured: boolean; subscribed: boolean; publicKey: string | null; subscriptions: number }> {
+  async getPushStatus(userId: string): Promise<{
+    configured: boolean; subscribed: boolean; publicKey: string | null; subscriptions: number
+    nativeConfigured: boolean; nativeSubscribed: boolean; nativeTokens: number
+  }> {
     const count = await this.pushSubscriptions.countBy({ userId })
+    const nativeCount = await this.nativePushTokens.countBy({ userId })
     return {
       configured: this.pushEnabled,
       subscribed: count > 0,
       publicKey: this.pushEnabled ? this.VAPID_PUBLIC_KEY : null,
       subscriptions: count,
+      nativeConfigured: this.firebaseEnabled,
+      nativeSubscribed: nativeCount > 0,
+      nativeTokens: nativeCount,
     }
+  }
+
+  async registerNativePushToken(userId: string, dto: RegisterNativePushTokenDto): Promise<{ registered: boolean }> {
+    if (!this.firebaseEnabled) throw new BadRequestException('Push nativo nao configurado no servidor')
+    const existing = await this.nativePushTokens.findOneBy({ userId, token: dto.token })
+    const entity = existing ?? this.nativePushTokens.create({ userId, token: dto.token })
+    entity.platform = dto.platform as NativePushPlatform
+    await this.nativePushTokens.save(entity)
+    return { registered: true }
+  }
+
+  async removeNativePushToken(userId: string, token?: string): Promise<{ registered: boolean }> {
+    if (token) {
+      await this.nativePushTokens.delete({ userId, token })
+    } else {
+      await this.nativePushTokens.delete({ userId })
+    }
+    const count = await this.nativePushTokens.countBy({ userId })
+    return { registered: count > 0 }
   }
 
   async savePushSubscription(userId: string, subscription: SavePushSubscriptionDto, userAgent?: string): Promise<{ subscribed: boolean }> {
@@ -373,7 +437,7 @@ export class NotificationsService {
     })
   }
 
-  async sendAppointmentPushReminder(appointment: any, lead: '24h' | '2h'): Promise<PushDeliveryResult> {
+  async sendAppointmentPushReminder(appointment: any, lead: '24h' | '1h'): Promise<PushDeliveryResult> {
     if (!appointment.psychologistId) return { sent: 0, removed: 0, reason: 'no_subscription' }
     const timeLabel = String(appointment.time).slice(0, 5)
     const title = lead === '24h' ? 'Sessao amanha' : 'Sessao em breve'
@@ -390,6 +454,24 @@ export class NotificationsService {
   }
 
   private async sendPushToUser(userId: string, payload: Record<string, string>): Promise<PushDeliveryResult> {
+    const [webResult, nativeResult] = await Promise.all([
+      this.sendWebPushToUser(userId, payload),
+      this.sendNativePushToUser(userId, payload),
+    ])
+
+    if (webResult.reason === 'not_configured' && nativeResult.reason === 'not_configured') {
+      return { sent: 0, removed: 0, reason: 'not_configured' }
+    }
+    const sent = webResult.sent + nativeResult.sent
+    const removed = webResult.removed + nativeResult.removed
+    if (sent > 0) return { sent, removed }
+    if (webResult.reason === 'no_subscription' && nativeResult.reason === 'no_subscription') {
+      return { sent, removed, reason: 'no_subscription' }
+    }
+    return { sent, removed, reason: 'api_error' }
+  }
+
+  private async sendWebPushToUser(userId: string, payload: Record<string, string>): Promise<PushDeliveryResult> {
     if (!this.pushEnabled) return { sent: 0, removed: 0, reason: 'not_configured' }
     const subscriptions = await this.pushSubscriptions.findBy({ userId })
     if (subscriptions.length === 0) return { sent: 0, removed: 0, reason: 'no_subscription' }
@@ -416,6 +498,56 @@ export class NotificationsService {
     return sent > 0 ? { sent, removed } : { sent, removed, reason: 'api_error' }
   }
 
+  /** Push nativo (app Android/iOS) via Firebase Cloud Messaging — mesmo payload {title,body,url,tag} do Web Push. */
+  private async sendNativePushToUser(userId: string, payload: Record<string, string>): Promise<PushDeliveryResult> {
+    if (!this.firebaseEnabled) return { sent: 0, removed: 0, reason: 'not_configured' }
+    const tokens = await this.nativePushTokens.findBy({ userId })
+    if (tokens.length === 0) return { sent: 0, removed: 0, reason: 'no_subscription' }
+
+    let sent = 0
+    let removed = 0
+    for (const tokenRow of tokens) {
+      try {
+        await getMessaging().send({
+          token: tokenRow.token,
+          notification: { title: payload.title, body: payload.body },
+          data: { url: payload.url ?? '', tag: payload.tag ?? '' },
+        })
+        sent++
+      } catch (err: any) {
+        const code = err?.errorInfo?.code ?? err?.code
+        if (code === 'messaging/registration-token-not-registered' || code === 'messaging/invalid-registration-token') {
+          await this.nativePushTokens.delete({ id: tokenRow.id })
+          removed++
+        } else {
+          this.logger.error(`[FCM] Falha user=${userId} code=${code ?? 'unknown'}`)
+        }
+      }
+    }
+
+    return sent > 0 ? { sent, removed } : { sent, removed, reason: 'api_error' }
+  }
+
+  private async sendBookingPush(
+    psychologistId: string | undefined,
+    booking: any,
+    title: string,
+  ): Promise<void> {
+    if (!psychologistId) return
+    try {
+      await this.sendPushToUser(psychologistId, {
+        title,
+        // Nomes e observacoes nao aparecem na tela bloqueada do dispositivo.
+        body: `Data: ${booking.date} as ${String(booking.time).slice(0, 5)}.`,
+        url: `${this.BASE_URL}/agendamentos`,
+        tag: `booking-${booking.id}-${title.toLowerCase().replace(/\s+/g, '-')}`,
+      })
+    } catch (err: any) {
+      // Push e complementar: uma falha nunca deve impedir o agendamento.
+      this.logger.warn(`[WebPush] Aviso de agendamento nao enviado bookingId=${booking.id}: ${err?.message ?? 'erro desconhecido'}`)
+    }
+  }
+
   private async sendWhatsApp(phone: string, text: string, ownerId: string, meta: WhatsAppLogMeta): Promise<WhatsAppDeliveryResult> {
     let result: WhatsAppDeliveryResult
     if (!await this.canUseWhatsAppAutomation(ownerId)) {
@@ -425,16 +557,238 @@ export class NotificationsService {
       return result
     }
 
-    if (!this.waEnabled) {
+    const useCloud = this.cloudWhatsApp.isEnabledFor(ownerId) && this.cloudWhatsApp.isConfigured() && !!meta.cloudTemplate
+    if (!this.waEnabled && !useCloud) {
       this.logger.log(`[WhatsApp DEV] envio simulado owner=${ownerId ?? 'unknown'} chars=${text.length}`)
       result = { sent: false, reason: 'not_configured', error: 'WhatsApp nao configurado' }
       await this.recordWhatsAppLog(ownerId, phone, meta, result)
       return result
     }
 
-    result = await this.deliverWhatsApp(phone, text, ownerId)
+    const outbox = meta.idempotencyKey
+      ? await this.claimOutbox(ownerId, phone, text, meta)
+      : null
+    if (outbox?.duplicate) {
+      return outbox.completed
+        ? { sent: true, providerStatus: 'idempotent_duplicate' }
+        : outbox.pendingReconciliation
+          ? { sent: false, pendingReconciliation: true, providerStatus: 'delivery_unknown' }
+        : {
+            sent: false,
+            reason: 'api_error',
+            error: 'Mensagem aguardando confirmacao ou nova tentativa',
+            providerStatus: 'retry_pending',
+          }
+    }
+    result = useCloud
+      ? await this.cloudWhatsApp.send({ ownerId, phone, text, template: meta.cloudTemplate })
+      : await this.deliverWhatsApp(phone, text, ownerId, true, meta.verifyDelivery ?? true, true, !!outbox?.entity)
+    if (outbox?.entity) await this.finishOutbox(outbox.entity, result)
     await this.recordWhatsAppLog(ownerId, phone, meta, result)
     return result
+  }
+
+  private async claimOutbox(ownerId: string, phone: string, text: string, meta: WhatsAppLogMeta): Promise<{ duplicate: boolean; completed?: boolean; pendingReconciliation?: boolean; entity?: WhatsAppOutbox }> {
+    const key = meta.idempotencyKey!
+    const provider = this.cloudWhatsApp.isEnabledFor(ownerId)
+      && this.cloudWhatsApp.isConfigured()
+      && meta.cloudTemplate
+      ? 'cloud_api'
+      : 'evolution'
+    const inserted = await this.whatsAppOutbox.createQueryBuilder().insert().values({
+      userId: ownerId,
+      idempotencyKey: key,
+      type: meta.type,
+      provider,
+      status: 'sending',
+      attempts: 1,
+      patientId: meta.patientId ?? null,
+      recipientPhone: phone,
+      content: text,
+    }).orIgnore().returning(['id']).execute()
+
+    // A restricao unica do banco e a trava: somente quem inseriu a chave pode enviar.
+    // Isso evita a janela entre INSERT e UPDATE que permitia duas chamadas concorrentes.
+    const insertedId = inserted.raw?.[0]?.id
+    if (insertedId) {
+      const entity = await this.whatsAppOutbox.findOneOrFail({ where: { id: insertedId } })
+      return { duplicate: false, entity }
+    }
+
+    // Uma chave existente so pode ser retomada quando uma tentativa falhou e o backoff venceu.
+    const claimResult: unknown = await this.whatsAppOutbox.manager.query(`
+      UPDATE "whatsapp_outbox"
+      SET "status" = 'sending', "provider" = $2, "attempts" = "attempts" + 1,
+          "nextAttemptAt" = NULL, "updatedAt" = now()
+      WHERE "idempotencyKey" = $1
+        AND "status" = 'failed'
+        AND "nextAttemptAt" IS NOT NULL
+        AND "nextAttemptAt" <= now()
+        AND COALESCE("providerStatus", '') <> 'unverified'
+      RETURNING "id"
+    `, [key, provider])
+    const claimed = this.queryRows<{ id: string }>(claimResult)
+
+    if (!claimed.length) {
+      const existing = await this.whatsAppOutbox.findOneOrFail({ where: { idempotencyKey: key } })
+      return {
+        duplicate: true,
+        completed: ['accepted', 'delivered', 'read'].includes(existing.status)
+          || (existing.providerStatus === 'unverified' && existing.status !== 'delivery_unknown'),
+        pendingReconciliation: existing.status === 'delivery_unknown',
+      }
+    }
+
+    const entity = await this.whatsAppOutbox.findOneOrFail({ where: { id: claimed[0].id } })
+    return { duplicate: false, entity }
+  }
+
+  private async finishOutbox(entity: WhatsAppOutbox, result: WhatsAppDeliveryResult): Promise<void> {
+    entity.status = result.pendingReconciliation ? 'delivery_unknown' : result.sent ? 'accepted' : 'failed'
+    entity.providerMessageId = result.providerMessageId ?? null
+    entity.providerStatus = result.providerStatus ?? null
+    entity.lastError = result.sent || result.pendingReconciliation ? null : (result.error ?? result.reason ?? 'Falha no envio').slice(0, 240)
+    entity.nextAttemptAt = result.sent || result.nonRetryable || result.pendingReconciliation
+      ? null
+      : new Date(Date.now() + Math.min(30, 2 ** entity.attempts) * 60_000)
+    await this.whatsAppOutbox.save(entity)
+  }
+
+  /** Reprocessa falhas da Evolution respeitando backoff e limite de tentativas. */
+  async retryDueWhatsAppOutbox(now = new Date(), limit = 20): Promise<number> {
+    const candidates = await this.whatsAppOutbox.find({
+      where: [
+        { provider: 'evolution', status: 'pending' },
+        { provider: 'evolution', status: 'failed', nextAttemptAt: LessThanOrEqual(now) },
+      ],
+      order: { createdAt: 'ASC' },
+      take: Math.max(1, Math.min(limit, 100)),
+    })
+
+    let processed = 0
+    for (const entity of candidates) {
+      if (entity.providerStatus === 'unverified') {
+        entity.status = 'accepted'
+        entity.nextAttemptAt = null
+        await this.whatsAppOutbox.save(entity)
+        continue
+      }
+
+      if (entity.attempts >= 5) {
+        entity.status = 'failed'
+        entity.nextAttemptAt = null
+        entity.lastError = entity.lastError ?? 'Limite de tentativas atingido'
+        await this.whatsAppOutbox.save(entity)
+        continue
+      }
+
+      const claimResult: unknown = await this.whatsAppOutbox.manager.query(`
+        UPDATE "whatsapp_outbox"
+        SET "status" = 'sending', "attempts" = "attempts" + 1,
+            "nextAttemptAt" = NULL, "updatedAt" = now()
+        WHERE "id" = $1
+          AND (
+            "status" = 'pending'
+            OR ("status" = 'failed' AND "nextAttemptAt" IS NOT NULL AND "nextAttemptAt" <= $2)
+          )
+          AND "attempts" < 5
+          AND COALESCE("providerStatus", '') <> 'unverified'
+        RETURNING "id"
+      `, [entity.id, now])
+      const claimed = this.queryRows<{ id: string }>(claimResult)
+      if (!claimed.length) continue
+
+      entity.status = 'sending'
+      entity.attempts += 1
+      entity.nextAttemptAt = null
+
+      if (/sem conteudo|vazia/i.test(entity.lastError ?? '')) {
+        await this.restartWhatsAppConnection(this.getWhatsAppInstance(entity.userId))
+      }
+
+      const result = await this.deliverWhatsApp(
+        entity.recipientPhone,
+        entity.content,
+        entity.userId,
+        true,
+        true,
+        false,
+      )
+      await this.finishOutbox(entity, result)
+      processed += 1
+    }
+    return processed
+  }
+
+  private queryRows<T extends Record<string, unknown>>(result: unknown): T[] {
+    if (!Array.isArray(result)) return []
+    // TypeORM/PostgreSQL devolve UPDATE/DELETE como [rows, affected].
+    return Array.isArray(result[0]) ? result[0] as T[] : result as T[]
+  }
+
+  async reconcileWhatsAppOutbox(now = new Date(), limit = 20): Promise<number> {
+    const staleBefore = new Date(now.getTime() - 5 * 60_000)
+    const candidates = await this.whatsAppOutbox.find({
+      where: [
+        { provider: 'evolution', status: 'delivery_unknown', updatedAt: LessThanOrEqual(staleBefore) },
+        { provider: 'evolution', status: 'sending', updatedAt: LessThanOrEqual(staleBefore) },
+      ],
+      order: { updatedAt: 'ASC' },
+      take: Math.max(1, Math.min(limit, 100)),
+    })
+
+    let processed = 0
+    for (const entity of candidates) {
+      if (entity.status === 'sending') {
+        entity.status = 'delivery_unknown'
+        entity.providerStatus = 'outcome_unknown'
+        entity.nextAttemptAt = null
+      }
+
+      if (!entity.providerMessageId) {
+        await this.whatsAppOutbox.save(entity)
+        processed += 1
+        continue
+      }
+
+      const verification = await this.verifyWhatsAppDelivery(
+        this.getWhatsAppInstance(entity.userId),
+        entity.providerMessageId,
+        entity.content,
+      )
+      if (verification === 'ok') {
+        entity.status = 'accepted'
+        entity.providerStatus = 'reconciled'
+        entity.lastError = null
+      } else if (verification === 'empty') {
+        entity.status = 'failed'
+        entity.providerStatus = 'empty'
+        entity.lastError = 'Evolution persistiu mensagem vazia'
+        entity.nextAttemptAt = now
+      } else if (verification === 'mismatch') {
+        entity.status = 'failed'
+        entity.providerStatus = 'mismatch'
+        entity.lastError = 'Evolution persistiu conteudo divergente'
+        entity.nextAttemptAt = null
+      } else {
+        entity.status = 'delivery_unknown'
+        entity.providerStatus = 'unverified'
+        entity.nextAttemptAt = null
+      }
+      await this.whatsAppOutbox.save(entity)
+      processed += 1
+    }
+    return processed
+  }
+
+  async supersedeAppointmentReminders(appointmentId: string, manager?: EntityManager): Promise<void> {
+    const repo = manager ? manager.getRepository(WhatsAppOutbox) : this.whatsAppOutbox
+    await repo.createQueryBuilder()
+      .update(WhatsAppOutbox)
+      .set({ status: 'failed', nextAttemptAt: null, providerStatus: 'superseded' })
+      .where('"idempotencyKey" LIKE :prefix', { prefix: `appointment-reminder:${appointmentId}:%` })
+      .andWhere('"status" IN (:...statuses)', { statuses: ['pending', 'failed', 'delivery_unknown'] })
+      .execute()
   }
 
   // ─── Agendamentos internos ─────────────────────────────────────────────────
@@ -442,7 +796,7 @@ export class NotificationsService {
   async sendDirectWhatsApp(phone: string, text: string, ownerId: string, meta: WhatsAppLogMeta = { type: 'manual' }): Promise<WhatsAppDeliveryResult> {
     let result: WhatsAppDeliveryResult
     if (!await this.canSendManualWhatsApp(ownerId)) {
-      result = { sent: false, reason: 'plan', error: 'Envio via WhatsApp disponível a partir do plano Essencial' }
+      result = { sent: false, reason: 'plan', error: 'Envio via WhatsApp disponível a partir do plano Pro' }
       await this.recordWhatsAppLog(ownerId, phone, meta, result)
       return result
     }
@@ -466,6 +820,7 @@ export class NotificationsService {
     allowClosedConnectionRecovery = true,
     allowDeliveryVerification = true,
     allowEmptyDeliveryRetry = true,
+    trackAmbiguousDelivery = false,
   ): Promise<WhatsAppDeliveryResult> {
     const normalizedText = typeof text === 'string' ? text.trim() : ''
     if (!normalizedText) {
@@ -480,15 +835,14 @@ export class NotificationsService {
 
     const normalized = phone.replace(/\D/g, '')
     const withDdi = normalized.startsWith('55') ? normalized : `55${normalized}`
+    // Válido: 55 (DDI) + 2 (DDD) + 8 ou 9 dígitos = 12 ou 13 dígitos no total
+    if (withDdi.length < 12 || withDdi.length > 13) {
+      return { sent: false, reason: 'invalid_content', error: `Numero invalido apos normalizacao: ${withDdi.length} digitos` }
+    }
 
     try {
       const instance = this.getWhatsAppInstance(ownerId)
-      const res = await fetch(`${this.WA_URL}/message/sendText/${instance}`, {
-        method: 'POST',
-        headers: { apikey: this.WA_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ number: withDdi, text: normalizedText, delay: 1000 }),
-      })
-      const body = await res.text().catch(() => '')
+      const { res, body } = await this.postWhatsAppText(instance, withDdi, normalizedText)
 
       if (!res.ok) {
         const nonRetryable = res.status >= 400 && res.status < 500 && res.status !== 429
@@ -497,8 +851,16 @@ export class NotificationsService {
         if (allowClosedConnectionRecovery && this.isClosedConnectionError(body)) {
           const recovered = await this.restartWhatsAppConnection(instance)
           if (recovered) {
-            this.logger.warn(`[WhatsApp] Instancia reiniciada; repetindo envio uma vez instance=${instance}`)
-            return this.deliverWhatsApp(phone, text, ownerId, false)
+            this.logger.warn(`[WhatsApp] Instancia reiniciada; reenvio automatico bloqueado instance=${instance}`)
+            return {
+              sent: false,
+              reason: 'api_error',
+              error: 'Conexao recuperada; confirme o envio antes de tentar novamente',
+              nonRetryable: !trackAmbiguousDelivery,
+              pendingReconciliation: trackAmbiguousDelivery,
+              providerStatus: 'connection_recovered_no_retry',
+              contentLength: normalizedText.length,
+            }
           }
         }
         return { sent: false, reason: 'api_error', error, nonRetryable, contentLength: normalizedText.length }
@@ -550,22 +912,45 @@ export class NotificationsService {
           return acceptedResult
         }
 
-        // 'empty' (confirmado vazio) e 'unknown' (não deu pra confirmar nem
-        // refutar — falha na consulta, formato de resposta inesperado, mensagem
-        // ainda não indexada) recebem o mesmo tratamento na primeira tentativa:
-        // reenviar uma vez. Um resultado inconclusivo é exatamente tão arriscado
-        // quanto um vazio confirmado do ponto de vista do paciente — não vale a
-        // pena arriscar deixá-lo sem mensagem só porque a checagem em si falhou.
-        if (allowEmptyDeliveryRetry) {
-          this.logger.warn(`[WhatsApp] Entrega ${verification === 'empty' ? 'vazia confirmada' : 'nao verificavel'} apos envio; reenviando uma vez instance=${instance} messageId=${provider.messageId}`)
-          return this.deliverWhatsApp(
-            phone,
-            normalizedText,
-            ownerId,
-            allowClosedConnectionRecovery,
-            true,
-            false,
-          )
+        // A resposta sincrona da Evolution nao comprova entrega. Envios com outbox
+        // ficam em estado ambiguo ate o job de reconciliacao consultar o provedor.
+        if (verification === 'unknown') {
+          this.logger.warn(`[WhatsApp] Verificacao inconclusiva instance=${instance} messageId=${provider.messageId}; reenvio automatico bloqueado`)
+          if (trackAmbiguousDelivery) {
+            return {
+              sent: false,
+              pendingReconciliation: true,
+              providerMessageId: provider.messageId,
+              providerStatus: 'unverified',
+              contentLength: provider.text.trim().length,
+            }
+          }
+          return { ...acceptedResult, providerStatus: 'unverified' }
+        }
+
+        if (verification === 'skipped') {
+          if (trackAmbiguousDelivery) {
+            return {
+              sent: false,
+              pendingReconciliation: true,
+              providerMessageId: provider.messageId,
+              providerStatus: 'unverified',
+              contentLength: provider.text.trim().length,
+            }
+          }
+          return { ...acceptedResult, providerStatus: 'unverified' }
+        }
+
+        if (verification === 'empty' && allowEmptyDeliveryRetry) {
+          this.logger.warn(`[WhatsApp] Entrega vazia confirmada instance=${instance} messageId=${provider.messageId}; reenvio imediato bloqueado`)
+          return {
+            sent: false,
+            reason: 'api_error',
+            error: 'WhatsApp persistiu mensagem sem conteudo; uma nova tentativa sera feita com intervalo',
+            providerMessageId: provider.messageId,
+            providerStatus: provider.status,
+            contentLength: 0,
+          }
         }
 
         if (verification === 'empty') {
@@ -581,13 +966,19 @@ export class NotificationsService {
           }
         }
 
-        // 'unknown' também na segunda tentativa: não temos prova de falha, então
-        // não bloqueamos como erro (evitaria reenvios/alarmes falsos), mas também
-        // não afirmamos que o conteúdo foi confirmado — fica marcado como
-        // "unverified" para ter visibilidade real no histórico, em vez de
-        // aparecer idêntico a uma entrega efetivamente confirmada.
-        this.logger.warn(`[WhatsApp] Verificacao de entrega inconclusiva apos reenvio instance=${instance} messageId=${provider.messageId} — marcado como enviado sem confirmacao de conteudo`)
-        return { ...acceptedResult, providerStatus: 'unverified' }
+        if (verification === 'mismatch') {
+          this.logger.error(`[WhatsApp] Conteudo persistido divergente instance=${instance} messageId=${provider.messageId}; reenvio bloqueado`)
+          return {
+            sent: false,
+            reason: 'api_error',
+            error: 'WhatsApp persistiu conteudo diferente; reenvio automatico bloqueado para evitar duplicidade',
+            nonRetryable: true,
+            providerMessageId: provider.messageId,
+            providerStatus: provider.status,
+            contentLength: provider.text.trim().length,
+          }
+        }
+
       }
 
       return acceptedResult
@@ -596,6 +987,9 @@ export class NotificationsService {
         sent: false,
         reason: 'disconnected',
         error: 'WhatsApp desconectado ou indisponivel',
+        nonRetryable: !trackAmbiguousDelivery,
+        pendingReconciliation: trackAmbiguousDelivery,
+        providerStatus: 'request_outcome_unknown',
         contentLength: normalizedText.length,
       }
     }
@@ -606,23 +1000,33 @@ export class NotificationsService {
    * enviado — a resposta síncrona do sendText só reflete o que ela recebeu, não o que o
    * Baileys efetivamente gravou/entregou.
    */
+  // Atraso de cada tentativa de verificação — cresce a cada nova tentativa pra
+  // cobrir indexação lenta do Baileys sob carga (tentativas em ~3s/6s/10s corridos).
+  private static readonly WA_VERIFY_DELAYS_MS = [3000, 3000, 4000]
+
   private async verifyWhatsAppDelivery(
     instance: string,
     messageId: string,
     expectedText: string,
-    attempt: 1 | 2 = 1,
-  ): Promise<'ok' | 'empty' | 'unknown'> {
+    attempt: 1 | 2 | 3 = 1,
+  ): Promise<'ok' | 'empty' | 'mismatch' | 'unknown' | 'skipped'> {
     // Evita atraso real e chamadas de rede extras durante os testes (mocks cobrem só o fluxo de sendText).
-    if (process.env.JEST_WORKER_ID !== undefined) return 'unknown'
+    if (process.env.JEST_WORKER_ID !== undefined) return 'skipped'
 
-    await new Promise(resolve => setTimeout(resolve, 3000))
+    const maxAttempts = NotificationsService.WA_VERIFY_DELAYS_MS.length as 1 | 2 | 3
+    await new Promise(resolve => setTimeout(resolve, NotificationsService.WA_VERIFY_DELAYS_MS[attempt - 1]))
     try {
-      const res = await fetch(`${this.WA_URL}/chat/findMessages/${instance}`, {
+      const res = await fetchWithTimeout(`${this.WA_URL}/chat/findMessages/${instance}`, {
         method: 'POST',
         headers: { apikey: this.WA_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({ where: { key: { id: messageId } } }),
       })
-      if (!res.ok) return 'unknown'
+      if (!res.ok) {
+        if (attempt < maxAttempts) {
+          return this.verifyWhatsAppDelivery(instance, messageId, expectedText, (attempt + 1) as 1 | 2 | 3)
+        }
+        return 'unknown'
+      }
 
       const data = await res.json().catch(() => null) as any
       const records: any[] = Array.isArray(data)
@@ -635,8 +1039,9 @@ export class NotificationsService {
       const match = records.find(record => record?.key?.id === messageId)
       if (!match) {
         // A mensagem pode ainda não ter sido indexada pelo Baileys sob carga —
-        // uma segunda tentativa evita marcar como "unknown" só por lentidão pontual.
-        if (attempt === 1) return this.verifyWhatsAppDelivery(instance, messageId, expectedText, 2)
+        // tentativas adicionais (com atraso crescente) evitam marcar como "unknown"
+        // só por lentidão pontual, sem reenviar (que criaria duplicidade).
+        if (attempt < maxAttempts) return this.verifyWhatsAppDelivery(instance, messageId, expectedText, (attempt + 1) as 1 | 2 | 3)
         return 'unknown'
       }
 
@@ -646,8 +1051,12 @@ export class NotificationsService {
       ].find(value => typeof value === 'string')
       if (typeof persistedText !== 'string') return 'unknown'
 
-      return persistedText.trim() === expectedText.trim() ? 'ok' : 'empty'
+      if (!persistedText.trim()) return 'empty'
+      return persistedText.trim() === expectedText.trim() ? 'ok' : 'mismatch'
     } catch {
+      if (attempt < maxAttempts) {
+        return this.verifyWhatsAppDelivery(instance, messageId, expectedText, (attempt + 1) as 1 | 2 | 3)
+      }
       return 'unknown'
     }
   }
@@ -669,13 +1078,31 @@ export class NotificationsService {
     }
   }
 
+  private async postWhatsAppText(instance: string, number: string, text: string): Promise<{ res: Response; body: string }> {
+    const endpoint = `${this.WA_URL}/message/sendText/${instance}`
+    const payload = this.buildWhatsAppTextPayload(number, text)
+
+    const response = await fetchWithTimeout(endpoint, {
+      method: 'POST',
+      headers: { apikey: this.WA_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    const body = await response.text().catch(() => '')
+
+    return { res: response, body }
+  }
+
+  private buildWhatsAppTextPayload(number: string, text: string): WhatsAppTextPayload {
+    return { number, text, delay: 1000, linkPreview: false }
+  }
+
   private isClosedConnectionError(body: string): boolean {
-    return /connection\s+closed/i.test(body)
+    return /connection\s+closed|not\s+connected|instance\s+(?:is\s+)?(?:disconnected|closed)|stream\s+(?:errored|closed)|socket\s+closed/i.test(body)
   }
 
   private async restartWhatsAppConnection(instance: string): Promise<boolean> {
     try {
-      const restart = await fetch(`${this.WA_URL}/instance/restart/${instance}`, {
+      const restart = await fetchWithTimeout(`${this.WA_URL}/instance/restart/${instance}`, {
         method: 'PUT',
         headers: { apikey: this.WA_KEY },
       })
@@ -684,9 +1111,10 @@ export class NotificationsService {
       const restartBody = await restart.json().catch(() => null) as Record<string, any> | null
       if (restartBody?.instance?.state === 'open') return true
 
-      for (let attempt = 0; attempt < 5; attempt++) {
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        const stateResponse = await fetch(`${this.WA_URL}/instance/connectionState/${instance}`, {
+      const delays = [1000, 1500, 2000, 2500, 3000, 4000]
+      for (const delay of delays) {
+        await new Promise(resolve => setTimeout(resolve, delay))
+        const stateResponse = await fetchWithTimeout(`${this.WA_URL}/instance/connectionState/${instance}`, {
           headers: { apikey: this.WA_KEY },
         })
         if (!stateResponse.ok) continue
@@ -779,7 +1207,10 @@ export class NotificationsService {
   }
 
   async scheduleReminder(appointment: any): Promise<void> {
-    if (!appointment.patient?.phone) return
+    if (!appointment.patient?.phone) {
+      this.logger.warn(`[Lembrete] Paciente sem telefone — consulta ${appointment.id} ignorada`)
+      return
+    }
     const { patient, date, time } = appointment
     const first = patient.name.split(' ')[0]
 
@@ -801,15 +1232,23 @@ export class NotificationsService {
     })
   }
 
-  async sendAppointmentReminder(appointment: any, lead: '24h' | '2h'): Promise<WhatsAppDeliveryResult> {
+  async sendAppointmentReminder(appointment: any, lead: '24h' | '1h'): Promise<WhatsAppDeliveryResult> {
     const { patient, date, time } = appointment
     const prefs = (appointment.psychologist?.preferences ?? {}) as Record<string, any>
     const pushResult = await this.sendAppointmentPushReminder(appointment, lead)
 
     if (!patient?.phone) {
-      return pushResult.sent > 0
+      const result = pushResult.sent > 0
         ? { sent: true }
         : { sent: false, error: 'Paciente sem WhatsApp e push nao enviado' }
+      if (!result.sent) {
+        await this.recordWhatsAppLog(appointment.psychologistId, '', {
+          type: lead === '24h' ? 'Lembrete 24h' : 'Lembrete 1h',
+          patientId: patient?.id,
+          patientName: patient?.name,
+        }, result)
+      }
+      return result
     }
 
     const first = patient.name.split(' ')[0]
@@ -826,22 +1265,31 @@ export class NotificationsService {
 
     const defaultMsg = lead === '24h'
       ? `Ola, ${first}!\n\nLembrando que temos nosso encontro em *${dateLabel}* as *${timeLabel}*.\n\nAte la!`
-      : `Ola, ${first}!\n\nPassando para lembrar que nossa sessao e hoje as *${timeLabel}*.\n\nAte daqui a pouco!`
-    // Template específico do lead (24h/2h) tem prioridade; cai para o template
+      : `Ola, ${first}!\n\nPassando para lembrar que nossa sessao acontece em *${dateLabel}* as *${timeLabel}*.\n\nAte daqui a pouco!`
+    // Template específico do lead (24h/1h) tem prioridade; a chave reminderTemplate2h
+    // é mantida apenas para não invalidar preferências já salvas.
     // único legado (contas que customizaram antes da separação) e por fim para
     // o texto padrão embutido no código.
     const leadTemplate = lead === '24h' ? prefs.reminderTemplate24h : prefs.reminderTemplate2h
     const template = typeof leadTemplate === 'string' && leadTemplate.trim()
       ? leadTemplate
       : (typeof prefs.reminderTemplate === 'string' && prefs.reminderTemplate.trim() ? prefs.reminderTemplate : null)
-    const msg = template
-      ? this.renderReminderTemplate(template, patient.name, dateLabel, timeLabel, lead)
+    const renderedTemplate = template
+      ? renderReminderTemplate(template, patient.name, dateLabel, timeLabel, lead)
+      : ''
+    const msg = isMeaningfulAutomatedMessage(renderedTemplate)
+      ? renderedTemplate
       : defaultMsg
 
     const whatsAppResult = await this.sendWhatsApp(patient.phone, msg, appointment.psychologistId, {
-      type: lead === '24h' ? 'Lembrete 24h' : 'Lembrete 2h',
+      type: lead === '24h' ? 'Lembrete 24h' : 'Lembrete 1h',
       patientId: patient.id,
       patientName: patient.name,
+      idempotencyKey: `appointment-reminder:${appointment.id}:${lead}:${String(date).slice(0, 10)}:${timeLabel}:v2`,
+      cloudTemplate: this.cloudTemplate(
+        lead === '24h' ? 'WHATSAPP_CLOUD_REMINDER_24H_TEMPLATE' : 'WHATSAPP_CLOUD_REMINDER_1H_TEMPLATE',
+        [first, dateLabel, timeLabel],
+      ),
     })
     if (whatsAppResult.sent || pushResult.sent > 0) return { sent: true }
     return whatsAppResult
@@ -880,7 +1328,7 @@ export class NotificationsService {
       receiptLine +
       `Obrigado(a).`
     const msg = template
-      ? this.renderPaymentTemplate(template, patient.name, amount, pixKey, includeReceipt)
+      ? renderPaymentTemplate(template, patient.name, amount, pixKey, includeReceipt)
       : defaultMessage
     return this.sendWhatsApp(patient.phone, msg, patient.psychologistId, {
       type: 'Cobranca',
@@ -889,7 +1337,12 @@ export class NotificationsService {
     })
   }
 
-  async sendLatePaymentReminder(patient: any, amount: number, pixKey?: string): Promise<WhatsAppDeliveryResult> {
+  async sendLatePaymentReminder(
+    patient: any,
+    amount: number,
+    pixKey?: string,
+    template?: string,
+  ): Promise<WhatsAppDeliveryResult> {
     if (!patient?.phone) {
       const result = { sent: false, error: 'Paciente sem WhatsApp' }
       if (patient?.psychologistId) {
@@ -902,11 +1355,14 @@ export class NotificationsService {
       return result
     }
     const firstName = patient.name.split(' ')[0]
-    const msg =
+    const defaultMessage =
       `Ola, ${firstName}!\n\n` +
       `Passando para lembrar do pagamento pendente da sessao (*R$ ${amount.toFixed(2)}*).\n\n` +
       (pixKey ? `Chave PIX: \`${pixKey}\`\n\n` : '') +
       `Qualquer duvida, e so me chamar.`
+    const msg = template
+      ? renderPaymentTemplate(template, patient.name, amount, pixKey, false)
+      : defaultMessage
     return this.sendWhatsApp(patient.phone, msg, patient.psychologistId, {
       type: 'Lembrete de pagamento',
       patientId: patient.id,
@@ -929,7 +1385,7 @@ export class NotificationsService {
         `Ola, ${booking.patientName.split(' ')[0]}!\n\n` +
         `Recebemos sua solicitacao para *${booking.date}* as *${String(booking.time).slice(0, 5)}*.\n\n` +
         `Assim que confirmarmos, voce recebera uma mensagem.\n` +
-        `Precisando cancelar: ${cancelUrl}\n\nAte breve.`
+        `Precisando cancelar: ${this.withWhatsAppUtm(cancelUrl)}\n\nAte breve.`
       await this.sendWhatsApp(booking.patientPhone, patientMsg, page.psychologistId, {
         type: 'Solicitacao de agenda',
         patientName: booking.patientName,
@@ -942,14 +1398,15 @@ export class NotificationsService {
         `*Nova solicitacao de sessao*\n\n` +
         `Pessoa: ${booking.patientName}\n` +
         `Data: ${booking.date} as ${String(booking.time).slice(0, 5)}\n` +
-        `\nConfirmar: ${confirmUrl}`
+        `\nConfirmar: ${this.withWhatsAppUtm(confirmUrl)}`
       await this.sendWhatsApp(page.psychologist.phone, psychMsg, page.psychologistId, {
         type: 'Aviso ao psicologo',
         patientName: booking.patientName,
       })
     }
 
-    // E-mail de backup para o psicólogo
+    // E-mail de backup para o psicólogo — best-effort: falha de e-mail não pode
+    // derrubar a criação do agendamento (mesmo padrão do WhatsApp acima).
     if (page.psychologist?.email) {
       await this.email.sendBookingRequest(
         booking.patientName,
@@ -957,32 +1414,44 @@ export class NotificationsService {
         booking.date,
         booking.time,
         confirmUrl,
-      )
+      ).catch(err => this.logger.warn(`[Booking] E-mail de solicitacao nao enviado bookingId=${booking.id}: ${err?.message ?? 'erro desconhecido'}`))
     }
+
+    await this.sendBookingPush(page.psychologistId, booking, 'Nova solicitacao de agendamento')
 
     this.logger.log(`[Booking] Nova solicitacao bookingId=${booking.id} date=${booking.date} time=${booking.time}`)
   }
 
   async sendBookingConfirmation(booking: any, page?: any): Promise<WhatsAppDeliveryResult | undefined> {
+    const prefs = (page?.psychologist?.preferences ?? {}) as Record<string, any>
+    if (prefs.bookingConfirmation === false) {
+      this.logger.log(`[Booking] Confirmacao desativada por preferencia bookingId=${booking.id}`)
+      return undefined
+    }
+
     const cancelUrl = this.getCancellationUrl(booking)
     const first = booking.patientName.split(' ')[0]
-    const customMessage = this.renderBookingConfirmationMessage(booking, page)
+    const customMessage = renderBookingConfirmationMessage(booking, page)
 
     // WhatsApp para o paciente
     let whatsAppResult: WhatsAppDeliveryResult | undefined
     if (booking.patientPhone) {
+      const cancelUrlWhatsApp = this.withWhatsAppUtm(cancelUrl)
       const msg = customMessage
-        ? `${customMessage}\n\nPrecisando cancelar: ${cancelUrl}`
+        ? `${customMessage}\n\nPrecisando cancelar: ${cancelUrlWhatsApp}`
         : `Ola, ${first}!\n\n` +
           `Sua sessao foi confirmada para *${booking.date}* as *${String(booking.time).slice(0, 5)}*.\n\n` +
-          `Precisando cancelar: ${cancelUrl}\n\nNos vemos la.`
+          `Precisando cancelar: ${cancelUrlWhatsApp}\n\nNos vemos la.`
       whatsAppResult = await this.sendWhatsApp(booking.patientPhone, msg, booking.psychologistId, {
         type: 'Confirmacao de agenda',
         patientName: booking.patientName,
+        idempotencyKey: `booking-confirmation:${booking.id}:v1`,
+        cloudTemplate: this.cloudTemplate('WHATSAPP_CLOUD_BOOKING_CONFIRMATION_TEMPLATE', [first, booking.date, String(booking.time).slice(0, 5), cancelUrl]),
       })
     }
 
-    // E-mail para o paciente
+    // E-mail para o paciente — best-effort: falha de e-mail não pode
+    // derrubar a confirmação do agendamento (mesmo padrão do WhatsApp acima).
     if (booking.patientEmail) {
       await this.email.sendBookingConfirmation(
         booking.patientName,
@@ -991,7 +1460,7 @@ export class NotificationsService {
         booking.time,
         cancelUrl,
         customMessage,
-      )
+      ).catch(err => this.logger.warn(`[Booking] E-mail de confirmacao nao enviado bookingId=${booking.id}: ${err?.message ?? 'erro desconhecido'}`))
     }
 
     if (whatsAppResult?.sent === false) {
@@ -1002,32 +1471,10 @@ export class NotificationsService {
     return whatsAppResult
   }
 
-  private renderBookingConfirmationMessage(booking: any, page?: any): string | null {
-    const template = String(page?.confirmationMessage ?? '').trim()
-    if (!template) return null
-
-    const first = String(booking.patientName ?? '').split(' ')[0] ?? ''
-    const time = String(booking.time ?? '').slice(0, 5)
-    const modality = booking.modality === 'presencial'
-      ? 'presencial'
-      : booking.modality === 'online'
-        ? 'online'
-        : ''
-
-    return template
-      .replace(/{{\s*nome\s*}}/gi, String(booking.patientName ?? ''))
-      .replace(/{{\s*primeiro_nome\s*}}/gi, first)
-      .replace(/{{\s*data\s*}}/gi, String(booking.date ?? ''))
-      .replace(/{{\s*hora\s*}}/gi, time)
-      .replace(/{{\s*profissional\s*}}/gi, String(page?.psychologist?.name ?? page?.psychologistName ?? ''))
-      .replace(/{{\s*modalidade\s*}}/gi, modality)
-  }
-
   async sendBookingCreatedToPsychologist(booking: any, page: any): Promise<void> {
     const psychologist = page.psychologist
     const prefs = (psychologist?.preferences ?? {}) as Record<string, any>
     const phone = prefs.whatsapp || psychologist?.phone
-    if (!phone) return
 
     const modality = booking.modality === 'presencial'
       ? 'Presencial'
@@ -1044,10 +1491,13 @@ export class NotificationsService {
       patientPhone +
       notes
 
-    await this.sendWhatsApp(phone, msg, page.psychologistId, {
-      type: 'Aviso ao psicologo',
-      patientName: booking.patientName,
-    })
+    if (phone) {
+      await this.sendWhatsApp(phone, msg, page.psychologistId, {
+        type: 'Aviso ao psicologo',
+        patientName: booking.patientName,
+      })
+    }
+    await this.sendBookingPush(page.psychologistId, booking, 'Novo agendamento confirmado')
   }
 
   async sendBookingCancellation(booking: any): Promise<void> {
@@ -1068,6 +1518,7 @@ export class NotificationsService {
         patientName: booking.patientName,
       })
     }
+    // best-effort: falha de e-mail não pode derrubar o cancelamento do agendamento.
     if (psychologist?.email) {
       await this.email.sendBookingCancellation(
         booking.patientName,
@@ -1075,8 +1526,9 @@ export class NotificationsService {
         booking.date,
         String(booking.time).slice(0, 5),
         reason,
-      )
+      ).catch(err => this.logger.warn(`[Booking] E-mail de cancelamento nao enviado bookingId=${booking.id}: ${err?.message ?? 'erro desconhecido'}`))
     }
+    await this.sendBookingPush(booking.psychologistId, booking, 'Agendamento cancelado')
 
     this.logger.log(`[Booking] Cancelamento enviado ao psicologo bookingId=${booking.id}`)
   }
@@ -1096,24 +1548,20 @@ export class NotificationsService {
     })
   }
 
-  private renderPaymentTemplate(
-    template: string,
-    patientName: string,
-    amount: number,
-    pixKey?: string,
-    includeReceipt?: boolean,
-  ): string {
-    const receiptMessage = includeReceipt ? 'Pode me enviar o comprovante por aqui depois do pagamento.' : ''
-    const rendered = template
-      .replaceAll('{{nome}}', patientName.split(' ')[0] || patientName)
-      .replaceAll('{{valor}}', `R$ ${amount.toFixed(2)}`)
-      .replaceAll('{{pix}}', pixKey ?? 'PIX nao configurado')
-      .replaceAll('{{comprovante}}', receiptMessage)
-
-    if (includeReceipt && !template.includes('{{comprovante}}')) {
-      return `${rendered}\n\n${receiptMessage}`
+  /** Marca o link com utm_source=whatsapp só na mensagem enviada por WhatsApp — a versão de e-mail continua sem UTM. */
+  private cloudTemplate(envKey: string, bodyParameters: string[]): WhatsAppTemplate | undefined {
+    const name = this.cfg.get<string>(envKey)?.trim()
+    if (!name) return undefined
+    return {
+      name,
+      language: this.cfg.get<string>('WHATSAPP_CLOUD_TEMPLATE_LANGUAGE') ?? 'pt_BR',
+      bodyParameters,
     }
-    return rendered
+  }
+
+  private withWhatsAppUtm(url: string): string {
+    const separator = url.includes('?') ? '&' : '?'
+    return `${url}${separator}utm_source=whatsapp&utm_medium=message`
   }
 
   private getCancellationUrl(booking: any): string {
@@ -1128,17 +1576,4 @@ export class NotificationsService {
       : `${this.BASE_URL}/agendar/cancelar/${confirmationToken}`
   }
 
-  private renderReminderTemplate(
-    template: string,
-    patientName: string,
-    dateLabel: string,
-    time: string,
-    lead: '24h' | '2h',
-  ): string {
-    return template
-      .replaceAll('{{nome}}', patientName.split(' ')[0] || patientName)
-      .replaceAll('{{data}}', dateLabel)
-      .replaceAll('{{hora}}', time)
-      .replaceAll('{{antecedencia}}', lead)
-  }
 }

@@ -1,4 +1,4 @@
-import { Equals, IsBoolean, IsEmail, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator'
+import { Equals, IsBoolean, IsEmail, IsOptional, IsString, Matches, MaxLength, MinLength, ValidateIf } from 'class-validator'
 import { Transform } from 'class-transformer'
 
 export class RegisterDto {
@@ -13,10 +13,21 @@ export class RegisterDto {
   @Transform(({ value }) => value?.toLowerCase().trim())
   email: string
 
+  @IsOptional()
+  @IsBoolean()
+  isStudent?: boolean
+
+  /** Estudante sem CRP (isStudent=true) pula a validação de formato — completa depois no perfil. */
+  @ValidateIf(o => !o.isStudent)
   @IsString()
   @Matches(/^(0[1-9]|1[0-9]|2[0-4])\/\d{4,6}$/, { message: 'CRP inválido. Use uma região entre 01 e 24' })
   @Transform(({ value }) => value?.trim())
-  crp: string
+  crp?: string
+
+  @IsString()
+  @Matches(/^\d{10,11}$/, { message: 'Telefone inválido. Use DDD + número (10 ou 11 dígitos)' })
+  @Transform(({ value }) => value?.replace(/\D/g, ''))
+  phone: string
 
   /**
    * Senha forte: 8+ chars, maiúscula, minúscula, número e símbolo.

@@ -25,6 +25,11 @@ const schema = z.object({
   sexualOrientation: z.string().trim().max(120).optional(),
   careMode: z.enum(['psychotherapy', 'neuropsychological_assessment']),
   tags: z.array(z.enum(TAG_VALUES)).max(20),
+  hasFixedSchedule: z.boolean().optional(),
+  fixedScheduleWeekday: z.coerce.number().min(0).max(6).optional(),
+  fixedScheduleTime: z.string().optional(),
+  fixedScheduleFrequency: z.enum(['weekly', 'biweekly']).optional(),
+  fixedScheduleModality: z.enum(['presencial', 'online']).optional(),
 })
 
 type FormData = z.infer<typeof schema>
@@ -45,6 +50,11 @@ function defaultValues(patient: Patient): FormData {
     sexualOrientation: patient.sexualOrientation ?? '',
     careMode: patient.careMode ?? 'psychotherapy',
     tags: patient.tags ?? [],
+    hasFixedSchedule: patient.hasFixedSchedule ?? false,
+    fixedScheduleWeekday: patient.fixedScheduleWeekday ?? 1,
+    fixedScheduleTime: patient.fixedScheduleTime ?? '09:00',
+    fixedScheduleFrequency: patient.fixedScheduleFrequency ?? 'weekly',
+    fixedScheduleModality: patient.fixedScheduleModality ?? 'presencial',
   }
 }
 
@@ -78,6 +88,7 @@ export default function EditPatientModal({ open, onClose, patient }: EditPatient
   }, [open, patient, reset])
 
   const selectedTags = watch('tags') ?? []
+  const hasFixedSchedule = watch('hasFixedSchedule')
 
   function toggleTag(tag: EmotionalTag) {
     setValue(
@@ -106,6 +117,15 @@ export default function EditPatientModal({ open, onClose, patient }: EditPatient
           sexualOrientation: nullable(data.sexualOrientation),
           careMode: data.careMode,
           tags: data.tags,
+          hasFixedSchedule: data.hasFixedSchedule ?? false,
+          // Mesma convenção do cadastro de paciente novo: sem horário fixo, omite os
+          // subcampos em vez de zerá-los — hasFixedSchedule=false já é a fonte da verdade.
+          ...(data.hasFixedSchedule ? {
+            fixedScheduleWeekday: data.fixedScheduleWeekday,
+            fixedScheduleTime: data.fixedScheduleTime,
+            fixedScheduleFrequency: data.fixedScheduleFrequency,
+            fixedScheduleModality: data.fixedScheduleModality,
+          } : {}),
         },
       })
       toast.success('Cadastro do paciente atualizado')
@@ -194,6 +214,47 @@ export default function EditPatientModal({ open, onClose, patient }: EditPatient
             <label className="label">Orientação sexual</label>
             <input {...register('sexualOrientation')} className="input-field" placeholder="Autodeclarada" />
           </div>
+        </div>
+
+        <div className="border border-neutral-100 rounded-xl p-4 space-y-3">
+          <label className="flex items-center gap-2 text-sm font-medium text-neutral-700">
+            <input {...register('hasFixedSchedule')} type="checkbox" className="w-4 h-4 accent-sage-600" />
+            Atendimento com horario fixo
+          </label>
+          {hasFixedSchedule && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="label">Dia da semana</label>
+                <select {...register('fixedScheduleWeekday')} className="input-field">
+                  <option value={1}>Segunda</option>
+                  <option value={2}>Terca</option>
+                  <option value={3}>Quarta</option>
+                  <option value={4}>Quinta</option>
+                  <option value={5}>Sexta</option>
+                  <option value={6}>Sabado</option>
+                  <option value={0}>Domingo</option>
+                </select>
+              </div>
+              <div>
+                <label className="label">Horario</label>
+                <input {...register('fixedScheduleTime')} type="time" className="input-field" />
+              </div>
+              <div>
+                <label className="label">Recorrencia</label>
+                <select {...register('fixedScheduleFrequency')} className="input-field">
+                  <option value="weekly">Toda semana</option>
+                  <option value="biweekly">De 15 em 15 dias</option>
+                </select>
+              </div>
+              <div>
+                <label className="label">Modalidade</label>
+                <select {...register('fixedScheduleModality')} className="input-field">
+                  <option value="presencial">Presencial</option>
+                  <option value="online">Online</option>
+                </select>
+              </div>
+            </div>
+          )}
         </div>
 
         <fieldset>
