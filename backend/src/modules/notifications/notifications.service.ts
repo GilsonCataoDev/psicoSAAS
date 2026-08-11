@@ -709,6 +709,10 @@ export class NotificationsService {
 
     const normalized = phone.replace(/\D/g, '')
     const withDdi = normalized.startsWith('55') ? normalized : `55${normalized}`
+    // Válido: 55 (DDI) + 2 (DDD) + 8 ou 9 dígitos = 12 ou 13 dígitos no total
+    if (withDdi.length < 12 || withDdi.length > 13) {
+      return { sent: false, reason: 'invalid_content', error: `Numero invalido apos normalizacao: ${withDdi.length} digitos` }
+    }
 
     try {
       const instance = this.getWhatsAppInstance(ownerId)
@@ -1055,7 +1059,10 @@ export class NotificationsService {
   }
 
   async scheduleReminder(appointment: any): Promise<void> {
-    if (!appointment.patient?.phone) return
+    if (!appointment.patient?.phone) {
+      this.logger.warn(`[Lembrete] Paciente sem telefone — consulta ${appointment.id} ignorada`)
+      return
+    }
     const { patient, date, time } = appointment
     const first = patient.name.split(' ')[0]
 
@@ -1130,7 +1137,7 @@ export class NotificationsService {
       type: lead === '24h' ? 'Lembrete 24h' : 'Lembrete 1h',
       patientId: patient.id,
       patientName: patient.name,
-      idempotencyKey: `appointment-reminder:${appointment.id}:${lead}:v1`,
+      idempotencyKey: `appointment-reminder:${appointment.id}:${lead}:${date}:${time}:v2`,
       cloudTemplate: this.cloudTemplate(
         lead === '24h' ? 'WHATSAPP_CLOUD_REMINDER_24H_TEMPLATE' : 'WHATSAPP_CLOUD_REMINDER_1H_TEMPLATE',
         [first, dateLabel, timeLabel],
