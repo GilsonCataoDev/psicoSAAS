@@ -81,10 +81,11 @@ export function useDeleteSession() {
 
 export function useTranscribeAudio() {
   return useMutation({
-    mutationFn: async ({ blob, durationSeconds }: { blob: Blob; durationSeconds: number }) => {
+    mutationFn: async ({ blob, durationSeconds, patientId }: { blob: Blob; durationSeconds: number; patientId: string }) => {
       const form = new FormData()
       form.append('audio', blob, 'recording.webm')
       form.append('durationSeconds', String(Math.max(1, Math.ceil(durationSeconds))))
+      form.append('patientId', patientId)
       return api.post<{ text: string }>('/sessions/transcribe', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       }).then(r => r.data)
@@ -94,10 +95,11 @@ export function useTranscribeAudio() {
 
 export function useTranscribeCall() {
   return useMutation({
-    mutationFn: async ({ blob, durationSeconds }: { blob: Blob; durationSeconds: number }) => {
+    mutationFn: async ({ blob, durationSeconds, patientId }: { blob: Blob; durationSeconds: number; patientId: string }) => {
       const form = new FormData()
       form.append('audio', blob, 'call.webm')
       form.append('durationSeconds', String(Math.max(1, Math.ceil(durationSeconds))))
+      form.append('patientId', patientId)
       return api.post<{ text: string }>('/sessions/transcribe-call', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       }).then(r => r.data)
@@ -107,21 +109,21 @@ export function useTranscribeCall() {
 
 export function useGenerateAiSummary() {
   return useMutation({
-    mutationFn: (data: { transcription: string; patientName?: string }) =>
-      api.post<{ draft: string }>('/sessions/ai-summary', data).then(r => r.data),
+    mutationFn: (data: { transcription: string; patientId: string }) =>
+      api.post<{ draft: string; draftId: string }>('/sessions/ai-summary', data).then(r => r.data),
   })
 }
 
 export function useGenerateProntuarioDraft() {
   return useMutation({
-    mutationFn: (data: { input: string; mode: 'resumo' | 'evolucao' | 'organizar' }) =>
-      api.post<{ draft: string }>('/sessions/ai-prontuario', data).then(r => r.data),
+    mutationFn: (data: { input: string; mode: 'resumo' | 'evolucao' | 'organizar'; patientId: string }) =>
+      api.post<{ draft: string; draftId: string }>('/sessions/ai-prontuario', data).then(r => r.data),
   })
 }
 
 export function useGenerateSessionPlan() {
   return useMutation({
-    mutationFn: (data: { clinicalContext: string }) =>
-      api.post<{ draft: string }>('/sessions/ai-session-plan', data).then(r => r.data),
+    mutationFn: (data: { clinicalContext: string; patientId: string }) =>
+      api.post<{ draft: string; draftId: string }>('/sessions/ai-session-plan', data).then(r => r.data),
   })
 }

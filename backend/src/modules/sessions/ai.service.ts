@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common'
 import OpenAI from 'openai'
 import Anthropic from '@anthropic-ai/sdk'
+import { pseudonymizeClinicalText } from '../../common/privacy/clinical-text-pseudonymizer'
 
 const CLAUDE_TEXT_MODEL = 'claude-haiku-4-5-20251001'
 export const CLAUDE_HAIKU_INPUT_USD_MICROS_PER_TOKEN = 1
@@ -199,7 +200,7 @@ export class AiService {
     }
   }
 
-  async generateSessionSummary(transcription: string): Promise<AiTextResult> {
+  async generateSessionSummary(transcription: string, patientName?: string): Promise<AiTextResult> {
     const mocked = await this.mockTextIfEnabled(
       transcription, 15_000,
       '[MOCK] Rascunho de evolução de teste E2E. Revisar antes de salvar.',
@@ -207,10 +208,12 @@ export class AiService {
     )
     if (mocked) return mocked
 
+    const cleanInput = pseudonymizeClinicalText(transcription.trim(), patientName)?.slice(0, 6000) ?? ''
+
     const prompt = `Você é um assistente de apoio clínico para psicólogos e terapeutas. Com base na transcrição abaixo de uma sessão clínica, elabore um rascunho conciso de nota de evolução clínica. Escreva em linguagem técnica, primeira pessoa do profissional, sem diagnóstico. Inclua: demanda trabalhada, intervenções realizadas, resposta observada e próximos passos sugeridos. Preserve com exatidão datas, prazos, contagens de ocorrências e detalhes de eventos históricos ou secundários mencionados — não os substitua por descrições vagas mesmo quando o fato mais recente da sessão dominar o restante do texto. Máximo 250 palavras. O profissional revisará e editará antes de salvar.
 
 Transcrição:
-${transcription.slice(0, 6000)}`
+${cleanInput}`
 
     try {
       return await this.callTextModel(prompt, 700)
@@ -220,7 +223,7 @@ ${transcription.slice(0, 6000)}`
     }
   }
 
-  async generateSessionPlan(clinicalContext: string): Promise<AiTextResult> {
+  async generateSessionPlan(clinicalContext: string, patientName?: string): Promise<AiTextResult> {
     const mocked = await this.mockTextIfEnabled(
       clinicalContext, 15_000,
       '[MOCK] Sugestao de planejamento de sessao de teste E2E. Revisar antes de usar.',
@@ -228,7 +231,7 @@ ${transcription.slice(0, 6000)}`
     )
     if (mocked) return mocked
 
-    const cleanInput = this.redactDirectIdentifiers(clinicalContext.trim()).slice(0, 8000)
+    const cleanInput = pseudonymizeClinicalText(clinicalContext.trim(), patientName)?.slice(0, 8000) ?? ''
 
     const prompt = `Voce e um assistente de apoio clinico para psicologos e terapeutas.
 Com base no historico de sessoes anteriores abaixo (resumos e proximos passos ja registrados), sugira um plano para a PROXIMA sessao.
@@ -248,7 +251,7 @@ ${cleanInput || '(sem sessoes anteriores registradas)'}`
     }
   }
 
-  async generateProntuarioDraft(input: string, mode: 'resumo' | 'evolucao' | 'organizar'): Promise<AiTextResult> {
+  async generateProntuarioDraft(input: string, mode: 'resumo' | 'evolucao' | 'organizar', patientName?: string): Promise<AiTextResult> {
     const mocked = await this.mockTextIfEnabled(
       input, 15_000,
       '[MOCK] Rascunho de prontuário de teste E2E. Rascunho gerado por IA, revisar antes de salvar.',
@@ -256,7 +259,7 @@ ${cleanInput || '(sem sessoes anteriores registradas)'}`
     )
     if (mocked) return mocked
 
-    const cleanInput = input.trim().slice(0, 8000)
+    const cleanInput = pseudonymizeClinicalText(input.trim(), patientName)?.slice(0, 8000) ?? ''
     const modeInstruction = {
       resumo: 'gere um resumo clinico conciso, em linguagem profissional, preservando apenas informacoes relevantes para acompanhamento.',
       evolucao: 'gere um rascunho de evolucao clinica com demanda trabalhada, intervencoes, resposta observada e proximos passos.',
@@ -474,10 +477,7 @@ Pontos críticos assinalados: ${criticalFlags.length ? criticalFlags.map(f => `$
   }
 
   private redactDirectIdentifiers(value: string): string {
-    return value
-      .replace(/[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/g, '[e-mail omitido]')
-      .replace(/\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, '[CPF omitido]')
-      .replace(/(?:\+?55\s*)?(?:\(?\d{2}\)?\s*)?9?\d{4}[-\s]?\d{4}\b/g, '[telefone omitido]')
+    return pseudonymizeClinicalText(value) ?? ''
   }
 
   /**

@@ -17,6 +17,9 @@ import { AiService } from './ai.service'
 import { CreateSessionDto } from './dto/create-session.dto'
 import { AiUsage } from './entities/ai-usage.entity'
 import { AiTextQuotaService } from './ai-text-quota.service'
+import { AiConsentService } from '../ai-governance/ai-consent.service'
+import { ClinicalAiDraftService } from '../ai-governance/clinical-ai-draft.service'
+import { AudioMetadataService } from './audio-metadata.service'
 
 const AI_TRANSCRIPTION_MAX_SECONDS = 15 * 60
 // Transcrição de chamada cobre a sessão inteira (não um trecho ditado), então
@@ -34,6 +37,9 @@ export class SessionsController {
     private readonly aiTextQuota: AiTextQuotaService,
     @InjectRepository(AiUsage) private readonly aiUsage: Repository<AiUsage>,
     private readonly planAccess: PlanAccessService,
+    private readonly aiConsents: AiConsentService,
+    private readonly aiDrafts: ClinicalAiDraftService,
+    private readonly audioMetadata: AudioMetadataService,
   ) {}
 
   @Get() findAll(
@@ -76,10 +82,14 @@ export class SessionsController {
   async transcribe(
     @UploadedFile() file: Express.Multer.File,
     @Body('durationSeconds') durationSeconds: string,
+    @Body('patientId') patientId: string,
     @Request() req: any,
   ) {
+    await this.aiDrafts.getPatient(req.user.id, patientId)
+    await this.aiConsents.assertActive(req.user.id, 'session_recording_transcription', patientId)
     if (!file?.buffer?.length) throw new BadRequestException('Arquivo de áudio ausente')
-    const duration = this.parseDuration(durationSeconds)
+    this.parseDuration(durationSeconds)
+    const duration = await this.audioMetadata.durationSeconds(file.buffer, file.mimetype, AI_TRANSCRIPTION_MAX_SECONDS)
     const plan = await this.getCurrentPlan(req.user.id, req.user.email)
     await this.chargeTranscriptionQuota(req.user.id, duration, plan)
     try {
@@ -107,10 +117,14 @@ export class SessionsController {
   async transcribeCall(
     @UploadedFile() file: Express.Multer.File,
     @Body('durationSeconds') durationSeconds: string,
+    @Body('patientId') patientId: string,
     @Request() req: any,
   ) {
+    await this.aiDrafts.getPatient(req.user.id, patientId)
+    await this.aiConsents.assertActive(req.user.id, 'session_recording_transcription', patientId)
     if (!file?.buffer?.length) throw new BadRequestException('Arquivo de áudio ausente')
     this.parseCallDuration(durationSeconds)
+    await this.audioMetadata.durationSeconds(file.buffer, file.mimetype, CALL_TRANSCRIPTION_MAX_SECONDS)
     const plan = await this.getCurrentPlan(req.user.id, req.user.email)
     await this.chargeCallTranscriptionQuota(req.user.id, plan)
     try {
@@ -127,20 +141,24 @@ export class SessionsController {
   @Throttle({ default: { limit: 20, ttl: 60 * 1000 } })
   async aiSummary(
     @Body('transcription') transcription: string,
+    @Body('patientId') patientId: string,
     @Request() req?: any,
   ) {
     if (!transcription?.trim()) throw new BadRequestException('Transcrição ausente')
     if (transcription.length > 12000) throw new BadRequestException('A transcrição deve ter no máximo 12.000 caracteres.')
+    await this.aiConsents.assertActive(req.user.id, 'clinical_ai_processing')
+    const patient = await this.aiDrafts.getPatient(req.user.id, patientId)
     await this.aiTextQuota.reserve(req.user.id, req.user.email)
     let result
     try {
-      result = await this.ai.generateSessionSummary(transcription)
+      result = await this.ai.generateSessionSummary(transcription, patient.name)
     } catch (error) {
       await this.aiTextQuota.release(req.user.id).catch(() => {})
       throw error
     }
     await this.aiTextQuota.recordUsage(req.user.id, result.usage)
-    return { draft: result.text }
+    const draft = await this.aiDrafts.create({ psychologistId: req.user.id, patientId, kind: 'session_summary', sourceText: transcription, content: result.text, usage: result.usage, promptVersion: 'session-summary-v2' })
+    return { draft: result.text, draftId: draft.id }
   }
 
   @Post('ai-prontuario')
@@ -149,6 +167,7 @@ export class SessionsController {
   async aiProntuario(
     @Body('input') input: string,
     @Body('mode') mode: 'resumo' | 'evolucao' | 'organizar' = 'organizar',
+    @Body('patientId') patientId: string,
     @Request() req?: any,
   ) {
     const allowedModes = ['resumo', 'evolucao', 'organizar']
@@ -157,16 +176,19 @@ export class SessionsController {
     if (input.trim().length < 20) throw new BadRequestException('Informe mais detalhes para a IA organizar.')
 
     if (input.length > 12000) throw new BadRequestException('O texto deve ter no máximo 12.000 caracteres.')
+    await this.aiConsents.assertActive(req.user.id, 'clinical_ai_processing')
+    const patient = await this.aiDrafts.getPatient(req.user.id, patientId)
     await this.aiTextQuota.reserve(req.user.id, req.user.email)
     let result
     try {
-      result = await this.ai.generateProntuarioDraft(input, mode)
+      result = await this.ai.generateProntuarioDraft(input, mode, patient.name)
     } catch (error) {
       await this.aiTextQuota.release(req.user.id).catch(() => {})
       throw error
     }
     await this.aiTextQuota.recordUsage(req.user.id, result.usage)
-    return { draft: result.text }
+    const draft = await this.aiDrafts.create({ psychologistId: req.user.id, patientId, kind: 'clinical_note', sourceText: input, content: result.text, usage: result.usage, promptVersion: `clinical-note-${mode}-v2` })
+    return { draft: result.text, draftId: draft.id }
   }
 
   @Post('ai-session-plan')
@@ -174,20 +196,24 @@ export class SessionsController {
   @Throttle({ default: { limit: 20, ttl: 60 * 1000 } })
   async aiSessionPlan(
     @Body('clinicalContext') clinicalContext: string,
+    @Body('patientId') patientId: string,
     @Request() req?: any,
   ) {
     if (!clinicalContext?.trim()) throw new BadRequestException('Historico de sessões ausente')
     if (clinicalContext.length > 12000) throw new BadRequestException('O historico deve ter no máximo 12.000 caracteres.')
+    await this.aiConsents.assertActive(req.user.id, 'clinical_ai_processing')
+    const patient = await this.aiDrafts.getPatient(req.user.id, patientId)
     await this.aiTextQuota.reserve(req.user.id, req.user.email)
     let result
     try {
-      result = await this.ai.generateSessionPlan(clinicalContext)
+      result = await this.ai.generateSessionPlan(clinicalContext, patient.name)
     } catch (error) {
       await this.aiTextQuota.release(req.user.id).catch(() => {})
       throw error
     }
     await this.aiTextQuota.recordUsage(req.user.id, result.usage)
-    return { draft: result.text }
+    const draft = await this.aiDrafts.create({ psychologistId: req.user.id, patientId, kind: 'session_plan', sourceText: clinicalContext, content: result.text, usage: result.usage, promptVersion: 'session-plan-v2' })
+    return { draft: result.text, draftId: draft.id }
   }
 
   private parseDuration(value?: string): number {

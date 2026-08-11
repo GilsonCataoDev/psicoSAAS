@@ -21,7 +21,11 @@ import { AuditModule }     from '../audit/audit.module'
       inject: [ConfigService],
       useFactory: (cfg: ConfigService) => ({
         secret: cfg.get('JWT_SECRET'),
-        signOptions: { expiresIn: '15m' },
+        signOptions: {
+          expiresIn: '15m',
+          issuer: cfg.get<string>('JWT_ISSUER') ?? 'usecognia-api',
+          audience: cfg.get<string>('JWT_AUDIENCE') ?? 'usecognia-app',
+        },
       }),
     }),
     forwardRef(() => ReferralModule),

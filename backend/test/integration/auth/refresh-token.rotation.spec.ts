@@ -32,4 +32,17 @@ describe('AuthService — rotação e reuso de refresh token', () => {
     // deve ter sido revogado quando o reuso foi detectado.
     await expect(authService.refresh(refreshed.tokens.refreshToken)).rejects.toThrow()
   })
+
+  it('permite apenas uma rotação quando o mesmo token é usado em paralelo', async () => {
+    const { user, password } = await createTestUser(app)
+    const loginResult = await authService.login({ email: user.email, password } as any)
+
+    const results = await Promise.allSettled([
+      authService.refresh(loginResult.tokens.refreshToken),
+      authService.refresh(loginResult.tokens.refreshToken),
+    ])
+
+    expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(1)
+    expect(results.filter(result => result.status === 'rejected')).toHaveLength(1)
+  })
 })

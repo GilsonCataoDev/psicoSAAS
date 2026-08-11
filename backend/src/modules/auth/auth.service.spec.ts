@@ -32,6 +32,7 @@ function mockRepo(overrides: Partial<Record<string, jest.Mock>> = {}) {
     ...overrides,
   }
   repo.createQueryBuilder = overrides.createQueryBuilder ?? jest.fn(() => ({
+    setLock:   jest.fn().mockReturnThis(),
     addSelect: jest.fn().mockReturnThis(),
     where:     jest.fn().mockReturnThis(),
     getOne:    jest.fn(() => repo.findOneBy({})),
@@ -69,7 +70,14 @@ async function createService(
   const loginAttemptRepo  = mockRepo(loginAttemptRepoOverrides)
 
   const dataSourceMock = {
-    transaction: jest.fn(async (cb: any) => cb({ getRepository: () => loginAttemptRepo, query: jest.fn() })),
+    transaction: jest.fn(async (cb: any) => cb({
+      getRepository: (entity: any) => entity === RefreshToken
+        ? refreshTokenRepo
+        : entity === User
+          ? userRepo
+          : loginAttemptRepo,
+      query: jest.fn(),
+    })),
     query:       jest.fn().mockResolvedValue([]),
   }
   const storageMock = {
@@ -231,6 +239,7 @@ describe('AuthService', () => {
         expiresAt: new Date(Date.now() + 60_000),
       }
       refreshTokenRepo.createQueryBuilder.mockReturnValue({
+        setLock:   jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
         where:     jest.fn().mockReturnThis(),
         getOne:    jest.fn().mockResolvedValue(revokedToken),
@@ -257,6 +266,7 @@ describe('AuthService', () => {
         expiresAt: new Date(Date.now() - 1000),
       }
       refreshTokenRepo.createQueryBuilder.mockReturnValue({
+        setLock:   jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
         where:     jest.fn().mockReturnThis(),
         getOne:    jest.fn().mockResolvedValue(expiredToken),

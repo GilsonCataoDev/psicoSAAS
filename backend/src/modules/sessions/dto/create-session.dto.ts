@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNumber, IsArray, IsIn, Min, Max } from 'class-validator'
+import { IsString, IsOptional, IsNumber, IsArray, IsIn, IsUUID, Min, Max } from 'class-validator'
 import { Type } from 'class-transformer'
 
 export class CreateSessionDto {
@@ -12,4 +12,5 @@ export class CreateSessionDto {
   @IsString() @IsOptional() nextSteps?: string
   @IsArray() @IsOptional() tags?: string[]
   @IsIn(['paid','pending','waived','included']) @IsOptional() paymentStatus?: string
+  @IsUUID() @IsOptional() aiDraftId?: string
 }

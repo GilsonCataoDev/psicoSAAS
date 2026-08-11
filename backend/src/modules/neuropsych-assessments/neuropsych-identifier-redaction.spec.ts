@@ -78,10 +78,10 @@ describe('redactPatientName', () => {
     expect(out?.toLowerCase()).not.toContain('maria souza')
   })
 
-  it('ignora partes curtas do nome (preposições/iniciais)', () => {
+  it('remove o nome completo sem usar partes curtas como padrões isolados', () => {
     const out = redactPatientName('Ana de Sá conversou sobre a rotina', 'Ana de Sá')
-    // "de" e "Sá" têm menos de 3 letras e não devem gerar remoções indevidas de palavras comuns
-    expect(out).toContain('de')
+    expect(out).not.toContain('Ana de Sá')
+    expect(redactPatientName('Falou de rotina e saúde', 'Ana de Sá')).toContain('de rotina')
   })
 
   it('não falha sem nome disponível', () => {

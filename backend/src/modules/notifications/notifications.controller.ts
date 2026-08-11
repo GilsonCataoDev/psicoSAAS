@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Post, Request, UseGuards } from '@nestjs
 import { Throttle } from '@nestjs/throttler'
 import { RequirePlan } from '../../common/decorators/require-plan.decorator'
 import { AdminGuard } from '../../common/guards/admin.guard'
+import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { NotificationsService } from './notifications.service'
@@ -10,7 +11,7 @@ import { RegisterNativePushTokenDto, RemoveNativePushTokenDto } from './dto/nati
 import { TestWhatsAppDto } from './dto/test-whatsapp.dto'
 
 @Controller('notifications/whatsapp')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, NoImpersonationGuard)
 @RequirePlan('pro')
 export class NotificationsController {
   constructor(private readonly notifications: NotificationsService) {}

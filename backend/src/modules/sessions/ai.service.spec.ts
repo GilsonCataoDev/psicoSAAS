@@ -189,9 +189,9 @@ describe('AiService.generateDocumentDraft', () => {
     expect(prompt).not.toContain('nome@exemplo.com')
     expect(prompt).not.toContain('123.456.789-10')
     expect(prompt).not.toContain('99967-5353')
-    expect(prompt).toContain('[e-mail omitido]')
-    expect(prompt).toContain('[CPF omitido]')
-    expect(prompt).toContain('[telefone omitido]')
+    expect(prompt).toContain('[e-mail removido]')
+    expect(prompt).toContain('[CPF removido]')
+    expect(prompt).toContain('[telefone removido]')
   })
 
   it('limita a parte variável enviada a 8.000 caracteres', async () => {

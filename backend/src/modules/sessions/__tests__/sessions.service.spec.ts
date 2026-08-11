@@ -5,6 +5,7 @@ import { Session } from '../entities/session.entity'
 import { SessionsService } from '../sessions.service'
 import { FinancialService } from '../../financial/financial.service'
 import { NotificationsService } from '../../notifications/notifications.service'
+import { ClinicalAiDraftService } from '../../ai-governance/clinical-ai-draft.service'
 import { Patient } from '../../patients/entities/patient.entity'
 import { User } from '../../auth/entities/user.entity'
 import { Appointment } from '../../appointments/entities/appointment.entity'
@@ -105,6 +106,7 @@ describe('SessionsService', () => {
         { provide: getRepositoryToken(Booking),     useValue: makeRepo() },
         { provide: FinancialService,       useValue: financial },
         { provide: NotificationsService,   useValue: { sendPaymentRequest: jest.fn() } },
+        { provide: ClinicalAiDraftService, useValue: { assertCanAccept: jest.fn(), acceptForSession: jest.fn() } },
       ],
     }).compile()
 

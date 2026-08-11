@@ -37,6 +37,7 @@ import { NeuropsychAssessment } from '../../modules/neuropsych-assessments/entit
 
 import { FinancialService as FinService } from '../../modules/financial/financial.service'
 import { NotificationsService } from '../../modules/notifications/notifications.service'
+import { ClinicalAiDraftService } from '../../modules/ai-governance/clinical-ai-draft.service'
 import { EmailService } from '../../modules/email/email.service'
 import { GoogleCalendarService } from '../../modules/google-calendar/google-calendar.service'
 
@@ -157,6 +158,7 @@ describe('Isolamento entre contas — psicólogo A não acessa dados de B', () =
           { provide: getRepositoryToken(Booking),     useValue: fakeRepo() },
           { provide: FinService,            useValue: stub() },
           { provide: NotificationsService,  useValue: stub() },
+          { provide: ClinicalAiDraftService, useValue: stub() },
         ],
       }).compile()
       svc = mod.get(SessionsService)

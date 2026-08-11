@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Post, Request, UseGuards } from '@nestjs/common'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
+import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
 import { AvailabilityService } from './availability.service'
 import {
   BlockedDateDto,
@@ -9,7 +10,7 @@ import {
 } from './dto/availability.dto'
 
 @Controller('availability')
-@UseGuards(JwtAuthGuard, CsrfGuard)
+@UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
 export class AvailabilityController {
   constructor(private svc: AvailabilityService) {}
 

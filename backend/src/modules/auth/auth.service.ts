@@ -233,40 +233,47 @@ export class AuthService {
     if (!rawToken) throw new UnauthorizedException('Refresh token ausente')
 
     const tokenHash = hashToken(rawToken)
-    const rt = await this.rtRepo
-      .createQueryBuilder('rt')
-      .addSelect('rt.tokenHash')
-      .where('rt.tokenHash = :tokenHash', { tokenHash })
-      .getOne()
+    return this.dataSource.transaction(async manager => {
+      const refreshTokens = manager.getRepository(RefreshToken)
+      const users = manager.getRepository(User)
+      // O lock serializa usos concorrentes do mesmo token. Sem ele, duas
+      // requisições poderiam ler revoked=false e emitir dois sucessores.
+      const rt = await refreshTokens
+        .createQueryBuilder('rt')
+        .setLock('pessimistic_write')
+        .addSelect('rt.tokenHash')
+        .where('rt.tokenHash = :tokenHash', { tokenHash })
+        .getOne()
 
-    if (!rt) {
-      throw new UnauthorizedException('Sessão inválida. Faça login novamente.')
-    }
+      if (!rt) {
+        throw new UnauthorizedException('Sessão inválida. Faça login novamente.')
+      }
 
-    if (rt.revoked) {
-      await this.rtRepo.update({ userId: rt.userId }, { revoked: true })
-      this.audit('REFRESH_REPLAY_DETECTED', { userId: rt.userId, ip })
-      throw new UnauthorizedException('Sessão comprometida. Faça login novamente.')
-    }
+      if (rt.revoked) {
+        await refreshTokens.update({ userId: rt.userId }, { revoked: true })
+        this.audit('REFRESH_REPLAY_DETECTED', { userId: rt.userId, ip })
+        throw new UnauthorizedException('Sessão comprometida. Faça login novamente.')
+      }
 
-    if (new Date() > rt.expiresAt) {
-      throw new UnauthorizedException('Sessão expirada. Faça login novamente.')
-    }
+      if (new Date() > rt.expiresAt) {
+        throw new UnauthorizedException('Sessão expirada. Faça login novamente.')
+      }
 
-    await this.rtRepo.update(rt.id, { revoked: true })
+      rt.revoked = true
+      await refreshTokens.save(rt)
 
-    const user = await this.users.findOneBy({ id: rt.userId })
-    if (!user) throw new UnauthorizedException('Usuario nao encontrado')
+      const user = await users.findOneBy({ id: rt.userId })
+      if (!user) throw new UnauthorizedException('Usuario nao encontrado')
 
-    if (user.isActive === false) {
-      await this.rtRepo.update({ userId: user.id, revoked: false }, { revoked: true })
-      this.audit('REFRESH_BLOCKED_INACTIVE', { userId: user.id, ip })
-      throw new UnauthorizedException('Conta desativada. Contate o suporte.')
-    }
+      if (user.isActive === false) {
+        await refreshTokens.update({ userId: user.id, revoked: false }, { revoked: true })
+        this.audit('REFRESH_BLOCKED_INACTIVE', { userId: user.id, ip })
+        throw new UnauthorizedException('Conta desativada. Contate o suporte.')
+      }
 
-    this.audit('REFRESH_TOKEN_ROTATED', { userId: user.id, ip })
-
-    return this.buildResult(user, ip, userAgent)
+      this.audit('REFRESH_TOKEN_ROTATED', { userId: user.id, ip })
+      return this.buildResult(user, ip, userAgent, refreshTokens)
+    })
   }
 
   async revokeAllTokens(userId: string, ip?: string): Promise<void> {
@@ -505,6 +512,7 @@ export class AuthService {
     user: User,
     ip?: string,
     userAgent?: string,
+    refreshTokens: Repository<RefreshToken> = this.rtRepo,
   ): Promise<AuthResult> {
     const csrfSeed    = randomBytes(16).toString('hex')
     const accessToken = this.jwt.sign(
@@ -512,7 +520,7 @@ export class AuthService {
       { expiresIn: '15m' },
     )
 
-    const refreshToken = await this.createRefreshToken(user.id, ip, userAgent)
+    const refreshToken = await this.createRefreshToken(user.id, ip, userAgent, refreshTokens)
     const csrfToken    = generateCsrfToken(user.id, csrfSeed)
     const safeUser     = this.toSafeUser(user)
 
@@ -543,9 +551,14 @@ export class AuthService {
     return safe
   }
 
-  private async createRefreshToken(userId: string, ip?: string, userAgent?: string): Promise<string> {
+  private async createRefreshToken(
+    userId: string,
+    ip?: string,
+    userAgent?: string,
+    refreshTokens: Repository<RefreshToken> = this.rtRepo,
+  ): Promise<string> {
     const rawToken = randomBytes(40).toString('hex')
-    const rt = this.rtRepo.create({
+    const rt = refreshTokens.create({
       tokenHash: hashToken(rawToken),
       userId,
       ipAddress: ip,
@@ -553,7 +566,7 @@ export class AuthService {
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     })
     try {
-      await this.rtRepo.save(rt)
+      await refreshTokens.save(rt)
     } catch (err: any) {
       this.logger.error(`createRefreshToken falhou: ${err?.message ?? err}`)
       throw err

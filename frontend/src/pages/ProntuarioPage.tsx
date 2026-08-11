@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Download, Lock, Save, FileText, Pencil, X, Sparkles, Send } from 'lucide-react'
-import { usePatient, useUpdatePatient, useSessions, useCreateSession, useUpdateSession, useExportProntuario, useGenerateProntuarioDraft, useGenerateSessionPlan } from '@/hooks/useApi'
+import { AI_CONSENT_TEXT, useAcceptAiConsent, useAiConsent, usePatient, useUpdatePatient, useSessions, useCreateSession, useUpdateSession, useExportProntuario, useGenerateProntuarioDraft, useGenerateSessionPlan } from '@/hooks/useApi'
 import { TAG_LABELS } from '@/types'
 import { Prontuario } from '@/types/prontuario'
 import { formatDate } from '@/lib/utils'
@@ -75,12 +75,23 @@ export default function ProntuarioPage() {
   const [evolDate, setEvolDate] = useState(new Date().toISOString().split('T')[0])
   const [aiMode, setAiMode] = useState<AiProntuarioMode>('organizar')
   const [aiDraft, setAiDraft] = useState('')
+  const [generatedAiDraftId, setGeneratedAiDraftId] = useState('')
+  const [acceptedAiDraftId, setAcceptedAiDraftId] = useState('')
   const [sessionPlan, setSessionPlan] = useState('')
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null)
   const [editEvolDate, setEditEvolDate] = useState('')
   const [editEvolText, setEditEvolText] = useState('')
   const [form, setForm] = useState<Partial<Prontuario>>({})
   const [deliveryOpen, setDeliveryOpen] = useState(false)
+  const { data: clinicalAiConsent } = useAiConsent('clinical_ai_processing', undefined, hasPro)
+  const acceptClinicalAiConsent = useAcceptAiConsent('clinical_ai_processing')
+
+  async function ensureClinicalAiConsent(): Promise<boolean> {
+    if (clinicalAiConsent?.active) return true
+    if (!window.confirm(`${AI_CONSENT_TEXT.clinical_ai_processing.text}\n\nDeseja ativar agora?`)) return false
+    await acceptClinicalAiConsent.mutateAsync()
+    return true
+  }
 
   // Inicializa form quando o paciente carregar
   useEffect(() => {
@@ -146,11 +157,15 @@ export default function ProntuarioPage() {
       return
     }
     try {
-      const { draft } = await generateProntuarioDraft.mutateAsync({
+      if (!await ensureClinicalAiConsent()) return
+      const { draft, draftId } = await generateProntuarioDraft.mutateAsync({
         input: evolText,
         mode: aiMode,
+        patientId: id!,
       })
       setAiDraft(draft)
+      setGeneratedAiDraftId(draftId)
+      setAcceptedAiDraftId('')
       toast.success('Rascunho gerado. Revise antes de salvar.')
     } catch (err: any) {
       toast.error(err?.response?.data?.message ?? 'Nao foi possivel gerar o rascunho.')
@@ -171,7 +186,8 @@ export default function ProntuarioPage() {
       .map(s => `Sessao de ${formatDate(s.date)}:\nResumo: ${s.summary ?? '(sem resumo)'}\nProximos passos: ${s.nextSteps ?? '(nao registrado)'}`)
       .join('\n\n')
     try {
-      const { draft } = await generateSessionPlan.mutateAsync({ clinicalContext })
+      if (!await ensureClinicalAiConsent()) return
+      const { draft } = await generateSessionPlan.mutateAsync({ clinicalContext, patientId: id! })
       setSessionPlan(draft)
       toast.success('Sugestao de planejamento gerada. Revise antes de usar.')
     } catch (err: any) {
@@ -497,17 +513,17 @@ export default function ProntuarioPage() {
                     <button type="button" onClick={() => setAiDraft('')} className="btn-secondary text-sm">
                       Descartar
                     </button>
-                    <button type="button" onClick={() => setEvolText(aiDraft)} className="btn-primary text-sm">
-                      Usar rascunho
+                    <button type="button" onClick={() => setAcceptedAiDraftId(generatedAiDraftId)} className="btn-primary text-sm">
+                      {acceptedAiDraftId === generatedAiDraftId ? 'Rascunho vinculado' : 'Vincular sem substituir evolução'}
                     </button>
                   </div>
                 </div>
               )}
             </div>
             <RecordingPanel
-              patientName={patient.name}
+              patientId={id!}
               onApplyTranscription={text => setEvolText(prev => [prev, text].filter(Boolean).join('\n\n'))}
-              onApplySummary={setEvolText}
+              onAiDraftGenerated={setAcceptedAiDraftId}
               transcriptionActionLabel="Inserir transcrição na evolução"
             />
             <div className="flex justify-end">
@@ -521,8 +537,12 @@ export default function ProntuarioPage() {
                       summary: evolText.trim(),
                       duration: patient?.sessionDuration ?? 50,
                       paymentStatus: 'waived',
+                      aiDraftId: acceptedAiDraftId || undefined,
                     } as any)
                     setEvolText('')
+                    setAiDraft('')
+                    setGeneratedAiDraftId('')
+                    setAcceptedAiDraftId('')
                     toast.success('Evolucao registrada')
                   } catch { toast.error('Erro ao salvar evolução.') }
                 }}

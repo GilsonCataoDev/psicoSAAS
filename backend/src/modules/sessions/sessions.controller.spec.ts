@@ -26,6 +26,7 @@ function makeController(opts: {
   updateAffected?: number
   callTranscriptions?: number
   transcribeAudio?: jest.Mock
+  realDurationSeconds?: number
 }) {
   const usage = usageRepository(opts.updateAffected ?? 1, opts.callTranscriptions ?? 0)
   const planAccess = { getCurrentPlan: jest.fn().mockResolvedValue(opts.plan ?? 'pro') } as any
@@ -36,6 +37,9 @@ function makeController(opts: {
     {} as any,
     usage.repository,
     planAccess,
+    { assertActive: jest.fn() } as any,
+    { getPatient: jest.fn().mockResolvedValue({ id: 'patient-1' }) } as any,
+    { durationSeconds: jest.fn().mockResolvedValue(opts.realDurationSeconds ?? 600) } as any,
   )
   return { controller, usage, ai }
 }
@@ -46,39 +50,49 @@ const req = { user: { id: 'user-1', email: 'psi@example.com' } }
 describe('SessionsController.transcribeCall', () => {
   it('recusa sem arquivo de áudio', async () => {
     const { controller } = makeController({})
-    await expect(controller.transcribeCall(undefined as any, '600', req))
+    await expect(controller.transcribeCall(undefined as any, '600', 'patient-1', req))
       .rejects.toBeInstanceOf(BadRequestException)
   })
 
   it('recusa duração ausente ou acima de 90 minutos', async () => {
     const { controller } = makeController({})
-    await expect(controller.transcribeCall(file, '', req)).rejects.toBeInstanceOf(BadRequestException)
-    await expect(controller.transcribeCall(file, String(91 * 60), req)).rejects.toBeInstanceOf(BadRequestException)
+    await expect(controller.transcribeCall(file, '', 'patient-1', req)).rejects.toBeInstanceOf(BadRequestException)
+    await expect(controller.transcribeCall(file, String(91 * 60), 'patient-1', req)).rejects.toBeInstanceOf(BadRequestException)
   })
 
   it('bloqueia conta Free antes de gastar cota', async () => {
     const { controller, usage } = makeController({ plan: 'free' })
-    await expect(controller.transcribeCall(file, '600', req)).rejects.toBeInstanceOf(ForbiddenException)
+    await expect(controller.transcribeCall(file, '600', 'patient-1', req)).rejects.toBeInstanceOf(ForbiddenException)
     expect(usage.repository.createQueryBuilder).not.toHaveBeenCalled()
   })
 
   it('cobra 1 unidade da cota mensal e transcreve para conta Pro', async () => {
     const { controller, usage, ai } = makeController({ plan: 'pro' })
-    const result = await controller.transcribeCall(file, '2400', req)
+    const result = await controller.transcribeCall(file, '2400', 'patient-1', req)
     expect(result).toEqual({ text: 'texto transcrito' })
     expect(usage.builder.set).toHaveBeenCalledWith({ callTranscriptions: expect.any(Function) })
     expect(ai.transcribeAudio).toHaveBeenCalledWith(file.buffer, file.mimetype)
   })
 
+  it('valida o conteúdo real do áudio antes de chamar o provedor', async () => {
+    const { controller, ai } = makeController({})
+    const inspector = (controller as any).audioMetadata
+    inspector.durationSeconds.mockRejectedValue(new BadRequestException('Arquivo inválido'))
+
+    await expect(controller.transcribeCall(file, '600', 'patient-1', req))
+      .rejects.toBeInstanceOf(BadRequestException)
+    expect(ai.transcribeAudio).not.toHaveBeenCalled()
+  })
+
   it('recusa quando a cota mensal de chamadas já foi atingida', async () => {
     const { controller } = makeController({ plan: 'pro', updateAffected: 0, callTranscriptions: 30 })
-    await expect(controller.transcribeCall(file, '600', req)).rejects.toBeInstanceOf(ForbiddenException)
+    await expect(controller.transcribeCall(file, '600', 'patient-1', req)).rejects.toBeInstanceOf(ForbiddenException)
   })
 
   it('devolve a cota reservada quando a transcrição falha', async () => {
     const transcribeAudio = jest.fn().mockRejectedValue(new Error('provider offline'))
     const { controller, usage } = makeController({ plan: 'pro', transcribeAudio })
-    await expect(controller.transcribeCall(file, '600', req)).rejects.toThrow('provider offline')
+    await expect(controller.transcribeCall(file, '600', 'patient-1', req)).rejects.toThrow('provider offline')
     const releaseSet = usage.builder.set.mock.calls.find((call: any[]) => 'callTranscriptions' in call[0])
     expect(releaseSet).toBeDefined()
   })

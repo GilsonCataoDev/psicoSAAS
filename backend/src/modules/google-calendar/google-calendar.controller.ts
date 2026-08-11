@@ -6,6 +6,7 @@ import { Throttle } from '@nestjs/throttler'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { PublicRoute } from '../../common/decorators/public-route.decorator'
+import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
 import { GoogleCalendarService } from './google-calendar.service'
 
 @Controller('google-calendar')
@@ -13,13 +14,13 @@ export class GoogleCalendarController {
   constructor(private readonly googleCalendar: GoogleCalendarService) {}
 
   @Get('status')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, NoImpersonationGuard)
   status(@Request() req: any) {
     return this.googleCalendar.getStatus(req.user.id)
   }
 
   @Get('connect')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, NoImpersonationGuard)
   connect(@Request() req: any) {
     return { url: this.googleCalendar.getAuthUrl(req.user.id) }
   }
@@ -45,7 +46,7 @@ export class GoogleCalendarController {
   }
 
   @Delete('disconnect')
-  @UseGuards(JwtAuthGuard, CsrfGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
   disconnect(@Request() req: any) {
     return this.googleCalendar.disconnect(req.user.id)
   }

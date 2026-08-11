@@ -37,6 +37,7 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
   const [showPreparation, setShowPreparation] = useState(true)
   const [scheduleFollowUp, setScheduleFollowUp] = useState(false)
   const [followUp, setFollowUp] = useState({ date: '', time: '', modality: 'presencial' as 'presencial' | 'online' })
+  const [aiDraftId, setAiDraftId] = useState('')
   const { data: patients = [] } = usePatients()
   const { data: sessionTemplate } = useDefaultTemplate('session_note')
   const createSession = useCreateSession()
@@ -91,6 +92,7 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
     setShowPreparation(true)
     setScheduleFollowUp(false)
     setFollowUp({ date: '', time: '', modality: 'presencial' })
+    setAiDraftId('')
   }, [defaultPatientId, defaults?.appointmentId, defaults?.date, defaults?.duration, defaults?.patientId, open, reset])
 
   useEffect(() => {
@@ -126,7 +128,7 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
 
   async function onSubmit(data: any) {
     try {
-      const payload = { ...data, appointmentId: data.appointmentId || undefined, mood, tags }
+      const payload = { ...data, appointmentId: data.appointmentId || undefined, mood, tags, aiDraftId: aiDraftId || undefined }
       await createSession.mutateAsync(payload)
       if (scheduleFollowUp && followUp.date && followUp.time) {
         try {
@@ -253,9 +255,9 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
             <label className="label mb-0">Resumo da sessão</label>
             <div className="flex items-center gap-2">
               <RecordingPanel
-                patientName={patients.find(p => p.id === watch('patientId'))?.name}
+                patientId={selectedPatientId}
                 onApplyTranscription={text => setValue('privateNotes', (watch('privateNotes') ? watch('privateNotes') + '\n\n' : '') + text)}
-                onApplySummary={text => setValue('summary', text)}
+                onAiDraftGenerated={setAiDraftId}
                 allowCallCapture={defaults?.modality === 'online'}
               />
               <DictationButton value={watch('summary') ?? ''} onChange={value => setValue('summary', value)} />

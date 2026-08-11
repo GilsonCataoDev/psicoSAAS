@@ -10,6 +10,7 @@ import { User } from '../auth/entities/user.entity'
 import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
 import { Appointment } from '../appointments/entities/appointment.entity'
 import { Booking } from '../booking/entities/booking.entity'
+import { ClinicalAiDraftService } from '../ai-governance/clinical-ai-draft.service'
 
 const sessionDescription = (date: string) => {
   const [year, month, day] = date.slice(0, 10).split('-')
@@ -28,6 +29,7 @@ export class SessionsService {
     @InjectRepository(Booking) private bookings: Repository<Booking>,
     private financial: FinancialService,
     private notifications: NotificationsService,
+    private readonly aiDrafts: ClinicalAiDraftService,
   ) {}
 
   // ─── Helpers de criptografia ────────────────────────────────────────────────
@@ -140,6 +142,7 @@ export class SessionsService {
     historical: boolean,
   ): Promise<Session & { firstSession: boolean }> {
     const patient = await this.assertPatientBelongsToPsychologist(dto.patientId, psychologistId)
+    if (dto.aiDraftId) await this.aiDrafts.assertCanAccept(dto.aiDraftId, psychologistId, dto.patientId)
     if (dto.appointmentId) {
       await this.assertAppointmentBelongsToPsychologist(dto.appointmentId, psychologistId, dto.patientId)
       await this.assertAppointmentHasNoSession(dto.appointmentId, psychologistId)
@@ -153,9 +156,11 @@ export class SessionsService {
       : patient.billingType === 'monthly_package'
       ? { ...dto, paymentStatus: 'included' }
       : dto
-    const encrypted = this.encryptFields(effectiveDto)
+    const { aiDraftId: _aiDraftId, ...sessionFields } = effectiveDto
+    const encrypted = this.encryptFields(sessionFields)
     const session   = this.repo.create({ ...encrypted, psychologistId })
     const saved     = await this.repo.save(session)
+    if (dto.aiDraftId) await this.aiDrafts.acceptForSession(dto.aiDraftId, psychologistId, dto.patientId, saved.id)
 
     if (dto.appointmentId) {
       await this.completeLinkedAppointment(dto.appointmentId, psychologistId)
