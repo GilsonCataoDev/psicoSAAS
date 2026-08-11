@@ -49,7 +49,8 @@ describe('WhatsApp outbox - concorrencia real no PostgreSQL', () => {
       notifications.sendAppointmentReminder(appointment, '24h'),
     ])
 
-    expect(provider).toHaveBeenCalledTimes(1)
+    const sendTextCalls = provider.mock.calls.filter(([url]) => String(url).includes('/message/sendText/'))
+    expect(sendTextCalls).toHaveLength(1)
     const records = await outbox.find()
     expect(records).toHaveLength(1)
     expect(records[0]).toEqual(expect.objectContaining({
