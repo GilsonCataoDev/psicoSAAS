@@ -616,7 +616,7 @@ export class NotificationsService {
     }
 
     // Uma chave existente so pode ser retomada quando uma tentativa falhou e o backoff venceu.
-    const claimed: Array<{ id: string }> = await this.whatsAppOutbox.manager.query(`
+    const claimResult: unknown = await this.whatsAppOutbox.manager.query(`
       UPDATE "whatsapp_outbox"
       SET "status" = 'sending', "provider" = $2, "attempts" = "attempts" + 1,
           "nextAttemptAt" = NULL, "updatedAt" = now()
@@ -627,6 +627,7 @@ export class NotificationsService {
         AND COALESCE("providerStatus", '') <> 'unverified'
       RETURNING "id"
     `, [key, provider])
+    const claimed = this.queryRows<{ id: string }>(claimResult)
 
     if (!claimed.length) {
       const existing = await this.whatsAppOutbox.findOneOrFail({ where: { idempotencyKey: key } })
@@ -681,7 +682,7 @@ export class NotificationsService {
         continue
       }
 
-      const claimed: Array<{ id: string }> = await this.whatsAppOutbox.manager.query(`
+      const claimResult: unknown = await this.whatsAppOutbox.manager.query(`
         UPDATE "whatsapp_outbox"
         SET "status" = 'sending', "attempts" = "attempts" + 1,
             "nextAttemptAt" = NULL, "updatedAt" = now()
@@ -694,6 +695,7 @@ export class NotificationsService {
           AND COALESCE("providerStatus", '') <> 'unverified'
         RETURNING "id"
       `, [entity.id, now])
+      const claimed = this.queryRows<{ id: string }>(claimResult)
       if (!claimed.length) continue
 
       entity.status = 'sending'
@@ -716,6 +718,12 @@ export class NotificationsService {
       processed += 1
     }
     return processed
+  }
+
+  private queryRows<T extends Record<string, unknown>>(result: unknown): T[] {
+    if (!Array.isArray(result)) return []
+    // TypeORM/PostgreSQL devolve UPDATE/DELETE como [rows, affected].
+    return Array.isArray(result[0]) ? result[0] as T[] : result as T[]
   }
 
   async reconcileWhatsAppOutbox(now = new Date(), limit = 20): Promise<number> {

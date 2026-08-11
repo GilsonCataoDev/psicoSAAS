@@ -12,7 +12,7 @@ function makeOutboxRepo() {
   builder.execute = jest.fn(async () => ({ raw: [{ id: 'outbox-id' }] }))
   return {
     createQueryBuilder: jest.fn(() => builder),
-    manager: { query: jest.fn(async () => [{ id: 'outbox-id' }]) },
+    manager: { query: jest.fn(async () => [[{ id: 'outbox-id' }], 1]) },
     find: jest.fn().mockResolvedValue([]),
     findOneOrFail: jest.fn(async () => ({ id: 'outbox-id', status: 'sending', attempts: 1 })),
     save: jest.fn(async (value: any) => value),
@@ -56,7 +56,7 @@ describe('NotificationsService WhatsApp delivery validation', () => {
   outboxBuilder.execute = jest.fn(async () => ({ raw: [{ id: 'outbox-id' }] }))
   const whatsAppOutbox = {
     createQueryBuilder: jest.fn(() => outboxBuilder),
-    manager: { query: jest.fn(async () => [{ id: 'outbox-id' }]) },
+    manager: { query: jest.fn(async () => [[{ id: 'outbox-id' }], 1]) },
     find: jest.fn().mockResolvedValue([]),
     findOneOrFail: jest.fn(async () => ({ ...outboxEntity })),
     save: jest.fn(async (value: any) => value),
@@ -68,7 +68,7 @@ describe('NotificationsService WhatsApp delivery validation', () => {
   beforeEach(() => {
     savedLogs.length = 0
     jest.clearAllMocks()
-    whatsAppOutbox.manager.query.mockReset().mockResolvedValue([{ id: 'outbox-id' }])
+    whatsAppOutbox.manager.query.mockReset().mockResolvedValue([[{ id: 'outbox-id' }], 1])
     outboxBuilder.execute.mockReset().mockResolvedValue({ raw: [{ id: 'outbox-id' }] })
     whatsAppOutbox.findOneOrFail.mockReset().mockImplementation(async () => ({ ...outboxEntity }))
     users.findOneBy.mockResolvedValue({ email: 'gilsonfilho96@outlook.com' })
@@ -290,7 +290,7 @@ describe('NotificationsService WhatsApp delivery validation', () => {
   it('does not bypass the outbox backoff while a retry is scheduled', async () => {
     const futureRetry = new Date(Date.now() + 5 * 60_000)
     outboxBuilder.execute.mockResolvedValueOnce({ raw: [] })
-    whatsAppOutbox.manager.query.mockResolvedValueOnce([])
+    whatsAppOutbox.manager.query.mockResolvedValueOnce([[], 0])
     whatsAppOutbox.findOneOrFail.mockResolvedValueOnce({
       status: 'failed',
       attempts: 1,
@@ -318,7 +318,7 @@ describe('NotificationsService WhatsApp delivery validation', () => {
       inserts += 1
       return inserts === 1 ? { raw: [{ id: 'outbox-race' }] } : { raw: [] }
     })
-    whatsAppOutbox.manager.query.mockResolvedValue([])
+    whatsAppOutbox.manager.query.mockResolvedValue([[], 0])
     whatsAppOutbox.findOneOrFail.mockResolvedValue({
       id: 'outbox-race', status: 'sending', attempts: 1, updatedAt: new Date(),
     })
