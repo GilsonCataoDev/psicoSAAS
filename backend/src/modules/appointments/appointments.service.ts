@@ -109,6 +109,7 @@ export class AppointmentsService {
 
     if (changedSlot) {
       await this.assertSlotAvailable(psychologistId, nextDate, nextTime, nextDuration, id)
+      await this.notifications.supersedeAppointmentReminders(id)
       appointment.isFixedScheduleException = true
       appointment.originalDate = appointment.originalDate ?? appointment.date
       appointment.originalTime = appointment.originalTime ?? appointment.time
@@ -236,7 +237,10 @@ export class AppointmentsService {
       const changedSlot = (groupDto.time !== undefined && groupDto.time !== appt.time)
         || (groupDto.duration !== undefined && Number(groupDto.duration) !== Number(appt.duration))
         || nextDate !== appt.date
-      if (changedSlot) this.resetReminderTracking(appt)
+      if (changedSlot) {
+        await this.notifications.supersedeAppointmentReminders(appt.id)
+        this.resetReminderTracking(appt)
+      }
       Object.assign(appt, groupDto)
       appt.date = nextDate
       if (appt.modality === 'online' && !appt.meetingUrl && autoVideoRoom) {

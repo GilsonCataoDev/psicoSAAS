@@ -595,19 +595,34 @@ export class NotificationsService {
       recipientPhone: phone,
       content: text,
     }).orIgnore().execute()
-    const entity = await this.whatsAppOutbox.findOneOrFail({ where: { idempotencyKey: key } })
-    if (['accepted', 'delivered', 'read'].includes(entity.status)) return { duplicate: true, completed: true }
-    if (entity.status === 'sending' && Date.now() - entity.updatedAt.getTime() < 5 * 60_000) {
-      return { duplicate: true, completed: false }
+    const provider = this.cloudWhatsApp.isEnabledFor(ownerId)
+      && this.cloudWhatsApp.isConfigured()
+      && meta.cloudTemplate
+      ? 'cloud_api'
+      : 'evolution'
+    const claimed: Array<{ id: string }> = await this.whatsAppOutbox.manager.query(`
+      UPDATE "whatsapp_outbox"
+      SET "status" = 'sending', "provider" = $2, "attempts" = "attempts" + 1,
+          "nextAttemptAt" = NULL, "updatedAt" = now()
+      WHERE "idempotencyKey" = $1
+        AND (
+          "status" = 'pending'
+          OR ("status" = 'failed' AND "nextAttemptAt" IS NOT NULL AND "nextAttemptAt" <= now())
+        )
+        AND COALESCE("providerStatus", '') <> 'unverified'
+      RETURNING "id"
+    `, [key, provider])
+
+    if (!claimed.length) {
+      const existing = await this.whatsAppOutbox.findOneOrFail({ where: { idempotencyKey: key } })
+      return {
+        duplicate: true,
+        completed: ['accepted', 'delivered', 'read'].includes(existing.status)
+          || existing.providerStatus === 'unverified',
+      }
     }
-    if (entity.status === 'failed' && entity.nextAttemptAt && entity.nextAttemptAt.getTime() > Date.now()) {
-      return { duplicate: true, completed: false }
-    }
-    entity.status = 'sending'
-    entity.provider = this.cloudWhatsApp.isEnabledFor(ownerId) && meta.cloudTemplate ? 'cloud_api' : 'evolution'
-    entity.attempts += 1
-    entity.nextAttemptAt = null
-    await this.whatsAppOutbox.save(entity)
+
+    const entity = await this.whatsAppOutbox.findOneOrFail({ where: { id: claimed[0].id } })
     return { duplicate: false, entity }
   }
 
@@ -622,12 +637,10 @@ export class NotificationsService {
 
   /** Reprocessa falhas da Evolution respeitando backoff e limite de tentativas. */
   async retryDueWhatsAppOutbox(now = new Date(), limit = 20): Promise<number> {
-    const staleSending = new Date(now.getTime() - 5 * 60_000)
     const candidates = await this.whatsAppOutbox.find({
       where: [
         { provider: 'evolution', status: 'pending' },
         { provider: 'evolution', status: 'failed', nextAttemptAt: LessThanOrEqual(now) },
-        { provider: 'evolution', status: 'sending', updatedAt: LessThanOrEqual(staleSending) },
       ],
       order: { createdAt: 'ASC' },
       take: Math.max(1, Math.min(limit, 100)),
@@ -635,6 +648,13 @@ export class NotificationsService {
 
     let processed = 0
     for (const entity of candidates) {
+      if (entity.providerStatus === 'unverified') {
+        entity.status = 'accepted'
+        entity.nextAttemptAt = null
+        await this.whatsAppOutbox.save(entity)
+        continue
+      }
+
       if (entity.attempts >= 5) {
         entity.status = 'failed'
         entity.nextAttemptAt = null
@@ -643,10 +663,24 @@ export class NotificationsService {
         continue
       }
 
+      const claimed: Array<{ id: string }> = await this.whatsAppOutbox.manager.query(`
+        UPDATE "whatsapp_outbox"
+        SET "status" = 'sending', "attempts" = "attempts" + 1,
+            "nextAttemptAt" = NULL, "updatedAt" = now()
+        WHERE "id" = $1
+          AND (
+            "status" = 'pending'
+            OR ("status" = 'failed' AND "nextAttemptAt" IS NOT NULL AND "nextAttemptAt" <= $2)
+          )
+          AND "attempts" < 5
+          AND COALESCE("providerStatus", '') <> 'unverified'
+        RETURNING "id"
+      `, [entity.id, now])
+      if (!claimed.length) continue
+
       entity.status = 'sending'
       entity.attempts += 1
       entity.nextAttemptAt = null
-      await this.whatsAppOutbox.save(entity)
 
       if (/sem conteudo|vazia/i.test(entity.lastError ?? '')) {
         await this.restartWhatsAppConnection(this.getWhatsAppInstance(entity.userId))
@@ -664,6 +698,15 @@ export class NotificationsService {
       processed += 1
     }
     return processed
+  }
+
+  async supersedeAppointmentReminders(appointmentId: string): Promise<void> {
+    await this.whatsAppOutbox.createQueryBuilder()
+      .update(WhatsAppOutbox)
+      .set({ status: 'failed', nextAttemptAt: null, providerStatus: 'superseded' })
+      .where('"idempotencyKey" LIKE :prefix', { prefix: `appointment-reminder:${appointmentId}:%` })
+      .andWhere('"status" IN (:...statuses)', { statuses: ['pending', 'failed'] })
+      .execute()
   }
 
   // ─── Agendamentos internos ─────────────────────────────────────────────────
@@ -725,8 +768,15 @@ export class NotificationsService {
         if (allowClosedConnectionRecovery && this.isClosedConnectionError(body)) {
           const recovered = await this.restartWhatsAppConnection(instance)
           if (recovered) {
-            this.logger.warn(`[WhatsApp] Instancia reiniciada; repetindo envio uma vez instance=${instance}`)
-            return this.deliverWhatsApp(phone, text, ownerId, false)
+            this.logger.warn(`[WhatsApp] Instancia reiniciada; reenvio automatico bloqueado instance=${instance}`)
+            return {
+              sent: false,
+              reason: 'api_error',
+              error: 'Conexao recuperada; confirme o envio antes de tentar novamente',
+              nonRetryable: true,
+              providerStatus: 'connection_recovered_no_retry',
+              contentLength: normalizedText.length,
+            }
           }
         }
         return { sent: false, reason: 'api_error', error, nonRetryable, contentLength: normalizedText.length }
@@ -781,15 +831,8 @@ export class NotificationsService {
         // A resposta sincrona da Evolution nao comprova entrega. Se a consulta
         // posterior continuar inconclusiva, a outbox agenda uma nova tentativa.
         if (verification === 'unknown') {
-          this.logger.warn(`[WhatsApp] Verificacao inconclusiva instance=${instance} messageId=${provider.messageId}; envio mantido pendente`)
-          return {
-            sent: false,
-            reason: 'api_error',
-            error: 'Evolution aceitou a mensagem, mas a entrega nao foi confirmada',
-            providerMessageId: provider.messageId,
-            providerStatus: 'unverified',
-            contentLength: provider.text.trim().length,
-          }
+          this.logger.warn(`[WhatsApp] Verificacao inconclusiva instance=${instance} messageId=${provider.messageId}; aceito sem reenvio automatico`)
+          return { ...acceptedResult, providerStatus: 'unverified' }
         }
 
         if (verification === 'skipped') {
@@ -842,6 +885,8 @@ export class NotificationsService {
         sent: false,
         reason: 'disconnected',
         error: 'WhatsApp desconectado ou indisponivel',
+        nonRetryable: true,
+        providerStatus: 'request_outcome_unknown',
         contentLength: normalizedText.length,
       }
     }
@@ -1137,7 +1182,7 @@ export class NotificationsService {
       type: lead === '24h' ? 'Lembrete 24h' : 'Lembrete 1h',
       patientId: patient.id,
       patientName: patient.name,
-      idempotencyKey: `appointment-reminder:${appointment.id}:${lead}:${date}:${time}:v2`,
+      idempotencyKey: `appointment-reminder:${appointment.id}:${lead}:${String(date).slice(0, 10)}:${timeLabel}:v2`,
       cloudTemplate: this.cloudTemplate(
         lead === '24h' ? 'WHATSAPP_CLOUD_REMINDER_24H_TEMPLATE' : 'WHATSAPP_CLOUD_REMINDER_1H_TEMPLATE',
         [first, dateLabel, timeLabel],
