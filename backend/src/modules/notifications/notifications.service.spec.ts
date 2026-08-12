@@ -158,24 +158,52 @@ describe('NotificationsService WhatsApp delivery validation', () => {
       linkPreview: false,
     }))
     expect(body).not.toHaveProperty('textMessage')
-    expect(body).not.toHaveProperty('options')
   })
 
-  it('does not retry a rejected Evolution payload with a legacy shape', async () => {
+  it('retries with the legacy Evolution text payload when the current shape is rejected', async () => {
     const text = 'Formulario simples'
-    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ message: 'invalid body' }), { status: 400 }),
-    )
+    const fetchSpy = jest.spyOn(global, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ message: 'invalid body' }), { status: 400 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        key: { id: 'provider-message-id', fromMe: true },
+        message: { extendedTextMessage: { text } },
+        status: 'PENDING',
+      }), { status: 201, headers: { 'Content-Type': 'application/json' } }))
 
     const result = await service.sendDirectWhatsApp('11999999999', text, ownerId)
 
-    expect(result).toEqual(expect.objectContaining({
-      sent: false,
-      reason: 'api_error',
-      nonRetryable: true,
-      contentLength: text.length,
+    expect(result.sent).toBe(true)
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
+    const retryBody = JSON.parse(String(fetchSpy.mock.calls[1][1]?.body))
+    expect(retryBody).toEqual(expect.objectContaining({
+      number: '5511999999999',
+      textMessage: { text },
+      delay: 1000,
+      linkPreview: false,
     }))
-    expect(fetchSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('retries with a minimal legacy payload when Evolution rejects optional fields too', async () => {
+    const text = 'Formulario simples'
+    const fetchSpy = jest.spyOn(global, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ message: 'invalid body' }), { status: 400 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ message: 'invalid body' }), { status: 400 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        key: { id: 'provider-message-id', fromMe: true },
+        message: { extendedTextMessage: { text } },
+        status: 'PENDING',
+      }), { status: 201, headers: { 'Content-Type': 'application/json' } }))
+
+    const result = await service.sendDirectWhatsApp('11999999999', text, ownerId)
+
+    expect(result.sent).toBe(true)
+    expect(result.providerStatus).toBe('unverified_legacy_payload')
+    expect(fetchSpy).toHaveBeenCalledTimes(3)
+    const retryBody = JSON.parse(String(fetchSpy.mock.calls[2][1]?.body))
+    expect(retryBody).toEqual({
+      number: '5511999999999',
+      textMessage: { text },
+    })
   })
 
   it('blocks whitespace-only messages before calling the provider', async () => {
@@ -284,6 +312,30 @@ describe('NotificationsService WhatsApp delivery validation', () => {
     expect(processed).toBe(1)
     expect(entity.attempts).toBe(2)
     expect(entity.status).toBe('accepted')
+    expect(entity.nextAttemptAt).toBeNull()
+  })
+
+  it('does not retry an expired automated reminder after the appointment time', async () => {
+    const entity: any = {
+      id: 'outbox-expired',
+      userId: ownerId,
+      provider: 'evolution',
+      status: 'failed',
+      attempts: 1,
+      idempotencyKey: 'appointment-reminder:appt-expired:1h:2026-08-10:10:00:v2',
+      recipientPhone: '11999999999',
+      content: 'Lembrete antigo',
+      nextAttemptAt: new Date('2026-08-10T12:30:00Z'),
+    }
+    whatsAppOutbox.find.mockResolvedValueOnce([entity])
+    const fetchSpy = jest.spyOn(global, 'fetch')
+
+    const processed = await service.retryDueWhatsAppOutbox(new Date('2026-08-10T13:00:00Z'))
+
+    expect(processed).toBe(1)
+    expect(fetchSpy).not.toHaveBeenCalled()
+    expect(entity.status).toBe('failed')
+    expect(entity.providerStatus).toBe('expired')
     expect(entity.nextAttemptAt).toBeNull()
   })
 

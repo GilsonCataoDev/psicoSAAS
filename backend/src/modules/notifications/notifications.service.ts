@@ -48,6 +48,12 @@ export type WhatsAppDeliveryResult = {
   contentLength?: number
 }
 
+type WhatsAppPostResult = {
+  res: Response
+  body: string
+  payloadShape: 'current' | 'legacy'
+}
+
 export type PushDeliveryResult = {
   sent: number
   removed: number
@@ -79,7 +85,8 @@ type WhatsAppLogMeta = {
 // instância aceitava com 200 OK mas persistia o texto em branco no Baileys).
 type WhatsAppTextPayload = {
   number: string
-  text: string
+  text?: string
+  textMessage?: { text: string }
   delay?: number
   linkPreview?: boolean
 }
@@ -682,6 +689,16 @@ export class NotificationsService {
         continue
       }
 
+      if (this.isExpiredAutomatedReminder(entity, now)) {
+        entity.status = 'failed'
+        entity.nextAttemptAt = null
+        entity.providerStatus = 'expired'
+        entity.lastError = 'Lembrete expirado: horario da sessao ja passou'
+        await this.whatsAppOutbox.save(entity)
+        processed += 1
+        continue
+      }
+
       const claimResult: unknown = await this.whatsAppOutbox.manager.query(`
         UPDATE "whatsapp_outbox"
         SET "status" = 'sending', "attempts" = "attempts" + 1,
@@ -793,6 +810,18 @@ export class NotificationsService {
 
   // ─── Agendamentos internos ─────────────────────────────────────────────────
 
+  private isExpiredAutomatedReminder(entity: WhatsAppOutbox, now = new Date()): boolean {
+    if (!entity.idempotencyKey?.startsWith('appointment-reminder:')) return false
+    const parts = entity.idempotencyKey.split(':')
+    const date = parts[3]
+    const time = parts[4] && parts[5] ? `${parts[4]}:${parts[5]}` : parts[4]
+    if (!date || !time) return false
+
+    const offset = this.cfg.get<string>('APPOINTMENT_TIMEZONE_OFFSET') ?? '-03:00'
+    const startsAt = new Date(`${date}T${time}:00${offset}`)
+    return Number.isFinite(startsAt.getTime()) && now.getTime() >= startsAt.getTime()
+  }
+
   async sendDirectWhatsApp(phone: string, text: string, ownerId: string, meta: WhatsAppLogMeta = { type: 'manual' }): Promise<WhatsAppDeliveryResult> {
     let result: WhatsAppDeliveryResult
     if (!await this.canSendManualWhatsApp(ownerId)) {
@@ -842,7 +871,7 @@ export class NotificationsService {
 
     try {
       const instance = this.getWhatsAppInstance(ownerId)
-      const { res, body } = await this.postWhatsAppText(instance, withDdi, normalizedText)
+      const { res, body, payloadShape } = await this.postWhatsAppText(instance, withDdi, normalizedText)
 
       if (!res.ok) {
         const nonRetryable = res.status >= 400 && res.status < 500 && res.status !== 429
@@ -896,7 +925,7 @@ export class NotificationsService {
       const acceptedResult: WhatsAppDeliveryResult = {
         sent: true,
         providerMessageId: provider.messageId,
-        providerStatus: provider.status ?? 'accepted',
+        providerStatus: payloadShape === 'legacy' ? 'accepted_legacy_payload' : (provider.status ?? 'accepted'),
         contentLength: provider.text.trim().length,
       }
 
@@ -925,7 +954,12 @@ export class NotificationsService {
               contentLength: provider.text.trim().length,
             }
           }
-          return { ...acceptedResult, providerStatus: 'unverified' }
+          return {
+            ...acceptedResult,
+            providerStatus: acceptedResult.providerStatus === 'accepted_legacy_payload'
+              ? 'unverified_legacy_payload'
+              : 'unverified',
+          }
         }
 
         if (verification === 'skipped') {
@@ -938,7 +972,12 @@ export class NotificationsService {
               contentLength: provider.text.trim().length,
             }
           }
-          return { ...acceptedResult, providerStatus: 'unverified' }
+          return {
+            ...acceptedResult,
+            providerStatus: acceptedResult.providerStatus === 'accepted_legacy_payload'
+              ? 'unverified_legacy_payload'
+              : 'unverified',
+          }
         }
 
         if (verification === 'empty' && allowEmptyDeliveryRetry) {
@@ -1078,22 +1117,51 @@ export class NotificationsService {
     }
   }
 
-  private async postWhatsAppText(instance: string, number: string, text: string): Promise<{ res: Response; body: string }> {
+  private async postWhatsAppText(instance: string, number: string, text: string): Promise<WhatsAppPostResult> {
     const endpoint = `${this.WA_URL}/message/sendText/${instance}`
     const payload = this.buildWhatsAppTextPayload(number, text)
+    let payloadShape: WhatsAppPostResult['payloadShape'] = 'current'
 
-    const response = await fetchWithTimeout(endpoint, {
+    let response = await fetchWithTimeout(endpoint, {
       method: 'POST',
       headers: { apikey: this.WA_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
-    const body = await response.text().catch(() => '')
+    let body = await response.text().catch(() => '')
 
-    return { res: response, body }
+    if (response.status === 400) {
+      const legacyPayload = this.buildLegacyWhatsAppTextPayload(number, text)
+      response = await fetchWithTimeout(endpoint, {
+        method: 'POST',
+        headers: { apikey: this.WA_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify(legacyPayload),
+      })
+      body = await response.text().catch(() => '')
+      payloadShape = 'legacy'
+    }
+
+    if (response.status === 400) {
+      const minimalLegacyPayload = this.buildLegacyWhatsAppTextPayload(number, text, false)
+      response = await fetchWithTimeout(endpoint, {
+        method: 'POST',
+        headers: { apikey: this.WA_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify(minimalLegacyPayload),
+      })
+      body = await response.text().catch(() => '')
+      payloadShape = 'legacy'
+    }
+
+    return { res: response, body, payloadShape }
   }
 
   private buildWhatsAppTextPayload(number: string, text: string): WhatsAppTextPayload {
     return { number, text, delay: 1000, linkPreview: false }
+  }
+
+  private buildLegacyWhatsAppTextPayload(number: string, text: string, includeOptions = true): WhatsAppTextPayload {
+    return includeOptions
+      ? { number, textMessage: { text }, delay: 1000, linkPreview: false }
+      : { number, textMessage: { text } }
   }
 
   private isClosedConnectionError(body: string): boolean {
