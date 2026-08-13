@@ -8,6 +8,8 @@ import { ProspectingMessageService } from './messages/prospecting-message.servic
 import { MessageProviderFactory } from './providers/message-provider.factory'
 import { CreateSearchDto, PreviewSearchDto } from './dto/create-search.dto'
 import { SuggestReplyDto } from './dto/suggest-reply.dto'
+import { AnalyzeSalesConversationDto } from './dto/analyze-sales-conversation.dto'
+import { UpdateProspectStageDto } from './dto/update-prospect-stage.dto'
 import { ProspectStatus } from './entities/prospect.entity'
 import { ConversationChannel } from './entities/prospect-conversation.entity'
 
@@ -102,6 +104,16 @@ export class ProspectingController {
   @Post('prospects/:id/suggest-reply')
   suggestReply(@Param('id') id: string, @Body() dto: SuggestReplyDto, @Request() req: any) {
     return this.svc.suggestReply(id, dto, req.user?.id)
+  }
+
+  @Post('assistant/analyze')
+  analyzeSalesConversation(@Body() dto: AnalyzeSalesConversationDto) {
+    return this.svc.analyzeSalesConversation(dto)
+  }
+
+  @Post('prospects/:id/stage')
+  updateStage(@Param('id') id: string, @Body() dto: UpdateProspectStageDto, @Request() req: any) {
+    return this.svc.updateStage(id, dto.status, req.user?.id)
   }
 
   // ─── Conversas ────────────────────────────────────────────────────────────

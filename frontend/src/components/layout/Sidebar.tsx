@@ -7,7 +7,7 @@ import BrandLogo from '@/components/ui/BrandLogo'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 import { NAVIGATION_ITEMS } from './navigation'
 
-const TRIAL_DAYS = 7
+const TRIAL_DAYS = 14
 
 export default function Sidebar() {
   const user = useAuthStore((s) => s.user)

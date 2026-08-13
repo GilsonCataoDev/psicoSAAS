@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, useReducedMotion, type Variants } from 'framer-motion'
 import {
@@ -158,63 +158,114 @@ function useLandingMotion() {
   return { fadeUp, stagger, reduce }
 }
 
-const MotionLink = motion(Link)
+const MotionLink = motion.create(Link)
+
+const productViews = [
+  { id: 'agenda', label: 'Agenda', icon: CalendarCheck2 },
+  { id: 'prontuario', label: 'Prontuário', icon: FileSignature },
+  { id: 'financeiro', label: 'Financeiro', icon: WalletCards },
+  { id: 'documentos', label: 'Documentos', icon: ShieldCheck },
+] as const
+
+type ProductView = typeof productViews[number]['id']
 
 function ProductPreview() {
+  const [activeView, setActiveView] = useState<ProductView>('agenda')
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([])
+
+  const selectAdjacentTab = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    let nextIndex: number | null = null
+    if (event.key === 'ArrowRight') nextIndex = (index + 1) % productViews.length
+    if (event.key === 'ArrowLeft') nextIndex = (index - 1 + productViews.length) % productViews.length
+    if (event.key === 'Home') nextIndex = 0
+    if (event.key === 'End') nextIndex = productViews.length - 1
+    if (nextIndex === null) return
+    event.preventDefault()
+    setActiveView(productViews[nextIndex].id)
+    tabRefs.current[nextIndex]?.focus()
+  }
+
   return (
-    <div className="relative mx-auto w-full min-w-0 max-w-[calc(100vw-40px)] overflow-hidden rounded-lg border border-white/15 bg-[#17211D] shadow-2xl sm:max-w-[560px]">
+    <div className="relative mx-auto w-full min-w-0 max-w-[calc(100vw-40px)] overflow-hidden rounded-xl border border-white/15 bg-[#17211D] shadow-2xl sm:max-w-[620px]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-white/5 px-4 py-3">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sage-200">Painel UseCognia</p>
-          <p className="mt-1 text-sm text-white/70">Rotina clínica</p>
+          <p className="mt-1 text-sm text-white/70">Demonstração com dados fictícios</p>
         </div>
-        <span className="shrink-0 rounded-full bg-sage-200 px-3 py-1 text-xs font-semibold text-sage-900">Plano grátis</span>
+        <span className="shrink-0 rounded-full bg-sage-200 px-3 py-1 text-xs font-semibold text-sage-900">Produto em ação</span>
       </div>
 
-      <div className="grid gap-0 md:grid-cols-[180px_1fr]">
-        <aside className="hidden border-r border-white/10 bg-white/[0.03] p-4 md:block">
-          {['Dashboard', 'Agenda', 'Pacientes', 'Documentos'].map((item, index) => (
-            <div
-              key={item}
-              className={`mb-2 rounded-md px-3 py-2 text-sm ${index === 1 ? 'bg-sage-500 text-white' : 'text-white/58'}`}
+      <div className="border-b border-white/10 bg-white/[0.03] p-2">
+        <div className="grid grid-cols-2 gap-1 sm:grid-cols-4" role="tablist" aria-label="Conheça as áreas do UseCognia">
+          {productViews.map(({ id, label, icon: Icon }, index) => (
+            <button
+              key={id}
+              ref={element => { tabRefs.current[index] = element }}
+              id={`product-preview-tab-${id}`}
+              type="button"
+              role="tab"
+              aria-selected={activeView === id}
+              aria-controls="product-preview-panel"
+              tabIndex={activeView === id ? 0 : -1}
+              onClick={() => setActiveView(id)}
+              onKeyDown={event => selectAdjacentTab(event, index)}
+              className={`flex min-h-10 items-center justify-center gap-2 rounded-lg px-2 py-2 text-xs font-semibold transition sm:text-sm ${activeView === id ? 'bg-sage-200 text-[#143D2D]' : 'text-white/65 hover:bg-white/8 hover:text-white'}`}
             >
-              {item}
-            </div>
+              <Icon className="h-4 w-4" /> {label}
+            </button>
           ))}
-        </aside>
-
-        <div className="space-y-4 p-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-md border border-white/10 bg-white/[0.04] p-3">
-              <p className="text-xs text-white/50">Consultas hoje</p>
-              <p className="mt-2 text-2xl font-semibold text-white">4</p>
-            </div>
-            <div className="rounded-md border border-white/10 bg-white/[0.04] p-3">
-              <p className="text-xs text-white/50">Pendências</p>
-              <p className="mt-2 text-2xl font-semibold text-white">2</p>
-            </div>
-          </div>
-
-          <div className="rounded-md border border-white/10 bg-white/[0.04] p-3">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-semibold text-white">Agenda</p>
-              <span className="text-xs text-white/45">recorrência ativa</span>
-            </div>
-            {['09:00 - Ana Paula', '10:00 - Pedro Lima', '14:00 - Marina Costa'].map((item) => (
-              <div key={item} className="mb-2 rounded-md bg-[#0D1512] px-3 py-3 text-sm font-medium text-white">
-                {item}
-              </div>
-            ))}
-          </div>
-
-          <div className="rounded-md border border-sage-200/25 bg-sage-200/10 p-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sage-200">Documento pronto</p>
-            <p className="mt-1 text-sm text-white">Declaração com QR de autenticidade gerada em uma página.</p>
-          </div>
         </div>
+      </div>
+
+      <div id="product-preview-panel" role="tabpanel" aria-labelledby={`product-preview-tab-${activeView}`} className="min-h-[330px] space-y-4 p-4 sm:p-5">
+        {activeView === 'agenda' && <AgendaPreview />}
+        {activeView === 'prontuario' && <ProntuarioPreview />}
+        {activeView === 'financeiro' && <FinancialPreview />}
+        {activeView === 'documentos' && <DocumentsPreview />}
       </div>
     </div>
   )
+}
+
+function PreviewHeader({ title, detail }: { title: string; detail: string }) {
+  return <div className="flex flex-wrap items-center justify-between gap-2"><p className="font-semibold text-white">{title}</p><span className="rounded-full border border-white/10 px-2.5 py-1 text-xs text-white/55">{detail}</span></div>
+}
+
+function AgendaPreview() {
+  return <>
+    <PreviewHeader title="Agenda da semana" detail="4 atendimentos hoje" />
+    <div className="grid grid-cols-3 gap-2 text-center text-xs text-white/45"><span>09:00</span><span>10:00</span><span>14:00</span></div>
+    <div className="grid grid-cols-3 gap-2">
+      {['Confirmada', 'Online', 'A confirmar'].map((status, index) => <div key={status} className={`min-h-28 rounded-lg border p-3 ${index === 2 ? 'border-amber-300/25 bg-amber-200/10' : 'border-sage-200/20 bg-sage-200/10'}`}><span className="text-xs text-white/55">Sessão {index + 1}</span><p className="mt-3 text-sm font-semibold text-white">Paciente demonstrativo</p><p className="mt-2 text-xs text-sage-200">{status}</p></div>)}
+    </div>
+    <div className="rounded-lg border border-white/10 bg-white/[0.04] p-3 text-sm text-white/70">Link público respeita apenas os horários liberados pelo profissional.</div>
+  </>
+}
+
+function ProntuarioPreview() {
+  return <>
+    <PreviewHeader title="Ficha clínica organizada" detail="salvamento automático" />
+    <div className="grid gap-3 sm:grid-cols-[0.65fr_1.35fr]">
+      <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.04] p-3">{['Histórico', 'Sessões', 'Documentos', 'Instrumentos'].map((item, index) => <div key={item} className={`rounded-md px-3 py-2 text-sm ${index === 1 ? 'bg-sage-200 text-[#143D2D]' : 'text-white/60'}`}>{item}</div>)}</div>
+      <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4"><p className="text-xs font-semibold uppercase tracking-wider text-sage-200">Evolução da sessão</p><div className="mt-4 space-y-2">{[92, 84, 68, 76].map(width => <div key={width} className="h-2 rounded-full bg-white/10" style={{ width: `${width}%` }} />)}</div><div className="mt-7 flex items-center justify-between border-t border-white/10 pt-3 text-xs"><span className="text-white/45">Conteúdo demonstrativo</span><span className="text-sage-200">Salvo</span></div></div>
+    </div>
+  </>
+}
+
+function FinancialPreview() {
+  return <>
+    <PreviewHeader title="Visão financeira" detail="mês atual" />
+    <div className="grid grid-cols-2 gap-3"><div className="rounded-lg border border-sage-200/20 bg-sage-200/10 p-4"><p className="text-xs text-white/50">Recebido</p><p className="mt-2 text-2xl font-semibold text-white">R$ 2.450</p></div><div className="rounded-lg border border-amber-200/20 bg-amber-200/10 p-4"><p className="text-xs text-white/50">Pendente</p><p className="mt-2 text-2xl font-semibold text-white">R$ 380</p></div></div>
+    <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.04] p-3">{[['Sessão demonstrativa', 'Recebido'], ['Pacote mensal', 'Pendente'], ['Sessão online', 'Recebido']].map(([item, status]) => <div key={item} className="flex items-center justify-between gap-3 rounded-md bg-black/15 px-3 py-2.5 text-sm"><span className="text-white/70">{item}</span><span className={status === 'Recebido' ? 'text-sage-200' : 'text-amber-200'}>{status}</span></div>)}</div>
+  </>
+}
+
+function DocumentsPreview() {
+  return <>
+    <PreviewHeader title="Documentos profissionais" detail="PDF verificável" />
+    <div className="grid gap-3 sm:grid-cols-2">{['Declaração de comparecimento', 'Atestado psicológico'].map((item, index) => <div key={item} className="rounded-lg border border-white/10 bg-white/[0.04] p-4"><FileSignature className="h-7 w-7 text-sage-200" /><p className="mt-4 text-sm font-semibold text-white">{item}</p><p className="mt-2 text-xs leading-relaxed text-white/50">Modelo preenchido pelo profissional e exportado em PDF.</p><div className="mt-4 flex items-center gap-2 text-xs text-sage-200"><ShieldCheck className="h-4 w-4" /> {index === 0 ? 'Código de verificação' : 'QR Code de autenticidade'}</div></div>)}</div>
+    <div className="rounded-lg border border-sage-200/25 bg-sage-200/10 p-3 text-sm text-white/75">O código confirma origem e integridade do arquivo; a responsabilidade técnica continua com o profissional.</div>
+  </>
 }
 
 export default function LandingPage() {
@@ -240,6 +291,31 @@ export default function LandingPage() {
       if (wasDark) html.classList.add('dark')
     }
   }, [])
+
+  useEffect(() => {
+    const schemaId = 'usecognia-live-rating-schema'
+    document.getElementById(schemaId)?.remove()
+    if (!publicFeedback?.count || !publicFeedback.averageRating) return
+
+    const script = document.createElement('script')
+    script.id = schemaId
+    script.type = 'application/ld+json'
+    script.textContent = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'SoftwareApplication',
+      '@id': 'https://usecognia.com.br/#software',
+      name: 'UseCognia',
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: publicFeedback.averageRating,
+        ratingCount: publicFeedback.count,
+        bestRating: 5,
+        worstRating: 1,
+      },
+    })
+    document.head.appendChild(script)
+    return () => script.remove()
+  }, [publicFeedback?.averageRating, publicFeedback?.count])
 
   return (
     <main className="landing-readable min-h-screen overflow-x-hidden bg-[#F7F8F5] pb-16 text-[#211F1C] sm:pb-0">
@@ -354,9 +430,10 @@ export default function LandingPage() {
         </div>
         {realTestimonials.length > 0 && (
           <div className="mx-auto max-w-6xl px-5 pb-10">
-            <p className="mb-5 text-center text-sm font-bold uppercase tracking-[0.18em] text-sage-700">
-              Quem usa recomenda
-            </p>
+            <div className="mb-5 text-center">
+              <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Quem usa recomenda</p>
+              {publicFeedback?.averageRating && <p className="mt-2 text-sm text-[#6D675D]"><strong className="text-[#211F1C]">{publicFeedback.averageRating.toLocaleString('pt-BR')}/5</strong> em {publicFeedback.count} avaliação{publicFeedback.count === 1 ? '' : 'ões'} publicada{publicFeedback.count === 1 ? '' : 's'}</p>}
+            </div>
             <div className="grid gap-4 md:grid-cols-3">
               {realTestimonials.slice(0, 3).map(item => (
                 <motion.figure
@@ -370,8 +447,12 @@ export default function LandingPage() {
                     ))}
                   </div>
                   <blockquote className="text-sm leading-relaxed text-[#49443D]">“{item.text}”</blockquote>
-                  <figcaption className="mt-4 text-sm font-semibold text-[#211F1C]">
-                    {item.firstName} · psicóloga usuária do UseCognia
+                  <figcaption className="mt-4 flex items-center gap-3">
+                    {item.avatarUrl ? <img src={item.avatarUrl} alt="" loading="lazy" className="h-10 w-10 rounded-full object-cover" /> : <span className="flex h-10 w-10 items-center justify-center rounded-full bg-sage-100 text-sm font-bold text-sage-800">{(item.displayName || item.firstName).slice(0, 1).toUpperCase()}</span>}
+                    <span className="min-w-0">
+                      <strong className="block truncate text-sm text-[#211F1C]">{item.displayName || item.firstName}</strong>
+                      <span className="block text-xs text-[#6D675D]">{[item.specialty, item.crp ? `CRP ${item.crp}` : null, item.city].filter(Boolean).join(' · ') || 'Psicóloga usuária do UseCognia'}</span>
+                    </span>
                   </figcaption>
                 </motion.figure>
               ))}
@@ -459,8 +540,8 @@ export default function LandingPage() {
             viewport={{ once: true, margin: '-80px' }}
             variants={fadeUp}
           >
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Como funciona</p>
-            <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Da primeira configuração à rotina organizada em três passos.</h2>
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Produto em ação</p>
+            <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Conheça o fluxo antes de criar sua conta.</h2>
             <p className="mt-4 leading-relaxed text-[#5F5A51]">
               Você começa pelo essencial e adiciona recursos conforme sua clínica precisar.
             </p>

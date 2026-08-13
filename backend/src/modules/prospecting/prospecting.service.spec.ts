@@ -63,6 +63,7 @@ function mockAiService(overrides: Partial<Record<string, jest.Mock>> = {}) {
   return {
     generateProspectOutreachDraft: jest.fn().mockRejectedValue(new Error('IA desligada neste teste — fallback esperado')),
     generateProspectReplySuggestion: jest.fn(),
+    analyzeSalesConversation: jest.fn(),
     ...overrides,
   }
 }
@@ -181,6 +182,64 @@ describe('ProspectingService — sugestão de resposta (Entrega B)', () => {
     const aiOverride = { generateProspectReplySuggestion: jest.fn().mockRejectedValue(new BadRequestException('indisponível')) }
     const { svc } = createService({ status: 'approved' }, undefined, aiOverride)
     await expect(svc.suggestReply('p1', { channel: 'direct', leadReplyText: 'oi' })).rejects.toThrow(BadRequestException)
+  })
+})
+
+describe('ProspectingService — assistente comercial', () => {
+  const validAnalysis = {
+    stage: 'qualified', interestLevel: 'high', painPoints: ['Agenda manual'], objections: [],
+    positiveSignals: ['Pediu demonstração'], nextAction: 'Oferecer uma demonstração curta.',
+    suggestedReply: 'Posso te mostrar o fluxo em 5 minutos.', shouldStopContact: false,
+    reasoning: 'A pessoa declarou interesse e pediu para conhecer.',
+  }
+
+  it('retorna análise estruturada sem persistir a conversa', async () => {
+    const aiOverride = { analyzeSalesConversation: jest.fn().mockResolvedValue({ text: JSON.stringify(validAnalysis), usage: {} }) }
+    const { svc, activitiesRepo, aiService } = createService({}, undefined, aiOverride)
+    const result = await svc.analyzeSalesConversation({ channel: 'direct', conversation: 'Lead: Tenho interesse, pode mostrar?' })
+    expect(result.stage).toBe('qualified')
+    expect(result.suggestedReply).toContain('5 minutos')
+    expect(aiService.analyzeSalesConversation).toHaveBeenCalledWith(expect.objectContaining({ channel: 'direct' }))
+    expect(activitiesRepo.save).not.toHaveBeenCalled()
+  })
+
+  it('bloqueia insistência quando detecta recusa explícita, mesmo se a IA errar', async () => {
+    const aiOverride = { analyzeSalesConversation: jest.fn().mockResolvedValue({ text: JSON.stringify(validAnalysis), usage: {} }) }
+    const { svc } = createService({}, undefined, aiOverride)
+    const result = await svc.analyzeSalesConversation({ channel: 'whatsapp', conversation: 'Lead: Não tenho interesse, por favor não me contate.' })
+    expect(result.stage).toBe('lost')
+    expect(result.shouldStopContact).toBe(true)
+    expect(result.suggestedReply).toContain('não entrarei mais em contato')
+  })
+
+  it('rejeita JSON inválido do provedor', async () => {
+    const aiOverride = { analyzeSalesConversation: jest.fn().mockResolvedValue({ text: 'resposta fora do formato', usage: {} }) }
+    const { svc } = createService({}, undefined, aiOverride)
+    await expect(svc.analyzeSalesConversation({ channel: 'direct', conversation: 'Lead: quero entender melhor' })).rejects.toThrow(BadRequestException)
+  })
+})
+
+describe('ProspectingService — Kanban comercial', () => {
+  it('atualiza a etapa e registra somente a transição no histórico', async () => {
+    const { svc, prospectsRepo, activitiesRepo } = createService({ status: 'approved' })
+    const result = await svc.updateStage('p1', 'contacted', 'admin-1')
+    expect(result.status).toBe('contacted')
+    expect(result.lastContactAt).toBeInstanceOf(Date)
+    expect(prospectsRepo.save).toHaveBeenCalled()
+    expect(activitiesRepo.save).toHaveBeenCalledWith(expect.objectContaining({
+      action: 'status_changed', notes: 'approved → contacted', actorUserId: 'admin-1',
+    }))
+  })
+
+  it('não reativa lead marcado como não contatar', async () => {
+    const { svc } = createService({ status: 'do_not_contact', doNotContact: true })
+    await expect(svc.updateStage('p1', 'interested', 'admin-1')).rejects.toThrow(BadRequestException)
+  })
+
+  it('não grava atividade quando a etapa não mudou', async () => {
+    const { svc, activitiesRepo } = createService({ status: 'replied' })
+    await svc.updateStage('p1', 'replied', 'admin-1')
+    expect(activitiesRepo.save).not.toHaveBeenCalled()
   })
 })
 

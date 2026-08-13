@@ -35,6 +35,7 @@ function TestimonialRow({ item }: { item: AdminTestimonial }) {
       <td className="px-4 py-3">
         <p className="text-sm font-medium text-neutral-700 truncate max-w-[160px]">{item.userName}</p>
         <p className="text-xs text-neutral-400 truncate max-w-[160px]">{item.userEmail}</p>
+        <p className="mt-1 text-xs text-neutral-500">{item.publicIdentityConsent ? 'Identidade pública autorizada' : 'Somente primeiro nome'}</p>
       </td>
       <td className="px-4 py-3">
         <button

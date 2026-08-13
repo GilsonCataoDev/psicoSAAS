@@ -188,8 +188,8 @@ export class EmailService {
       html: this.wrap(`
         <h1 style="color:#2F7657;font-weight:300;font-size:28px">Olá, ${firstName}!</h1>
         <p style="color:#555;font-size:16px;line-height:1.6">
-          Sua conta foi criada com sucesso. Você tem <strong>7 dias grátis</strong>
-          para explorar o plano escolhido. A cobrança só acontece ao fim do teste.
+          Sua conta foi criada com sucesso no <strong>plano gratuito</strong>, sem cartão.
+          Quando quiser, você poderá testar o plano Pro por 14 dias sem cobrança automática.
         </p>
         <p style="color:#555;font-size:16px;line-height:1.6">Veja o que você pode fazer agora:</p>
         <ul style="color:#555;font-size:15px;line-height:2">

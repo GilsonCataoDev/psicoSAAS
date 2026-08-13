@@ -1,6 +1,6 @@
 ﻿import {
   BadRequestException, ConflictException, ForbiddenException, HttpException, HttpStatus,
-  Injectable, Logger, NotFoundException, UnauthorizedException,
+  Injectable, Logger, NotFoundException, Optional, UnauthorizedException,
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { DataSource, Repository } from 'typeorm'
@@ -24,6 +24,7 @@ import { EmailService }   from '../email/email.service'
 import { ReferralService } from '../referral/referral.service'
 import { AsaasService } from '../billing/asaas.service'
 import { AuditService } from '../audit/audit.service'
+import { ProspectLifecycleService } from '../../common/prospect-lifecycle/prospect-lifecycle.service'
 
 // ── Tipagem de retorno ─────────────────────────────────────────────────────────
 export interface AuthTokens {
@@ -76,6 +77,7 @@ export class AuthService {
     private riskEngine:    RiskEngineService,
     private suspicious:    SuspiciousActivityService,
     private storage:       StorageService,
+    @Optional() private readonly prospectLifecycle?: ProspectLifecycleService,
   ) {}
 
   // ── Registro ───────────────────────────────────────────────────────────────
@@ -101,6 +103,14 @@ export class AuthService {
       termsVersion: termsVersion ?? CURRENT_TERMS_VERSION,
     })
     await this.users.save(user)
+
+    await this.prospectLifecycle?.markRegistered({
+      userId: user.id,
+      email: user.email,
+      phone: user.phone,
+    }).catch(err => this.logger.warn(
+      `[Register] Falha ao sincronizar funil user=${user.id}: ${err?.message ?? err}`,
+    ))
 
     if (referralCode) {
       await this.referral.applyReferral(referralCode, user).catch((err) => {

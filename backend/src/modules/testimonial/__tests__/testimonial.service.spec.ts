@@ -51,7 +51,33 @@ describe('TestimonialService', () => {
       rating: 5,
       text: 'Organizou minha rotina.',
       publicConsent: true,
+      publicIdentityConsent: false,
+      publicConsentAt: expect.any(Date),
+      publicConsentVersion: '2026-08-13',
       approvedForPublic: false,
+    }))
+  })
+
+  it('snapshots professional identity only with separate consent', async () => {
+    repo.findOne.mockResolvedValue(null)
+    repo.save.mockResolvedValue(undefined)
+    dataSource.query.mockResolvedValue([{ name: 'Ana Exemplo', crp: '02/12345', specialty: 'TCC', avatarUrl: 'https://cdn.example/avatar.jpg' }])
+
+    await service.create('user-1', {
+      rating: 5,
+      text: 'Organizou minha rotina.',
+      publicConsent: true,
+      publicIdentityConsent: true,
+      publicCity: 'Recife',
+    })
+
+    expect(repo.save).toHaveBeenCalledWith(expect.objectContaining({
+      publicIdentityConsent: true,
+      publicDisplayName: 'Ana Exemplo',
+      publicCrp: '02/12345',
+      publicSpecialty: 'TCC',
+      publicCity: 'Recife',
+      publicAvatarUrl: 'https://cdn.example/avatar.jpg',
     }))
   })
 

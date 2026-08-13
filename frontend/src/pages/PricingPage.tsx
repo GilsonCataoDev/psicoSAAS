@@ -224,11 +224,25 @@ function PaidPricingPage({ publicView = false }: { publicView?: boolean }) {
         subscription.status === 'past_due'
           ? `Cartao atualizado. Tentaremos cobrar no plano ${plan.name}.`
           : data.status === 'trialing'
-            ? 'Teste iniciado! Voce tem 7 dias gratis.'
+            ? 'Teste iniciado! Você tem 14 dias grátis.'
             : `Plano ${plan.name} ativado. A cobranca seguira o vencimento informado.`,
       )
     } catch (err: any) {
       toast.error(userSafeError(err, 'Cartao invalido ou pagamento recusado.'))
+    } finally {
+      setLoadingPlan(null)
+    }
+  }
+
+  async function startTrial(plan: Plan) {
+    setLoadingPlan(plan.id)
+    try {
+      const { data } = await api.post('/billing/subscribe', { plan: plan.id })
+      setSubscription(data)
+      track(EVENTS.SUBSCRIPTION_ACTIVE, { plan: plan.id, source: 'trial_without_card' })
+      toast.success('Teste Pro iniciado: 14 dias grátis, sem cartão.')
+    } catch (err: any) {
+      toast.error(userSafeError(err, 'Não foi possível iniciar o teste grátis.'))
     } finally {
       setLoadingPlan(null)
     }
@@ -287,6 +301,10 @@ function PaidPricingPage({ publicView = false }: { publicView?: boolean }) {
       return
     }
     track(EVENTS.CHECKOUT_STARTED, { plan: plan.id })
+    if (!subscription.hasUsedTrial && subscription.status !== 'past_due') {
+      startTrial(billingPlan)
+      return
+    }
     setSelectedPlan(billingPlan)
   }
 
@@ -301,7 +319,7 @@ function PaidPricingPage({ publicView = false }: { publicView?: boolean }) {
             Pro por R$ 34,90 no primeiro mês; depois R$ 97,90/mês.
           </p>
           {upgradeOffer.includesTrial && (
-            <p className="mt-1 text-sm">Antes da primeira cobrança, você ainda tem 7 dias grátis.</p>
+            <p className="mt-1 text-sm">Antes da primeira cobrança, você ainda tem 14 dias grátis sem cartão.</p>
           )}
         </aside>
       )}
@@ -839,7 +857,7 @@ function CheckoutForm({
 
         <button type="button" onClick={onSubmit} disabled={loadingPlan !== null} className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-sage-600 text-sm font-medium text-white transition-colors hover:bg-sage-700 disabled:opacity-60">
           {loadingPlan === selectedPlan.id && <Loader2 className="h-4 w-4 animate-spin" />}
-          {subscriptionStatus === 'past_due' ? 'Pagar agora' : 'Iniciar teste gratis'}
+          {subscriptionStatus === 'past_due' ? 'Pagar agora' : 'Assinar plano Pro'}
         </button>
         <button
           type="button"

@@ -16,10 +16,11 @@ export class PaidPlanDto {
 }
 
 export class SubscribeDto extends PaidPlanDto {
+  @IsOptional()
   @IsString()
   @MinLength(10)
   @MaxLength(512)
-  creditCardToken: string
+  creditCardToken?: string
 }
 
 export class UpdateCardDto {

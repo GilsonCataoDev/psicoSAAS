@@ -14,7 +14,7 @@ const makeSub = (overrides: Partial<Subscription> = {}): Subscription => ({
   gatewayCustomerId: null,
   gatewaySubscriptionId: null,
   currentPeriodEnd: null,
-  trialEndsAt: new Date(Date.now() + 7 * 24 * 3600 * 1000),
+  trialEndsAt: new Date(Date.now() + 14 * 24 * 3600 * 1000),
   cancelAtPeriodEnd: false,
   hasUsedTrial: true,
   createdAt: new Date(),
@@ -195,11 +195,25 @@ describe('BillingService', () => {
         .rejects.toThrow(BadRequestException)
     })
 
-    it('throws when no credit card token provided', async () => {
+    it('starts a 14-day local trial without credit card', async () => {
       const user = { ...makeUser(), name: 'Test', createdAt: new Date() } as any
+      const free = makeSub({ plan: 'free', status: 'active', hasUsedTrial: false, gatewaySubscriptionId: null })
+      repo.findOne.mockResolvedValue(free)
 
-      await expect(service.subscribe(user, 'pro'))
-        .rejects.toThrow(BadRequestException)
+      const before = Date.now()
+      const result = await service.subscribe(user, 'pro')
+
+      expect(result).toEqual(expect.objectContaining({ plan: 'pro', status: 'trialing', hasUsedTrial: true }))
+      expect(new Date((result as any).trialEndsAt).getTime()).toBeGreaterThanOrEqual(before + 14 * 86400000 - 1000)
+      expect(asaas.createCustomer).not.toHaveBeenCalled()
+      expect(asaas.createSubscription).not.toHaveBeenCalled()
+    })
+
+    it('requires payment after the free trial was already used', async () => {
+      const user = { ...makeUser(), name: 'Test', createdAt: new Date() } as any
+      repo.findOne.mockResolvedValue(makeSub({ status: 'canceled', hasUsedTrial: true }))
+
+      await expect(service.subscribe(user, 'pro')).rejects.toThrow(BadRequestException)
     })
   })
 
