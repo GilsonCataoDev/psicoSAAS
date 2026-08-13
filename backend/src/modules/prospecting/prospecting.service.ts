@@ -17,6 +17,8 @@ import { ScoringService } from './scoring/scoring.service'
 import { DraftService, describeSource, pickMention } from './draft/draft.service'
 import { CreateSearchDto, PreviewSearchDto } from './dto/create-search.dto'
 import { SuggestReplyDto } from './dto/suggest-reply.dto'
+import { AnalyzeSalesConversationDto } from './dto/analyze-sales-conversation.dto'
+import { ManualProspectStage } from './dto/update-prospect-stage.dto'
 import { AiService } from '../sessions/ai.service'
 
 const EMAIL_REGEX = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i
@@ -35,6 +37,18 @@ export interface ProspectFilters {
   hasPhone?: boolean
   hasLinkedin?: boolean
   hasPsymeet?: boolean
+}
+
+export type SalesConversationAnalysis = {
+  stage: 'new' | 'engaged' | 'qualified' | 'trial' | 'won' | 'lost'
+  interestLevel: 'low' | 'medium' | 'high'
+  painPoints: string[]
+  objections: string[]
+  positiveSignals: string[]
+  nextAction: string
+  suggestedReply: string
+  shouldStopContact: boolean
+  reasoning: string
 }
 
 @Injectable()
@@ -376,6 +390,62 @@ export class ProspectingService {
     // atividade livre de conteúdo arbitrário/PII (mesmo padrão dos demais logs deste módulo).
     await this.logActivity(id, 'reply_suggested', actorUserId, `canal: ${dto.channel}`)
     return { suggestion: ai.text.trim() }
+  }
+
+  async analyzeSalesConversation(dto: AnalyzeSalesConversationDto): Promise<SalesConversationAnalysis> {
+    const ai = await this.aiService.analyzeSalesConversation(dto)
+    const parsed = this.parseSalesConversationAnalysis(ai.text)
+
+    // Guarda determinística: mesmo que o modelo ignore uma recusa explícita,
+    // o sistema nunca recomenda insistência comercial.
+    const explicitOptOut = /\b(n[aã]o\s+(?:tenho|tenho mais|quero|me interessa)|sem interesse|pare de|n[aã]o (?:me )?contate|n[aã]o mande mais|remova meu contato)\b/i.test(dto.conversation)
+    if (explicitOptOut) {
+      parsed.stage = 'lost'
+      parsed.interestLevel = 'low'
+      parsed.shouldStopContact = true
+      parsed.nextAction = 'Encerrar o contato e respeitar a decisão da pessoa.'
+      parsed.suggestedReply = 'Obrigado por responder. Entendido — não entrarei mais em contato.'
+    }
+
+    return parsed
+  }
+
+  async updateStage(id: string, status: ManualProspectStage, actorUserId?: string): Promise<Prospect> {
+    const prospect = await this.getOrThrow(id)
+    if (prospect.doNotContact && status !== 'discarded') {
+      throw new BadRequestException('Este lead está marcado como “não contatar” e não pode voltar ao funil ativo.')
+    }
+    const previousStatus = prospect.status
+    if (previousStatus === status) return prospect
+
+    prospect.status = status
+    if (status === 'contacted' && !prospect.lastContactAt) prospect.lastContactAt = new Date()
+    const saved = await this.prospects.save(prospect)
+    await this.logActivity(id, 'status_changed', actorUserId, `${previousStatus} → ${status}`)
+    return saved
+  }
+
+  private parseSalesConversationAnalysis(raw: string): SalesConversationAnalysis {
+    let value: any
+    try {
+      const normalized = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
+      value = JSON.parse(normalized)
+    } catch {
+      throw new BadRequestException('A IA retornou uma análise inválida. Tente novamente.')
+    }
+
+    const stages = ['new', 'engaged', 'qualified', 'trial', 'won', 'lost']
+    const levels = ['low', 'medium', 'high']
+    const stringArray = (field: unknown) => Array.isArray(field) && field.length <= 10 && field.every(item => typeof item === 'string' && item.length <= 300)
+    if (!value || !stages.includes(value.stage) || !levels.includes(value.interestLevel)
+      || !stringArray(value.painPoints) || !stringArray(value.objections) || !stringArray(value.positiveSignals)
+      || typeof value.nextAction !== 'string' || value.nextAction.length > 600
+      || typeof value.suggestedReply !== 'string' || value.suggestedReply.length > 1000
+      || typeof value.shouldStopContact !== 'boolean'
+      || typeof value.reasoning !== 'string' || value.reasoning.length > 1000) {
+      throw new BadRequestException('A IA retornou uma análise incompleta. Tente novamente.')
+    }
+    return value as SalesConversationAnalysis
   }
 
   // ─── Consulta ──────────────────────────────────────────────────────────

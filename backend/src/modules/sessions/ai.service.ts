@@ -431,6 +431,40 @@ Resposta do lead (${input.firstName}): "${input.leadReplyText}"`
   }
 
   /**
+   * Analisa uma conversa comercial colada manualmente pelo administrador.
+   * O texto não é persistido pelo UseCognia e identificadores diretos são
+   * removidos antes da chamada ao provedor de IA.
+   */
+  async analyzeSalesConversation(input: {
+    channel: 'whatsapp' | 'direct'
+    conversation: string
+  }): Promise<AiTextResult> {
+    const channelLabel = input.channel === 'whatsapp' ? 'WhatsApp' : 'Direct'
+    const conversation = this.redactDirectIdentifiers(input.conversation).slice(0, 12_000)
+    const prompt = `Você é um assistente comercial ético do UseCognia, um SaaS de gestão para psicólogos.
+Analise a conversa B2B abaixo, sem inventar fatos e sem inferir informações clínicas, pessoais ou sensíveis.
+
+REGRAS:
+1. Diferencie fatos declarados de hipóteses. Use somente o que está escrito.
+2. Se houver recusa, desinteresse ou pedido para não receber contato, marque shouldStopContact=true, stage="lost" e sugira somente um agradecimento curto, sem insistência.
+3. A resposta sugerida deve ter no máximo 3 frases, em português do Brasil, tom humano e sem pressão.
+4. Não inclua nomes, telefones, e-mails ou outros identificadores na resposta.
+5. Retorne SOMENTE JSON válido, sem markdown, neste formato exato:
+{"stage":"new|engaged|qualified|trial|won|lost","interestLevel":"low|medium|high","painPoints":["..."],"objections":["..."],"positiveSignals":["..."],"nextAction":"...","suggestedReply":"...","shouldStopContact":false,"reasoning":"..."}
+
+Canal: ${channelLabel}
+Conversa com identificadores diretos removidos:
+${conversation}`
+
+    try {
+      return await this.callTextModel(prompt, 700)
+    } catch (err: any) {
+      this.logger.error(`AI sales conversation analysis error: ${err?.status ?? err?.name ?? 'unknown'}`)
+      throw new BadRequestException('Não foi possível analisar a conversa agora. Tente novamente.')
+    }
+  }
+
+  /**
    * Interpretação de avaliação psicológica (PHQ-9, GAD-7, etc.) a partir da
    * pontuação já calculada no frontend (scale-scoring.ts) — este método não
    * corrige nem recalcula a pontuação, só redige um rascunho de interpretação

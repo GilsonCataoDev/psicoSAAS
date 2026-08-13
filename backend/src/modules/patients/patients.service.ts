@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common'
+import { Injectable, NotFoundException, ForbiddenException, Logger, Optional } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { In, MoreThanOrEqual, Not, Repository } from 'typeorm'
 import { randomBytes } from 'crypto'
@@ -14,6 +14,7 @@ import { blindIndex, encrypt, hashToken, safeDecrypt } from '../../common/crypto
 import { FinancialService } from '../financial/financial.service'
 import { formatCrpForDisplay } from '../auth/entities/user.entity'
 import { ProntuarioExportOptions, canIncludePrivateNotes, filterProntuarioSessions, normalizeProntuarioExportOptions } from './prontuario-export.util'
+import { ProspectLifecycleService } from '../../common/prospect-lifecycle/prospect-lifecycle.service'
 
 type EncryptedProntuario = {
   __encrypted: 'usecognia.prontuario.v1' | 'psicosaas.prontuario.v1'
@@ -90,11 +91,14 @@ const PATIENT_ENCRYPTED_FIELDS = [
 
 @Injectable()
 export class PatientsService {
+  private readonly logger = new Logger(PatientsService.name)
+
   constructor(
     @InjectRepository(Patient) private repo: Repository<Patient>,
     @InjectRepository(Appointment) private appointments: Repository<Appointment>,
     private financial: FinancialService,
     private readonly planAccess: PlanAccessService,
+    @Optional() private readonly prospectLifecycle?: ProspectLifecycleService,
   ) {}
 
   // ─── Helpers de criptografia ────────────────────────────────────────────────
@@ -248,6 +252,9 @@ export class PatientsService {
     const patient   = this.repo.create({ status: 'active', ...encrypted, psychologistId })
     const saved = await this.repo.save(patient)
     await this.ensureCurrentMonthlyCharge(saved)
+    await this.prospectLifecycle?.markActivated(psychologistId).catch(err => this.logger.warn(
+      `[CreatePatient] Falha ao sincronizar funil user=${psychologistId}: ${err?.message ?? err}`,
+    ))
     return this.dec(saved)
   }
 

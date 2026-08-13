@@ -1,14 +1,17 @@
 import { useState } from 'react'
 import {
   Radar, Search, Globe, Linkedin, Users2, X, ShieldOff, Trash2,
-  CheckCircle2, XCircle, FileText, Loader2, ExternalLink, MessageSquareText, Sparkles,
+  CheckCircle2, XCircle, FileText, Loader2, ExternalLink, MessageSquareText, Sparkles, Copy,
+  LayoutGrid, List,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import {
   useProspectingMetrics, useProspectingSearches, usePreviewSearch, useCreateSearch,
   useProspects, useProspect, useAnalyzeProspect, useApproveProspect, useDiscardProspect,
   useDoNotContactProspect, useDeleteProspect, useGenerateDraft, useSuggestReply,
-  Prospect, ProspectStatus, ProspectSourceType, SearchFilters, ReplyChannel,
+  useAnalyzeSalesConversation, Prospect, ProspectStatus, ProspectSourceType, SearchFilters, ReplyChannel,
+  SalesConversationAnalysis,
+  ManualProspectStage, useUpdateProspectStage,
 } from '@/hooks/api/prospecting'
 import { ProspectDetailWithConversations } from '@/components/ProspectDetailWithConversations'
 
@@ -37,6 +40,176 @@ const SOURCE_LABEL: Record<ProspectSourceType, string> = {
 function ScoreBadge({ score }: { score: number }) {
   const color = score >= 60 ? 'bg-emerald-100 text-emerald-700' : score >= 30 ? 'bg-amber-100 text-amber-700' : 'bg-neutral-100 text-neutral-500'
   return <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums ${color}`}>{score}</span>
+}
+
+const STAGE_LABEL: Record<SalesConversationAnalysis['stage'], string> = {
+  new: 'Novo', engaged: 'Conversando', qualified: 'Qualificado', trial: 'Em teste',
+  won: 'Cliente', lost: 'Encerrado',
+}
+
+const INTEREST_LABEL: Record<SalesConversationAnalysis['interestLevel'], string> = {
+  low: 'Baixo', medium: 'Médio', high: 'Alto',
+}
+
+function SalesAssistantCard() {
+  const analysis = useAnalyzeSalesConversation()
+  const [channel, setChannel] = useState<ReplyChannel>('direct')
+  const [conversation, setConversation] = useState('')
+  const result = analysis.data
+
+  async function copyReply() {
+    if (!result?.suggestedReply) return
+    await navigator.clipboard.writeText(result.suggestedReply)
+    toast.success('Resposta copiada. Revise antes de enviar.')
+  }
+
+  return (
+    <section className="rounded-2xl border border-purple-100 bg-white p-5 shadow-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-purple-600" />
+            <h2 className="text-sm font-semibold text-neutral-800">Assistente comercial</h2>
+          </div>
+          <p className="mt-1 text-xs text-neutral-500">Cole uma conversa para identificar interesse, dores, objeções e a próxima resposta.</p>
+        </div>
+        <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">Nunca envia automaticamente</span>
+      </div>
+
+      <div className="mt-4 grid gap-3 lg:grid-cols-[160px_1fr]">
+        <select value={channel} onChange={event => setChannel(event.target.value as ReplyChannel)}
+          className="h-10 rounded-xl border border-neutral-200 px-3 text-sm text-neutral-600 outline-none focus:border-purple-400">
+          <option value="direct">Instagram Direct</option>
+          <option value="whatsapp">WhatsApp</option>
+        </select>
+        <textarea value={conversation} onChange={event => setConversation(event.target.value)} rows={5} maxLength={12_000}
+          placeholder={'Cole a conversa aqui. Se possível, use “Eu:” e “Lead:”. Não inclua informações clínicas.'}
+          className="w-full rounded-xl border border-neutral-200 p-3 text-sm outline-none focus:border-purple-400" />
+      </div>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[11px] text-neutral-400">O texto não é salvo no banco. Telefones, e-mails e CPF são removidos antes da IA.</p>
+        <button type="button" disabled={analysis.isPending || conversation.trim().length < 10}
+          onClick={() => analysis.mutate({ channel, conversation: conversation.trim() }, {
+            onError: (error: any) => toast.error(error?.response?.data?.message ?? 'Não foi possível analisar a conversa.'),
+          })}
+          className="inline-flex h-9 items-center gap-2 rounded-xl bg-purple-600 px-4 text-xs font-semibold text-white hover:bg-purple-700 disabled:opacity-40">
+          {analysis.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+          {analysis.isPending ? 'Analisando…' : 'Analisar conversa'}
+        </button>
+      </div>
+
+      {result && (
+        <div className="mt-5 space-y-4 border-t border-neutral-100 pt-5">
+          {result.shouldStopContact && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm font-medium text-rose-800">
+              A pessoa indicou que não deseja continuar. Encerre o contato e não faça novo follow-up.
+            </div>
+          )}
+          <div className="flex flex-wrap gap-2 text-xs">
+            <span className="rounded-full bg-neutral-100 px-3 py-1 font-semibold text-neutral-700">Etapa: {STAGE_LABEL[result.stage]}</span>
+            <span className="rounded-full bg-purple-50 px-3 py-1 font-semibold text-purple-700">Interesse: {INTEREST_LABEL[result.interestLevel]}</span>
+          </div>
+          <div className="grid gap-3 md:grid-cols-3">
+            {([
+              ['Dores identificadas', result.painPoints],
+              ['Objeções', result.objections],
+              ['Sinais positivos', result.positiveSignals],
+            ] as const).map(([title, items]) => (
+              <div key={title} className="rounded-xl border border-neutral-100 bg-neutral-50 p-3">
+                <p className="text-xs font-semibold text-neutral-700">{title}</p>
+                {items.length > 0
+                  ? <ul className="mt-2 space-y-1 text-xs text-neutral-600">{items.map(item => <li key={item}>• {item}</li>)}</ul>
+                  : <p className="mt-2 text-xs text-neutral-400">Nada declarado.</p>}
+              </div>
+            ))}
+          </div>
+          <div className="rounded-xl border border-sage-100 bg-sage-50 p-3">
+            <p className="text-xs font-semibold text-sage-800">Próxima ação</p>
+            <p className="mt-1 text-sm text-neutral-700">{result.nextAction}</p>
+          </div>
+          <div className="rounded-xl border border-purple-100 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs font-semibold text-purple-700">Resposta sugerida — revise antes de enviar</p>
+              <button type="button" onClick={copyReply} className="inline-flex items-center gap-1 text-xs font-medium text-purple-700 hover:text-purple-900">
+                <Copy className="h-3.5 w-3.5" /> Copiar
+              </button>
+            </div>
+            <p className="mt-2 whitespace-pre-wrap text-sm text-neutral-700">{result.suggestedReply}</p>
+          </div>
+          <details className="text-xs text-neutral-500">
+            <summary className="cursor-pointer font-medium">Por que a IA classificou assim?</summary>
+            <p className="mt-2 leading-relaxed">{result.reasoning}</p>
+          </details>
+        </div>
+      )}
+    </section>
+  )
+}
+
+const KANBAN_COLUMNS: Array<{ status: ManualProspectStage; title: string; matches: ProspectStatus[]; color: string }> = [
+  { status: 'discovered', title: 'Novos', matches: ['discovered', 'analyzing', 'analyzed', 'qualified', 'approved'], color: 'border-neutral-200' },
+  { status: 'contacted', title: 'Contatados', matches: ['contacted'], color: 'border-blue-200' },
+  { status: 'replied', title: 'Responderam', matches: ['replied'], color: 'border-violet-200' },
+  { status: 'interested', title: 'Interessados', matches: ['interested'], color: 'border-amber-200' },
+  { status: 'registered', title: 'Cadastrados', matches: ['registered'], color: 'border-sky-200' },
+  { status: 'activated', title: 'Ativados', matches: ['activated'], color: 'border-emerald-200' },
+  { status: 'discarded', title: 'Encerrados', matches: ['discarded', 'do_not_contact', 'expired', 'error'], color: 'border-rose-200' },
+]
+
+function ProspectKanban({ prospects, onSelect }: { prospects: Prospect[]; onSelect: (id: string) => void }) {
+  const updateStage = useUpdateProspectStage()
+  const [draggedId, setDraggedId] = useState<string | null>(null)
+
+  function move(id: string, status: ManualProspectStage) {
+    updateStage.mutate({ id, status }, {
+      onSuccess: () => toast.success('Etapa atualizada.'),
+      onError: (error: any) => toast.error(error?.response?.data?.message ?? 'Não foi possível mover o lead.'),
+    })
+  }
+
+  return (
+    <div className="overflow-x-auto pb-2">
+      <div className="grid min-w-[1540px] grid-cols-7 gap-3">
+        {KANBAN_COLUMNS.map(column => {
+          const cards = prospects.filter(prospect => column.matches.includes(prospect.status))
+          return (
+            <section key={column.status}
+              onDragOver={event => event.preventDefault()}
+              onDrop={() => { if (draggedId) move(draggedId, column.status); setDraggedId(null) }}
+              className={`min-h-[260px] rounded-2xl border-t-4 bg-neutral-50 p-3 ${column.color}`}>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-xs font-semibold text-neutral-700">{column.title}</h3>
+                <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-neutral-500">{cards.length}</span>
+              </div>
+              <div className="space-y-2">
+                {cards.map(prospect => (
+                  <article key={prospect.id} draggable={!prospect.doNotContact}
+                    onDragStart={() => setDraggedId(prospect.id)} onDragEnd={() => setDraggedId(null)}
+                    className="rounded-xl border border-neutral-100 bg-white p-3 shadow-sm">
+                    <button type="button" onClick={() => onSelect(prospect.id)} className="w-full text-left">
+                      <p className="truncate text-sm font-semibold text-neutral-800">{prospect.professionalName ?? 'Nome não identificado'}</p>
+                      <p className="mt-1 truncate text-[11px] text-neutral-400">{prospect.city ?? 'Cidade não informada'}{prospect.state ? `/${prospect.state}` : ''}</p>
+                    </button>
+                    <div className="mt-3 flex items-center gap-2">
+                      <ScoreBadge score={prospect.score} />
+                      <select value={column.status} disabled={updateStage.isPending || prospect.doNotContact}
+                        aria-label={`Mover ${prospect.professionalName ?? 'lead'} para outra etapa`}
+                        onChange={event => move(prospect.id, event.target.value as ManualProspectStage)}
+                        className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-1.5 py-1 text-[10px] text-neutral-500 disabled:opacity-50">
+                        {KANBAN_COLUMNS.map(option => <option key={option.status} value={option.status}>{option.title}</option>)}
+                      </select>
+                    </div>
+                    {prospect.doNotContact && <p className="mt-2 text-[10px] font-medium text-rose-600">Não contatar</p>}
+                  </article>
+                ))}
+                {cards.length === 0 && <p className="py-8 text-center text-[11px] text-neutral-400">Nenhum lead</p>}
+              </div>
+            </section>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 function NewSearchForm() {
@@ -362,6 +535,7 @@ export default function ProspectingPage() {
   })
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [conversationLead, setConversationLead] = useState<{ id: string; name: string } | null>(null)
+  const [view, setView] = useState<'kanban' | 'list'>('kanban')
   const { data: metrics } = useProspectingMetrics()
   const { data: searches } = useProspectingSearches()
   const { data: prospects, isLoading } = useProspects({
@@ -398,6 +572,8 @@ export default function ProspectingPage() {
         </div>
       )}
 
+      <SalesAssistantCard />
+
       <NewSearchForm />
 
       <div className="rounded-2xl border border-neutral-100 bg-white p-3 shadow-sm">
@@ -420,7 +596,20 @@ export default function ProspectingPage() {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-neutral-100 bg-white shadow-sm">
+      <div className="flex justify-end gap-1">
+        <button type="button" onClick={() => setView('kanban')} aria-pressed={view === 'kanban'}
+          className={`inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium ${view === 'kanban' ? 'bg-sage-100 text-sage-800' : 'text-neutral-500 hover:bg-neutral-100'}`}>
+          <LayoutGrid className="h-3.5 w-3.5" /> Kanban
+        </button>
+        <button type="button" onClick={() => setView('list')} aria-pressed={view === 'list'}
+          className={`inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium ${view === 'list' ? 'bg-sage-100 text-sage-800' : 'text-neutral-500 hover:bg-neutral-100'}`}>
+          <List className="h-3.5 w-3.5" /> Lista
+        </button>
+      </div>
+
+      {view === 'kanban' && <ProspectKanban prospects={prospects ?? []} onSelect={setSelectedId} />}
+
+      {view === 'list' && <div className="overflow-x-auto rounded-2xl border border-neutral-100 bg-white shadow-sm">
         <table className="min-w-[880px] w-full text-sm">
           <thead>
             <tr className="border-b border-neutral-100 bg-neutral-50 text-left text-xs font-semibold uppercase tracking-wide text-neutral-400">
@@ -453,7 +642,7 @@ export default function ProspectingPage() {
             ))}
           </tbody>
         </table>
-      </div>
+      </div>}
 
       {searches && searches.length > 0 && (
         <div className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm">

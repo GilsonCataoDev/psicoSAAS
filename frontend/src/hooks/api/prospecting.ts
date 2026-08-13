@@ -190,6 +190,36 @@ export function useGenerateDraft() {
 }
 
 export type ReplyChannel = 'whatsapp' | 'direct'
+export type ManualProspectStage = 'discovered' | 'contacted' | 'replied' | 'interested' | 'registered' | 'activated' | 'discarded'
+
+export function useUpdateProspectStage() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: ManualProspectStage }) =>
+      api.post(`/admin/prospecting/prospects/${id}/stage`, { status }).then(r => r.data as Prospect),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'prospecting'] }),
+  })
+}
+
+export type SalesConversationAnalysis = {
+  stage: 'new' | 'engaged' | 'qualified' | 'trial' | 'won' | 'lost'
+  interestLevel: 'low' | 'medium' | 'high'
+  painPoints: string[]
+  objections: string[]
+  positiveSignals: string[]
+  nextAction: string
+  suggestedReply: string
+  shouldStopContact: boolean
+  reasoning: string
+}
+
+export function useAnalyzeSalesConversation() {
+  return useMutation({
+    mutationFn: ({ channel, conversation }: { channel: ReplyChannel; conversation: string }) =>
+      api.post('/admin/prospecting/assistant/analyze', { channel, conversation })
+        .then(r => r.data as SalesConversationAnalysis),
+  })
+}
 
 export function useSuggestReply() {
   return useMutation({

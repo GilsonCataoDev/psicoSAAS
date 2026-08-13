@@ -96,6 +96,16 @@ export class Prospect {
   @Column({ type: 'timestamptz', nullable: true })
   lastContactAt: Date | null
 
+  @Index({ unique: true })
+  @Column({ type: 'uuid', nullable: true })
+  linkedUserId: string | null
+
+  @Column({ type: 'timestamptz', nullable: true })
+  registeredAt: Date | null
+
+  @Column({ type: 'timestamptz', nullable: true })
+  activatedAt: Date | null
+
   @Index()
   @Column({ type: 'timestamptz' })
   retentionUntil: Date
