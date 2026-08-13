@@ -21,6 +21,11 @@ describe('Billing action DTOs', () => {
     expect(await validate(invalid)).not.toHaveLength(0)
   })
 
+  it('aceita inicio do trial sem token de cartao', async () => {
+    const dto = plainToInstance(SubscribeDto, { plan: 'pro' })
+    await expect(validate(dto)).resolves.toHaveLength(0)
+  })
+
   it('aceita atualização de cartão sem trocar o plano', async () => {
     const dto = plainToInstance(UpdateCardDto, {
       creditCardToken: 'token-seguro-123',

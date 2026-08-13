@@ -19,4 +19,13 @@ export class CreateTestimonialDto {
   @IsOptional()
   @IsBoolean()
   publicConsent?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  publicIdentityConsent?: boolean
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  publicCity?: string
 }

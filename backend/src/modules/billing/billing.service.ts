@@ -6,7 +6,7 @@ import { AsaasService } from './asaas.service'
 import { Subscription } from './entities/subscription.entity'
 import { isCompedProEmail, LATEST_SUBSCRIPTION_ORDER, PLAN_PRICES } from '../../common/plans'
 
-const TRIAL_DAYS = 7
+const TRIAL_DAYS = 14
 const ACTIVATION_OFFER_CODE = 'PRO3490'
 const ACTIVATION_OFFER_VALUE = 34.90
 const REFERRAL_OFFER_CODE = 'INDICACAO20'
@@ -78,14 +78,14 @@ export class BillingService {
   async subscribe(user: User, plan = 'pro', creditCardToken?: string) {
     if (!PLAN_PRICES[plan]) throw new BadRequestException('Plano invalido')
 
-    if (!creditCardToken) {
-      throw new BadRequestException('Cartão de crédito obrigatório para iniciar o teste')
-    }
-
     const existing = await this.repo.findOne({
       where: { userId: user.id },
       order: LATEST_SUBSCRIPTION_ORDER,
     })
+
+    if (!creditCardToken) {
+      return this.startLocalTrial(user, plan, existing)
+    }
 
     const canUpgradeFromFree = existing?.status === 'active' && existing.plan === 'free' && !existing.gatewaySubscriptionId
     const canAttachPaymentToLocalTrial = existing?.status === 'trialing' && !existing.gatewaySubscriptionId
@@ -179,6 +179,40 @@ export class BillingService {
     })
 
     return this.toPublicSubscription(await this.repo.save(saved))
+  }
+
+  private async startLocalTrial(user: User, plan: string, existing: Subscription | null) {
+    if (existing?.status === 'trialing') {
+      throw new ConflictException('Seu teste gratis ja esta ativo')
+    }
+    if (existing?.hasUsedTrial) {
+      throw new BadRequestException('O teste gratis desta conta ja foi utilizado. Informe o cartao para assinar.')
+    }
+    if (existing?.gatewaySubscriptionId || (existing?.status === 'active' && existing.plan !== 'free')) {
+      throw new ConflictException('Usuario ja possui uma assinatura ativa')
+    }
+
+    const promo = await this.getApplicablePromotion(user, plan, existing)
+    const subscription = existing ?? this.repo.create({ userId: user.id })
+    Object.assign(subscription, {
+      userId: user.id,
+      plan,
+      status: 'trialing',
+      trialEndsAt: new Date(Date.now() + TRIAL_DAYS * 86400000),
+      currentPeriodEnd: null,
+      cancelAtPeriodEnd: false,
+      hasUsedTrial: true,
+      gatewayCustomerId: null,
+      gatewaySubscriptionId: null,
+      promoCode: promo?.code ?? null,
+      promoDiscountPercent: promo?.discountPercent ?? 0,
+      promoCyclesTotal: promo?.cycles ?? 0,
+      promoCyclesUsed: 0,
+      regularMonthlyValue: promo ? String(PLAN_PRICES[plan].toFixed(2)) : null,
+      lastPromoPaymentId: null,
+    })
+
+    return this.toPublicSubscription(await this.repo.save(subscription))
   }
 
   async activateFree(user: Pick<User, 'id' | 'email'>) {
@@ -441,6 +475,14 @@ export class BillingService {
   ): Promise<{ code: string; discountPercent: number; cycles: number; fixedValue?: number } | null> {
     if (!PLAN_PRICES[plan]) return null
     if (existing?.gatewaySubscriptionId) return null
+    if (existing?.promoCode && existing.promoCyclesTotal > existing.promoCyclesUsed) {
+      return {
+        code: existing.promoCode,
+        discountPercent: existing.promoDiscountPercent,
+        cycles: existing.promoCyclesTotal,
+        fixedValue: existing.promoCode === ACTIVATION_OFFER_CODE ? ACTIVATION_OFFER_VALUE : undefined,
+      }
+    }
 
     const activationOffer = await this.getFreeUpgradeOffer(user)
     if (activationOffer.eligible) {

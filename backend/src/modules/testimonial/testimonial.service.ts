@@ -8,6 +8,7 @@ import { CreateTestimonialDto } from './dto/create-testimonial.dto'
 const DAYS_THRESHOLD = 30
 const PATIENTS_THRESHOLD = 10
 const SESSIONS_THRESHOLD = 20
+const PUBLIC_CONSENT_VERSION = '2026-08-13'
 
 @Injectable()
 export class TestimonialService {
@@ -50,6 +51,16 @@ export class TestimonialService {
     }
 
     const text = dismissed ? null : dto.text?.trim() || null
+    const publicConsent = Boolean(dto.publicConsent && text)
+    const publicIdentityConsent = Boolean(publicConsent && dto.publicIdentityConsent)
+    const [profile] = publicIdentityConsent
+      ? await this.dataSource.query<Array<{ name: string; crp: string | null; specialty: string | null; avatarUrl: string | null }>>(`
+          SELECT name, crp, specialty, "avatarUrl"
+          FROM users
+          WHERE id = $1
+          LIMIT 1
+        `, [userId])
+      : []
 
     try {
       await this.repo.save({
@@ -57,7 +68,15 @@ export class TestimonialService {
         rating: dismissed ? null : dto.rating!,
         text,
         dismissed,
-        publicConsent: Boolean(dto.publicConsent && text),
+        publicConsent,
+        publicIdentityConsent,
+        publicDisplayName: publicIdentityConsent ? profile?.name?.trim() || null : null,
+        publicCrp: publicIdentityConsent ? profile?.crp?.trim() || null : null,
+        publicSpecialty: publicIdentityConsent ? profile?.specialty?.trim() || null : null,
+        publicCity: publicIdentityConsent ? dto.publicCity?.trim() || null : null,
+        publicAvatarUrl: publicIdentityConsent ? profile?.avatarUrl?.trim() || null : null,
+        publicConsentAt: publicConsent ? new Date() : null,
+        publicConsentVersion: publicConsent ? PUBLIC_CONSENT_VERSION : null,
         approvedForPublic: false,
       })
     } catch (err: any) {
@@ -71,7 +90,10 @@ export class TestimonialService {
     type Row = {
       id: string; userId: string; userName: string; userEmail: string
       rating: number | null; text: string | null
-      approvedForPublic: boolean; publicConsent: boolean; createdAt: string
+      approvedForPublic: boolean; publicConsent: boolean; publicIdentityConsent: boolean
+      publicDisplayName: string | null; publicCrp: string | null; publicSpecialty: string | null
+      publicCity: string | null; publicAvatarUrl: string | null; publicConsentAt: string | null
+      publicConsentVersion: string | null; createdAt: string
     }
     return this.dataSource.query<Row[]>(`
       SELECT
@@ -83,6 +105,14 @@ export class TestimonialService {
         t.text,
         t."approvedForPublic",
         t."publicConsent",
+        t."publicIdentityConsent",
+        t."publicDisplayName",
+        t."publicCrp",
+        t."publicSpecialty",
+        t."publicCity",
+        t."publicAvatarUrl",
+        t."publicConsentAt",
+        t."publicConsentVersion",
         t."createdAt"
       FROM testimonials t
       JOIN users u ON u.id = t."userId"
@@ -92,10 +122,19 @@ export class TestimonialService {
   }
 
   async getPublic() {
-    type Row = { firstName: string; rating: number | null; text: string | null; createdAt: string }
+    type Row = {
+      firstName: string; displayName: string; crp: string | null; specialty: string | null
+      city: string | null; avatarUrl: string | null; rating: number | null
+      text: string | null; createdAt: string
+    }
     const rows = await this.dataSource.query<Row[]>(`
       SELECT
         split_part(u.name, ' ', 1) AS "firstName",
+        CASE WHEN t."publicIdentityConsent" = true THEN COALESCE(t."publicDisplayName", split_part(u.name, ' ', 1)) ELSE split_part(u.name, ' ', 1) END AS "displayName",
+        CASE WHEN t."publicIdentityConsent" = true THEN t."publicCrp" ELSE NULL END AS crp,
+        CASE WHEN t."publicIdentityConsent" = true THEN t."publicSpecialty" ELSE NULL END AS specialty,
+        CASE WHEN t."publicIdentityConsent" = true THEN t."publicCity" ELSE NULL END AS city,
+        CASE WHEN t."publicIdentityConsent" = true THEN t."publicAvatarUrl" ELSE NULL END AS "avatarUrl",
         t.rating,
         t.text,
         t."createdAt"
@@ -109,7 +148,17 @@ export class TestimonialService {
     return {
       count: rows.length,
       averageRating: ratings.length ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10 : null,
-      items: rows.map(r => ({ firstName: r.firstName, rating: r.rating, text: r.text, createdAt: r.createdAt })),
+      items: rows.map(r => ({
+        firstName: r.firstName,
+        displayName: r.displayName,
+        crp: r.crp,
+        specialty: r.specialty,
+        city: r.city,
+        avatarUrl: r.avatarUrl,
+        rating: r.rating,
+        text: r.text,
+        createdAt: r.createdAt,
+      })),
     }
   }
 

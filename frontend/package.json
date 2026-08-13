@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "prebuild": "node scripts/gen-blog-og-images.mjs",
+    "prebuild": "node scripts/gen-seo-assets.mjs && node scripts/gen-blog-og-images.mjs",
     "build": "tsc && vite build",
     "postbuild": "node scripts/create-spa-fallbacks.mjs && node scripts/prerender-blog.mjs",
     "preview": "vite preview",

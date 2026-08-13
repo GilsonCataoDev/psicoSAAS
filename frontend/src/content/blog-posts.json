@@ -168,5 +168,156 @@
       {"label": "Segurança e privacidade no UseCognia", "url": "https://usecognia.com.br/seguranca"},
       {"label": "Planos do UseCognia", "url": "https://usecognia.com.br/precos"}
     ]
+  },
+  {
+    "slug": "lgpd-para-psicologos-guia-pratico",
+    "title": "LGPD para psicólogos: guia prático para proteger dados clínicos",
+    "description": "Entenda como organizar consentimentos, acessos, prontuários, mensagens e solicitações de pacientes com mais segurança e clareza.",
+    "image": "/blog/og/lgpd-para-psicologos-guia-pratico.png",
+    "category": "Privacidade e segurança",
+    "publishedAt": "2026-08-13",
+    "updatedAt": "2026-08-13",
+    "readingMinutes": 8,
+    "author": "Equipe UseCognia",
+    "keywords": [
+      "LGPD para psicólogos",
+      "dados sensíveis psicologia",
+      "privacidade no consultório psicológico",
+      "segurança de prontuário psicológico"
+    ],
+    "relatedSlugs": [
+      "como-organizar-prontuario-psicologico-com-seguranca",
+      "software-para-psicologo-guia-completo-2026"
+    ],
+    "intro": [
+      "Psicólogos tratam informações sobre saúde, histórico pessoal e vida familiar. Pela LGPD, esses dados são sensíveis e exigem cuidados proporcionais ao risco.",
+      "Este guia apresenta uma rotina prática de privacidade. Ele não substitui orientação jurídica nem as normas do Sistema Conselhos de Psicologia, mas ajuda a identificar os controles que não podem ser esquecidos."
+    ],
+    "sections": [
+      {
+        "heading": "1. Saiba por que e para que cada dado é usado",
+        "paragraphs": [
+          "Antes de coletar uma informação, defina sua finalidade. Cadastro, atendimento, cobrança e lembretes são atividades diferentes e não precisam dos mesmos dados.",
+          "Colete apenas o necessário, mantenha um aviso de privacidade compreensível e registre as escolhas do paciente quando o consentimento for a base adequada. Nem todo tratamento depende de consentimento; a base legal deve ser avaliada conforme a finalidade e o contexto profissional."
+        ]
+      },
+      {
+        "heading": "2. Controle quem acessa o prontuário",
+        "paragraphs": [
+          "Cada profissional deve usar uma conta individual. Senhas compartilhadas impedem identificar quem consultou ou alterou uma informação e aumentam o risco de acesso indevido.",
+          "Ative autenticação adicional quando disponível, encerre acessos de dispositivos antigos e revise permissões sempre que alguém deixar uma clínica ou mudar de função."
+        ]
+      },
+      {
+        "heading": "3. Separe mensagens administrativas de informações clínicas",
+        "paragraphs": [
+          "Lembretes devem informar somente o necessário, como data, horário, profissional e instruções para confirmar ou reagendar. Não inclua diagnóstico, hipótese, instrumento aplicado ou conteúdo da sessão.",
+          "Registre a autorização para o canal de contato, ofereça uma forma simples de cancelá-la e confirme o destinatário antes de enviar documentos."
+        ]
+      },
+      {
+        "heading": "4. Prepare respostas a solicitações e incidentes",
+        "paragraphs": [
+          "Defina como receber, validar e responder pedidos de acesso, correção, exportação ou eliminação. A resposta deve considerar tanto os direitos do titular quanto os deveres de guarda e as normas profissionais aplicáveis.",
+          "Também mantenha um procedimento para incidentes: preservar evidências, limitar o acesso, avaliar o impacto e decidir sobre comunicações cabíveis. Registrar decisões reduz improvisos em momentos críticos."
+        ]
+      },
+      {
+        "heading": "5. Avalie fornecedores antes de confiar dados",
+        "paragraphs": [
+          "Verifique se o fornecedor explica onde os dados ficam, como são protegidos, quais terceiros participam do tratamento e como funcionam backup, exportação, exclusão e atendimento a incidentes.",
+          "Prefira ferramentas com conexão HTTPS, criptografia adequada, isolamento entre contas, registros de atividade e contrato de tratamento de dados. Segurança absoluta não existe; procure controles verificáveis e comunicação transparente."
+        ]
+      }
+    ],
+    "checklist": [
+      "Mapear quais dados são coletados e para qual finalidade",
+      "Manter contas individuais e revisar permissões",
+      "Usar mensagens administrativas sem conteúdo clínico",
+      "Registrar consentimentos e revogações quando aplicável",
+      "Definir o fluxo para solicitações de titulares e incidentes",
+      "Revisar contratos, backups, exportação e exclusão dos fornecedores"
+    ],
+    "references": [
+      {"label": "Lei nº 13.709/2018 — Lei Geral de Proteção de Dados Pessoais", "url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709compilado.htm"},
+      {"label": "Guia de agentes de tratamento e encarregado — ANPD", "url": "https://www.gov.br/anpd/pt-br/centrais-de-conteudo/materiais-educativos-e-publicacoes/guia-orientativo-para-definicoes-dos-agentes-de-tratamento-de-dados-pessoais-e-do-encarregado"},
+      {"label": "Resolução CFP nº 001/2009 — registro documental", "url": "https://site.cfp.org.br/wp-content/uploads/2009/04/resolucao2009_01.pdf"},
+      {"label": "Segurança e privacidade no UseCognia", "url": "https://usecognia.com.br/seguranca"}
+    ]
+  },
+  {
+    "slug": "declaracao-de-comparecimento-psicologo-como-fazer",
+    "title": "Declaração de comparecimento psicológico: como organizar e emitir",
+    "description": "Veja quais cuidados tomar ao emitir uma declaração de comparecimento e como manter o documento organizado, verificável e sem exposição clínica indevida.",
+    "image": "/blog/og/declaracao-de-comparecimento-psicologo-como-fazer.png",
+    "category": "Documentos psicológicos",
+    "publishedAt": "2026-08-13",
+    "updatedAt": "2026-08-13",
+    "readingMinutes": 6,
+    "author": "Equipe UseCognia",
+    "keywords": [
+      "declaração de comparecimento psicólogo",
+      "declaração psicológica",
+      "documentos psicológicos",
+      "comprovante de atendimento psicológico"
+    ],
+    "relatedSlugs": [
+      "como-organizar-prontuario-psicologico-com-seguranca",
+      "lgpd-para-psicologos-guia-pratico"
+    ],
+    "intro": [
+      "A declaração pode registrar, de forma objetiva, o comparecimento a um atendimento ou acompanhamento psicológico. Ela não é o lugar para expor diagnóstico, sintomas ou detalhes da sessão.",
+      "A finalidade e o conteúdo devem ser definidos pelo profissional conforme a Resolução CFP nº 06/2019 e o caso concreto. Um sistema pode apoiar a organização e a autenticidade, mas a responsabilidade técnica continua sendo da psicóloga ou do psicólogo."
+    ],
+    "sections": [
+      {
+        "heading": "1. Confirme a finalidade e quem receberá o documento",
+        "paragraphs": [
+          "Pergunte para que a declaração será usada e confira os dados do solicitante e do destinatário. Isso reduz erros e evita produzir um documento mais amplo do que o necessário.",
+          "Se a solicitação envolver conteúdo clínico, avalie se a declaração é realmente o tipo documental adequado antes de prosseguir."
+        ]
+      },
+      {
+        "heading": "2. Use conteúdo objetivo e limitado",
+        "paragraphs": [
+          "Identifique o profissional e a pessoa atendida, registre a finalidade declarada e informe objetivamente o comparecimento, o período ou os horários pertinentes.",
+          "Evite justificar a ausência com diagnóstico ou revelar informações obtidas no atendimento. O princípio é informar somente o necessário para a finalidade apresentada."
+        ]
+      },
+      {
+        "heading": "3. Revise antes de assinar",
+        "paragraphs": [
+          "Confira nomes, datas, horários, local, número de registro profissional e destinatário. Placeholders ou trechos de modelo nunca devem permanecer no documento final.",
+          "A assinatura deve permitir identificar o profissional responsável. Quando o documento for digital, mecanismos de validação ajudam o destinatário a verificar sua autenticidade."
+        ]
+      },
+      {
+        "heading": "4. Entregue pelo canal adequado",
+        "paragraphs": [
+          "Confirme a identidade de quem receberá o documento e evite anexos sensíveis em conversas ou endereços não verificados. Quando possível, use acesso protegido ou link temporário.",
+          "Registre a emissão e a entrega junto ao prontuário, respeitando os deveres de guarda e o sigilo profissional."
+        ]
+      },
+      {
+        "heading": "5. Organize sem automatizar a decisão profissional",
+        "paragraphs": [
+          "Modelos podem reduzir erros de digitação e manter uma estrutura consistente, desde que o profissional revise o texto e escolha o documento correto.",
+          "No UseCognia, documentos podem ser vinculados ao paciente e receber mecanismo de verificação. O sistema apoia o fluxo; não decide o conteúdo nem substitui a avaliação profissional."
+        ]
+      }
+    ],
+    "checklist": [
+      "Confirmar a finalidade e o destinatário",
+      "Escolher o tipo documental adequado",
+      "Informar somente o necessário",
+      "Remover placeholders e revisar todos os dados",
+      "Assinar e disponibilizar uma forma de validação",
+      "Registrar a emissão e a entrega no prontuário"
+    ],
+    "references": [
+      {"label": "Resolução CFP nº 06/2019 comentada — documentos escritos", "url": "https://site.cfp.org.br/wp-content/uploads/2019/09/Resolu%C3%A7%C3%A3o-CFP-n-06-2019-comentada.pdf"},
+      {"label": "CFP — orientações sobre a Resolução nº 06/2019", "url": "https://site.cfp.org.br/cfp-publica-versao-comentada-da-resolucao-sobre-a-elaboracao-de-documentos-escritos/"},
+      {"label": "Lei nº 13.709/2018 — Lei Geral de Proteção de Dados Pessoais", "url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709compilado.htm"}
+    ]
   }
 ]

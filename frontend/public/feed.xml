@@ -7,11 +7,32 @@
     <language>pt-BR</language>
     <atom:link href="https://usecognia.com.br/feed.xml" rel="self" type="application/rss+xml" />
     <item>
+      <title>LGPD para psicólogos: guia prático para proteger dados clínicos</title>
+      <link>https://usecognia.com.br/blog/lgpd-para-psicologos-guia-pratico</link>
+      <guid isPermaLink="true">https://usecognia.com.br/blog/lgpd-para-psicologos-guia-pratico</guid>
+      <pubDate>Thu, 13 Aug 2026 12:00:00 GMT</pubDate>
+      <description>Entenda como organizar consentimentos, acessos, prontuários, mensagens e solicitações de pacientes com mais segurança e clareza.</description>
+    </item>
+    <item>
+      <title>Declaração de comparecimento psicológico: como organizar e emitir</title>
+      <link>https://usecognia.com.br/blog/declaracao-de-comparecimento-psicologo-como-fazer</link>
+      <guid isPermaLink="true">https://usecognia.com.br/blog/declaracao-de-comparecimento-psicologo-como-fazer</guid>
+      <pubDate>Thu, 13 Aug 2026 12:00:00 GMT</pubDate>
+      <description>Veja quais cuidados tomar ao emitir uma declaração de comparecimento e como manter o documento organizado, verificável e sem exposição clínica indevida.</description>
+    </item>
+    <item>
       <title>Como organizar o prontuário psicológico com mais segurança</title>
       <link>https://usecognia.com.br/blog/como-organizar-prontuario-psicologico-com-seguranca</link>
       <guid isPermaLink="true">https://usecognia.com.br/blog/como-organizar-prontuario-psicologico-com-seguranca</guid>
       <pubDate>Mon, 10 Aug 2026 12:00:00 GMT</pubDate>
-      <description>Um roteiro prático para manter registros psicológicos organizados, atualizados e protegidos.</description>
+      <description>Um roteiro prático para manter registros psicológicos organizados, atualizados e protegidos, com atenção ao sigilo profissional e à LGPD.</description>
+    </item>
+    <item>
+      <title>Software para psicólogo: guia completo para escolher em 2026</title>
+      <link>https://usecognia.com.br/blog/software-para-psicologo-guia-completo-2026</link>
+      <guid isPermaLink="true">https://usecognia.com.br/blog/software-para-psicologo-guia-completo-2026</guid>
+      <pubDate>Mon, 10 Aug 2026 12:00:00 GMT</pubDate>
+      <description>Saiba quais recursos avaliar em um software para psicólogos e como centralizar agenda, prontuário, financeiro e atendimento online com segurança.</description>
     </item>
   </channel>
 </rss>
