@@ -1,5 +1,6 @@
 export type BlogReference = { label: string; url: string }
 export type BlogSection = { heading: string; paragraphs: string[] }
+export type BlogFaq = { question: string; answer: string }
 export type BlogPost = {
   slug: string
   title: string
@@ -16,4 +17,5 @@ export type BlogPost = {
   sections: BlogSection[]
   checklist: string[]
   references: BlogReference[]
+  faq?: BlogFaq[]
 }

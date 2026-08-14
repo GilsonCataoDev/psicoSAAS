@@ -1,8 +1,8 @@
-name: Publicação diária do blog
+name: Curadoria semanal do blog
 
 on:
   schedule:
-    - cron: '15 12 * * *'
+    - cron: '15 12 * * 5'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: daily-blog-publisher
+  group: weekly-blog-publisher
   cancel-in-progress: false
 
 jobs:
@@ -43,7 +43,8 @@ jobs:
         id: news
         working-directory: frontend
         env:
-          BLOG_NEWS_MAX_ITEMS: '3'
+          BLOG_NEWS_MAX_ITEMS: '4'
+          BLOG_NEWS_MIN_ITEMS: '2'
         run: |
           if [ "${{ inputs.dry_run || 'false' }}" = "true" ]; then
             node scripts/publish-daily-news.mjs --dry-run
@@ -73,5 +74,5 @@ jobs:
           git config user.email "usecognia@gmail.com"
           git add -- frontend/src/content/blog-posts.json frontend/public/blog/og frontend/public/feed.xml frontend/public/llms.txt frontend/public/sitemap.xml
           git diff --cached --check
-          git commit -m "chore(blog): publicar curadoria de $(date -u +%F)"
+          git commit -m "chore(blog): publicar curadoria semanal de $(date -u +%F)"
           git push origin HEAD:main

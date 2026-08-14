@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { buildNewsPost, parseRss, relevanceScore, selectNews } from './publish-daily-news.mjs'
+import { buildNewsPost, meetsPublicationThreshold, parseRss, relevanceScore, selectNews } from './publish-daily-news.mjs'
 
 const source = { name: 'CFP', host: 'site.cfp.org.br' }
 const rss = `<?xml version="1.0"?><rss><channel><item>
@@ -38,11 +38,24 @@ test('descarta notícia geral quando o tema psicológico não aparece no título
   assert.equal(selectNews([generalNews], [], now).length, 0)
 })
 
+test('só permite publicação com pelo menos duas fontes independentes', () => {
+  const items = [
+    { source: 'CFP' },
+    { source: 'Fiocruz' },
+  ]
+  assert.equal(meetsPublicationThreshold(items), true)
+  assert.equal(meetsPublicationThreshold(items.slice(0, 1)), false)
+  assert.equal(meetsPublicationThreshold([{ source: 'CFP' }, { source: 'CFP' }]), false)
+})
+
 test('gera artigo cauteloso com referências e sem copiar descrição do feed', () => {
   const [item] = parseRss(rss, source)
-  const post = buildNewsPost([item], '2026-08-13')
-  assert.equal(post.slug, 'psicologia-em-pauta-2026-08-13')
+  const secondItem = { ...item, source: 'Fiocruz', expectedHost: 'portal.fiocruz.br', link: 'https://portal.fiocruz.br/noticia-exemplo' }
+  const post = buildNewsPost([item, secondItem], '2026-08-13')
+  assert.equal(post.slug, 'psicologia-em-pauta-semana-2026-08-13')
   assert.equal(post.references[0].url, item.link)
   assert.doesNotMatch(JSON.stringify(post), /Orientação para psicólogos e profissionais/)
   assert.match(post.intro.join(' '), /informativo/)
+  assert.match(JSON.stringify(post.sections), /UseCognia/)
+  assert.equal(post.faq.length, 3)
 })
