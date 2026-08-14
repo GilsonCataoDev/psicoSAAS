@@ -1,5 +1,50 @@
 [
   {
+    "slug": "psicologia-em-pauta-2026-08-14",
+    "title": "Psicologia em pauta: notícias de 14 de agosto de 2026",
+    "description": "Curadoria de atualizações recentes do CFP, da saúde pública e da ciência para psicólogos, com fontes originais e leitura prática.",
+    "image": "/blog/og/psicologia-em-pauta-2026-08-14.png",
+    "category": "Atualidades para psicólogos",
+    "publishedAt": "2026-08-14",
+    "updatedAt": "2026-08-14",
+    "readingMinutes": 4,
+    "author": "Equipe UseCognia",
+    "keywords": [
+      "notícias para psicólogos",
+      "psicologia hoje",
+      "notícias CFP",
+      "atualização para psicólogos"
+    ],
+    "relatedSlugs": [
+      "software-para-psicologo-guia-completo-2026",
+      "lgpd-para-psicologos-guia-pratico"
+    ],
+    "intro": [
+      "Esta curadoria reúne publicações recentes de fontes institucionais consultadas em 14 de agosto de 2026. Os títulos levam ao conteúdo original para conferência.",
+      "O objetivo é ajudar profissionais a acompanhar temas que podem afetar a rotina do consultório. O conteúdo é informativo, não oferece orientação clínica, ética ou jurídica individual."
+    ],
+    "sections": [
+      {
+        "heading": "1. CFP realiza diálogo preparatório para mobilização da categoria com foco na etapa Nordeste da 4ª Mostra SUAS",
+        "paragraphs": [
+          "Conselho Federal de Psicologia publicou uma atualização sobre este tema. Leia a notícia completa na fonte consultada antes de compartilhar a informação ou alterar qualquer procedimento.",
+          "O profissional deve consultar o texto original e verificar se a atualização altera documentos, registros, comunicação ou prestação do serviço."
+        ]
+      }
+    ],
+    "checklist": [
+      "Abrir e ler as fontes originais desta curadoria",
+      "Conferir a publicação original do CFP antes de alterar procedimentos profissionais",
+      "Registrar mudanças de processo somente após validação profissional"
+    ],
+    "references": [
+      {
+        "label": "CFP realiza diálogo preparatório para mobilização da categoria com foco na etapa Nordeste da 4ª Mostra SUAS — Conselho Federal de Psicologia",
+        "url": "https://site.cfp.org.br/cfp-realiza-dialogo-preparatorio-para-mobilizacao-da-categoria-com-foco-na-etapa-nordeste-da-4a-mostra-suas"
+      }
+    ]
+  },
+  {
     "slug": "como-organizar-prontuario-psicologico-com-seguranca",
     "title": "Como organizar o prontuário psicológico com mais segurança",
     "description": "Um roteiro prático para manter registros psicológicos organizados, atualizados e protegidos, com atenção ao sigilo profissional e à LGPD.",
@@ -9,8 +54,15 @@
     "updatedAt": "2026-08-10",
     "readingMinutes": 7,
     "author": "Equipe UseCognia",
-    "keywords": ["prontuário psicológico", "prontuário eletrônico para psicólogos", "LGPD para psicólogos", "segurança de dados na psicologia"],
-    "relatedSlugs": ["software-para-psicologo-guia-completo-2026"],
+    "keywords": [
+      "prontuário psicológico",
+      "prontuário eletrônico para psicólogos",
+      "LGPD para psicólogos",
+      "segurança de dados na psicologia"
+    ],
+    "relatedSlugs": [
+      "software-para-psicologo-guia-completo-2026"
+    ],
     "intro": [
       "O prontuário não é apenas um arquivo de anotações. Ele ajuda a acompanhar o serviço prestado, sustentar decisões profissionais e preservar a continuidade do atendimento.",
       "Na prática, segurança depende de duas coisas: uma rotina de registro consistente e ferramentas que reduzam acessos indevidos, perdas e compartilhamentos acidentais."
@@ -61,9 +113,18 @@
       "Revisar periodicamente acessos, backups e políticas de retenção"
     ],
     "references": [
-      {"label": "Resolução CFP nº 001/2009 — registro documental", "url": "https://site.cfp.org.br/wp-content/uploads/2009/04/resolucao2009_01.pdf"},
-      {"label": "Lei nº 13.709/2018 — Lei Geral de Proteção de Dados Pessoais", "url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709compilado.htm"},
-      {"label": "Manual orientativo de registro e elaboração de documentos psicológicos — CFP", "url": "https://site.cfp.org.br/publicacao/manual-orientativo-de-registro-e-elaboracao-de-documentos-psicologicos/"}
+      {
+        "label": "Resolução CFP nº 001/2009 — registro documental",
+        "url": "https://site.cfp.org.br/wp-content/uploads/2009/04/resolucao2009_01.pdf"
+      },
+      {
+        "label": "Lei nº 13.709/2018 — Lei Geral de Proteção de Dados Pessoais",
+        "url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709compilado.htm"
+      },
+      {
+        "label": "Manual orientativo de registro e elaboração de documentos psicológicos — CFP",
+        "url": "https://site.cfp.org.br/publicacao/manual-orientativo-de-registro-e-elaboracao-de-documentos-psicologicos/"
+      }
     ]
   },
   {
@@ -76,8 +137,17 @@
     "updatedAt": "2026-08-10",
     "readingMinutes": 11,
     "author": "Equipe UseCognia",
-    "keywords": ["software para psicólogo", "sistema para psicólogos", "gestão de consultório psicológico", "prontuário eletrônico para psicólogos", "agenda para psicólogos", "UseCognia"],
-    "relatedSlugs": ["como-organizar-prontuario-psicologico-com-seguranca"],
+    "keywords": [
+      "software para psicólogo",
+      "sistema para psicólogos",
+      "gestão de consultório psicológico",
+      "prontuário eletrônico para psicólogos",
+      "agenda para psicólogos",
+      "UseCognia"
+    ],
+    "relatedSlugs": [
+      "como-organizar-prontuario-psicologico-com-seguranca"
+    ],
     "intro": [
       "Você já contou quanto tempo do seu dia é gasto alternando entre agenda, conversas de WhatsApp, planilhas e anotações? Para muitos psicólogos autônomos, a rotina clínica fica fragmentada: a agenda está em uma ferramenta, o prontuário em outra e o financeiro depende de conferências manuais.",
       "Essa dispersão aumenta o trabalho administrativo e dificulta encontrar informações quando elas são necessárias. Um software especializado ajuda a centralizar a rotina para que o profissional dedique menos tempo à organização operacional e mais atenção ao atendimento."
@@ -162,11 +232,26 @@
       "Comece pela rotina essencial e adote os demais recursos gradualmente"
     ],
     "references": [
-      {"label": "Lei nº 13.709/2018 — Lei Geral de Proteção de Dados Pessoais", "url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709compilado.htm"},
-      {"label": "Resolução CFP nº 001/2009 — registro documental", "url": "https://site.cfp.org.br/wp-content/uploads/2009/04/resolucao2009_01.pdf"},
-      {"label": "Manual orientativo de registro e elaboração de documentos psicológicos — CFP", "url": "https://site.cfp.org.br/publicacao/manual-orientativo-de-registro-e-elaboracao-de-documentos-psicologicos/"},
-      {"label": "Segurança e privacidade no UseCognia", "url": "https://usecognia.com.br/seguranca"},
-      {"label": "Planos do UseCognia", "url": "https://usecognia.com.br/precos"}
+      {
+        "label": "Lei nº 13.709/2018 — Lei Geral de Proteção de Dados Pessoais",
+        "url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709compilado.htm"
+      },
+      {
+        "label": "Resolução CFP nº 001/2009 — registro documental",
+        "url": "https://site.cfp.org.br/wp-content/uploads/2009/04/resolucao2009_01.pdf"
+      },
+      {
+        "label": "Manual orientativo de registro e elaboração de documentos psicológicos — CFP",
+        "url": "https://site.cfp.org.br/publicacao/manual-orientativo-de-registro-e-elaboracao-de-documentos-psicologicos/"
+      },
+      {
+        "label": "Segurança e privacidade no UseCognia",
+        "url": "https://usecognia.com.br/seguranca"
+      },
+      {
+        "label": "Planos do UseCognia",
+        "url": "https://usecognia.com.br/precos"
+      }
     ]
   },
   {
@@ -239,10 +324,22 @@
       "Revisar contratos, backups, exportação e exclusão dos fornecedores"
     ],
     "references": [
-      {"label": "Lei nº 13.709/2018 — Lei Geral de Proteção de Dados Pessoais", "url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709compilado.htm"},
-      {"label": "Guia de agentes de tratamento e encarregado — ANPD", "url": "https://www.gov.br/anpd/pt-br/centrais-de-conteudo/materiais-educativos-e-publicacoes/guia-orientativo-para-definicoes-dos-agentes-de-tratamento-de-dados-pessoais-e-do-encarregado"},
-      {"label": "Resolução CFP nº 001/2009 — registro documental", "url": "https://site.cfp.org.br/wp-content/uploads/2009/04/resolucao2009_01.pdf"},
-      {"label": "Segurança e privacidade no UseCognia", "url": "https://usecognia.com.br/seguranca"}
+      {
+        "label": "Lei nº 13.709/2018 — Lei Geral de Proteção de Dados Pessoais",
+        "url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709compilado.htm"
+      },
+      {
+        "label": "Guia de agentes de tratamento e encarregado — ANPD",
+        "url": "https://www.gov.br/anpd/pt-br/centrais-de-conteudo/materiais-educativos-e-publicacoes/guia-orientativo-para-definicoes-dos-agentes-de-tratamento-de-dados-pessoais-e-do-encarregado"
+      },
+      {
+        "label": "Resolução CFP nº 001/2009 — registro documental",
+        "url": "https://site.cfp.org.br/wp-content/uploads/2009/04/resolucao2009_01.pdf"
+      },
+      {
+        "label": "Segurança e privacidade no UseCognia",
+        "url": "https://usecognia.com.br/seguranca"
+      }
     ]
   },
   {
@@ -315,9 +412,18 @@
       "Registrar a emissão e a entrega no prontuário"
     ],
     "references": [
-      {"label": "Resolução CFP nº 06/2019 comentada — documentos escritos", "url": "https://site.cfp.org.br/wp-content/uploads/2019/09/Resolu%C3%A7%C3%A3o-CFP-n-06-2019-comentada.pdf"},
-      {"label": "CFP — orientações sobre a Resolução nº 06/2019", "url": "https://site.cfp.org.br/cfp-publica-versao-comentada-da-resolucao-sobre-a-elaboracao-de-documentos-escritos/"},
-      {"label": "Lei nº 13.709/2018 — Lei Geral de Proteção de Dados Pessoais", "url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709compilado.htm"}
+      {
+        "label": "Resolução CFP nº 06/2019 comentada — documentos escritos",
+        "url": "https://site.cfp.org.br/wp-content/uploads/2019/09/Resolu%C3%A7%C3%A3o-CFP-n-06-2019-comentada.pdf"
+      },
+      {
+        "label": "CFP — orientações sobre a Resolução nº 06/2019",
+        "url": "https://site.cfp.org.br/cfp-publica-versao-comentada-da-resolucao-sobre-a-elaboracao-de-documentos-escritos/"
+      },
+      {
+        "label": "Lei nº 13.709/2018 — Lei Geral de Proteção de Dados Pessoais",
+        "url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709compilado.htm"
+      }
     ]
   }
 ]
