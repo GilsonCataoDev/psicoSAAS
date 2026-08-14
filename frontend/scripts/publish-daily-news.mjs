@@ -113,9 +113,9 @@ function titleRelevanceScore(item) {
 }
 
 function isRelevant(item) {
-  // Toda publicação do CFP pertence ao domínio profissional. Nas fontes gerais,
-  // o tema precisa estar explícito no título para evitar falsos positivos do resumo.
-  return item.expectedHost === 'site.cfp.org.br' || titleRelevanceScore(item) > 0
+  // O tema precisa estar explícito no título, inclusive nas fontes profissionais.
+  // Isso evita transformar qualquer nota institucional em um artigo raso de SEO.
+  return titleRelevanceScore(item) > 0
 }
 
 function classify(item) {
@@ -156,13 +156,13 @@ function trustedLink(item) {
   }
 }
 
-export function selectNews(items, posts, now = new Date(), maxItems = 3) {
+export function selectNews(items, posts, now = new Date(), maxItems = 4) {
   const usedLinks = new Set(posts.flatMap(post => post.references ?? []).map(reference => canonicalUrl(reference.url)))
   const seenTitles = new Set()
   const sourceUsed = new Set()
 
   return items
-    .filter(item => trustedLink(item) && isRecent(item, now, 4) && isRelevant(item))
+    .filter(item => trustedLink(item) && isRecent(item, now, 8) && isRelevant(item))
     .filter(item => !usedLinks.has(item.link))
     .sort((a, b) => relevanceScore(b) - relevanceScore(a) || Date.parse(b.publishedAt) - Date.parse(a.publishedAt))
     .filter(item => {
@@ -175,37 +175,47 @@ export function selectNews(items, posts, now = new Date(), maxItems = 3) {
     .slice(0, maxItems)
 }
 
+export function meetsPublicationThreshold(items, minItems = 2) {
+  return items.length >= minItems && new Set(items.map(item => item.source)).size >= minItems
+}
+
 export function buildNewsPost(items, date) {
   const topics = items.map(classify)
   const keywords = [...new Set(['notícias para psicólogos', 'psicologia hoje', ...topics.flatMap(topic => topic.keywords)])]
   const formattedDate = longDate(date)
 
   return {
-    slug: `psicologia-em-pauta-${date}`,
-    title: `Psicologia em pauta: notícias de ${formattedDate}`,
-    description: `Curadoria de atualizações recentes do CFP, da saúde pública e da ciência para psicólogos, com fontes originais e leitura prática.`,
-    image: `/blog/og/psicologia-em-pauta-${date}.png`,
+    slug: `psicologia-em-pauta-semana-${date}`,
+    title: `Atualizações para psicólogos: o que merece atenção na semana de ${formattedDate}`,
+    description: `Curadoria semanal de atualizações relevantes para psicólogos, com fontes institucionais, impactos práticos, cuidados e perguntas frequentes.`,
+    image: `/blog/og/psicologia-em-pauta-semana-${date}.png`,
     category: 'Atualidades para psicólogos',
     publishedAt: date,
     updatedAt: date,
-    readingMinutes: Math.max(4, items.length * 2),
+    readingMinutes: Math.max(6, items.length * 3),
     author: 'Equipe UseCognia',
     keywords,
     relatedSlugs: ['software-para-psicologo-guia-completo-2026', 'lgpd-para-psicologos-guia-pratico'],
     intro: [
       `Esta curadoria reúne publicações recentes de fontes institucionais consultadas em ${formattedDate}. Os títulos levam ao conteúdo original para conferência.`,
-      'O objetivo é ajudar profissionais a acompanhar temas que podem afetar a rotina do consultório. O conteúdo é informativo, não oferece orientação clínica, ética ou jurídica individual.',
+      'Selecionamos apenas temas explicitamente ligados à psicologia, e a edição só é publicada quando reúne ao menos duas fontes institucionais independentes. O conteúdo é informativo e não substitui orientação clínica, ética ou jurídica individual.',
     ],
-    sections: items.map((item, index) => {
+    sections: [...items.map((item, index) => {
       const topic = topics[index]
       return {
-        heading: `${index + 1}. ${item.title}`,
+        heading: `${index + 1}. O que foi publicado: ${item.title}`,
         paragraphs: [
-          `${item.source} publicou uma atualização sobre este tema. Leia a notícia completa na fonte consultada antes de compartilhar a informação ou alterar qualquer procedimento.`,
-          topic.implication,
+          `${item.source} publicou uma atualização sobre o tema. A curadoria não reproduz a matéria: use o link em “Fontes consultadas” para conferir contexto, data, escopo e eventuais limitações no conteúdo original.`,
+          `Por que isso merece atenção na rotina profissional: ${topic.implication}`,
         ],
       }
-    }),
+    }), {
+      heading: 'Como transformar informação em uma rotina mais organizada',
+      paragraphs: [
+        'Antes de mudar um procedimento, registre a fonte, confirme se a orientação se aplica ao seu contexto e defina uma ação verificável. Mudanças em comunicação, documentos, agenda ou tratamento de dados devem ser revisadas pelo profissional responsável.',
+        'O UseCognia ajuda a centralizar agenda, pacientes, prontuários, documentos e financeiro. Essa organização reduz tarefas dispersas, mas não substitui decisões técnicas, clínicas ou éticas do psicólogo.',
+      ],
+    }],
     checklist: [...new Set([
       'Abrir e ler as fontes originais desta curadoria',
       ...topics.map(topic => topic.checklist),
@@ -215,6 +225,20 @@ export function buildNewsPost(items, date) {
       label: `${item.title} — ${item.source}`,
       url: item.link,
     })),
+    faq: [
+      {
+        question: 'Uma notícia ou publicação institucional muda automaticamente a prática profissional?',
+        answer: 'Não. Consulte a fonte original, verifique a vigência e, quando necessário, busque orientação do CFP, do CRP ou de assessoria especializada antes de alterar procedimentos.',
+      },
+      {
+        question: 'Posso aplicar uma informação desta curadoria diretamente aos pacientes?',
+        answer: 'Não de forma automática. Informações públicas precisam ser avaliadas no contexto individual e nunca substituem raciocínio clínico, consentimento e responsabilidade profissional.',
+      },
+      {
+        question: 'Como acompanhar atualizações sem aumentar a burocracia do consultório?',
+        answer: 'Reserve um momento semanal para ler as fontes originais, registre apenas mudanças aplicáveis e mantenha agenda, documentos e registros organizados em um fluxo único.',
+      },
+    ],
   }
 }
 
@@ -230,9 +254,9 @@ async function fetchSource(source) {
 export async function main({ now = new Date(), dryRun = false } = {}) {
   const posts = JSON.parse(readFileSync(postsPath, 'utf8'))
   const date = dateInSaoPaulo(now)
-  const slug = `psicologia-em-pauta-${date}`
+  const slug = `psicologia-em-pauta-semana-${date}`
   if (posts.some(post => post.slug === slug)) {
-    console.log(`Blog diário: ${slug} já existe`)
+    console.log(`Blog semanal: ${slug} já existe`)
     return { changed: false, reason: 'already-published' }
   }
 
@@ -242,15 +266,16 @@ export async function main({ now = new Date(), dryRun = false } = {}) {
   const allItems = results.flatMap(result => result.status === 'fulfilled' ? result.value : [])
   if (!allItems.length) throw new Error('Nenhuma fonte oficial respondeu; publicação cancelada')
 
-  const maxItems = Math.min(4, Math.max(1, Number(process.env.BLOG_NEWS_MAX_ITEMS ?? 3)))
+  const maxItems = Math.min(4, Math.max(2, Number(process.env.BLOG_NEWS_MAX_ITEMS ?? 4)))
+  const minItems = Math.min(maxItems, Math.max(2, Number(process.env.BLOG_NEWS_MIN_ITEMS ?? 2)))
   const selected = selectNews(allItems, posts, now, maxItems)
-  if (!selected.length) {
-    console.log('Blog diário: nenhuma notícia nova e relevante; publicação ignorada')
-    return { changed: false, reason: 'no-relevant-news' }
+  if (!meetsPublicationThreshold(selected, minItems)) {
+    console.log(`Blog semanal: qualidade insuficiente (${selected.length}/${minItems} fontes relevantes); publicação ignorada`)
+    return { changed: false, reason: 'insufficient-quality' }
   }
 
   const post = buildNewsPost(selected, date)
-  console.log(`Blog diário: ${post.slug} com ${selected.length} fonte(s) — ${selected.map(item => item.source).join(', ')}`)
+  console.log(`Blog semanal: ${post.slug} com ${selected.length} fontes — ${selected.map(item => item.source).join(', ')}`)
   if (!dryRun) writeFileSync(postsPath, `${JSON.stringify([post, ...posts], null, 2)}\n`, 'utf8')
   return { changed: !dryRun, reason: dryRun ? 'dry-run' : 'published', post }
 }
