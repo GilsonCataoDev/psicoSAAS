@@ -12,6 +12,7 @@
     "preview:dist": "node scripts/serve-dist.mjs",
     "lint": "eslint src --ext ts,tsx",
     "test:unit": "vitest run src",
+    "test:news-automation": "node --test scripts/publish-daily-news.test.mjs",
     "audit:prod": "node scripts/audit-production.mjs",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
