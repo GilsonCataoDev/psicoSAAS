@@ -61,10 +61,10 @@ writeRoute('/blog', replaceMeta(template.replace('<div id="root"></div>', `<div 
 }))
 
 for (const post of posts) {
-  const intro = post.intro.map(paragraph => `<p class="mb-5">${escapeHtml(paragraph)}</p>`).join('')
-  const sections = post.sections.map(section => `<section class="mt-10"><h2 class="mb-4 text-2xl font-bold text-[#211F1C]">${escapeHtml(section.heading)}</h2>${section.paragraphs.map(paragraph => `<p class="mb-5">${escapeHtml(paragraph)}</p>`).join('')}</section>`).join('')
+  const intro = post.intro.map(paragraph => `<p class="mb-5 text-justify">${escapeHtml(paragraph)}</p>`).join('')
+  const sections = post.sections.map(section => `<section class="mt-10"><h2 class="mb-4 text-2xl font-bold text-[#211F1C]">${escapeHtml(section.heading)}</h2>${section.paragraphs.map(paragraph => `<p class="mb-5 text-justify">${escapeHtml(paragraph)}</p>`).join('')}</section>`).join('')
   const checklist = post.checklist.map(item => `<li class="mb-3">✓ ${escapeHtml(item)}</li>`).join('')
-  const faq = post.faq?.length ? `<section class="mt-12 border-t border-[#DDE5DC] pt-8"><h2 class="text-2xl font-bold">Perguntas frequentes</h2>${post.faq.map(item => `<div class="mt-6"><h3 class="font-bold">${escapeHtml(item.question)}</h3><p class="mt-2">${escapeHtml(item.answer)}</p></div>`).join('')}</section>` : ''
+  const faq = post.faq?.length ? `<section class="mt-12 border-t border-[#DDE5DC] pt-8"><h2 class="text-2xl font-bold">Perguntas frequentes</h2>${post.faq.map(item => `<div class="mt-6"><h3 class="font-bold">${escapeHtml(item.question)}</h3><p class="mt-2 text-justify">${escapeHtml(item.answer)}</p></div>`).join('')}</section>` : ''
   const references = post.references.map(reference => `<li class="mb-3"><a href="${escapeHtml(reference.url)}" rel="noreferrer">${escapeHtml(reference.label)}</a></li>`).join('')
   const related = post.relatedSlugs.map(slug => posts.find(item => item.slug === slug)).filter(Boolean).map(item => `<li class="mb-3"><a href="/blog/${item.slug}">${escapeHtml(item.title)}</a></li>`).join('')
   const absoluteImage = `${siteUrl}${post.image}`
