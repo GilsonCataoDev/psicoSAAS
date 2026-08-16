@@ -237,14 +237,14 @@ export class AuthController {
   }
 
   @Patch('preferences')
-  @UseGuards(JwtAuthGuard, CsrfGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
   @SkipThrottle()
   updatePreferences(@Request() req: any, @Body() dto: UpdatePreferencesDto) {
     return this.auth.updatePreferences(req.user.id, dto)
   }
 
   @Patch('onboarding')
-  @UseGuards(JwtAuthGuard, CsrfGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
   @SkipThrottle()
   updateOnboarding(@Request() req: any, @Body() dto: UpdateOnboardingDto) {
     return this.auth.updateOnboarding(req.user.id, dto)

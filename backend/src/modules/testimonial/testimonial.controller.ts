@@ -10,6 +10,7 @@ import { PublicRoute } from '../../common/decorators/public-route.decorator'
 import { TestimonialService } from './testimonial.service'
 import { CreateTestimonialDto } from './dto/create-testimonial.dto'
 import { UpdateTestimonialApprovalDto } from './dto/update-testimonial-approval.dto'
+import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
 
 @Controller('feedback')
 export class TestimonialController {
@@ -22,13 +23,13 @@ export class TestimonialController {
     return this.service.getPublic()
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, NoImpersonationGuard)
   @Get('status')
   getStatus(@Req() req: any) {
     return this.service.getStatus(req.user.id)
   }
 
-  @UseGuards(JwtAuthGuard, CsrfGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
   @Post()
   create(@Req() req: any, @Body() dto: CreateTestimonialDto) {
     return this.service.create(req.user.id, dto)

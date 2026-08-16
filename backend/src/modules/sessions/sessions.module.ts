@@ -4,6 +4,8 @@ import { SessionsController } from './sessions.controller'
 import { SessionsService } from './sessions.service'
 import { AiService } from './ai.service'
 import { Session } from './entities/session.entity'
+import { SessionRevision } from './entities/session-revision.entity'
+import { NoteSnippet } from './entities/note-snippet.entity'
 import { AiUsage } from './entities/ai-usage.entity'
 import { FinancialModule } from '../financial/financial.module'
 import { NotificationsModule } from '../notifications/notifications.module'
@@ -12,15 +14,18 @@ import { User } from '../auth/entities/user.entity'
 import { Appointment } from '../appointments/entities/appointment.entity'
 import { Booking } from '../booking/entities/booking.entity'
 import { AiTextQuotaService } from './ai-text-quota.service'
+import { AiGovernanceModule } from '../ai-governance/ai-governance.module'
+import { AudioMetadataService } from './audio-metadata.service'
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Session, Patient, User, Appointment, Booking, AiUsage]),
+    TypeOrmModule.forFeature([Session, SessionRevision, NoteSnippet, Patient, User, Appointment, Booking, AiUsage]),
     FinancialModule,
     NotificationsModule,
+    AiGovernanceModule,
   ],
   controllers: [SessionsController],
-  providers: [SessionsService, AiService, AiTextQuotaService],
+  providers: [SessionsService, AiService, AiTextQuotaService, AudioMetadataService],
   exports: [AiService, AiTextQuotaService],
 })
 export class SessionsModule {}

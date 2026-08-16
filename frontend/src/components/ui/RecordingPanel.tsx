@@ -1,16 +1,16 @@
 import { useRef, useState } from 'react'
 import { Mic, MicOff, Loader2, Sparkles, AlertCircle, Video } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { useTranscribeAudio, useTranscribeCall, useGenerateAiSummary } from '@/hooks/useApi'
+import { AI_CONSENT_TEXT, useAcceptAiConsent, useTranscribeAudio, useTranscribeCall, useGenerateAiSummary } from '@/hooks/useApi'
 import { useHasPlan } from '@/store/subscription'
 
 type Step = 'idle' | 'consent' | 'recording' | 'ready' | 'transcribing' | 'transcribed' | 'generating'
 type Source = 'mic' | 'call'
 
 type Props = {
-  patientName?: string
+  patientId: string
   onApplyTranscription: (text: string) => void
-  onApplySummary: (text: string) => void
+  onAiDraftGenerated?: (draftId: string) => void
   transcriptionActionLabel?: string
   /** Mostra a opção "Transcrever chamada" — só faz sentido pra sessões online. */
   allowCallCapture?: boolean
@@ -26,9 +26,9 @@ const MAX_RECORDING_SECONDS: Record<Source, number> = {
 const CALL_AUDIO_BITS_PER_SECOND = 32_000
 
 export default function RecordingPanel({
-  patientName,
+  patientId,
   onApplyTranscription,
-  onApplySummary,
+  onAiDraftGenerated,
   transcriptionActionLabel = 'Copiar para notas privadas',
   allowCallCapture = false,
 }: Props) {
@@ -37,6 +37,8 @@ export default function RecordingPanel({
   const [source, setSource] = useState<Source>('mic')
   const [elapsed, setElapsed] = useState(0)
   const [transcription, setTranscription] = useState('')
+  const [summaryDraft, setSummaryDraft] = useState('')
+  const [summaryDraftId, setSummaryDraftId] = useState('')
   const [consentGiven, setConsentGiven] = useState(false)
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
@@ -47,6 +49,7 @@ export default function RecordingPanel({
   const transcribeMic = useTranscribeAudio()
   const transcribeCall = useTranscribeCall()
   const generateSummary = useGenerateAiSummary()
+  const acceptRecordingConsent = useAcceptAiConsent('session_recording_transcription', patientId)
 
   function openConsent(next: Source) {
     setSource(next)
@@ -74,6 +77,7 @@ export default function RecordingPanel({
 
   async function startRecording() {
     try {
+      await acceptRecordingConsent.mutateAsync()
       const { stream, recordStream } = source === 'call'
         ? await startCallRecording()
         : await startMicRecording()
@@ -144,7 +148,7 @@ export default function RecordingPanel({
     setStep('transcribing')
     try {
       const mutation = source === 'call' ? transcribeCall : transcribeMic
-      const { text } = await mutation.mutateAsync({ blob, durationSeconds: elapsed })
+      const { text } = await mutation.mutateAsync({ blob, durationSeconds: elapsed, patientId })
       setTranscription(text)
       setStep('transcribed')
     } catch (err) {
@@ -167,9 +171,10 @@ export default function RecordingPanel({
     if (!transcription.trim()) return
     setStep('generating')
     try {
-      const { draft } = await generateSummary.mutateAsync({ transcription, patientName })
-      onApplySummary(draft)
-      toast.success('Rascunho aplicado ao resumo da sessão')
+      const { draft, draftId } = await generateSummary.mutateAsync({ transcription, patientId })
+      setSummaryDraft(draft)
+      setSummaryDraftId(draftId)
+      toast.success('Rascunho de IA gerado separadamente. Revise antes de usar.')
       setStep('transcribed')
     } catch (err) {
       setStep('transcribed')
@@ -211,7 +216,7 @@ export default function RecordingPanel({
             className="mt-0.5 h-4 w-4 rounded border-amber-400 accent-sage-600"
           />
           <span className="text-xs text-amber-800">
-            Confirmo que o(a) paciente deu consentimento verbal para a gravação e transcrição desta sessão.
+            {AI_CONSENT_TEXT.session_recording_transcription.text}
           </span>
         </label>
         <div className="flex gap-2">
@@ -304,6 +309,16 @@ export default function RecordingPanel({
         <p className="max-h-32 overflow-y-auto rounded-xl bg-white p-3 text-xs leading-relaxed text-neutral-600 border border-sage-100">
           {transcription}
         </p>
+        {summaryDraft && (
+          <div className="rounded-xl border border-violet-200 bg-white p-3 dark:border-violet-800 dark:bg-neutral-900">
+            <p className="mb-1 text-xs font-semibold text-violet-700 dark:text-violet-200">Rascunho da IA (separado da evolução)</p>
+            <p className="max-h-40 overflow-y-auto whitespace-pre-wrap text-xs leading-relaxed text-neutral-600 dark:text-neutral-200">{summaryDraft}</p>
+            <button type="button" onClick={() => { onAiDraftGenerated?.(summaryDraftId); toast.success('Rascunho vinculado para revisão') }}
+              className="mt-2 rounded-lg border border-violet-200 px-2.5 py-1.5 text-xs font-medium text-violet-700 dark:border-violet-800 dark:text-violet-200">
+              Vincular ao registro sem substituir a evolução
+            </button>
+          </div>
+        )}
         <div className="flex gap-2">
           <button type="button" onClick={() => { onApplyTranscription(transcription); toast.success('Transcrição aplicada') }}
             className="flex-1 rounded-xl border border-sage-300 py-2 text-xs font-medium text-sage-700 hover:bg-sage-100">

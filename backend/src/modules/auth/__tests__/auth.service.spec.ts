@@ -63,6 +63,7 @@ function makeRepo<T>(overrides: Partial<Record<keyof T, jest.Mock>> = {}) {
     ...overrides,
   }
   repo.createQueryBuilder = (overrides as any).createQueryBuilder ?? jest.fn(() => ({
+    setLock: jest.fn().mockReturnThis(),
     addSelect: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
     getOne: jest.fn(() => repo.findOneBy({})),
@@ -114,7 +115,13 @@ describe('AuthService', () => {
         {
           provide: DataSource,
           useValue: {
-            transaction: jest.fn((fn: any) => fn({ getRepository: jest.fn(() => loginAttemptManagerRepo) })),
+            transaction: jest.fn((fn: any) => fn({
+              getRepository: jest.fn((entity: any) => entity === RefreshToken
+                ? rtRepo
+                : entity === User
+                  ? usersRepo
+                  : loginAttemptManagerRepo),
+            })),
           },
         },
       ],
@@ -167,6 +174,7 @@ describe('AuthService', () => {
     it('revokes all sessions when a revoked token is replayed', async () => {
       const revokedRt = makeRefreshToken({ revoked: true })
       const qb = {
+        setLock: jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue(revokedRt),
@@ -185,6 +193,7 @@ describe('AuthService', () => {
 
     it('throws when token not found', async () => {
       const qb = {
+        setLock: jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue(null),
@@ -197,6 +206,7 @@ describe('AuthService', () => {
     it('throws when token is expired', async () => {
       const expiredRt = makeRefreshToken({ expiresAt: new Date(Date.now() - 1000) })
       const qb = {
+        setLock: jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue(expiredRt),

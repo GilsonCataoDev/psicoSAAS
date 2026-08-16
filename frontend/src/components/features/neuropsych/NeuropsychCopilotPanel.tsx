@@ -4,22 +4,12 @@ import toast from 'react-hot-toast'
 import { AlertTriangle, Copy, Lock, PlusCircle, RefreshCw, ShieldCheck, Sparkles, Trash2 } from 'lucide-react'
 import {
   useDeleteNeuropsychAiAnalysis, useGenerateNeuropsychAiAnalysis,
-  useNeuropsychAiAnalyses, useNeuropsychAiUsage,
+  AI_CONSENT_TEXT, useNeuropsychAiAnalyses, useNeuropsychAiUsage, useAcceptAiConsent, useAiConsent,
 } from '@/hooks/useApi'
 import { useHasPlan } from '@/store/subscription'
 import { renderNeuropsychAiAnalysisAsText } from '@/lib/neuropsychAiText'
 import Modal from '@/components/ui/Modal'
 import { NeuropsychAiAnalysis, NeuropsychAiAnalysisField, NeuropsychAiClinicalPoint, NeuropsychAssessment } from '@/types'
-
-const CONSENT_STORAGE_KEY = ['usecognia', 'neuropsych', 'copilot', 'consent', 'v1'].join('-')
-
-function hasStoredConsent(): boolean {
-  try {
-    return localStorage.getItem(CONSENT_STORAGE_KEY) === '1'
-  } catch {
-    return false
-  }
-}
 
 const FIELD_OPTIONS: Array<{ id: NeuropsychAiAnalysisField; label: string }> = [
   { id: 'referralQuestion', label: 'Motivo e pergunta de encaminhamento' },
@@ -52,7 +42,8 @@ export default function NeuropsychCopilotPanel({ assessment, onAddToDraft }: Pro
   const generate = useGenerateNeuropsychAiAnalysis(assessment.id)
   const deleteAnalysis = useDeleteNeuropsychAiAnalysis(assessment.id)
   const [selectedFields, setSelectedFields] = useState<NeuropsychAiAnalysisField[]>(['referralQuestion', 'clinicalHistory', 'clinicalHypotheses', 'batteryItems'])
-  const [consentGiven, setConsentGiven] = useState(hasStoredConsent)
+  const { data: consent } = useAiConsent('neuropsych_ai', undefined, hasPro)
+  const acceptConsent = useAcceptAiConsent('neuropsych_ai')
   const [showConsentModal, setShowConsentModal] = useState(false)
   // Guarda síncrona contra duplo clique: generate.isPending só reflete no próximo
   // render, então um segundo clique rápido pode disparar antes do React repintar.
@@ -84,15 +75,18 @@ export default function NeuropsychCopilotPanel({ assessment, onAddToDraft }: Pro
 
   function requestAnalyze() {
     if (selectedFields.length === 0) return toast.error('Selecione ao menos uma informação para incluir na análise')
-    if (!consentGiven) { setShowConsentModal(true); return }
+    if (!consent?.active) { setShowConsentModal(true); return }
     void analyze()
   }
 
-  function confirmConsentAndAnalyze() {
-    try { localStorage.setItem(CONSENT_STORAGE_KEY, '1') } catch { /* modo privado: consentimento vale só para esta sessão */ }
-    setConsentGiven(true)
-    setShowConsentModal(false)
-    void analyze()
+  async function confirmConsentAndAnalyze() {
+    try {
+      await acceptConsent.mutateAsync()
+      setShowConsentModal(false)
+      await analyze()
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message ?? 'Não foi possível registrar o consentimento')
+    }
   }
 
   async function analyze() {
@@ -219,15 +213,9 @@ export default function NeuropsychCopilotPanel({ assessment, onAddToDraft }: Pro
         description="Confirme antes do primeiro uso do Copiloto clínico"
       >
         <div className="space-y-4 text-sm text-neutral-700 dark:text-neutral-300">
-          <p>
-            Ao usar o Copiloto, os campos clínicos que você selecionar são enviados a um provedor externo de
-            inteligência artificial (Anthropic/Claude) para gerar a sugestão. Antes do envio, o nome do paciente e
-            padrões como CPF, telefone, e-mail, CEP, endereço e data de nascimento são reduzidos automaticamente —
-            isso é uma <strong>redução de identificadores diretos</strong>, não uma anonimização garantida.
-          </p>
-          <p>
-            O provedor processa o texto para gerar a resposta e não o mantém retido para treinamento. A resposta
-            fica sob sua responsabilidade profissional de revisão antes de qualquer uso clínico.
+          <p>Os campos selecionados são enviados ao provedor de IA configurado somente depois da redução de identificadores diretos. Isso é pseudonimização, não anonimização garantida.</p>
+          <p className="rounded-xl border border-violet-200 bg-violet-50 p-3 font-medium text-violet-900 dark:border-violet-800 dark:bg-violet-950/30 dark:text-violet-100">
+            {AI_CONSENT_TEXT.neuropsych_ai.text}
           </p>
           <div className="flex justify-end gap-2">
             <button onClick={() => setShowConsentModal(false)} className="btn-secondary">Cancelar</button>

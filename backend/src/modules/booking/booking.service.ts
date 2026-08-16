@@ -965,7 +965,10 @@ export class BookingService {
       ],
       relations: ['psychologist'],
     })
-    if (booking) return booking
+    if (booking) {
+      this.assertPublicTokenActive(booking)
+      return booking
+    }
 
     const legacyBooking = await this.bookings.findOne({
       where: [
@@ -975,7 +978,14 @@ export class BookingService {
       relations: ['psychologist'],
     })
     if (!legacyBooking) throw new NotFoundException('Link inválido')
+    this.assertPublicTokenActive(legacyBooking)
     return legacyBooking
+  }
+
+  private assertPublicTokenActive(booking: Booking): void {
+    if (!booking.tokenExpiresAt || new Date() > new Date(booking.tokenExpiresAt)) {
+      throw new BadRequestException('Este link expirou. Solicite um novo agendamento.')
+    }
   }
 
   private normalizeTime(time: string) {

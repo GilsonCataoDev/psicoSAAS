@@ -37,6 +37,7 @@ import { HealthController } from './health.controller'
 import { NeuropsychAssessmentsModule } from './modules/neuropsych-assessments/neuropsych-assessments.module'
 import { PrivacyModule } from './common/privacy/privacy.module'
 import { PlanAccessModule } from './common/plan-access/plan-access.module'
+import { AiGovernanceModule } from './modules/ai-governance/ai-governance.module'
 import { ProspectLifecycleModule } from './common/prospect-lifecycle/prospect-lifecycle.module'
 
 const readPositiveInt = (value: string | undefined, fallback: number): number => {
@@ -79,6 +80,7 @@ const readPositiveInt = (value: string | undefined, fallback: number): number =>
     AuditModule,
     MonitoringModule,
     PrivacyModule,
+    AiGovernanceModule,
     ProspectLifecycleModule,
     AuthModule,
     PatientsModule,

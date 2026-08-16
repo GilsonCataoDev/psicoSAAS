@@ -2,9 +2,10 @@ import { Controller, Get, Req, UseGuards } from '@nestjs/common'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { AnalyticsService } from './analytics.service'
 import { PlanAccessService } from '../../common/plan-access/plan-access.service'
+import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
 
 @Controller('analytics')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, NoImpersonationGuard)
 export class AnalyticsController {
   constructor(
     private svc: AnalyticsService,

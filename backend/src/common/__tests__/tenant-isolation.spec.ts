@@ -18,6 +18,8 @@ import { DataSource } from 'typeorm'
 import { PatientsService } from '../../modules/patients/patients.service'
 import { PatientAttachmentsService } from '../../modules/patients/patient-attachments.service'
 import { SessionsService } from '../../modules/sessions/sessions.service'
+import { SessionRevision } from '../../modules/sessions/entities/session-revision.entity'
+import { NoteSnippet } from '../../modules/sessions/entities/note-snippet.entity'
 import { FinancialService } from '../../modules/financial/financial.service'
 import { DocumentsService } from '../../modules/documents/documents.service'
 import { AppointmentsService } from '../../modules/appointments/appointments.service'
@@ -37,6 +39,7 @@ import { NeuropsychAssessment } from '../../modules/neuropsych-assessments/entit
 
 import { FinancialService as FinService } from '../../modules/financial/financial.service'
 import { NotificationsService } from '../../modules/notifications/notifications.service'
+import { ClinicalAiDraftService } from '../../modules/ai-governance/clinical-ai-draft.service'
 import { EmailService } from '../../modules/email/email.service'
 import { GoogleCalendarService } from '../../modules/google-calendar/google-calendar.service'
 
@@ -150,13 +153,17 @@ describe('Isolamento entre contas — psicólogo A não acessa dados de B', () =
       const mod = await Test.createTestingModule({
         providers: [
           SessionsService,
-          { provide: getRepositoryToken(Session),     useValue: fakeRepo(sessions) },
+          { provide: getRepositoryToken(Session),         useValue: fakeRepo(sessions) },
+          { provide: getRepositoryToken(SessionRevision), useValue: fakeRepo() },
+          { provide: getRepositoryToken(NoteSnippet),     useValue: fakeRepo() },
           { provide: getRepositoryToken(Patient),     useValue: fakeRepo(patients) },
           { provide: getRepositoryToken(User),        useValue: fakeRepo() },
           { provide: getRepositoryToken(Appointment), useValue: fakeRepo(appointments) },
           { provide: getRepositoryToken(Booking),     useValue: fakeRepo() },
           { provide: FinService,            useValue: stub() },
           { provide: NotificationsService,  useValue: stub() },
+          { provide: ClinicalAiDraftService, useValue: stub() },
+          { provide: ConfigService, useValue: { getOrThrow: jest.fn().mockReturnValue('sign-secret-de-teste-com-32-chars!') } },
         ],
       }).compile()
       svc = mod.get(SessionsService)

@@ -1,10 +1,15 @@
-import { NotFoundException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
 import { getRepositoryToken } from '@nestjs/typeorm'
+import { ConfigService } from '@nestjs/config'
 import { Test } from '@nestjs/testing'
+import { encrypt } from '../../../common/crypto/encrypt.util'
 import { Session } from '../entities/session.entity'
+import { SessionRevision } from '../entities/session-revision.entity'
+import { NoteSnippet } from '../entities/note-snippet.entity'
 import { SessionsService } from '../sessions.service'
 import { FinancialService } from '../../financial/financial.service'
 import { NotificationsService } from '../../notifications/notifications.service'
+import { ClinicalAiDraftService } from '../../ai-governance/clinical-ai-draft.service'
 import { Patient } from '../../patients/entities/patient.entity'
 import { User } from '../../auth/entities/user.entity'
 import { Appointment } from '../../appointments/entities/appointment.entity'
@@ -70,6 +75,8 @@ describe('SessionsService', () => {
   let service: SessionsService
   let sessionRepo: ReturnType<typeof makeRepo>
   let patientRepo: ReturnType<typeof makeRepo>
+  let revisionRepo: ReturnType<typeof makeRepo>
+  let snippetRepo: ReturnType<typeof makeRepo>
   let financial: {
     create: jest.Mock
     findBySessionId: jest.Mock
@@ -84,6 +91,8 @@ describe('SessionsService', () => {
   beforeEach(async () => {
     sessionRepo = makeRepo()
     patientRepo = makeRepo()
+    revisionRepo = makeRepo()
+    snippetRepo = makeRepo()
     financial = {
       create: jest.fn(),
       findBySessionId: jest.fn(),
@@ -98,13 +107,17 @@ describe('SessionsService', () => {
     const module = await Test.createTestingModule({
       providers: [
         SessionsService,
-        { provide: getRepositoryToken(Session),     useValue: sessionRepo },
+        { provide: getRepositoryToken(Session),         useValue: sessionRepo },
+        { provide: getRepositoryToken(SessionRevision), useValue: revisionRepo },
+        { provide: getRepositoryToken(NoteSnippet),     useValue: snippetRepo },
         { provide: getRepositoryToken(Patient),     useValue: patientRepo },
         { provide: getRepositoryToken(User),        useValue: makeRepo() },
         { provide: getRepositoryToken(Appointment), useValue: makeRepo() },
         { provide: getRepositoryToken(Booking),     useValue: makeRepo() },
         { provide: FinancialService,       useValue: financial },
         { provide: NotificationsService,   useValue: { sendPaymentRequest: jest.fn() } },
+        { provide: ClinicalAiDraftService, useValue: { assertCanAccept: jest.fn(), acceptForSession: jest.fn() } },
+        { provide: ConfigService, useValue: { getOrThrow: jest.fn().mockReturnValue('sign-secret-de-teste-com-32-chars!') } },
       ],
     }).compile()
 
@@ -249,6 +262,139 @@ describe('SessionsService', () => {
         summary: 'Registro revisado.',
       }, PSY_ID)).rejects.toThrow('não pode estar no futuro')
       expect(sessionRepo.save).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('update — trava de edição e trilha de auditoria', () => {
+    it('bloqueia edição direta do conteúdo clínico em sessão com mais de 7 dias', async () => {
+      const oldDate = new Date()
+      oldDate.setDate(oldDate.getDate() - 10)
+      sessionRepo.findOne.mockResolvedValue(makeSession({ date: oldDate.toISOString().slice(0, 10) }))
+
+      await expect(service.update('sess-1', { summary: 'Texto novo' }, PSY_ID)).rejects.toThrow(ForbiddenException)
+      expect(sessionRepo.save).not.toHaveBeenCalled()
+      expect(revisionRepo.save).not.toHaveBeenCalled()
+    })
+
+    it('permite editar campos não-clínicos (ex.: paymentStatus) mesmo em sessão antiga', async () => {
+      const oldDate = new Date()
+      oldDate.setDate(oldDate.getDate() - 30)
+      sessionRepo.findOne.mockResolvedValue(makeSession({ date: oldDate.toISOString().slice(0, 10) }))
+      sessionRepo.save.mockImplementation(async (v) => v)
+
+      await service.update('sess-1', { paymentStatus: 'paid' }, PSY_ID)
+
+      expect(sessionRepo.save).toHaveBeenCalled()
+      expect(revisionRepo.save).not.toHaveBeenCalled()
+    })
+
+    it('grava snapshot da versão anterior e recalcula o hash de integridade ao editar dentro do prazo', async () => {
+      const session = makeSession({
+        date: new Date().toISOString().slice(0, 10),
+        summary: encrypt('Resumo antigo'),
+      })
+      sessionRepo.findOne.mockResolvedValue(session) // mesma referência: reflete a mutação feita pelo update()
+      sessionRepo.save.mockImplementation(async (v) => v)
+      revisionRepo.create.mockImplementation((v) => v)
+
+      await service.update('sess-1', { summary: 'Resumo novo' }, PSY_ID)
+
+      expect(revisionRepo.create).toHaveBeenCalledWith(expect.objectContaining({
+        sessionId: 'sess-1',
+        psychologistId: PSY_ID,
+        summary: expect.any(String), // snapshot criptografado do valor ANTERIOR
+      }))
+      expect(revisionRepo.save).toHaveBeenCalled()
+      expect(sessionRepo.update).toHaveBeenCalledWith(
+        { id: 'sess-1', psychologistId: PSY_ID },
+        expect.objectContaining({ contentHash: expect.any(String), lastEditedAt: expect.any(Date) }),
+      )
+    })
+  })
+
+  describe('addAddendum', () => {
+    it('rejeita texto vazio', async () => {
+      await expect(service.addAddendum('sess-1', PSY_ID, '   ')).rejects.toThrow(BadRequestException)
+    })
+
+    it('acrescenta complemento sem exigir edição do texto original', async () => {
+      sessionRepo.findOne.mockResolvedValue(makeSession({ addenda: undefined }))
+      sessionRepo.save.mockImplementation(async (v) => v)
+
+      const result = await service.addAddendum('sess-1', PSY_ID, 'Paciente confirmou o combinado por WhatsApp.')
+
+      expect(result.addendaList).toHaveLength(1)
+      expect(result.addendaList[0].text).toBe('Paciente confirmou o combinado por WhatsApp.')
+    })
+
+    it('acumula múltiplos complementos preservando os anteriores', async () => {
+      const existingAddenda = encrypt(JSON.stringify([{ text: 'Primeiro complemento', createdAt: '2026-01-01T00:00:00.000Z' }]))
+      sessionRepo.findOne.mockResolvedValue(makeSession({ addenda: existingAddenda }))
+      sessionRepo.save.mockImplementation(async (v) => v)
+
+      const result = await service.addAddendum('sess-1', PSY_ID, 'Segundo complemento')
+
+      expect(result.addendaList).toHaveLength(2)
+      expect(result.addendaList[0].text).toBe('Primeiro complemento')
+      expect(result.addendaList[1].text).toBe('Segundo complemento')
+    })
+  })
+
+  describe('getHistory', () => {
+    it('retorna revisões decifradas ordenadas por data decrescente', async () => {
+      sessionRepo.findOne.mockResolvedValue(makeSession())
+      revisionRepo.find.mockResolvedValue([
+        { id: 'rev-1', summary: encrypt('Versão anterior'), privateNotes: undefined, nextSteps: undefined, editedAt: new Date('2026-01-01') },
+      ])
+
+      const history = await service.getHistory('sess-1', PSY_ID)
+
+      expect(revisionRepo.find).toHaveBeenCalledWith({
+        where: { sessionId: 'sess-1', psychologistId: PSY_ID },
+        order: { editedAt: 'DESC' },
+      })
+      expect(history[0].summary).toBe('Versão anterior')
+    })
+
+    it('lança NotFoundException se a sessão não pertence ao psicólogo', async () => {
+      sessionRepo.findOne.mockResolvedValue(null)
+      await expect(service.getHistory('sess-1', PSY_ID)).rejects.toThrow(NotFoundException)
+    })
+  })
+
+  describe('snippets (atalhos de texto)', () => {
+    it('cria um modelo com conteúdo criptografado e devolve o texto original', async () => {
+      snippetRepo.create.mockImplementation((v) => v)
+      snippetRepo.save.mockImplementation(async (v) => ({ id: 'snip-1', createdAt: new Date(), ...v }))
+
+      const created = await service.createSnippet(PSY_ID, 'Sem risco', 'Sem risco de auto/heteroagressão observado.')
+
+      expect(created.label).toBe('Sem risco')
+      expect(created.content).toBe('Sem risco de auto/heteroagressão observado.')
+      expect(snippetRepo.create).toHaveBeenCalledWith(expect.objectContaining({
+        psychologistId: PSY_ID,
+        label: 'Sem risco',
+        content: expect.not.stringMatching('Sem risco de auto/heteroagressão observado.'),
+      }))
+    })
+
+    it('rejeita label vazio', async () => {
+      await expect(service.createSnippet(PSY_ID, '   ', 'conteúdo válido')).rejects.toThrow(BadRequestException)
+    })
+
+    it('deleteSnippet lança NotFoundException se o modelo não existe ou não pertence ao psicólogo', async () => {
+      snippetRepo.findOne.mockResolvedValue(null)
+      await expect(service.deleteSnippet('missing', PSY_ID)).rejects.toThrow(NotFoundException)
+    })
+
+    it('lista modelos decifrando o conteúdo', async () => {
+      snippetRepo.find.mockResolvedValue([
+        { id: 'snip-1', label: 'Sem risco', content: encrypt('Texto do modelo'), createdAt: new Date() },
+      ])
+
+      const list = await service.listSnippets(PSY_ID)
+
+      expect(list[0].content).toBe('Texto do modelo')
     })
   })
 })

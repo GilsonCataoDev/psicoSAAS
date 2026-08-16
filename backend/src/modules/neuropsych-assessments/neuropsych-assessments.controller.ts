@@ -12,6 +12,7 @@ import {
 } from './dto/neuropsych-assessment.dto'
 import { NeuropsychAssessmentsService } from './neuropsych-assessments.service'
 import { NeuropsychAiAnalysisService } from './neuropsych-ai-analysis.service'
+import { AiConsentService } from '../ai-governance/ai-consent.service'
 
 @Controller('neuropsych-assessments')
 @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
@@ -21,6 +22,7 @@ export class NeuropsychAssessmentsController {
     private readonly service: NeuropsychAssessmentsService,
     private readonly aiAnalysis: NeuropsychAiAnalysisService,
     private readonly audit: AuditService,
+    private readonly aiConsents: AiConsentService,
   ) {}
 
   @Get() list(@Req() req: any) { return this.service.list(req.user.id) }
@@ -96,6 +98,7 @@ export class NeuropsychAssessmentsController {
     @Body() body: CreateNeuropsychAiAnalysisDto,
     @Req() req: any,
   ) {
+    await this.aiConsents.assertActive(req.user.id, 'neuropsych_ai')
     const result = await this.aiAnalysis.generate(id, body.fields, req.user.id, req.user.email)
     await this.record(req, 'neuropsych_ai_analysis.requested', id, { fields: body.fields }, 'neuropsych_ai_analysis')
     return result

@@ -109,6 +109,7 @@ export class AppointmentsService {
 
     if (changedSlot) {
       await this.assertSlotAvailable(psychologistId, nextDate, nextTime, nextDuration, id)
+      await this.notifications.supersedeAppointmentReminders(id)
       appointment.isFixedScheduleException = true
       appointment.originalDate = appointment.originalDate ?? appointment.date
       appointment.originalTime = appointment.originalTime ?? appointment.time

@@ -40,6 +40,13 @@ describe('NoImpersonationGuard - aplicado aos dados sensiveis', () => {
   const { BookingController } = require('../../modules/booking/booking.controller')
   const { AppointmentsController } = require('../../modules/appointments/appointments.controller')
   const { FinancialController } = require('../../modules/financial/financial.controller')
+  const { NotificationsController } = require('../../modules/notifications/notifications.controller')
+  const { AvailabilityController } = require('../../modules/availability/availability.controller')
+  const { AiGovernanceController } = require('../../modules/ai-governance/ai-governance.controller')
+  const { AnalyticsController } = require('../../modules/analytics/analytics.controller')
+  const { AuditController } = require('../../modules/audit/audit.controller')
+  const { ReferralController } = require('../../modules/referral/referral.controller')
+  const { TemplatesController } = require('../../modules/templates/templates.controller')
   const { JwtAuthGuard } = require('../../modules/auth/guards/jwt-auth.guard')
 
   const hasNoImpersonation = (guards: any[]) => guards.includes(NoImpersonationGuard)
@@ -53,10 +60,32 @@ describe('NoImpersonationGuard - aplicado aos dados sensiveis', () => {
     ['agendamentos publicos privados', BookingController],
     ['agenda', AppointmentsController],
     ['financeiro', FinancialController],
+    ['WhatsApp', NotificationsController],
+    ['disponibilidade publica', AvailabilityController],
+    ['consentimentos de IA', AiGovernanceController],
+    ['analytics', AnalyticsController],
+    ['auditoria', AuditController],
+    ['indicacoes', ReferralController],
+    ['templates', TemplatesController],
   ])('%s possui bloqueio de classe depois da autenticacao', (_label, controller) => {
     const guards = guardsOf(controller)
     expect(hasNoImpersonation(guards)).toBe(true)
     expect(orderOk(guards)).toBe(true)
+  })
+
+  it('bloqueia status, conexao e desconexao do Google Agenda', () => {
+    const { GoogleCalendarController } = require('../../modules/google-calendar/google-calendar.controller')
+    for (const method of ['status', 'connect', 'disconnect']) {
+      expect(hasNoImpersonation(guardsOf(GoogleCalendarController.prototype[method]))).toBe(true)
+    }
+    expect(hasNoImpersonation(guardsOf(GoogleCalendarController.prototype.callback))).toBe(false)
+  })
+
+  it('bloqueia mutacoes de preferencias durante impersonacao', () => {
+    const { AuthController } = require('../../modules/auth/auth.controller')
+    for (const method of ['updateProfile', 'uploadAvatar', 'updatePreferences', 'updateOnboarding', 'changePassword', 'deleteAccount']) {
+      expect(hasNoImpersonation(guardsOf(AuthController.prototype[method]))).toBe(true)
+    }
   })
 
   it('bloqueia todas as operacoes autenticadas de documentos', () => {

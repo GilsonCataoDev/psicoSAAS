@@ -11,6 +11,7 @@ import { NeuropsychAiAnalysis } from './entities/neuropsych-ai-analysis.entity'
 import { NeuropsychAssessmentsController } from './neuropsych-assessments.controller'
 import { NeuropsychAssessmentsService } from './neuropsych-assessments.service'
 import { NeuropsychAiAnalysisService } from './neuropsych-ai-analysis.service'
+import { AiGovernanceModule } from '../ai-governance/ai-governance.module'
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { NeuropsychAiAnalysisService } from './neuropsych-ai-analysis.service'
     ]),
     AuditModule,
     SessionsModule,
+    AiGovernanceModule,
   ],
   controllers: [NeuropsychAssessmentsController],
   providers: [NeuropsychAssessmentsService, NeuropsychAiAnalysisService],

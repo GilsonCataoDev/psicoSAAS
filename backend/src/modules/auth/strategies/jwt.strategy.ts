@@ -16,6 +16,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       ]),
       ignoreExpiration: false,
       secretOrKey: cfg.get<string>('JWT_SECRET'),
+      issuer: cfg.get<string>('JWT_ISSUER') ?? 'usecognia-api',
+      audience: cfg.get<string>('JWT_AUDIENCE') ?? 'usecognia-app',
       passReqToCallback: false,
     })
   }
