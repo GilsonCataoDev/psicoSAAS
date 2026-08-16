@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
-import { Session } from '@/types'
+import { Session, SessionRevision, NoteSnippet } from '@/types'
 
 export function useSessions(params?: {
   patientId?: string
@@ -18,7 +18,16 @@ export function useSessions(params?: {
     queryFn: () => api.get('/sessions', { params: apiParams }).then(r => r.data),
     enabled: (enabled ?? true) && !!userId,
     select: search
-      ? (data) => data.filter(s => s.patient?.name?.toLowerCase().includes(search.toLowerCase()))
+      ? (data) => {
+          const needle = search.toLowerCase()
+          return data.filter(s =>
+            s.patient?.name?.toLowerCase().includes(needle)
+            || s.summary?.toLowerCase().includes(needle)
+            || s.privateNotes?.toLowerCase().includes(needle)
+            || s.nextSteps?.toLowerCase().includes(needle)
+            || s.tags?.some(t => t.toLowerCase().includes(needle)),
+          )
+        }
       : undefined,
   })
 }
@@ -64,6 +73,52 @@ export function useUpdateSession() {
         window.dispatchEvent(new CustomEvent('usecognia:first-session-created'))
       }
     },
+  })
+}
+
+export function useSessionHistory(sessionId: string | undefined) {
+  return useQuery<SessionRevision[]>({
+    queryKey: ['session-history', sessionId],
+    queryFn: () => api.get(`/sessions/${sessionId}/history`).then(r => r.data),
+    enabled: !!sessionId,
+  })
+}
+
+export function useAddAddendum() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, text }: { id: string; text: string }) =>
+      api.post(`/sessions/${id}/addendum`, { text }).then(r => r.data),
+    onSuccess: (session) => {
+      qc.invalidateQueries({ queryKey: ['sessions'] })
+      if (session?.patientId) qc.invalidateQueries({ queryKey: ['patients', session.patientId] })
+    },
+  })
+}
+
+export function useSnippets() {
+  const userId = useAuthStore(s => s.user?.id)
+  return useQuery<NoteSnippet[]>({
+    queryKey: ['note-snippets', userId],
+    queryFn: () => api.get('/sessions/snippets').then(r => r.data),
+    enabled: !!userId,
+  })
+}
+
+export function useCreateSnippet() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: { label: string; content: string }) =>
+      api.post('/sessions/snippets', data).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['note-snippets'] }),
+  })
+}
+
+export function useDeleteSnippet() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/sessions/snippets/${id}`).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['note-snippets'] }),
   })
 }
 

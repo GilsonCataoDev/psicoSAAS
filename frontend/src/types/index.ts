@@ -176,8 +176,31 @@ export interface Session {
   nextSteps?: string
   paymentStatus: 'paid' | 'pending' | 'waived' | 'included'
   paymentId?: string
+  contentHash?: string
+  lastEditedAt?: string
+  addendaList?: SessionAddendum[]
   createdAt: string
   updatedAt: string
+}
+
+export interface SessionAddendum {
+  text: string
+  createdAt: string
+}
+
+export interface SessionRevision {
+  id: string
+  summary?: string
+  privateNotes?: string
+  nextSteps?: string
+  editedAt: string
+}
+
+export interface NoteSnippet {
+  id: string
+  label: string
+  content: string
+  createdAt: string
 }
 
 export interface FinancialRecord {

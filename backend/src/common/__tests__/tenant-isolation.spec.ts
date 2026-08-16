@@ -18,6 +18,8 @@ import { DataSource } from 'typeorm'
 import { PatientsService } from '../../modules/patients/patients.service'
 import { PatientAttachmentsService } from '../../modules/patients/patient-attachments.service'
 import { SessionsService } from '../../modules/sessions/sessions.service'
+import { SessionRevision } from '../../modules/sessions/entities/session-revision.entity'
+import { NoteSnippet } from '../../modules/sessions/entities/note-snippet.entity'
 import { FinancialService } from '../../modules/financial/financial.service'
 import { DocumentsService } from '../../modules/documents/documents.service'
 import { AppointmentsService } from '../../modules/appointments/appointments.service'
@@ -151,7 +153,9 @@ describe('Isolamento entre contas — psicólogo A não acessa dados de B', () =
       const mod = await Test.createTestingModule({
         providers: [
           SessionsService,
-          { provide: getRepositoryToken(Session),     useValue: fakeRepo(sessions) },
+          { provide: getRepositoryToken(Session),         useValue: fakeRepo(sessions) },
+          { provide: getRepositoryToken(SessionRevision), useValue: fakeRepo() },
+          { provide: getRepositoryToken(NoteSnippet),     useValue: fakeRepo() },
           { provide: getRepositoryToken(Patient),     useValue: fakeRepo(patients) },
           { provide: getRepositoryToken(User),        useValue: fakeRepo() },
           { provide: getRepositoryToken(Appointment), useValue: fakeRepo(appointments) },
@@ -159,6 +163,7 @@ describe('Isolamento entre contas — psicólogo A não acessa dados de B', () =
           { provide: FinService,            useValue: stub() },
           { provide: NotificationsService,  useValue: stub() },
           { provide: ClinicalAiDraftService, useValue: stub() },
+          { provide: ConfigService, useValue: { getOrThrow: jest.fn().mockReturnValue('sign-secret-de-teste-com-32-chars!') } },
         ],
       }).compile()
       svc = mod.get(SessionsService)

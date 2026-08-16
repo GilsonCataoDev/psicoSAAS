@@ -4,6 +4,8 @@ import { SessionsController } from './sessions.controller'
 import { SessionsService } from './sessions.service'
 import { AiService } from './ai.service'
 import { Session } from './entities/session.entity'
+import { SessionRevision } from './entities/session-revision.entity'
+import { NoteSnippet } from './entities/note-snippet.entity'
 import { AiUsage } from './entities/ai-usage.entity'
 import { FinancialModule } from '../financial/financial.module'
 import { NotificationsModule } from '../notifications/notifications.module'
@@ -17,7 +19,7 @@ import { AudioMetadataService } from './audio-metadata.service'
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Session, Patient, User, Appointment, Booking, AiUsage]),
+    TypeOrmModule.forFeature([Session, SessionRevision, NoteSnippet, Patient, User, Appointment, Booking, AiUsage]),
     FinancialModule,
     NotificationsModule,
     AiGovernanceModule,

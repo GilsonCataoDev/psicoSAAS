@@ -15,6 +15,8 @@ import { PlanAccessService } from '../../common/plan-access/plan-access.service'
 import { SessionsService } from './sessions.service'
 import { AiService } from './ai.service'
 import { CreateSessionDto } from './dto/create-session.dto'
+import { CreateSnippetDto } from './dto/create-snippet.dto'
+import { AddAddendumDto } from './dto/add-addendum.dto'
 import { AiUsage } from './entities/ai-usage.entity'
 import { AiTextQuotaService } from './ai-text-quota.service'
 import { AiConsentService } from '../ai-governance/ai-consent.service'
@@ -58,6 +60,21 @@ export class SessionsController {
     )
   }
   @Get('dashboard') dashboard(@Request() req: any) { return this.svc.getDashboard(req.user.id) }
+
+  // Precisam vir antes de ":id" para não serem engolidas pelo param de rota.
+  @Get('snippets') listSnippets(@Request() req: any) { return this.svc.listSnippets(req.user.id) }
+  @Post('snippets') createSnippet(@Body() dto: CreateSnippetDto, @Request() req: any) {
+    return this.svc.createSnippet(req.user.id, dto.label, dto.content)
+  }
+  @Delete('snippets/:id') deleteSnippet(@Param('id') id: string, @Request() req: any) {
+    return this.svc.deleteSnippet(id, req.user.id)
+  }
+
+  @Get(':id/history') getHistory(@Param('id') id: string, @Request() req: any) { return this.svc.getHistory(id, req.user.id) }
+  @Post(':id/addendum') addAddendum(@Param('id') id: string, @Body() dto: AddAddendumDto, @Request() req: any) {
+    return this.svc.addAddendum(id, req.user.id, dto.text)
+  }
+
   @Get(':id') findOne(@Param('id') id: string, @Request() req: any) { return this.svc.findOne(id, req.user.id) }
   @Post() create(@Body() dto: CreateSessionDto, @Request() req: any) { return this.svc.create(dto, req.user.id) }
   @Post('historical') createHistorical(@Body() dto: CreateSessionDto, @Request() req: any) {
