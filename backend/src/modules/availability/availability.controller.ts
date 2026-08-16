@@ -3,6 +3,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { AvailabilityService } from './availability.service'
 import {
+  AvailabilityBlockDto,
   BlockedDateDto,
   ExtraAvailabilitySlotDto,
   SaveAvailabilitySlotsDto,
@@ -50,5 +51,18 @@ export class AvailabilityController {
   @Delete('blocked/:id')
   removeBlocked(@Param('id') id: string, @Request() req: any) {
     return this.svc.removeBlockedDate(id, req.user.id)
+  }
+
+  @Get('blocks')
+  getBlocks(@Request() req: any) { return this.svc.getAvailabilityBlocks(req.user.id) }
+
+  @Post('blocks')
+  addBlock(@Request() req: any, @Body() body: AvailabilityBlockDto) {
+    return this.svc.addAvailabilityBlock(req.user.id, body)
+  }
+
+  @Delete('blocks/:id')
+  removeBlock(@Param('id') id: string, @Request() req: any) {
+    return this.svc.removeAvailabilityBlock(id, req.user.id)
   }
 }

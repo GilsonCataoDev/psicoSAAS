@@ -12,6 +12,7 @@ import {
   useConfirmBooking, useRejectBooking, usePayBooking,
   useDailyBookingLink, useAvailability, useSaveAvailability,
   useSyncBookingAppointments, useBlockedDates, useAddBlockedDate, useAddBlockedWeek, useRemoveBlockedDate,
+  useAvailabilityBlocks, useAddAvailabilityBlock, useRemoveAvailabilityBlock,
 } from '@/hooks/useApi'
 
 const STATUS_CONFIG = {
@@ -432,10 +433,21 @@ function BookingSettings({ page }: { page: any }) {
   const addBlockedDate = useAddBlockedDate()
   const addBlockedWeek = useAddBlockedWeek()
   const removeBlockedDate = useRemoveBlockedDate()
+  const { data: availabilityBlocks = [] } = useAvailabilityBlocks()
+  const addAvailabilityBlock = useAddAvailabilityBlock()
+  const removeAvailabilityBlock = useRemoveAvailabilityBlock()
   const [blockedForm, setBlockedForm] = useState<{ date: string; reason: string; scope: 'day' | 'week' }>({
     date: '',
     reason: '',
     scope: 'day',
+  })
+  const [blockForm, setBlockForm] = useState<{ type: 'weekly' | 'date'; weekday: number; date: string; startTime: string; endTime: string; reason: string }>({
+    type: 'weekly',
+    weekday: 1,
+    date: '',
+    startTime: '12:00',
+    endTime: '13:00',
+    reason: '',
   })
 
   const [form, setForm] = useState({
@@ -637,6 +649,33 @@ function BookingSettings({ page }: { page: any }) {
       toast.success(blockedForm.scope === 'week' ? 'Semana bloqueada.' : 'Data bloqueada.')
     } catch {
       toast.error(blockedForm.scope === 'week' ? 'Erro ao bloquear semana.' : 'Erro ao bloquear data.')
+    }
+  }
+
+  async function blockTime() {
+    const start = minutes(blockForm.startTime)
+    const end = minutes(blockForm.endTime)
+    if (start >= end) {
+      toast.error('Horario inicial precisa ser menor que o final.')
+      return
+    }
+    if (blockForm.type === 'date' && !blockForm.date) {
+      toast.error('Escolha a data do bloqueio.')
+      return
+    }
+    try {
+      await addAvailabilityBlock.mutateAsync({
+        type: blockForm.type,
+        weekday: blockForm.type === 'weekly' ? blockForm.weekday : undefined,
+        date: blockForm.type === 'date' ? blockForm.date : undefined,
+        startTime: blockForm.startTime,
+        endTime: blockForm.endTime,
+        reason: blockForm.reason.trim() || undefined,
+      })
+      setBlockForm(form => ({ ...form, date: '', reason: '' }))
+      toast.success('Horario bloqueado no link publico.')
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Erro ao bloquear horario.')
     }
   }
 
@@ -1134,6 +1173,113 @@ function BookingSettings({ page }: { page: any }) {
               </button>
             </div>
           ))}
+        </div>
+      </div>
+
+      <div className="card space-y-4">
+        <div>
+          <h2 className="section-title">Horarios bloqueados</h2>
+          <p className="text-xs text-neutral-400">
+            Use para esconder intervalos especificos do link publico sem apagar seu expediente semanal.
+          </p>
+        </div>
+        <div className="inline-flex w-full rounded-xl bg-neutral-100 p-1 dark:bg-black/20 sm:w-auto">
+          {([
+            { value: 'weekly', label: 'Toda semana' },
+            { value: 'date', label: 'Data especifica' },
+          ] as const).map(option => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setBlockForm(form => ({ ...form, type: option.value }))}
+              className={cn(
+                'flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors sm:flex-none',
+                blockForm.type === option.value
+                  ? 'bg-white text-neutral-800 shadow-sm dark:bg-sage-500/25 dark:text-sage-100'
+                  : 'text-neutral-500 hover:text-neutral-700 dark:text-neutral-300 dark:hover:text-white',
+              )}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[170px_120px_120px_1fr_auto]">
+          {blockForm.type === 'weekly' ? (
+            <select
+              value={blockForm.weekday}
+              onChange={e => setBlockForm(f => ({ ...f, weekday: Number(e.target.value) }))}
+              className="input-field"
+            >
+              {WEEKDAYS.map(({ d, label }) => (
+                <option key={d} value={d}>{label}</option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type="date"
+              value={blockForm.date}
+              onChange={e => setBlockForm(f => ({ ...f, date: e.target.value }))}
+              className="input-field"
+            />
+          )}
+          <input
+            type="time"
+            value={blockForm.startTime}
+            onChange={e => setBlockForm(f => ({ ...f, startTime: e.target.value }))}
+            className="input-field"
+          />
+          <input
+            type="time"
+            value={blockForm.endTime}
+            onChange={e => setBlockForm(f => ({ ...f, endTime: e.target.value }))}
+            className="input-field"
+          />
+          <input
+            maxLength={255}
+            value={blockForm.reason}
+            onChange={e => setBlockForm(f => ({ ...f, reason: e.target.value }))}
+            className="input-field"
+            placeholder="Motivo opcional"
+          />
+          <button
+            type="button"
+            onClick={blockTime}
+            disabled={addAvailabilityBlock.isPending}
+            className="btn-secondary text-sm disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {addAvailabilityBlock.isPending ? 'Bloqueando...' : 'Bloquear horario'}
+          </button>
+        </div>
+        <p className="text-xs text-neutral-400">
+          Agendamentos ja confirmados continuam na agenda. O bloqueio so impede novos agendamentos publicos naquele intervalo.
+        </p>
+        <div className="space-y-2">
+          {availabilityBlocks.length === 0 ? (
+            <p className="py-2 text-sm text-neutral-400">Nenhum horario bloqueado.</p>
+          ) : availabilityBlocks.map((block) => {
+            const weekdayLabel = WEEKDAYS.find(day => day.d === block.weekday)?.label ?? ''
+            const targetLabel = block.type === 'weekly'
+              ? `Toda semana - ${weekdayLabel}`
+              : new Date(`${String(block.date).slice(0, 10)}T00:00:00`).toLocaleDateString('pt-BR')
+            return (
+              <div key={block.id} className="flex items-center justify-between gap-3 rounded-xl border border-neutral-100 px-3 py-2 dark:border-white/10 dark:bg-black/15">
+                <div>
+                  <p className="text-sm font-medium text-neutral-700 dark:text-neutral-100">
+                    {targetLabel} - {block.startTime.slice(0, 5)} ate {block.endTime.slice(0, 5)}
+                  </p>
+                  {block.reason && <p className="text-xs text-neutral-400">{block.reason}</p>}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeAvailabilityBlock.mutateAsync(block.id)}
+                  className="rounded-lg p-2 text-neutral-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10 dark:hover:text-rose-200"
+                  title="Remover bloqueio"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            )
+          })}
         </div>
       </div>
 

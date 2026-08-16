@@ -5,11 +5,12 @@ import { AvailabilityService } from './availability.service'
 import { AvailabilitySlot } from './entities/availability-slot.entity'
 import { BlockedDate } from './entities/blocked-date.entity'
 import { ExtraAvailabilitySlot } from './entities/extra-availability-slot.entity'
+import { AvailabilityBlock } from './entities/availability-block.entity'
 import { Appointment } from '../appointments/entities/appointment.entity'
 import { Booking } from '../booking/entities/booking.entity'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([AvailabilitySlot, BlockedDate, ExtraAvailabilitySlot, Appointment, Booking])],
+  imports: [TypeOrmModule.forFeature([AvailabilitySlot, BlockedDate, ExtraAvailabilitySlot, AvailabilityBlock, Appointment, Booking])],
   controllers: [AvailabilityController],
   providers: [AvailabilityService],
   exports: [AvailabilityService],

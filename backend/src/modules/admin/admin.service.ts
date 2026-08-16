@@ -488,6 +488,7 @@ export class AdminService {
     await this.deleteFrom(tx, 'booking_pages', '"psychologistId"::text = ANY($1::text[])', [userIds])
     await this.deleteFrom(tx, 'availability_slots', '"psychologistId"::text = ANY($1::text[])', [userIds])
     await this.deleteFrom(tx, 'extra_availability_slots', '"psychologistId"::text = ANY($1::text[])', [userIds])
+    await this.deleteFrom(tx, 'availability_blocks', '"psychologistId"::text = ANY($1::text[])', [userIds])
     await this.deleteFrom(tx, 'blocked_dates', '"psychologistId"::text = ANY($1::text[])', [userIds])
     await this.deleteFrom(tx, 'billing_subscriptions', '"userId"::text = ANY($1::text[])', [userIds])
     await this.deleteFrom(tx, 'refresh_tokens', '"userId"::text = ANY($1::text[])', [userIds])

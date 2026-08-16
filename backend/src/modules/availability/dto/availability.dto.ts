@@ -65,3 +65,29 @@ export class BlockedDateDto {
   @MaxLength(255)
   reason?: string
 }
+
+export class AvailabilityBlockDto {
+  @IsIn(['weekly', 'date'])
+  type: 'weekly' | 'date'
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(6)
+  weekday?: number
+
+  @IsOptional()
+  @Matches(DATE_PATTERN)
+  date?: string
+
+  @Matches(TIME_PATTERN)
+  startTime: string
+
+  @Matches(TIME_PATTERN)
+  endTime: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  reason?: string
+}

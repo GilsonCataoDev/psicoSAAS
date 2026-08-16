@@ -2,6 +2,16 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 
+export type AvailabilityBlock = {
+  id: string
+  type: 'weekly' | 'date'
+  weekday?: number | null
+  date?: string | null
+  startTime: string
+  endTime: string
+  reason?: string
+}
+
 export function useAvailability() {
   const userId = useAuthStore(s => s.user?.id)
   return useQuery<{ id: string; weekday: number; startTime: string; endTime: string; modality?: 'presencial' | 'online' }[]>({
@@ -26,6 +36,32 @@ export function useExtraAvailability() {
     queryKey: ['extra-availability', userId],
     queryFn: () => api.get('/availability/extra').then(r => r.data),
     enabled: !!userId,
+  })
+}
+
+export function useAvailabilityBlocks() {
+  const userId = useAuthStore(s => s.user?.id)
+  return useQuery<AvailabilityBlock[]>({
+    queryKey: ['availability-blocks', userId],
+    queryFn: () => api.get('/availability/blocks').then(r => r.data),
+    enabled: !!userId,
+  })
+}
+
+export function useAddAvailabilityBlock() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: { type: 'weekly' | 'date'; weekday?: number; date?: string; startTime: string; endTime: string; reason?: string }) =>
+      api.post('/availability/blocks', data).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['availability-blocks'] }),
+  })
+}
+
+export function useRemoveAvailabilityBlock() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/availability/blocks/${id}`).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['availability-blocks'] }),
   })
 }
 
