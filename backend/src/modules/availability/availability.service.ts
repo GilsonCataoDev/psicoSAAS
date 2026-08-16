@@ -1,9 +1,10 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { In, Repository } from 'typeorm'
+import { Between, In, Repository } from 'typeorm'
 import { AvailabilitySlot } from './entities/availability-slot.entity'
 import { BlockedDate } from './entities/blocked-date.entity'
 import { ExtraAvailabilitySlot } from './entities/extra-availability-slot.entity'
+import { AvailabilityBlock, AvailabilityBlockType } from './entities/availability-block.entity'
 import { Appointment } from '../appointments/entities/appointment.entity'
 import { Booking } from '../booking/entities/booking.entity'
 
@@ -13,6 +14,7 @@ export class AvailabilityService {
     @InjectRepository(AvailabilitySlot) private slots: Repository<AvailabilitySlot>,
     @InjectRepository(BlockedDate) private blocked: Repository<BlockedDate>,
     @InjectRepository(ExtraAvailabilitySlot) private extraSlots: Repository<ExtraAvailabilitySlot>,
+    @InjectRepository(AvailabilityBlock) private blocks: Repository<AvailabilityBlock>,
     @InjectRepository(Appointment) private appointments: Repository<Appointment>,
     @InjectRepository(Booking) private bookings: Repository<Booking>,
   ) {}
@@ -126,6 +128,67 @@ export class AvailabilityService {
     await this.blocked.delete({ id, psychologistId })
   }
 
+  getAvailabilityBlocks(psychologistId: string) {
+    return this.blocks.find({
+      where: { psychologistId },
+      order: { type: 'ASC', weekday: 'ASC', date: 'ASC', startTime: 'ASC' },
+    })
+  }
+
+  getAvailabilityBlocksForDate(psychologistId: string, date: string, weekday: number) {
+    return this.blocks.find({
+      where: [
+        { psychologistId, type: 'weekly', weekday },
+        { psychologistId, type: 'date', date },
+      ],
+      order: { startTime: 'ASC' },
+    })
+  }
+
+  getAvailabilityBlocksForPeriod(psychologistId: string, startDate: string, endDate: string) {
+    return this.blocks.find({
+      where: [
+        { psychologistId, type: 'weekly' },
+        { psychologistId, type: 'date', date: Between(startDate, endDate) },
+      ],
+      order: { type: 'ASC', weekday: 'ASC', date: 'ASC', startTime: 'ASC' },
+    })
+  }
+
+  async addAvailabilityBlock(
+    psychologistId: string,
+    data: { type: AvailabilityBlockType; weekday?: number; date?: string; startTime: string; endTime: string; reason?: string },
+  ) {
+    this.validateAvailabilityBlock(data)
+    const start = this.timeToMinutes(data.startTime)
+    const end = this.timeToMinutes(data.endTime)
+    const where = data.type === 'weekly'
+      ? { psychologistId, type: data.type, weekday: data.weekday }
+      : { psychologistId, type: data.type, date: data.date }
+    const existing = await this.blocks.find({ where })
+    const hasConflict = existing.some(block =>
+      this.rangesOverlap(start, end, this.timeToMinutes(block.startTime), this.timeToMinutes(block.endTime)),
+    )
+    if (hasConflict) {
+      throw new BadRequestException('Ja existe um bloqueio nesse periodo')
+    }
+
+    const block = this.blocks.create({
+      psychologistId,
+      type: data.type,
+      weekday: data.type === 'weekly' ? data.weekday : null,
+      date: data.type === 'date' ? data.date : null,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      reason: this.normalizeReason(data.reason),
+    })
+    return this.blocks.save(block)
+  }
+
+  async removeAvailabilityBlock(id: string, psychologistId: string) {
+    await this.blocks.delete({ id, psychologistId })
+  }
+
   private validateSlots(slotsData: { weekday: number; startTime: string; endTime: string; modality?: 'presencial' | 'online' }[]) {
     slotsData.forEach((slot) => {
       if (!Number.isInteger(slot.weekday) || slot.weekday < 0 || slot.weekday > 6) {
@@ -151,6 +214,27 @@ export class AvailabilityService {
     const parsed = new Date(Date.UTC(year, month - 1, day))
     if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() !== month - 1 || parsed.getUTCDate() !== day) {
       throw new BadRequestException('Data invalida')
+    }
+  }
+
+  private validateAvailabilityBlock(data: { type: AvailabilityBlockType; weekday?: number; date?: string; startTime: string; endTime: string }) {
+    if (!['weekly', 'date'].includes(data.type)) {
+      throw new BadRequestException('Tipo de bloqueio invalido')
+    }
+    if (data.type === 'weekly') {
+      if (!Number.isInteger(data.weekday) || data.weekday < 0 || data.weekday > 6) {
+        throw new BadRequestException('Dia da semana invalido')
+      }
+    } else if (!data.date) {
+      throw new BadRequestException('Data invalida')
+    } else {
+      this.validateDate(data.date)
+    }
+
+    const start = this.timeToMinutes(data.startTime)
+    const end = this.timeToMinutes(data.endTime)
+    if (start >= end) {
+      throw new BadRequestException('O horario inicial deve ser menor que o horario final')
     }
   }
 

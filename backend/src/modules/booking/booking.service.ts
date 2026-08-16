@@ -202,9 +202,10 @@ export class BookingService {
     const isBlocked = await this.availability.isDateBlocked(page.psychologistId, dateStr)
     if (isBlocked) return []
 
-    const [weeklySlots, extraSlots] = await Promise.all([
+    const [weeklySlots, extraSlots, availabilityBlocks] = await Promise.all([
       this.availability.getSlotsForDay(page.psychologistId, weekday, modality),
       this.availability.getExtraSlotsForDate(page.psychologistId, dateStr, modality),
+      this.availability.getAvailabilityBlocksForDate(page.psychologistId, dateStr, weekday),
     ])
     const slots = [...weeklySlots, ...extraSlots]
     if (!slots.length) return []
@@ -230,6 +231,11 @@ export class BookingService {
       }),
     ])
     const occupiedIntervals = this.toOccupiedIntervals([...existingBookings, ...existingAppointments])
+    const blockedIntervals = availabilityBlocks.map(block => ({
+      start: this.timeToMinutes(block.startTime),
+      end: this.timeToMinutes(block.endTime),
+    }))
+    const unavailableIntervals = [...occupiedIntervals, ...blockedIntervals]
 
     const available: string[] = []
     for (const slot of slots) {
@@ -244,7 +250,7 @@ export class BookingService {
         const timeStr = format(current, 'HH:mm')
         const offset = this.config.get<string>('APPOINTMENT_TIMEZONE_OFFSET') ?? '-03:00'
         const startsAt = new Date(`${dateStr}T${timeStr}:00${offset}`)
-        if (!this.hasOverlap(this.timeToMinutes(timeStr), sessionDuration, occupiedIntervals) && isAfter(startsAt, now)) {
+        if (!this.hasOverlap(this.timeToMinutes(timeStr), sessionDuration, unavailableIntervals) && isAfter(startsAt, now)) {
           available.push(timeStr)
         }
         current = addMinutes(current, stepMinutes)
@@ -288,14 +294,17 @@ export class BookingService {
     if (!isPublicBookingMonthAllowed(monthStr, todayStr, page.allowNextMonthBooking)) return []
     const minDate = addDays(today, page.minAdvanceDays ?? 0)
 
-    const [slots, extraSlots, blockedDates, existingBookings, existingAppointments] = await Promise.all([
+    const monthStart = format(start, 'yyyy-MM-dd')
+    const monthEnd = format(end, 'yyyy-MM-dd')
+    const [slots, extraSlots, blockedDates, availabilityBlocks, existingBookings, existingAppointments] = await Promise.all([
       this.availability.findAll(page.psychologistId),
       this.availability.getExtraSlots(page.psychologistId),
       this.availability.getBlockedDates(page.psychologistId),
+      this.availability.getAvailabilityBlocksForPeriod(page.psychologistId, monthStart, monthEnd),
       this.bookings.find({
         where: {
           psychologistId: page.psychologistId,
-          date: Between(format(start, 'yyyy-MM-dd'), format(end, 'yyyy-MM-dd')),
+          date: Between(monthStart, monthEnd),
           status: In(OCCUPYING_BOOKING_STATUSES),
         },
         select: ['date', 'time', 'duration'],
@@ -303,7 +312,7 @@ export class BookingService {
       this.appointments.find({
         where: {
           psychologistId: page.psychologistId,
-          date: Between(format(start, 'yyyy-MM-dd'), format(end, 'yyyy-MM-dd')),
+          date: Between(monthStart, monthEnd),
           status: Not(In(FREE_APPOINTMENT_STATUSES)),
         },
         select: ['date', 'time', 'duration'],
@@ -334,6 +343,16 @@ export class BookingService {
       if (!daySlots.length) continue
 
       const occupiedIntervals = occupiedByDate.get(dateStr) ?? []
+      const dayBlocks = availabilityBlocks
+        .filter(block =>
+          (block.type === 'weekly' && block.weekday === getDay(day))
+          || (block.type === 'date' && String(block.date).slice(0, 10) === dateStr),
+        )
+        .map(block => ({
+          start: this.timeToMinutes(block.startTime),
+          end: this.timeToMinutes(block.endTime),
+        }))
+      const unavailableIntervals = [...occupiedIntervals, ...dayBlocks]
       const hasAvailableTime = daySlots.some(slot => {
         const [startH, startM] = slot.startTime.slice(0, 5).split(':').map(Number)
         const [endH, endM] = slot.endTime.slice(0, 5).split(':').map(Number)
@@ -345,7 +364,7 @@ export class BookingService {
           const timeStr = format(current, 'HH:mm')
           const offset = this.config.get<string>('APPOINTMENT_TIMEZONE_OFFSET') ?? '-03:00'
           const startsAt = new Date(`${dateStr}T${timeStr}:00${offset}`)
-          if (!this.hasOverlap(this.timeToMinutes(timeStr), sessionDuration, occupiedIntervals) && isAfter(startsAt, now)) return true
+          if (!this.hasOverlap(this.timeToMinutes(timeStr), sessionDuration, unavailableIntervals) && isAfter(startsAt, now)) return true
           current = addMinutes(current, stepMinutes)
         }
         return false

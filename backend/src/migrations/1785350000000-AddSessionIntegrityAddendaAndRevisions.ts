@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm'
 
-export class AddSessionIntegrityAddendaAndRevisions1785300000000 implements MigrationInterface {
-  name = 'AddSessionIntegrityAddendaAndRevisions1785300000000'
+export class AddSessionIntegrityAddendaAndRevisions1785350000000 implements MigrationInterface {
+  name = 'AddSessionIntegrityAddendaAndRevisions1785350000000'
 
   async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`ALTER TABLE "sessions" ADD COLUMN IF NOT EXISTS "contentHash" varchar(64)`)

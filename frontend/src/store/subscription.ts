@@ -29,6 +29,7 @@ export interface Subscription {
   currentPeriodEnd?: string | null
   trialEndsAt?: string | null
   cancelAtPeriodEnd?: boolean
+  hasUsedTrial?: boolean
   createdAt?: string
 }
 

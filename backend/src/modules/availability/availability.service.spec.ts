@@ -9,11 +9,18 @@ describe('AvailabilityService weekly blocking', () => {
     save: jest.fn(async (value) => value),
     delete: jest.fn(),
   }
+  const blocks = {
+    find: jest.fn(),
+    create: jest.fn((value) => value),
+    save: jest.fn(async (value) => value),
+    delete: jest.fn(),
+  }
 
   const service = new AvailabilityService(
     {} as any,
     blocked as any,
     {} as any,
+    blocks as any,
     {} as any,
     {} as any,
   )
@@ -66,5 +73,38 @@ describe('AvailabilityService weekly blocking', () => {
   it('rejeita uma data inexistente', async () => {
     await expect(service.addBlockedWeek('psi-1', '2026-02-31')).rejects.toBeInstanceOf(BadRequestException)
     expect(blocked.save).not.toHaveBeenCalled()
+  })
+
+  it('cria bloqueio semanal de horario', async () => {
+    blocks.find.mockResolvedValue([])
+
+    const result = await service.addAvailabilityBlock('psi-1', {
+      type: 'weekly',
+      weekday: 1,
+      startTime: '12:00',
+      endTime: '13:00',
+      reason: 'Almoco',
+    })
+
+    expect(result).toEqual(expect.objectContaining({
+      psychologistId: 'psi-1',
+      type: 'weekly',
+      weekday: 1,
+      date: null,
+      startTime: '12:00',
+      endTime: '13:00',
+      reason: 'Almoco',
+    }))
+  })
+
+  it('rejeita bloqueio de horario conflitante', async () => {
+    blocks.find.mockResolvedValue([{ startTime: '12:00', endTime: '13:00' }])
+
+    await expect(service.addAvailabilityBlock('psi-1', {
+      type: 'weekly',
+      weekday: 1,
+      startTime: '12:30',
+      endTime: '13:30',
+    })).rejects.toBeInstanceOf(BadRequestException)
   })
 })

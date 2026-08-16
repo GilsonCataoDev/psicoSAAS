@@ -28,9 +28,9 @@ export type PricingPlan = PlanCatalogEntry & {
 export const PRICING_HERO = {
   title: 'Escolha como quer usar o UseCognia',
   subtitle: 'Organize agenda, pacientes, prontuario e financeiro sem transformar a rotina clinica em planilha.',
-  context: 'Comece gratis e evolua conforme precisar. Recursos de IA, WhatsApp e pagamentos dependem dos provedores externos estarem configurados e disponiveis.',
-  trialCta: 'Comecar no plano gratis',
-  trialSubtext: 'Sem cartao. Ideal para testar a rotina com ate 10 pacientes.',
+  context: 'Comece grátis e evolua conforme precisar. Recursos de IA, WhatsApp e pagamentos dependem dos provedores externos estarem configurados e disponíveis.',
+  trialCta: 'Teste o Pro por 14 dias',
+  trialSubtext: 'Sem cartão e sem cobrança automática. Depois, você escolhe se quer assinar.',
 }
 
 export const PRICING_PLANS: PricingPlan[] = [
@@ -83,8 +83,8 @@ export const PRICING_PLANS: PricingPlan[] = [
       ],
       note: 'Resultados dependem da rotina e do uso de cada profissional',
     },
-    cta: 'Contratar Pro',
-    ctaSubtext: 'Cartao necessario. Cobranca mensal.',
+    cta: 'Testar Pro por 14 dias',
+    ctaSubtext: 'Sem cartão. Ao terminar, você escolhe se quer assinar.',
   },
 ]
 

@@ -57,11 +57,16 @@ export function renderPaymentTemplate(
   includeReceipt?: boolean,
 ): string {
   const receiptMessage = includeReceipt ? 'Pode me enviar o comprovante por aqui depois do pagamento.' : ''
-  const rendered = template
+  // Se não há chave PIX, remove a linha inteira em vez de deixar label vazio
+  const templateWithPix = pixKey
+    ? template.replaceAll('{{pix}}', pixKey)
+    : template.replace(/[^\n]*\{\{pix\}\}[^\n]*\n?/g, '')
+  const rendered = templateWithPix
     .replaceAll('{{nome}}', patientName.split(' ')[0] || patientName)
     .replaceAll('{{valor}}', `R$ ${amount.toFixed(2)}`)
-    .replaceAll('{{pix}}', pixKey ?? 'PIX nao configurado')
     .replaceAll('{{comprovante}}', receiptMessage)
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
 
   if (includeReceipt && !template.includes('{{comprovante}}')) {
     return `${rendered}\n\n${receiptMessage}`

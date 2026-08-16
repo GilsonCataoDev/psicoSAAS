@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { LessThanOrEqual, Repository } from 'typeorm'
+import { IsNull, LessThanOrEqual, Repository } from 'typeorm'
 import { FinancialRecord } from './entities/financial-record.entity'
 import { NotificationsService } from '../notifications/notifications.service'
 import { AdvisoryLockService, JOB_LOCK_KEYS } from '../../common/advisory-lock/advisory-lock.service'
@@ -10,6 +10,7 @@ import { HeartbeatService } from '../../common/monitoring/heartbeat.service'
 
 const SIX_HOURS_MS = 6 * 60 * 60 * 1000
 const OVERDUE_AFTER_DAYS = 3
+const REMINDER_INTERVAL_DAYS = 7
 
 @Injectable()
 export class PaymentReminderJob implements OnModuleInit, OnModuleDestroy {
@@ -59,17 +60,20 @@ export class PaymentReminderJob implements OnModuleInit, OnModuleDestroy {
     }
 
     const cutoff = this.cutoffDate()
-    const overdue = await this.records.find({
-      where: {
-        type: 'income',
-        status: 'pending',
-        dueDate: LessThanOrEqual(cutoff),
-      },
+    const reminderCutoff = this.reminderIntervalDate()
+    const pendingAndOverdue = await this.records.find({
+      where: [
+        { type: 'income', status: 'pending', dueDate: LessThanOrEqual(cutoff) },
+        { type: 'income', status: 'overdue', dueDate: LessThanOrEqual(cutoff), lastReminderSentAt: IsNull() },
+        { type: 'income', status: 'overdue', dueDate: LessThanOrEqual(cutoff), lastReminderSentAt: LessThanOrEqual(reminderCutoff) },
+      ],
       relations: ['patient', 'psychologist'],
     })
 
     const whatsappAccess = new Map<string, Promise<boolean>>()
-    for (const record of overdue) {
+    const notifiedPatients = new Set<string>()
+
+    for (const record of pendingAndOverdue) {
       const prefs = (record.psychologist?.preferences ?? {}) as Record<string, any>
       let access = whatsappAccess.get(record.psychologistId)
       if (!access) {
@@ -77,34 +81,47 @@ export class PaymentReminderJob implements OnModuleInit, OnModuleDestroy {
         whatsappAccess.set(record.psychologistId, access)
       }
       const canUseWhatsApp = await access
+      const patientId = record.patientId ?? record.patient?.id
 
-      if (canUseWhatsApp && prefs.lateReminder !== false && record.patient?.phone) {
-        const result = await this.notifications.sendLatePaymentReminder(
-          record.patient,
-          Number(record.amount),
-          prefs.pixKey,
-          typeof prefs.lateReminderTemplate === 'string' ? prefs.lateReminderTemplate : undefined,
-        )
-        if (!result.sent) {
-          this.logger.warn(`Lembrete de atraso nao enviado para financeiro ${record.id}: ${result.error ?? 'erro desconhecido'}`)
+      if (canUseWhatsApp && prefs.lateReminder !== false && record.patient?.phone && patientId) {
+        if (!notifiedPatients.has(patientId)) {
+          const result = await this.notifications.sendLatePaymentReminder(
+            record.patient,
+            Number(record.amount),
+            prefs.pixKey,
+            typeof prefs.lateReminderTemplate === 'string' ? prefs.lateReminderTemplate : undefined,
+          )
+          if (result.sent) {
+            record.lastReminderSentAt = this.todayBR()
+            notifiedPatients.add(patientId)
+          } else {
+            this.logger.warn(`Lembrete de atraso nao enviado para financeiro ${record.id}: ${result.error ?? 'erro desconhecido'}`)
+          }
         }
       }
 
       record.status = 'overdue'
     }
 
-    if (overdue.length > 0) {
-      await this.records.save(overdue)
-    }
-
-    if (overdue.length > 0) {
-      this.logger.log(`Processadas ${overdue.length} cobranca(s) em atraso`)
+    if (pendingAndOverdue.length > 0) {
+      await this.records.save(pendingAndOverdue)
+      this.logger.log(`Processadas ${pendingAndOverdue.length} cobranca(s) em atraso`)
     }
   }
 
+  private todayBR(): string {
+    return new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(new Date())
+  }
+
   private cutoffDate(): string {
-    const date = new Date()
-    date.setDate(date.getDate() - OVERDUE_AFTER_DAYS)
-    return date.toISOString().slice(0, 10)
+    const d = new Date()
+    d.setDate(d.getDate() - OVERDUE_AFTER_DAYS)
+    return new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(d)
+  }
+
+  private reminderIntervalDate(): string {
+    const d = new Date()
+    d.setDate(d.getDate() - REMINDER_INTERVAL_DAYS)
+    return new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(d)
   }
 }

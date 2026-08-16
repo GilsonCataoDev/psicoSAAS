@@ -11,11 +11,24 @@ export interface AdminTestimonial {
   text: string | null
   approvedForPublic: boolean
   publicConsent: boolean
+  publicIdentityConsent: boolean
+  publicDisplayName: string | null
+  publicCrp: string | null
+  publicSpecialty: string | null
+  publicCity: string | null
+  publicAvatarUrl: string | null
+  publicConsentAt: string | null
+  publicConsentVersion: string | null
   createdAt: string
 }
 
 export interface PublicTestimonial {
   firstName: string
+  displayName: string
+  crp: string | null
+  specialty: string | null
+  city: string | null
+  avatarUrl: string | null
   rating: number | null
   text: string | null
   createdAt: string
@@ -50,8 +63,8 @@ export function useSubmitTestimonial() {
   const qc = useQueryClient()
   const userId = useAuthStore(s => s.user?.id)
   return useMutation({
-    mutationFn: ({ rating, text, publicConsent }: { rating: number; text?: string; publicConsent?: boolean }) =>
-      api.post('/feedback', { rating, text, publicConsent }).then(r => r.data),
+    mutationFn: (input: { rating: number; text?: string; publicConsent?: boolean; publicIdentityConsent?: boolean; publicCity?: string }) =>
+      api.post('/feedback', input).then(r => r.data),
     onSuccess: () => qc.setQueryData(['feedback', 'status', userId], { shouldShow: false }),
   })
 }

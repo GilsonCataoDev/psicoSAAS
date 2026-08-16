@@ -122,7 +122,12 @@ export class AppointmentsService {
     if (appointment.modality === 'online' && !appointment.meetingUrl && autoVideoRoom) {
       appointment.meetingUrl = this.generateJitsiRoomUrl()
     }
-    const saved = await this.repo.save(appointment)
+    const saved = changedSlot
+      ? await this.dataSource.transaction(async manager => {
+          await this.notifications.supersedeAppointmentReminders(id, manager)
+          return manager.save(Appointment, appointment)
+        })
+      : await this.repo.save(appointment)
     await this.syncLinkedBookingFromAppointment(saved)
     this.googleCalendar.syncAppointment(saved).catch(err => this.logCalendarError('sync', saved.id, err))
     return this.findOne(saved.id, psychologistId)
@@ -222,6 +227,7 @@ export class AppointmentsService {
     // campo "date" era descartado silenciosamente (nao existia no DTO) e mudar a data no modo
     // "esta e as proximas" nao tinha nenhum efeito.
     const dayShift = newAnchorDate ? this.daysBetween(fromDate, newAnchorDate) : 0
+    const changedAppointmentIds: string[] = []
     for (const appt of toUpdate) {
       const nextDate = dayShift ? this.addDays(appt.date, dayShift) : appt.date
       await this.assertSlotAvailable(
@@ -238,7 +244,7 @@ export class AppointmentsService {
         || (groupDto.duration !== undefined && Number(groupDto.duration) !== Number(appt.duration))
         || nextDate !== appt.date
       if (changedSlot) {
-        await this.notifications.supersedeAppointmentReminders(appt.id)
+        changedAppointmentIds.push(appt.id)
         this.resetReminderTracking(appt)
       }
       Object.assign(appt, groupDto)
@@ -247,7 +253,14 @@ export class AppointmentsService {
         appt.meetingUrl = this.generateJitsiRoomUrl()
       }
     }
-    const saved = await this.repo.save(toUpdate)
+    const saved = changedAppointmentIds.length
+      ? await this.dataSource.transaction(async manager => {
+          for (const appointmentId of changedAppointmentIds) {
+            await this.notifications.supersedeAppointmentReminders(appointmentId, manager)
+          }
+          return manager.save(Appointment, toUpdate)
+        })
+      : await this.repo.save(toUpdate)
     for (const appt of saved) {
       await this.syncLinkedBookingFromAppointment(appt)
       this.googleCalendar.syncAppointment(appt).catch(err => this.logCalendarError('sync', appt.id, err))

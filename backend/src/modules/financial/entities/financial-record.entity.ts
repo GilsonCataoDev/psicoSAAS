@@ -25,6 +25,7 @@ export class FinancialRecord {
   @Column({ nullable: true }) asaasPaymentId?: string
   @Column({ nullable: true }) paymentLinkUrl?: string
   @Column({ nullable: true }) patientId?: string
+  @Column({ nullable: true }) lastReminderSentAt?: string
   @ManyToOne(() => Patient, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'patientId' }) patient?: Patient
   @Column() psychologistId: string

@@ -15,6 +15,7 @@ import {
   useAppointments,
   useAvailability,
   useAddExtraAvailability,
+  useAvailabilityBlocks,
   useBlockedDates,
   useDeleteAppointment,
   useDeleteAppointmentGroup,
@@ -35,6 +36,16 @@ const DAYS_IN_WEEK = 7
 const VIDEO_LINK_RE = /https?:\/\/[^\s)]+/i
 const FREE_APPOINTMENT_STATUSES = new Set(['cancelled', 'no_show'])
 const MIN_FREE_RANGE_MINUTES = 30
+
+type AgendaBlock = {
+  id: string
+  type: 'weekly' | 'date'
+  weekday?: number | null
+  date?: string | null
+  startTime: string
+  endTime: string
+  reason?: string
+}
 
 function normalizeAgendaSearch(value: string | number | null | undefined) {
   return String(value ?? '')
@@ -93,6 +104,11 @@ function rangesOverlap(startA: number, endA: number, startB: number, endB: numbe
   return startA < endB && startB < endA
 }
 
+function blockAppliesToDay(block: AgendaBlock, day: Date, dateKey: string) {
+  return (block.type === 'weekly' && block.weekday === getDay(day))
+    || (block.type === 'date' && String(block.date).slice(0, 10) === dateKey)
+}
+
 function appointmentMatchesSearch(appt: any, query: string) {
   const normalizedQuery = normalizeAgendaSearch(query)
   if (!normalizedQuery) return true
@@ -137,6 +153,7 @@ export default function AgendaPage() {
   })
   const { data: availability = [] } = useAvailability()
   const { data: extraAvailability = [] } = useExtraAvailability()
+  const { data: availabilityBlocks = [] } = useAvailabilityBlocks()
   const { data: blockedDates = [] } = useBlockedDates()
   // Pre-aquece o cache de pacientes assim que a Agenda monta, ja que o NewAppointmentModal
   // e lazy-loaded: sem isso, o primeiro clique em "Agendar"/"Alterar" da sessao dispara o
@@ -175,6 +192,46 @@ export default function AgendaPage() {
       visibleHours: Array.from(hours).sort((a, b) => a - b),
     }
   }, [appointments])
+  const { availabilityBlocksByDate, availabilityBlocksByDateHour, currentWeekAvailabilityBlocks } = useMemo(() => {
+    const byDate = new Map<string, AgendaBlock[]>()
+    const byDateHour = new Map<string, AgendaBlock[]>()
+    const flat: Array<AgendaBlock & { dateKey: string; day: Date }> = []
+
+    for (const day of days) {
+      const dateKey = format(day, 'yyyy-MM-dd')
+      const dayBlocks = availabilityBlocks
+        .filter(block => blockAppliesToDay(block, day, dateKey))
+        .sort((a, b) => String(a.startTime).localeCompare(String(b.startTime)))
+
+      if (!dayBlocks.length) continue
+      byDate.set(dateKey, dayBlocks)
+      flat.push(...dayBlocks.map(block => ({ ...block, dateKey, day })))
+
+      for (const block of dayBlocks) {
+        const start = timeToMinutes(block.startTime)
+        if (start === null) continue
+        const hour = Math.floor(start / 60)
+        const key = `${dateKey}:${hour}`
+        const hourItems = byDateHour.get(key) ?? []
+        hourItems.push(block)
+        byDateHour.set(key, hourItems)
+      }
+    }
+
+    return {
+      availabilityBlocksByDate: byDate,
+      availabilityBlocksByDateHour: byDateHour,
+      currentWeekAvailabilityBlocks: flat,
+    }
+  }, [availabilityBlocks, days])
+  const calendarVisibleHours = useMemo(() => {
+    const hours = new Set(visibleHours)
+    for (const block of currentWeekAvailabilityBlocks) {
+      const start = timeToMinutes(block.startTime)
+      if (start !== null) hours.add(Math.floor(start / 60))
+    }
+    return Array.from(hours).sort((a, b) => a - b)
+  }, [currentWeekAvailabilityBlocks, visibleHours])
   const deleteAppointment = useDeleteAppointment()
   const deleteGroup = useDeleteAppointmentGroup()
   const addExtraAvailability = useAddExtraAvailability()
@@ -189,8 +246,10 @@ export default function AgendaPage() {
   )
   const mobileDayKey = format(mobileDay, 'yyyy-MM-dd')
   const mobileAppointments = appointmentsByDate.get(mobileDayKey) ?? []
+  const mobileAvailabilityBlocks = availabilityBlocksByDate.get(mobileDayKey) ?? []
   const listDayKey = format(listDay, 'yyyy-MM-dd')
   const dayListAppointments = appointmentsByDate.get(listDayKey) ?? []
+  const dayListAvailabilityBlocks = availabilityBlocksByDate.get(listDayKey) ?? []
   const patientSearchResults = useMemo(() => {
     const query = patientSearch.trim()
     if (!query) return []
@@ -223,14 +282,23 @@ export default function AgendaPage() {
 
       if (!daySlots.length) return []
 
-      const busyRanges = mergeMinuteRanges((appointmentsByDate.get(dateKey) ?? [])
+      const appointmentBusyRanges = (appointmentsByDate.get(dateKey) ?? [])
         .filter(appt => !FREE_APPOINTMENT_STATUSES.has(appt.status))
         .map(appt => {
           const start = timeToMinutes(appt.time)
           if (start === null) return null
           return { start, end: start + Number(appt.duration || 50) }
         })
-        .filter((range): range is { start: number; end: number } => Boolean(range)))
+        .filter((range): range is { start: number; end: number } => Boolean(range))
+      const blockBusyRanges = (availabilityBlocksByDate.get(dateKey) ?? [])
+        .map(block => {
+          const start = timeToMinutes(block.startTime)
+          const end = timeToMinutes(block.endTime)
+          if (start === null || end === null || end <= start) return null
+          return { start, end }
+        })
+        .filter((range): range is { start: number; end: number } => Boolean(range))
+      const busyRanges = mergeMinuteRanges([...appointmentBusyRanges, ...blockBusyRanges])
 
       const ranges: { start: string; end: string }[] = []
 
@@ -253,7 +321,7 @@ export default function AgendaPage() {
 
       return ranges.length ? [{ day, dateKey, ranges }] : []
     })
-  }, [appointmentsByDate, availability, blockedDates, days, extraAvailability])
+  }, [appointmentsByDate, availability, availabilityBlocksByDate, blockedDates, days, extraAvailability])
   const upcomingExtraAvailability = useMemo(() => {
     const todayKey = format(new Date(), 'yyyy-MM-dd')
     return [...extraAvailability]
@@ -408,6 +476,16 @@ export default function AgendaPage() {
       })
     if (hasExtraConflict) {
       toast.error('Ja existe horario extra nesse periodo.')
+      return
+    }
+    const hasBlockConflict = (availabilityBlocksByDate.get(extraForm.date) ?? [])
+      .some(block => {
+        const blockStart = timeToMinutes(block.startTime)
+        const blockEnd = timeToMinutes(block.endTime)
+        return blockStart !== null && blockEnd !== null && rangesOverlap(start, end, blockStart, blockEnd)
+      })
+    if (hasBlockConflict) {
+      toast.error('Esse periodo esta bloqueado. Remova o bloqueio antes de liberar horario extra.')
       return
     }
     const hasAppointmentConflict = (appointmentsByDate.get(extraForm.date) ?? [])
@@ -618,6 +696,26 @@ export default function AgendaPage() {
           </div>
         </div>
 
+        {dayListAvailabilityBlocks.length > 0 && (
+          <div className="grid gap-2 rounded-2xl border border-amber-200 bg-amber-50/70 p-3 dark:border-amber-400/20 dark:bg-amber-500/10">
+            {dayListAvailabilityBlocks.map(block => (
+              <div key={block.id} className="flex items-center justify-between gap-3 text-sm">
+                <div className="min-w-0">
+                  <p className="font-semibold text-amber-800 dark:text-amber-100">
+                    {formatTime(block.startTime)}-{formatTime(block.endTime)}
+                  </p>
+                  <p className="truncate text-xs text-amber-700/80 dark:text-amber-100/70">
+                    {block.reason || 'Horario bloqueado'}
+                  </p>
+                </div>
+                <span className="rounded-full bg-white/70 px-2 py-1 text-[10px] font-semibold uppercase text-amber-700 dark:bg-white/10 dark:text-amber-100">
+                  bloqueado
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
         {dayListAppointments.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-neutral-200 py-8 text-center text-sm text-neutral-400">
             Nenhuma sessao neste dia.
@@ -716,6 +814,27 @@ export default function AgendaPage() {
           </span>
         </div>
 
+        {currentWeekAvailabilityBlocks.length > 0 && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-3 dark:border-amber-400/20 dark:bg-amber-500/10">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm font-semibold text-amber-800 dark:text-amber-100">Bloqueios desta semana</p>
+              <p className="text-xs text-amber-700/80 dark:text-amber-100/70">
+                Ja descontados dos horarios livres.
+              </p>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {currentWeekAvailabilityBlocks.map(block => (
+                <span
+                  key={`${block.id}-${block.dateKey}`}
+                  className="rounded-lg bg-white/80 px-2.5 py-1.5 text-xs font-semibold text-amber-800 dark:bg-white/10 dark:text-amber-100"
+                >
+                  {format(block.day, 'EEE dd', { locale: ptBR })} {formatTime(block.startTime)}-{formatTime(block.endTime)}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         {weeklyAvailabilitySummary.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-neutral-200 py-7 text-center text-sm text-neutral-400">
             Nenhum horario livre nesta semana.
@@ -778,6 +897,26 @@ export default function AgendaPage() {
 
         {/* Lista do dia selecionado */}
         <div className="space-y-2 mt-3">
+          {mobileAvailabilityBlocks.map(block => (
+            <div
+              key={block.id}
+              className="rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3 dark:border-amber-400/20 dark:bg-amber-500/10"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-100">
+                    {formatTime(block.startTime)}-{formatTime(block.endTime)}
+                  </p>
+                  <p className="text-xs text-amber-700/80 dark:text-amber-100/70">
+                    {block.reason || 'Horario bloqueado'}
+                  </p>
+                </div>
+                <span className="rounded-full bg-white/70 px-2 py-1 text-[10px] font-semibold uppercase text-amber-700 dark:bg-white/10 dark:text-amber-100">
+                  bloqueado
+                </span>
+              </div>
+            </div>
+          ))}
           {mobileAppointments.map(appt => (
               <div key={appt.id}
                 className="card space-y-3 py-3 px-4">
@@ -883,7 +1022,7 @@ export default function AgendaPage() {
                 </div>
               </div>
             ))}
-          {mobileAppointments.length === 0 && (
+          {mobileAppointments.length === 0 && mobileAvailabilityBlocks.length === 0 && (
             <div className="card text-center py-10 text-neutral-400 text-sm">
               Nenhuma sessão neste dia
             </div>
@@ -907,15 +1046,32 @@ export default function AgendaPage() {
           ))}
         </div>
         <div className="max-h-[560px] overflow-y-auto">
-          {visibleHours.map(hour => (
+          {calendarVisibleHours.map(hour => (
             <div key={hour} className="agenda-grid-line grid min-h-[76px] grid-cols-[56px_repeat(7,minmax(130px,1fr))] border-b border-neutral-50">
               <div className="p-2 text-xs text-neutral-400 dark:text-neutral-300 text-right pr-3 pt-2">{hour}:00</div>
               {days.map(day => {
                 const dayKey = format(day, 'yyyy-MM-dd')
                 const dayAppts = appointmentsByDateHour.get(`${dayKey}:${hour}`) ?? []
+                const dayBlocks = availabilityBlocksByDateHour.get(`${dayKey}:${hour}`) ?? []
                 return (
                   <div key={day.toISOString()}
                     className={`agenda-grid-line border-l border-neutral-100 p-1 ${isToday(day) ? 'agenda-today bg-sage-50/40' : ''}`}>
+                    {dayBlocks.map(block => (
+                      <div
+                        key={block.id}
+                        className="mb-1 rounded-xl border border-amber-200 border-l-[3px] border-l-amber-500 bg-amber-50/85 p-2.5 shadow-sm dark:border-white/15 dark:border-l-amber-300 dark:bg-amber-500/12"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <XCircle className="h-3 w-3 shrink-0 text-amber-600 dark:text-amber-200" />
+                          <span className="min-w-0 flex-1 truncate text-xs font-semibold text-amber-900 dark:text-amber-50">
+                            {formatTime(block.startTime)}-{formatTime(block.endTime)}
+                          </span>
+                        </div>
+                        <p className="mt-1.5 truncate text-xs font-medium text-amber-800 dark:text-amber-100">
+                          {block.reason || 'Horario bloqueado'}
+                        </p>
+                      </div>
+                    ))}
                     {dayAppts.map(appt => (
                       <div key={appt.id}
                         className="agenda-appointment group mb-1 rounded-xl border border-sage-200 border-l-[3px] bg-sage-50/80 p-2.5 shadow-sm transition-all hover:-translate-y-px hover:bg-sage-100 hover:shadow-md dark:border-white/15 dark:border-l-sage-400 dark:bg-white/[0.07] dark:hover:bg-white/[0.11]">

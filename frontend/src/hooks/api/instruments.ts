@@ -17,8 +17,12 @@ export type InstrumentAssignment = {
   description?: string
   category: string
   status: 'pending' | 'completed' | 'expired'
+  expiresAt?: string
   completedAt?: string
   createdAt: string
+  patientId?: string
+  patientName?: string | null
+  url?: string
   fields: InstrumentField[]
   answers: Record<string, string> | null
   responseText?: string | null

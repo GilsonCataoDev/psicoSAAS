@@ -1,14 +1,26 @@
 import { useEffect, useState, useMemo } from 'react'
-import { Search, Download, X, MessageSquare, Repeat2, Pause, Play, Trash2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import {
+  Search, Download, X, MessageSquare, Repeat2, Pause, Play, Trash2,
+  Star, Layers3, Activity, AlertTriangle, Send, ClipboardCheck,
+  TrendingUp, Clock3, CheckCircle2, Filter,
+} from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
 import {
   useCreateInstrumentAssignment,
   useDeleteInstrumentSchedule,
+  useInstrumentAssignments,
   useInstrumentSchedules,
   useSetInstrumentScheduleActive,
   usePatients,
+  type InstrumentAssignment,
 } from '@/hooks/useApi'
+import LightweightChart from '@/components/ui/LightweightChart'
+import { cn } from '@/lib/utils'
+import { formatDate as formatUiDate } from '@/lib/utils'
+import { getCriticalResponses, interpretScaleResult, SCALE_CONFIGS } from '@/lib/scale-scoring'
+import { buildScaleEvolutionSeries } from '@/lib/patient-detail-summary'
 import {
   CARD_ACCENTS,
   CAT_COLOR,
@@ -228,27 +240,47 @@ function InstrumentCard({
   instrument,
   index,
   onClick,
+  favorite,
+  onToggleFavorite,
 }: {
   instrument: Instrument
   index: number
   onClick: () => void
+  favorite: boolean
+  onToggleFavorite: () => void
 }) {
   const accent = CARD_ACCENTS[index % CARD_ACCENTS.length]
   const fieldCount = instrument.template.split('\n').filter(l => l.trim().endsWith(':')).length
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="card group flex flex-col items-start gap-3 p-4 text-left hover:shadow-lifted hover:-translate-y-px transition-all duration-200 hover:border-sage-200 cursor-pointer"
-    >
-      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ring-1 ${accent}`}>
-        <instrument.Icon className="w-5 h-5" />
+    <div className="card group flex flex-col items-start gap-3 p-4 text-left transition-all duration-200 hover:-translate-y-px hover:border-sage-200 hover:shadow-lifted">
+      <div className="flex w-full items-start justify-between gap-2">
+        <button
+          type="button"
+          onClick={onClick}
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ring-1 ${accent}`}
+          title="Abrir instrumento"
+        >
+          <instrument.Icon className="w-5 h-5" />
+        </button>
+        <button
+          type="button"
+          onClick={onToggleFavorite}
+          className={cn(
+            'rounded-lg p-1.5 transition-colors',
+            favorite ? 'bg-amber-50 text-amber-500' : 'text-neutral-300 hover:bg-neutral-50 hover:text-amber-500',
+          )}
+          title={favorite ? 'Remover dos favoritos' : 'Favoritar'}
+        >
+          <Star className={cn('h-4 w-4', favorite && 'fill-current')} />
+        </button>
       </div>
 
       <div className="flex-1 min-w-0 w-full">
         <div className="flex items-start justify-between gap-2">
-          <p className="text-sm font-semibold text-neutral-800 leading-tight">{instrument.title}</p>
+          <button type="button" onClick={onClick} className="text-left">
+            <p className="text-sm font-semibold text-neutral-800 leading-tight group-hover:text-sage-700">{instrument.title}</p>
+          </button>
           <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${CAT_COLOR[instrument.category]}`}>
             {CAT_LABEL[instrument.category]}
           </span>
@@ -265,11 +297,11 @@ function InstrumentCard({
 
       <div className="flex w-full items-center justify-between pt-1 border-t border-neutral-100">
         <span className="text-[11px] text-neutral-300">{fieldCount} campos</span>
-        <span className="text-xs font-medium text-sage-600 group-hover:text-sage-700">
+        <button type="button" onClick={onClick} className="text-xs font-medium text-sage-600 group-hover:text-sage-700">
           Abrir →
-        </span>
+        </button>
       </div>
-    </button>
+    </div>
   )
 }
 
@@ -340,6 +372,233 @@ function ScheduleList() {
 
 // ── Página principal ─────────────────────────────────────────────────────────
 
+function InstrumentOpsDashboard({ assignments }: { assignments: InstrumentAssignment[] }) {
+  const completed = assignments.filter(item => item.status === 'completed')
+  const pending = assignments.filter(item => item.status === 'pending')
+  const expired = assignments.filter(item => item.status === 'expired')
+  const critical = completed.filter(item => getCriticalResponses(item.instrumentId, item.answers).length > 0)
+  const series = buildScaleEvolutionSeries(assignments).slice(0, 2)
+  const responseRate = assignments.length ? Math.round((completed.length / assignments.length) * 100) : 0
+
+  return (
+    <div className="grid gap-3 lg:grid-cols-[1.1fr_1fr]">
+      <div className="card space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="section-title">Painel de instrumentos</h2>
+            <p className="text-xs text-neutral-400">Envios, pendencias e pontos criticos em um lugar.</p>
+          </div>
+          <span className="rounded-full bg-sage-50 px-3 py-1 text-xs font-semibold text-sage-700">{responseRate}% resposta</span>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            { label: 'Enviados', value: assignments.length, icon: Send, color: 'text-sage-600' },
+            { label: 'Respondidos', value: completed.length, icon: CheckCircle2, color: 'text-emerald-600' },
+            { label: 'Pendentes', value: pending.length, icon: Clock3, color: 'text-amber-600' },
+            { label: 'Criticos', value: critical.length, icon: AlertTriangle, color: 'text-rose-600' },
+          ].map(item => (
+            <div key={item.label} className="rounded-xl border border-neutral-100 bg-neutral-50 px-3 py-3">
+              <item.icon className={`mb-2 h-4 w-4 ${item.color}`} />
+              <p className="text-xl font-semibold text-neutral-800">{item.value}</p>
+              <p className="text-xs text-neutral-400">{item.label}</p>
+            </div>
+          ))}
+        </div>
+        {expired.length > 0 && (
+          <div className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            {expired.length} link{expired.length === 1 ? '' : 's'} vencido{expired.length === 1 ? '' : 's'} aguardando reenvio.
+          </div>
+        )}
+      </div>
+
+      <div className="card space-y-3">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="h-4 w-4 text-mist-600" />
+          <h2 className="section-title">Evolucao de escores</h2>
+        </div>
+        {series.length === 0 ? (
+          <p className="py-8 text-center text-sm text-neutral-400">Escalas respondidas em sequencia aparecem aqui.</p>
+        ) : series.map(item => {
+          const thresholds = SCALE_CONFIGS[item.instrumentId]?.thresholds
+          const maxScore = thresholds?.[thresholds.length - 1]?.max
+          return (
+            <div key={item.instrumentId} className="rounded-xl border border-neutral-100 p-3">
+              <p className="mb-2 text-xs font-semibold text-neutral-500">{item.title}</p>
+              <LightweightChart data={item.points} height={82} color="#4DA8DA" fillOpacity={0.1} min={0} max={maxScore} showYAxis />
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function ObjectiveAndBatteryPanel({
+  objective,
+  selectedBattery,
+  onObjective,
+  onBattery,
+}: {
+  objective: typeof OBJECTIVES[number]['value']
+  selectedBattery: string
+  onObjective: (value: typeof OBJECTIVES[number]['value']) => void
+  onBattery: (value: string) => void
+}) {
+  return (
+    <div className="grid gap-3 lg:grid-cols-[1.2fr_1fr]">
+      <div className="card space-y-3">
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-sage-600" />
+          <h2 className="section-title">Biblioteca por objetivo</h2>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {OBJECTIVES.map(item => (
+            <button
+              key={item.value}
+              type="button"
+              onClick={() => { onObjective(item.value); onBattery('') }}
+              className={cn(
+                'rounded-xl border px-3 py-2 text-left transition-colors',
+                objective === item.value
+                  ? 'border-sage-300 bg-sage-50 text-sage-800'
+                  : 'border-neutral-100 bg-white text-neutral-600 hover:border-sage-200',
+              )}
+            >
+              <p className="text-sm font-semibold">{item.label}</p>
+              <p className="text-xs text-neutral-400">{item.hint}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="card space-y-3">
+        <div className="flex items-center gap-2">
+          <Layers3 className="h-4 w-4 text-mist-600" />
+          <h2 className="section-title">Modelos de bateria</h2>
+        </div>
+        <div className="space-y-2">
+          {BATTERIES.map(item => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onBattery(selectedBattery === item.id ? '' : item.id)}
+              className={cn(
+                'w-full rounded-xl border px-3 py-2 text-left transition-colors',
+                selectedBattery === item.id
+                  ? 'border-mist-300 bg-mist-50 text-mist-800'
+                  : 'border-neutral-100 bg-white text-neutral-600 hover:border-mist-200',
+              )}
+            >
+              <p className="text-sm font-semibold">{item.label}</p>
+              <p className="text-xs text-neutral-400">{item.description}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AssignmentHistory({
+  assignments,
+  statusFilter,
+  patientFilter,
+  onStatusFilter,
+  onPatientFilter,
+}: {
+  assignments: InstrumentAssignment[]
+  statusFilter: InstrumentAssignment['status'] | 'all'
+  patientFilter: string
+  onStatusFilter: (value: InstrumentAssignment['status'] | 'all') => void
+  onPatientFilter: (value: string) => void
+}) {
+  const patientOptions = Array.from(new Map(assignments
+    .filter(item => item.patientId && item.patientName)
+    .map(item => [item.patientId, item.patientName] as const)).entries())
+  const filtered = assignments
+    .filter(item => statusFilter === 'all' || item.status === statusFilter)
+    .filter(item => patientFilter === 'all' || item.patientId === patientFilter)
+    .slice(0, 12)
+
+  return (
+    <div className="card space-y-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <ClipboardCheck className="h-4 w-4 text-sage-600" />
+          <h2 className="section-title">Historico e status dos envios</h2>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <select value={statusFilter} onChange={e => onStatusFilter(e.target.value as InstrumentAssignment['status'] | 'all')} className="input-field h-9 py-1 text-xs sm:w-36">
+            <option value="all">Todos status</option>
+            <option value="pending">Pendentes</option>
+            <option value="completed">Respondidos</option>
+            <option value="expired">Vencidos</option>
+          </select>
+          <select value={patientFilter} onChange={e => onPatientFilter(e.target.value)} className="input-field h-9 py-1 text-xs sm:w-44">
+            <option value="all">Todos pacientes</option>
+            {patientOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+          </select>
+        </div>
+      </div>
+      {filtered.length === 0 ? (
+        <p className="py-8 text-center text-sm text-neutral-400">Nenhum envio encontrado.</p>
+      ) : (
+        <div className="divide-y divide-neutral-100">
+          {filtered.map(item => {
+            const critical = getCriticalResponses(item.instrumentId, item.answers)
+            const scoreBadge = getScoreBadge(item)
+            return (
+              <div key={item.id} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium text-neutral-800">{item.title}</p>
+                    <span className={cn(
+                      'rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                      item.status === 'completed' && 'bg-emerald-50 text-emerald-700',
+                      item.status === 'pending' && 'bg-amber-50 text-amber-700',
+                      item.status === 'expired' && 'bg-neutral-100 text-neutral-500',
+                    )}>
+                      {STATUS_LABEL[item.status]}
+                    </span>
+                    {critical.length > 0 && (
+                      <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-semibold text-rose-700">Critico</span>
+                    )}
+                    {scoreBadge && (
+                      <span className="rounded-full bg-mist-50 px-2 py-0.5 text-[11px] font-semibold text-mist-700">{scoreBadge}</span>
+                    )}
+                  </div>
+                  <p className="mt-1 text-xs text-neutral-400">
+                    {item.patientName ?? 'Paciente'} - {item.status === 'completed' ? 'respondido' : 'enviado'} em {formatUiDate(item.completedAt ?? item.createdAt)}
+                  </p>
+                </div>
+                <div className="flex shrink-0 flex-wrap gap-2">
+                  {item.patientId && (
+                    <Link to={`/pacientes/${item.patientId}`} className="btn-secondary px-3 py-1.5 text-xs">Paciente</Link>
+                  )}
+                  {item.status === 'completed' && (
+                    <button type="button" onClick={() => printAssignment(item)} className="btn-secondary px-3 py-1.5 text-xs">
+                      PDF
+                    </button>
+                  )}
+                  {item.status === 'pending' && item.url && (
+                    <button
+                      type="button"
+                      onClick={async () => { await navigator.clipboard.writeText(item.url ?? ''); toast.success('Link copiado.') }}
+                      className="btn-secondary px-3 py-1.5 text-xs"
+                    >
+                      Copiar link
+                    </button>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 const ALL_CATEGORIES: Array<{ value: InstrumentCategory | 'all'; label: string }> = [
   { value: 'all',        label: 'Todos' },
   { value: 'formulario', label: 'Formulários' },
@@ -354,6 +613,98 @@ const ALL_AGES: Array<{ value: AgeGroup | 'all'; label: string }> = [
   { value: 'adolescente', label: 'Adolescente' },
   { value: 'adulto',      label: 'Adulto' },
 ]
+
+const OBJECTIVES = [
+  { value: 'all', label: 'Todos', hint: 'Biblioteca completa', terms: [] },
+  { value: 'initial', label: 'Rastreio inicial', hint: 'Primeira avaliação', terms: ['anamnese', 'avaliação inicial', 'avaliacao inicial', 'queixa'] },
+  { value: 'anxiety', label: 'Ansiedade', hint: 'Sintomas ansiosos', terms: ['ansiedade', 'gad', 'medo', 'pânico', 'panico', 'estresse'] },
+  { value: 'mood', label: 'Humor', hint: 'Depressão e humor', terms: ['depress', 'humor', 'phq', 'tristeza'] },
+  { value: 'progress', label: 'Acompanhamento', hint: 'Evolução clínica', terms: ['registro', 'monitoramento', 'acompanhamento', 'evolução', 'evolucao'] },
+  { value: 'child', label: 'Infantojuvenil', hint: 'Crianças e adolescentes', terms: ['infantil', 'adolescente', 'criança', 'crianca'] },
+  { value: 'neuro', label: 'Neuropsicologia', hint: 'Atenção, memória e TDAH', terms: ['neuro', 'tdah', 'atenção', 'atencao', 'memória', 'memoria', 'cognitivo'] },
+] as const
+
+const BATTERIES = [
+  {
+    id: 'triagem-adulto',
+    label: 'Triagem adulto',
+    description: 'Começo organizado para adulto novo.',
+    instrumentIds: ['anamnese-adulto', 'phq-9', 'gad-7'],
+  },
+  {
+    id: 'ansiedade',
+    label: 'Ansiedade',
+    description: 'Rastreio e acompanhamento de sintomas ansiosos.',
+    instrumentIds: ['gad-7', 'bai', 'registro-ansiedade'],
+  },
+  {
+    id: 'humor',
+    label: 'Humor',
+    description: 'Depressão, humor e evolução de sintomas.',
+    instrumentIds: ['phq-9', 'bdi-ii', 'registro-humor'],
+  },
+  {
+    id: 'infantojuvenil',
+    label: 'Infantojuvenil',
+    description: 'Entrada para crianças e adolescentes.',
+    instrumentIds: ['anamnese-infantil', 'sdq', 'snap-iv'],
+  },
+] as const
+
+const STATUS_LABEL: Record<InstrumentAssignment['status'], string> = {
+  pending: 'Pendente',
+  completed: 'Respondido',
+  expired: 'Vencido',
+}
+
+function normalizeText(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
+
+function matchesObjective(instrument: Instrument, objective: typeof OBJECTIVES[number]['value']) {
+  if (objective === 'all') return true
+  const config = OBJECTIVES.find(item => item.value === objective)
+  if (!config) return true
+  const haystack = normalizeText([
+    instrument.title,
+    instrument.description,
+    instrument.category,
+    ...instrument.tags,
+  ].join(' '))
+  return config.terms.some(term => haystack.includes(normalizeText(term)))
+}
+
+function getScoreBadge(response: InstrumentAssignment) {
+  if (response.score == null) return null
+  const interpretation = interpretScaleResult(response.instrumentId, response.score, response.scoreDetails, response.answers)
+  if (!interpretation) return `Score ${response.score}`
+  return interpretation.level
+    ? `${interpretation.score} - ${interpretation.level.label}`
+    : `Score ${interpretation.score}`
+}
+
+function printAssignment(response: InstrumentAssignment) {
+  const safe = (value?: string | null) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  const rows = response.fields.length && response.answers
+    ? response.fields.map(field => `<tr><th>${safe(field.label)}</th><td>${safe(response.answers?.[field.id])}</td></tr>`).join('')
+    : `<tr><td colspan="2"><pre>${safe(response.responseText)}</pre></td></tr>`
+  const html = `<!doctype html><html><head><title>${safe(response.title)}</title>
+<style>
+@page{size:A4;margin:18mm}body{font-family:Arial,sans-serif;color:#111}h1{font-size:18px;margin:0 0 6px}p{font-size:12px;color:#555}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{border-bottom:1px solid #ddd;padding:8px;text-align:left;vertical-align:top;font-size:12px}th{width:34%;color:#555}pre{white-space:pre-wrap;font-family:Arial,sans-serif}
+</style></head><body><h1>${safe(response.title)}</h1><p>Paciente: ${safe(response.patientName ?? 'Paciente')} | Respondido em: ${safe(formatUiDate(response.completedAt ?? response.createdAt))}</p><table>${rows}</table></body></html>`
+  const printWindow = window.open('', '_blank')
+  if (!printWindow) {
+    toast.error('Nao foi possivel abrir a impressao.')
+    return
+  }
+  printWindow.document.open()
+  printWindow.document.write(html)
+  printWindow.document.close()
+  setTimeout(() => { printWindow.focus(); printWindow.print() }, 250)
+}
 
 function SendInstrumentModal({
   instrument,
@@ -384,12 +735,12 @@ function SendInstrumentModal({
       .map(line => line.trim().replace(/:+$/, ''))
       .filter(Boolean)
 
-    if (!isAnamnese || questions.length === 0) return instrument.template
+    if (questions.length === 0) return instrument.template
 
     return [
       instrument.template.trimEnd(),
       '',
-      'PERGUNTAS EXTRAS DA ANAMNESE',
+      isAnamnese ? 'PERGUNTAS EXTRAS DA ANAMNESE' : 'PERGUNTAS EXTRAS PERSONALIZADAS',
       ...questions.map(question => `${question}:`),
     ].join('\n')
   }
@@ -446,22 +797,20 @@ function SendInstrumentModal({
           </select>
         </label>
 
-        {isAnamnese && (
-          <label className="block">
-            <span className="label">Perguntas extras da anamnese</span>
+        <label className="block">
+            <span className="label">{isAnamnese ? 'Perguntas extras da anamnese' : 'Perguntas extras personalizadas'}</span>
             <textarea
               value={extraAnamneseQuestions}
               onChange={e => setExtraAnamneseQuestions(e.target.value)}
-              rows={5}
+              rows={4}
               maxLength={4000}
               placeholder="Uma pergunta por linha. Ex: Como costuma dormir?"
-              className="input-field min-h-[120px] resize-y"
+              className="input-field min-h-[110px] resize-y"
             />
             <span className="mt-1 block text-xs text-neutral-400">
               Essas perguntas entram só neste link enviado para o paciente.
             </span>
-          </label>
-        )}
+        </label>
 
         <label className="flex items-start gap-3 rounded-2xl border border-neutral-100 bg-white p-4">
           <input
@@ -527,18 +876,55 @@ export default function InstrumentosPage() {
   const [search, setSearch] = useState('')
   const [catFilter, setCatFilter] = useState<InstrumentCategory | 'all'>('all')
   const [ageFilter, setAgeFilter] = useState<AgeGroup | 'all'>('all')
+  const [objective, setObjective] = useState<typeof OBJECTIVES[number]['value']>('all')
+  const [selectedBattery, setSelectedBattery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<InstrumentAssignment['status'] | 'all'>('all')
+  const [patientFilter, setPatientFilter] = useState('all')
   const [selected, setSelected] = useState<Instrument | null>(null)
   const [sendingInstrument, setSendingInstrument] = useState<Instrument | null>(null)
+  const [favoriteIds, setFavoriteIds] = useState<string[]>(() => {
+    try {
+      return JSON.parse(window.localStorage.getItem('usecognia.instrumentFavorites') ?? '[]')
+    } catch {
+      return []
+    }
+  })
+  const { data: assignments = [] } = useInstrumentAssignments()
+
+  useEffect(() => {
+    window.localStorage.setItem('usecognia.instrumentFavorites', JSON.stringify(favoriteIds))
+  }, [favoriteIds])
+
+  const favoriteSet = useMemo(() => new Set(favoriteIds), [favoriteIds])
+  const selectedBatteryConfig = BATTERIES.find(item => item.id === selectedBattery)
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim()
     return INSTRUMENTS.filter(inst => {
+      const matchBattery = !selectedBatteryConfig || (selectedBatteryConfig.instrumentIds as readonly string[]).includes(inst.id)
+      const matchObjective = matchesObjective(inst, objective)
       const matchCat  = catFilter === 'all' || inst.category === catFilter
       const matchAge  = ageFilter === 'all' || inst.ageGroups.includes(ageFilter as AgeGroup) || inst.ageGroups.includes('all')
       const matchQ    = !q || inst.title.toLowerCase().includes(q) || inst.description.toLowerCase().includes(q) || inst.tags.some(t => t.toLowerCase().includes(q))
-      return matchCat && matchAge && matchQ
-    })
-  }, [search, catFilter, ageFilter])
+      return matchBattery && matchObjective && matchCat && matchAge && matchQ
+    }).sort((a, b) => Number(favoriteSet.has(b.id)) - Number(favoriteSet.has(a.id)))
+  }, [search, catFilter, ageFilter, objective, selectedBatteryConfig, favoriteSet])
+
+  function toggleFavorite(id: string) {
+    setFavoriteIds(current => current.includes(id)
+      ? current.filter(item => item !== id)
+      : [...current, id])
+  }
+
+  const criticalAssignments = assignments.filter(item => getCriticalResponses(item.instrumentId, item.answers).length > 0)
+  const pendingAssignments = assignments.filter(item => item.status === 'pending')
+  const nextStep = criticalAssignments.length > 0
+    ? `${criticalAssignments.length} resposta com ponto critico para revisar.`
+    : pendingAssignments.length > 0
+      ? `${pendingAssignments.length} formulario pendente para acompanhar.`
+      : favoriteIds.length === 0
+        ? 'Marque favoritos para acelerar seus envios mais comuns.'
+        : 'Biblioteca pronta para novos envios.'
 
   return (
     <div className="animate-slide-up space-y-5">
@@ -549,6 +935,38 @@ export default function InstrumentosPage() {
       </div>
 
       <ScheduleList />
+      <InstrumentOpsDashboard assignments={assignments} />
+
+      <div className="card flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <Activity className="mt-0.5 h-4 w-4 shrink-0 text-sage-600" />
+          <div>
+            <p className="text-sm font-semibold text-neutral-800">Proximo passo sugerido</p>
+            <p className="text-xs text-neutral-400">{nextStep}</p>
+          </div>
+        </div>
+        {criticalAssignments[0]?.patientId ? (
+          <Link to={`/pacientes/${criticalAssignments[0].patientId}`} className="btn-secondary text-sm">Revisar agora</Link>
+        ) : null}
+      </div>
+
+      <ObjectiveAndBatteryPanel
+        objective={objective}
+        selectedBattery={selectedBattery}
+        onObjective={setObjective}
+        onBattery={(value) => {
+          setSelectedBattery(value)
+          if (value) setObjective('all')
+        }}
+      />
+
+      <AssignmentHistory
+        assignments={assignments}
+        statusFilter={statusFilter}
+        patientFilter={patientFilter}
+        onStatusFilter={setStatusFilter}
+        onPatientFilter={setPatientFilter}
+      />
 
       {/* Busca */}
       <div className="relative">
@@ -605,6 +1023,7 @@ export default function InstrumentosPage() {
       {/* Contador */}
       <p className="text-xs text-neutral-400">
         {filtered.length} instrumento{filtered.length !== 1 ? 's' : ''} encontrado{filtered.length !== 1 ? 's' : ''}
+        {selectedBatteryConfig ? ` na bateria ${selectedBatteryConfig.label}` : ''}
       </p>
 
       {/* Grid */}
@@ -625,6 +1044,8 @@ export default function InstrumentosPage() {
               key={inst.id}
               instrument={inst}
               index={i}
+              favorite={favoriteSet.has(inst.id)}
+              onToggleFavorite={() => toggleFavorite(inst.id)}
               onClick={() => setSelected(inst)}
             />
           ))}

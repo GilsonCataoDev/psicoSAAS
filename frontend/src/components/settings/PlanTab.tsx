@@ -3,7 +3,7 @@ import ReferralCard from '@/components/features/referral/ReferralCard'
 import { type Subscription } from '@/store/subscription'
 import { PRICING_PLANS } from '@/data/pricingPlans'
 
-const TRIAL_DAYS = 7
+const TRIAL_DAYS = 14
 
 interface Plan {
   id: string

@@ -469,3 +469,33 @@ describe('AiService.generateProspectReplySuggestion', () => {
     })).rejects.toThrow(BadRequestException)
   })
 })
+
+describe('AiService.analyzeSalesConversation', () => {
+  let service: AiService
+
+  beforeEach(() => {
+    createMock.mockReset()
+    createChatMock.mockReset()
+    service = new AiService()
+    process.env.GROQ_API_KEY = 'gsk-test-fake-key'
+  })
+
+  afterEach(() => {
+    delete process.env.GROQ_API_KEY
+  })
+
+  it('remove identificadores diretos e exige JSON estruturado no prompt', async () => {
+    createChatMock.mockResolvedValue(fakeChatResponse('{"stage":"new"}'))
+    await service.analyzeSalesConversation({
+      channel: 'whatsapp',
+      conversation: 'Lead: meu email é pessoa@exemplo.com e telefone (87) 99999-0000. Tenho interesse.',
+    })
+    const [params] = createChatMock.mock.calls[0]
+    const prompt = params.messages[0].content as string
+    expect(prompt).not.toContain('pessoa@exemplo.com')
+    expect(prompt).not.toContain('99999-0000')
+    expect(prompt).toContain('[e-mail removido]')
+    expect(prompt).toContain('Retorne SOMENTE JSON válido')
+    expect(prompt).toContain('shouldStopContact')
+  })
+})
