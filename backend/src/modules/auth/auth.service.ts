@@ -243,7 +243,11 @@ export class AuthService {
     if (!rawToken) throw new UnauthorizedException('Refresh token ausente')
 
     const tokenHash = hashToken(rawToken)
-    return this.dataSource.transaction(async manager => {
+    // Lançar uma exceção de dentro de dataSource.transaction() reverte TUDO que
+    // foi feito na transação, inclusive o update de "revoga todas as sessões"
+    // do ramo de replay abaixo — por isso o outcome é só retornado aqui, e a
+    // exceção correspondente só é lançada DEPOIS que a transação já commitou.
+    const outcome = await this.dataSource.transaction(async manager => {
       const refreshTokens = manager.getRepository(RefreshToken)
       const users = manager.getRepository(User)
       // O lock serializa usos concorrentes do mesmo token. Sem ele, duas
@@ -256,34 +260,40 @@ export class AuthService {
         .getOne()
 
       if (!rt) {
-        throw new UnauthorizedException('Sessão inválida. Faça login novamente.')
+        return { ok: false as const, message: 'Sessão inválida. Faça login novamente.' }
       }
 
       if (rt.revoked) {
+        // Cascata de segurança: reuso de um token já rotacionado é sinal de
+        // vazamento — revoga toda a cadeia de sessão, não só o token reusado.
         await refreshTokens.update({ userId: rt.userId }, { revoked: true })
         this.audit('REFRESH_REPLAY_DETECTED', { userId: rt.userId, ip })
-        throw new UnauthorizedException('Sessão comprometida. Faça login novamente.')
+        return { ok: false as const, message: 'Sessão comprometida. Faça login novamente.' }
       }
 
       if (new Date() > rt.expiresAt) {
-        throw new UnauthorizedException('Sessão expirada. Faça login novamente.')
+        return { ok: false as const, message: 'Sessão expirada. Faça login novamente.' }
       }
 
       rt.revoked = true
       await refreshTokens.save(rt)
 
       const user = await users.findOneBy({ id: rt.userId })
-      if (!user) throw new UnauthorizedException('Usuario nao encontrado')
+      if (!user) return { ok: false as const, message: 'Usuario nao encontrado' }
 
       if (user.isActive === false) {
         await refreshTokens.update({ userId: user.id, revoked: false }, { revoked: true })
         this.audit('REFRESH_BLOCKED_INACTIVE', { userId: user.id, ip })
-        throw new UnauthorizedException('Conta desativada. Contate o suporte.')
+        return { ok: false as const, message: 'Conta desativada. Contate o suporte.' }
       }
 
       this.audit('REFRESH_TOKEN_ROTATED', { userId: user.id, ip })
-      return this.buildResult(user, ip, userAgent, refreshTokens)
+      const result = await this.buildResult(user, ip, userAgent, refreshTokens)
+      return { ok: true as const, result }
     })
+
+    if (!outcome.ok) throw new UnauthorizedException(outcome.message)
+    return outcome.result
   }
 
   async revokeAllTokens(userId: string, ip?: string): Promise<void> {
