@@ -151,6 +151,18 @@ export class NeuropsychAssessmentsService {
     return this.itemToDto(saved)
   }
 
+  /**
+   * Exclui a avaliação e a bateria vinculada. Itens de bateria já têm ON
+   * DELETE CASCADE no banco; anexos do paciente ligados a esta avaliação
+   * ficam desvinculados (SET NULL), não excluídos — pertencem ao paciente,
+   * não à avaliação.
+   */
+  async remove(id: string, psychologistId: string) {
+    const assessment = await this.findRaw(id, psychologistId)
+    await this.assessments.remove(assessment)
+    return { ok: true as const }
+  }
+
   async removeItem(assessmentId: string, itemId: string, psychologistId: string) {
     const result = await this.items.delete({ id: itemId, assessmentId, psychologistId })
     if (!result.affected) throw new NotFoundException('Item da bateria não encontrado')
