@@ -44,9 +44,10 @@ Para dar suporte, a operação da plataforma pode usar um modo "ver como" (imper
 ## Documentos e links públicos
 
 - Documentos em PDF têm código único e QR de verificação pública de autenticidade.
-- Links públicos (agendamento, portal do paciente, instrumentos) usam tokens aleatórios longos, armazenados de forma irreversível (hash) e com limite de tentativas por IP.
+- Links públicos (agendamento, portal do paciente, instrumentos, laudo de avaliação neuropsicológica) usam tokens aleatórios longos, armazenados de forma irreversível (hash) e com limite de tentativas por IP.
 - A cópia necessária para o profissional reenviar um link fica criptografada com AES-256-GCM; ela não aparece em texto legível num dump do banco.
 - Portais de paciente expiram em 30 dias por padrão. Formulários e confirmações mantêm os prazos menores definidos em cada fluxo.
+- O link de compartilhamento do laudo de avaliação neuropsicológica (`Compartilhar` na tela da avaliação) expira em 14 dias por padrão (`NEUROPSYCH_SHARE_TOKEN_TTL_DAYS`) e pode ser revogado manualmente pelo profissional a qualquer momento, invalidando imediatamente qualquer cópia do link já enviada. Cada geração de link substitui o anterior — só um link fica válido por vez.
 
 ## Proteções do site público
 
@@ -134,4 +135,4 @@ Solicitações de titulares de dados, dúvidas de privacidade ou relato de vulne
 
 ---
 
-*Última revisão técnica: julho de 2026 (inclui contatos de pacientes cifrados, preenchimento rápido sem dados pessoais no localStorage, retenção técnica automática e exclusão coordenada de arquivos).*
+*Última revisão técnica: agosto de 2026 (inclui link de compartilhamento do laudo de avaliação neuropsicológica com expiração e revogação manual, contatos de pacientes cifrados, preenchimento rápido sem dados pessoais no localStorage, retenção técnica automática e exclusão coordenada de arquivos).*
