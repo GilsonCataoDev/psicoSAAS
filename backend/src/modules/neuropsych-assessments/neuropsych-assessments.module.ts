@@ -9,6 +9,7 @@ import { NeuropsychAssessment } from './entities/neuropsych-assessment.entity'
 import { NeuropsychBatteryItem } from './entities/neuropsych-battery-item.entity'
 import { NeuropsychAiAnalysis } from './entities/neuropsych-ai-analysis.entity'
 import { NeuropsychAssessmentsController } from './neuropsych-assessments.controller'
+import { NeuropsychAssessmentShareController } from './neuropsych-assessment-share.controller'
 import { NeuropsychAssessmentsService } from './neuropsych-assessments.service'
 import { NeuropsychAiAnalysisService } from './neuropsych-ai-analysis.service'
 import { AiGovernanceModule } from '../ai-governance/ai-governance.module'
@@ -23,7 +24,7 @@ import { AiGovernanceModule } from '../ai-governance/ai-governance.module'
     SessionsModule,
     AiGovernanceModule,
   ],
-  controllers: [NeuropsychAssessmentsController],
+  controllers: [NeuropsychAssessmentsController, NeuropsychAssessmentShareController],
   providers: [NeuropsychAssessmentsService, NeuropsychAiAnalysisService],
   exports: [NeuropsychAssessmentsService],
 })

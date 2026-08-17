@@ -53,6 +53,8 @@ export interface NeuropsychBatteryItem {
   purpose?: string
   resultSummary?: string
   qualitativeNotes?: string
+  score?: number | null
+  scoreType?: string
   plannedDate?: string
   appliedDate?: string
   sortOrder: number

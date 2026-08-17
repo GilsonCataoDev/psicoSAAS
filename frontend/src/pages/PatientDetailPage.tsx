@@ -57,7 +57,7 @@ export default function PatientDetailPage() {
   const { data: attachments = [] } = usePatientAttachments(id)
   const uploadAttachment = useUploadPatientAttachment(id)
   const deleteAttachment = useDeletePatientAttachment(id)
-  const { data: neuropsychAssessments = [] } = useNeuropsychAssessments(hasProPlan)
+  const { data: neuropsychAssessments = [] } = useNeuropsychAssessments({}, hasProPlan)
   const createNeuropsychAssessment = useCreateNeuropsychAssessment()
   const { data: patientAppointments = [] } = useAppointments({ patientId: id })
   const lastAppointment = [...patientAppointments]

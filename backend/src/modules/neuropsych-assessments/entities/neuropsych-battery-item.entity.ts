@@ -43,6 +43,13 @@ export class NeuropsychBatteryItem {
   @Column({ type: 'text', nullable: true }) resultSummary?: string
   @Column({ type: 'text', nullable: true }) qualitativeNotes?: string
 
+  /** Escore numérico opcional (percentil, escore padrão, T-score etc.) — habilita gráfico de evolução. */
+  @Column({ type: 'numeric', precision: 7, scale: 2, nullable: true, transformer: {
+    to: (value?: number | null) => value ?? null,
+    from: (value?: string | null) => value === null || value === undefined ? undefined : Number(value),
+  } }) score?: number
+  @Column({ length: 80, nullable: true }) scoreType?: string
+
   @Column({ type: 'date', nullable: true }) plannedDate?: string
   @Column({ type: 'date', nullable: true }) appliedDate?: string
   @Column({ type: 'int', default: 0 }) sortOrder: number
