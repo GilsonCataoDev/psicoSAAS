@@ -53,6 +53,18 @@ export function useUpdateNeuropsychAssessment(id: string) {
   })
 }
 
+export function useDeleteNeuropsychAssessment() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/neuropsych-assessments/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['neuropsych-assessments'] })
+      queryClient.invalidateQueries({ queryKey: ['patients'] })
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Erro ao excluir. Tente novamente.'),
+  })
+}
+
 export function useCreateNeuropsychBatteryItem(assessmentId: string) {
   const queryClient = useQueryClient()
   return useMutation({

@@ -1,10 +1,10 @@
 import { FormEvent, useEffect, useId, useRef, useState } from 'react'
 import { ArrowLeft, BrainCircuit, Check, ChevronLeft, ChevronRight, Copy, Download, FileUp, ListRestart, Plus, Share2, Trash2 } from 'lucide-react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import Modal from '@/components/ui/Modal'
 import {
-  useCreateNeuropsychBatteryItem, useDeleteNeuropsychBatteryItem,
+  useCreateNeuropsychBatteryItem, useDeleteNeuropsychBatteryItem, useDeleteNeuropsychAssessment,
   useNeuropsychAssessment, useUpdateNeuropsychAssessment, useUpdateNeuropsychBatteryItem,
   usePatientAttachments, useUploadPatientAttachment, useInstrumentAssignments,
   useExportNeuropsychAssessment, useCreateNeuropsychShareLink, useRevokeNeuropsychShareLink,
@@ -33,6 +33,8 @@ const STEPS: Array<{ id: AssessmentStep; label: string; shortLabel: string }> = 
 
 export default function NeuropsychAssessmentPage() {
   const { id = '' } = useParams()
+  const navigate = useNavigate()
+  const deleteAssessment = useDeleteNeuropsychAssessment()
   const { data: assessment, isLoading } = useNeuropsychAssessment(id)
   const update = useUpdateNeuropsychAssessment(id)
   const createItem = useCreateNeuropsychBatteryItem(id)
@@ -93,6 +95,17 @@ export default function NeuropsychAssessmentPage() {
       toast.success('Avaliação salva')
     }
     catch (error: any) { toast.error(error?.response?.data?.message ?? 'Não foi possível salvar') }
+  }
+
+  async function removeAssessment() {
+    if (!confirm('Excluir esta avaliação e toda a bateria registrada? Esta ação não pode ser desfeita.')) return
+    try {
+      await deleteAssessment.mutateAsync(id)
+      toast.success('Avaliação excluída')
+      navigate('/avaliacoes')
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message ?? 'Não foi possível excluir')
+    }
   }
 
   async function generateShareLink() {
@@ -202,6 +215,7 @@ export default function NeuropsychAssessmentPage() {
           </div>
           <button onClick={() => exportPdf.mutate()} disabled={exportPdf.isPending} title="Baixar laudo em PDF" className="btn-secondary flex items-center justify-center gap-2"><Download className="h-4 w-4" />{exportPdf.isPending ? 'Gerando...' : 'Laudo (PDF)'}</button>
           <button onClick={generateShareLink} disabled={createShareLink.isPending} title="Gerar link seguro para compartilhar o laudo" className="btn-secondary flex items-center justify-center gap-2"><Share2 className="h-4 w-4" />{createShareLink.isPending ? 'Gerando...' : 'Compartilhar'}</button>
+          <button onClick={removeAssessment} disabled={deleteAssessment.isPending} title="Excluir avaliação" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-neutral-400 transition-colors hover:bg-rose-50 hover:text-rose-500"><Trash2 className="h-4 w-4" /></button>
           <button onClick={save} disabled={update.isPending || !hasUnsavedChanges} className="btn-primary flex items-center justify-center gap-2"><Check className="h-4 w-4" />{update.isPending && statusSaveState !== 'saving' ? 'Salvando...' : 'Salvar'}</button>
         </div>
       </header>
