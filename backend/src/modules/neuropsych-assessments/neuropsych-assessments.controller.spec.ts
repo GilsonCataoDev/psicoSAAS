@@ -19,6 +19,7 @@ function makeController() {
     exportPdf: jest.fn().mockResolvedValue({ filename: 'Laudo.pdf', stream: { on: jest.fn(), pipe: jest.fn(), end: jest.fn() } }),
     createShareLink: jest.fn().mockResolvedValue({ url: 'https://usecognia.com.br/laudo/token-abc' }),
     revokeShareLink: jest.fn().mockResolvedValue({ ok: true }),
+    remove: jest.fn().mockResolvedValue({ ok: true }),
   }
   const aiAnalysis = {
     getUsage: jest.fn(),
@@ -89,6 +90,13 @@ describe('NeuropsychAssessmentsController — auditoria e repasse ao service', (
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({
       action: 'neuropsych_ai_analysis.requested', resource: 'neuropsych_ai_analysis',
     }))
+  })
+
+  it('remove() exclui em nome do dono da avaliação e audita a exclusão', async () => {
+    const { controller, service, audit } = makeController()
+    await controller.remove('assessment-1', req())
+    expect(service.remove).toHaveBeenCalledWith('assessment-1', 'psychologist-1')
+    expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'neuropsych_assessment.deleted' }))
   })
 
   it('createShareLink() gera o link em nome do dono da avaliação e audita a criação', async () => {

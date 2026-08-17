@@ -53,6 +53,13 @@ export class NeuropsychAssessmentsController {
     return result
   }
 
+  @Delete(':id')
+  async remove(@Param('id', ParseUUIDPipe) id: string, @Req() req: any) {
+    const result = await this.service.remove(id, req.user.id)
+    await this.record(req, 'neuropsych_assessment.deleted', id)
+    return result
+  }
+
   @Post(':id/battery-items')
   async addItem(@Param('id', ParseUUIDPipe) id: string, @Body() body: CreateNeuropsychBatteryItemDto, @Req() req: any) {
     const result = await this.service.addItem(id, body, req.user.id)

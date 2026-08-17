@@ -19,6 +19,7 @@ function repo(overrides: Record<string, jest.Mock> = {}) {
     exist: jest.fn().mockResolvedValue(false),
     create: jest.fn((value: any) => value),
     save: jest.fn(async (value: any) => value),
+    remove: jest.fn(async (value: any) => value),
     delete: jest.fn().mockResolvedValue({ affected: 0 }),
     ...overrides,
   }
@@ -109,6 +110,22 @@ describe('NeuropsychAssessmentsService', () => {
     assessments.findOne.mockResolvedValue(assessment())
     await expect(service.create({ patientId: PATIENT_ID }, PSYCHOLOGIST_ID)).rejects.toThrow(BadRequestException)
     expect(assessments.save).not.toHaveBeenCalled()
+  })
+
+  it('remove() exclui apenas a avaliação do próprio psicólogo', async () => {
+    const target = assessment()
+    assessments.findOne.mockResolvedValue(target)
+    const result = await service.remove(ASSESSMENT_ID, PSYCHOLOGIST_ID)
+    expect(assessments.findOne).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: ASSESSMENT_ID, psychologistId: PSYCHOLOGIST_ID },
+    }))
+    expect(assessments.remove).toHaveBeenCalledWith(target)
+    expect(result).toEqual({ ok: true })
+  })
+
+  it('remove() rejeita avaliação de outro psicólogo', async () => {
+    assessments.findOne.mockResolvedValue(null)
+    await expect(service.remove(ASSESSMENT_ID, PSYCHOLOGIST_ID)).rejects.toThrow(NotFoundException)
   })
 
   it('filtra alteração de item por avaliação e psicólogo', async () => {
