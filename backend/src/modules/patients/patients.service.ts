@@ -15,6 +15,8 @@ import { FinancialService } from '../financial/financial.service'
 import { formatCrpForDisplay } from '../auth/entities/user.entity'
 import { ProntuarioExportOptions, canIncludePrivateNotes, filterProntuarioSessions, normalizeProntuarioExportOptions } from './prontuario-export.util'
 import { ProspectLifecycleService } from '../../common/prospect-lifecycle/prospect-lifecycle.service'
+import { Document } from '../documents/entities/document.entity'
+import { PatientAttachmentsService } from './patient-attachments.service'
 
 type EncryptedProntuario = {
   __encrypted: 'usecognia.prontuario.v1' | 'psicosaas.prontuario.v1'
@@ -96,8 +98,10 @@ export class PatientsService {
   constructor(
     @InjectRepository(Patient) private repo: Repository<Patient>,
     @InjectRepository(Appointment) private appointments: Repository<Appointment>,
+    @InjectRepository(Document) private documents: Repository<Document>,
     private financial: FinancialService,
     private readonly planAccess: PlanAccessService,
+    private readonly attachments: PatientAttachmentsService,
     @Optional() private readonly prospectLifecycle?: ProspectLifecycleService,
   ) {}
 
@@ -362,8 +366,27 @@ export class PatientsService {
     return { saved: true }
   }
 
+  /**
+   * Exclui a pessoa e todo o histórico clínico dependente. Sessões, agendamentos,
+   * avaliações neuropsicológicas e vínculos de instrumentos já têm ON DELETE
+   * CASCADE no banco. Documentos e anexos, não — Documento não tem FK pra
+   * Patient (só a coluna patientId), e um anexo em R2 apagado só pela CASCADE
+   * do Postgres deixaria o arquivo órfão no bucket (o storage.delete() só
+   * roda no PatientAttachmentsService.remove(), nunca é acionado por uma
+   * CASCADE de banco). Por isso ambos são apagados explicitamente aqui, antes
+   * da pessoa. Lançamentos financeiros ficam de propósito (SET NULL) —
+   * preserva o histórico de faturamento mesmo após a exclusão da pessoa.
+   */
   async remove(id: string, psychologistId: string) {
     const patient = await this.findRaw(id, psychologistId)
+
+    await this.documents.delete({ patientId: id, userId: psychologistId })
+
+    const patientAttachments = await this.attachments.list(id, psychologistId)
+    for (const attachment of patientAttachments) {
+      await this.attachments.remove(attachment.id, id, psychologistId)
+    }
+
     return this.repo.remove(patient)
   }
 

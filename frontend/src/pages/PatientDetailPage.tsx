@@ -12,7 +12,7 @@ import { formatDate, formatCurrency, formatDateRelative, patientStartDate } from
 import { useState, useEffect } from 'react'
 import {
   usePatient, useSessions, useFinancial,
-  useMarkFinancialPaid, useSendCharge, useUpdatePatient,
+  useMarkFinancialPaid, useSendCharge, useUpdatePatient, useDeletePatient,
   useInstrumentAssignments, useUpdateInstrumentAnswers, useCreatePatientPortalLink, type InstrumentAssignment,
   usePatientAttachments, useUploadPatientAttachment, useDeletePatientAttachment,
   downloadPatientAttachment, previewPatientAttachment, type PatientAttachment,
@@ -25,6 +25,7 @@ import toast from 'react-hot-toast'
 import { track, EVENTS } from '@/lib/analytics'
 import LightweightChart from '@/components/ui/LightweightChart'
 import EditPatientModal from '@/components/features/patients/EditPatientModal'
+import DeletePatientDialog from '@/components/features/patients/DeletePatientDialog'
 import RecurringSessionsCard from '@/components/features/patients/RecurringSessionsCard'
 import LegacyNotesMigrationModal from '@/components/features/patients/LegacyNotesMigrationModal'
 import { useHasPlan } from '@/store/subscription'
@@ -148,6 +149,19 @@ export default function PatientDetailPage() {
   const [showSessionModal, setShowSessionModal] = useState(false)
   const [showLegacyMigration, setShowLegacyMigration] = useState(false)
   const [showEditPatientModal, setShowEditPatientModal] = useState(false)
+  const [showDeletePatientModal, setShowDeletePatientModal] = useState(false)
+  const deletePatient = useDeletePatient()
+
+  async function handleDeletePatient() {
+    if (!patient) return
+    try {
+      await deletePatient.mutateAsync(patient.id)
+      toast.success('Pessoa excluída')
+      navigate('/pacientes')
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'Erro ao excluir pessoa.')
+    }
+  }
   const [editingResponse, setEditingResponse] = useState<InstrumentAssignment | null>(null)
   const [editedAnswers, setEditedAnswers] = useState<Record<string, string>>({})
   const [fixedSchedule, setFixedSchedule] = useState({
@@ -441,6 +455,14 @@ export default function PatientDetailPage() {
                   className="btn-primary text-sm flex items-center gap-1.5">
                   <Plus className="w-3.5 h-3.5" /> Nova sessão
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDeletePatientModal(true)}
+                  title="Excluir pessoa"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl text-neutral-300 transition-colors hover:bg-rose-50 hover:text-rose-500"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
 
@@ -473,6 +495,13 @@ export default function PatientDetailPage() {
           <button onClick={() => setShowSessionModal(true)}
             className="btn-primary text-sm flex items-center gap-1.5 justify-center">
             <Plus className="w-3.5 h-3.5" /> Nova sessão
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowDeletePatientModal(true)}
+            className="col-span-2 flex items-center justify-center gap-1.5 rounded-xl py-2 text-sm text-rose-500 hover:bg-rose-50"
+          >
+            <Trash2 className="w-3.5 h-3.5" /> Excluir pessoa
           </button>
         </div>
 
@@ -547,6 +576,14 @@ export default function PatientDetailPage() {
         open={showEditPatientModal}
         onClose={() => setShowEditPatientModal(false)}
         patient={patient}
+      />
+
+      <DeletePatientDialog
+        open={showDeletePatientModal}
+        patientName={patient.name}
+        loading={deletePatient.isPending}
+        onConfirm={handleDeletePatient}
+        onClose={() => setShowDeletePatientModal(false)}
       />
 
       <div className="card space-y-3">

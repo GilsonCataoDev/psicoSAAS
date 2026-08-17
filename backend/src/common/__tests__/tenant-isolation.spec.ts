@@ -122,8 +122,10 @@ describe('Isolamento entre contas — psicólogo A não acessa dados de B', () =
           PatientsService,
           { provide: getRepositoryToken(Patient),      useValue: fakeRepo(patients) },
           { provide: getRepositoryToken(Appointment),  useValue: fakeRepo(appointments) },
+          { provide: getRepositoryToken(Document),     useValue: fakeRepo() },
           { provide: FinService, useValue: stub() },
           { provide: PlanAccessService, useValue: { getCurrentPlan: jest.fn().mockResolvedValue('pro') } },
+          { provide: PatientAttachmentsService, useValue: { list: jest.fn().mockResolvedValue([]), remove: jest.fn() } },
         ],
       }).compile()
       svc = mod.get(PatientsService)
