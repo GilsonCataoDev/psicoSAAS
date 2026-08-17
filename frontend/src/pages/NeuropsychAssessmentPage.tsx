@@ -1,11 +1,13 @@
 import { FormEvent, useEffect, useId, useRef, useState } from 'react'
-import { ArrowLeft, BrainCircuit, Check, ChevronLeft, ChevronRight, Download, FileUp, ListRestart, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, BrainCircuit, Check, ChevronLeft, ChevronRight, Copy, Download, FileUp, ListRestart, Plus, Share2, Trash2 } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
+import Modal from '@/components/ui/Modal'
 import {
   useCreateNeuropsychBatteryItem, useDeleteNeuropsychBatteryItem,
   useNeuropsychAssessment, useUpdateNeuropsychAssessment, useUpdateNeuropsychBatteryItem,
   usePatientAttachments, useUploadPatientAttachment, useInstrumentAssignments,
+  useExportNeuropsychAssessment, useCreateNeuropsychShareLink, useRevokeNeuropsychShareLink,
 } from '@/hooks/useApi'
 import { NeuropsychAssessment, NeuropsychBatteryItem, NeuropsychDomain } from '@/types'
 import { downloadPatientAttachment, PatientAttachment } from '@/hooks/api/attachments'
@@ -39,6 +41,10 @@ export default function NeuropsychAssessmentPage() {
   const { data: attachments = [] } = usePatientAttachments(assessment?.patientId, id)
   const uploadAttachment = useUploadPatientAttachment(assessment?.patientId, id)
   const { data: instrumentAssignments = [] } = useInstrumentAssignments(assessment?.patientId)
+  const exportPdf = useExportNeuropsychAssessment(id)
+  const createShareLink = useCreateNeuropsychShareLink(id)
+  const revokeShareLink = useRevokeNeuropsychShareLink(id)
+  const [shareUrl, setShareUrl] = useState<string | null>(null)
   const completedInstruments = instrumentAssignments.filter(item => item.status === 'completed')
   const [attachmentKind, setAttachmentKind] = useState<PatientAttachment['kind']>('test_result')
   const [activeStep, setActiveStep] = useState<AssessmentStep>('planning')
@@ -87,6 +93,31 @@ export default function NeuropsychAssessmentPage() {
       toast.success('Avaliação salva')
     }
     catch (error: any) { toast.error(error?.response?.data?.message ?? 'Não foi possível salvar') }
+  }
+
+  async function generateShareLink() {
+    try {
+      const result = await createShareLink.mutateAsync()
+      setShareUrl(result.url)
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message ?? 'Não foi possível gerar o link')
+    }
+  }
+
+  async function revokeAndCloseShareLink() {
+    try {
+      await revokeShareLink.mutateAsync()
+      toast.success('Link revogado')
+      setShareUrl(null)
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message ?? 'Não foi possível revogar o link')
+    }
+  }
+
+  async function copyShareLink() {
+    if (!shareUrl) return
+    await navigator.clipboard.writeText(shareUrl)
+    toast.success('Link copiado')
   }
 
   async function addItem(event: FormEvent) {
@@ -169,6 +200,8 @@ export default function NeuropsychAssessmentPage() {
               {statusSaveState === 'error' && 'Status não salvo; tente novamente'}
             </span>
           </div>
+          <button onClick={() => exportPdf.mutate()} disabled={exportPdf.isPending} title="Baixar laudo em PDF" className="btn-secondary flex items-center justify-center gap-2"><Download className="h-4 w-4" />{exportPdf.isPending ? 'Gerando...' : 'Laudo (PDF)'}</button>
+          <button onClick={generateShareLink} disabled={createShareLink.isPending} title="Gerar link seguro para compartilhar o laudo" className="btn-secondary flex items-center justify-center gap-2"><Share2 className="h-4 w-4" />{createShareLink.isPending ? 'Gerando...' : 'Compartilhar'}</button>
           <button onClick={save} disabled={update.isPending || !hasUnsavedChanges} className="btn-primary flex items-center justify-center gap-2"><Check className="h-4 w-4" />{update.isPending && statusSaveState !== 'saving' ? 'Salvando...' : 'Salvar'}</button>
         </div>
       </header>
@@ -204,6 +237,7 @@ export default function NeuropsychAssessmentPage() {
               const linked = instrumentAssignments.find(instrument => instrument.id === item.instrumentAssignmentId)
               return linked ? <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-sage-50 px-2 py-0.5 text-[11px] font-medium text-sage-700 dark:bg-sage-950/40 dark:text-sage-200">Vinculado: {linked.title}</span> : null
             })()}</div><div className="flex gap-2"><select value={item.status} onChange={event => updateItem.mutate({ itemId: item.id, data: { status: event.target.value as any } })} className="rounded-lg border border-neutral-200 bg-white px-2 py-1 text-xs dark:border-white/10 dark:bg-cognia-panel dark:text-neutral-200"><option value="planned">Planejado</option><option value="applied">Aplicado</option><option value="integrated">Integrado</option><option value="not_applied">Não aplicado</option></select><button onClick={() => confirm('Remover este procedimento?') && deleteItem.mutate(item.id)} className="rounded-lg p-1.5 text-neutral-400 hover:bg-rose-50 hover:text-rose-600" aria-label="Remover"><Trash2 className="h-4 w-4" /></button></div></div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2"><div><label className="label">Escore</label><input type="number" step="0.01" defaultValue={item.score ?? ''} onBlur={event => { const raw = event.target.value.trim(); updateItem.mutate({ itemId: item.id, data: { score: raw === '' ? null : Number(raw) } }) }} className="input-field" placeholder="Ex.: 85" /></div><div><label className="label">Tipo de escore</label><input defaultValue={item.scoreType ?? ''} onBlur={event => updateItem.mutate({ itemId: item.id, data: { scoreType: event.target.value } })} className="input-field" placeholder="Ex.: Percentil, T-score, escore padrão" /></div></div>
             <div className="mt-3 grid gap-3 lg:grid-cols-2"><Field label="Resultado escrito" value={item.resultSummary ?? ''} onBlur={value => updateItem.mutate({ itemId: item.id, data: { resultSummary: value } })} /><Field label="Observações qualitativas" value={item.qualitativeNotes ?? ''} onBlur={value => updateItem.mutate({ itemId: item.id, data: { qualitativeNotes: value } })} /></div>
           </article>))}</div>
       </section>}
@@ -235,6 +269,20 @@ export default function NeuropsychAssessmentPage() {
         <p className="hidden text-xs text-neutral-500 dark:text-neutral-400 sm:block">Use as etapas para navegar sem perder o que já foi preenchido.</p>
         <button type="button" disabled={activeStepIndex === STEPS.length - 1} onClick={() => setActiveStep(STEPS[activeStepIndex + 1].id)} className="btn-primary flex items-center gap-2 disabled:invisible">Próxima etapa<ChevronRight className="h-4 w-4" /></button>
       </div>
+
+      <Modal open={!!shareUrl} onClose={() => setShareUrl(null)} title="Link seguro do laudo" description="Qualquer pessoa com este link consegue baixar o laudo em PDF, sem precisar de login. O link expira em 14 dias.">
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <input readOnly value={shareUrl ?? ''} className="input-field text-xs" onFocus={event => event.target.select()} />
+            <button onClick={copyShareLink} title="Copiar link" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-neutral-200 text-neutral-500 hover:bg-neutral-50 dark:border-white/10 dark:text-neutral-300"><Copy className="h-4 w-4" /></button>
+          </div>
+          <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">Compartilhe apenas com quem deve ter acesso ao laudo. Revogue o link quando não for mais necessário.</p>
+          <div className="flex justify-end gap-2">
+            <button onClick={revokeAndCloseShareLink} disabled={revokeShareLink.isPending} className="btn-secondary text-rose-600 hover:bg-rose-50">{revokeShareLink.isPending ? 'Revogando...' : 'Revogar link'}</button>
+            <button onClick={() => setShareUrl(null)} className="btn-primary">Fechar</button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

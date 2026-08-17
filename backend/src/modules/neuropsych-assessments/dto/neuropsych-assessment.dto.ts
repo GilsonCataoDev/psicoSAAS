@@ -1,17 +1,24 @@
 import { Type } from 'class-transformer'
 import {
-  ArrayMaxSize, IsArray, IsDateString, IsIn, IsInt, IsOptional,
+  ArrayMaxSize, IsArray, IsDateString, IsIn, IsInt, IsNumber, IsOptional,
   IsString, IsUUID, Max, MaxLength, Min,
 } from 'class-validator'
 import { PartialType } from '@nestjs/mapped-types'
 import { NEUROPSYCH_DOMAINS } from '../entities/neuropsych-assessment.entity'
 
-const ASSESSMENT_STATUSES = ['planning', 'in_progress', 'integration', 'completed', 'archived'] as const
+export const ASSESSMENT_STATUSES = ['planning', 'in_progress', 'integration', 'completed', 'archived'] as const
 const ITEM_STATUSES = ['planned', 'applied', 'integrated', 'not_applied'] as const
 const PROCEDURE_TYPES = [
   'psychological_test', 'neuropsychological_procedure', 'behavioral_scale',
   'clinical_interview', 'observation', 'other',
 ] as const
+
+export class ListNeuropsychAssessmentsQueryDto {
+  @IsIn(ASSESSMENT_STATUSES) @IsOptional() status?: typeof ASSESSMENT_STATUSES[number]
+  @IsUUID() @IsOptional() patientId?: string
+  @IsInt() @Min(1) @Type(() => Number) @IsOptional() page?: number
+  @IsInt() @Min(1) @Max(100) @Type(() => Number) @IsOptional() pageSize?: number
+}
 
 export class CreateNeuropsychAssessmentDto {
   @IsUUID() patientId: string
@@ -47,6 +54,8 @@ export class UpdateNeuropsychBatteryItemDto extends PartialType(CreateNeuropsych
   @IsDateString() @IsOptional() appliedDate?: string
   @IsString() @MaxLength(15000) @IsOptional() resultSummary?: string
   @IsString() @MaxLength(10000) @IsOptional() qualitativeNotes?: string
+  @IsNumber() @Min(-999999) @Max(999999) @Type(() => Number) @IsOptional() score?: number | null
+  @IsString() @MaxLength(80) @IsOptional() scoreType?: string
 }
 
 export const NEUROPSYCH_AI_ANALYSIS_FIELDS = [

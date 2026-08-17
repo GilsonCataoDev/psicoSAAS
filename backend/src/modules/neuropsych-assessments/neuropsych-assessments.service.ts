@@ -1,15 +1,19 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { In, Repository } from 'typeorm'
-import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
+import { randomBytes } from 'crypto'
+import { encrypt, hashToken, safeDecrypt } from '../../common/crypto/encrypt.util'
 import { Patient } from '../patients/entities/patient.entity'
+import { formatCrpForDisplay } from '../auth/entities/user.entity'
 import { InstrumentAssignment } from '../instrument-assignments/entities/instrument-assignment.entity'
 import {
   CreateNeuropsychAssessmentDto, CreateNeuropsychBatteryItemDto,
+  ListNeuropsychAssessmentsQueryDto,
   UpdateNeuropsychAssessmentDto, UpdateNeuropsychBatteryItemDto,
 } from './dto/neuropsych-assessment.dto'
 import { NeuropsychAssessment } from './entities/neuropsych-assessment.entity'
 import { NeuropsychBatteryItem } from './entities/neuropsych-battery-item.entity'
+import { buildNeuropsychAssessmentPdf } from './neuropsych-export.util'
 
 const ACTIVE_STATUSES = ['planning', 'in_progress', 'integration'] as const
 const ASSESSMENT_CLINICAL_FIELDS = [
@@ -27,9 +31,15 @@ export class NeuropsychAssessmentsService {
     @InjectRepository(InstrumentAssignment) private readonly instruments: Repository<InstrumentAssignment>,
   ) {}
 
-  async list(psychologistId: string) {
-    const assessments = await this.assessments.find({
-      where: { psychologistId },
+  async list(psychologistId: string, query: ListNeuropsychAssessmentsQueryDto = {}) {
+    const page = query.page ?? 1
+    const pageSize = query.pageSize ?? 50
+    const where: any = { psychologistId }
+    if (query.status) where.status = query.status
+    if (query.patientId) where.patientId = query.patientId
+
+    const [assessments, total] = await this.assessments.findAndCount({
+      where,
       relations: ['patient', 'batteryItems'],
       // A listagem carrega somente metadados e status; conteúdo clínico fica restrito ao detalhe.
       select: {
@@ -40,9 +50,15 @@ export class NeuropsychAssessmentsService {
         batteryItems: { id: true, status: true },
       } as any,
       order: { updatedAt: 'DESC' },
-      take: 200,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
     })
-    return assessments.map(assessment => this.toDto(assessment, false))
+    return {
+      data: assessments.map(assessment => this.toDto(assessment, false)),
+      total,
+      page,
+      pageSize,
+    }
   }
 
   async findOne(id: string, psychologistId: string) {
@@ -139,6 +155,67 @@ export class NeuropsychAssessmentsService {
     const result = await this.items.delete({ id: itemId, assessmentId, psychologistId })
     if (!result.affected) throw new NotFoundException('Item da bateria não encontrado')
     return { ok: true as const }
+  }
+
+  async exportPdf(
+    id: string,
+    psychologistId: string,
+    psychologistName: string,
+    psychologistCrp: string,
+  ): Promise<{ filename: string; stream: PDFKit.PDFDocument }> {
+    const assessment = await this.findRaw(id, psychologistId, true)
+    const dto = this.toDto(assessment, true)
+
+    const stream = buildNeuropsychAssessmentPdf(dto as any, psychologistName, psychologistCrp || 'não informado')
+
+    const safeName = dto.patient.name.replace(/[^a-zA-Z0-9À-ɏ\s]/g, '').trim().replace(/\s+/g, '_')
+    const filename = `Laudo_Avaliacao_${safeName}_${new Date().toISOString().slice(0, 10)}.pdf`
+    return { filename, stream }
+  }
+
+  /** Gera um link publico (token opaco) para o laudo em PDF, sem exigir login do destinatario. */
+  async createShareLink(id: string, psychologistId: string): Promise<{ url: string }> {
+    const assessment = await this.findRaw(id, psychologistId)
+    const token = randomBytes(32).toString('base64url')
+    assessment.shareTokenHash = hashToken(token)
+    assessment.shareTokenCreatedAt = new Date()
+    await this.assessments.save(assessment)
+
+    const baseUrl = (process.env.FRONTEND_URL || process.env.PUBLIC_APP_URL || 'https://usecognia.com.br').replace(/\/$/, '')
+    return { url: `${baseUrl}/laudo/${token}` }
+  }
+
+  async revokeShareLink(id: string, psychologistId: string) {
+    const assessment = await this.findRaw(id, psychologistId)
+    assessment.shareTokenHash = null
+    assessment.shareTokenCreatedAt = null
+    await this.assessments.save(assessment)
+    return { ok: true as const }
+  }
+
+  async exportPdfByShareToken(token: string): Promise<{ filename: string; stream: PDFKit.PDFDocument }> {
+    if (!token || token.length < 32) throw new NotFoundException('Link nao encontrado')
+    const assessment = await this.assessments.findOne({
+      where: { shareTokenHash: hashToken(token) },
+      relations: ['patient', 'batteryItems', 'psychologist'],
+    })
+    if (!assessment) throw new NotFoundException('Link nao encontrado')
+
+    const configuredTtl = Number(process.env.NEUROPSYCH_SHARE_TOKEN_TTL_DAYS)
+    const ttlDays = Number.isFinite(configuredTtl) && configuredTtl > 0 ? configuredTtl : 14
+    const createdAt = assessment.shareTokenCreatedAt
+    if (!createdAt || Date.now() - new Date(createdAt).getTime() > ttlDays * 24 * 60 * 60 * 1000) {
+      throw new NotFoundException('Link expirado. Solicite um novo ao profissional responsavel.')
+    }
+
+    const dto = this.toDto(assessment, true)
+    const psychologistName = assessment.psychologist?.name ?? 'Profissional'
+    const psychologistCrp = formatCrpForDisplay(assessment.psychologist ?? { crp: null, isStudent: false }) ?? 'nao informado'
+    const stream = buildNeuropsychAssessmentPdf(dto as any, psychologistName, psychologistCrp)
+
+    const safeName = dto.patient.name.replace(/[^a-zA-Z0-9À-ɏ\s]/g, '').trim().replace(/\s+/g, '_')
+    const filename = `Laudo_Avaliacao_${safeName}_${new Date().toISOString().slice(0, 10)}.pdf`
+    return { filename, stream }
   }
 
   private async findRaw(id: string, psychologistId: string, withItems = false) {

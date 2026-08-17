@@ -7,10 +7,16 @@ type CreateNeuropsychBatteryItemInput =
   Pick<NeuropsychBatteryItem, 'name' | 'procedureType' | 'domains'>
   & Partial<Pick<NeuropsychBatteryItem, 'purpose' | 'plannedDate' | 'sortOrder' | 'instrumentAssignmentId'>>
 
-export function useNeuropsychAssessments(enabled = true) {
+export type NeuropsychAssessmentFilters = {
+  status?: NeuropsychAssessment['status']
+  patientId?: string
+}
+
+export function useNeuropsychAssessments(filters: NeuropsychAssessmentFilters = {}, enabled = true) {
   return useQuery<NeuropsychAssessment[]>({
-    queryKey: ['neuropsych-assessments'],
-    queryFn: () => api.get('/neuropsych-assessments').then(response => response.data),
+    queryKey: ['neuropsych-assessments', filters],
+    queryFn: () => api.get('/neuropsych-assessments', { params: { ...filters, pageSize: 200 } })
+      .then(response => response.data.data as NeuropsychAssessment[]),
     enabled,
   })
 }
@@ -100,6 +106,39 @@ export function useGenerateNeuropsychAiAnalysis(assessmentId: string) {
       queryClient.invalidateQueries({ queryKey: ['neuropsych-assessments', assessmentId, 'ai-analysis'] })
       queryClient.invalidateQueries({ queryKey: ['neuropsych-assessments', assessmentId, 'ai-usage'] })
     },
+  })
+}
+
+export function useExportNeuropsychAssessment(assessmentId: string) {
+  return useMutation({
+    mutationFn: async () => {
+      const res = await api.get(`/neuropsych-assessments/${assessmentId}/export`, { responseType: 'blob' })
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+      const a = document.createElement('a')
+      const cd = res.headers['content-disposition'] as string | undefined
+      const match = cd?.match(/filename="([^"]+)"/)
+      a.href = url
+      a.download = match?.[1] ?? `Laudo_${assessmentId}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+    },
+    onError: () => toast.error('Erro ao gerar o laudo. Tente novamente.'),
+  })
+}
+
+export function useCreateNeuropsychShareLink(assessmentId: string) {
+  return useMutation({
+    mutationFn: () => api.post<{ url: string }>(`/neuropsych-assessments/${assessmentId}/share`).then(response => response.data),
+    onError: () => toast.error('Erro ao gerar o link. Tente novamente.'),
+  })
+}
+
+export function useRevokeNeuropsychShareLink(assessmentId: string) {
+  return useMutation({
+    mutationFn: () => api.delete(`/neuropsych-assessments/${assessmentId}/share`),
+    onError: () => toast.error('Erro ao revogar o link. Tente novamente.'),
   })
 }
 

@@ -49,6 +49,10 @@ export class NeuropsychAssessment {
   @Column({ type: 'date', nullable: true }) targetCompletionDate?: string
   @Column({ type: 'timestamptz', nullable: true }) completedAt?: Date
 
+  /** Hash do token de compartilhamento do laudo em PDF; o token em si nunca é persistido. */
+  @Column({ type: 'text', nullable: true }) shareTokenHash?: string | null
+  @Column({ type: 'timestamptz', nullable: true }) shareTokenCreatedAt?: Date | null
+
   @VersionColumn() version: number
   @CreateDateColumn() createdAt: Date
   @UpdateDateColumn() updatedAt: Date

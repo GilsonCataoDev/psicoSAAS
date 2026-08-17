@@ -1,13 +1,16 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Req, UseGuards } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, Req, Res, UseGuards } from '@nestjs/common'
 import { Throttle } from '@nestjs/throttler'
+import { Response } from 'express'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
 import { RequirePlan } from '../../common/decorators/require-plan.decorator'
 import { AuditService } from '../audit/audit.service'
+import { pdfAttachment } from '../../common/http/content-disposition.util'
 import {
   CreateNeuropsychAiAnalysisDto,
   CreateNeuropsychAssessmentDto, CreateNeuropsychBatteryItemDto,
+  ListNeuropsychAssessmentsQueryDto,
   UpdateNeuropsychAssessmentDto, UpdateNeuropsychBatteryItemDto,
 } from './dto/neuropsych-assessment.dto'
 import { NeuropsychAssessmentsService } from './neuropsych-assessments.service'
@@ -25,7 +28,9 @@ export class NeuropsychAssessmentsController {
     private readonly aiConsents: AiConsentService,
   ) {}
 
-  @Get() list(@Req() req: any) { return this.service.list(req.user.id) }
+  @Get() list(@Query() query: ListNeuropsychAssessmentsQueryDto, @Req() req: any) {
+    return this.service.list(req.user.id, query)
+  }
 
   @Get(':id')
   async findOne(@Param('id', ParseUUIDPipe) id: string, @Req() req: any) {
@@ -75,6 +80,39 @@ export class NeuropsychAssessmentsController {
   ) {
     const result = await this.service.removeItem(id, itemId, req.user.id)
     await this.record(req, 'neuropsych_assessment.battery_item_deleted', id, { itemId })
+    return result
+  }
+
+  @Get(':id/export')
+  @Throttle({ long: { limit: 5, ttl: 60 * 60 * 1000 } })
+  async exportPdf(@Param('id', ParseUUIDPipe) id: string, @Req() req: any, @Res() res: Response) {
+    const { filename, stream } = await this.service.exportPdf(id, req.user.id, req.user.name, req.user.crp ?? '')
+    await this.record(req, 'neuropsych_assessment.exported', id)
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': pdfAttachment(filename),
+      'Cache-Control': 'private, no-store',
+    })
+    stream.on('error', () => {
+      if (!res.headersSent) res.status(500)
+      res.end()
+    })
+    stream.pipe(res)
+    stream.end()
+  }
+
+  @Post(':id/share')
+  @Throttle({ default: { limit: 10, ttl: 60 * 1000 } })
+  async createShareLink(@Param('id', ParseUUIDPipe) id: string, @Req() req: any) {
+    const result = await this.service.createShareLink(id, req.user.id)
+    await this.record(req, 'neuropsych_assessment.share_link_created', id)
+    return result
+  }
+
+  @Delete(':id/share')
+  async revokeShareLink(@Param('id', ParseUUIDPipe) id: string, @Req() req: any) {
+    const result = await this.service.revokeShareLink(id, req.user.id)
+    await this.record(req, 'neuropsych_assessment.share_link_revoked', id)
     return result
   }
 
