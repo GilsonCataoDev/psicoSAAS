@@ -64,6 +64,14 @@ export function useUpdatePatient() {
   })
 }
 
+export function useDeletePatient() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/patients/${id}`).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['patients'] }),
+  })
+}
+
 export type ImportSkipReason = 'duplicate' | 'plan_limit_reached'
 
 export type ImportPatientsResult = {
