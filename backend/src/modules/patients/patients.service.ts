@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException, Logger, Optional } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { In, MoreThanOrEqual, Not, Repository } from 'typeorm'
+import { DataSource, In, MoreThanOrEqual, Not, Repository } from 'typeorm'
 import { randomBytes } from 'crypto'
 import PDFDocument = require('pdfkit')
 import { Patient } from './entities/patient.entity'
@@ -16,7 +16,8 @@ import { formatCrpForDisplay } from '../auth/entities/user.entity'
 import { ProntuarioExportOptions, canIncludePrivateNotes, filterProntuarioSessions, normalizeProntuarioExportOptions } from './prontuario-export.util'
 import { ProspectLifecycleService } from '../../common/prospect-lifecycle/prospect-lifecycle.service'
 import { Document } from '../documents/entities/document.entity'
-import { PatientAttachmentsService } from './patient-attachments.service'
+import { PatientAttachment } from './entities/patient-attachment.entity'
+import { StorageService } from '../../common/storage/storage.service'
 
 type EncryptedProntuario = {
   __encrypted: 'usecognia.prontuario.v1' | 'psicosaas.prontuario.v1'
@@ -99,9 +100,11 @@ export class PatientsService {
     @InjectRepository(Patient) private repo: Repository<Patient>,
     @InjectRepository(Appointment) private appointments: Repository<Appointment>,
     @InjectRepository(Document) private documents: Repository<Document>,
+    @InjectRepository(PatientAttachment) private patientAttachments: Repository<PatientAttachment>,
     private financial: FinancialService,
     private readonly planAccess: PlanAccessService,
-    private readonly attachments: PatientAttachmentsService,
+    private readonly storage: StorageService,
+    private readonly dataSource: DataSource,
     @Optional() private readonly prospectLifecycle?: ProspectLifecycleService,
   ) {}
 
@@ -368,26 +371,36 @@ export class PatientsService {
 
   /**
    * Exclui a pessoa e todo o histórico clínico dependente. Sessões, agendamentos,
-   * avaliações neuropsicológicas e vínculos de instrumentos já têm ON DELETE
-   * CASCADE no banco. Documentos e anexos, não — Documento não tem FK pra
-   * Patient (só a coluna patientId), e um anexo em R2 apagado só pela CASCADE
-   * do Postgres deixaria o arquivo órfão no bucket (o storage.delete() só
-   * roda no PatientAttachmentsService.remove(), nunca é acionado por uma
-   * CASCADE de banco). Por isso ambos são apagados explicitamente aqui, antes
-   * da pessoa. Lançamentos financeiros ficam de propósito (SET NULL) —
+   * avaliações neuropsicológicas, anexos e vínculos de instrumentos já têm ON
+   * DELETE CASCADE no banco. Documento é a exceção — não tem FK pra Patient (só
+   * a coluna patientId) — por isso é apagado explicitamente aqui, na mesma
+   * transação da remoção da pessoa, pra nunca sobrar linha órfã se uma das duas
+   * falhar no meio. Lançamentos financeiros ficam de propósito (SET NULL) —
    * preserva o histórico de faturamento mesmo após a exclusão da pessoa.
+   *
+   * Os storageKeys dos anexos em R2 são coletados antes da transação: a
+   * CASCADE apaga a linha no Postgres, mas não aciona storage.delete() (isso
+   * só acontece em PatientAttachmentsService.remove(), usado no fluxo normal
+   * de exclusão avulsa). A limpeza do bucket roda depois do commit, best-effort
+   * — storage.delete() já engole falhas de rede/S3 internamente.
    */
   async remove(id: string, psychologistId: string) {
     const patient = await this.findRaw(id, psychologistId)
 
-    await this.documents.delete({ patientId: id, userId: psychologistId })
+    const attachments = await this.patientAttachments.find({
+      where: { patientId: id, psychologistId },
+      select: ['storageKey'],
+    })
 
-    const patientAttachments = await this.attachments.list(id, psychologistId)
-    for (const attachment of patientAttachments) {
-      await this.attachments.remove(attachment.id, id, psychologistId)
-    }
+    const removed = await this.dataSource.transaction(async manager => {
+      await manager.delete(Document, { patientId: id, userId: psychologistId })
+      return manager.remove(patient)
+    })
 
-    return this.repo.remove(patient)
+    const storageKeys = attachments.map(a => a.storageKey).filter((key): key is string => !!key)
+    await Promise.all(storageKeys.map(key => this.storage.delete(key)))
+
+    return removed
   }
 
   private async findByPortalToken(token: string, relations?: string[]): Promise<Patient> {

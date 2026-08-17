@@ -26,6 +26,8 @@ describe('PatientsService — edição cadastral', () => {
       {} as any,
       {} as any,
       {} as any,
+      {} as any,
+      {} as any,
     )
 
     const updated = await service.update(
@@ -57,26 +59,46 @@ describe('PatientsService — edição cadastral', () => {
       birthDate: '1990-05-10',
     }))
   })
-  it('remove definitivamente o paciente do proprio psicologo, junto com documentos e anexos', async () => {
+  it('remove definitivamente o paciente do proprio psicologo, em transacao, junto com documentos e storage dos anexos', async () => {
     const patient = { id: 'patient-1', psychologistId: 'psychologist-1' }
     const repo = {
       findOne: jest.fn().mockResolvedValue(patient),
+    }
+    const patientAttachments = {
+      find: jest.fn().mockResolvedValue([{ storageKey: 'key-1' }, { storageKey: 'key-2' }, { storageKey: null }]),
+    }
+    const manager = {
+      delete: jest.fn().mockResolvedValue(undefined),
       remove: jest.fn().mockResolvedValue(patient),
     }
-    const documents = { delete: jest.fn().mockResolvedValue(undefined) }
-    const attachments = {
-      list: jest.fn().mockResolvedValue([{ id: 'att-1' }, { id: 'att-2' }]),
-      remove: jest.fn().mockResolvedValue({ ok: true }),
+    const dataSource = {
+      transaction: jest.fn(async (cb: any) => cb(manager)),
     }
-    const service = new PatientsService(repo as any, {} as any, documents as any, {} as any, {} as any, attachments as any)
+    const storage = { delete: jest.fn().mockResolvedValue(undefined) }
+    const service = new PatientsService(
+      repo as any,
+      {} as any,
+      {} as any,
+      patientAttachments as any,
+      {} as any,
+      {} as any,
+      storage as any,
+      dataSource as any,
+    )
 
-    await service.remove(patient.id, patient.psychologistId)
+    const result = await service.remove(patient.id, patient.psychologistId)
 
-    expect(documents.delete).toHaveBeenCalledWith({ patientId: patient.id, userId: patient.psychologistId })
-    expect(attachments.list).toHaveBeenCalledWith(patient.id, patient.psychologistId)
-    expect(attachments.remove).toHaveBeenCalledWith('att-1', patient.id, patient.psychologistId)
-    expect(attachments.remove).toHaveBeenCalledWith('att-2', patient.id, patient.psychologistId)
-    expect(repo.remove).toHaveBeenCalledWith(patient)
+    expect(patientAttachments.find).toHaveBeenCalledWith({
+      where: { patientId: patient.id, psychologistId: patient.psychologistId },
+      select: ['storageKey'],
+    })
+    expect(dataSource.transaction).toHaveBeenCalled()
+    expect(manager.delete).toHaveBeenCalledWith(expect.anything(), { patientId: patient.id, userId: patient.psychologistId })
+    expect(manager.remove).toHaveBeenCalledWith(patient)
+    expect(storage.delete).toHaveBeenCalledWith('key-1')
+    expect(storage.delete).toHaveBeenCalledWith('key-2')
+    expect(storage.delete).toHaveBeenCalledTimes(2)
+    expect(result).toBe(patient)
   })
 
   it('usa sempre a assinatura mais recente para calcular o limite', async () => {
@@ -87,7 +109,9 @@ describe('PatientsService — edição cadastral', () => {
       {} as any,
       {} as any,
       {} as any,
+      {} as any,
       planAccess as any,
+      {} as any,
       {} as any,
     )
 
