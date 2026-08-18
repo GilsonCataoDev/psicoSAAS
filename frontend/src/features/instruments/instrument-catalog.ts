@@ -2,7 +2,7 @@ import {
   ClipboardList, Baby, Target, FileSignature, MessageSquare,
   HeartPulse, Activity, BarChart3, ShieldAlert,
   PenLine, Smile, Moon, Gauge, Compass, Users, Brain,
-  AlertCircle, Globe, Sun, ListChecks, Zap, TrendingUp, Award, Flame,
+  AlertCircle, Globe, Sun, ListChecks, Zap, TrendingUp, Award, Flame, Frown,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -552,6 +552,47 @@ Suando sem ser de calor:
 PONTUAÇÃO TOTAL:
 INTERPRETAÇÃO:
 (0–7: Mínimo | 8–15: Leve | 16–25: Moderado | 26–63: Grave)
+
+OBSERVAÇÕES DO(A) PROFISSIONAL:`,
+  },
+  {
+    id: 'bdi2-adaptado',
+    title: 'Inventário de Depressão — Adaptado (BDI-II)',
+    description: 'Lista de sintomas afetivos, cognitivos e somáticos de depressão com escala de intensidade de 4 pontos.',
+    category: 'escala',
+    tags: ['depressão', 'humor', 'BDI'],
+    ageGroups: ['adulto'],
+    Icon: Frown,
+    template: `INVENTÁRIO DE DEPRESSÃO — ADAPTADO (BDI-II)
+
+Nas últimas duas semanas, com que intensidade você sentiu o seguinte?
+(0 = Não senti isso | 1 = Senti um pouco | 2 = Senti moderadamente | 3 = Senti intensamente / na maior parte do tempo)
+
+Tristeza:
+Pessimismo em relação ao futuro:
+Sensação de fracasso em relação ao passado:
+Perda de prazer nas atividades:
+Sentimentos de culpa:
+Sentimento de estar sendo punido(a):
+Insatisfação consigo mesmo(a):
+Autocrítica excessiva:
+Pensamentos ou vontade de se machucar:
+Choro com mais frequência que o habitual:
+Agitação ou inquietação:
+Perda de interesse por outras pessoas ou atividades:
+Dificuldade para tomar decisões:
+Sentimento de desvalorização:
+Perda de energia:
+Alteração no padrão de sono:
+Irritabilidade:
+Alteração no apetite:
+Dificuldade de concentração:
+Cansaço ou fadiga:
+Perda de interesse por sexo:
+
+PONTUAÇÃO TOTAL:
+INTERPRETAÇÃO:
+(0–13: Mínimo | 14–19: Leve | 20–28: Moderado | 29–63: Grave)
 
 OBSERVAÇÕES DO(A) PROFISSIONAL:`,
   },

@@ -89,6 +89,13 @@ const IMPACT_0_4_TRAUMA: ScaleOption[] = [
   { value: 4, label: 'Extremamente' },
 ]
 
+const INTENSITY_STATEMENT_0_3: ScaleOption[] = [
+  { value: 0, label: 'Não senti isso' },
+  { value: 1, label: 'Senti um pouco' },
+  { value: 2, label: 'Senti moderadamente' },
+  { value: 3, label: 'Senti intensamente / na maior parte do tempo' },
+]
+
 // ── Scale configs ─────────────────────────────────────────────────────────────
 
 export const SCALE_CONFIGS: Record<string, ScaleConfig> = {
@@ -243,6 +250,49 @@ export const SCALE_CONFIGS: Record<string, ScaleConfig> = {
       { max: 25, label: 'Moderado', color: 'text-orange-700 bg-orange-50' },
       { max: 63, label: 'Grave',    color: 'text-red-700 bg-red-50' },
     ],
+  },
+
+  // ── BDI-II-adaptado ────────────────────────────────────────────────────────
+  'bdi2-adaptado': {
+    options: INTENSITY_STATEMENT_0_3,
+    items: [
+      { id: 'q1',  label: 'Tristeza' },
+      { id: 'q2',  label: 'Pessimismo em relação ao futuro' },
+      { id: 'q3',  label: 'Sensação de fracasso em relação ao passado' },
+      { id: 'q4',  label: 'Perda de prazer nas atividades' },
+      { id: 'q5',  label: 'Sentimentos de culpa' },
+      { id: 'q6',  label: 'Sentimento de estar sendo punido(a)' },
+      { id: 'q7',  label: 'Insatisfação consigo mesmo(a)' },
+      { id: 'q8',  label: 'Autocrítica excessiva' },
+      { id: 'q9',  label: 'Pensamentos ou vontade de se machucar' },
+      { id: 'q10', label: 'Choro com mais frequência que o habitual' },
+      { id: 'q11', label: 'Agitação ou inquietação' },
+      { id: 'q12', label: 'Perda de interesse por outras pessoas ou atividades' },
+      { id: 'q13', label: 'Dificuldade para tomar decisões' },
+      { id: 'q14', label: 'Sentimento de desvalorização' },
+      { id: 'q15', label: 'Perda de energia' },
+      { id: 'q16', label: 'Alteração no padrão de sono' },
+      { id: 'q17', label: 'Irritabilidade' },
+      { id: 'q18', label: 'Alteração no apetite' },
+      { id: 'q19', label: 'Dificuldade de concentração' },
+      { id: 'q20', label: 'Cansaço ou fadiga' },
+      { id: 'q21', label: 'Perda de interesse por sexo' },
+    ],
+    criticalItems: [
+      {
+        itemId: 'q9',
+        minValue: 1,
+        label: 'Item 9 positivo',
+        note: 'Investigar ideação suicida/autoagressão e considerar manejo de risco.',
+      },
+    ],
+    thresholds: [
+      { max: 13, label: 'Mínimo',   color: 'text-emerald-700 bg-emerald-50' },
+      { max: 19, label: 'Leve',     color: 'text-yellow-700 bg-yellow-50' },
+      { max: 28, label: 'Moderado', color: 'text-orange-700 bg-orange-50' },
+      { max: 63, label: 'Grave',    color: 'text-red-700 bg-red-50' },
+    ],
+    note: 'O item 9 (pensamentos de se machucar) requer atenção clínica imediata, independentemente do total. Versão adaptada com temas gerais, sem reproduzir os enunciados originais protegidos do instrumento.',
   },
 
   // ── PCL-5 ──────────────────────────────────────────────────────────────────
