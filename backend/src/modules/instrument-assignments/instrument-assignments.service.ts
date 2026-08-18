@@ -206,7 +206,14 @@ export class InstrumentAssignmentsService {
       throw new ForbiddenException('Formulario expirado ou ja respondido')
     }
 
-    const fields = this.extractFields(assignment.template)
+    // Escalas com escore (SCALE_CONFIGS no frontend) enviam respostas com IDs
+    // proprios do item (q1, q2...), diferentes dos "field_N" que extractFields()
+    // gera a partir do template em texto. Remapear pelos campos do template
+    // aqui descartaria toda resposta de escala (nenhuma chave bate) — a
+    // presenca de `score` e o sinal de que e uma submissao de escala, entao
+    // pulamos o remapeamento e guardamos as respostas com suas chaves originais.
+    const isScaleResponse = score != null
+    const fields = isScaleResponse ? [] : this.extractFields(assignment.template)
     const cleanAnswers = this.cleanAnswers(fields, answers)
     const responseText = this.buildResponseText(assignment, fields, cleanAnswers)
 
