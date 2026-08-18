@@ -688,9 +688,26 @@ function getScoreBadge(response: InstrumentAssignment) {
 
 function printAssignment(response: InstrumentAssignment) {
   const safe = (value?: string | null) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  const rows = response.fields.length && response.answers
-    ? response.fields.map(field => `<tr><th>${safe(field.label)}</th><td>${safe(response.answers?.[field.id])}</td></tr>`).join('')
-    : `<tr><td colspan="2"><pre>${safe(response.responseText)}</pre></td></tr>`
+  const scaleConfig = SCALE_CONFIGS[response.instrumentId]
+  let rows: string
+  if (scaleConfig && response.answers) {
+    const answerLabel = (itemId: string) => {
+      const raw = response.answers?.[itemId]
+      const item = scaleConfig.items.find(i => i.id === itemId)
+      const option = (item?.options ?? scaleConfig.options).find(o => String(o.value) === raw)
+      return option ? `${option.value} — ${option.label}` : (raw ?? '')
+    }
+    const itemRows = scaleConfig.items.map(item => `<tr><th>${safe(item.label)}</th><td>${safe(answerLabel(item.id))}</td></tr>`).join('')
+    const interpretation = interpretScaleResult(response.instrumentId, response.score, response.scoreDetails, response.answers)
+    const summaryRows = interpretation
+      ? `<tr><th>Pontuação total</th><td>${safe(String(interpretation.score))}${interpretation.level ? ` — ${safe(interpretation.level.label)}` : ''}</td></tr>`
+      : ''
+    rows = itemRows + summaryRows
+  } else {
+    rows = response.fields.length && response.answers
+      ? response.fields.map(field => `<tr><th>${safe(field.label)}</th><td>${safe(response.answers?.[field.id])}</td></tr>`).join('')
+      : `<tr><td colspan="2"><pre>${safe(response.responseText)}</pre></td></tr>`
+  }
   const html = `<!doctype html><html><head><title>${safe(response.title)}</title>
 <style>
 @page{size:A4;margin:18mm}body{font-family:Arial,sans-serif;color:#111}h1{font-size:18px;margin:0 0 6px}p{font-size:12px;color:#555}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{border-bottom:1px solid #ddd;padding:8px;text-align:left;vertical-align:top;font-size:12px}th{width:34%;color:#555}pre{white-space:pre-wrap;font-family:Arial,sans-serif}
