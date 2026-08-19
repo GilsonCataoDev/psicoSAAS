@@ -9,7 +9,7 @@ import { useSubscriptionStore } from '@/store/subscription'
 import { api } from '@/lib/api'
 import { isValidCrpFormat, getCrpRegion, openCfpVerification, formatCrpInput } from '@/lib/crp'
 import toast from 'react-hot-toast'
-import { track, EVENTS } from '@/lib/analytics'
+import { track, EVENTS, trackMetaConversion } from '@/lib/analytics'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 
 const schema = z.object({
@@ -128,6 +128,7 @@ export default function RegisterPage() {
         campaign: searchParams.get('utm_campaign') ?? 'none',
         has_referral: Boolean(referralCode),
       })
+      trackMetaConversion('CompleteRegistration')
       toast.success(
         freePlanActivated
           ? 'Plano gratis liberado! Seja bem-vindo(a)'

@@ -15,6 +15,10 @@ const KEY  = import.meta.env.VITE_POSTHOG_KEY as string | undefined
 const HOST = (import.meta.env.VITE_POSTHOG_HOST as string | undefined) ?? 'https://us.i.posthog.com'
 const isDev = import.meta.env.DEV
 
+// ID publico do Pixel (nao e segredo — aparece em qualquer inspecao de rede da pagina).
+const META_PIXEL_ID = '1606308730880987'
+let metaPixelLoaded = false
+
 const CONSENT_KEY   = 'usecognia.analytics-consent'
 const CONSENT_EVENT = 'usecognia:analytics-consent'
 const ATTRIBUTION_KEY = 'usecognia_marketing_attribution'
@@ -154,12 +158,49 @@ function loadAnalytics(): Promise<PostHogClient | null> {
   return loadPromise
 }
 
+// ─── Meta Pixel (consent-gated — envia dados a um terceiro, a Meta) ──────────
+
+/** Injeta o script do Meta Pixel e dispara PageView. Só chamar com consentimento já concedido. */
+function loadMetaPixel() {
+  if (isDev || metaPixelLoaded || typeof window === 'undefined') return
+  metaPixelLoaded = true
+  const w = window as any
+  ;(function (f: any, b: Document, e: string, v: string) {
+    if (f.fbq) return
+    const n: any = (f.fbq = function (...args: unknown[]) {
+      n.callMethod ? n.callMethod.apply(n, args) : n.queue.push(args)
+    })
+    if (!f._fbq) f._fbq = n
+    n.push = n
+    n.loaded = true
+    n.version = '2.0'
+    n.queue = []
+    const t = b.createElement(e) as HTMLScriptElement
+    t.async = true
+    t.src = v
+    const s = b.getElementsByTagName(e)[0]
+    s.parentNode?.insertBefore(t, s)
+  })(w, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js')
+  w.fbq('init', META_PIXEL_ID)
+  w.fbq('track', 'PageView')
+}
+
+/** Dispara um evento padrão do Meta Pixel (ex.: 'CompleteRegistration'). Exige consentimento. */
+export function trackMetaConversion(event: string) {
+  if (isDev || getAnalyticsConsent() !== true) return
+  loadMetaPixel()
+  ;(window as any).fbq?.('track', event)
+}
+
+subscribeAnalyticsConsent(granted => { if (granted) loadMetaPixel() })
+
 // ─── public API ───────────────────────────────────────────────────────────────
 
 /** Call once on app boot. Fires $pageview + landing_page_viewed anonymously. */
 export function initAnalytics() {
   const props = sanitizeProperties({ ...captureAttribution(), landing_path: publicPathCategory() })
   void loadAnalytics().then(ph => ph?.capture(EVENTS.LANDING_PAGE_VIEWED, props))
+  if (getAnalyticsConsent() === true) loadMetaPixel()
 }
 
 /**
