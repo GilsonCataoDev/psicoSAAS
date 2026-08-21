@@ -1,5 +1,85 @@
 [
   {
+    "slug": "psicologia-em-pauta-semana-2026-08-21",
+    "title": "Atualizações para psicólogos: o que merece atenção na semana de 21 de agosto de 2026",
+    "description": "Curadoria semanal de atualizações relevantes para psicólogos, com fontes institucionais, impactos práticos, cuidados e perguntas frequentes.",
+    "image": "/blog/og/psicologia-em-pauta-semana-2026-08-21.png",
+    "category": "Atualidades para psicólogos",
+    "publishedAt": "2026-08-21",
+    "updatedAt": "2026-08-21",
+    "readingMinutes": 6,
+    "author": "Equipe UseCognia",
+    "keywords": [
+      "notícias para psicólogos",
+      "psicologia hoje",
+      "notícias de saúde mental",
+      "psicologia no Brasil",
+      "notícias CFP",
+      "atualização para psicólogos"
+    ],
+    "relatedSlugs": [
+      "software-para-psicologo-guia-completo-2026",
+      "lgpd-para-psicologos-guia-pratico"
+    ],
+    "intro": [
+      "Esta curadoria reúne publicações recentes de fontes institucionais consultadas em 21 de agosto de 2026. Os títulos levam ao conteúdo original para conferência.",
+      "Selecionamos apenas temas explicitamente ligados à psicologia, e a edição só é publicada quando reúne ao menos duas fontes institucionais independentes. O conteúdo é informativo e não substitui orientação clínica, ética ou jurídica individual."
+    ],
+    "sections": [
+      {
+        "heading": "1. O que foi publicado: Fundação lança edital para ampliar acesso à saúde mental em São Paulo",
+        "paragraphs": [
+          "Agência Brasil — Saúde publicou uma atualização sobre o tema. A curadoria não reproduz a matéria: use o link em “Fontes consultadas” para conferir contexto, data, escopo e eventuais limitações no conteúdo original.",
+          "Por que isso merece atenção na rotina profissional: O tema ajuda a acompanhar o contexto de saúde mental, mas não substitui avaliação individual nem autoriza conclusões clínicas sobre pacientes."
+        ]
+      },
+      {
+        "heading": "2. O que foi publicado: CREPOP abre consulta pública sobre Referências Técnicas para Atuação de Profissionais da Psicologia junto às Políticas Públicas sobre Suicídio e Posvenção",
+        "paragraphs": [
+          "Conselho Federal de Psicologia publicou uma atualização sobre o tema. A curadoria não reproduz a matéria: use o link em “Fontes consultadas” para conferir contexto, data, escopo e eventuais limitações no conteúdo original.",
+          "Por que isso merece atenção na rotina profissional: O profissional deve consultar o texto original e verificar se a atualização altera documentos, registros, comunicação ou prestação do serviço."
+        ]
+      },
+      {
+        "heading": "Como transformar informação em uma rotina mais organizada",
+        "paragraphs": [
+          "Antes de mudar um procedimento, registre a fonte, confirme se a orientação se aplica ao seu contexto e defina uma ação verificável. Mudanças em comunicação, documentos, agenda ou tratamento de dados devem ser revisadas pelo profissional responsável.",
+          "O UseCognia ajuda a centralizar agenda, pacientes, prontuários, documentos e financeiro. Essa organização reduz tarefas dispersas, mas não substitui decisões técnicas, clínicas ou éticas do psicólogo."
+        ]
+      }
+    ],
+    "checklist": [
+      "Abrir e ler as fontes originais desta curadoria",
+      "Separar informação pública de evidência aplicável ao caso individual",
+      "Conferir a publicação original do CFP antes de alterar procedimentos profissionais",
+      "Registrar mudanças de processo somente após validação profissional"
+    ],
+    "references": [
+      {
+        "label": "Fundação lança edital para ampliar acesso à saúde mental em São Paulo — Agência Brasil — Saúde",
+        "url": "https://agenciabrasil.ebc.com.br/saude/noticia/2026-08/fundacao-lanca-edital-para-ampliar-acesso-saude-mental-em-sao-paulo"
+      },
+      {
+        "label": "CREPOP abre consulta pública sobre Referências Técnicas para Atuação de Profissionais da Psicologia junto às Políticas Públicas sobre Suicídio e Posvenção — Conselho Federal de Psicologia",
+        "url": "https://site.cfp.org.br/crepop-abre-consulta-publica-sobre-referencias-tecnicas-para-atuacao-de-profissionais-da-psicologia-junto-as-politicas-publicas-sobre-suicidio-e-posvencao"
+      }
+    ],
+    "faq": [
+      {
+        "question": "Uma notícia ou publicação institucional muda automaticamente a prática profissional?",
+        "answer": "Não. Consulte a fonte original, verifique a vigência e, quando necessário, busque orientação do CFP, do CRP ou de assessoria especializada antes de alterar procedimentos."
+      },
+      {
+        "question": "Posso aplicar uma informação desta curadoria diretamente aos pacientes?",
+        "answer": "Não de forma automática. Informações públicas precisam ser avaliadas no contexto individual e nunca substituem raciocínio clínico, consentimento e responsabilidade profissional."
+      },
+      {
+        "question": "Como acompanhar atualizações sem aumentar a burocracia do consultório?",
+        "answer": "Reserve um momento semanal para ler as fontes originais, registre apenas mudanças aplicáveis e mantenha agenda, documentos e registros organizados em um fluxo único."
+      }
+    ]
+  },
+  {
     "slug": "prontuario-psicologico-atualizado-importancia",
     "title": "Prontuário psicológico atualizado: por que é importante",
     "description": "Entenda por que manter o prontuário psicológico atualizado fortalece a continuidade do atendimento, o sigilo, os documentos e a organização profissional.",
