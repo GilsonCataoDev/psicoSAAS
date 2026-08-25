@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Mic, MicOff } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cn } from '@/lib/utils'
+import { accumulateFinalTranscript } from './voice-capture'
 
 type DictationButtonProps = {
   value: string
@@ -38,13 +39,6 @@ type SpeechRecognitionWindow = Window & {
   webkitSpeechRecognition?: SpeechRecognitionConstructor
 }
 
-function appendTranscript(current: string, transcript: string) {
-  const clean = transcript.trim()
-  if (!clean) return current
-  if (!current.trim()) return clean
-  return `${current.trimEnd()} ${clean}`
-}
-
 const FREE_VOICE_FALLBACK = 'Ditado do navegador indisponível. Alternativa sem custo: clique no campo e use Windows + H no PC ou o microfone do teclado no celular.'
 
 export default function DictationButton({ value, onChange, className }: DictationButtonProps) {
@@ -58,7 +52,13 @@ export default function DictationButton({ value, onChange, className }: Dictatio
   }, [value])
 
   useEffect(() => () => {
-    recognitionRef.current?.stop()
+    const recognition = recognitionRef.current
+    if (!recognition) return
+    recognition.onresult = null
+    recognition.onerror = null
+    recognition.onend = null
+    recognition.stop()
+    recognitionRef.current = null
   }, [])
 
   function getRecognition() {
@@ -90,12 +90,14 @@ export default function DictationButton({ value, onChange, className }: Dictatio
           const result = event.results[index]
           if (result.isFinal) finalText += result[0].transcript
         }
-        if (finalText.trim()) onChange(appendTranscript(valueRef.current, finalText))
+        if (finalText.trim()) onChange(accumulateFinalTranscript(valueRef, finalText))
       }
       recognition.onerror = (e) => {
         setState('idle')
-        if (e?.error === 'not-allowed') {
+        if (e?.error === 'not-allowed' || e?.error === 'service-not-allowed') {
           toast.error('Permissão do microfone negada. Habilite nas configurações do navegador.')
+        } else if (e?.error === 'audio-capture') {
+          toast.error('Nenhum microfone disponível. Conecte ou habilite um microfone e tente novamente.')
         } else if (e?.error === 'network') {
           setBrowserVoiceUnavailable(true)
           toast.error(FREE_VOICE_FALLBACK, { duration: 8000 })
@@ -103,11 +105,16 @@ export default function DictationButton({ value, onChange, className }: Dictatio
           toast.error('Não foi possível usar o ditado. Verifique a permissão do microfone.')
         }
       }
-      recognition.onend = () => setState('idle')
-      recognition.start()
+      recognition.onend = () => {
+        if (recognitionRef.current === recognition) recognitionRef.current = null
+        setState('idle')
+      }
       recognitionRef.current = recognition
+      recognition.start()
       setState('listening')
     } catch {
+      recognitionRef.current = null
+      setState('idle')
       toast.error('Não foi possível acessar o microfone. Verifique as permissões.')
     }
   }

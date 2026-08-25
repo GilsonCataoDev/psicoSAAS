@@ -1,8 +1,9 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Mic, MicOff, Loader2, Sparkles, AlertCircle, Video } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { AI_CONSENT_TEXT, useAcceptAiConsent, useTranscribeAudio, useTranscribeCall, useGenerateAiSummary } from '@/hooks/useApi'
 import { useHasPlan } from '@/store/subscription'
+import { cleanupMediaRecorder, selectSupportedAudioMimeType, stopMediaStreams } from './voice-capture'
 
 type Step = 'idle' | 'consent' | 'recording' | 'ready' | 'transcribing' | 'transcribed' | 'generating'
 type Source = 'mic' | 'call'
@@ -45,11 +46,34 @@ export default function RecordingPanel({
   const chunksRef = useRef<BlobPart[]>([])
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const audioBlobRef = useRef<Blob | null>(null)
+  const captureStreamRef = useRef<MediaStream | null>(null)
+  const recordStreamRef = useRef<MediaStream | null>(null)
 
   const transcribeMic = useTranscribeAudio()
   const transcribeCall = useTranscribeCall()
   const generateSummary = useGenerateAiSummary()
   const acceptRecordingConsent = useAcceptAiConsent('session_recording_transcription', patientId)
+
+  function clearTimer() {
+    if (timerRef.current) clearInterval(timerRef.current)
+    timerRef.current = null
+  }
+
+  function releaseStreams() {
+    stopMediaStreams(captureStreamRef.current, recordStreamRef.current)
+    captureStreamRef.current = null
+    recordStreamRef.current = null
+  }
+
+  useEffect(() => () => {
+    if (timerRef.current) clearInterval(timerRef.current)
+    timerRef.current = null
+    const recorder = mediaRecorderRef.current
+    cleanupMediaRecorder(recorder, captureStreamRef.current, recordStreamRef.current)
+    mediaRecorderRef.current = null
+    captureStreamRef.current = null
+    recordStreamRef.current = null
+  }, [])
 
   function openConsent(next: Source) {
     setSource(next)
@@ -59,6 +83,10 @@ export default function RecordingPanel({
 
   async function startMicRecording() {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    if (stream.getAudioTracks().length === 0) {
+      stopMediaStreams(stream)
+      throw new Error('no-audio-track')
+    }
     return { stream, recordStream: stream }
   }
 
@@ -77,23 +105,46 @@ export default function RecordingPanel({
 
   async function startRecording() {
     try {
+      if (typeof MediaRecorder === 'undefined') throw new Error('media-recorder-unavailable')
       await acceptRecordingConsent.mutateAsync()
       const { stream, recordStream } = source === 'call'
         ? await startCallRecording()
         : await startMicRecording()
 
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm'
-      const mr = new MediaRecorder(recordStream, source === 'call'
-        ? { mimeType, audioBitsPerSecond: CALL_AUDIO_BITS_PER_SECOND }
-        : { mimeType })
+      captureStreamRef.current = stream
+      recordStreamRef.current = recordStream
+
+      const mimeType = typeof MediaRecorder.isTypeSupported === 'function'
+        ? selectSupportedAudioMimeType(MediaRecorder.isTypeSupported.bind(MediaRecorder))
+        : undefined
+      const recorderOptions: MediaRecorderOptions = {
+        ...(mimeType ? { mimeType } : {}),
+        ...(source === 'call' ? { audioBitsPerSecond: CALL_AUDIO_BITS_PER_SECOND } : {}),
+      }
+      const mr = new MediaRecorder(recordStream, recorderOptions)
       chunksRef.current = []
       mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data) }
       mr.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: mr.mimeType })
+        mediaRecorderRef.current = null
+        releaseStreams()
+        if (!blob.size) {
+          audioBlobRef.current = null
+          setStep('idle')
+          toast.error('Nenhum áudio foi capturado. Verifique o microfone e tente novamente.')
+          return
+        }
         audioBlobRef.current = blob
-        stream.getTracks().forEach(t => t.stop())
-        recordStream.getTracks().forEach(t => t.stop())
         setStep('ready')
+      }
+      mr.onerror = () => {
+        clearTimer()
+        mediaRecorderRef.current = null
+        releaseStreams()
+        chunksRef.current = []
+        audioBlobRef.current = null
+        setStep('idle')
+        toast.error('A gravação foi interrompida pelo navegador. Tente novamente.')
       }
       mr.start(1000)
       mediaRecorderRef.current = mr
@@ -112,8 +163,17 @@ export default function RecordingPanel({
       }, 1000)
       setStep('recording')
     } catch (err) {
+      clearTimer()
+      mediaRecorderRef.current = null
+      releaseStreams()
       if (err instanceof Error && err.message === 'no-audio-track') {
-        toast.error('Nenhum áudio capturado. Ao compartilhar, marque "Compartilhar áudio da guia".')
+        toast.error(source === 'call'
+          ? 'Nenhum áudio capturado. Ao compartilhar, marque "Compartilhar áudio da guia".'
+          : 'Nenhum microfone disponível. Conecte ou habilite um microfone e tente novamente.')
+        return
+      }
+      if (err instanceof Error && err.message === 'media-recorder-unavailable') {
+        toast.error('Este navegador não oferece gravação de áudio. Atualize-o ou use Chrome/Edge.')
         return
       }
       toast.error(source === 'call'
@@ -123,13 +183,17 @@ export default function RecordingPanel({
   }
 
   function stopRecording() {
-    if (timerRef.current) clearInterval(timerRef.current)
+    clearTimer()
     if (mediaRecorderRef.current?.state === 'recording') {
       mediaRecorderRef.current.stop()
+    } else {
+      releaseStreams()
     }
   }
 
   function discardRecording() {
+    clearTimer()
+    releaseStreams()
     audioBlobRef.current = null
     chunksRef.current = []
     setTranscription('')
