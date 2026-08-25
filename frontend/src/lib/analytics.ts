@@ -168,7 +168,7 @@ function loadMetaPixel() {
   ;(function (f: any, b: Document, e: string, v: string) {
     if (f.fbq) return
     const n: any = (f.fbq = function (...args: unknown[]) {
-      n.callMethod ? n.callMethod.apply(n, args) : n.queue.push(args)
+      n.callMethod ? n.callMethod(...args) : n.queue.push(args)
     })
     if (!f._fbq) f._fbq = n
     n.push = n

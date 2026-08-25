@@ -20,6 +20,7 @@ import { ChangePasswordDto }    from './dto/change-password.dto'
 import { ForgotPasswordDto }    from './dto/forgot-password.dto'
 import { ResetPasswordDto }     from './dto/reset-password.dto'
 import { DeleteAccountDto }     from './dto/delete-account.dto'
+import { AVATAR_UPLOAD_OPTIONS } from './avatar-upload.config'
 
 // ── Cookie helpers ────────────────────────────────────────────────────────────
 
@@ -214,23 +215,7 @@ export class AuthController {
 
   @Post('avatar')
   @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
-  @UseInterceptors(FileInterceptor('avatar', {
-    limits: {
-      fileSize: 1024 * 1024,
-      files: 1,
-      fields: 0,
-      parts: 1,
-      fieldNameSize: 32,
-      fieldSize: 0,
-    },
-    fileFilter: (_req, file, cb) => {
-      if (!['image/jpeg', 'image/jpg'].includes(file.mimetype)) {
-        cb(new BadRequestException('A foto precisa ser um arquivo JPG'), false)
-        return
-      }
-      cb(null, true)
-    },
-  }))
+  @UseInterceptors(FileInterceptor('avatar', AVATAR_UPLOAD_OPTIONS))
   uploadAvatar(@Request() req: any, @UploadedFile() file: any) {
     if (!file) throw new BadRequestException('Envie uma imagem JPG')
     return this.auth.updateAvatar(req.user.id, file.buffer)
