@@ -18,6 +18,7 @@ import { useFeedbackStatus } from '@/hooks/api/testimonial'
 const OnboardingTour = lazy(() => import('@/components/onboarding/OnboardingTour'))
 const FirstSessionCelebration = lazy(() => import('@/components/onboarding/FirstSessionCelebration'))
 const TestimonialModal = lazy(() => import('@/components/features/testimonial/TestimonialModal'))
+const ProductHelpAssistant = lazy(() => import('@/components/features/help/ProductHelpAssistant'))
 
 function useCoreRoutePreload() {
   useEffect(() => {
@@ -448,6 +449,7 @@ export default function AppLayout() {
         <OnboardingTour />
         <FirstSessionCelebration />
         <TestimonialModal open={testimonial.open} onDone={testimonial.close} />
+        <ProductHelpAssistant />
       </Suspense>
       </div>
     </div>
