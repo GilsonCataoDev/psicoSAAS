@@ -496,11 +496,11 @@ export class BookingService {
   }
 
   async confirmByToken(token: string) {
+    // Todo confirmationToken em produção já foi migrado para hash (migration
+    // ProtectPublicTokensAndSensitiveLogs1784590000000 fez backfill de 100% das
+    // linhas) — comparação em texto puro removida.
     const booking = await this.bookings.findOne({
-      where: [
-        { confirmationToken: hashToken(token) },
-        { confirmationToken: token },
-      ],
+      where: { confirmationToken: hashToken(token) },
       relations: ['psychologist'],
     })
     if (!booking) throw new NotFoundException('Link de confirmacao invalido')
@@ -958,11 +958,10 @@ export class BookingService {
   }
 
   private async findByCancellationToken(token: string): Promise<Booking> {
+    // Comparação em texto puro removida — todo cancellationToken/confirmationToken
+    // em produção já foi migrado para hash (ver confirmByToken acima).
     const booking = await this.bookings.findOne({
-      where: [
-        { cancellationCode: hashToken(token) },
-        { cancellationCode: token },
-      ],
+      where: { cancellationCode: hashToken(token) },
       relations: ['psychologist'],
     })
     if (booking) {
@@ -970,11 +969,11 @@ export class BookingService {
       return booking
     }
 
+    // Bookings sem cancellationCode próprio ainda usam o confirmationToken
+    // como identificador de cancelamento — isso é lógica de negócio (não um
+    // fallback de hash legado) e continua necessário.
     const legacyBooking = await this.bookings.findOne({
-      where: [
-        { confirmationToken: hashToken(token), cancellationCode: IsNull() },
-        { confirmationToken: token, cancellationCode: IsNull() },
-      ],
+      where: { confirmationToken: hashToken(token), cancellationCode: IsNull() },
       relations: ['psychologist'],
     })
     if (!legacyBooking) throw new NotFoundException('Link inválido')

@@ -60,8 +60,9 @@ export class DocumentsService {
     const data = `${content}:${userId}:${timestamp}`
     const fullHash = createHmac('sha256', this.signSecret).update(data).digest('hex')
     const year = new Date().getFullYear()
-    // Código curto (8 chars hex) — legível e único na prática
-    const shortCode = fullHash.slice(0, 8).toUpperCase()
+    // Código curto (14 chars hex = 56 bits) — legível e resistente a força bruta
+    // mesmo se o rate-limit da rota de verificação for contornado via múltiplos IPs.
+    const shortCode = fullHash.slice(0, 14).toUpperCase()
     const signCode = `PS-${year}-${shortCode}`
     return { signCode, signHash: fullHash }
   }
@@ -143,7 +144,7 @@ export class DocumentsService {
     // Garante unicidade (colisão improvável mas tratada)
     const exists = await this.repo.findOne({ where: { signCode } })
     const finalCode = exists
-      ? `PS-${new Date().getFullYear()}-${randomBytes(4).toString('hex').toUpperCase()}`
+      ? `PS-${new Date().getFullYear()}-${randomBytes(7).toString('hex').toUpperCase()}`
       : signCode
 
     const doc = this.repo.create({

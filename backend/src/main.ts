@@ -16,6 +16,15 @@ import helmet from 'helmet'
 import * as cookieParser from 'cookie-parser'
 import compression = require('compression')
 
+// Placeholders do backend/.env.example — se algum desses valores chegar em
+// produção, quer dizer que o .env foi copiado sem ser editado. Têm mais de
+// 32 caracteres, então passariam despercebidos pela checagem de comprimento.
+const KNOWN_SECRET_PLACEHOLDERS = new Set([
+  'your-super-secret-jwt-key-change-in-production-min-32-chars',
+  'your-sign-secret-key-change-in-production-min-32-chars',
+  'change-this-encryption-secret-min-32-chars',
+])
+
 async function bootstrap() {
   // ── Validação de variáveis críticas na inicialização ───────────────────────
   const requiredEnv = ['JWT_SECRET', 'DATABASE_URL', 'SIGN_SECRET', 'ENCRYPTION_KEY']
@@ -31,8 +40,18 @@ async function bootstrap() {
   if ((process.env.ENCRYPTION_KEY ?? '').length < 32) {
     throw new Error('ENCRYPTION_KEY deve ter ao menos 32 caracteres')
   }
+  for (const key of ['JWT_SECRET', 'SIGN_SECRET', 'ENCRYPTION_KEY']) {
+    if (KNOWN_SECRET_PLACEHOLDERS.has(process.env[key] ?? '')) {
+      throw new Error(
+        `${key} ainda está com o valor de exemplo do .env.example. Gere um valor real com: openssl rand -hex 32`,
+      )
+    }
+  }
   if (process.env.NODE_ENV === 'production' && !process.env.ASAAS_WEBHOOK_TOKEN) {
     throw new Error('ASAAS_WEBHOOK_TOKEN obrigatório em produção para validar webhooks do Asaas')
+  }
+  if (process.env.NODE_ENV === 'production' && !process.env.ADMIN_EMAILS) {
+    throw new Error('ADMIN_EMAILS obrigatório em produção (sem fallback hardcoded de admin)')
   }
   if (process.env.NODE_ENV === 'production' && process.env.TYPEORM_SYNC === 'true') {
     throw new Error('TYPEORM_SYNC=true é proibido em produção. Use migrations: npm run migration:run')

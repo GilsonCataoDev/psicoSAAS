@@ -25,6 +25,14 @@ import { ReferralService } from '../referral/referral.service'
 import { AsaasService } from '../billing/asaas.service'
 import { AuditService } from '../audit/audit.service'
 import { ProspectLifecycleService } from '../../common/prospect-lifecycle/prospect-lifecycle.service'
+import { PlanAccessService } from '../../common/plan-access/plan-access.service'
+
+/** Campos de UpdatePreferencesDto que só têm efeito em contas com plano Pro
+ * (automação de cobrança/lembrete via WhatsApp). O bloqueio real acontece no
+ * momento do envio (NotificationsService.canUseWhatsAppAutomation), mas
+ * gravá-los para conta Free é defesa em profundidade desnecessária — se
+ * não for Pro, eles são ignorados aqui em vez de persistidos "mortos". */
+const PRO_ONLY_PREFERENCE_FIELDS = ['autoCharge', 'lateReminder', 'chargeTemplate', 'lateReminderTemplate'] as const
 
 // ── Tipagem de retorno ─────────────────────────────────────────────────────────
 export interface AuthTokens {
@@ -77,6 +85,7 @@ export class AuthService {
     private riskEngine:    RiskEngineService,
     private suspicious:    SuspiciousActivityService,
     private storage:       StorageService,
+    private planAccess:    PlanAccessService,
     @Optional() private readonly prospectLifecycle?: ProspectLifecycleService,
   ) {}
 
@@ -387,6 +396,10 @@ export class AuthService {
     if (!user) throw new NotFoundException()
 
     const sanitizedPreferences: Record<string, unknown> = { ...preferences }
+    const wantsProOnlyField = PRO_ONLY_PREFERENCE_FIELDS.some(field => field in sanitizedPreferences)
+    if (wantsProOnlyField && !(await this.planAccess.hasAccess(id, 'pro', user.email))) {
+      for (const field of PRO_ONLY_PREFERENCE_FIELDS) delete sanitizedPreferences[field]
+    }
     const next = { ...(user.preferences ?? {}), ...sanitizedPreferences }
     delete next.asaasApiKey
     user.preferences = next

@@ -1,7 +1,9 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common'
 
 export function getAdminEmails(): string[] {
-  return (process.env.ADMIN_EMAILS ?? 'gilsonfilho96@outlook.com')
+  // Sem fallback hardcoded: se ADMIN_EMAILS não estiver configurada, ninguém
+  // é admin (fail-closed). Em produção, main.ts recusa o boot sem essa env var.
+  return (process.env.ADMIN_EMAILS ?? '')
     .split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
 }
 

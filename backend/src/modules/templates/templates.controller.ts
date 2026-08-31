@@ -5,6 +5,7 @@ import { TemplatesService } from './templates.service'
 import { TemplateType } from './entities/template.entity'
 import { CreateTemplateDto } from './dto/create-template.dto'
 import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
+import { AdminGuard } from '../../common/guards/admin.guard'
 
 @Controller('templates')
 @UseGuards(JwtAuthGuard, NoImpersonationGuard)
@@ -22,7 +23,7 @@ export class TemplatesController {
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard, CsrfGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard, AdminGuard)
   create(@Body() dto: CreateTemplateDto) {
     return this.templates.create(dto)
   }

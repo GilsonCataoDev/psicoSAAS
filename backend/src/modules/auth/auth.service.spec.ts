@@ -15,6 +15,7 @@ import { AuditService } from '../audit/audit.service'
 import { RiskEngineService } from '../../common/security/risk-engine.service'
 import { SuspiciousActivityService } from '../../common/security/suspicious-activity.service'
 import { StorageService } from '../../common/storage/storage.service'
+import { PlanAccessService } from '../../common/plan-access/plan-access.service'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -103,6 +104,7 @@ async function createService(
       { provide: RiskEngineService, useValue: { assessLoginRisk: jest.fn().mockResolvedValue({ score: 0, level: 'low', signals: {} }) } },
       { provide: SuspiciousActivityService, useValue: { isIpBlocked: jest.fn().mockResolvedValue(false), recordFailedAttempt: jest.fn().mockResolvedValue(undefined) } },
       { provide: StorageService,  useValue: storageMock },
+      { provide: PlanAccessService, useValue: { hasAccess: jest.fn().mockResolvedValue(false), getCurrentPlan: jest.fn().mockResolvedValue('free') } },
     ],
   }).compile()
 

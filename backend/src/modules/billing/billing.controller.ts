@@ -1,8 +1,9 @@
-import { Body, Controller, ForbiddenException, Get, Headers, HttpCode, Logger, Post, Request, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, Headers, HttpCode, Logger, Post, Request, UseGuards } from '@nestjs/common'
 import { Throttle } from '@nestjs/throttler'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
+import { AdminGuard } from '../../common/guards/admin.guard'
 import { AsaasService } from './asaas.service'
 import { BillingWebhookService } from './billing-webhook.service'
 import { BillingService } from './billing.service'
@@ -98,11 +99,8 @@ export class BillingController {
   }
 
   @Get('metrics')
-  @UseGuards(JwtAuthGuard)
-  metrics(@Request() req: any) {
-    if (!this.isMetricsAdmin(req.user?.email)) {
-      throw new ForbiddenException('Acesso restrito')
-    }
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  metrics() {
     return this.billing.getMetrics()
   }
 
@@ -122,14 +120,6 @@ export class BillingController {
   @UseGuards(JwtAuthGuard, CsrfGuard)
   acknowledgeUpgradeOffer(@Request() req: any) {
     return this.billing.acknowledgeFreeUpgradeOffer(req.user.id)
-  }
-
-  private isMetricsAdmin(email?: string): boolean {
-    const admins = (process.env.ADMIN_EMAILS ?? 'gilsonfilho96@outlook.com')
-      .split(',')
-      .map(value => value.trim().toLowerCase())
-      .filter(Boolean)
-    return !!email && admins.includes(email.toLowerCase())
   }
 
   @Post('webhook')

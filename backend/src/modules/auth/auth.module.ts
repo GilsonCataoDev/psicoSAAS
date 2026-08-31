@@ -12,6 +12,7 @@ import { LoginAttempt }    from './entities/login-attempt.entity'
 import { ReferralModule }  from '../referral/referral.module'
 import { BillingModule }   from '../billing/billing.module'
 import { AuditModule }     from '../audit/audit.module'
+import { PlanAccessModule } from '../../common/plan-access/plan-access.module'
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { AuditModule }     from '../audit/audit.module'
     forwardRef(() => ReferralModule),
     BillingModule,
     AuditModule,
+    PlanAccessModule,
     // SecurityModule e StorageModule sao @Global() — nao precisam ser importados aqui
   ],
   controllers: [AuthController],

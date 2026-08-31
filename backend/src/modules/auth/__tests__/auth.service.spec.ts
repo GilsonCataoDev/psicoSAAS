@@ -15,6 +15,7 @@ import { AuditService } from '../../audit/audit.service'
 import { RiskEngineService } from '../../../common/security/risk-engine.service'
 import { SuspiciousActivityService } from '../../../common/security/suspicious-activity.service'
 import { StorageService } from '../../../common/storage/storage.service'
+import { PlanAccessService } from '../../../common/plan-access/plan-access.service'
 
 const makeUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-1',
@@ -112,6 +113,7 @@ describe('AuthService', () => {
         { provide: RiskEngineService, useValue: { assessLoginRisk: jest.fn().mockResolvedValue({ level: 'low' }) } },
         { provide: SuspiciousActivityService, useValue: { isIpBlocked: jest.fn().mockResolvedValue(false), recordFailedAttempt: jest.fn().mockResolvedValue(undefined) } },
         { provide: StorageService, useValue: { isConfigured: jest.fn().mockReturnValue(false), upload: jest.fn(), delete: jest.fn(), deleteStrict: jest.fn(), keyFromUrl: jest.fn() } },
+        { provide: PlanAccessService, useValue: { hasAccess: jest.fn().mockResolvedValue(false), getCurrentPlan: jest.fn().mockResolvedValue('free') } },
         {
           provide: DataSource,
           useValue: {

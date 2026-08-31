@@ -1,6 +1,7 @@
 import { BadRequestException, Body, CanActivate, Controller, ExecutionContext, Logger, Post, UseGuards } from '@nestjs/common'
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler'
 import { ProspectingMessageService } from '../messages/prospecting-message.service'
+import { secretsMatch } from '../../../common/crypto/encrypt.util'
 
 export class WebhookAuthGuard implements CanActivate {
   private readonly logger = new Logger(WebhookAuthGuard.name)
@@ -26,7 +27,7 @@ export class WebhookAuthGuard implements CanActivate {
       throw new BadRequestException('Webhook not configured')
     }
 
-    if (token !== expectedSecret) {
+    if (!secretsMatch(token, expectedSecret)) {
       this.logger.warn('webhook_invalid_token')
       throw new BadRequestException('Invalid token')
     }
