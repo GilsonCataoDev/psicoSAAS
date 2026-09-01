@@ -51,6 +51,17 @@ export type SalesConversationAnalysis = {
   reasoning: string
 }
 
+const SALES_FUNNEL_STAGES: ProspectStatus[] = [
+  'discovered',
+  'qualified',
+  'approved',
+  'contacted',
+  'replied',
+  'interested',
+  'registered',
+  'activated',
+]
+
 @Injectable()
 export class ProspectingService {
   private readonly logger = new Logger(ProspectingService.name)
@@ -526,6 +537,61 @@ export class ProspectingService {
     const convBase = await this.buildConversationMetrics()
 
     return { ...base, ...convBase }
+  }
+
+  async pipeline(): Promise<Record<string, any>> {
+    const counts = await this.prospects
+      .createQueryBuilder('p')
+      .select('p.status', 'status')
+      .addSelect('COUNT(*)', 'count')
+      .where('p."deletedAt" IS NULL')
+      .groupBy('p.status')
+      .getRawMany<{ status: ProspectStatus; count: string }>()
+
+    const byStatus = new Map(counts.map(row => [row.status, Number(row.count)]))
+    const firstCount = byStatus.get('discovered') ?? 0
+    let previousCount = firstCount
+    const stages = SALES_FUNNEL_STAGES.map(status => {
+      const count = byStatus.get(status) ?? 0
+      const fromPrevious = previousCount > 0 ? Math.round((count / previousCount) * 1000) / 10 : 0
+      const fromStart = firstCount > 0 ? Math.round((count / firstCount) * 1000) / 10 : 0
+      previousCount = count
+      return { status, count, fromPrevious, fromStart }
+    })
+
+    const conversationRepo = this.prospects.manager.getRepository(ProspectConversation)
+    const messageRepo = this.prospects.manager.getRepository(ProspectMessage)
+    const due = await conversationRepo
+      .createQueryBuilder('c')
+      .leftJoinAndSelect('c.prospect', 'p')
+      .where('c."nextFollowUpAt" IS NOT NULL')
+      .andWhere('c."nextFollowUpAt" <= NOW()')
+      .andWhere('c.status IN (:...statuses)', { statuses: ['approved', 'active', 'paused'] })
+      .andWhere('p."deletedAt" IS NULL')
+      .andWhere('p."doNotContact" = false')
+      .orderBy('c."nextFollowUpAt"', 'ASC')
+      .limit(10)
+      .getMany()
+
+    const awaitingApproval = await messageRepo.count({ where: { status: 'awaiting_approval' } })
+    const noContact = await this.prospects.count({ where: { doNotContact: true } })
+
+    return {
+      stages,
+      awaitingApproval,
+      noContact,
+      dueFollowUps: due.map(item => ({
+        conversationId: item.id,
+        prospectId: item.prospectId,
+        professionalName: item.prospect?.professionalName ?? null,
+        channel: item.channel,
+        status: item.status,
+        nextFollowUpAt: item.nextFollowUpAt,
+        followUpCount: item.followUpCount,
+        lastInboundAt: item.lastInboundAt,
+        lastOutboundAt: item.lastOutboundAt,
+      })),
+    }
   }
 
   private async buildConversationMetrics(): Promise<Record<string, any>> {

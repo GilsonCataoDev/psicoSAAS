@@ -203,4 +203,9 @@ export class ProspectingController {
   metrics() {
     return this.svc.metrics()
   }
+
+  @Get('pipeline')
+  pipeline() {
+    return this.svc.pipeline()
+  }
 }

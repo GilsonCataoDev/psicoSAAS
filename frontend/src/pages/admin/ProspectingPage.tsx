@@ -2,7 +2,7 @@ import { useState } from 'react'
 import {
   Radar, Search, Globe, Linkedin, Users2, X, ShieldOff, Trash2,
   CheckCircle2, XCircle, FileText, Loader2, ExternalLink, MessageSquareText, Sparkles, Copy,
-  LayoutGrid, List,
+  LayoutGrid, List, ArrowRight, Clock3,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import {
@@ -11,7 +11,7 @@ import {
   useDoNotContactProspect, useDeleteProspect, useGenerateDraft, useSuggestReply,
   useAnalyzeSalesConversation, Prospect, ProspectStatus, ProspectSourceType, SearchFilters, ReplyChannel,
   SalesConversationAnalysis,
-  ManualProspectStage, useUpdateProspectStage,
+  ManualProspectStage, useUpdateProspectStage, useProspectingPipeline,
 } from '@/hooks/api/prospecting'
 import { ProspectDetailWithConversations } from '@/components/ProspectDetailWithConversations'
 
@@ -40,6 +40,101 @@ const SOURCE_LABEL: Record<ProspectSourceType, string> = {
 function ScoreBadge({ score }: { score: number }) {
   const color = score >= 60 ? 'bg-emerald-100 text-emerald-700' : score >= 30 ? 'bg-amber-100 text-amber-700' : 'bg-neutral-100 text-neutral-500'
   return <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums ${color}`}>{score}</span>
+}
+
+function SalesPipelineCard({ onSelect }: { onSelect: (id: string) => void }) {
+  const { data: pipeline, isLoading } = useProspectingPipeline()
+  const stages = pipeline?.stages ?? []
+  const hotCount = stages
+    .filter(stage => ['replied', 'interested', 'registered'].includes(stage.status))
+    .reduce((sum, stage) => sum + stage.count, 0)
+
+  return (
+    <section className="rounded-2xl border border-neutral-100 bg-white p-5 shadow-sm">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-sm font-semibold text-neutral-800">Funil operacional</h2>
+          <p className="mt-1 text-xs text-neutral-500">Priorize resposta, follow-up e conversão para teste/pago.</p>
+        </div>
+        <div className="flex flex-wrap gap-2 text-xs">
+          <span className="rounded-full bg-amber-50 px-2.5 py-1 font-semibold text-amber-700">
+            {pipeline?.awaitingApproval ?? 0} aguardando aprovação
+          </span>
+          <span className="rounded-full bg-sage-50 px-2.5 py-1 font-semibold text-sage-700">
+            {hotCount} leads quentes
+          </span>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="mt-4 rounded-xl border border-dashed border-neutral-200 py-8 text-center text-xs text-neutral-400">
+          Carregando funil...
+        </div>
+      ) : (
+        <>
+          <div className="mt-4 grid gap-2 lg:grid-cols-8">
+            {stages.map((stage, index) => (
+              <div key={stage.status} className="rounded-xl border border-neutral-100 bg-neutral-50 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="truncate text-[11px] font-semibold text-neutral-500">{STATUS_LABEL[stage.status]}</p>
+                  {index > 0 && <ArrowRight className="h-3.5 w-3.5 text-neutral-300" />}
+                </div>
+                <p className="mt-2 text-2xl font-bold tabular-nums text-neutral-800">{stage.count}</p>
+                <p className="mt-1 text-[11px] text-neutral-400">
+                  {index === 0 ? 'entrada' : `${stage.fromPrevious}% da etapa anterior`}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4 grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
+            <div className="rounded-xl border border-neutral-100 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="flex items-center gap-1.5 text-xs font-semibold text-neutral-700">
+                  <Clock3 className="h-3.5 w-3.5 text-amber-600" /> Follow-ups vencidos
+                </p>
+                <span className="text-[11px] text-neutral-400">{pipeline?.dueFollowUps.length ?? 0} pendente(s)</span>
+              </div>
+              <div className="mt-2 space-y-2">
+                {pipeline?.dueFollowUps.slice(0, 5).map(item => (
+                  <button
+                    key={item.conversationId}
+                    type="button"
+                    onClick={() => onSelect(item.prospectId)}
+                    className="flex w-full items-center justify-between gap-3 rounded-lg bg-amber-50 px-3 py-2 text-left hover:bg-amber-100"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-semibold text-neutral-800">{item.professionalName ?? 'Lead sem nome'}</p>
+                      <p className="text-[11px] text-neutral-500">
+                        {item.channel} · {new Date(item.nextFollowUpAt).toLocaleDateString('pt-BR')}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-white px-2 py-1 text-[10px] font-semibold text-amber-700">
+                      #{item.followUpCount + 1}
+                    </span>
+                  </button>
+                ))}
+                {pipeline?.dueFollowUps.length === 0 && (
+                  <p className="rounded-lg border border-dashed border-neutral-200 py-6 text-center text-xs text-neutral-400">
+                    Nenhum follow-up vencido.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-neutral-100 p-3">
+              <p className="text-xs font-semibold text-neutral-700">Leitura rápida</p>
+              <div className="mt-3 space-y-2 text-xs text-neutral-500">
+                <p>Atacar primeiro: leads em <strong>Responderam</strong> e <strong>Interessados</strong>.</p>
+                <p>Depois: aprovar mensagens pendentes e puxar quem está parado em <strong>Contatados</strong>.</p>
+                <p>Lista de não contato: <strong>{pipeline?.noContact ?? 0}</strong>. Não insistir.</p>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </section>
+  )
 }
 
 const STAGE_LABEL: Record<SalesConversationAnalysis['stage'], string> = {
@@ -571,6 +666,8 @@ export default function ProspectingPage() {
           ))}
         </div>
       )}
+
+      <SalesPipelineCard onSelect={setSelectedId} />
 
       <SalesAssistantCard />
 

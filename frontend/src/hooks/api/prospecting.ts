@@ -102,10 +102,44 @@ export interface ProspectingMetrics {
   [status: string]: number | undefined
 }
 
+export interface ProspectingPipelineStage {
+  status: ProspectStatus
+  count: number
+  fromPrevious: number
+  fromStart: number
+}
+
+export interface ProspectingDueFollowUp {
+  conversationId: string
+  prospectId: string
+  professionalName: string | null
+  channel: 'whatsapp' | 'email' | 'instagram' | 'manual'
+  status: string
+  nextFollowUpAt: string
+  followUpCount: number
+  lastInboundAt: string | null
+  lastOutboundAt: string | null
+}
+
+export interface ProspectingPipeline {
+  stages: ProspectingPipelineStage[]
+  awaitingApproval: number
+  noContact: number
+  dueFollowUps: ProspectingDueFollowUp[]
+}
+
 export function useProspectingMetrics() {
   return useQuery<ProspectingMetrics>({
     queryKey: ['admin', 'prospecting', 'metrics'],
     queryFn: () => api.get('/admin/prospecting/metrics').then(r => r.data),
+    refetchInterval: 60_000,
+  })
+}
+
+export function useProspectingPipeline() {
+  return useQuery<ProspectingPipeline>({
+    queryKey: ['admin', 'prospecting', 'pipeline'],
+    queryFn: () => api.get('/admin/prospecting/pipeline').then(r => r.data),
     refetchInterval: 60_000,
   })
 }
