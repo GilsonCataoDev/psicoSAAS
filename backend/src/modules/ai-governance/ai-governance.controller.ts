@@ -14,13 +14,13 @@ export class AiGovernanceController {
 
   @Get(':scope')
   status(@Req() req: any, @Param('scope') value: string, @Query('patientId') patientId?: string) {
-    return this.consents.status(req.user.id, this.scope(value), patientId)
+    return this.consents.status(req.user.id, this.scope(value), patientId, req.user.profession)
   }
 
   @Post(':scope')
   @UseGuards(CsrfGuard)
   accept(@Req() req: any & Request, @Param('scope') value: string, @Body() dto: RecordAiConsentDto) {
-    return this.consents.accept(req.user.id, this.scope(value), dto, this.context(req))
+    return this.consents.accept(req.user.id, this.scope(value), dto, this.context(req), req.user.profession)
   }
 
   @Delete(':scope')

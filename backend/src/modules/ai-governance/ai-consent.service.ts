@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { IsNull, Repository } from 'typeorm'
 import { Patient } from '../patients/entities/patient.entity'
 import { AiConsentEvent, AiConsentScope } from './entities/ai-consent-event.entity'
-import { AI_CONSENT_TEXTS } from './ai-consent-texts'
+import { aiConsentText } from './ai-consent-texts'
 
 type Context = { ip?: string; userAgent?: string }
 
@@ -14,13 +14,26 @@ export class AiConsentService {
     @InjectRepository(Patient) private readonly patients: Repository<Patient>,
   ) {}
 
-  async status(psychologistId: string, scope: AiConsentScope, patientId?: string) {
+  /**
+   * Devolve o texto canonico junto do status: e a mesma chamada que a tela ja
+   * faz antes de pedir o consentimento, entao o frontend nao precisa (nem
+   * pode) ter copia propria do texto.
+   */
+  async status(psychologistId: string, scope: AiConsentScope, patientId?: string, profession?: string | null) {
     await this.assertPatient(psychologistId, patientId)
     const event = await this.events.findOne({
       where: { psychologistId, scope, patientId: patientId ?? IsNull() },
       order: { createdAt: 'DESC' },
     })
-    return { active: event?.action === 'accepted', acceptedAt: event?.action === 'accepted' ? event.createdAt : null, textVersion: event?.textVersion ?? null }
+    const canonical = aiConsentText(scope, profession)
+    return {
+      active: event?.action === 'accepted',
+      acceptedAt: event?.action === 'accepted' ? event.createdAt : null,
+      textVersion: event?.textVersion ?? null,
+      // Texto a exibir e a devolver no aceite — o backend compara byte a byte.
+      text: canonical.text,
+      version: canonical.version,
+    }
   }
 
   async assertActive(psychologistId: string, scope: AiConsentScope, patientId?: string): Promise<void> {
@@ -35,9 +48,9 @@ export class AiConsentService {
     }
   }
 
-  async accept(psychologistId: string, scope: AiConsentScope, dto: any, context: Context) {
+  async accept(psychologistId: string, scope: AiConsentScope, dto: any, context: Context, profession?: string | null) {
     await this.assertPatient(psychologistId, dto.patientId)
-    const canonical = AI_CONSENT_TEXTS[scope]
+    const canonical = aiConsentText(scope, profession)
     if (dto.textVersion !== canonical.version || dto.textSnapshot !== canonical.text) {
       throw new BadRequestException('Texto ou versao de consentimento invalido')
     }

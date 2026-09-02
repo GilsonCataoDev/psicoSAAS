@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Mic, MicOff, Loader2, Sparkles, AlertCircle, Video } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { AI_CONSENT_TEXT, useAcceptAiConsent, useTranscribeAudio, useTranscribeCall, useGenerateAiSummary } from '@/hooks/useApi'
+import { useAiConsent, useAcceptAiConsent, useTranscribeAudio, useTranscribeCall, useGenerateAiSummary } from '@/hooks/useApi'
 import { useHasPlan } from '@/store/subscription'
 import { cleanupMediaRecorder, selectSupportedAudioMimeType, stopMediaStreams } from './voice-capture'
 import { useTerms } from '@/hooks/useTerms'
@@ -54,6 +54,8 @@ export default function RecordingPanel({
   const transcribeMic = useTranscribeAudio()
   const transcribeCall = useTranscribeCall()
   const generateSummary = useGenerateAiSummary()
+  // Traz o texto canônico do backend — é ele que o aceite devolve byte a byte.
+  const { data: recordingConsent } = useAiConsent('session_recording_transcription', patientId)
   const acceptRecordingConsent = useAcceptAiConsent('session_recording_transcription', patientId)
 
   function clearTimer() {
@@ -282,7 +284,7 @@ export default function RecordingPanel({
             className="mt-0.5 h-4 w-4 rounded border-amber-400 accent-sage-600"
           />
           <span className="text-xs text-amber-800">
-            {AI_CONSENT_TEXT.session_recording_transcription.text}
+            {recordingConsent?.text}
           </span>
         </label>
         <div className="flex gap-2">

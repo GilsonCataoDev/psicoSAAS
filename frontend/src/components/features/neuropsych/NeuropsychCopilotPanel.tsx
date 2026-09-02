@@ -4,7 +4,7 @@ import toast from 'react-hot-toast'
 import { AlertTriangle, Copy, Lock, PlusCircle, RefreshCw, ShieldCheck, Sparkles, Trash2 } from 'lucide-react'
 import {
   useDeleteNeuropsychAiAnalysis, useGenerateNeuropsychAiAnalysis,
-  AI_CONSENT_TEXT, useNeuropsychAiAnalyses, useNeuropsychAiUsage, useAcceptAiConsent, useAiConsent,
+  useNeuropsychAiAnalyses, useNeuropsychAiUsage, useAcceptAiConsent, useAiConsent,
 } from '@/hooks/useApi'
 import { useHasPlan } from '@/store/subscription'
 import { renderNeuropsychAiAnalysisAsText } from '@/lib/neuropsychAiText'
@@ -215,7 +215,7 @@ export default function NeuropsychCopilotPanel({ assessment, onAddToDraft }: Pro
         <div className="space-y-4 text-sm text-neutral-700 dark:text-neutral-300">
           <p>Os campos selecionados são enviados ao provedor de IA configurado somente depois da redução de identificadores diretos. Isso é pseudonimização, não anonimização garantida.</p>
           <p className="rounded-xl border border-violet-200 bg-violet-50 p-3 font-medium text-violet-900 dark:border-violet-800 dark:bg-violet-950/30 dark:text-violet-100">
-            {AI_CONSENT_TEXT.neuropsych_ai.text}
+            {consent?.text}
           </p>
           <div className="flex justify-end gap-2">
             <button onClick={() => setShowConsentModal(false)} className="btn-secondary">Cancelar</button>

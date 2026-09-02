@@ -2,22 +2,21 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 
 export type AiConsentScope = 'clinical_ai_processing' | 'session_recording_transcription' | 'neuropsych_ai'
-export type AiConsentStatus = { active: boolean; acceptedAt: string | null; textVersion: string | null }
+export type AiConsentStatus = {
+  active: boolean
+  acceptedAt: string | null
+  /** Versao que o profissional aceitou, se ja aceitou. */
+  textVersion: string | null
+  /** Texto canonico a exibir e devolver no aceite. */
+  text: string
+  /** Versao canonica atual para a profissao da conta. */
+  version: string
+}
 
-export const AI_CONSENT_TEXT = {
-  clinical_ai_processing: {
-    version: 'clinical-ai-v1',
-    text: 'Confirmo que entendi que os dados clinicos selecionados serao pseudonimizados e processados por um provedor externo de IA. A resposta e apenas um rascunho, deve ser revisada e nao substitui minha responsabilidade profissional.',
-  },
-  session_recording_transcription: {
-    version: 'recording-transcription-v1',
-    text: 'Confirmo que o paciente autorizou a gravacao e a transcricao desta sessao. O audio sera processado somente para transcricao e nao sera armazenado pelo UseCognia.',
-  },
-  neuropsych_ai: {
-    version: 'neuropsych-ai-v1',
-    text: 'Confirmo que entendi os limites do Copiloto Neuropsicologico: os dados selecionados serao pseudonimizados, a IA nao corrige testes protegidos nem produz diagnostico definitivo, e toda conclusao sera revisada por mim.',
-  },
-} as const
+// O texto do consentimento NÃO vive aqui: vem do backend junto do status
+// (campos `text` e `version`). Ter cópia local significava que qualquer
+// divergência com o backend impedia o profissional de consentir — o aceite é
+// comparado byte a byte no servidor — e derrubava a gravação de sessão.
 
 const key = (scope: AiConsentScope, patientId?: string) => ['ai-consent', scope, patientId ?? 'global']
 
@@ -29,15 +28,27 @@ export function useAiConsent(scope: AiConsentScope, patientId?: string, enabled 
   })
 }
 
+/**
+ * Devolve exatamente o texto e a versão que o backend entregou no status —
+ * nunca uma constante local. Se o status ainda não carregou, o aceite falha
+ * cedo aqui em vez de mandar um snapshot vazio que o servidor recusaria.
+ */
 export function useAcceptAiConsent(scope: AiConsentScope, patientId?: string) {
   const qc = useQueryClient()
+  const consent = useAiConsent(scope, patientId)
   return useMutation({
-    mutationFn: () => api.post<AiConsentStatus>(`/ai-governance/consents/${scope}`, {
-      patientId,
-      textVersion: AI_CONSENT_TEXT[scope].version,
-      textSnapshot: AI_CONSENT_TEXT[scope].text,
-      source: scope === 'session_recording_transcription' ? 'professional_attestation' : 'professional_acknowledgement',
-    }).then(r => r.data),
+    mutationFn: () => {
+      const canonical = consent.data
+      if (!canonical?.text || !canonical?.version) {
+        return Promise.reject(new Error('Texto de consentimento ainda não carregado. Tente novamente.'))
+      }
+      return api.post<AiConsentStatus>(`/ai-governance/consents/${scope}`, {
+        patientId,
+        textVersion: canonical.version,
+        textSnapshot: canonical.text,
+        source: scope === 'session_recording_transcription' ? 'professional_attestation' : 'professional_acknowledgement',
+      }).then(r => r.data)
+    },
     onSuccess: data => qc.setQueryData(key(scope, patientId), data),
   })
 }

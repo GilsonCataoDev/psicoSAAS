@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Download, Lock, Save, FileText, Pencil, X, Sparkles, Send, Search, History, PlusCircle, Trash2, MessageSquarePlus } from 'lucide-react'
 import {
-  AI_CONSENT_TEXT, useAcceptAiConsent, useAiConsent, usePatient, useUpdatePatient,
+  useAcceptAiConsent, useAiConsent, usePatient, useUpdatePatient,
   useSessions, useCreateSession, useUpdateSession, useExportProntuario, useGenerateProntuarioDraft, useGenerateSessionPlan,
   useSessionHistory, useAddAddendum, useSnippets, useCreateSnippet, useDeleteSnippet,
 } from '@/hooks/useApi'
@@ -223,7 +223,12 @@ export default function ProntuarioPage() {
 
   async function ensureClinicalAiConsent(): Promise<boolean> {
     if (clinicalAiConsent?.active) return true
-    if (!window.confirm(`${AI_CONSENT_TEXT.clinical_ai_processing.text}\n\nDeseja ativar agora?`)) return false
+    // Texto canônico vem do backend; sem ele o aceite seria recusado no servidor.
+    if (!clinicalAiConsent?.text) {
+      toast.error('Não foi possível carregar o termo de consentimento. Tente novamente.')
+      return false
+    }
+    if (!window.confirm(`${clinicalAiConsent.text}\n\nDeseja ativar agora?`)) return false
     await acceptClinicalAiConsent.mutateAsync()
     return true
   }
