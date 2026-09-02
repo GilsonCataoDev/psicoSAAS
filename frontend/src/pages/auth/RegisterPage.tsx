@@ -333,7 +333,7 @@ export default function RegisterPage() {
           {errors.password && <p className="text-rose-500 text-xs mt-1">{errors.password.message}</p>}
         </div>
 
-        {!isStudent && (
+        {showCrp && !isStudent && (
         <div className="flex items-start gap-2 pt-1">
           <input
             {...register('crpConfirmed')}

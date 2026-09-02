@@ -54,8 +54,9 @@ export class Document {
   @Column({ type: 'text', transformer: encryptedTextTransformer })
   psychologistName: string
 
-  @Column()
-  psychologistCrp: string
+  /** CRP e do conselho de psicologia: nulo nas demais profissoes. */
+  @Column({ nullable: true, type: 'varchar' })
+  psychologistCrp: string | null
 
   @CreateDateColumn()
   createdAt: Date

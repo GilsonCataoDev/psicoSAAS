@@ -15,6 +15,7 @@ export type Terms = {
   patient: string
   patientCapitalized: string
   patients: string
+  patientsCapitalized: string
   session: string
   sessionCapitalized: string
   sessions: string
@@ -45,6 +46,7 @@ const TERMS: Record<'psicologia' | 'generico', Terms> = {
     patient: 'paciente',
     patientCapitalized: 'Paciente',
     patients: 'pacientes',
+    patientsCapitalized: 'Pacientes',
     session: 'sessão',
     sessionCapitalized: 'Sessão',
     sessions: 'sessões',
@@ -63,6 +65,7 @@ const TERMS: Record<'psicologia' | 'generico', Terms> = {
     patient: 'cliente',
     patientCapitalized: 'Cliente',
     patients: 'clientes',
+    patientsCapitalized: 'Clientes',
     session: 'atendimento',
     sessionCapitalized: 'Atendimento',
     sessions: 'atendimentos',

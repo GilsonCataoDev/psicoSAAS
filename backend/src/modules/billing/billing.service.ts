@@ -4,12 +4,19 @@ import { DataSource, In, Repository } from 'typeorm'
 import { User } from '../auth/entities/user.entity'
 import { AsaasService } from './asaas.service'
 import { Subscription } from './entities/subscription.entity'
+import { termsFor } from '../../common/terms'
+import { hasPsychologyModules } from '../../common/professions'
 import { isCompedProEmail, LATEST_SUBSCRIPTION_ORDER, PLAN_PRICES } from '../../common/plans'
 
 const TRIAL_DAYS = 14
 const ACTIVATION_OFFER_CODE = 'PRO3490'
 const ACTIVATION_OFFER_VALUE = 34.90
 const REFERRAL_OFFER_CODE = 'INDICACAO20'
+/** Formata no padrao brasileiro: 97.90 -> "97,90". */
+function brl(value: number): string {
+  return value.toFixed(2).replace('.', ',')
+}
+
 const BETA_FREE_ACCESS = process.env.BETA_FREE_ACCESS !== 'false'
 
 @Injectable()
@@ -239,11 +246,12 @@ export class BillingService {
     return this.toPublicSubscription(await this.repo.save(subscription))
   }
 
-  async getFreeUpgradeOffer(user: Pick<User, 'id' | 'email'>) {
+  async getFreeUpgradeOffer(user: Pick<User, 'id' | 'email' | 'profession'>) {
     const subscription = await this.repo.findOne({
       where: { userId: user.id },
       order: LATEST_SUBSCRIPTION_ORDER,
     })
+    const t = termsFor(user.profession)
     const plan = subscription?.plan ?? 'free'
     const activeFree = subscription?.status === 'active' && plan === 'free'
 
@@ -257,15 +265,24 @@ export class BillingService {
       regularPrice: PLAN_PRICES.pro,
       includesTrial: eligible && !subscription?.hasUsedTrial,
       discount: eligible ? {
-        pro: '1º mês por R$ 34,90; depois R$ 97,90/mês',
+        // Derivado das constantes: preco anunciado nao pode divergir do cobrado.
+        pro: `1º mês por R$ ${brl(ACTIVATION_OFFER_VALUE)}; depois R$ ${brl(PLAN_PRICES.pro)}/mês`,
       } : null,
       title: 'O UseCognia Pro ficou ainda mais completo',
       message: 'Conheça as novidades e organize toda a rotina clínica em um só lugar.',
-      benefits: [
-        'Pacientes ilimitados, prontuário, documentos e financeiro completo',
-        'WhatsApp, lembretes, teleatendimento e Google Agenda',
-        'Instrumentos, avaliação neuropsicológica e apoio de IA',
-      ],
+      // Instrumentos e avaliacao neuropsicologica sao psi-only: anunciar isso a
+      // outra profissao seria vender um recurso que a conta nem enxerga.
+      benefits: hasPsychologyModules(user.profession)
+        ? [
+          'Pacientes ilimitados, prontuário, documentos e financeiro completo',
+          'WhatsApp, lembretes, teleatendimento e Google Agenda',
+          'Instrumentos, avaliação neuropsicológica e apoio de IA',
+        ]
+        : [
+          `${t.patientsCapitalized} ilimitados, ${t.record}, documentos e financeiro completo`,
+          'WhatsApp, lembretes, teleatendimento e Google Agenda',
+          'Apoio de IA na rotina de atendimento',
+        ],
     }
   }
 
@@ -469,7 +486,7 @@ export class BillingService {
   }
 
   private async getApplicablePromotion(
-    user: Pick<User, 'id' | 'email'>,
+    user: Pick<User, 'id' | 'email' | 'profession'>,
     plan: string,
     existing?: Subscription | null,
   ): Promise<{ code: string; discountPercent: number; cycles: number; fixedValue?: number } | null> {

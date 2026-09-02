@@ -175,7 +175,7 @@ export class DocumentsService {
       signedAt: new Date(timestamp),
       signerIp,
       psychologistName: user.name,
-      psychologistCrp: user.crp,
+      psychologistCrp: user.crp ?? null,
     })
 
     const saved = await this.repo.save(doc)
@@ -319,7 +319,7 @@ export class DocumentsService {
     pdf.fillColor(ink).font('Helvetica-Bold').fontSize(8.4)
       .text(stored.psychologistName, left + 14, metaTop + 24, { width: 185, lineBreak: false })
     pdf.fillColor(muted).font('Helvetica').fontSize(7)
-      .text(`CRP ${stored.psychologistCrp}`, left + 14, metaTop + 36, { width: 185, lineBreak: false })
+      .text(stored.psychologistCrp ? `CRP ${stored.psychologistCrp}` : '', left + 14, metaTop + 36, { width: 185, lineBreak: false })
 
     pdf.strokeColor('#EDF1EE').lineWidth(1).moveTo(left + 210, metaTop + 9).lineTo(left + 210, metaTop + 39).stroke()
     pdf.fillColor(muted).font('Helvetica-Bold').fontSize(6.4)
@@ -373,7 +373,7 @@ export class DocumentsService {
     pdf.fillColor(ink).font('Helvetica-Bold').fontSize(8.8)
       .text(stored.psychologistName, left + 18, signatureY + 47, { width: 250, lineBreak: false })
     pdf.fillColor(muted).font('Helvetica').fontSize(7.2)
-      .text(`Psicólogo(a) - CRP ${stored.psychologistCrp}`, left + 18, signatureY + 60, { width: 250, lineBreak: false })
+      .text(stored.psychologistCrp ? `Psicólogo(a) - CRP ${stored.psychologistCrp}` : 'Profissional responsável', left + 18, signatureY + 60, { width: 250, lineBreak: false })
       .text(`Assinado digitalmente em ${issuedAt}`, left + 18, signatureY + 72, { width: 250, lineBreak: false })
 
     const qrX = right - 80
