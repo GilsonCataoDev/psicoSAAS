@@ -637,7 +637,7 @@ export default function DashboardPage() {
                     {appt.status !== 'completed' && (
                       <button
                         onClick={() => setSessionDefaults({ patientId: appt.patientId, date: appt.date, appointmentId: appt.id, modality: appt.modality })}
-                        title="Preparar ou registrar sessão"
+                        title={`Preparar ou registrar ${t.session}`}
                         className="opacity-100 transition-opacity flex items-center gap-1 rounded-xl bg-sage-50 border border-sage-200 px-2 py-1 text-xs font-medium text-sage-700 hover:bg-sage-100 dark:border-sage-300/20 dark:bg-sage-400/10 dark:text-sage-100 dark:hover:bg-sage-400/15 sm:opacity-0 sm:group-hover:opacity-100"
                       >
                         <NotebookPen className="w-3 h-3" /> Preparar
@@ -696,7 +696,7 @@ export default function DashboardPage() {
       {recentSessions.length > 0 && (
         <div className="card">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="section-title mb-0">Sessões recentes</h2>
+            <h2 className="section-title mb-0">{t.sessionsCapitalized} recentes</h2>
             <Link to="/sessoes"
               className="flex items-center gap-1 text-xs font-medium text-sage-600 hover:text-sage-700 transition-colors dark:text-sage-300 dark:hover:text-sage-200">
               Ver todas <ArrowRight className="w-3 h-3" />

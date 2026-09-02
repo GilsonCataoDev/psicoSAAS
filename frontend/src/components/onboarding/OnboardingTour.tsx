@@ -4,26 +4,29 @@ import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
+import { useTerms } from '@/hooks/useTerms'
+import type { Terms } from '@/lib/terms'
 
-const steps = [
+function buildSteps(t: Terms) {
+  return [
   {
     icon: Sparkles,
     title: 'Bem-vindo ao UseCognia',
-    text: 'Aqui voce controla agenda, pacientes, prontuario e financeiro em um fluxo simples.',
+    text: `Aqui voce controla agenda, ${t.patients}, ${t.record} e financeiro em um fluxo simples.`,
     cta: 'Comecar',
     path: '/',
   },
   {
     icon: Users,
-    title: 'Crie seu primeiro paciente',
+    title: `Crie seu primeiro ${t.patient}`,
     text: 'Use apenas nome e WhatsApp para sair do zero rapido. O resto pode completar depois.',
-    cta: 'Criar paciente agora',
+    cta: `Criar ${t.patient} agora`,
     path: '/pacientes?new=1',
   },
   {
     icon: CalendarDays,
     title: 'Agende a primeira sessao',
-    text: 'Depois de criar o paciente, marque uma sessao na agenda visual.',
+    text: `Depois de criar o ${t.patient}, marque um atendimento na agenda visual.`,
     cta: 'Agendar agora',
     path: '/agenda?new=1',
   },
@@ -48,15 +51,18 @@ const steps = [
     cta: 'Concluir',
     path: '/',
   },
-]
+  ]
+}
 
 export default function OnboardingTour() {
+  const t = useTerms()
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const updateUser = useAuthStore((s) => s.updateUser)
   const [saving, setSaving] = useState(false)
+  const steps = useMemo(() => buildSteps(t), [t])
   const currentStep = Math.min(user?.onboardingStep ?? 0, steps.length - 1)
-  const step = useMemo(() => steps[currentStep], [currentStep])
+  const step = useMemo(() => steps[currentStep], [steps, currentStep])
 
   if (!user || user.firstLogin === false) return null
 

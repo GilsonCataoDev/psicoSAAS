@@ -102,7 +102,7 @@ export class DocumentsController {
   @Get(':id/pdf')
   @UseGuards(JwtAuthGuard, NoImpersonationGuard)
   async pdf(@Param('id') id: string, @Req() req: any, @Res() res: Response) {
-    const { filename, buffer } = await this.svc.generatePdf(id, req.user.id)
+    const { filename, buffer } = await this.svc.generatePdf(id, req.user.id, req.user.profession)
     await this.record(req, 'document.pdf_downloaded', 'document', id, { filename })
     res.set({
       'Content-Type': 'application/pdf',

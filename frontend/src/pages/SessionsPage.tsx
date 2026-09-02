@@ -157,7 +157,7 @@ export default function SessionsPage() {
                   <button
                     onClick={() => setSessionToDelete(session)}
                     className="sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-rose-50 text-neutral-300 hover:text-rose-500"
-                    title="Excluir sessão"
+                    title={`Excluir ${t.session}`}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -179,9 +179,9 @@ export default function SessionsPage() {
       </Suspense>
       <ConfirmDialog
         open={!!sessionToDelete}
-        title="Excluir sessão"
+        title={`Excluir ${t.session}`}
         description={`Excluir a ${t.session} de ${sessionToDelete?.patient?.name ?? `${t.patient} removido`}? O registro clínico será removido definitivamente.`}
-        confirmLabel="Excluir sessão"
+        confirmLabel={`Excluir ${t.session}`}
         loading={deleteSession.isPending}
         onClose={() => setSessionToDelete(null)}
         onConfirm={handleDelete}

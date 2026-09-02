@@ -11,6 +11,7 @@ import { User } from '../auth/entities/user.entity'
 import { PLAN_LIMITS } from '../../common/plans'
 import { PlanAccessService } from '../../common/plan-access/plan-access.service'
 import { EmailService } from '../email/email.service'
+import { termsFor } from '../../common/terms'
 
 export interface CreateDocumentDto {
   patientId: string
@@ -214,7 +215,8 @@ export class DocumentsService {
     return this.exposeDocument(doc)
   }
 
-  async generatePdf(id: string, userId: string): Promise<{ filename: string; buffer: Buffer }> {
+  async generatePdf(id: string, userId: string, profession?: string): Promise<{ filename: string; buffer: Buffer }> {
+    const t = termsFor(profession)
     const stored = await this.repo.findOne({ where: { id } })
     if (!stored) throw new NotFoundException()
     if (stored.userId !== userId) throw new NotFoundException()
@@ -266,7 +268,7 @@ export class DocumentsService {
       pdf.fillColor(sageDark).font('Helvetica-Bold').fontSize(11)
         .text('UseCognia', left, 28, { width: 130, lineBreak: false })
       pdf.fillColor(muted).font('Helvetica').fontSize(7)
-        .text('Documento psicológico com verificação digital', left, 45, { width: 245, lineBreak: false })
+        .text(`Documento ${t.documentKind} com verificação digital`, left, 45, { width: 245, lineBreak: false })
 
       pdf.fillColor(ink).font('Helvetica-Bold').fontSize(15.5)
         .text(DOC_TYPE_LABELS[stored.type].toUpperCase(), left, 63, { width: contentWidth - 172, lineBreak: false })

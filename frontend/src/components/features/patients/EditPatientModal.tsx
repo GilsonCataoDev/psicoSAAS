@@ -7,6 +7,8 @@ import Modal from '@/components/ui/Modal'
 import { useUpdatePatient } from '@/hooks/useApi'
 import { EmotionalTag, Patient, TAG_LABELS } from '@/types'
 import { useTerms } from '@/hooks/useTerms'
+import { hasPsychologyModules } from '@/lib/professions'
+import { useAuthStore } from '@/store/auth'
 
 const TAG_VALUES = Object.keys(TAG_LABELS) as [EmotionalTag, ...EmotionalTag[]]
 
@@ -72,6 +74,7 @@ interface EditPatientModalProps {
 
 export default function EditPatientModal({ open, onClose, patient }: EditPatientModalProps) {
   const t = useTerms()
+  const showCareMode = hasPsychologyModules(useAuthStore(s => s.user?.profession))
   const updatePatient = useUpdatePatient()
   const {
     register,
@@ -148,14 +151,17 @@ export default function EditPatientModal({ open, onClose, patient }: EditPatient
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <label className="label">Modo de atendimento</label>
-            <select {...register('careMode')} className="input-field">
-              <option value="psychotherapy">Psicoterapia</option>
-              <option value="neuropsychological_assessment">Avaliação neuropsicológica</option>
-            </select>
-            <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">A troca organiza a interface e não apaga nenhum histórico.</p>
-          </div>
+          {/* Distincao de psicologia — as demais profissoes ficam no modo continuo. */}
+          {showCareMode && (
+            <div className="sm:col-span-2">
+              <label className="label">Modo de atendimento</label>
+              <select {...register('careMode')} className="input-field">
+                <option value="psychotherapy">Psicoterapia</option>
+                <option value="neuropsychological_assessment">Avaliação neuropsicológica</option>
+              </select>
+              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">A troca organiza a interface e não apaga nenhum histórico.</p>
+            </div>
+          )}
           <div className="sm:col-span-2">
             <label className="label">Nome completo *</label>
             <input {...register('name')} autoFocus className="input-field" placeholder="Nome completo" />

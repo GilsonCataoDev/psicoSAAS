@@ -2,6 +2,7 @@ import { type UseMutationResult } from '@tanstack/react-query'
 import { type Template } from '@/hooks/api/templates'
 import { Toggle } from './Toggle'
 import { type Prefs } from './types'
+import { useTerms } from '@/hooks/useTerms'
 
 interface Props {
   prefs: Prefs
@@ -27,6 +28,7 @@ export function PaymentTab({
   prefs, setPref, togglePref, savingPrefs, hasProAutomation,
   receiptTemplates, createTemplate, savePrefs, saveTemplate,
 }: Props) {
+  const t = useTerms()
   return (
     <div className="space-y-5">
       {!hasProAutomation && (
@@ -64,7 +66,7 @@ export function PaymentTab({
       <div className="card space-y-4">
         <h2 className="section-title">Cobranças automáticas</h2>
         {([
-          { key: 'autoCharge',     label: 'Enviar cobrança após sessão',           desc: 'Mensagem automática com o valor e chave PIX' },
+          { key: 'autoCharge',     label: `Enviar cobrança após ${t.session}`,           desc: 'Mensagem automática com o valor e chave PIX' },
           { key: 'lateReminder',   label: 'Lembrete de pagamento em atraso',        desc: 'Avisa após 3 dias sem pagamento' },
           { key: 'includeReceipt', label: 'Incluir comprovante no registro',        desc: 'Solicita comprovante ao confirmar pagamento' },
         ] as const).map(item => (

@@ -1,3 +1,4 @@
+import type { Terms } from '@/lib/terms'
 export const LEGACY_DEFAULT_REMINDER_1H_TEMPLATE = 'Ola, {{nome}}! Passando para lembrar que nossa sessao acontece em {{data}} as {{hora}}. Ate daqui a pouco!'
 
 export const DEFAULT_PREFS = {
@@ -56,14 +57,20 @@ export type WhatsAppStatus = {
   profileName?: string | null
 }
 
-export const AUDIT_LABELS: Record<string, string> = {
-  'patient.viewed': 'Paciente visualizado',
-  'patient.created': 'Paciente criado',
-  'patient.updated': 'Paciente atualizado',
-  'patient.deleted': 'Paciente excluido',
+/**
+ * Rotulos do log de auditoria. Recebe os termos porque metade deles cita
+ * paciente/cliente — nao pode ser um Record fixo em modulo.
+ */
+export function auditLabels(t: Terms): Record<string, string> {
+  return {
+  'patient.viewed': `${t.patientCapitalized} visualizado`,
+  'patient.created': `${t.patientCapitalized} criado`,
+  'patient.updated': `${t.patientCapitalized} atualizado`,
+  'patient.deleted': `${t.patientCapitalized} excluido`,
   'document.created': 'Documento criado',
   'document.pdf_downloaded': 'PDF baixado',
   'document.email_sent': 'Documento enviado por email',
   'document.deleted': 'Documento excluido',
   'data_export.downloaded': 'Exportacao de dados baixada',
+  }
 }

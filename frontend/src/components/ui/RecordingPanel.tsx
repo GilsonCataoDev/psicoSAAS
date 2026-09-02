@@ -418,7 +418,7 @@ export default function RecordingPanel({
         title="Transcrição por IA disponível a partir do plano Pro"
         className="flex items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs text-neutral-400"
       >
-        <Mic className="h-3.5 w-3.5" /> Gravar sessão
+        <Mic className="h-3.5 w-3.5" /> Gravar {t.session}
       </button>
     )
   }
@@ -427,7 +427,7 @@ export default function RecordingPanel({
     <div className="flex items-center gap-2">
       <button type="button" onClick={() => openConsent('mic')}
         className="flex items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs text-neutral-500 hover:border-sage-300 hover:text-sage-700">
-        <Mic className="h-3.5 w-3.5" /> Gravar sessão
+        <Mic className="h-3.5 w-3.5" /> Gravar {t.session}
       </button>
       {allowCallCapture && (
         <button type="button" onClick={() => openConsent('call')}

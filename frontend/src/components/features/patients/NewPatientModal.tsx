@@ -5,6 +5,8 @@ import { z } from 'zod'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
 import { useTerms } from '@/hooks/useTerms'
+import { hasPsychologyModules } from '@/lib/professions'
+import { useAuthStore } from '@/store/auth'
 import { EmotionalTag, Patient, TAG_LABELS } from '@/types'
 import { useCreatePatient, useDefaultTemplate } from '@/hooks/useApi'
 import { track, EVENTS } from '@/lib/analytics'
@@ -48,6 +50,7 @@ const ALL_TAGS = Object.entries(TAG_LABELS) as [EmotionalTag, string][]
 
 export default function NewPatientModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const t = useTerms()
+  const showCareMode = hasPsychologyModules(useAuthStore(s => s.user?.profession))
   const { register, handleSubmit, reset, watch, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -149,6 +152,7 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
           </button>
         )}
         <div className="grid grid-cols-2 gap-4">
+          {showCareMode && (
           <div className="col-span-2 rounded-xl border border-sage-100 bg-sage-50/60 p-4 dark:border-sage-800/60 dark:bg-sage-950/20">
             <label className="label">Modo de atendimento</label>
             <div className="grid gap-2 sm:grid-cols-2">
@@ -164,6 +168,7 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
               </label>
             </div>
           </div>
+          )}
           <div className="col-span-2">
             <label className="label">Nome *</label>
             <input {...register('name')} className="input-field" placeholder="Nome completo" />

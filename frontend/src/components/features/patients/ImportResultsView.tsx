@@ -2,6 +2,7 @@ import { AlertTriangle, CheckCircle2, ExternalLink, XCircle } from 'lucide-react
 import { Link } from 'react-router-dom'
 import { ImportPatientsResult } from '@/hooks/useApi'
 import { safeInternalPath } from '@/lib/safeNavigation'
+import { useTerms } from '@/hooks/useTerms'
 
 export default function ImportResultsView({
   result,
@@ -12,6 +13,7 @@ export default function ImportResultsView({
   onImportAnother: () => void
   onDone: () => void
 }) {
+  const t = useTerms()
   const planLimited = result.skipped.filter(s => s.reason === 'plan_limit_reached')
   const duplicates = result.skipped.filter(s => s.reason === 'duplicate')
   const upgradePath = safeInternalPath(result.upgradeUrl)
@@ -22,7 +24,7 @@ export default function ImportResultsView({
         <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
         <div>
           <p className="font-semibold">
-            {result.importedCount} de {result.totalRows} paciente{result.totalRows !== 1 ? 's' : ''} importado{result.importedCount !== 1 ? 's' : ''}
+            {result.importedCount} de {result.totalRows} {result.totalRows !== 1 ? t.patients : t.patient} importado{result.importedCount !== 1 ? 's' : ''}
           </p>
           {(result.skippedCount > 0 || result.errorCount > 0) && (
             <p className="mt-0.5 text-xs opacity-80">
@@ -39,7 +41,7 @@ export default function ImportResultsView({
           <div className="flex items-start gap-2">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <p>
-              {planLimited.length} paciente{planLimited.length !== 1 ? 's não couberam' : ' não coube'} no limite do plano
+              {planLimited.length} {planLimited.length !== 1 ? t.patients : t.patient}{planLimited.length !== 1 ? ' não couberam' : ' não coube'} no limite do plano
               {result.currentPlan ? ` ${result.currentPlan}` : ''}.
             </p>
           </div>

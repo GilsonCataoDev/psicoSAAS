@@ -32,6 +32,12 @@ export type Terms = {
   sessionAgreement: string
   record: string
   recordCapitalized: string
+  /** Natureza do documento impressa no PDF: "Documento {psicológico|profissional}". */
+  documentKind: string
+  /** Titulo do PDF de prontuario/ficha. */
+  recordTitle: string
+  /** "prontuário" e masculino e "ficha" e feminino: titulo da copia ao cliente. */
+  recordCopyTitle: string
 }
 
 const TERMS: Record<'psicologia' | 'generico', Terms> = {
@@ -49,6 +55,9 @@ const TERMS: Record<'psicologia' | 'generico', Terms> = {
     sessionAgreement: 'a',
     record: 'prontuário',
     recordCapitalized: 'Prontuário',
+    documentKind: 'psicológico',
+    recordTitle: 'Prontuário Clínico',
+    recordCopyTitle: 'Cópia do Prontuário',
   },
   generico: {
     patient: 'cliente',
@@ -64,6 +73,9 @@ const TERMS: Record<'psicologia' | 'generico', Terms> = {
     sessionAgreement: 'o',
     record: 'ficha',
     recordCapitalized: 'Ficha',
+    documentKind: 'profissional',
+    recordTitle: 'Ficha do Cliente',
+    recordCopyTitle: 'Cópia da Ficha',
   },
 }
 

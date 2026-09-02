@@ -35,6 +35,7 @@ export class PatientsController {
       req.user.name,
       req.user.crp ?? '',
       query,
+      req.user.profession,
     )
     const patientCopy = query.audience === 'patient'
     await this.record(

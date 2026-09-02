@@ -19,6 +19,7 @@ import { Document } from '../documents/entities/document.entity'
 import { PatientAttachment } from './entities/patient-attachment.entity'
 import { StorageService } from '../../common/storage/storage.service'
 import { DEFAULT_PROFESSION } from '../../common/professions'
+import { termsFor } from '../../common/terms'
 
 type EncryptedProntuario = {
   __encrypted: 'usecognia.prontuario.v1' | 'psicosaas.prontuario.v1'
@@ -444,7 +445,9 @@ export class PatientsService {
     psychologistName: string,
     psychologistCrp: string,
     exportOptions: ProntuarioExportOptions = {},
+    profession?: string,
   ): Promise<{ filename: string; stream: PDFKit.PDFDocument }> {
+    const t = termsFor(profession)
     const patient = await this.findRaw(patientId, psychologistId, ['sessions'])
     const p = this.dec(patient)
     const options = normalizeProntuarioExportOptions(exportOptions)
@@ -458,10 +461,10 @@ export class PatientsService {
       : []
 
     const pdf = new PDFDocument({ size: 'A4', margin: 42, bufferPages: true, info: {
-      Title: `${patientCopy ? 'Cópia do Prontuário' : 'Prontuário'} — ${p.name}`,
+      Title: `${patientCopy ? t.recordCopyTitle : t.recordCapitalized} — ${p.name}`,
       Author: psychologistName,
-      Subject: 'Prontuário Clínico',
-      Keywords: 'UseCognia, prontuário, psicologia',
+      Subject: t.recordTitle,
+      Keywords: `UseCognia, ${t.record}`,
     } })
     const W = pdf.page.width
     const H = pdf.page.height
@@ -484,7 +487,7 @@ export class PatientsService {
       const fy = H - 38
       pdf.strokeColor(line).lineWidth(0.8).moveTo(L, fy).lineTo(R, fy).stroke()
       pdf.fillColor(muted).font('Helvetica').fontSize(7)
-        .text(`UseCognia  |  ${patientCopy ? 'Cópia entregue ao paciente' : 'Prontuário Clínico'} — ${p.name}`, L, fy + 8, { width: CW - 80, lineBreak: false })
+        .text(`UseCognia  |  ${patientCopy ? `Cópia entregue ao ${t.patient}` : t.recordTitle} — ${p.name}`, L, fy + 8, { width: CW - 80, lineBreak: false })
       pdf.text(`Página ${page} de ${total}`, R - 60, fy + 8, { width: 60, align: 'right', lineBreak: false })
     }
 
@@ -536,7 +539,7 @@ export class PatientsService {
     pdf.fillColor(sageDark).font('Helvetica-Bold').fontSize(10).text('UseCognia', L, 24, { lineBreak: false })
     pdf.fillColor(muted).font('Helvetica').fontSize(7).text('Plataforma para psicólogos e terapeutas', L, 38, { lineBreak: false })
 
-    pdf.fillColor(ink).font('Helvetica-Bold').fontSize(18).text(patientCopy ? 'Cópia do Prontuário' : 'Prontuário Clínico', L, 56, { width: CW })
+    pdf.fillColor(ink).font('Helvetica-Bold').fontSize(18).text(patientCopy ? t.recordCopyTitle : t.recordTitle, L, 56, { width: CW })
     pdf.fillColor(sage).font('Helvetica-Bold').fontSize(12).text(p.name, L, 78, { width: CW })
 
     pdf.strokeColor(line).lineWidth(1).moveTo(L, 110).lineTo(R, 110).stroke()

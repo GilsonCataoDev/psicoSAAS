@@ -13,9 +13,12 @@ import { PLANS, useSubscriptionStore } from '@/store/subscription'
 import toast from 'react-hot-toast'
 import { patientMatchesSearch } from '@/lib/patientSearch'
 import { useTerms } from '@/hooks/useTerms'
+import { hasPsychologyModules } from '@/lib/professions'
+import { useAuthStore } from '@/store/auth'
 
 export default function PatientsPage() {
   const t = useTerms()
+  const showCareMode = hasPsychologyModules(useAuthStore(s => s.user?.profession))
   const location = useLocation()
   const [searchParams] = useSearchParams()
   const initialSearch = typeof location.state === 'object'
@@ -126,11 +129,15 @@ export default function PatientsPage() {
             </button>
           ))}
         </div>
-        <select value={careMode} onChange={event => setCareMode(event.target.value as typeof careMode)} className="input-field sm:w-56" aria-label="Filtrar por modo de atendimento">
-          <option value="all">Todos os atendimentos</option>
-          <option value="psychotherapy">Psicoterapia</option>
-          <option value="neuropsychological_assessment">Avaliação neuropsicológica</option>
-        </select>
+        {/* Psicoterapia x avaliação neuropsicológica é distinção de psicologia:
+            não faz sentido oferecer o filtro às demais profissões. */}
+        {showCareMode && (
+          <select value={careMode} onChange={event => setCareMode(event.target.value as typeof careMode)} className="input-field sm:w-56" aria-label="Filtrar por modo de atendimento">
+            <option value="all">Todos os atendimentos</option>
+            <option value="psychotherapy">Psicoterapia</option>
+            <option value="neuropsychological_assessment">Avaliação neuropsicológica</option>
+          </select>
+        )}
       </div>
 
       {isLoading ? (

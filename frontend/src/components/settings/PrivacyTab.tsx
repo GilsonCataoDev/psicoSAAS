@@ -1,6 +1,6 @@
 import { BarChart3, Download, Trash2 } from 'lucide-react'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
-import { type AuditLog, AUDIT_LABELS } from './types'
+import { type AuditLog, auditLabels } from './types'
 import { useTerms } from '@/hooks/useTerms'
 
 interface Props {
@@ -96,7 +96,7 @@ export function PrivacyTab({
             <p className="text-sm text-neutral-500">Nenhum evento registrado ainda.</p>
           ) : auditLogs.slice(0, 8).map((log) => (
             <div key={log.id} className="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2 text-sm">
-              <span className="font-medium text-neutral-700">{AUDIT_LABELS[log.action] ?? log.action}</span>
+              <span className="font-medium text-neutral-700">{auditLabels(t)[log.action] ?? log.action}</span>
               <span className="shrink-0 text-xs text-neutral-400">
                 {new Date(log.createdAt).toLocaleString('pt-BR')}
               </span>

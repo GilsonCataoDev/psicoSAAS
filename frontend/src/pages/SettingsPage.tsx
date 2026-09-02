@@ -30,6 +30,7 @@ import {
   setAnalyticsConsent,
   subscribeAnalyticsConsent,
 } from '@/lib/analytics'
+import { useTerms } from '@/hooks/useTerms'
 
 const GOOGLE_CALENDAR_ENABLED = true
 
@@ -69,6 +70,7 @@ const EDITABLE_PREF_KEYS = [
 ] as const
 
 export default function SettingsPage() {
+  const t = useTerms()
   const user = useAuthStore(s => s.user)
   const isAuthenticated = useAuthStore(s => s.isAuthenticated)
   const updateUser = useAuthStore(s => s.updateUser)
@@ -591,7 +593,7 @@ export default function SettingsPage() {
                 <div>
                   <p className="text-sm font-semibold text-sage-800 dark:text-sage-100">Agenda pública e horários</p>
                   <p className="mt-1 text-sm text-sage-700 dark:text-sage-200">
-                    Configure disponibilidade, bloqueios, duração, pausas e o link que o paciente usa para agendar.
+                    Configure disponibilidade, bloqueios, duração, pausas e o link que o {t.patient} usa para agendar.
                   </p>
                 </div>
                 <Link to="/agendamentos?tab=settings" className="btn-secondary inline-flex w-fit items-center gap-2 bg-white text-sm dark:bg-white/10">
@@ -696,7 +698,7 @@ export default function SettingsPage() {
       <ConfirmDialog
         open={confirmDisconnectGoogle}
         title="Desconectar Google Agenda"
-        description="Novas sessões não serão sincronizadas com o Google Agenda após a desconexão."
+        description={`Novos ${t.sessions} não serão sincronizados com o Google Agenda após a desconexão.`}
         confirmLabel="Desconectar"
         loading={calendarBusy}
         tone="warning"
@@ -718,7 +720,7 @@ export default function SettingsPage() {
       <ConfirmDialog
         open={confirmDeleteAccount}
         title="Excluir conta definitivamente"
-        description="Todos os pacientes, prontuários, sessões, agenda, financeiro, documentos, preferências e tokens de acesso serão removidos. Esta ação não pode ser desfeita."
+        description={`Todos os ${t.patients}, ${t.record}s, ${t.sessions}, agenda, financeiro, documentos, preferências e tokens de acesso serão removidos. Esta ação não pode ser desfeita.`}
         confirmLabel="Excluir definitivamente"
         loading={deletingAccount}
         onClose={() => setConfirmDeleteAccount(false)}

@@ -1,7 +1,9 @@
 import { Copy, CheckCircle2, Gift, UserPlus, ClipboardList, MailCheck } from 'lucide-react'
 import { useReferral } from './useReferral'
+import { useTerms } from '@/hooks/useTerms'
 
 export default function ReferralCard() {
+  const t = useTerms()
   const { stats, referralUrl, copied, copyLink, shareWhatsApp } = useReferral()
 
   if (!stats) return null
@@ -33,8 +35,8 @@ export default function ReferralCard() {
         <p className="mb-2 text-xs font-semibold text-sage-800">Seu colega ganha 30 dias de Pro assim que se cadastra pelo link.</p>
         <p className="mb-2 text-xs font-semibold text-sage-800">Seu bônus libera quando o colega:</p>
         <div className="grid gap-2 text-xs text-sage-700 sm:grid-cols-3">
-          <span className="flex items-center gap-1.5"><UserPlus className="h-3.5 w-3.5" />3 pacientes</span>
-          <span className="flex items-center gap-1.5"><ClipboardList className="h-3.5 w-3.5" />2 sessões</span>
+          <span className="flex items-center gap-1.5"><UserPlus className="h-3.5 w-3.5" />3 {t.patients}</span>
+          <span className="flex items-center gap-1.5"><ClipboardList className="h-3.5 w-3.5" />2 {t.sessions}</span>
           <span className="flex items-center gap-1.5"><MailCheck className="h-3.5 w-3.5" />e-mail + 3 dias</span>
         </div>
       </div>
@@ -70,7 +72,7 @@ export default function ReferralCard() {
               <div className="min-w-0">
                 <p className="truncate text-xs font-semibold text-neutral-700">{item.name}</p>
                 <p className="text-[11px] text-neutral-400">
-                  {item.progress.patients}/3 pacientes · {item.progress.sessions}/2 sessões · {item.progress.daysActive}/3 dias
+                  {item.progress.patients}/3 {t.patients} · {item.progress.sessions}/2 {t.sessions} · {item.progress.daysActive}/3 dias
                 </p>
               </div>
               <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
