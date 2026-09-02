@@ -81,15 +81,9 @@ export function renderReminderTemplate(
   time: string,
   lead: '24h' | '1h',
 ): string {
-  const rendered = template
+  return template
     .replaceAll('{{nome}}', patientName.split(' ')[0] || patientName)
     .replaceAll('{{data}}', dateLabel)
     .replaceAll('{{hora}}', time)
     .replaceAll('{{antecedencia}}', lead)
-
-  if (lead !== '1h' || !/\bhoje\b/i.test(rendered)) return rendered
-
-  return rendered
-    .replace(/\b(?:e|é)\s+hoje\b/giu, `acontece em ${dateLabel}`)
-    .replace(/\bhoje\b/giu, dateLabel)
 }

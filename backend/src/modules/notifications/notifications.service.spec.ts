@@ -831,7 +831,7 @@ describe('NotificationsService WhatsApp delivery validation', () => {
   }, 12000)
 })
 
-describe('NotificationsService.sendAppointmentReminder — template por lead (24h/2h)', () => {
+describe('NotificationsService.sendAppointmentReminder — template por lead (24h/1h)', () => {
   const ownerId = 'psychologist-id'
 
   const cfg = {
@@ -908,18 +908,27 @@ describe('NotificationsService.sendAppointmentReminder — template por lead (24
     expect(sentText).toContain('Lembrando que temos nosso encontro em')
   })
 
-  it('informa a data real no lembrete de 1h em vez de afirmar que a sessao e hoje', async () => {
+  it('usa texto direto de hoje no lembrete padrão de 1h', async () => {
     await service.sendAppointmentReminder({
       ...baseAppointment({}),
       date: '2026-08-11',
       time: '00:30',
     }, '1h')
 
-    expect(sentText).toContain('11 de agosto')
-    expect(sentText.toLowerCase()).not.toContain('sessao e hoje')
+    expect(sentText).toContain('Passando para lembrar do nosso encontro hoje')
+    expect(sentText).toContain('00:30')
   })
 
-  it('corrige o modelo curto antigo que tinha a palavra hoje fixa', async () => {
+  it('troca o padrão antigo salvo pelo novo texto de 1h', async () => {
+    await service.sendAppointmentReminder(baseAppointment({
+      reminderTemplate2h: 'Ola, {{nome}}! Passando para lembrar que nossa sessao acontece em {{data}} as {{hora}}. Ate daqui a pouco!',
+    }), '1h')
+
+    expect(sentText).toContain('Passando para lembrar do nosso encontro hoje')
+    expect(sentText).not.toContain('nossa sessao acontece')
+  })
+
+  it('preserva modelo personalizado de 1h com a palavra hoje', async () => {
     await service.sendAppointmentReminder({
       ...baseAppointment({
         reminderTemplate2h: 'Ola, {{nome}}! Nossa sessao e hoje as {{hora}}.',
@@ -928,8 +937,7 @@ describe('NotificationsService.sendAppointmentReminder — template por lead (24
       time: '00:30',
     }, '1h')
 
-    expect(sentText).toContain('11 de agosto')
-    expect(sentText.toLowerCase()).not.toContain('sessao e hoje')
+    expect(sentText).toBe('Ola, Marina! Nossa sessao e hoje as 00:30.')
   })
 
   it('ignora template que renderiza somente o horario e usa a mensagem completa', async () => {

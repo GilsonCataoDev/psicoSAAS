@@ -25,6 +25,7 @@ import {
 } from './notification-templates'
 
 const WA_FETCH_TIMEOUT_MS = 10000
+const LEGACY_DEFAULT_REMINDER_1H_TEMPLATE = 'Ola, {{nome}}! Passando para lembrar que nossa sessao acontece em {{data}} as {{hora}}. Ate daqui a pouco!'
 
 /**
  * fetch() nao tem timeout por padrao — sem isso, uma chamada travada na Evolution
@@ -1333,12 +1334,15 @@ export class NotificationsService {
 
     const defaultMsg = lead === '24h'
       ? `Ola, ${first}!\n\nLembrando que temos nosso encontro em *${dateLabel}* as *${timeLabel}*.\n\nAte la!`
-      : `Ola, ${first}!\n\nPassando para lembrar que nossa sessao acontece em *${dateLabel}* as *${timeLabel}*.\n\nAte daqui a pouco!`
+      : `Ola, ${first}!\n\nPassando para lembrar do nosso encontro hoje as *${timeLabel}*.\n\nAte daqui a pouco!`
     // Template específico do lead (24h/1h) tem prioridade; a chave reminderTemplate2h
     // é mantida apenas para não invalidar preferências já salvas.
     // único legado (contas que customizaram antes da separação) e por fim para
     // o texto padrão embutido no código.
-    const leadTemplate = lead === '24h' ? prefs.reminderTemplate24h : prefs.reminderTemplate2h
+    const rawLeadTemplate = lead === '24h' ? prefs.reminderTemplate24h : prefs.reminderTemplate2h
+    const leadTemplate = lead === '1h' && rawLeadTemplate === LEGACY_DEFAULT_REMINDER_1H_TEMPLATE
+      ? null
+      : rawLeadTemplate
     const template = typeof leadTemplate === 'string' && leadTemplate.trim()
       ? leadTemplate
       : (typeof prefs.reminderTemplate === 'string' && prefs.reminderTemplate.trim() ? prefs.reminderTemplate : null)

@@ -14,7 +14,7 @@ import { disableWebPush, enableWebPush, getPushStatus, sendTestWebPush } from '@
 import { isNativeApp } from '@/lib/nativeAuth'
 import { userSafeError } from '@/lib/userSafeError'
 import { track, EVENTS } from '@/lib/analytics'
-import { DEFAULT_PREFS, type Prefs, type AuditLog, type WhatsAppLog, type WhatsAppStatus } from '@/components/settings/types'
+import { DEFAULT_PREFS, LEGACY_DEFAULT_REMINDER_1H_TEMPLATE, type Prefs, type AuditLog, type WhatsAppLog, type WhatsAppStatus } from '@/components/settings/types'
 import { ProfileTab } from '@/components/settings/ProfileTab'
 import { NotifyTab } from '@/components/settings/NotifyTab'
 import { MessagesTab } from '@/components/settings/MessagesTab'
@@ -176,7 +176,6 @@ export default function SettingsPage() {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
   const [loadingAudit, setLoadingAudit] = useState(false)
   const [whatsappLogs, setWhatsappLogs] = useState<WhatsAppLog[]>([])
-  const { data: messageTemplates = [] } = useTemplates('whatsapp_message')
   const { data: receiptTemplates = [] } = useTemplates('receipt')
   const createTemplate = useCreateTemplate()
   const { subscription, setSubscription, resetSubscription } = useSubscriptionStore()
@@ -199,7 +198,13 @@ export default function SettingsPage() {
           ...userPrefs,
         }
       : userPrefs
-    setPrefs(prev => ({ ...prev, ...migratedPrefs }))
+    const reminderTemplate2h = migratedPrefs.reminderTemplate2h === LEGACY_DEFAULT_REMINDER_1H_TEMPLATE
+      ? DEFAULT_PREFS.reminderTemplate2h
+      : migratedPrefs.reminderTemplate2h
+    const normalizedPrefs = reminderTemplate2h === undefined
+      ? migratedPrefs
+      : { ...migratedPrefs, reminderTemplate2h }
+    setPrefs(prev => ({ ...prev, ...normalizedPrefs }))
     setPhone(user?.phone ?? '')
 
     if (!isAuthenticated) { setLoadingPrefs(false); return }
@@ -625,9 +630,8 @@ export default function SettingsPage() {
               whatsappConnected={whatsappConnected} whatsappConfigured={whatsappConfigured}
               whatsappStatus={whatsappStatus} whatsappQr={whatsappQr}
               whatsappBusy={whatsappBusy} whatsappLogs={whatsappLogs}
-              messageTemplates={messageTemplates} createTemplate={createTemplate}
               connectWhatsApp={connectWhatsApp} testWhatsApp={testWhatsApp} resetWhatsApp={resetWhatsApp}
-              savePrefs={savePrefs} saveTemplate={saveTemplate}
+              savePrefs={savePrefs}
             />
           )}
 

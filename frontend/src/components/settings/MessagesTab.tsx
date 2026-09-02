@@ -1,5 +1,3 @@
-import { type UseMutationResult } from '@tanstack/react-query'
-import { type Template } from '@/hooks/api/templates'
 import { type Prefs } from './types'
 import { type WhatsAppLog, type WhatsAppStatus } from './types'
 
@@ -14,13 +12,10 @@ interface Props {
   whatsappQr: string
   whatsappBusy: boolean
   whatsappLogs: WhatsAppLog[]
-  messageTemplates: Template[]
-  createTemplate: UseMutationResult<any, any, any, any>
   connectWhatsApp: () => void
   testWhatsApp: () => void
   resetWhatsApp: () => void
   savePrefs: (section?: string) => void
-  saveTemplate: (type: 'whatsapp_message' | 'receipt', name: string, content: string) => void
 }
 
 function previewMessage(template: string) {
@@ -33,8 +28,7 @@ function previewMessage(template: string) {
 export function MessagesTab({
   prefs, setPref, savingPrefs, hasProAutomation,
   whatsappConnected, whatsappConfigured, whatsappStatus, whatsappQr, whatsappBusy, whatsappLogs,
-  messageTemplates, createTemplate,
-  connectWhatsApp, testWhatsApp, resetWhatsApp, savePrefs, saveTemplate,
+  connectWhatsApp, testWhatsApp, resetWhatsApp, savePrefs,
 }: Props) {
   return (
     <div className="space-y-5">
@@ -148,20 +142,6 @@ export function MessagesTab({
 
       <div className="card space-y-4">
         <h2 className="section-title">Modelo de confirmação</h2>
-        {messageTemplates.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {messageTemplates.map(template => (
-              <button
-                key={template.id}
-                type="button"
-                className="rounded-full border border-sage-100 bg-sage-50 px-3 py-1 text-xs font-medium text-sage-700 hover:bg-sage-100"
-                onClick={() => setPref('confirmationTemplate', template.content)}
-              >
-                Usar {template.name}
-              </button>
-            ))}
-          </div>
-        )}
         <p className="text-xs text-neutral-400">
           Variáveis: <code className="bg-neutral-100 px-1 rounded">{'{{nome}}'}</code>{' '}
           <code className="bg-neutral-100 px-1 rounded">{'{{data}}'}</code>{' '}
@@ -178,29 +158,10 @@ export function MessagesTab({
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Prévia para paciente</p>
           <p className="whitespace-pre-line text-sm text-neutral-700">{previewMessage(prefs.confirmationTemplate)}</p>
         </div>
-        <button type="button" className="btn-secondary text-xs w-fit"
-          disabled={!hasProAutomation || createTemplate.isPending}
-          onClick={() => saveTemplate('whatsapp_message', 'Confirmacao personalizada', prefs.confirmationTemplate)}>
-          Salvar como template
-        </button>
       </div>
 
       <div className="card space-y-4">
         <h2 className="section-title">Modelo de lembrete — 24h antes</h2>
-        {messageTemplates.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {messageTemplates.map(template => (
-              <button
-                key={template.id}
-                type="button"
-                className="rounded-full border border-sage-100 bg-sage-50 px-3 py-1 text-xs font-medium text-sage-700 hover:bg-sage-100"
-                onClick={() => setPref('reminderTemplate24h', template.content)}
-              >
-                Usar {template.name}
-              </button>
-            ))}
-          </div>
-        )}
         <p className="text-xs text-neutral-400">
           Variáveis: <code className="bg-neutral-100 px-1 rounded">{'{{nome}}'}</code>{' '}
           <code className="bg-neutral-100 px-1 rounded">{'{{data}}'}</code>{' '}
@@ -214,29 +175,10 @@ export function MessagesTab({
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Prévia para paciente</p>
           <p className="whitespace-pre-line text-sm text-neutral-700">{previewMessage(prefs.reminderTemplate24h)}</p>
         </div>
-        <button type="button" className="btn-secondary text-xs w-fit"
-          disabled={!hasProAutomation || createTemplate.isPending}
-          onClick={() => saveTemplate('whatsapp_message', 'Lembrete 24h personalizado', prefs.reminderTemplate24h)}>
-          Salvar como template
-        </button>
       </div>
 
       <div className="card space-y-4">
         <h2 className="section-title">Modelo de lembrete — 1h antes</h2>
-        {messageTemplates.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {messageTemplates.map(template => (
-              <button
-                key={template.id}
-                type="button"
-                className="rounded-full border border-sage-100 bg-sage-50 px-3 py-1 text-xs font-medium text-sage-700 hover:bg-sage-100"
-                onClick={() => setPref('reminderTemplate2h', template.content)}
-              >
-                Usar {template.name}
-              </button>
-            ))}
-          </div>
-        )}
         <p className="text-xs text-neutral-400">
           Variáveis: <code className="bg-neutral-100 px-1 rounded">{'{{nome}}'}</code>{' '}
           <code className="bg-neutral-100 px-1 rounded">{'{{data}}'}</code>{' '}
@@ -250,11 +192,6 @@ export function MessagesTab({
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Prévia para paciente</p>
           <p className="whitespace-pre-line text-sm text-neutral-700">{previewMessage(prefs.reminderTemplate2h)}</p>
         </div>
-        <button type="button" className="btn-secondary text-xs w-fit"
-          disabled={!hasProAutomation || createTemplate.isPending}
-          onClick={() => saveTemplate('whatsapp_message', 'Lembrete 1h personalizado', prefs.reminderTemplate2h)}>
-          Salvar como template
-        </button>
       </div>
 
       <div className="flex justify-end">
