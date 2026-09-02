@@ -4,6 +4,7 @@ import { Repository } from 'typeorm'
 import { ConfigService } from '@nestjs/config'
 import { EmailLog } from './entities/email-log.entity'
 import { EmailSuppression } from './entities/email-suppression.entity'
+import { termsFor } from '../../common/terms'
 import { blindIndex } from '../../common/crypto/encrypt.util'
 
 interface Attachment {
@@ -250,17 +251,18 @@ export class EmailService {
     })
   }
 
-  async sendBookingRequest(patientName: string, psychologistEmail: string, date: string, time: string, confirmUrl: string) {
+  async sendBookingRequest(patientName: string, psychologistEmail: string, date: string, time: string, confirmUrl: string, profession?: string) {
+    const t = termsFor(profession)
     const safePatientName = this.escapeHtml(patientName)
     const safeDate = this.escapeHtml(date)
     const safeTime = this.escapeHtml(time)
     await this.send({
       to: psychologistEmail,
-      subject: `Nova solicitação de sessão — ${patientName.replace(/[\r\n]/g, ' ')}`,
+      subject: `Nova solicitação de ${t.session} — ${patientName.replace(/[\r\n]/g, ' ')}`,
       html: this.wrap(`
         <h1 style="color:#2F7657;font-weight:300;font-size:24px">Nova solicitação</h1>
         <p style="color:#555;font-size:16px;line-height:1.6">
-          <strong>${safePatientName}</strong> solicitou uma sessão para
+          <strong>${safePatientName}</strong> solicitou uma ${t.session} para
           <strong>${safeDate}</strong> às <strong>${safeTime}</strong>.
         </p>
         <a href="${confirmUrl}" style="display:inline-block;background:#2F7657;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:8px">
@@ -277,19 +279,21 @@ export class EmailService {
     time: string,
     cancelUrl: string,
     customMessage?: string | null,
+    profession?: string,
   ) {
+    const t = termsFor(profession)
     const messageHtml = customMessage?.trim()
       ? `<p style="color:#555;font-size:16px;line-height:1.6;white-space:pre-line">${this.escapeHtml(customMessage.trim())}</p>`
       : `<p style="color:#555;font-size:16px;line-height:1.6">
-          Ola, ${this.escapeHtml(patientName.split(' ')[0])}! Sua sessao para
+          Ola, ${this.escapeHtml(patientName.split(' ')[0])}! Sua ${t.sessionPlain} para
           <strong>${this.escapeHtml(date)}</strong> as <strong>${this.escapeHtml(time)}</strong> foi confirmada.
         </p>`
 
     await this.send({
       to: patientEmail,
-      subject: 'Sessão confirmada',
+      subject: `${t.sessionCapitalized} confirmada`,
       html: this.wrap(`
-        <h1 style="color:#2F7657;font-weight:300;font-size:24px">Sua sessão foi confirmada</h1>
+        <h1 style="color:#2F7657;font-weight:300;font-size:24px">Sua ${t.session} foi confirmada</h1>
         ${messageHtml}
         <p style="color:#888;font-size:14px">
           Precisa cancelar? <a href="${cancelUrl}" style="color:#2F7657">Clique aqui</a> com pelo menos 24h de antecedência.
@@ -304,18 +308,20 @@ export class EmailService {
     date: string,
     time: string,
     reason?: string,
+    profession?: string,
   ) {
+    const t = termsFor(profession)
     const safePatientName = this.escapeHtml(patientName)
     const safeDate = this.escapeHtml(date)
     const safeTime = this.escapeHtml(time)
     const safeReason = reason ? this.escapeHtml(reason) : ''
     await this.send({
       to: psychologistEmail,
-      subject: `Sessão cancelada — ${patientName.replace(/[\r\n]/g, ' ')}`,
+      subject: `${t.sessionCapitalized} cancelada — ${patientName.replace(/[\r\n]/g, ' ')}`,
       html: this.wrap(`
-        <h1 style="color:#2F7657;font-weight:300;font-size:24px">Sessão cancelada</h1>
+        <h1 style="color:#2F7657;font-weight:300;font-size:24px">${t.sessionCapitalized} cancelada</h1>
         <p style="color:#555;font-size:16px;line-height:1.6">
-          <strong>${safePatientName}</strong> cancelou a sessão de
+          <strong>${safePatientName}</strong> cancelou a ${t.session} de
           <strong>${safeDate}</strong> às <strong>${safeTime}</strong>.
         </p>
         ${safeReason ? `<p style="color:#555;font-size:15px;line-height:1.6"><strong>Motivo:</strong> ${safeReason}</p>` : ''}
@@ -431,7 +437,9 @@ export class EmailService {
     date: string
     time: string
     psychologistName: string
+    profession?: string
   }) {
+    const t = termsFor(opts.profession)
     const first = opts.patientName.split(' ')[0]
     const dateLabel = (() => {
       try {
@@ -443,9 +451,9 @@ export class EmailService {
 
     await this.send({
       to: opts.patientEmail,
-      subject: `Lembrete de sessão — ${dateLabel}`,
+      subject: `Lembrete de ${t.session} — ${dateLabel}`,
       html: this.wrap(`
-        <h1 style="color:#2F7657;font-weight:300;font-size:24px">Lembrete de sessão</h1>
+        <h1 style="color:#2F7657;font-weight:300;font-size:24px">Lembrete de ${t.session}</h1>
         <p style="color:#555;font-size:16px;line-height:1.6">
           Olá, ${this.escapeHtml(first)}! Passando para lembrar que temos nosso encontro amanhã:
         </p>

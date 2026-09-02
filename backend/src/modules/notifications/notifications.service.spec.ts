@@ -36,6 +36,8 @@ describe('NotificationsService WhatsApp delivery validation', () => {
 
   const users = {
     findOneBy: jest.fn().mockResolvedValue({ email: 'gilsonfilho96@outlook.com' }),
+    // professionOf() consulta aqui para montar o vocabulario das mensagens.
+    findOne: jest.fn().mockResolvedValue({ id: 'psychologist-id', profession: 'psicologia' }),
   }
   const planAccess = { hasAccess: jest.fn().mockResolvedValue(true) }
   const pushSubscriptions = { countBy: jest.fn() }
@@ -845,6 +847,8 @@ describe('NotificationsService.sendAppointmentReminder — template por lead (24
 
   const users = {
     findOneBy: jest.fn().mockResolvedValue({ email: 'gilsonfilho96@outlook.com' }),
+    // professionOf() consulta aqui para montar o vocabulario das mensagens.
+    findOne: jest.fn().mockResolvedValue({ id: 'psychologist-id', profession: 'psicologia' }),
   }
   const planAccess = { hasAccess: jest.fn().mockResolvedValue(true) }
   const pushSubscriptions = { countBy: jest.fn(), findBy: jest.fn() }

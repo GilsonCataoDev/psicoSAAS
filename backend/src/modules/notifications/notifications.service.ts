@@ -17,6 +17,8 @@ import { SavePushSubscriptionDto } from './dto/push-subscription.dto'
 import { RegisterNativePushTokenDto } from './dto/native-push-token.dto'
 import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
 import { PlanAccessService } from '../../common/plan-access/plan-access.service'
+import { termsFor } from '../../common/terms'
+import { DEFAULT_PROFESSION } from '../../common/professions'
 import {
   isMeaningfulAutomatedMessage,
   renderBookingConfirmationMessage,
@@ -448,10 +450,13 @@ export class NotificationsService {
   async sendAppointmentPushReminder(appointment: any, lead: '24h' | '1h'): Promise<PushDeliveryResult> {
     if (!appointment.psychologistId) return { sent: 0, removed: 0, reason: 'no_subscription' }
     const timeLabel = String(appointment.time).slice(0, 5)
-    const title = lead === '24h' ? 'Sessao amanha' : 'Sessao em breve'
+    const t = termsFor(await this.professionOf(appointment.psychologistId, appointment.psychologist))
+    const title = lead === '24h' ? `${t.sessionPlainCapitalized} amanha` : `${t.sessionPlainCapitalized} em breve`
+    // Frase sem artigo/particípio para não depender do gênero da palavra
+    // ("uma sessao agendada" vs "um atendimento agendado").
     const body = lead === '24h'
-      ? `Voce tem uma sessao agendada amanha as ${timeLabel}.`
-      : `Voce tem uma sessao agendada hoje as ${timeLabel}.`
+      ? `${t.sessionPlainCapitalized} amanha as ${timeLabel}.`
+      : `${t.sessionPlainCapitalized} hoje as ${timeLabel}.`
 
     return this.sendPushToUser(appointment.psychologistId, {
       title,
@@ -459,6 +464,32 @@ export class NotificationsService {
       url: `${this.BASE_URL}/agenda`,
       tag: `appointment-${appointment.id}-${lead}`,
     })
+  }
+
+  /**
+   * Vocabulário das mensagens enviadas ao paciente. Usa a relação já carregada
+   * quando existe; só consulta o banco quando o chamador não trouxe o
+   * profissional junto. O cache evita uma query por mensagem nos jobs que
+   * disparam em lote (lembretes, cobranças).
+   */
+  private readonly professionCache = new Map<string, string>()
+
+  private async professionOf(userId?: string | null, loaded?: { profession?: string } | null): Promise<string> {
+    if (loaded?.profession) return loaded.profession
+    if (!userId) return DEFAULT_PROFESSION
+    const cached = this.professionCache.get(userId)
+    if (cached) return cached
+    // Vocabulário é cosmético: se a consulta falhar, a mensagem sai no padrão
+    // em vez de o lembrete inteiro falhar.
+    try {
+      const user = await this.users.findOne({ where: { id: userId }, select: ['id', 'profession'] })
+      const profession = user?.profession ?? DEFAULT_PROFESSION
+      this.professionCache.set(userId, profession)
+      return profession
+    } catch (err) {
+      this.logger.warn(`[Terms] Falha ao resolver profissao user=${userId}: ${(err as Error)?.message ?? err}`)
+      return DEFAULT_PROFESSION
+    }
   }
 
   private async sendPushToUser(userId: string, payload: Record<string, string>): Promise<PushDeliveryResult> {
@@ -1427,9 +1458,11 @@ export class NotificationsService {
       return result
     }
     const firstName = patient.name.split(' ')[0]
+    // `d${sessionAgreement}` resolve para "da sessao" / "do atendimento".
+    const t = termsFor(await this.professionOf(patient?.psychologistId, patient?.psychologist))
     const defaultMessage =
       `Ola, ${firstName}!\n\n` +
-      `Passando para lembrar do pagamento pendente da sessao (*R$ ${amount.toFixed(2)}*).\n\n` +
+      `Passando para lembrar do pagamento pendente d${t.sessionAgreement} ${t.sessionPlain} (*R$ ${amount.toFixed(2)}*).\n\n` +
       (pixKey ? `Chave PIX: \`${pixKey}\`\n\n` : '') +
       `Qualquer duvida, e so me chamar.`
     const msg = template
@@ -1467,7 +1500,7 @@ export class NotificationsService {
     // Para o psicólogo — WhatsApp + e-mail
     if (page.psychologist?.phone) {
       const psychMsg =
-        `*Nova solicitacao de sessao*\n\n` +
+        `*Nova solicitacao de ${termsFor(page.psychologist?.profession).sessionPlain}*\n\n` +
         `Pessoa: ${booking.patientName}\n` +
         `Data: ${booking.date} as ${String(booking.time).slice(0, 5)}\n` +
         `\nConfirmar: ${this.withWhatsAppUtm(confirmUrl)}`
@@ -1486,6 +1519,7 @@ export class NotificationsService {
         booking.date,
         booking.time,
         confirmUrl,
+        page.psychologist?.profession,
       ).catch(err => this.logger.warn(`[Booking] E-mail de solicitacao nao enviado bookingId=${booking.id}: ${err?.message ?? 'erro desconhecido'}`))
     }
 
@@ -1504,6 +1538,7 @@ export class NotificationsService {
     const cancelUrl = this.getCancellationUrl(booking)
     const first = booking.patientName.split(' ')[0]
     const customMessage = renderBookingConfirmationMessage(booking, page)
+    const t = termsFor(await this.professionOf(booking.psychologistId, page?.psychologist))
 
     // WhatsApp para o paciente
     let whatsAppResult: WhatsAppDeliveryResult | undefined
@@ -1512,7 +1547,7 @@ export class NotificationsService {
       const msg = customMessage
         ? `${customMessage}\n\nPrecisando cancelar: ${cancelUrlWhatsApp}`
         : `Ola, ${first}!\n\n` +
-          `Sua sessao foi confirmada para *${booking.date}* as *${String(booking.time).slice(0, 5)}*.\n\n` +
+          `${t.sessionPossessivePlain} foi confirmad${t.sessionAgreement} para *${booking.date}* as *${String(booking.time).slice(0, 5)}*.\n\n` +
           `Precisando cancelar: ${cancelUrlWhatsApp}\n\nNos vemos la.`
       whatsAppResult = await this.sendWhatsApp(booking.patientPhone, msg, booking.psychologistId, {
         type: 'Confirmacao de agenda',
@@ -1532,6 +1567,7 @@ export class NotificationsService {
         booking.time,
         cancelUrl,
         customMessage,
+        page?.psychologist?.profession,
       ).catch(err => this.logger.warn(`[Booking] E-mail de confirmacao nao enviado bookingId=${booking.id}: ${err?.message ?? 'erro desconhecido'}`))
     }
 
@@ -1578,8 +1614,9 @@ export class NotificationsService {
     const phone = prefs.whatsapp || psychologist?.phone
     const reason = safeDecrypt(booking.cancellationReason)?.trim()
     const reasonLine = reason ? `\nMotivo: ${reason}` : ''
+    const t = termsFor(await this.professionOf(booking.psychologistId, psychologist))
     const msg =
-      `Sessao cancelada pelo paciente\n\n` +
+      `${t.sessionPlainCapitalized} cancelad${t.sessionAgreement} pelo ${t.patient}\n\n` +
       `Pessoa: ${booking.patientName}\n` +
       `Data: ${booking.date} as ${String(booking.time).slice(0, 5)}` +
       reasonLine
@@ -1598,6 +1635,7 @@ export class NotificationsService {
         booking.date,
         String(booking.time).slice(0, 5),
         reason,
+        psychologist?.profession,
       ).catch(err => this.logger.warn(`[Booking] E-mail de cancelamento nao enviado bookingId=${booking.id}: ${err?.message ?? 'erro desconhecido'}`))
     }
     await this.sendBookingPush(booking.psychologistId, booking, 'Agendamento cancelado')
@@ -1608,9 +1646,10 @@ export class NotificationsService {
   async sendPaymentReminder(booking: any, pixKey?: string): Promise<void> {
     if (!booking.patientPhone) return
     const firstName = booking.patientName.split(' ')[0]
+    const t = termsFor(await this.professionOf(booking.psychologistId, booking.psychologist))
     const msg =
       `Ola, ${firstName}!\n\n` +
-      `Passando para lembrar sobre o pagamento da nossa sessao ` +
+      `Passando para lembrar sobre o pagamento d${t.sessionAgreement} noss${t.sessionAgreement} ${t.sessionPlain} ` +
       `(*R$ ${Number(booking.amount).toFixed(2)}*).\n\n` +
       (pixKey ? `Chave PIX: \`${pixKey}\`\n\n` : '') +
       `Qualquer duvida, e so falar.`
