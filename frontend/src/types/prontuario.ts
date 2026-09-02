@@ -1,3 +1,4 @@
+import { hasPsychologyModules } from '@/lib/professions'
 export interface Prontuario {
   id: string
   patientId: string
@@ -52,12 +53,27 @@ export interface Documento {
 
 export type DocumentoListItem = Omit<Documento, 'content'>
 
-export const DOC_TYPE_LABELS: Record<DocType, string> = {
-  declaracao:    'Declaração de Comparecimento',
-  recibo:        'Recibo de Pagamento',
-  relatorio:     'Relatório Psicológico',
-  atestado:      'Atestado Psicológico',
-  encaminhamento:'Encaminhamento',
+/**
+ * Relatorio e atestado psicologicos sao atos regulados pela Res. CFP 06/2019 e
+ * so existem para psicologia — ver DOC_TYPES_FOR abaixo. Os demais tipos sao
+ * neutros e apenas perdem a referencia a psicologia.
+ */
+export function docTypeLabels(profession?: string | null): Record<DocType, string> {
+  const psi = hasPsychologyModules(profession)
+  return {
+    declaracao:    'Declaração de Comparecimento',
+    recibo:        'Recibo de Pagamento',
+    relatorio:     psi ? 'Relatório Psicológico' : 'Relatório',
+    atestado:      psi ? 'Atestado Psicológico' : 'Atestado',
+    encaminhamento:'Encaminhamento',
+  }
+}
+
+/** Tipos que a profissao pode emitir. */
+export function docTypesFor(profession?: string | null): DocType[] {
+  return hasPsychologyModules(profession)
+    ? ['declaracao', 'recibo', 'relatorio', 'atestado', 'encaminhamento']
+    : ['declaracao', 'recibo', 'encaminhamento']
 }
 
 export const DOC_TYPE_ICONS: Record<DocType, 'documents' | 'billing' | 'success' | 'public-link'> = {

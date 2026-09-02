@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import * as QRCode from 'qrcode'
 import { Copy, Download, Loader2, Mail, Shield, CheckCircle, ExternalLink, Check } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
-import { Documento, DOC_TYPE_LABELS } from '@/types/prontuario'
+import { Documento, docTypeLabels } from '@/types/prontuario'
+import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
 import { useSendDocumentByEmail } from '@/hooks/useApi'
 import toast from 'react-hot-toast'
@@ -21,6 +22,7 @@ export default function DocumentPreviewModal({
   open: boolean
   onClose: () => void
 }) {
+  const labels = docTypeLabels(useAuthStore(s => s.user?.profession))
   const [qrCode, setQrCode] = useState('')
   const [downloading, setDownloading] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -104,12 +106,12 @@ export default function DocumentPreviewModal({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={DOC_TYPE_LABELS[doc.type]} size="lg">
+    <Modal open={open} onClose={onClose} title={labels[doc.type]} size="lg">
       <div className="space-y-4">
         <div className="border border-neutral-200 rounded-2xl overflow-hidden">
           <div className="bg-neutral-50 border-b border-neutral-100 px-6 py-4 text-center">
             <p className="font-display text-lg font-medium text-neutral-800">
-              {DOC_TYPE_LABELS[doc.type].toUpperCase()}
+              {labels[doc.type].toUpperCase()}
             </p>
             <p className="text-xs text-neutral-400 mt-0.5">
               Conselho Federal de Psicologia - Res. 006/2019

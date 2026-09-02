@@ -3,7 +3,8 @@ import { useForm } from 'react-hook-form'
 import { AlertTriangle, ChevronLeft, Loader2, Sparkles } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import { Patient } from '@/types'
-import { Documento, DocType, DOC_TYPE_DESCRIPTIONS, DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '@/types/prontuario'
+import { Documento, DocType, DOC_TYPE_DESCRIPTIONS, docTypeLabels, docTypesFor, DOC_TYPE_ICONS } from '@/types/prontuario'
+import { hasPsychologyModules } from '@/lib/professions'
 import { formatCurrency } from '@/lib/utils'
 import { DocumentAiField, useCreateDocument, useDefaultTemplate, useGenerateDocumentAiDraft } from '@/hooks/useApi'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
@@ -30,7 +31,8 @@ type FormData = {
 
 type AiEditableField = 'demand' | 'procedure' | 'conclusion' | 'extraText'
 
-function buildContent(data: FormData, patient: Patient, type: DocType, user: { name: string; crp?: string } | null): string {
+function buildContent(data: FormData, patient: Patient, type: DocType, user: { name: string; crp?: string } | null, profession?: string | null): string {
+  const psi = hasPsychologyModules(profession)
   const today = new Date().toLocaleDateString('pt-BR')
   const startDate = data.startDate ? new Date(data.startDate).toLocaleDateString('pt-BR') : '__/__/____'
   const endDate = data.endDate ? new Date(data.endDate).toLocaleDateString('pt-BR') : '__/__/____'
@@ -39,7 +41,7 @@ function buildContent(data: FormData, patient: Patient, type: DocType, user: { n
   const requester = data.requester?.trim() || 'Pessoa atendida'
   const purpose = data.purpose?.trim() || 'Finalidade informada pela pessoa solicitante'
   const place = data.place?.trim() || '[cidade/UF]'
-  const author = `${user?.name ?? 'Psicólogo(a)'} - CRP ${user?.crp ?? '00/000000'}`
+  const author = user?.crp ? `${user.name} - CRP ${user.crp}` : (user?.name ?? 'Profissional responsável')
 
   switch (type) {
     case 'declaracao':
@@ -50,16 +52,16 @@ Solicitante: ${requester}
 Finalidade: ${purpose}
 Profissional responsável: ${author}
 
-Declaro, para os devidos fins, que a pessoa acima identificada ${data.attendanceSchedule ? `realiza/realizou acompanhamento psicológico em ${data.attendanceSchedule}` : `compareceu/realizou ${sessionCount} (${sessionCountWords}) atendimento(s) psicológico(s) no período de ${startDate} a ${endDate}`}.
+Declaro, para os devidos fins, que a pessoa acima identificada ${data.attendanceSchedule ? `realiza/realizou acompanhamento${psi ? ' psicológico' : ''} em ${data.attendanceSchedule}` : `compareceu/realizou ${sessionCount} (${sessionCountWords}) atendimento(s)${psi ? ' psicológico(s)' : ''} no período de ${startDate} a ${endDate}`}.
 
-Esta declaração registra apenas informações objetivas sobre a prestação de serviço psicológico, sem sintomas, situações ou estados psicológicos, conforme Res. CFP n. 06/2019.
+${psi ? 'Esta declaração registra apenas informações objetivas sobre a prestação de serviço psicológico, sem sintomas, situações ou estados psicológicos, conforme Res. CFP n. 06/2019.' : 'Esta declaração registra apenas informações objetivas sobre a prestação do serviço, sem detalhes do conteúdo do atendimento.'}
 
 ${place}, ${today}.`
 
     case 'recibo':
       return `RECIBO DE PAGAMENTO
 
-Recebi de ${patient.name} a quantia de ${data.sessionValue ? formatCurrency(data.sessionValue) : 'R$ ____'} referente a serviço psicológico prestado em ${today}.
+Recebi de ${patient.name} a quantia de ${data.sessionValue ? formatCurrency(data.sessionValue) : 'R$ ____'} referente a serviço${psi ? ' psicológico' : ''} prestado em ${today}.
 
 Este recibo comprova pagamento e não substitui documento fiscal quando este for exigível pela legislação aplicável.`
 
@@ -156,9 +158,11 @@ export default function GenerateDocModal({
   onClose: () => void
   onGenerate: (doc: Documento) => void
   patients: Patient[]
-  user: { name: string; crp?: string } | null
+  user: { name: string; crp?: string; profession?: string } | null
   initialType?: DocType
 }) {
+  const labels = docTypeLabels(user?.profession)
+  const availableTypes = docTypesFor(user?.profession)
   const [step, setStep] = useState<'type' | 'form'>('type')
   const [selectedType, setSelectedType] = useState<DocType>('declaracao')
   const [aiSuggestion, setAiSuggestion] = useState<{ formField: AiEditableField; draft: string } | null>(null)
@@ -240,8 +244,8 @@ export default function GenerateDocModal({
     if (!patient) { toast.error('Selecione uma pessoa'); return }
     const validationError = missingRequiredField(data, selectedType)
     if (validationError) { toast.error(validationError); return }
-    const content = buildContent({ ...data, type: selectedType }, patient, selectedType, user)
-    const title = `${DOC_TYPE_LABELS[selectedType]} — ${patient.name}`
+    const content = buildContent({ ...data, type: selectedType }, patient, selectedType, user, user?.profession)
+    const title = `${labels[selectedType]} — ${patient.name}`
     try {
       const doc = await createDocument.mutateAsync({
         patientId: patient.id,
@@ -277,7 +281,7 @@ export default function GenerateDocModal({
         <div className="space-y-4">
           <p className="text-sm text-neutral-500">Selecione o tipo de documento:</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {(Object.entries(DOC_TYPE_LABELS) as [DocType, string][]).map(([type, label]) => (
+            {availableTypes.map(type => ({ type, label: labels[type] })).map(({ type, label }) => (
               <button key={type}
                 onClick={() => { setSelectedType(type); setStep('form') }}
                 className={`flex min-h-24 items-center gap-3 p-4 rounded-2xl border text-left transition-all hover:border-sage-300 hover:bg-sage-50 ${
@@ -303,7 +307,7 @@ export default function GenerateDocModal({
               Voltar
             </button>
             <UseCogniaIcon name={DOC_TYPE_ICONS[selectedType]} size={24} className="text-sage-600" />
-            <span className="font-medium text-sm text-neutral-700">{DOC_TYPE_LABELS[selectedType]}</span>
+            <span className="font-medium text-sm text-neutral-700">{labels[selectedType]}</span>
           </div>
 
           {receiptTemplate && (

@@ -142,6 +142,11 @@ export class DocumentsService {
   // ─── Criar e assinar documento ────────────────────────────────────────────
 
   async create(user: User, dto: CreateDocumentDto, signerIp?: string): Promise<Document> {
+    // Relatorio e atestado psicologicos sao atos privativos regulados pela
+    // Res. CFP 06/2019: esconder no frontend nao basta, a rota tem que recusar.
+    if (!requiresCrp(user.profession) && ['relatorio', 'atestado'].includes(dto.type)) {
+      throw new BadRequestException('Este tipo de documento e exclusivo de contas de psicologia.')
+    }
     // CRP e do conselho de psicologia. Exigi-lo de outras profissoes travaria
     // a emissao de documentos para elas — cada uma tem seu proprio conselho.
     if (requiresCrp(user.profession) && !user.crp) {

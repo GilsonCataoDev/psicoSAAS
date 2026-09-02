@@ -59,3 +59,46 @@ describe('DocumentsService.create — guarda de CRP', () => {
     expect(repo.save).toHaveBeenCalled()
   })
 })
+
+describe('DocumentsService.create — tipos privativos de psicologia', () => {
+  // Relatório e atestado psicológicos são atos regulados pela Res. CFP 06/2019.
+  // O frontend esconde os tipos, mas esconder no navegador não é controle.
+  for (const type of ['relatorio', 'atestado'] as const) {
+    it(`recusa ${type} quando a conta não é de psicologia`, async () => {
+      const { svc } = createService()
+      const nutricionista = makeUser({ crp: null, isStudent: false, profession: 'nutricao' })
+
+      await expect(svc.create(nutricionista, {
+        patientId: 'p1', patientName: 'Cliente Teste', type,
+        title: 'Documento', content: 'conteúdo qualquer preenchido',
+      }, '127.0.0.1')).rejects.toThrow(BadRequestException)
+    })
+  }
+
+  it('permite os tipos neutros para profissões não-psicologia', async () => {
+    const { svc, repo, planAccess } = createService()
+    planAccess.getCurrentPlan.mockResolvedValue('pro')
+    const nutricionista = makeUser({ crp: null, isStudent: false, profession: 'nutricao' })
+
+    const result = await svc.create(nutricionista, {
+      patientId: 'p1', patientName: 'Cliente Teste', type: 'declaracao',
+      title: 'Declaração', content: 'conteúdo qualquer preenchido',
+    }, '127.0.0.1')
+
+    expect(result).toBeDefined()
+    expect(repo.save).toHaveBeenCalled()
+  })
+
+  it('psicologia continua emitindo relatório normalmente', async () => {
+    const { svc, planAccess } = createService()
+    planAccess.getCurrentPlan.mockResolvedValue('pro')
+    const psicologo = makeUser({ crp: '06/123456', isStudent: false, profession: 'psicologia' })
+
+    const result = await svc.create(psicologo, {
+      patientId: 'p1', patientName: 'Paciente Teste', type: 'relatorio',
+      title: 'Relatório', content: 'conteúdo qualquer preenchido',
+    }, '127.0.0.1')
+
+    expect(result).toBeDefined()
+  })
+})

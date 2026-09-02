@@ -4,7 +4,7 @@ import {
   FilePlus, Shield, Download, Eye, Search, ExternalLink, Trash2, Copy,
   FileSignature, LoaderCircle,
 } from 'lucide-react'
-import { Documento, DocumentoListItem, DocType, DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '@/types/prontuario'
+import { Documento, DocumentoListItem, DocType, docTypeLabels, DOC_TYPE_ICONS } from '@/types/prontuario'
 import { useAuthStore } from '@/store/auth'
 import { formatDate } from '@/lib/utils'
 import { openCfpVerification } from '@/lib/crp'
@@ -34,6 +34,7 @@ export default function DocumentosPage() {
   const user = useAuthStore(s => s.user)
   // A resolucao do CFP so vale para psicologia.
   const showCfp = hasPsychologyModules(user?.profession)
+  const labels = docTypeLabels(user?.profession)
   const [showGenerate, setShowGenerate] = useState(false)
   const { data: patients = [], isLoading: patientsLoading } = usePatients({ enabled: showGenerate })
   const { data: docs = [], isLoading } = useDocuments()
@@ -163,7 +164,7 @@ export default function DocumentosPage() {
       <div>
         <p className="text-sm font-medium text-neutral-600 mb-3">Gerar documento rápido</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-          {(Object.entries(DOC_TYPE_LABELS) as [DocType, string][]).map(([type, label]) => (
+          {(Object.entries(labels) as [DocType, string][]).map(([type, label]) => (
             <button key={type} onClick={() => { setGenerateType(type); setShowGenerate(true) }}
               className="card p-3 text-center hover:shadow-lifted hover:-translate-y-px transition-all cursor-pointer hover:border-sage-200 group">
               <UseCogniaIcon name={DOC_TYPE_ICONS[type]} size={32} />
@@ -188,7 +189,7 @@ export default function DocumentosPage() {
             className={`flex-none px-3 py-1.5 rounded-lg text-xs transition-all ${typeFilter === 'all' ? 'bg-white shadow-sm font-medium text-neutral-800' : 'text-neutral-500'}`}>
             Todos
           </button>
-          {(Object.entries(DOC_TYPE_LABELS) as [DocType, string][]).map(([type, label]) => (
+          {(Object.entries(labels) as [DocType, string][]).map(([type, label]) => (
             <button key={type} onClick={() => setTypeFilter(type)}
               className={`flex-none px-3 py-1.5 rounded-lg text-xs transition-all whitespace-nowrap ${typeFilter === type ? 'bg-white shadow-sm font-medium text-neutral-800' : 'text-neutral-500'}`}>
               <span className="inline-flex items-center gap-1.5">
