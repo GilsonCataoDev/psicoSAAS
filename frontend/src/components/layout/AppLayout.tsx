@@ -14,6 +14,7 @@ import { api, USE_MOCK, type AuthAxiosRequestConfig } from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 import { useSubscriptionStore } from '@/store/subscription'
 import { useFeedbackStatus } from '@/hooks/api/testimonial'
+import { useTerms } from '@/hooks/useTerms'
 
 const OnboardingTour = lazy(() => import('@/components/onboarding/OnboardingTour'))
 const FirstSessionCelebration = lazy(() => import('@/components/onboarding/FirstSessionCelebration'))
@@ -151,6 +152,7 @@ function useSubscriptionPolling() {
 }
 
 function SubscriptionBanner() {
+  const t = useTerms()
   const subscription = useSubscriptionStore((s) => s.subscription)
   const plan = String(subscription.planId ?? subscription.plan ?? 'free')
 
@@ -159,7 +161,7 @@ function SubscriptionBanner() {
       <div className="mb-4 rounded-xl border border-sage-200 bg-sage-50 px-4 py-3 text-sm text-sage-800 dark:border-sage-400/30 dark:bg-sage-500/15 dark:text-sage-100">
         <p className="font-medium">Plano Gratis ativo</p>
         <p className="mt-1">
-          Use o UseCognia sem cartão para organizar sua rotina com até 10 pacientes.
+          Use o UseCognia sem cartão para organizar sua rotina com até 10 {t.patients}.
         </p>
       </div>
     )

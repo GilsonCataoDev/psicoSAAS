@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { usePatients, useCreateFinancial } from '@/hooks/useApi'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 import { EXPENSE_CATEGORIES } from '@/lib/financial-forecast'
+import { useTerms } from '@/hooks/useTerms'
 
 type FormData = {
   patientId: string
@@ -17,6 +18,7 @@ type FormData = {
 }
 
 export default function NewPaymentModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const t = useTerms()
   const { data: patients = [] } = usePatients()
   const createFinancial = useCreateFinancial()
 
@@ -94,7 +96,7 @@ export default function NewPaymentModal({ open, onClose }: { open: boolean; onCl
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="sm:col-span-2">
             <label className="label">Descrição</label>
-            <input {...register('description', { required: true })} className="input-field" placeholder="Ex: Sessão 23/04, Supervisão..." />
+            <input {...register('description', { required: true })} className="input-field" placeholder={`Ex: ${t.sessionCapitalized} 23/04, Supervisão...`} />
           </div>
           <div>
             <label className="label">Valor (R$)</label>

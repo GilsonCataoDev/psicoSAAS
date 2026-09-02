@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { AlertTriangle, Loader2 } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
+import { useTerms } from '@/hooks/useTerms'
 
 interface DeletePatientDialogProps {
   open: boolean
@@ -16,6 +17,7 @@ interface DeletePatientDialogProps {
  * Por isso exige digitar o nome exato em vez de um simples "Confirmar".
  */
 export default function DeletePatientDialog({ open, patientName, loading, onConfirm, onClose }: DeletePatientDialogProps) {
+  const t = useTerms()
   const [typed, setTyped] = useState('')
   const confirmed = typed.trim() === patientName.trim()
 
@@ -30,7 +32,7 @@ export default function DeletePatientDialog({ open, patientName, loading, onConf
         <div className="flex gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" />
           <p className="leading-relaxed">
-            Isso apaga permanentemente <strong>{patientName}</strong>: prontuário, evoluções, agendamentos,
+            Isso apaga permanentemente <strong>{patientName}</strong>: {t.record}, evoluções, agendamentos,
             documentos, anexos e avaliações. Lançamentos financeiros já registrados são mantidos (sem vínculo com a pessoa),
             preservando o histórico de faturamento.
           </p>

@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import Modal from '@/components/ui/Modal'
 import { useUpdatePatient } from '@/hooks/useApi'
 import { EmotionalTag, Patient, TAG_LABELS } from '@/types'
+import { useTerms } from '@/hooks/useTerms'
 
 const TAG_VALUES = Object.keys(TAG_LABELS) as [EmotionalTag, ...EmotionalTag[]]
 
@@ -70,6 +71,7 @@ interface EditPatientModalProps {
 }
 
 export default function EditPatientModal({ open, onClose, patient }: EditPatientModalProps) {
+  const t = useTerms()
   const updatePatient = useUpdatePatient()
   const {
     register,
@@ -128,7 +130,7 @@ export default function EditPatientModal({ open, onClose, patient }: EditPatient
           } : {}),
         },
       })
-      toast.success('Cadastro do paciente atualizado')
+      toast.success(`Cadastro do ${t.patient} atualizado`)
       onClose()
     } catch (error: any) {
       const message = error?.response?.data?.message
@@ -141,7 +143,7 @@ export default function EditPatientModal({ open, onClose, patient }: EditPatient
       open={open}
       onClose={onClose}
       title="Editar cadastro"
-      description="Atualize os dados pessoais e de contato do paciente."
+      description={`Atualize os dados pessoais e de contato do ${t.patient}.`}
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">

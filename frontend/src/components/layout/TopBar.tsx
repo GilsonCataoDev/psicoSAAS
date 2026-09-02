@@ -12,6 +12,7 @@ import { usePatients } from '@/hooks/api/patients'
 import { patientMatchesSearch } from '@/lib/patientSearch'
 import { useThemeStore } from '@/store/theme'
 import { safeInternalPath } from '@/lib/safeNavigation'
+import { useTerms } from '@/hooks/useTerms'
 
 const TYPE_ICON: Record<NotificationType, React.ReactNode> = {
   booking_request: <Calendar className="w-3.5 h-3.5 text-sage-500" />,
@@ -70,6 +71,7 @@ function NotifItem({ n, onRead, onRemove }: {
 }
 
 export default function TopBar() {
+  const t = useTerms()
   const user = useAuthStore(s => s.user)
   const firstName = user?.name?.split(' ')[0] ?? 'Psicólogo(a)'
   const [searchOpen, setSearchOpen] = useState(false)
@@ -158,7 +160,7 @@ export default function TopBar() {
             type="button"
             onClick={() => setSearchOpen(true)}
             className="p-2 rounded-xl hover:bg-neutral-100 text-neutral-400 hover:text-neutral-600 transition-colors"
-            aria-label="Abrir busca de pacientes"
+            aria-label={`Abrir busca de ${t.patients}`}
           >
             <Search className="w-4 h-4" />
           </button>
@@ -169,7 +171,7 @@ export default function TopBar() {
               id="patient-search"
               autoFocus
               type="text"
-              placeholder="Buscar pacientes..."
+              placeholder={`Buscar ${t.patients}...`}
               value={search}
               onChange={event => setSearch(event.target.value)}
               onKeyDown={handleSearchSubmit}

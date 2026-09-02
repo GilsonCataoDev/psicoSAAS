@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import { useCreateAppointment } from '@/hooks/useApi'
 import { Patient } from '@/types'
 import { calcSessionPreview, fixedScheduleLabel, nextOccurrenceFromAnchor } from '@/lib/recurringSchedule'
+import { useTerms } from '@/hooks/useTerms'
 
 type Props = {
   patient: Patient
@@ -15,6 +16,7 @@ type Props = {
 }
 
 export default function RecurringSessionsCard({ patient, anchorDate, anchorLabel, onScheduled }: Props) {
+  const t = useTerms()
   const navigate = useNavigate()
   const createAppointment = useCreateAppointment()
   const [repeatUntil, setRepeatUntil] = useState('')
@@ -40,7 +42,7 @@ export default function RecurringSessionsCard({ patient, anchorDate, anchorLabel
         repeatUntil: repeatUntil || undefined,
         fromFixedSchedule: true,
       } as any)
-      toast.success(Array.isArray(created) ? `${created.length} sessões agendadas` : 'Sessão agendada')
+      toast.success(Array.isArray(created) ? `${created.length} ${t.sessions} agendadas` : `${t.sessionCapitalized} agendada`)
       onScheduled?.()
     } catch (err: any) {
       toast.error(err?.response?.data?.message ?? 'Não foi possível agendar. Tente pela agenda para ajustar o horário.')
@@ -65,7 +67,7 @@ export default function RecurringSessionsCard({ patient, anchorDate, anchorLabel
           <Repeat2 className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">
-          <h2 className="font-semibold text-neutral-900 dark:text-white">Próximas sessões</h2>
+          <h2 className="font-semibold text-neutral-900 dark:text-white">Próximas {t.sessions}</h2>
           <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
             {anchorLabel} · Horário fixo {label}
           </p>
@@ -91,7 +93,7 @@ export default function RecurringSessionsCard({ patient, anchorDate, anchorLabel
 
           {preview && (
             <p className="mt-2 text-xs text-sage-700 dark:text-sage-200">
-              {preview.count} {preview.count !== 1 ? 'sessões' : 'sessão'} até {format(preview.lastDate, 'dd/MM/yyyy')}
+              {preview.count} {preview.count !== 1 ? t.sessions : t.session} até {format(preview.lastDate, 'dd/MM/yyyy')}
               {!repeatUntil && ' (limite padrão de 3 meses — defina uma data acima para mudar)'}
             </p>
           )}
