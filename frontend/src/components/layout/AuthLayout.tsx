@@ -11,16 +11,16 @@ export default function AuthLayout() {
 
         <div className="space-y-6">
           <h1 className="text-white font-display text-5xl font-bold leading-tight tracking-tight">
-            Gestao inteligente para profissionais da saude mental.
+            Gestao inteligente para profissionais da saude.
           </h1>
           <p className="text-white/80 text-lg leading-relaxed max-w-lg">
-            Tecnologia, organizacao e cuidado em uma experiencia premium para consultorios de saude mental.
+            Tecnologia, organizacao e cuidado em uma experiencia premium para consultorios e clinicas.
           </p>
 
           <div className="flex flex-col gap-4 pt-4">
             {[
               { icon: ShieldCheck, text: 'Controles de acesso e dados isolados por conta' },
-              { icon: Sparkles, text: 'Fluxos simples para agenda, pacientes e financeiro' },
+              { icon: Sparkles, text: 'Fluxos simples para agenda, atendimentos e financeiro' },
               { icon: BrainCircuit, text: 'Marca preparada para automacoes inteligentes' },
             ].map(({ icon: Icon, text }) => (
               <div key={text} className="flex items-center gap-3">
