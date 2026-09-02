@@ -7,8 +7,10 @@ import {
   setAnalyticsConsent,
   subscribeAnalyticsConsent,
 } from '@/lib/analytics'
+import { useTerms } from '@/hooks/useTerms'
 
 export default function AnalyticsConsentBanner() {
+  const t = useTerms()
   const userId  = useAuthStore(state => state.user?.id)
   const [consent, setConsent] = useState<boolean | null>(() => getAnalyticsConsent())
 
@@ -39,7 +41,7 @@ export default function AnalyticsConsentBanner() {
           <p className="mt-1 text-xs leading-5 text-neutral-500 dark:text-neutral-400">
             Já coletamos métricas anônimas de navegação. Com sua permissão, vinculamos
             essas métricas à sua conta para entender melhor como cada funcionalidade é usada.
-            Nenhum dado clínico ou de paciente é enviado.
+            Nenhum dado clínico ou de {t.patient} é enviado.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <button

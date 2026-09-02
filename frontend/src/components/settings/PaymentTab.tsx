@@ -107,7 +107,7 @@ export function PaymentTab({
           value={prefs.chargeTemplate}
           onChange={e => setPref('chargeTemplate', e.target.value)} />
         <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Prévia para paciente</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Prévia para {t.patient}</p>
           <p className="whitespace-pre-line text-sm text-neutral-700">{previewCharge(prefs.chargeTemplate, prefs.pixKey)}</p>
         </div>
         <button type="button" className="btn-secondary text-xs w-fit"
@@ -130,7 +130,7 @@ export function PaymentTab({
           value={prefs.lateReminderTemplate}
           onChange={e => setPref('lateReminderTemplate', e.target.value)} />
         <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Prévia para paciente</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Prévia para {t.patient}</p>
           <p className="whitespace-pre-line text-sm text-neutral-700">{previewCharge(prefs.lateReminderTemplate, prefs.pixKey, '')}</p>
         </div>
         <div className="flex justify-end">

@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { api, USE_MOCK } from '@/lib/api'
 import { track, EVENTS } from '@/lib/analytics'
 import { copyText } from '@/lib/utils'
+import { useTerms } from '@/hooks/useTerms'
 
 export interface ReferralStats {
   code: string
@@ -45,6 +46,7 @@ async function fetchReferralStats(): Promise<ReferralStats> {
 }
 
 export function useReferral(enabled = true) {
+  const t = useTerms()
   const [copied, setCopied] = useState(false)
   const { data: stats } = useQuery({
     queryKey: ['referral'],
@@ -76,7 +78,7 @@ export function useReferral(enabled = true) {
 
     const message = encodeURIComponent(
       `Estou usando o UseCognia para gerenciar meu consultorio e adorando!\n\n` +
-      `Crie sua conta gratis com meu link. Quando voce cadastrar 3 pacientes e 2 sessoes, eu ganho 30 dias de beneficio e voce comeca com a rotina organizada: ${referralUrl}`,
+      `Crie sua conta gratis com meu link. Quando voce cadastrar 3 ${t.patients} e 2 ${t.sessions}, eu ganho 30 dias de beneficio e voce comeca com a rotina organizada: ${referralUrl}`,
     )
     window.open(`https://wa.me/?text=${message}`, '_blank', 'noopener,noreferrer')
     track(EVENTS.REFERRAL_SHARED)

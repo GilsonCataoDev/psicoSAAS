@@ -3,6 +3,7 @@ import { type User } from '@/store/auth'
 import Avatar from '@/components/ui/Avatar'
 import { openCfpVerification } from '@/lib/crp'
 import { PROFESSIONS, PROFESSION_LABELS, requiresCrp, type Profession } from '@/lib/professions'
+import { termsFor } from '@/lib/terms'
 
 interface Props {
   user: User | null
@@ -31,11 +32,12 @@ export function ProfileTab({
   savingProfile, uploadingAvatar, saveProfile, uploadAvatar, handleLogout,
 }: Props) {
   const showCrp = requiresCrp(profession)
+  const t = termsFor(profession)
   return (
     <div className="card space-y-4">
       <h2 className="section-title">Seus dados</h2>
       <div className="rounded-2xl border border-sage-100 bg-sage-50 px-4 py-3 text-sm text-sage-800">
-        <p className="font-medium">Dados exibidos ao paciente</p>
+        <p className="font-medium">Dados exibidos ao {t.patient}</p>
         <p className="mt-1 text-sage-700">
           Nome, CRP, especialidade, telefone e foto podem aparecer no link público de agendamento e em mensagens operacionais.
         </p>

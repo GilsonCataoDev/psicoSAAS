@@ -2,14 +2,20 @@ import { FormEvent, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, HelpCircle, Send, ShieldCheck, X } from 'lucide-react'
 import { useProductHelp, type ProductHelpResponse } from '@/hooks/api/product-help'
+import { useTerms } from '@/hooks/useTerms'
+import type { Terms } from '@/lib/terms'
 
-const SUGGESTIONS = [
-  'Como cadastro um paciente?',
+function buildSuggestions(t: Terms) {
+  return [
+  `Como cadastro um ${t.patient}?`,
   'Como crio um agendamento?',
   'Onde configuro os lembretes?',
-]
+  ]
+}
 
 export default function ProductHelpAssistant() {
+  const t = useTerms()
+  const SUGGESTIONS = buildSuggestions(t)
   const [open, setOpen] = useState(false)
   const [question, setQuestion] = useState('')
   const [result, setResult] = useState<ProductHelpResponse | null>(null)
@@ -73,7 +79,7 @@ export default function ProductHelpAssistant() {
           <div className="overflow-y-auto p-4">
             <div className="flex gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900 dark:border-amber-400/25 dark:bg-amber-500/10 dark:text-amber-100">
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
-              <p>Não informe nomes, contatos ou conteúdo clínico de pacientes. Esta ajuda explica apenas o uso do sistema.</p>
+              <p>Não informe nomes, contatos ou conteúdo clínico de {t.patients}. Esta ajuda explica apenas o uso do sistema.</p>
             </div>
 
             {!result && (

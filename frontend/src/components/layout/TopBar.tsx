@@ -216,7 +216,7 @@ export default function TopBar() {
                     }}
                     className="w-full px-3 py-3 text-left text-sm text-neutral-500 hover:bg-neutral-50"
                   >
-                    Nenhum resultado. Ver pacientes
+                    Nenhum resultado. Ver {t.patients}
                   </button>
                 )}
               </div>
