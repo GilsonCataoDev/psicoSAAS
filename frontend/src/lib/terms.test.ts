@@ -26,6 +26,22 @@ describe('termsFor', () => {
   })
 })
 
+describe('termsFor em páginas públicas', () => {
+  // As páginas de agendamento, confirmação e portal são abertas pelo paciente
+  // sem sessão: a profissão chega no payload da API, não do usuário logado.
+  it('usa a profissão vinda da API quando ela existe', () => {
+    expect(termsFor('nutricao').sessionCapitalized).toBe('Atendimento')
+    expect(termsFor('nutricao').patient).toBe('cliente')
+    expect(termsFor('psicologia').sessionCapitalized).toBe('Sessão')
+    expect(termsFor('psicologia').patient).toBe('paciente')
+  })
+
+  it('cai no padrão de psicologia se a API não devolver profissão (payload antigo)', () => {
+    expect(termsFor(undefined).sessionCapitalized).toBe('Sessão')
+    expect(termsFor(undefined).patient).toBe('paciente')
+  })
+})
+
 describe('getNavigationItems', () => {
   it('devolve a navegação original para psicologia', () => {
     expect(getNavigationItems('psicologia')).toEqual(NAVIGATION_ITEMS)

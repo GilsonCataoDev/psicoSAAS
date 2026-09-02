@@ -25,6 +25,7 @@ import { GoogleCalendarService } from '../google-calendar/google-calendar.servic
 import { isPublicBookingMonthAllowed } from './booking-month-policy'
 import { blindIndex, encrypt, hashToken, safeDecrypt } from '../../common/crypto/encrypt.util'
 import { BookingContactMemoryService } from './booking-contact-memory.service'
+import { DEFAULT_PROFESSION } from '../../common/professions'
 
 const OCCUPYING_BOOKING_STATUSES: Booking['status'][] = ['pending', 'confirmed']
 const FREE_APPOINTMENT_STATUSES = ['cancelled', 'no_show']
@@ -167,6 +168,10 @@ export class BookingService {
       psychologistName: psychologist.name,
       psychologistCrp: formatCrpForDisplay(psychologist),
       specialty: psychologist.specialty,
+      // O paciente abre esta página sem sessão, então o vocabulário da
+      // interface pública precisa vir daqui — não há usuário logado de quem
+      // derivar a profissão.
+      profession: psychologist.profession ?? DEFAULT_PROFESSION,
       psychologistPhone: psychologist.phone ?? null,
     }
   }
@@ -510,7 +515,7 @@ export class BookingService {
       throw new BadRequestException('Esta sessao foi cancelada')
     if (booking.status === 'confirmed')
       return {
-        message: 'Sessao ja confirmada anteriormente.',
+        message: 'Agendamento ja confirmado anteriormente.',
         booking: this.toCalendarBooking(booking),
       }
 
@@ -530,7 +535,7 @@ export class BookingService {
     await this.maybeSendUpfrontCharge(booking, page, appointment)
     await this.notifications.sendBookingConfirmation(booking, page)
     return {
-      message: 'Sessao confirmada com sucesso!',
+      message: 'Agendamento confirmado com sucesso!',
       booking: this.toCalendarBooking(booking),
     }
   }
@@ -1032,6 +1037,7 @@ export class BookingService {
       patientName: booking.patientName,
       psychologistName: booking.psychologist?.name,
       psychologistCrp: booking.psychologist ? formatCrpForDisplay(booking.psychologist) : null,
+      profession: booking.psychologist?.profession ?? DEFAULT_PROFESSION,
       date: booking.date,
       time: this.normalizeTime(booking.time),
       duration: booking.duration || 50,

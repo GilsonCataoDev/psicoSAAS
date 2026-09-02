@@ -5,6 +5,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { api, type AuthAxiosRequestConfig } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
+import { termsFor } from '@/lib/terms'
 
 type PatientPortal = {
   patient: {
@@ -20,6 +21,8 @@ type PatientPortal = {
   psychologist: {
     name: string
     crp?: string | null
+    /** Vem da API: a pagina publica nao tem sessao para derivar o vocabulario. */
+    profession?: string
   }
   appointments: Array<{
     id: string
@@ -86,6 +89,9 @@ export default function PatientPortalPage() {
     enabled: !!token,
     retry: false,
   })
+
+  // Sem sessão logada: o vocabulário vem da profissão que a API devolve.
+  const t = termsFor(portal.data?.psychologist.profession)
 
   useEffect(() => {
     const data = portal.data
@@ -165,7 +171,7 @@ export default function PatientPortalPage() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-sage-700">UseCognia</p>
-              <h1 className="mt-2 font-display text-2xl font-semibold text-neutral-800">Portal do paciente</h1>
+              <h1 className="mt-2 font-display text-2xl font-semibold text-neutral-800">Portal do {t.patient}</h1>
               <p className="mt-1 text-sm text-neutral-500">{professional}</p>
             </div>
             <div className="inline-flex items-center gap-2 rounded-full border border-sage-100 bg-sage-50 px-3 py-1.5 text-xs font-semibold text-sage-700">
@@ -179,7 +185,7 @@ export default function PatientPortalPage() {
                 <UserRound className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-xs text-neutral-400">Paciente</p>
+                <p className="text-xs text-neutral-400">{t.patientCapitalized}</p>
                 <p className="font-semibold text-neutral-800">{portal.data.patient.name}</p>
               </div>
             </div>

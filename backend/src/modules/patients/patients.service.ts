@@ -18,6 +18,7 @@ import { ProspectLifecycleService } from '../../common/prospect-lifecycle/prospe
 import { Document } from '../documents/entities/document.entity'
 import { PatientAttachment } from './entities/patient-attachment.entity'
 import { StorageService } from '../../common/storage/storage.service'
+import { DEFAULT_PROFESSION } from '../../common/professions'
 
 type EncryptedProntuario = {
   __encrypted: 'usecognia.prontuario.v1' | 'psicosaas.prontuario.v1'
@@ -69,6 +70,7 @@ type PatientPortalDto = {
   psychologist: {
     name: string
     crp?: string | null
+    profession: string
   }
   appointments: Array<{
     id: string
@@ -323,6 +325,9 @@ export class PatientsService {
       psychologist: {
         name: patient.psychologist?.name ?? 'Profissional responsável',
         crp: patient.psychologist ? formatCrpForDisplay(patient.psychologist) : null,
+        // Portal é aberto pelo paciente sem sessão: o vocabulário da tela
+        // precisa vir daqui, não de um usuário logado.
+        profession: patient.psychologist?.profession ?? DEFAULT_PROFESSION,
       },
       appointments: upcoming.map(appointment => ({
         id: appointment.id,

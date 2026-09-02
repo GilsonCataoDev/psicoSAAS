@@ -17,6 +17,8 @@ import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { track, EVENTS } from '@/lib/analytics'
+import { termsFor } from '@/lib/terms'
+import { DEFAULT_PROFESSION, PROFESSION_LABELS, type Profession } from '@/lib/professions'
 import {
   useBookingContactMemory,
   useForgetBookingContact,
@@ -110,6 +112,8 @@ function getBookingToday(): Date {
 export default function BookingPage() {
   const { slug } = useParams()
   const { data: page, isLoading: pageLoading, isError } = usePublicBookingPage(slug ?? '')
+  // Sem sessão logada: o vocabulário vem da profissão que a API devolve.
+  const t = termsFor((page as any)?.profession)
 
   const [step, setStep] = useState<Step>('landing')
   const [month, setMonth] = useState(() => startOfMonth(getBookingToday()))
@@ -172,7 +176,11 @@ export default function BookingPage() {
   useEffect(() => {
     if (!page) return
     const name = page.psychologistName
-    const specialty = (page as any).specialty ?? 'Psicólogo(a)'
+    // Sem especialidade preenchida, cai no rótulo da profissão — "Psicólogo(a)"
+    // fixo apareceria na descrição pública de um nutricionista.
+    const professionLabel = PROFESSION_LABELS[((page as any).profession ?? DEFAULT_PROFESSION) as Profession]
+      ?? PROFESSION_LABELS[DEFAULT_PROFESSION]
+    const specialty = (page as any).specialty ?? professionLabel
     const title = `Agendamento com ${name}`
     const modalities = [page.allowOnline ? 'online' : '', page.allowPresencial ? 'presencial' : ''].filter(Boolean).join(' e ')
     const description = `${specialty}. ${modalities ? `Atendimento ${modalities}. ` : ''}Consulte os horários disponíveis e escolha o melhor para você.`
@@ -446,10 +454,10 @@ export default function BookingPage() {
             </div>
             <h2 className="font-display text-2xl font-semibold text-neutral-800 dark:text-neutral-100 mb-2">Agendamento confirmado!</h2>
             <p className="text-neutral-500 dark:text-neutral-300 mb-6 max-w-sm mx-auto">
-              {page.confirmationMessage ?? 'Seu horário foi reservado com sucesso. Você receberá os detalhes da sessão em breve.'}
+              {page.confirmationMessage ?? `Seu horário foi reservado com sucesso. Você receberá os detalhes da ${t.session} em breve.`}
             </p>
             <div className="bg-white dark:bg-[#17251f] border border-neutral-100 dark:border-sage-200/15 rounded-2xl shadow-card p-5 text-left max-w-sm mx-auto">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-400 mb-4">Resumo da sessão</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-400 mb-4">Resumo da {t.session}</p>
               <div className="space-y-3 text-sm text-neutral-700 dark:text-neutral-200">
                 <p className="flex items-center justify-between gap-4">
                   <span className="text-neutral-400 dark:text-neutral-400">Data</span>
@@ -804,7 +812,7 @@ export default function BookingPage() {
                         className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-sage-600 focus:ring-sage-500"
                       />
                       <span>
-                        Autorizo o uso dos dados informados para agendamento e comunicação sobre esta sessão.
+                        Autorizo o uso dos dados informados para agendamento e comunicação sobre esta {t.session}.
                       </span>
                     </label>
                     {errors.privacyAccepted && (
@@ -813,7 +821,7 @@ export default function BookingPage() {
                   </div>
 
                   <div className="bg-sage-50 rounded-2xl p-4 text-sm text-sage-700 space-y-1">
-                    <p className="font-medium">Resumo da sessão</p>
+                    <p className="font-medium">Resumo da {t.session}</p>
                     <p>{selectedDate && format(parseISO(selectedDate), "EEEE, dd 'de' MMMM", { locale: ptBR })}</p>
                     <p>{selectedTime}</p>
                   </div>

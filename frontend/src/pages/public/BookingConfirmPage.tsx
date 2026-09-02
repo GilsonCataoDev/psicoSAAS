@@ -4,6 +4,7 @@ import { AlertCircle, CalendarPlus, Check, Download, ExternalLink, Loader2, X } 
 import BrandLogo from '@/components/ui/BrandLogo'
 import { api } from '@/lib/api'
 import { createGoogleCalendarUrl, createIcsContent, type CalendarEvent } from '@/lib/calendar'
+import { termsFor } from '@/lib/terms'
 
 type ConfirmAction = 'confirmar' | 'cancelar'
 
@@ -12,6 +13,8 @@ type CalendarBooking = {
   patientName?: string
   psychologistName?: string
   psychologistCrp?: string
+  /** Vem da API: a página pública não tem sessão para derivar o vocabulário. */
+  profession?: string
   date: string
   time: string
   duration: number
@@ -52,6 +55,8 @@ export default function BookingConfirmPage({ fixedAction }: { fixedAction?: Conf
   const [cancelSubmitted, setCancelSubmitted] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<BookingActionResponse | null>(null)
+  // Sem sessão logada: o vocabulário vem da profissão que a API devolve.
+  const t = termsFor(result?.booking?.profession)
 
   useEffect(() => {
     let mounted = true
@@ -107,12 +112,12 @@ export default function BookingConfirmPage({ fixedAction }: { fixedAction?: Conf
     const modality = booking.modality === 'online' ? 'Online' : 'Presencial'
 
     return {
-      title: `Sessão com ${professional}`,
+      title: `${t.sessionCapitalized} com ${professional}`,
       startDate: booking.date,
       startTime: booking.time,
       durationMinutes: booking.duration || 50,
       location: modality,
-      details: `Sessão confirmada pela UseCognia.\nProfissional: ${professional}${crp}\nModalidade: ${modality}`,
+      details: `${t.sessionCapitalized} confirmada pela UseCognia.\nProfissional: ${professional}${crp}\nModalidade: ${modality}`,
     }
   }, [isConfirm, result])
 
@@ -146,10 +151,10 @@ export default function BookingConfirmPage({ fixedAction }: { fixedAction?: Conf
             : error
               ? 'Link não processado'
               : isConfirm
-                ? 'Sessão confirmada'
+                ? `${t.sessionCapitalized} confirmada`
                 : cancelSubmitted
-                  ? 'Sessão cancelada'
-                  : 'Cancelar sessão?'}
+                  ? `${t.sessionCapitalized} cancelada`
+                  : `Cancelar ${t.session}?`}
         </h1>
 
         <p className="text-neutral-500 dark:text-neutral-300 leading-relaxed">
@@ -158,17 +163,17 @@ export default function BookingConfirmPage({ fixedAction }: { fixedAction?: Conf
             : error
               ? error
               : !isConfirm && !cancelSubmitted
-                ? 'Para evitar cancelamentos por engano, confirme abaixo que deseja cancelar esta sessão.'
+                ? `Para evitar cancelamentos por engano, confirme abaixo que deseja cancelar esta ${t.session}.`
                 : result?.message ?? (
                   isConfirm
-                    ? 'Sua sessão está confirmada. Você receberá um lembrete antes do encontro.'
-                    : 'Sua sessão foi cancelada. Quando quiser remarcar, use o link de agendamento novamente.'
+                    ? `Sua ${t.session} está confirmada. Você receberá um lembrete antes do encontro.`
+                    : `Sua ${t.session} foi cancelada. Quando quiser remarcar, use o link de agendamento novamente.`
                 )}
         </p>
 
         {!loading && !error && !isConfirm && !cancelSubmitted && result?.booking && (
           <div className="mt-6 rounded-2xl border border-neutral-100 bg-neutral-50 p-4 text-left text-sm text-neutral-700 dark:border-white/10 dark:bg-white/5 dark:text-neutral-200">
-            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">Sessão</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">{t.sessionCapitalized}</p>
             <p className="mt-2 font-medium">{result.booking.date} às {result.booking.time}</p>
             <p className="mt-1 text-neutral-500 dark:text-neutral-300">
               {result.booking.modality === 'online' ? 'Online' : 'Presencial'} · {result.booking.duration || 50} min
