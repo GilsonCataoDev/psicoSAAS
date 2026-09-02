@@ -7,7 +7,7 @@ import { useAuthStore } from '@/store/auth'
 import { useHasPlan } from '@/store/subscription'
 import { cn } from '@/lib/utils'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
-import { NAVIGATION_ITEMS } from './navigation'
+import { getNavigationItems } from './navigation'
 
 interface MoreMenuSheetProps {
   open: boolean
@@ -18,7 +18,7 @@ export default function MoreMenuSheet({ open, onClose }: MoreMenuSheetProps) {
   const user = useAuthStore(s => s.user)
   const logout = useAuthStore(s => s.logout)
   const isPro = useHasPlan('pro')
-  const extraItems = NAVIGATION_ITEMS.filter(item => !item.mobile && (!item.proOnly || isPro))
+  const extraItems = getNavigationItems(user?.profession).filter(item => !item.mobile && (!item.proOnly || isPro))
 
   useEffect(() => {
     if (!open) return

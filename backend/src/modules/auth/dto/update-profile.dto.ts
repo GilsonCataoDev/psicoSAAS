@@ -1,7 +1,12 @@
-import { IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator'
+import { IsIn, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator'
 import { Transform } from 'class-transformer'
+import { PROFESSIONS, type Profession } from '../../../common/professions'
 
 export class UpdateProfileDto {
+  @IsOptional()
+  @IsIn(PROFESSIONS, { message: 'Profissão inválida' })
+  profession?: Profession
+
   @IsOptional()
   @IsString()
   @MinLength(2, { message: 'Nome deve ter ao menos 2 caracteres' })

@@ -4,6 +4,7 @@ import {
 } from 'typeorm'
 import { Patient } from '../../patients/entities/patient.entity'
 import { encryptedTextTransformer } from '../../../common/crypto/encrypt.util'
+import { DEFAULT_PROFESSION, Profession } from '../../../common/professions'
 
 @Entity('users')
 export class User {
@@ -26,6 +27,14 @@ export class User {
   @Column({ default: false })
   isStudent: boolean
 
+  /**
+   * Profissão do titular — define vocabulário da interface e módulos visíveis.
+   * Default 'psicologia' mantém as contas existentes idênticas ao que já era.
+   */
+  @Column({ type: 'varchar', length: 40, default: DEFAULT_PROFESSION })
+  profession: Profession
+
+  /** Abordagem/subespecialidade em texto livre (ex: "Terapia Cognitivo-Comportamental"). Exibida publicamente. */
   @Column({ nullable: true })
   specialty?: string
 

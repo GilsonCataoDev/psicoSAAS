@@ -7,6 +7,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { formatDateRelative } from '@/lib/utils'
 import { useSessions, useDeleteSession } from '@/hooks/useApi'
+import { useTerms } from '@/hooks/useTerms'
 import toast from 'react-hot-toast'
 
 const NewSessionModal = lazy(() => import('@/components/features/sessions/NewSessionModal'))
@@ -14,6 +15,7 @@ const NewSessionModal = lazy(() => import('@/components/features/sessions/NewSes
 const MOODS = ['', '1', '2', '3', '4', '5']
 
 export default function SessionsPage() {
+  const t = useTerms()
   const [showModal, setShowModal] = useState(false)
   const [sessionToDelete, setSessionToDelete] = useState<any | null>(null)
   const [search, setSearch] = useState('')
@@ -45,16 +47,16 @@ export default function SessionsPage() {
     <div className="animate-slide-up space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="page-title">Sessões</h1>
+          <h1 className="page-title">{t.sessionsCapitalized}</h1>
           <p className="page-subtitle">
             {sessions.length > 0
-              ? `${sessions.length} sessão${sessions.length !== 1 ? 'ões' : ''} registrada${sessions.length !== 1 ? 's' : ''}`
+              ? `${sessions.length} ${sessions.length !== 1 ? t.sessions : t.session} registrada${sessions.length !== 1 ? 's' : ''}`
               : 'Registre como foi cada atendimento'}
           </p>
         </div>
-        <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2" aria-label="Como foi a sessão?">
+        <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2" aria-label={`Como foi a ${t.session}?`}>
           <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Como foi a sessão?</span>
+          <span className="hidden sm:inline">Como foi a {t.session}?</span>
         </button>
       </div>
 

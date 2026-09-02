@@ -2,6 +2,7 @@ import { Camera, CheckCircle2, ExternalLink, LogOut } from 'lucide-react'
 import { type User } from '@/store/auth'
 import Avatar from '@/components/ui/Avatar'
 import { openCfpVerification } from '@/lib/crp'
+import { PROFESSIONS, PROFESSION_LABELS, requiresCrp, type Profession } from '@/lib/professions'
 
 interface Props {
   user: User | null
@@ -11,6 +12,8 @@ interface Props {
   handleCrpChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   crpValid: boolean
   crpRegion: string | null
+  profession: string
+  setProfession: (v: string) => void
   specialty: string
   setSpecialty: (v: string) => void
   phone: string
@@ -24,9 +27,10 @@ interface Props {
 
 export function ProfileTab({
   user, name, setName, crp, handleCrpChange, crpValid, crpRegion,
-  specialty, setSpecialty, phone, setPhone,
+  profession, setProfession, specialty, setSpecialty, phone, setPhone,
   savingProfile, uploadingAvatar, saveProfile, uploadAvatar, handleLogout,
 }: Props) {
+  const showCrp = requiresCrp(profession)
   return (
     <div className="card space-y-4">
       <h2 className="section-title">Seus dados</h2>
@@ -64,7 +68,18 @@ export function ProfileTab({
           <label className="label">Nome completo</label>
           <input value={name} onChange={e => setName(e.target.value)} className="input-field" />
         </div>
-        <div>
+        <div className="col-span-1 sm:col-span-2">
+          <label className="label">Profissão</label>
+          <select value={profession} onChange={e => setProfession(e.target.value)} className="input-field">
+            {PROFESSIONS.map(p => (
+              <option key={p} value={p}>{PROFESSION_LABELS[p as Profession]}</option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-neutral-400">
+            Define os termos usados no sistema e quais recursos aparecem para você.
+          </p>
+        </div>
+        <div className={showCrp ? '' : 'hidden'}>
           <label className="label">CRP</label>
           <input value={crp} onChange={handleCrpChange} className="input-field"
             placeholder="06/123456" maxLength={9} />

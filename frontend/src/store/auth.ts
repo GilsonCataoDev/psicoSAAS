@@ -10,6 +10,9 @@ export interface User {
   crp: string
   avatar?: string
   avatarUrl?: string
+  /** Profissão do titular — define vocabulário da interface e módulos visíveis. Default 'psicologia'. */
+  profession?: string
+  /** Abordagem/subespecialidade em texto livre, exibida publicamente. */
   specialty?: string
   phone?: string
   cpfCnpj?: string
@@ -24,9 +27,11 @@ export interface User {
 
 function toPersistedUser(user: User | null): User | null {
   if (!user) return null
-  const { id, name, email, crp, emailVerified, isAdmin } = user
+  const { id, name, email, crp, emailVerified, isAdmin, profession } = user
   // Persistencia minima: evita CPF/CNPJ, telefone e outros dados pessoais no localStorage.
-  return { id, name, email, crp, emailVerified, isAdmin }
+  // `profession` entra porque define o vocabulario da interface — sem ele, a tela
+  // pisca os termos errados no boot ate o /auth/me responder. Nao e dado pessoal.
+  return { id, name, email, crp, emailVerified, isAdmin, profession }
 }
 
 function sanitizePersistedAuth(value: string): string {

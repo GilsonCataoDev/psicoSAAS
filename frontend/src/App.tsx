@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { useAuthStore } from '@/store/auth'
+import { hasPsychologyModules } from '@/lib/professions'
 import { useSubscriptionStore } from '@/store/subscription'
 import AuthLayout from '@/components/layout/AuthLayout'
 
@@ -93,6 +94,16 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   return isAdmin ? <>{children}</> : <Navigate to="/dashboard" replace />
 }
 
+/**
+ * Módulos exclusivos de psicologia (instrumentos psicométricos, laudo
+ * neuropsicológico). Esconder o link do menu não basta — sem isto a URL
+ * continuaria acessível para outras profissões.
+ */
+function PsychologyOnlyRoute({ children }: { children: React.ReactNode }) {
+  const profession = useAuthStore(state => state.user?.profession)
+  return hasPsychologyModules(profession) ? <>{children}</> : <Navigate to="/dashboard" replace />
+}
+
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   return isAuthenticated ? <Navigate to="/dashboard" replace /> : <>{children}</>
@@ -164,9 +175,9 @@ export default function App() {
             <Route path="sessoes" element={<SessionsPage />} />
             <Route path="financeiro" element={<FinancialPage />} />
             <Route path="configuracoes" element={<SettingsPage />} />
-            <Route path="instrumentos" element={<ProOnlyRoute><InstrumentosPage /></ProOnlyRoute>} />
-            <Route path="avaliacoes" element={<ProOnlyRoute><NeuropsychAssessmentsPage /></ProOnlyRoute>} />
-            <Route path="avaliacoes/:id" element={<ProOnlyRoute><NeuropsychAssessmentPage /></ProOnlyRoute>} />
+            <Route path="instrumentos" element={<PsychologyOnlyRoute><ProOnlyRoute><InstrumentosPage /></ProOnlyRoute></PsychologyOnlyRoute>} />
+            <Route path="avaliacoes" element={<PsychologyOnlyRoute><ProOnlyRoute><NeuropsychAssessmentsPage /></ProOnlyRoute></PsychologyOnlyRoute>} />
+            <Route path="avaliacoes/:id" element={<PsychologyOnlyRoute><ProOnlyRoute><NeuropsychAssessmentPage /></ProOnlyRoute></PsychologyOnlyRoute>} />
           </Route>
         </Route>
 

@@ -12,8 +12,10 @@ import { usePatients } from '@/hooks/useApi'
 import { PLANS, useSubscriptionStore } from '@/store/subscription'
 import toast from 'react-hot-toast'
 import { patientMatchesSearch } from '@/lib/patientSearch'
+import { useTerms } from '@/hooks/useTerms'
 
 export default function PatientsPage() {
+  const t = useTerms()
   const location = useLocation()
   const [searchParams] = useSearchParams()
   const initialSearch = typeof location.state === 'object'
@@ -73,11 +75,11 @@ export default function PatientsPage() {
     <div className="animate-slide-up space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="page-title">Pacientes</h1>
+          <h1 className="page-title">{t.patientsCapitalized}</h1>
           <p className="page-subtitle">
             {patientLimit === -1
               ? `${activeCount} em acompanhamento · sem limite no plano ${currentPlan.name}`
-              : `${activeCount}/${patientLimit} pacientes ativos no plano ${currentPlan.name}`}
+              : `${activeCount}/${patientLimit} ${t.patients} ativos no plano ${currentPlan.name}`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -93,10 +95,10 @@ export default function PatientsPage() {
             onClick={openCreatePatientModal}
             className="btn-primary flex items-center gap-2"
             aria-disabled={reachedPatientLimit}
-            aria-label="Novo paciente"
+            aria-label={`Novo ${t.patient}`}
           >
             <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Novo paciente</span>
+            <span className="hidden sm:inline">Novo {t.patient}</span>
           </button>
         </div>
       </div>

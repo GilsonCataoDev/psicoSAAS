@@ -13,6 +13,7 @@ import { useDashboard } from '@/hooks/api/dashboard'
 import { useSessions } from '@/hooks/api/sessions'
 import ReferralCard from '@/components/features/referral/ReferralCard'
 import { OnboardingProfile, useOnboardingStore } from '@/store/onboarding'
+import { useTerms } from '@/hooks/useTerms'
 
 const OnboardingWizard = lazy(() => import('@/components/onboarding/OnboardingWizard'))
 const NewSessionModal = lazy(() => import('@/components/features/sessions/NewSessionModal'))
@@ -154,6 +155,7 @@ function suggestedActions(profile?: OnboardingProfile, stats?: any): SuggestedAc
 }
 
 export default function DashboardPage() {
+  const t = useTerms()
   const { data: stats, isLoading: loading } = useDashboard()
   const { data: recentSessions = [] } = useSessions()
   const user = useAuthStore(s => s.user)
@@ -375,7 +377,7 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard
-          label="Pacientes ativos"
+          label={`${t.patientsCapitalized} ativos`}
           value={s?.activePatients ?? 0}
           icon={<Users className="w-4 h-4" />}
           accent="sage"

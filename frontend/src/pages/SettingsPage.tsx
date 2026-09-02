@@ -7,6 +7,7 @@ import {
   Bell, CalendarDays, Lock, User, MessageSquare, Shield, Zap, Wallet, ExternalLink,
 } from 'lucide-react'
 import { isValidCrpFormat, getCrpRegion, formatCrpInput } from '@/lib/crp'
+import { DEFAULT_PROFESSION, requiresCrp } from '@/lib/professions'
 import { useSubscriptionStore, PLANS } from '@/store/subscription'
 import toast from 'react-hot-toast'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
@@ -100,6 +101,7 @@ export default function SettingsPage() {
   // ── Perfil ─────────────────────────────────────────────────────────────────
   const [name, setName] = useState(user?.name ?? '')
   const [crp, setCrp]   = useState(user?.crp ?? '')
+  const [profession, setProfession] = useState(user?.profession ?? DEFAULT_PROFESSION)
   const [specialty, setSpecialty] = useState(user?.specialty ?? '')
   const [phone, setPhone] = useState('')
   const [savingProfile, setSavingProfile] = useState(false)
@@ -113,14 +115,15 @@ export default function SettingsPage() {
   }
 
   async function saveProfile() {
-    if (!crpValid) {
+    // CRP só é exigido de psicologia — outras profissões têm outros conselhos.
+    if (requiresCrp(profession) && !crpValid) {
       toast.error('CRP inválido. Use uma região entre 01 e 24.')
       return
     }
     setSavingProfile(true)
     try {
-      const updated = await api.patch('/auth/profile', { name, crp, specialty, phone }).then(r => r.data)
-      updateUser({ name: updated.name, crp: updated.crp, specialty: updated.specialty, phone: updated.phone, avatarUrl: updated.avatarUrl })
+      const updated = await api.patch('/auth/profile', { name, crp, profession, specialty, phone }).then(r => r.data)
+      updateUser({ name: updated.name, crp: updated.crp, profession: updated.profession, specialty: updated.specialty, phone: updated.phone, avatarUrl: updated.avatarUrl })
       toast.success('Perfil atualizado')
     } catch {
       toast.error('Erro ao salvar perfil.')
@@ -605,6 +608,7 @@ export default function SettingsPage() {
               name={name} setName={setName}
               crp={crp} handleCrpChange={handleCrpChange}
               crpValid={crpValid} crpRegion={crpRegion}
+              profession={profession} setProfession={setProfession}
               specialty={specialty} setSpecialty={setSpecialty}
               phone={phone} setPhone={setPhone}
               savingProfile={savingProfile} uploadingAvatar={uploadingAvatar}

@@ -3,14 +3,15 @@ import { NavLink } from 'react-router-dom'
 import { Menu } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useNotificationStore } from '@/store/notifications'
+import { useAuthStore } from '@/store/auth'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
-import { NAVIGATION_ITEMS } from './navigation'
+import { getNavigationItems } from './navigation'
 import MoreMenuSheet from './MoreMenuSheet'
-
-const items = NAVIGATION_ITEMS.filter(item => item.mobile)
 
 export default function BottomNav() {
   const unread = useNotificationStore(s => s.notifications.filter(n => !n.read).length)
+  const profession = useAuthStore(s => s.user?.profession)
+  const items = getNavigationItems(profession).filter(item => item.mobile)
   const [moreOpen, setMoreOpen] = useState(false)
 
   return (

@@ -5,7 +5,7 @@ import { useHasPlan, useSubscriptionStore, PLANS } from '@/store/subscription'
 import { getInitials, cn } from '@/lib/utils'
 import BrandLogo from '@/components/ui/BrandLogo'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
-import { NAVIGATION_ITEMS } from './navigation'
+import { getNavigationItems } from './navigation'
 
 const TRIAL_DAYS = 14
 
@@ -29,7 +29,7 @@ export default function Sidebar() {
       </div>
 
       <nav id="main-navigation" aria-label="Navegação principal" className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
-        {NAVIGATION_ITEMS.filter(item => !item.proOnly || isPro).map(({ to, icon, label }) => (
+        {getNavigationItems(user?.profession).filter(item => !item.proOnly || isPro).map(({ to, icon, label }) => (
           <NavLink key={to} to={to} end={to === '/dashboard'}>
             {({ isActive }) => (
               <div className={cn(

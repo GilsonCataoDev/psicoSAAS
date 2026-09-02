@@ -14,6 +14,7 @@ import DictationButton from '@/components/ui/DictationButton'
 import RecordingPanel from '@/components/ui/RecordingPanel'
 import { useHasPlan } from '@/store/subscription'
 import PatientRecordDeliveryModal from '@/components/features/patients/PatientRecordDeliveryModal'
+import { useTerms } from '@/hooks/useTerms'
 
 const TABS = [
   { id: 'identificacao', label: 'Identificação' },
@@ -172,6 +173,7 @@ const FIELD = ({
 )
 
 export default function ProntuarioPage() {
+  const t = useTerms()
   const { id } = useParams()
   const { data: patient, isLoading: patientLoading } = usePatient(id ?? '')
   const [tab, setTab] = useState<Tab>('identificacao')
@@ -377,7 +379,7 @@ export default function ProntuarioPage() {
           <ArrowLeft className="w-4 h-4" />
         </Link>
         <div className="flex-1 min-w-0">
-          <h1 className="page-title">Prontuário</h1>
+          <h1 className="page-title">{t.recordCapitalized}</h1>
           <p className="page-subtitle truncate">{patient.name}</p>
         </div>
         <div className="flex gap-2 shrink-0">

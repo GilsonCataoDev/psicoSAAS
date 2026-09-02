@@ -30,6 +30,7 @@ import RecurringSessionsCard from '@/components/features/patients/RecurringSessi
 import LegacyNotesMigrationModal from '@/components/features/patients/LegacyNotesMigrationModal'
 import { useHasPlan } from '@/store/subscription'
 import { buildPatientDetailSummary, buildScaleEvolutionSeries } from '@/lib/patient-detail-summary'
+import { useTerms } from '@/hooks/useTerms'
 
 const MOODS = ['', '1', '2', '3', '4', '5']
 const WEEKDAYS = ['Domingo', 'Segunda', 'Terca', 'Quarta', 'Quinta', 'Sexta', 'Sabado']
@@ -40,6 +41,7 @@ const PATIENT_STATUS_OPTIONS = [
 ] as const
 
 export default function PatientDetailPage() {
+  const t = useTerms()
   const { id } = useParams()
   const navigate = useNavigate()
   const hasProPlan = useHasPlan('pro')
@@ -396,7 +398,7 @@ export default function PatientDetailPage() {
       <Link to="/pacientes"
         className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-700 transition-colors">
         <ArrowLeft className="w-4 h-4" />
-        <span>Pacientes</span>
+        <span>{t.patientsCapitalized}</span>
       </Link>
 
       {/* Header card */}
