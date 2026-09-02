@@ -37,7 +37,7 @@ export const PRICING_PLANS: PricingPlan[] = [
   {
     ...PLAN_CATALOG[0],
     pricePeriod: 'Sem prazo para expirar',
-    description: 'Para psicologos com CRP ativo testarem a rotina sem custo',
+    description: 'Para profissionais de saude testarem a rotina sem custo',
     badge: null,
     features: [
       { type: 'included', title: 'Veja todos os seus atendimentos de uma vez', subtitle: 'Agenda basica' },

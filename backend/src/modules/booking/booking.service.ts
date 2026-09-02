@@ -161,9 +161,33 @@ export class BookingService {
 
     if (!page) throw new NotFoundException('Página de agendamento não encontrada')
 
-    const { psychologist, ...pageData } = page
+    const { psychologist } = page
+    // Allowlist explícita: esta rota é pública e sem autenticação, então tudo
+    // aqui é visível para qualquer pessoa com o link. Espalhar a entidade
+    // (`...pageData`) expunha `pixKey`, que a página pública não usa e que no
+    // Brasil costuma ser o CPF do profissional. Campo novo só entra aqui se
+    // a tela pública realmente precisar dele.
     return {
-      ...pageData,
+      id: page.id,
+      slug: page.slug,
+      isActive: page.isActive,
+      title: page.title,
+      description: page.description,
+      confirmationMessage: page.confirmationMessage,
+      allowOnline: page.allowOnline,
+      allowPresencial: page.allowPresencial,
+      allowNextMonthBooking: page.allowNextMonthBooking,
+      minAdvanceDays: page.minAdvanceDays,
+      maxAdvanceDays: page.maxAdvanceDays,
+      sessionDuration: page.sessionDuration,
+      onlineSessionDuration: page.onlineSessionDuration,
+      presencialSessionDuration: page.presencialSessionDuration,
+      slotInterval: page.slotInterval,
+      onlineSlotInterval: page.onlineSlotInterval,
+      presencialSlotInterval: page.presencialSlotInterval,
+      sessionPrice: page.sessionPrice,
+      requirePaymentUpfront: page.requirePaymentUpfront,
+      mercadoPagoPublicKey: page.mercadoPagoPublicKey,
       avatarUrl: page.avatarUrl ?? psychologist.avatarUrl ?? null,
       psychologistName: psychologist.name,
       psychologistCrp: formatCrpForDisplay(psychologist),

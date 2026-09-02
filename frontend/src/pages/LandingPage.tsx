@@ -19,7 +19,7 @@ import { usePublicTestimonials } from '@/hooks/api/testimonial'
 import { track, EVENTS } from '@/lib/analytics'
 
 const trustSignals = [
-  'Desenvolvido para psicólogos com CRP ativo',
+  'Feito para profissionais de saúde',
   'Dados protegidos com criptografia',
   'Até 10 pacientes no plano grátis',
   'Sem cartão de crédito',
@@ -90,7 +90,7 @@ const freeItems = [
   'Agenda online com link público',
   'Cadastro de até 10 pacientes',
   'Prontuário e evoluções em um só lugar',
-  'Ideal para psicólogos com CRP ativo no início da rotina',
+  'Ideal para profissionais de saúde no início da rotina',
 ]
 
 const faqs = [
@@ -100,7 +100,7 @@ const faqs = [
   },
   {
     question: 'Quem pode usar o UseCognia?',
-    answer: 'Hoje o cadastro é destinado a psicólogos com CRP ativo no Brasil que querem organizar agenda, pacientes, prontuário e rotina de atendimento.',
+    answer: 'Profissionais de saúde autônomos no Brasil — psicologia, nutrição, fisioterapia, fonoaudiologia, terapia ocupacional, odontologia e afins — que querem organizar agenda, pessoas atendidas, registros e rotina de atendimento. Os termos e os recursos da plataforma se ajustam à profissão escolhida no cadastro.',
   },
   {
     question: 'Meus dados e os dos meus pacientes ficam seguros?',
@@ -362,7 +362,7 @@ export default function LandingPage() {
           >
             <motion.p variants={fadeUp} className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-3 py-1 text-sm font-semibold text-sage-200">
               <Sparkles className="h-4 w-4" />
-              Gestão clínica para psicólogos com CRP ativo
+              Gestão clínica para profissionais de saúde
             </motion.p>
 
             <motion.h1 variants={fadeUp} className="mx-auto mt-6 max-w-[22rem] text-[2.1rem] font-bold leading-[1.06] tracking-normal text-white sm:max-w-4xl sm:text-5xl lg:text-6xl">
@@ -424,7 +424,7 @@ export default function LandingPage() {
             <WalletCards className="mt-0.5 h-5 w-5 text-sage-600" />
             <div>
               <p className="text-sm font-semibold text-[#211F1C]">Construído com feedback profissional</p>
-              <p className="mt-1 text-sm text-[#7C776B]">Criado a partir de conversas sobre a rotina de psicólogos com CRP ativo.</p>
+              <p className="mt-1 text-sm text-[#7C776B]">Criado a partir de conversas sobre a rotina de quem atende todos os dias.</p>
             </div>
           </motion.div>
         </div>
@@ -730,7 +730,7 @@ export default function LandingPage() {
                 </span>
               </Link>
               <p className="mt-3 text-sm leading-relaxed text-[#7C776B]">
-                Agenda, prontuário e cobranças para psicólogos.
+                Agenda, registros e cobranças para profissionais de saúde.
               </p>
               <a href="mailto:usecognia@gmail.com" className="mt-3 block text-sm text-sage-700 hover:underline">
                 usecognia@gmail.com
@@ -768,7 +768,7 @@ export default function LandingPage() {
 
           <div className="mt-10 flex flex-col gap-2 border-t border-[#E7E4DA] pt-8 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-[#A9A394]">© {new Date().getFullYear()} UseCognia. Todos os direitos reservados.</p>
-            <p className="text-xs text-[#A9A394]">Desenvolvido para psicólogos com CRP ativo no Brasil.</p>
+            <p className="text-xs text-[#A9A394]">Feito para profissionais de saúde autônomos no Brasil.</p>
           </div>
         </div>
       </footer>

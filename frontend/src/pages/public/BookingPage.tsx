@@ -196,8 +196,8 @@ export default function BookingPage() {
     document.querySelector('meta[name="twitter:description"]')?.setAttribute('content', description)
     document.querySelector('meta[name="twitter:image"]')?.setAttribute('content', image)
     return () => {
-      document.title = 'UseCognia | Agenda, prontuário e documentos para psicólogos e terapeutas'
-      meta?.setAttribute('content', 'Plataforma de gestão para psicólogos e terapeutas autônomos.')
+      document.title = 'UseCognia | Agenda, registros e documentos para profissionais de saúde'
+      meta?.setAttribute('content', 'Plataforma de gestão para profissionais de saúde autônomos.')
     }
   }, [page])
 
