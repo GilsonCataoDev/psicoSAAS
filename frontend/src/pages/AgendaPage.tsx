@@ -25,6 +25,7 @@ import {
   useUpdateAppointmentStatus,
 } from '@/hooks/useApi'
 import toast from 'react-hot-toast'
+import { useTerms } from '@/hooks/useTerms'
 import { openWhatsApp } from '@/lib/whatsapp'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
@@ -130,6 +131,7 @@ function appointmentMatchesSearch(appt: any, query: string) {
 }
 
 export default function AgendaPage() {
+  const t = useTerms()
   const [searchParams, setSearchParams] = useSearchParams()
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }))
   const [showModal, setShowModal] = useState(false)
@@ -383,10 +385,10 @@ export default function AgendaPage() {
           groupId: appointmentToRemove.recurringGroupId,
           fromDate: appointmentToRemove.date,
         })
-        toast.success(`${result.removed} sessões removidas`)
+        toast.success(`${result.removed} ${t.sessions} removidas`)
       } else {
         await deleteAppointment.mutateAsync(appointmentToRemove.id)
-        toast.success('Sessão removida')
+        toast.success(`${t.sessionCapitalized} removida`)
       }
       setAppointmentToRemove(null)
       setDeleteScope('single')
@@ -406,7 +408,7 @@ export default function AgendaPage() {
     const dateLabel = format(parseISO(appt.date), "EEEE, dd 'de' MMMM", { locale: ptBR })
     openWhatsApp(
       phone,
-      `Olá, ${first}! Lembrando que temos sessão em ${dateLabel} às ${formatTime(appt.time)}. Até lá!`,
+      `Olá, ${first}! Lembrando que temos ${t.session} em ${dateLabel} às ${formatTime(appt.time)}. Até lá!`,
     )
   }
 
@@ -417,7 +419,7 @@ export default function AgendaPage() {
 
   function evolveAppointment(appt: any) {
     if (!appt.patientId) {
-      toast.error('Este agendamento não tem paciente vinculado.')
+      toast.error(`Este agendamento não tem ${t.patient} vinculado.`)
       return
     }
     setAppointmentToEvolve(appt)
@@ -436,7 +438,7 @@ export default function AgendaPage() {
   async function changeAppointmentStatus(appt: any, status: 'completed' | 'no_show') {
     try {
       await updateStatus.mutateAsync({ id: appt.id, status })
-      toast.success(status === 'completed' ? 'Sessão marcada como finalizada' : 'Falta registrada')
+      toast.success(status === 'completed' ? `${t.sessionCapitalized} marcada como finalizada` : 'Falta registrada')
     } catch (err: any) {
       toast.error(err?.response?.data?.message ?? 'Erro ao atualizar status.')
     }
@@ -535,7 +537,7 @@ export default function AgendaPage() {
         <div className="mt-5 grid grid-cols-3 gap-2 border-t border-sage-100/80 pt-4 dark:border-white/10 sm:max-w-xl sm:gap-3">
           {[
             { label: 'Nesta semana', value: activeWeekAppointments.length, detail: 'atendimentos' },
-            { label: 'Hoje', value: todayAppointments, detail: todayAppointments === 1 ? 'sessão' : 'sessões' },
+            { label: 'Hoje', value: todayAppointments, detail: todayAppointments === 1 ? t.session : t.sessions },
             { label: 'Online', value: onlineWeekAppointments, detail: 'atendimentos' },
           ].map(item => (
             <div key={item.label} className="rounded-2xl border border-white/70 bg-white/60 px-3 py-2.5 dark:border-white/10 dark:bg-white/[0.04]">
@@ -562,7 +564,7 @@ export default function AgendaPage() {
               value={patientSearch}
               onChange={e => setPatientSearch(e.target.value)}
               className="input-field h-11 pl-9"
-              placeholder="Buscar paciente na semana..."
+              placeholder={`Buscar ${t.patient} na semana...`}
             />
           </div>
         </div>
@@ -600,11 +602,11 @@ export default function AgendaPage() {
                           <p className="text-sm font-bold">{formatTime(appt.time)}</p>
                           <p className="text-[10px] capitalize">{format(appointmentDay, 'EEE dd', { locale: ptBR })}</p>
                         </div>
-                        <Avatar name={appt.patient?.name ?? 'Paciente removido'} colorClass={appt.patient?.avatarColor} size="sm" />
+                        <Avatar name={appt.patient?.name ?? `${t.patientCapitalized} removido`} colorClass={appt.patient?.avatarColor} size="sm" />
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <p className="truncate text-sm font-semibold text-neutral-800 dark:text-neutral-100">
-                              {appt.patient?.name ?? 'Paciente removido'}
+                              {appt.patient?.name ?? `${t.patientCapitalized} removido`}
                             </p>
                             <StatusBadge status={appt.status} />
                           </div>
@@ -660,7 +662,7 @@ export default function AgendaPage() {
       <div className="order-2 hidden lg:block card space-y-4">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <h2 className="section-title">Pacientes do dia</h2>
+            <h2 className="section-title">{t.patientsCapitalized} do dia</h2>
             <p className="text-sm text-neutral-500 capitalize">
               {format(listDay, "EEEE, dd 'de' MMMM", { locale: ptBR })}
             </p>
@@ -688,7 +690,7 @@ export default function AgendaPage() {
                   </span>
                   <span className="mt-1 block text-base font-semibold leading-none">{format(day, 'd')}</span>
                   <span className="mt-1 block text-[10px] leading-none opacity-70">
-                    {count} {count === 1 ? 'sessão' : 'sessões'}
+                    {count} {count === 1 ? t.session : t.sessions}
                   </span>
                 </button>
               )
@@ -730,9 +732,9 @@ export default function AgendaPage() {
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-3">
-                    <Avatar name={appt.patient?.name ?? 'Paciente removido'} colorClass={appt.patient?.avatarColor} size="sm" />
+                    <Avatar name={appt.patient?.name ?? `${t.patientCapitalized} removido`} colorClass={appt.patient?.avatarColor} size="sm" />
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-neutral-800 dark:text-white">{appt.patient?.name ?? 'Paciente removido'}</p>
+                      <p className="truncate text-sm font-semibold text-neutral-800 dark:text-white">{appt.patient?.name ?? `${t.patientCapitalized} removido`}</p>
                       <p className="mt-0.5 flex items-center gap-1 text-xs text-neutral-400">
                         {appt.modality === 'online'
                           ? <><Video className="h-3 w-3 text-mist-500" />Online</>
@@ -745,7 +747,7 @@ export default function AgendaPage() {
                   <StatusBadge status={appt.status} />
                   <button type="button" onClick={() => evolveAppointment(appt)}
                     className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-100 text-neutral-400 transition-colors hover:border-sage-200 hover:bg-sage-50 hover:text-sage-700 dark:border-white/10 dark:hover:bg-white/10"
-                    title="Evoluir sessão">
+                    title={`Evoluir ${t.session}`}>
                     <FileText className="h-4 w-4" />
                   </button>
                   <button type="button" onClick={() => changeAppointmentStatus(appt, 'completed')}
@@ -762,7 +764,7 @@ export default function AgendaPage() {
                   </button>
                   {appt.patientId && (
                     <Link to={`/prontuario/${appt.patientId}`} className="btn-secondary px-3 py-2 text-xs">
-                      Prontuário
+                      {t.recordCapitalized}
                     </Link>
                   )}
                   <button
@@ -926,9 +928,9 @@ export default function AgendaPage() {
                     <p className="text-[10px] text-neutral-400">{appt.duration}min</p>
                   </div>
                   <div className="w-px h-10 bg-neutral-100 shrink-0" />
-                  <Avatar name={appt.patient?.name ?? 'Paciente removido'} colorClass={appt.patient?.avatarColor} size="sm" />
+                  <Avatar name={appt.patient?.name ?? `${t.patientCapitalized} removido`} colorClass={appt.patient?.avatarColor} size="sm" />
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm text-neutral-800 dark:text-white truncate">{appt.patient?.name ?? 'Paciente removido'}</p>
+                    <p className="font-medium text-sm text-neutral-800 dark:text-white truncate">{appt.patient?.name ?? `${t.patientCapitalized} removido`}</p>
                     <div className="flex items-center gap-1 mt-0.5 text-xs text-neutral-400">
                       {appt.modality === 'online'
                         ? <><Video className="w-3 h-3 text-mist-500" />Online</>
@@ -967,7 +969,7 @@ export default function AgendaPage() {
                     type="button"
                     onClick={() => evolveAppointment(appt)}
                     className="btn-secondary inline-flex min-w-0 flex-col items-center justify-center gap-1 px-2 py-2 text-[11px] leading-tight"
-                    title="Evoluir sessão"
+                    title={`Evoluir ${t.session}`}
                   >
                     <FileText className="w-3.5 h-3.5" />
                     Evoluir
@@ -1024,7 +1026,7 @@ export default function AgendaPage() {
             ))}
           {mobileAppointments.length === 0 && mobileAvailabilityBlocks.length === 0 && (
             <div className="card text-center py-10 text-neutral-400 text-sm">
-              Nenhuma sessão neste dia
+              Nenhuma {t.session} neste dia
             </div>
           )}
         </div>
@@ -1083,14 +1085,14 @@ export default function AgendaPage() {
                           <StatusBadge status={appt.status} />
                         </div>
                         <p className="text-sm text-sage-900 dark:text-neutral-50 font-semibold truncate mt-1.5">
-                          {appt.patient?.name?.split(' ')[0] ?? 'Paciente'}
+                          {appt.patient?.name?.split(' ')[0] ?? t.patientCapitalized}
                         </p>
                         <div className="mt-2 flex flex-wrap items-center gap-1 border-t border-sage-200/60 pt-2 dark:border-white/10">
                           <button
                             type="button"
                             onClick={() => evolveAppointment(appt)}
                             className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sage-200 bg-white text-sage-700 shadow-sm transition-colors hover:border-sage-300 hover:bg-sage-50 hover:text-sage-900 dark:border-white/10 dark:bg-white/10 dark:text-neutral-100 dark:hover:bg-white/20"
-                            title="Evoluir sessão"
+                            title={`Evoluir ${t.session}`}
                           >
                             <FileText className="w-3.5 h-3.5" />
                           </button>
@@ -1210,8 +1212,8 @@ export default function AgendaPage() {
                 {deleteScope === 'single' && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
               </span>
               <div>
-                <p className="text-sm font-medium text-neutral-800 dark:text-neutral-100">Remover só esta sessão</p>
-                <p className="text-xs text-neutral-400">As demais sessões da série permanecem</p>
+                <p className="text-sm font-medium text-neutral-800 dark:text-neutral-100">Remover só esta {t.session}</p>
+                <p className="text-xs text-neutral-400">As demais {t.sessions} da série permanecem</p>
               </div>
             </button>
             <div className="border-t border-neutral-100 dark:border-white/5" />
@@ -1229,7 +1231,7 @@ export default function AgendaPage() {
               </span>
               <div>
                 <p className="text-sm font-medium text-neutral-800 dark:text-neutral-100">Remover esta e as próximas</p>
-                <p className="text-xs text-neutral-400">Remove todas as sessões desta série a partir desta data</p>
+                <p className="text-xs text-neutral-400">Remove todas as {t.sessions} desta série a partir desta data</p>
               </div>
             </button>
           </div>

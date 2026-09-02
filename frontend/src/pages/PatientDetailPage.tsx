@@ -86,7 +86,7 @@ export default function PatientDetailPage() {
     }
     try {
       await uploadAttachment.mutateAsync({ file })
-      toast.success('Documento anexado ao prontuário')
+      toast.success(`Documento anexado ao ${t.record}`)
     } catch (e: any) {
       toast.error(e?.response?.data?.message ?? 'Não foi possível anexar o documento.')
     }
@@ -303,9 +303,9 @@ export default function PatientDetailPage() {
           sexualOrientation: demographicSettings.sexualOrientation,
         },
       })
-      toast.success('Informações do paciente salvas')
+      toast.success(`Informações do ${t.patient} salvas`)
     } catch {
-      toast.error('Erro ao salvar informações do paciente.')
+      toast.error(`Erro ao salvar informações do ${t.patient}.`)
     }
   }
 
@@ -360,7 +360,7 @@ export default function PatientDetailPage() {
     try {
       const { url } = await createPortalLink.mutateAsync(id)
       await navigator.clipboard.writeText(url)
-      toast.success('Link copiado. Envie ao paciente para preencher os dados antes da sessão.')
+      toast.success(`Link copiado. Envie ao ${t.patient} para preencher os dados antes da ${t.session}.`)
     } catch {
       toast.error('Não foi possível gerar o link.')
     }
@@ -451,11 +451,11 @@ export default function PatientDetailPage() {
                 </button>
                 <Link to={`/prontuario/${patient.id}`}
                   className="btn-secondary text-sm flex items-center gap-1.5">
-                  <ClipboardList className="w-3.5 h-3.5" /> Prontuário
+                  <ClipboardList className="w-3.5 h-3.5" /> {t.recordCapitalized}
                 </Link>
                 <button onClick={() => setShowSessionModal(true)}
                   className="btn-primary text-sm flex items-center gap-1.5">
-                  <Plus className="w-3.5 h-3.5" /> Nova sessão
+                  <Plus className="w-3.5 h-3.5" /> Nova {t.session}
                 </button>
                 <button
                   type="button"
@@ -492,11 +492,11 @@ export default function PatientDetailPage() {
           </button>
           <Link to={`/prontuario/${patient.id}`}
             className="btn-secondary text-sm flex items-center gap-1.5 justify-center">
-            <ClipboardList className="w-3.5 h-3.5" /> Prontuário
+            <ClipboardList className="w-3.5 h-3.5" /> {t.recordCapitalized}
           </Link>
           <button onClick={() => setShowSessionModal(true)}
             className="btn-primary text-sm flex items-center gap-1.5 justify-center">
-            <Plus className="w-3.5 h-3.5" /> Nova sessão
+            <Plus className="w-3.5 h-3.5" /> Nova {t.session}
           </button>
           <button
             type="button"
@@ -515,11 +515,11 @@ export default function PatientDetailPage() {
           </div>
           <div>
             <p className="text-xs text-neutral-400 mb-0.5">
-              {patient.billingType === 'monthly_package' ? 'Pacote mensal' : 'Valor por sessão'}
+              {patient.billingType === 'monthly_package' ? 'Pacote mensal' : `Valor por ${t.session}`}
             </p>
             <p className="font-semibold text-neutral-700 text-sm">
               {formatCurrency(patient.billingType === 'monthly_package' ? patient.monthlyPackagePrice : patient.sessionPrice)}
-              {patient.billingType === 'monthly_package' && <span className="font-normal text-neutral-400"> · {monthlySessionsUsed}/{patient.monthlyIncludedSessions} sessões</span>}
+              {patient.billingType === 'monthly_package' && <span className="font-normal text-neutral-400"> · {monthlySessionsUsed}/{patient.monthlyIncludedSessions} {t.sessions}</span>}
             </p>
           </div>
           <div>
@@ -531,9 +531,9 @@ export default function PatientDetailPage() {
         <div className="mt-5 rounded-xl border border-sage-100 bg-sage-50 px-4 py-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-sage-800">Portal do paciente</p>
+              <p className="text-sm font-semibold text-sage-800">Portal do {t.patient}</p>
               <p className="mt-1 text-xs leading-relaxed text-sage-700">
-                Copie um link seguro para o paciente revisar dados, contato de emergência e próximos horários antes da sessão.
+                Copie um link seguro para o {t.patient} revisar dados, contato de emergência e próximos horários antes da {t.session}.
               </p>
             </div>
             <button
@@ -570,7 +570,7 @@ export default function PatientDetailPage() {
         <RecurringSessionsCard
           patient={patient}
           anchorDate={lastAppointment?.date ?? null}
-          anchorLabel={lastAppointment ? `Última sessão em ${formatDate(lastAppointment.date)}` : 'Sem sessões registradas ainda'}
+          anchorLabel={lastAppointment ? `Última ${t.session} em ${formatDate(lastAppointment.date)}` : `Sem ${t.sessions} registradas ainda`}
         />
       )}
 
@@ -592,7 +592,7 @@ export default function PatientDetailPage() {
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <ClipboardList className="w-4 h-4 text-sage-600" />
-            <h2 className="font-semibold text-neutral-800 text-sm">Informações do paciente</h2>
+            <h2 className="font-semibold text-neutral-800 text-sm">Informações do {t.patient}</h2>
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
@@ -657,7 +657,7 @@ export default function PatientDetailPage() {
             <select value={careSettings.billingType}
               onChange={e => setCareSettings(s => ({ ...s, billingType: e.target.value as typeof careSettings.billingType }))}
               className="input-field">
-              <option value="per_session">Por sessão</option>
+              <option value="per_session">Por {t.session}</option>
               <option value="monthly_package">Pacote mensal</option>
             </select>
           </div>
@@ -681,7 +681,7 @@ export default function PatientDetailPage() {
                   className="input-field" />
               </div>
               <div>
-                <label className="label">Sessões incluídas/mês</label>
+                <label className="label">{t.sessionsCapitalized} incluídas/mês</label>
                 <input type="number" min={1} max={31} value={careSettings.monthlyIncludedSessions}
                   onChange={e => setCareSettings(s => ({ ...s, monthlyIncludedSessions: Number(e.target.value) }))}
                   className="input-field" />
@@ -698,7 +698,7 @@ export default function PatientDetailPage() {
             </>
           ) : (
             <div>
-              <label className="label">Valor da sessão (R$)</label>
+              <label className="label">Valor da {t.session} (R$)</label>
               <input type="number" min={0} step="0.01" value={careSettings.sessionPrice}
                 onChange={e => setCareSettings(s => ({ ...s, sessionPrice: Number(e.target.value) }))}
                 className="input-field" />
@@ -815,19 +815,19 @@ export default function PatientDetailPage() {
       {/* Tabs */}
       <div className="flex gap-1 bg-neutral-100 p-1 rounded-xl">
         {[
-          { id: 'record',    label: 'Prontuário',  icon: BookOpenText  },
+          { id: 'record',    label: t.recordCapitalized,  icon: BookOpenText  },
           { id: 'timeline',  label: 'Histórico',    icon: CalendarDays  },
           { id: 'responses', label: 'Respostas',    icon: FileText      },
           { id: 'notes',     label: 'Anotacoes privadas', icon: Lock          },
           { id: 'financial', label: 'Financeiro',   icon: Banknote      },
-        ].map(t => (
-          <button key={t.id} onClick={() => setTab(t.id as any)}
+        ].map(tabItem => (
+          <button key={tabItem.id} onClick={() => setTab(tabItem.id as any)}
             className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-sm transition-all text-center ${
-              tab === t.id
+              tab === tabItem.id
                 ? 'bg-white text-neutral-800 shadow-sm font-semibold'
                 : 'text-neutral-500 hover:text-neutral-700'
             }`}>
-            {t.label}
+            {tabItem.label}
           </button>
         ))}
       </div>
@@ -840,10 +840,10 @@ export default function PatientDetailPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <BookOpenText className="h-4 w-4 text-sage-600" />
-                  <h2 className="section-title mb-0">Prontuário clínico</h2>
+                  <h2 className="section-title mb-0">{t.recordCapitalized} clínico</h2>
                 </div>
                 <p className="mt-1 text-sm text-neutral-400">
-                  Identificação, anamnese, plano terapêutico e evoluções ficam reunidos nesta pessoa.
+                  Identificação, {t.intake}, plano terapêutico e evoluções ficam reunidos nesta pessoa.
                 </p>
               </div>
               <Link to={`/prontuario/${patient.id}`} className="btn-secondary shrink-0 text-sm">
@@ -854,8 +854,8 @@ export default function PatientDetailPage() {
             {filledProntuarioFields.length === 0 ? (
               <div className="mt-5 rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-8 text-center">
                 <ClipboardList className="mx-auto h-8 w-8 text-neutral-300" />
-                <p className="mt-3 font-medium text-neutral-600">Prontuário ainda sem dados clínicos</p>
-                <p className="mt-1 text-sm text-neutral-400">Abra o prontuário completo para preencher a anamnese e o plano terapêutico.</p>
+                <p className="mt-3 font-medium text-neutral-600">{t.recordCapitalized} ainda sem dados clínicos</p>
+                <p className="mt-1 text-sm text-neutral-400">Abra o {t.record} completo para preencher a {t.intake} e o plano terapêutico.</p>
               </div>
             ) : (
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -885,7 +885,7 @@ export default function PatientDetailPage() {
             {clinicalSessions.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-8 text-center">
                 <p className="font-medium text-neutral-600">Nenhuma evolução registrada</p>
-                <p className="mt-1 text-sm text-neutral-400">As evoluções aparecem aqui assim que uma sessão for registrada.</p>
+                <p className="mt-1 text-sm text-neutral-400">As evoluções aparecem aqui assim que uma {t.session} for registrada.</p>
               </div>
             ) : (
               <div className="divide-y divide-neutral-100">
@@ -922,7 +922,7 @@ export default function PatientDetailPage() {
                   <h2 className="section-title mb-0">Documentos</h2>
                 </div>
                 <p className="mt-1 text-sm text-neutral-400">
-                  Material anterior de evolução, laudos e outros documentos deste paciente. PDF, JPG ou PNG até 10 MB.
+                  Material anterior de evolução, laudos e outros documentos deste {t.patient}. PDF, JPG ou PNG até 10 MB.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -1001,7 +1001,7 @@ export default function PatientDetailPage() {
         <div className="space-y-3">
           {moodChartData.length >= 2 && (
             <div className="card">
-              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-3">Humor por sessão</p>
+              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-3">Humor por {t.session}</p>
               <div className="h-[100px]">
                 <LightweightChart
                   data={moodChartData.map(item => ({ label: item.label, value: Number(item.humor) || 0 }))}
@@ -1022,10 +1022,10 @@ export default function PatientDetailPage() {
               <div className="w-12 h-12 bg-sage-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
                 <CalendarDays className="w-5 h-5 text-sage-400" />
               </div>
-              <p className="font-medium text-neutral-600 mb-1">Nenhuma sessão ainda</p>
-              <p className="text-sm text-neutral-400 mb-4">O histórico de sessões aparecerá aqui.</p>
+              <p className="font-medium text-neutral-600 mb-1">Nenhuma {t.session} ainda</p>
+              <p className="text-sm text-neutral-400 mb-4">O histórico de {t.sessions} aparecerá aqui.</p>
               <button onClick={() => setShowSessionModal(true)} className="btn-secondary text-sm">
-                Registrar sessão
+                Registrar {t.session}
               </button>
             </div>
           ) : (
@@ -1038,13 +1038,13 @@ export default function PatientDetailPage() {
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-neutral-700 text-sm">Sessão · {s.duration} min</p>
+                  <p className="font-semibold text-neutral-700 text-sm">{t.sessionCapitalized} · {s.duration} min</p>
                   {s.summary && (
                     <p className="text-sm text-neutral-500 mt-1 line-clamp-2 leading-relaxed">{s.summary}</p>
                   )}
                   {s.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
-                      {s.tags.map(t => <TagBadge key={t} tag={t} small />)}
+                      {s.tags.map(tag => <TagBadge key={tag} tag={tag} small />)}
                     </div>
                   )}
                 </div>

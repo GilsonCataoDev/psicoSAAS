@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
+import { useTerms } from '@/hooks/useTerms'
 import { EmotionalTag, Patient, TAG_LABELS } from '@/types'
 import { useCreatePatient, useDefaultTemplate } from '@/hooks/useApi'
 import { track, EVENTS } from '@/lib/analytics'
@@ -46,6 +47,7 @@ type FormData = z.infer<typeof schema>
 const ALL_TAGS = Object.entries(TAG_LABELS) as [EmotionalTag, string][]
 
 export default function NewPatientModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const t = useTerms()
   const { register, handleSubmit, reset, watch, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -74,7 +76,7 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
 
   function toggleTag(tag: EmotionalTag) {
     const current = selectedTags
-    setValue('tags', current.includes(tag) ? current.filter(t => t !== tag) : [...current, tag])
+    setValue('tags', current.includes(tag) ? current.filter(item => item !== tag) : [...current, tag])
   }
 
   function applyDefaultTemplate() {
@@ -119,13 +121,13 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
 
   if (createdPatient) {
     return (
-      <Modal open={open} onClose={finish} title="Marcar as próximas sessões?" size="lg"
-        description={`${createdPatient.name} foi cadastrada(o) com horário fixo. Você pode marcar as próximas sessões agora ou fazer isso depois pela agenda.`}>
+      <Modal open={open} onClose={finish} title={`Marcar as próximas ${t.sessions}?`} size="lg"
+        description={`${createdPatient.name} foi cadastrada(o) com horário fixo. Você pode marcar as próximas ${t.sessions} agora ou fazer isso depois pela agenda.`}>
         <div className="space-y-4">
           <RecurringSessionsCard
             patient={createdPatient}
             anchorDate={null}
-            anchorLabel="Sem sessões anteriores"
+            anchorLabel={`Sem ${t.sessions} anteriores`}
             onScheduled={finish}
           />
           <div className="flex justify-end pt-2">
@@ -153,7 +155,7 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
               <label className={`cursor-pointer rounded-xl border p-3 text-sm ${careMode === 'psychotherapy' ? 'border-sage-400 bg-white text-sage-800 dark:bg-cognia-panel dark:text-sage-200' : 'border-neutral-200 text-neutral-600 dark:border-white/10 dark:text-neutral-300'}`}>
                 <input {...register('careMode')} type="radio" value="psychotherapy" className="sr-only" />
                 <span className="block font-semibold">Psicoterapia</span>
-                <span className="mt-1 block text-xs opacity-75">Sessões e acompanhamento contínuo</span>
+                <span className="mt-1 block text-xs opacity-75">{t.sessionsCapitalized} e acompanhamento contínuo</span>
               </label>
               <label className={`cursor-pointer rounded-xl border p-3 text-sm ${careMode === 'neuropsychological_assessment' ? 'border-sage-400 bg-white text-sage-800 dark:bg-cognia-panel dark:text-sage-200' : 'border-neutral-200 text-neutral-600 dark:border-white/10 dark:text-neutral-300'}`}>
                 <input {...register('careMode')} type="radio" value="neuropsychological_assessment" className="sr-only" />
@@ -213,13 +215,13 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
             <div className="grid grid-cols-2 gap-2">
               <label className={`cursor-pointer rounded-xl border p-3 text-sm transition-colors ${billingType === 'per_session' ? 'border-sage-300 bg-sage-50 text-sage-800' : 'border-neutral-200 text-neutral-600'}`}>
                 <input {...register('billingType')} type="radio" value="per_session" className="sr-only" />
-                <span className="block font-semibold">Por sessão</span>
+                <span className="block font-semibold">Por {t.session}</span>
                 <span className="mt-0.5 block text-xs opacity-75">Gera uma cobrança a cada atendimento</span>
               </label>
               <label className={`cursor-pointer rounded-xl border p-3 text-sm transition-colors ${billingType === 'monthly_package' ? 'border-sage-300 bg-sage-50 text-sage-800' : 'border-neutral-200 text-neutral-600'}`}>
                 <input {...register('billingType')} type="radio" value="monthly_package" className="sr-only" />
                 <span className="block font-semibold">Pacote mensal</span>
-                <span className="mt-0.5 block text-xs opacity-75">Uma cobrança por mês, com sessões incluídas</span>
+                <span className="mt-0.5 block text-xs opacity-75">Uma cobrança por mês, com {t.sessions} incluídas</span>
               </label>
             </div>
           </div>
@@ -231,7 +233,7 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
                 {errors.monthlyPackagePrice && <p className="mt-1 text-xs text-rose-500">{errors.monthlyPackagePrice.message}</p>}
               </div>
               <div>
-                <label className="label">Sessões incluídas por mês</label>
+                <label className="label">{t.sessionsCapitalized} incluídas por mês</label>
                 <input {...register('monthlyIncludedSessions')} type="number" min={1} max={31} className="input-field" />
               </div>
               <div>
@@ -241,7 +243,7 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
             </>
           ) : (
             <div>
-              <label className="label">Valor da sessão (R$)</label>
+              <label className="label">Valor da {t.session} (R$)</label>
               <input {...register('sessionPrice')} type="number" min={0} step="0.01" className="input-field" />
             </div>
           )}

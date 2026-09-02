@@ -4,6 +4,7 @@ import { format, parseISO } from 'date-fns'
 import { AlertTriangle, CalendarClock, Repeat2 } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
+import { useTerms } from '@/hooks/useTerms'
 import { usePatients, useAppointments, useCreateAppointment, useUpdateAppointment, useUpdateAppointmentGroup } from '@/hooks/useApi'
 import { Appointment } from '@/types'
 import { calcSessionPreview, fixedScheduleLabel, nextOccurrenceFromAnchor } from '@/lib/recurringSchedule'
@@ -51,6 +52,7 @@ function buildAppointmentUpdatePayload(data: FormData) {
 }
 
 export default function NewAppointmentModal({ open, onClose, appointment, initialValues }: Props) {
+  const t = useTerms()
   const { data: patients = [] } = usePatients()
   const [editScope, setEditScope] = useState<'single' | 'future'>('single')
   const createAppointment = useCreateAppointment()
@@ -179,13 +181,13 @@ export default function NewAppointmentModal({ open, onClose, appointment, initia
               notes: updatePayload.notes,
             },
           })
-          toast.success(`${result.updated} sessões atualizadas`)
+          toast.success(`${result.updated} ${t.sessions} atualizadas`)
         } else {
           await updateAppointment.mutateAsync({
             id: appointment.id,
             data: updatePayload,
           })
-          toast.success(appointment.isRecurring ? 'Alteração pontual salva' : 'Sessão atualizada')
+          toast.success(appointment.isRecurring ? 'Alteração pontual salva' : `${t.sessionCapitalized} atualizada`)
         }
       } else {
         const payload = {
@@ -195,7 +197,7 @@ export default function NewAppointmentModal({ open, onClose, appointment, initia
           repeatUntil: data.recurrence === 'none' ? undefined : data.repeatUntil || undefined,
         }
         const created = await createAppointment.mutateAsync(payload as any)
-        toast.success(Array.isArray(created) ? `${created.length} sessões agendadas` : 'Sessão agendada')
+        toast.success(Array.isArray(created) ? `${created.length} ${t.sessions} agendadas` : `${t.sessionCapitalized} agendada`)
       }
       reset()
       onClose()
@@ -208,7 +210,7 @@ export default function NewAppointmentModal({ open, onClose, appointment, initia
     <Modal
       open={open}
       onClose={onClose}
-      title={isEditing ? 'Alterar atendimento' : 'Agendar nova sessão'}
+      title={isEditing ? 'Alterar atendimento' : `Agendar nova ${t.session}`}
       description={isEditing
         ? 'Escolha se a mudança vale só para este atendimento ou para a série.'
         : 'Crie um atendimento único, semanal ou de 15 em 15 dias.'}
@@ -297,7 +299,7 @@ export default function NewAppointmentModal({ open, onClose, appointment, initia
                 <div className="mt-2 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
                   <div className="rounded-xl bg-white px-3 py-2 dark:bg-white/5">
                     <p className="text-sage-500 dark:text-sage-300">Criará</p>
-                    <p className="font-semibold text-sage-900 dark:text-white">{sessionPreview.count} sessões</p>
+                    <p className="font-semibold text-sage-900 dark:text-white">{sessionPreview.count} {t.sessions}</p>
                   </div>
                   <div className="rounded-xl bg-white px-3 py-2 dark:bg-white/5">
                     <p className="text-sage-500 dark:text-sage-300">Frequência</p>
@@ -328,7 +330,7 @@ export default function NewAppointmentModal({ open, onClose, appointment, initia
               <div>
                 <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">Horário em conflito</p>
                 <p className="mt-1 text-xs leading-relaxed text-amber-800 dark:text-amber-100/80">
-                  Já existe atendimento para {scheduleConflict.patient?.name ?? 'outro paciente'} às {scheduleConflict.time?.slice(0, 5)}. Escolha outro horário para salvar.
+                  Já existe atendimento para {scheduleConflict.patient?.name ?? `outro ${t.patient}`} às {scheduleConflict.time?.slice(0, 5)}. Escolha outro horário para salvar.
                 </p>
               </div>
             </div>
@@ -350,8 +352,8 @@ export default function NewAppointmentModal({ open, onClose, appointment, initia
                 {editScope === 'single' && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
               </span>
               <div>
-                <p className="text-sm font-medium text-neutral-800 dark:text-white">Alterar apenas esta sessão</p>
-                <p className="text-xs text-neutral-400 dark:text-neutral-300">As demais sessões da série não serão afetadas. Esta vira uma alteração pontual.</p>
+                <p className="text-sm font-medium text-neutral-800 dark:text-white">Alterar apenas esta {t.session}</p>
+                <p className="text-xs text-neutral-400 dark:text-neutral-300">As demais {t.sessions} da série não serão afetadas. Esta vira uma alteração pontual.</p>
               </div>
             </button>
             <div className="border-t border-neutral-100" />
@@ -369,7 +371,7 @@ export default function NewAppointmentModal({ open, onClose, appointment, initia
               </span>
               <div>
                 <p className="text-sm font-medium text-neutral-800 dark:text-white">Alterar esta e as próximas</p>
-                <p className="text-xs text-neutral-400 dark:text-neutral-300">Aplica horário, duração e modalidade a todas as sessões futuras desta série.</p>
+                <p className="text-xs text-neutral-400 dark:text-neutral-300">Aplica horário, duração e modalidade a todas as {t.sessions} futuras desta série.</p>
               </div>
             </button>
           </div>
@@ -380,7 +382,7 @@ export default function NewAppointmentModal({ open, onClose, appointment, initia
             <p className="text-sm font-semibold text-mist-900">Teleatendimento</p>
             <p className="mt-1 text-xs leading-relaxed text-mist-700">
               {autoVideoRoom
-                ? 'Uma sala de vídeo é gerada automaticamente pra esta sessão. Se preferir usar Google Meet, Zoom ou Whereby, cole o link no campo abaixo.'
+                ? `Uma sala de vídeo é gerada automaticamente pra esta ${t.session}. Se preferir usar Google Meet, Zoom ou Whereby, cole o link no campo abaixo.`
                 : 'Sala automática desativada. Cole abaixo o link da chamada (Google Meet, Zoom, Whereby etc.).'}
             </p>
             <label className="mt-3 flex items-center gap-2 text-xs font-medium text-mist-800">

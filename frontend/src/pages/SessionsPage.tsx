@@ -36,10 +36,10 @@ export default function SessionsPage() {
     if (!sessionToDelete) return
     try {
       await deleteSession.mutateAsync(sessionToDelete.id)
-      toast.success('Sessão excluída')
+      toast.success(`${t.sessionCapitalized} excluída`)
       setSessionToDelete(null)
     } catch {
-      toast.error('Erro ao excluir sessão')
+      toast.error(`Erro ao excluir ${t.session}`)
     }
   }
 
@@ -67,7 +67,7 @@ export default function SessionsPage() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar por paciente..."
+            placeholder={`Buscar por ${t.patient}...`}
             className="input-field pl-9 py-2 text-sm"
           />
         </div>
@@ -103,11 +103,11 @@ export default function SessionsPage() {
       {!isLoading && sessions.length === 0 && (
         <EmptyState
           icon={<NotebookPen className="h-7 w-7" strokeWidth={1.8} />}
-          title={hasFilters ? 'Nenhuma sessão encontrada' : 'Nenhuma sessão registrada ainda'}
+          title={hasFilters ? `Nenhuma ${t.session} encontrada` : `Nenhuma ${t.session} registrada ainda`}
           description={hasFilters ? 'Tente ajustar os filtros de busca.' : 'Após cada atendimento, registre o que aconteceu. Seus registros ficam seguros e organizados aqui.'}
           action={!hasFilters ? (
             <button onClick={() => setShowModal(true)} className="btn-primary">
-              Registrar primeira sessão
+              Registrar primeira {t.session}
             </button>
           ) : undefined}
         />
@@ -118,11 +118,11 @@ export default function SessionsPage() {
           {sessions.map(session => (
             <div key={session.id} className="card hover:shadow-lifted hover:-translate-y-px transition-all duration-200 p-4 group">
               <div className="flex items-start gap-3">
-                <Avatar name={session.patient?.name ?? 'Paciente removido'} colorClass={session.patient?.avatarColor} />
+                <Avatar name={session.patient?.name ?? `${t.patientCapitalized} removido`} colorClass={session.patient?.avatarColor} />
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <h3 className="font-semibold text-neutral-800 text-sm">{session.patient?.name ?? 'Paciente removido'}</h3>
+                    <h3 className="font-semibold text-neutral-800 text-sm">{session.patient?.name ?? `${t.patientCapitalized} removido`}</h3>
                     <span className="text-neutral-200 text-xs">-</span>
                     <span className="text-xs text-neutral-400 tabular-nums">{formatDateRelative(session.date)}</span>
                     <span className="text-neutral-200 text-xs hidden sm:inline">-</span>
@@ -135,7 +135,7 @@ export default function SessionsPage() {
                   )}
                   {(session.tags?.length ?? 0) > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1.5">
-                      {session.tags.map(t => <TagBadge key={t} tag={t} small />)}
+                      {session.tags.map(tag => <TagBadge key={tag} tag={tag} small />)}
                     </div>
                   )}
                   <Link
@@ -143,13 +143,13 @@ export default function SessionsPage() {
                     className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-sage-600 hover:text-sage-700"
                   >
                     <FileText className="h-3.5 w-3.5" />
-                    Ver no prontuário
+                    Ver no {t.record}
                   </Link>
                 </div>
 
                 <div className="flex flex-col items-end gap-1.5 shrink-0">
                   {session.mood && (
-                    <span className="text-xl leading-none" title="Humor na sessão">
+                    <span className="text-xl leading-none" title={`Humor na ${t.session}`}>
                       {MOODS[session.mood]}
                     </span>
                   )}
@@ -180,7 +180,7 @@ export default function SessionsPage() {
       <ConfirmDialog
         open={!!sessionToDelete}
         title="Excluir sessão"
-        description={`Excluir a sessão de ${sessionToDelete?.patient?.name ?? 'paciente removido'}? O registro clínico será removido definitivamente.`}
+        description={`Excluir a ${t.session} de ${sessionToDelete?.patient?.name ?? `${t.patient} removido`}? O registro clínico será removido definitivamente.`}
         confirmLabel="Excluir sessão"
         loading={deleteSession.isPending}
         onClose={() => setSessionToDelete(null)}

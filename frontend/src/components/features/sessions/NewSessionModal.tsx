@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
+import { useTerms } from '@/hooks/useTerms'
 import { EmotionalTag, TAG_LABELS } from '@/types'
 import { cn, formatCurrency, formatDateRelative } from '@/lib/utils'
 import { useAppointments, useCreateAppointment, usePatients, useCreateSession, useDefaultTemplate, useFinancial, useInstrumentAssignments, useSessions } from '@/hooks/useApi'
@@ -32,6 +33,7 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
   defaultPatientId?: string
   defaults?: NewSessionDefaults
 }) {
+  const t = useTerms()
   const [mood, setMood] = useState<number | null>(null)
   const [tags, setTags] = useState<EmotionalTag[]>([])
   const [showPreparation, setShowPreparation] = useState(true)
@@ -101,7 +103,7 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
   }, [open, selectedPatient?.billingType, selectedPatient?.id, setValue])
 
   function toggleTag(tag: EmotionalTag) {
-    setTags(t => t.includes(tag) ? t.filter(x => x !== tag) : [...t, tag])
+    setTags(current => current.includes(tag) ? current.filter(x => x !== tag) : [...current, tag])
   }
 
   function applyDefaultTemplate() {
@@ -113,7 +115,7 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
       'Modalidade: ',
       'Demanda/tema central: ',
       'Intervencoes realizadas: ',
-      'Resposta do paciente: ',
+      `Resposta do ${t.patient}: `,
       'Evolucao observada: ',
     ].join('\n'))
     setValue('privateNotes', [
@@ -140,22 +142,22 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
             modality: followUp.modality,
             status: 'scheduled',
           })
-          toast.success('Sessão registrada e retorno agendado')
+          toast.success(`${t.sessionCapitalized} registrada e retorno agendado`)
         } catch {
-          toast.error('A sessão foi salva, mas o horário do retorno não estava disponível')
+          toast.error(`A ${t.session} foi salva, mas o horário do retorno não estava disponível`)
         }
       } else {
-        toast.success('Sessão registrada com cuidado')
+        toast.success(`${t.sessionCapitalized} registrada com cuidado`)
       }
       reset(); setMood(null); setTags([]); onClose()
     } catch {
-      toast.error('Erro ao salvar sessão. Tente novamente.')
+      toast.error(`Erro ao salvar ${t.session}. Tente novamente.`)
     }
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Como foi a sessão?" size="lg"
-      description="Registre o que achar relevante. A sessão entra automaticamente na evolução do prontuário e os dados são criptografados.">
+    <Modal open={open} onClose={onClose} title={`Como foi a ${t.session}?`} size="lg"
+      description={`Registre o que achar relevante. A ${t.session} entra automaticamente na evolução do ${t.record} e os dados são criptografados.`}>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         {sessionTemplate && (
           <button type="button" onClick={applyDefaultTemplate}
@@ -233,7 +235,7 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
         )}
 
         <div>
-          <label className="label">Como a pessoa chegou nesta sessão?</label>
+          <label className="label">Como a pessoa chegou nesta {t.session}?</label>
           <div className="flex gap-2">
             {MOODS.map(m => (
               <button key={m.value} type="button" onClick={() => setMood(m.value)}
@@ -252,7 +254,7 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
 
         <div>
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <label className="label mb-0">Resumo da sessão</label>
+            <label className="label mb-0">Resumo da {t.session}</label>
             <div className="flex items-center gap-2">
               <RecordingPanel
                 patientId={selectedPatientId}
@@ -285,11 +287,11 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
             <DictationButton value={watch('nextSteps') ?? ''} onChange={value => setValue('nextSteps', value)} />
           </div>
           <input {...register('nextSteps')} className="input-field"
-            placeholder="Tarefas, temas para a próxima sessão..." />
+            placeholder={`Tarefas, temas para a próxima ${t.session}...`} />
         </div>
 
         <div>
-          <label className="label">Temas desta sessão</label>
+          <label className="label">Temas desta {t.session}</label>
           <div className="flex flex-wrap gap-1.5">
             {(Object.entries(TAG_LABELS) as [EmotionalTag, string][]).map(([tag, label]) => (
               <button key={tag} type="button" onClick={() => toggleTag(tag)}
@@ -343,7 +345,7 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
           <button type="button" onClick={onClose} className="btn-secondary">Cancelar</button>
           <button type="submit" disabled={isSubmitting || createAppointment.isPending} className="btn-primary flex items-center gap-2">
             {isSubmitting && <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-            {scheduleFollowUp ? 'Salvar e agendar retorno' : 'Concluir sessão'}
+            {scheduleFollowUp ? 'Salvar e agendar retorno' : `Concluir ${t.session}`}
           </button>
         </div>
       </form>

@@ -14,6 +14,7 @@ import { useSessions } from '@/hooks/api/sessions'
 import ReferralCard from '@/components/features/referral/ReferralCard'
 import { OnboardingProfile, useOnboardingStore } from '@/store/onboarding'
 import { useTerms } from '@/hooks/useTerms'
+import type { Terms } from '@/lib/terms'
 
 const OnboardingWizard = lazy(() => import('@/components/onboarding/OnboardingWizard'))
 const NewSessionModal = lazy(() => import('@/components/features/sessions/NewSessionModal'))
@@ -45,22 +46,22 @@ type SuggestedAction = {
   icon: typeof Users
 }
 
-function onboardingSummary(profile: OnboardingProfile) {
+function onboardingSummary(profile: OnboardingProfile, t: Terms) {
   const usage = {
     solo: 'uso individual',
     assistant: 'uso com atendente',
     clinic: 'rotina de clinica',
   }[profile.usageMode]
   const volume = {
-    '0_5': '0 a 5 pacientes',
-    '6_10': '6 a 10 pacientes',
-    more_10: 'mais de 10 pacientes',
+    '0_5': `0 a 5 ${t.patients}`,
+    '6_10': `6 a 10 ${t.patients}`,
+    more_10: `mais de 10 ${t.patients}`,
     student: 'estudante',
   }[profile.patientVolume]
   return `${usage} · ${volume}`
 }
 
-function suggestedActions(profile?: OnboardingProfile, stats?: any): SuggestedAction[] {
+function suggestedActions(t: Terms, profile?: OnboardingProfile, stats?: any): SuggestedAction[] {
   if (!profile) return []
 
   const actions: SuggestedAction[] = []
@@ -102,7 +103,7 @@ function suggestedActions(profile?: OnboardingProfile, stats?: any): SuggestedAc
       add({
         id: 'booking',
         title: 'Ative o link publico',
-        text: 'Permita que pacientes escolham horarios disponiveis sem troca de mensagens.',
+        text: `Permita que ${t.patients} escolham horarios disponiveis sem troca de mensagens.`,
         href: '/agendamentos?tab=settings',
         cta: 'Configurar link',
         icon: ExternalLink,
@@ -114,7 +115,7 @@ function suggestedActions(profile?: OnboardingProfile, stats?: any): SuggestedAc
         title: 'Organize prontuario e evolucao',
         text: 'Depois da primeira sessao, registre a evolucao em um fluxo simples.',
         href: '/pacientes',
-        cta: 'Ver pacientes',
+        cta: `Ver ${t.patients}`,
         icon: NotebookPen,
       })
     }
@@ -180,7 +181,7 @@ export default function DashboardPage() {
   const dailyPendingCount = completedWithoutRecord.length + overduePayments.length
   const registeredSessions = Number(s?.registeredSessions ?? 0)
   const estimatedSavedMinutes = Math.max(registeredSessions * 30, s?.roi?.estimatedMinutesSaved ?? 0)
-  const nextActions = suggestedActions(onboardingProfile, s)
+  const nextActions = suggestedActions(t, onboardingProfile, s)
 
   function openVideoAppointment(appt: any) {
     const link = appt.meetingUrl || String(appt.notes ?? '').match(VIDEO_LINK_RE)?.[0]
@@ -245,7 +246,7 @@ export default function DashboardPage() {
           <div className="mt-5 flex items-center gap-3 pt-4 border-t border-white/10">
             <div className="flex items-center gap-1.5 text-xs text-sage-100">
               <CalendarCheck className="w-3.5 h-3.5 text-sage-300" />
-              <span>{sessionsToday} {sessionsToday === 1 ? 'sessão' : 'sessões'} hoje</span>
+              <span>{sessionsToday} {sessionsToday === 1 ? t.session : t.sessions} hoje</span>
             </div>
             {(s?.pendingPayments ?? 0) > 0 && (
               <>
@@ -282,7 +283,7 @@ export default function DashboardPage() {
             <AlertTriangle className="w-4 h-4 text-amber-500 dark:text-amber-200" />
           </div>
           <p className="text-sm text-amber-800 dark:text-amber-100">
-            <strong>{s.inactivePatients} pessoa{s.inactivePatients !== 1 ? 's' : ''}</strong> sem sessão há mais de 30 dias.{' '}
+            <strong>{s.inactivePatients} pessoa{s.inactivePatients !== 1 ? 's' : ''}</strong> sem {t.session} há mais de 30 dias.{' '}
             <Link to="/pacientes" className="underline underline-offset-2 hover:no-underline font-medium">
               Ver quem são →
             </Link>
@@ -326,7 +327,7 @@ export default function DashboardPage() {
                 <button key={appointment.id} type="button"
                   onClick={() => setSessionDefaults({ patientId: appointment.patientId, date: appointment.date, appointmentId: appointment.id, modality: appointment.modality })}
                   className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 hover:bg-amber-100 dark:border-amber-300/20 dark:bg-amber-400/10 dark:text-amber-100">
-                  <NotebookPen className="h-3.5 w-3.5" /> {appointment.patient?.name ?? appointment.patientName ?? 'Paciente'}
+                  <NotebookPen className="h-3.5 w-3.5" /> {appointment.patient?.name ?? appointment.patientName ?? t.patientCapitalized}
                 </button>
               ))}
             </div>
@@ -346,7 +347,7 @@ export default function DashboardPage() {
                 Sugestoes para o seu perfil
               </h2>
               <p className="text-xs text-neutral-400 dark:text-neutral-300">
-                {onboardingSummary(onboardingProfile)}
+                {onboardingSummary(onboardingProfile, t)}
               </p>
             </div>
             <Link to="/configuracoes" className="text-xs font-semibold text-sage-600 hover:text-sage-700 dark:text-sage-300 dark:hover:text-sage-200">
@@ -457,7 +458,7 @@ export default function DashboardPage() {
             <div className="rounded-xl bg-neutral-50 px-4 py-3 dark:bg-white/5">
               <Users className="mb-2 h-4 w-4 text-neutral-600 dark:text-neutral-200" />
               <p className="text-xl font-semibold text-neutral-800 dark:text-white">{s.clinicIndicators.avgSessionsPerActivePatient}</p>
-              <p className="text-xs text-neutral-500 dark:text-neutral-300">sessões por paciente</p>
+              <p className="text-xs text-neutral-500 dark:text-neutral-300">{t.sessions} por {t.patient}</p>
             </div>
           </div>
           {(s.clinicIndicators.noShows ?? 0) + (s.clinicIndicators.cancelled ?? 0) > 0 && (
@@ -488,7 +489,7 @@ export default function DashboardPage() {
               <div className="rounded-xl bg-sage-50 px-3 py-3 dark:bg-white/5">
                 <CheckCircle2 className="mb-1 h-4 w-4 text-sage-700 dark:text-sage-200" />
                 <p className="text-base font-semibold text-neutral-800 dark:text-white">{registeredSessions}</p>
-                <p className="text-xs text-neutral-500 dark:text-neutral-300">sessões registradas</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-300">{t.sessions} registradas</p>
               </div>
               <div className="rounded-xl bg-mist-50 px-3 py-3 dark:bg-white/5">
                 <Ban className="mb-1 h-4 w-4 text-mist-700 dark:text-mist-200" />
@@ -512,9 +513,9 @@ export default function DashboardPage() {
 
           {registeredSessions >= 5 && (
             <div className="mt-4 grid gap-2 border-t border-neutral-100 pt-4 text-sm text-neutral-600 dark:border-white/10 dark:text-neutral-300 sm:grid-cols-3">
-              <span>Última semana: {s?.sessionsThisWeek ?? 0} sessões</span>
+              <span>Última semana: {s?.sessionsThisWeek ?? 0} {t.sessions}</span>
               <span>Proxima semana: tendencia de crescimento</span>
-              <span>Pacientes em inadimplencia: {s?.pendingPayments ?? 0}</span>
+              <span>{t.patientsCapitalized} em inadimplencia: {s?.pendingPayments ?? 0}</span>
             </div>
           )}
 
@@ -584,10 +585,10 @@ export default function DashboardPage() {
               <div className="w-12 h-12 bg-sage-50 rounded-2xl flex items-center justify-center mx-auto mb-3 dark:bg-white/5">
                 <Sparkles className="w-5 h-5 text-sage-400 dark:text-sage-200" />
               </div>
-              <p className="text-sm font-medium text-neutral-600 mb-1 dark:text-neutral-100">Nenhuma sessão hoje</p>
+              <p className="text-sm font-medium text-neutral-600 mb-1 dark:text-neutral-100">Nenhuma {t.session} hoje</p>
               <p className="text-xs text-neutral-400 mb-4 dark:text-neutral-300">Um bom dia para organizar seus registros.</p>
               <Link to="/agenda" className="btn-secondary text-xs px-4 py-2">
-                Agendar sessão
+                Agendar {t.session}
               </Link>
             </div>
           ) : (

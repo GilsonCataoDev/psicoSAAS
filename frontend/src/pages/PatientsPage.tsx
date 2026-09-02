@@ -65,7 +65,7 @@ export default function PatientsPage() {
 
   function openCreatePatientModal() {
     if (reachedPatientLimit) {
-      toast.error(`Limite de ${patientLimit} pacientes ativos atingido no plano ${currentPlan.name}.`)
+      toast.error(`Limite de ${patientLimit} ${t.patients} ativos atingido no plano ${currentPlan.name}.`)
       return
     }
     setShowModal(true)
@@ -142,17 +142,17 @@ export default function PatientsPage() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<UsersRound className="h-7 w-7" strokeWidth={1.8} />}
-          title={search || filter !== 'all' || careMode !== 'all' ? 'Nenhum paciente encontrado' : 'Nenhum paciente cadastrado ainda'}
+          title={search || filter !== 'all' || careMode !== 'all' ? `Nenhum ${t.patient} encontrado` : `Nenhum ${t.patient} cadastrado ainda`}
           description={
             search || filter !== 'all' || careMode !== 'all'
               ? 'Tente ajustar a busca ou os filtros.'
               : reachedPatientLimit
-                ? `Seu plano ${currentPlan.name} permite até ${patientLimit} pacientes ativos.`
+                ? `Seu plano ${currentPlan.name} permite até ${patientLimit} ${t.patients} ativos.`
                 : 'Adicione sua primeira pessoa para começar a acompanhar o processo.'
           }
           action={
             !search && filter === 'all' && !reachedPatientLimit
-              ? <button onClick={openCreatePatientModal} className="btn-primary">Cadastrar primeiro paciente</button>
+              ? <button onClick={openCreatePatientModal} className="btn-primary">Cadastrar primeiro {t.patient}</button>
               : undefined
           }
         />
@@ -166,7 +166,7 @@ export default function PatientsPage() {
                 </h2>
                 <div className="h-px flex-1 bg-neutral-100" />
                 <span className="text-xs font-medium text-neutral-400">
-                  {groupedPatients[letter].length} {groupedPatients[letter].length === 1 ? 'paciente' : 'pacientes'}
+                  {groupedPatients[letter].length} {groupedPatients[letter].length === 1 ? t.patient : t.patients}
                 </span>
               </div>
               <div className="grid gap-3">
@@ -189,6 +189,7 @@ export default function PatientsPage() {
 }
 
 function PatientCard({ patient }: { patient: Patient }) {
+  const t = useTerms()
   return (
     <Link
       to={`/pacientes/${patient.id}`}
@@ -213,8 +214,8 @@ function PatientCard({ patient }: { patient: Patient }) {
         </div>
         <p className="text-xs text-neutral-400 mt-0.5 truncate">
           Desde {formatDate(patientStartDate(patient.startDate, patient.createdAt))} · {patient.billingType === 'monthly_package'
-            ? `${formatCurrency(Number(patient.monthlyPackagePrice ?? 0))}/mês · ${patient.monthlyIncludedSessions ?? 4} sessões`
-            : `${formatCurrency(Number(patient.sessionPrice ?? 0))}/sessão`}
+            ? `${formatCurrency(Number(patient.monthlyPackagePrice ?? 0))}/mês · ${patient.monthlyIncludedSessions ?? 4} ${t.sessions}`
+            : `${formatCurrency(Number(patient.sessionPrice ?? 0))}/${t.session}`}
         </p>
         {patient.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1.5">
