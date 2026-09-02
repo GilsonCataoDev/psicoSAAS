@@ -1,6 +1,7 @@
 import { CalendarDays, CheckCircle2, ExternalLink } from 'lucide-react'
 import { type Prefs } from './types'
 import { Toggle } from './Toggle'
+import { useTerms } from '@/hooks/useTerms'
 
 interface Props {
   prefs: Prefs
@@ -19,6 +20,7 @@ export function IntegrationsTab({
   setConfirmDisconnectGoogle, connectGoogleCalendar,
   togglePref,
 }: Props) {
+  const t = useTerms()
   return (
     <div className="space-y-5">
       <div className="card space-y-4">
@@ -30,7 +32,7 @@ export function IntegrationsTab({
             <div>
               <h2 className="section-title mb-0.5">Google Agenda</h2>
               <p className="text-sm text-neutral-500">
-                Sessões criadas ou confirmadas na UseCognia são sincronizadas automaticamente com sua agenda Google.
+                {t.sessionsCapitalized} criadas ou confirmadas na UseCognia são sincronizadas automaticamente com sua agenda Google.
               </p>
             </div>
           </div>
@@ -54,7 +56,7 @@ export function IntegrationsTab({
                 Última sincronização: {new Date(googleLastSyncedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
               </p>
             ) : (
-              <p className="text-xs text-sage-500 pl-6">Nenhuma sessão sincronizada ainda</p>
+              <p className="text-xs text-sage-500 pl-6">Nenhuma {t.session} sincronizada ainda</p>
             )}
           </div>
         ) : !googleCalendarAvailable ? (
@@ -75,9 +77,9 @@ export function IntegrationsTab({
 
         <div className="grid gap-3 sm:grid-cols-3">
           {[
-            ['Sincroniza', 'Sessões criadas, remarcadas ou confirmadas.'],
+            ['Sincroniza', `${t.sessionsCapitalized} criadas, remarcadas ou confirmadas.`],
             ['Não importa', 'Eventos pessoais já existentes no Google.'],
-            ['Remove', 'Eventos da UseCognia quando uma sessão é cancelada.'],
+            ['Remove', `Eventos da UseCognia quando uma ${t.session} é cancelada.`],
           ].map(([title, text]) => (
             <div key={title} className="rounded-xl border border-neutral-100 bg-neutral-50 p-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">{title}</p>
@@ -88,7 +90,7 @@ export function IntegrationsTab({
 
         <div className="flex items-start justify-between gap-4 rounded-xl border border-neutral-200 bg-neutral-50 p-4">
           <div>
-            <p className="text-sm font-medium text-neutral-800">Convidar paciente pelo Google Agenda</p>
+            <p className="text-sm font-medium text-neutral-800">Convidar {t.patient} pelo Google Agenda</p>
             <p className="mt-1 text-xs text-neutral-500">
               Envia ao e-mail cadastrado o convite, as remarcações e o cancelamento. O evento usa um título discreto para preservar a privacidade.
             </p>

@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { AI_CONSENT_TEXT, useAcceptAiConsent, useTranscribeAudio, useTranscribeCall, useGenerateAiSummary } from '@/hooks/useApi'
 import { useHasPlan } from '@/store/subscription'
 import { cleanupMediaRecorder, selectSupportedAudioMimeType, stopMediaStreams } from './voice-capture'
+import { useTerms } from '@/hooks/useTerms'
 
 type Step = 'idle' | 'consent' | 'recording' | 'ready' | 'transcribing' | 'transcribed' | 'generating'
 type Source = 'mic' | 'call'
@@ -33,6 +34,7 @@ export default function RecordingPanel({
   transcriptionActionLabel = 'Copiar para notas privadas',
   allowCallCapture = false,
 }: Props) {
+  const t = useTerms()
   const hasPro = useHasPlan('pro')
   const [step, setStep] = useState<Step>('idle')
   const [source, setSource] = useState<Source>('mic')
@@ -262,12 +264,12 @@ export default function RecordingPanel({
             <p className="text-sm font-semibold text-amber-800">Consentimento para gravação</p>
             <p className="text-xs text-amber-700 leading-relaxed">
               {source === 'call'
-                ? 'O áudio da chamada inteira (as duas vozes) é enviado ao servidor apenas para transcrição e não é armazenado. Apenas o texto transcrito é salvo, criptografado, no prontuário.'
-                : 'O áudio é enviado ao servidor apenas para transcrição e não é armazenado. Apenas o texto transcrito é salvo, criptografado, no prontuário.'}
+                ? `O áudio da chamada inteira (as duas vozes) é enviado ao servidor apenas para transcrição e não é armazenado. Apenas o texto transcrito é salvo, criptografado, no ${t.record}.`
+                : `O áudio é enviado ao servidor apenas para transcrição e não é armazenado. Apenas o texto transcrito é salvo, criptografado, no ${t.record}.`}
             </p>
             {source === 'call' && (
               <p className="text-xs text-amber-700 leading-relaxed">
-                Ao clicar em "Iniciar gravação", escolha a guia da chamada (Jitsi) na janela do navegador e marque a opção <strong>"Compartilhar áudio da guia"</strong> — sem isso, a voz do paciente não é capturada.
+                Ao clicar em "Iniciar gravação", escolha a guia da chamada (Jitsi) na janela do navegador e marque a opção <strong>"Compartilhar áudio da guia"</strong> — sem isso, a voz do {t.patient} não é capturada.
               </p>
             )}
           </div>

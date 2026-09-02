@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import Modal from '@/components/ui/Modal'
 import { downloadPatientsImportTemplate, ImportPatientsResult, useImportPatients } from '@/hooks/useApi'
 import ImportResultsView from './ImportResultsView'
+import { useTerms } from '@/hooks/useTerms'
 
 export default function ImportPatientsModal({
   open,
@@ -16,6 +17,7 @@ export default function ImportPatientsModal({
   reachedPatientLimit: boolean
   currentPlanName: string
 }) {
+  const t = useTerms()
   const [file, setFile] = useState<File | null>(null)
   const [result, setResult] = useState<ImportPatientsResult | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -57,8 +59,8 @@ export default function ImportPatientsModal({
     <Modal
       open={open}
       onClose={handleClose}
-      title="Importar pacientes via CSV"
-      description={result ? undefined : 'Migre sua lista de pacientes de uma planilha ou outro sistema.'}
+      title={`Importar ${t.patients} via CSV`}
+      description={result ? undefined : `Migre sua lista de ${t.patients} de uma planilha ou outro sistema.`}
       size="md"
     >
       {result ? (
@@ -71,8 +73,8 @@ export default function ImportPatientsModal({
         <div className="space-y-4">
           {reachedPatientLimit && (
             <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
-              Você já atingiu o limite de pacientes ativos do plano {currentPlanName}. Ainda dá pra importar e ver os
-              erros de validação, mas os pacientes além do limite ficarão pendentes de upgrade.
+              Você já atingiu o limite de {t.patients} ativos do plano {currentPlanName}. Ainda dá pra importar e ver os
+              erros de validação, mas os {t.patients} além do limite ficarão pendentes de upgrade.
             </p>
           )}
 
@@ -100,7 +102,7 @@ export default function ImportPatientsModal({
           </label>
 
           <p className="text-xs text-neutral-400">
-            Financeiro: pacientes de pacote mensal importados só começam a ser cobrados no próximo ciclo, não
+            Financeiro: {t.patients} de pacote mensal importados só começam a ser cobrados no próximo ciclo, não
             imediatamente.
           </p>
 

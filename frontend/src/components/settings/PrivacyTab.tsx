@@ -1,6 +1,7 @@
 import { BarChart3, Download, Trash2 } from 'lucide-react'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 import { type AuditLog, AUDIT_LABELS } from './types'
+import { useTerms } from '@/hooks/useTerms'
 
 interface Props {
   analyticsEnabled: boolean
@@ -23,13 +24,14 @@ export function PrivacyTab({
   deletePassword, setDeletePassword, deleteConfirm, setDeleteConfirm,
   deletingAccount, exportData, deleteAccount,
 }: Props) {
+  const t = useTerms()
   return (
     <div className="card space-y-4">
       <h2 className="section-title">Privacidade</h2>
       <div className="space-y-3 text-sm text-neutral-600">
         {[
           { icon: 'security-lgpd' as const, text: 'Todas as anotações clínicas são criptografadas com AES-256.' },
-          { icon: 'documents' as const, text: 'Voce e o unico responsavel pelos dados de seus pacientes; nunca os vendemos ou compartilhamos.' },
+          { icon: 'documents' as const, text: `Voce e o unico responsavel pelos dados de seus ${t.patients}; nunca os vendemos ou compartilhamos.` },
           { icon: 'billing' as const, text: 'Voce pode exportar ou deletar todos os seus dados a qualquer momento.' },
         ].map(item => (
           <div key={item.text} className="flex gap-3 p-3 bg-neutral-50 rounded-xl">
@@ -47,8 +49,8 @@ export function PrivacyTab({
             <div>
               <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">Métricas de uso protegidas</h3>
               <p className="mt-1 text-sm leading-5 text-neutral-600 dark:text-neutral-300">
-                Ajuda a entender quais recursos precisam melhorar. Não inclui nomes, dados de pacientes,
-                prontuários, documentos, mensagens ou valores e não grava sua tela.
+                Ajuda a entender quais recursos precisam melhorar. Não inclui nomes, dados de {t.patients},
+                {t.record}s, documentos, mensagens ou valores e não grava sua tela.
               </p>
               <p className="mt-2 text-xs text-neutral-400 dark:text-neutral-400">
                 Esta escolha vale somente para este navegador e pode ser alterada quando quiser.
@@ -76,7 +78,7 @@ export function PrivacyTab({
       <div className="rounded-2xl border border-sage-100 bg-sage-50 px-4 py-3 text-sm text-sage-800">
         <p className="font-medium">O arquivo de exportação inclui</p>
         <p className="mt-1 text-sage-700">
-          Pacientes, agenda, sessões, registros financeiros, documentos, preferências e histórico disponível da conta.
+          {t.patientsCapitalized}, agenda, {t.sessions}, registros financeiros, documentos, preferências e histórico disponível da conta.
         </p>
       </div>
 
@@ -112,7 +114,7 @@ export function PrivacyTab({
             <div>
               <h3 className="text-sm font-semibold text-rose-800 dark:text-rose-200">Excluir conta definitivamente</h3>
               <p className="mt-1 text-sm text-rose-700 dark:text-rose-200/80">
-                Se voce apenas testou e nao quiser manter cadastro, remova sua conta aqui. Isso apaga pacientes,
+                Se voce apenas testou e nao quiser manter cadastro, remova sua conta aqui. Isso apaga {t.patients},
                 prontuarios, sessoes, agenda, financeiro, documentos, preferencias e tokens de acesso. Assinaturas
                 ativas tambem sao canceladas antes da exclusao. Esta acao nao pode ser desfeita.
               </p>

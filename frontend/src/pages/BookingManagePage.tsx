@@ -14,6 +14,7 @@ import {
   useSyncBookingAppointments, useBlockedDates, useAddBlockedDate, useAddBlockedWeek, useRemoveBlockedDate,
   useAvailabilityBlocks, useAddAvailabilityBlock, useRemoveAvailabilityBlock,
 } from '@/hooks/useApi'
+import { useTerms } from '@/hooks/useTerms'
 
 const STATUS_CONFIG = {
   pending:   { label: 'Pendente',       className: 'bg-amber-100 text-amber-700'      },
@@ -38,6 +39,7 @@ const BOOKING_FILTERS = [
 ] as const
 
 export default function BookingManagePage() {
+  const t = useTerms()
   const [searchParams] = useSearchParams()
   const [tab, setTab] = useState<'requests' | 'settings'>(
     searchParams.get('tab') === 'settings' ? 'settings' : 'requests'
@@ -72,7 +74,7 @@ export default function BookingManagePage() {
 
   async function confirm(id: string) {
     await confirmBooking.mutateAsync(id)
-    toast.success('Sessão confirmada')
+    toast.success(`${t.sessionCapitalized} confirmada`)
   }
 
   async function reject(id: string) {
@@ -426,6 +428,7 @@ function initialBreakInterval(page: any, modality: BookingModality): number {
 }
 
 function BookingSettings({ page }: { page: any }) {
+  const t = useTerms()
   const saveBookingPage = useSaveBookingPage()
   const { data: savedSlots = [] } = useAvailability()
   const saveAvailability = useSaveAvailability()
@@ -453,7 +456,7 @@ function BookingSettings({ page }: { page: any }) {
   const [form, setForm] = useState({
     isActive:           page?.isActive ?? true,
     slug:               page?.slug ?? '',
-    title:               page?.title ?? 'Agende sua sessão',
+    title:               page?.title ?? `Agende sua ${t.session}`,
     avatarUrl:           page?.avatarUrl ?? '',
     description:         page?.description ?? '',
     // +() converte string "150.00" do PostgreSQL decimal para número
@@ -477,7 +480,7 @@ function BookingSettings({ page }: { page: any }) {
     setForm({
       isActive:           page.isActive ?? true,
       slug:               page.slug ?? '',
-      title:               page.title ?? 'Agende sua sessão',
+      title:               page.title ?? `Agende sua ${t.session}`,
       avatarUrl:           page.avatarUrl ?? '',
       description:         page.description ?? '',
       sessionPrice:        +(page.sessionPrice ?? 150),
@@ -594,7 +597,7 @@ function BookingSettings({ page }: { page: any }) {
     })
 
     if (invalidSlot) {
-      toast.error(`Revise ${invalidSlot.label} em ${invalidSlot.modality}: horário insuficiente para a duração da sessão.`)
+      toast.error(`Revise ${invalidSlot.label} em ${invalidSlot.modality}: horário insuficiente para a duração da ${t.session}.`)
       return false
     }
 
@@ -713,7 +716,7 @@ function BookingSettings({ page }: { page: any }) {
     {
       label: 'Link publico ativo',
       done: form.isActive,
-      hint: form.isActive ? 'Pacientes conseguem acessar.' : 'Ative quando quiser receber agendamentos.',
+      hint: form.isActive ? `${t.patientsCapitalized} conseguem acessar.` : 'Ative quando quiser receber agendamentos.',
     },
     {
       label: 'URL personalizada',
@@ -723,7 +726,7 @@ function BookingSettings({ page }: { page: any }) {
     {
       label: 'Perfil com foto ou texto',
       done: Boolean(form.avatarUrl.trim() || form.description.trim()),
-      hint: 'Ajuda o paciente a reconhecer o profissional.',
+      hint: `Ajuda o ${t.patient} a reconhecer o profissional.`,
     },
     {
       label: 'Modalidade escolhida',
@@ -745,7 +748,7 @@ function BookingSettings({ page }: { page: any }) {
           <div>
             <h2 className="section-title mb-1">Preparar link publico</h2>
             <p className="text-sm text-neutral-500 dark:text-neutral-300">
-              Mantemos suas configuracoes atuais e mostramos apenas o que pode melhorar antes de enviar o link para pacientes.
+              Mantemos suas configuracoes atuais e mostramos apenas o que pode melhorar antes de enviar o link para {t.patients}.
             </p>
           </div>
           <span className={cn(
@@ -790,8 +793,8 @@ function BookingSettings({ page }: { page: any }) {
             <h2 className="section-title mb-1">Status do link público</h2>
             <p className="text-sm text-neutral-500 dark:text-neutral-300">
               {form.isActive
-                ? 'Pacientes conseguem acessar e reservar horários pelo seu link.'
-                : 'O link fica pausado e pacientes não conseguem agendar.'}
+                ? `${t.patientsCapitalized} conseguem acessar e reservar horários pelo seu link.`
+                : `O link fica pausado e ${t.patients} não conseguem agendar.`}
             </p>
           </div>
           <button
@@ -831,7 +834,7 @@ function BookingSettings({ page }: { page: any }) {
             className={cn('btn-secondary flex items-center justify-center gap-2 text-sm', (!publicUrl || !form.isActive) && 'pointer-events-none opacity-50')}
           >
             <ExternalLink className="h-4 w-4" />
-            {form.isActive ? 'Visualizar como paciente' : 'Link pausado'}
+            {form.isActive ? `Visualizar como ${t.patient}` : 'Link pausado'}
           </a>
         </div>
       </div>
@@ -946,7 +949,7 @@ function BookingSettings({ page }: { page: any }) {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="label">Valor da sessão (R$)</label>
+            <label className="label">Valor da {t.session} (R$)</label>
             <input type="number" value={form.sessionPrice} onChange={e => set('sessionPrice', +e.target.value)} className="input-field" />
           </div>
           <div>
@@ -1042,7 +1045,7 @@ function BookingSettings({ page }: { page: any }) {
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">{displayName}</p>
-                <p className="text-xs text-neutral-500 dark:text-neutral-300">{form.title || 'Agende sua sessão'}</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-300">{form.title || `Agende sua ${t.session}`}</p>
                 {form.description.trim() && (
                   <p className="mt-2 line-clamp-3 text-xs text-neutral-500 dark:text-neutral-300">{form.description.trim()}</p>
                 )}

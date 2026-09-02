@@ -9,6 +9,7 @@ import {
   validateLegacyNoteDrafts,
   validateLegacyNoteFiles,
 } from '@/lib/legacy-notes-migration'
+import { useTerms } from '@/hooks/useTerms'
 
 type SelectedPage = {
   file: File
@@ -39,6 +40,7 @@ export default function LegacyNotesMigrationModal({
   patientName,
   sessionDuration = 50,
 }: Props) {
+  const t = useTerms()
   const uploadAttachment = useUploadPatientAttachment(patientId)
   const createSession = useCreateHistoricalSession()
   const [pages, setPages] = useState<SelectedPage[]>([])
@@ -189,7 +191,7 @@ export default function LegacyNotesMigrationModal({
             <div className="flex min-h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-5 text-center dark:border-white/10 dark:bg-white/5">
               <Image className="h-9 w-9 text-neutral-300" />
               <p className="mt-3 text-sm font-medium text-neutral-600 dark:text-neutral-200">Fotografe ou escolha até duas páginas</p>
-              <p className="mt-1 max-w-sm text-xs text-neutral-400">Os arquivos serão criptografados e anexados somente a este paciente.</p>
+              <p className="mt-1 max-w-sm text-xs text-neutral-400">Os arquivos serão criptografados e anexados somente a este {t.patient}.</p>
             </div>
           ) : (
             <>
@@ -222,7 +224,7 @@ export default function LegacyNotesMigrationModal({
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-neutral-700 dark:text-neutral-100">2. Evoluções revisadas</p>
-              <p className="text-xs text-neutral-400">Separe cada sessão encontrada nas páginas.</p>
+              <p className="text-xs text-neutral-400">Separe cada {t.session} encontrada nas páginas.</p>
             </div>
             <button
               type="button"
@@ -250,7 +252,7 @@ export default function LegacyNotesMigrationModal({
                 </div>
                 <div className="space-y-3">
                   <div>
-                    <label className="label">Data da sessão</label>
+                    <label className="label">Data da {t.session}</label>
                     <input type="date" value={draft.date} disabled={draft.created || isBusy} onChange={event => updateDraft(draft.id, { date: event.target.value })} className="input-field text-sm" />
                   </div>
                   <div>
@@ -261,7 +263,7 @@ export default function LegacyNotesMigrationModal({
                       disabled={draft.created || isBusy}
                       onChange={event => updateDraft(draft.id, { summary: event.target.value })}
                       className="input-field resize-y text-sm"
-                      placeholder="Digite exatamente o registro desta sessão. Confira nomes, datas e termos clínicos antes de salvar."
+                      placeholder={`Digite exatamente o registro desta ${t.session}. Confira nomes, datas e termos clínicos antes de salvar.`}
                     />
                   </div>
                 </div>
@@ -282,7 +284,7 @@ export default function LegacyNotesMigrationModal({
       <div className="mt-5 flex flex-col-reverse gap-2 border-t border-neutral-100 pt-4 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
         <p className="flex items-center gap-2 text-xs text-neutral-400">
           <ShieldCheck className="h-4 w-4 text-sage-600" />
-          {completedDrafts > 0 ? `${completedDrafts} evolução(ões) já salva(s).` : 'Nada entra no prontuário sem sua confirmação.'}
+          {completedDrafts > 0 ? `${completedDrafts} evolução(ões) já salva(s).` : `Nada entra no ${t.record} sem sua confirmação.`}
         </p>
         <div className="flex gap-2">
           <button type="button" onClick={resetAndClose} disabled={isBusy} className="btn-secondary flex-1 text-sm sm:flex-none">Cancelar</button>

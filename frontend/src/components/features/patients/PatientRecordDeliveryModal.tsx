@@ -3,6 +3,7 @@ import { CheckCircle2, Download, ShieldCheck } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Modal from '@/components/ui/Modal'
 import { ProntuarioExportOptions, useExportProntuario } from '@/hooks/api/patients'
+import { useTerms } from '@/hooks/useTerms'
 
 type Section = NonNullable<ProntuarioExportOptions['sections']>[number]
 
@@ -10,7 +11,7 @@ const SECTIONS: Array<{ id: Section; label: string; detail: string }> = [
   { id: 'identification', label: 'Identificação', detail: 'Dados cadastrais e informações complementares' },
   { id: 'anamnesis', label: 'Anamnese', detail: 'Queixa, histórico e condições registradas' },
   { id: 'treatment_plan', label: 'Plano terapêutico', detail: 'Abordagem, objetivos e frequência' },
-  { id: 'evolutions', label: 'Evoluções', detail: 'Registros das sessões no período selecionado' },
+  { id: 'evolutions', label: 'Evoluções', detail: 'Registros no período selecionado' },
 ]
 
 interface Props {
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export default function PatientRecordDeliveryModal({ open, onClose, patientId, patientName }: Props) {
+  const t = useTerms()
   const exportRecord = useExportProntuario(patientId)
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
@@ -56,7 +58,7 @@ export default function PatientRecordDeliveryModal({ open, onClose, patientId, p
         toDate: toDate || undefined,
         sections,
       })
-      toast.success('Cópia do prontuário gerada com segurança.')
+      toast.success(`Cópia do ${t.record} gerada com segurança.`)
       onClose()
     } catch {
       toast.error('Não foi possível gerar a cópia. Revise os dados e tente novamente.')
@@ -67,7 +69,7 @@ export default function PatientRecordDeliveryModal({ open, onClose, patientId, p
     <Modal
       open={open}
       onClose={onClose}
-      title="Preparar entrega ao paciente"
+      title={`Preparar entrega ao ${t.patient}`}
       description={`Escolha o conteúdo da cópia de ${patientName}.`}
       size="lg"
     >
@@ -112,7 +114,7 @@ export default function PatientRecordDeliveryModal({ open, onClose, patientId, p
                 >
                   <CheckCircle2 className={`mt-0.5 h-4 w-4 shrink-0 ${selected ? 'text-cognia-600' : 'text-neutral-300 dark:text-neutral-600'}`} />
                   <span>
-                    <span className="block text-sm font-medium text-neutral-800 dark:text-white">{section.label}</span>
+                    <span className="block text-sm font-medium text-neutral-800 dark:text-white">{section.id === 'anamnesis' ? t.intakeCapitalized : section.label}</span>
                     <span className="block text-xs text-neutral-500 dark:text-neutral-400">{section.detail}</span>
                   </span>
                 </button>
@@ -130,7 +132,7 @@ export default function PatientRecordDeliveryModal({ open, onClose, patientId, p
             className="mt-0.5 h-4 w-4 accent-cognia-600"
           />
           <span className="text-sm text-neutral-700 dark:text-neutral-200">
-            Revisei o prontuário e confirmo que estas informações podem ser entregues ao paciente.
+            Revisei o {t.record} e confirmo que estas informações podem ser entregues ao {t.patient}.
           </span>
         </label>
 

@@ -1,6 +1,7 @@
 import { isPushSupported } from '@/lib/pushNotifications'
 import { Toggle } from './Toggle'
 import { type Prefs } from './types'
+import { useTerms } from '@/hooks/useTerms'
 
 interface Props {
   prefs: Prefs
@@ -21,6 +22,7 @@ export function NotifyTab({
   pushConfigured, pushSubscribed, pushBusy, nativeApp,
   activateWebPush, deactivateWebPush, testWebPush,
 }: Props) {
+  const t = useTerms()
   return (
     <div className="space-y-5">
       <div className="card space-y-5">
@@ -38,9 +40,9 @@ export function NotifyTab({
         ) : (
           <>
             {([
-              { key: 'reminder24h',        label: 'Lembrete 24h antes da sessão',   desc: 'Mensagem enviada via WhatsApp no dia anterior' },
-              { key: 'reminder2h',         label: 'Lembrete 1h antes da sessão',    desc: 'Mensagem rápida no dia do atendimento' },
-              { key: 'dailyAgendaDigest',  label: 'Resumo diário da agenda',        desc: 'Envia para você, pela manhã, a lista de pacientes do dia' },
+              { key: 'reminder24h',        label: `Lembrete 24h antes da ${t.session}`,   desc: 'Mensagem enviada via WhatsApp no dia anterior' },
+              { key: 'reminder2h',         label: `Lembrete 1h antes da ${t.session}`,    desc: 'Mensagem rápida no dia do atendimento' },
+              { key: 'dailyAgendaDigest',  label: 'Resumo diário da agenda',        desc: `Envia para você, pela manhã, a lista de ${t.patients} do dia` },
               { key: 'bookingConfirmation',label: 'Confirmação de agendamento',      desc: 'Notifica quando um horário é reservado' },
             ] as const).map(item => (
               <div key={item.key} className="flex items-center justify-between gap-4 py-2 border-b border-neutral-50 last:border-0">
@@ -86,7 +88,7 @@ export function NotifyTab({
             <p className="text-sm text-neutral-500">
               {nativeApp
                 ? 'No app Android, os lembretes continuam por WhatsApp. Push nativo entra na etapa de loja.'
-                : 'Receba avisos no navegador quando houver lembrete de sessão.'}
+                : `Receba avisos no navegador quando houver lembrete de ${t.session}.`}
             </p>
           </div>
           <span className={`badge ${pushSubscribed ? 'bg-sage-50 text-sage-700' : 'bg-neutral-100 text-neutral-500'}`}>

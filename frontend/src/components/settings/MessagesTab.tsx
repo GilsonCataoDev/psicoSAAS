@@ -1,5 +1,6 @@
 import { type Prefs } from './types'
 import { type WhatsAppLog, type WhatsAppStatus } from './types'
+import { useTerms } from '@/hooks/useTerms'
 
 interface Props {
   prefs: Prefs
@@ -30,6 +31,7 @@ export function MessagesTab({
   whatsappConnected, whatsappConfigured, whatsappStatus, whatsappQr, whatsappBusy, whatsappLogs,
   connectWhatsApp, testWhatsApp, resetWhatsApp, savePrefs,
 }: Props) {
+  const t = useTerms()
   return (
     <div className="space-y-5">
       <div className="card space-y-4">
@@ -119,7 +121,7 @@ export function MessagesTab({
                   </p>
                   {log.status === 'sent' && log.providerStatus === 'unverified' && (
                     <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-                      Enviado, mas não foi possível confirmar se o conteúdo chegou ao paciente. Se ele não recebeu, reenvie.
+                      Enviado, mas não foi possível confirmar se o conteúdo chegou ao {t.patient}. Se ele não recebeu, reenvie.
                     </p>
                   )}
                   {log.status === 'sent' && log.providerStatus !== 'unverified' && typeof log.contentLength === 'number' && (
@@ -155,7 +157,7 @@ export function MessagesTab({
           value={prefs.confirmationTemplate}
           onChange={e => setPref('confirmationTemplate', e.target.value)} />
         <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Prévia para paciente</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Prévia para {t.patient}</p>
           <p className="whitespace-pre-line text-sm text-neutral-700">{previewMessage(prefs.confirmationTemplate)}</p>
         </div>
       </div>
@@ -172,7 +174,7 @@ export function MessagesTab({
           value={prefs.reminderTemplate24h}
           onChange={e => setPref('reminderTemplate24h', e.target.value)} />
         <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Prévia para paciente</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Prévia para {t.patient}</p>
           <p className="whitespace-pre-line text-sm text-neutral-700">{previewMessage(prefs.reminderTemplate24h)}</p>
         </div>
       </div>
@@ -189,7 +191,7 @@ export function MessagesTab({
           value={prefs.reminderTemplate2h}
           onChange={e => setPref('reminderTemplate2h', e.target.value)} />
         <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Prévia para paciente</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Prévia para {t.patient}</p>
           <p className="whitespace-pre-line text-sm text-neutral-700">{previewMessage(prefs.reminderTemplate2h)}</p>
         </div>
       </div>

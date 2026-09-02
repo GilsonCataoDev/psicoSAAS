@@ -19,6 +19,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { EXPENSE_CATEGORIES, expenseCategoryLabel, projectCashFlow } from '@/lib/financial-forecast'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
+import { useTerms } from '@/hooks/useTerms'
 
 const NewPaymentModal = lazy(() => import('@/components/features/financial/NewPaymentModal'))
 const MarkPaidModal = lazy(() => import('@/components/features/financial/MarkPaidModal'))
@@ -41,6 +42,7 @@ const FILTERS = [
 ] as const
 
 export default function FinancialPage() {
+  const t = useTerms()
   const { data: records = [], isLoading } = useFinancial()
   const markPaid = useMarkFinancialPaid()
   const deleteRecord = useDeleteFinancial()
@@ -185,7 +187,7 @@ export default function FinancialPage() {
       const d = new Date(r.paidAt ?? r.dueDate ?? r.createdAt)
       return d.getFullYear() === year && d.getMonth() + 1 === m
     })
-    const header = 'Tipo,Descrição,Paciente,Valor,Status,Método,Data venc.,Data pag.'
+    const header = `Tipo,Descrição,${t.patientCapitalized},Valor,Status,Método,Data venc.,Data pag.`
     const rows = monthRecords.map(r => [
       r.type === 'income' ? 'Receita' : 'Despesa',
       `"${(r.description ?? '').replace(/"/g, '""')}"`,
@@ -308,7 +310,7 @@ export default function FinancialPage() {
               <AlertCircle className={`mt-0.5 h-4 w-4 shrink-0 ${financialSummary.overdue > 0 ? 'text-rose-500' : 'text-sage-600'}`} />
               <p className="text-sm text-neutral-600">
                 {financialSummary.overdue > 0
-                  ? 'Prioridade: revisar pagamentos em atraso e acionar pacientes pendentes.'
+                  ? `Prioridade: revisar pagamentos em atraso e acionar ${t.patients} pendentes.`
                   : financialSummary.pending > 0
                   ? 'Fluxo ok. Existem pagamentos pendentes para acompanhar nos proximos dias.'
                   : 'Tudo em dia no financeiro registrado.'}
@@ -613,7 +615,7 @@ export default function FinancialPage() {
       <ConfirmDialog
         open={!!recordToDelete}
         title="Excluir lancamento"
-        description={`Excluir o lancamento de ${recordToDelete?.patient?.name ?? 'paciente'}? Essa acao remove o registro financeiro definitivamente.`}
+        description={`Excluir o lancamento de ${recordToDelete?.patient?.name ?? t.patient}? Essa acao remove o registro financeiro definitivamente.`}
         confirmLabel="Excluir lancamento"
         loading={deleteRecord.isPending}
         onClose={() => setRecordToDelete(null)}
