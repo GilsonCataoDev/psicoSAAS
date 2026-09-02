@@ -19,6 +19,8 @@ interface VerifyResult {
   document?: {
     signCode: string
     type: DocType
+    /** Ja resolvido pela profissao de quem assinou; TYPE_LABELS e so fallback. */
+    typeLabel?: string
     title: string
     patientName: string
     psychologistName: string
@@ -106,7 +108,7 @@ export default function VerifyDocumentPage() {
                   <div>
                     <p className="text-xs text-neutral-400">Tipo de documento</p>
                     <p className="font-medium text-neutral-800">
-                      {TYPE_LABELS[result.document.type] ?? result.document.type}
+                      {result.document.typeLabel ?? TYPE_LABELS[result.document.type] ?? result.document.type}
                     </p>
                   </div>
                 </div>

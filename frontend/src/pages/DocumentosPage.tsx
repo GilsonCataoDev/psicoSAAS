@@ -14,6 +14,7 @@ import { api } from '@/lib/api'
 import EmptyState from '@/components/ui/EmptyState'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import { hasPsychologyModules } from '@/lib/professions'
 
 const GenerateDocModal = lazy(() => import('@/components/features/prontuario/GenerateDocModal'))
 const DocumentPreviewModal = lazy(() => import('@/components/features/prontuario/DocumentPreviewModal'))
@@ -31,6 +32,8 @@ function ModalLoadingOverlay() {
 export default function DocumentosPage() {
   const [searchParams] = useSearchParams()
   const user = useAuthStore(s => s.user)
+  // A resolucao do CFP so vale para psicologia.
+  const showCfp = hasPsychologyModules(user?.profession)
   const [showGenerate, setShowGenerate] = useState(false)
   const { data: patients = [], isLoading: patientsLoading } = usePatients({ enabled: showGenerate })
   const { data: docs = [], isLoading } = useDocuments()
@@ -139,10 +142,10 @@ export default function DocumentosPage() {
           <div className="flex-1 min-w-0">
             <p className="font-medium">Certificação digital ativa</p>
             <p className="text-sage-100 text-sm mt-0.5">
-              {user?.name ?? 'Psicólogo(a)'} · CRP {user?.crp ?? '00/000000'}
+              {user?.name ?? 'Profissional'}{user?.crp ? ` · CRP ${user.crp}` : ''}
             </p>
             <p className="text-sage-200 text-xs mt-1">
-              Documentos assinados com código único verificável · Válidos conforme CFP Res. 006/2019
+              Documentos assinados com código único verificável{showCfp ? ' · Válidos conforme CFP Res. 006/2019' : ''}
             </p>
             <button
               type="button"

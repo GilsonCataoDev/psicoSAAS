@@ -118,7 +118,7 @@ export class DocumentsController {
   @HttpCode(200)
   @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
   async sendEmail(@Param('id') id: string, @Body() body: SendDocumentEmailDto, @Req() req: any) {
-    const result = await this.svc.sendDocumentByEmail(id, req.user.id, body.to)
+    const result = await this.svc.sendDocumentByEmail(id, req.user.id, body.to, req.user.profession)
     await this.record(req, 'document.email_sent', 'document', id, { to: body.to })
     return result
   }

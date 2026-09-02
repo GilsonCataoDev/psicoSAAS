@@ -22,12 +22,21 @@ export interface CreateDocumentDto {
   content: string
 }
 
-const DOC_TYPE_LABELS: Record<DocType, string> = {
-  declaracao: 'Declaração de Comparecimento',
-  recibo: 'Recibo de Pagamento',
-  relatorio: 'Relatório Psicológico',
-  atestado: 'Atestado Psicológico',
-  encaminhamento: 'Carta de Encaminhamento',
+/**
+ * Titulo impresso no cabecalho do PDF e usado no assunto do e-mail. Relatorio
+ * e atestado sao os unicos que afirmam a natureza do documento — um
+ * nutricionista emitindo "ATESTADO PSICOLOGICO" estaria assinando documento
+ * factualmente errado.
+ */
+function docTypeLabels(profession?: string | null): Record<DocType, string> {
+  const psi = requiresCrp(profession)
+  return {
+    declaracao: 'Declaração de Comparecimento',
+    recibo: 'Recibo de Pagamento',
+    relatorio: psi ? 'Relatório Psicológico' : 'Relatório',
+    atestado: psi ? 'Atestado Psicológico' : 'Atestado',
+    encaminhamento: 'Carta de Encaminhamento',
+  }
 }
 
 const UNFILLED_TEMPLATE_RE = /\[[^\]]+\]|_{3,}|00\/000000|R\$\s*_{2,}/
@@ -41,6 +50,7 @@ export class DocumentsService {
 
   constructor(
     @InjectRepository(Document) private repo: Repository<Document>,
+    @InjectRepository(User) private users: Repository<User>,
     private cfg: ConfigService,
     private email: EmailService,
     private readonly planAccess: PlanAccessService,
@@ -220,6 +230,7 @@ export class DocumentsService {
 
   async generatePdf(id: string, userId: string, profession?: string): Promise<{ filename: string; buffer: Buffer }> {
     const t = termsFor(profession)
+    const docLabels = docTypeLabels(profession)
     const stored = await this.repo.findOne({ where: { id } })
     if (!stored) throw new NotFoundException()
     if (stored.userId !== userId) throw new NotFoundException()
@@ -243,7 +254,7 @@ export class DocumentsService {
       info: {
         Title: stored.title,
         Author: stored.psychologistName,
-        Subject: DOC_TYPE_LABELS[stored.type] ?? stored.type,
+        Subject: docLabels[stored.type] ?? stored.type,
         Keywords: `UseCognia, ${stored.signCode}, autenticidade`,
       },
     })
@@ -274,7 +285,7 @@ export class DocumentsService {
         .text(`Documento ${t.documentKind} com verificação digital`, left, 45, { width: 245, lineBreak: false })
 
       pdf.fillColor(ink).font('Helvetica-Bold').fontSize(15.5)
-        .text(DOC_TYPE_LABELS[stored.type].toUpperCase(), left, 63, { width: contentWidth - 172, lineBreak: false })
+        .text(docLabels[stored.type].toUpperCase(), left, 63, { width: contentWidth - 172, lineBreak: false })
 
       pdf.roundedRect(right - 152, 27, 152, 44, 6).fillAndStroke('#FFFFFF', '#DCE8DF')
       pdf.fillColor(muted).font('Helvetica-Bold').fontSize(6.4)
@@ -398,7 +409,7 @@ export class DocumentsService {
 
   // ─── Enviar documento por email ──────────────────────────────────────────
 
-  async sendDocumentByEmail(id: string, userId: string, to: string): Promise<{ sent: boolean; to: string }> {
+  async sendDocumentByEmail(id: string, userId: string, to: string, profession?: string): Promise<{ sent: boolean; to: string }> {
     if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
       throw new BadRequestException('E-mail de destinatário inválido')
     }
@@ -406,13 +417,13 @@ export class DocumentsService {
     const doc = await this.repo.findOne({ where: { id, userId } })
     if (!doc) throw new NotFoundException()
 
-    const { filename, buffer } = await this.generatePdf(id, userId)
+    const { filename, buffer } = await this.generatePdf(id, userId, profession)
 
     await this.email.sendDocumentEmail({
       to,
       recipientName: doc.patientName.split(' ')[0],
       docTitle: doc.title,
-      docTypeLabel: DOC_TYPE_LABELS[doc.type] ?? doc.type,
+      docTypeLabel: docTypeLabels(profession)[doc.type] ?? doc.type,
       psychologistName: doc.psychologistName,
       psychologistCrp: doc.psychologistCrp,
       signCode: doc.signCode,
@@ -445,6 +456,9 @@ export class DocumentsService {
     document?: {
       signCode: string
       type: DocType
+      /** Rotulo ja resolvido pela profissao de quem assinou — a pagina publica
+       *  nao tem sessao para deduzir isso sozinha. */
+      typeLabel: string
       title: string
       patientName: string
       psychologistName: string
@@ -474,11 +488,16 @@ export class DocumentsService {
       return { valid: false }
     }
 
+    // Rotulo resolvido pela profissao de quem assinou, para a pagina publica
+    // nao contradizer o titulo impresso no proprio PDF.
+    const signer = await this.users.findOne({ where: { id: doc.userId }, select: ['id', 'profession'] })
+
     return {
       valid: true,
       document: {
         signCode: doc.signCode,
         type: doc.type,
+        typeLabel: docTypeLabels(signer?.profession)[doc.type] ?? doc.type,
         title: doc.title,
         patientName: doc.patientName,
         psychologistName: doc.psychologistName,

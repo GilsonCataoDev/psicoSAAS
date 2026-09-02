@@ -27,9 +27,11 @@ function createService() {
   const cfg = { getOrThrow: jest.fn().mockReturnValue('a'.repeat(32)) }
   const email = { sendDocumentSigned: jest.fn().mockResolvedValue(undefined) }
   const planAccess = { getCurrentPlan: jest.fn().mockResolvedValue('free') }
+  // verifyByCode consulta a profissão de quem assinou para resolver o rótulo do tipo.
+  const users = { findOne: jest.fn().mockResolvedValue({ id: 'user-1', profession: 'psicologia' }) }
 
-  const svc = new DocumentsService(repo as any, cfg as any, email as any, planAccess as any)
-  return { svc, repo, planAccess }
+  const svc = new DocumentsService(repo as any, users as any, cfg as any, email as any, planAccess as any)
+  return { svc, repo, planAccess, users }
 }
 
 describe('DocumentsService.create — guarda de CRP', () => {

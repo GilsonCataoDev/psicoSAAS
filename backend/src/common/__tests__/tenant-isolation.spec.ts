@@ -228,6 +228,8 @@ describe('Isolamento entre contas — psicólogo A não acessa dados de B', () =
         providers: [
           DocumentsService,
           { provide: getRepositoryToken(Document),     useValue: fakeRepo(documents) },
+          // verifyByCode consulta a profissao de quem assinou para resolver o rotulo do tipo.
+          { provide: getRepositoryToken(User), useValue: { findOne: jest.fn().mockResolvedValue({ id: PSY_A, profession: 'psicologia' }) } },
           { provide: ConfigService, useValue: { get: jest.fn(), getOrThrow: jest.fn().mockReturnValue('sign-secret-de-teste-com-32-chars!') } },
           { provide: EmailService,  useValue: stub() },
           { provide: PlanAccessService, useValue: { getCurrentPlan: jest.fn().mockResolvedValue('pro') } },
