@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/auth'
 import { useSubscriptionStore } from '@/store/subscription'
 import { api } from '@/lib/api'
 import { isValidCrpFormat, getCrpRegion, openCfpVerification, formatCrpInput } from '@/lib/crp'
+import { DEFAULT_PROFESSION, PROFESSIONS, PROFESSION_LABELS, requiresCrp, type Profession } from '@/lib/professions'
 import toast from 'react-hot-toast'
 import { track, EVENTS, trackMetaConversion } from '@/lib/analytics'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
@@ -15,6 +16,7 @@ import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 const schema = z.object({
   name: z.string().min(3, 'Nome muito curto'),
   email: z.string().email('E-mail inválido'),
+  profession: z.enum(PROFESSIONS).default(DEFAULT_PROFESSION),
   isStudent: z.boolean().optional(),
   crp: z.string().optional(),
   phone: z
@@ -30,6 +32,9 @@ const schema = z.object({
   crpConfirmed: z.boolean().optional(),
   terms: z.boolean().refine((v) => v, 'Você precisa aceitar os termos'),
 }).superRefine((data, ctx) => {
+  // CRP é do conselho de psicologia: as demais profissões têm outros conselhos
+  // e não passam por esta validação.
+  if (!requiresCrp(data.profession)) return
   // Estudante sem CRP pula a validação de CRP/confirmação — completa depois no perfil.
   if (data.isStudent) return
   if (!isValidCrpFormat(data.crp ?? '')) {
@@ -60,9 +65,13 @@ export default function RegisterPage() {
     if (ref) setReferralCode(ref.toUpperCase())
   }, [searchParams])
 
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
+    defaultValues: { profession: DEFAULT_PROFESSION },
   })
+
+  const selectedProfession = watch('profession')
+  const showCrp = requiresCrp(selectedProfession)
 
   const crpValid = isValidCrpFormat(crpValue)
   const crpRegion = getCrpRegion(crpValue)
@@ -94,7 +103,8 @@ export default function RegisterPage() {
         phone: data.phone,
         termsAccepted: data.terms,
         termsVersion: TERMS_VERSION,
-        ...(isStudent ? { isStudent: true } : { crp: data.crp }),
+        profession: data.profession,
+        ...(showCrp ? (isStudent ? { isStudent: true } : { crp: data.crp }) : {}),
         ...(referralCode ? { referralCode } : {}),
       })
       if (res.data.tokens) {
@@ -194,6 +204,23 @@ export default function RegisterPage() {
         </div>
 
         <div>
+          <label htmlFor="register-profession" className="label">Profissão</label>
+          <select
+            id="register-profession"
+            {...register('profession')}
+            className="input-field"
+            aria-invalid={!!errors.profession}
+          >
+            {PROFESSIONS.map(item => (
+              <option key={item} value={item}>{PROFESSION_LABELS[item as Profession]}</option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-neutral-400">
+            Define os termos usados no sistema e quais recursos aparecem para você.
+          </p>
+        </div>
+
+        <div>
           <label htmlFor="register-phone" className="label">Telefone (WhatsApp)</label>
           <input
             id="register-phone"
@@ -208,6 +235,8 @@ export default function RegisterPage() {
           {errors.phone && <p className="text-rose-500 text-xs mt-1">{errors.phone.message}</p>}
         </div>
 
+        {/* CRP e a condicao de estudante sao do conselho de psicologia. */}
+        {showCrp && (
         <div className="flex items-start gap-2 pt-1">
           <input
             type="checkbox"
@@ -220,8 +249,9 @@ export default function RegisterPage() {
             Sou estudante, ainda não tenho CRP
           </label>
         </div>
+        )}
 
-        {isStudent && (
+        {showCrp && isStudent && (
           <p className="text-xs text-neutral-400 -mt-2">
             Sem CRP, você pode usar agenda, pacientes e financeiro normalmente, mas não poderá
             emitir documentos oficiais (atestados, relatórios, recibos) até adicionar seu CRP no perfil.
@@ -229,7 +259,7 @@ export default function RegisterPage() {
         )}
 
         {/* ── CRP com validação em tempo real ────────────────────────── */}
-        {!isStudent && (
+        {showCrp && !isStudent && (
         <div>
           <label htmlFor="register-crp" className="label">CRP</label>
           <div className="relative">

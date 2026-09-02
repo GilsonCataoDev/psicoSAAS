@@ -104,5 +104,5 @@ export class User {
 /** CRP exibido ao paciente: valor real, "Estudante de Psicologia" (sem CRP, conta de estudante) ou null. */
 export function formatCrpForDisplay(user: Pick<User, 'crp' | 'isStudent'>): string | null {
   if (user.crp) return user.crp
-  return user.isStudent ? 'Estudante de Psicologia' : null
+  return user.isStudent ? 'Estudante de Psicologia' : null // isStudent so existe no fluxo de psicologia
 }

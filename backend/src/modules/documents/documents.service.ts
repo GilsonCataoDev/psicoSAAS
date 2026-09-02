@@ -12,6 +12,7 @@ import { PLAN_LIMITS } from '../../common/plans'
 import { PlanAccessService } from '../../common/plan-access/plan-access.service'
 import { EmailService } from '../email/email.service'
 import { termsFor } from '../../common/terms'
+import { requiresCrp } from '../../common/professions'
 
 export interface CreateDocumentDto {
   patientId: string
@@ -131,7 +132,9 @@ export class DocumentsService {
   // ─── Criar e assinar documento ────────────────────────────────────────────
 
   async create(user: User, dto: CreateDocumentDto, signerIp?: string): Promise<Document> {
-    if (!user.crp) {
+    // CRP e do conselho de psicologia. Exigi-lo de outras profissoes travaria
+    // a emissao de documentos para elas — cada uma tem seu proprio conselho.
+    if (requiresCrp(user.profession) && !user.crp) {
       throw new BadRequestException('Documentos oficiais assinados exigem CRP ativo. Adicione seu CRP no perfil para desbloquear esse recurso.')
     }
     await this.checkDocumentLimit(user.id)
