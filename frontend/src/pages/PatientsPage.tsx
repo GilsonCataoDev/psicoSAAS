@@ -1,14 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import { BrainCircuit, Plus, Search, Upload, UsersRound } from 'lucide-react'
+import { BrainCircuit, LayoutGrid, LayoutList, Plus, Search, Upload, UsersRound } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
 import { formatCurrency, formatDate, patientStartDate } from '@/lib/utils'
 import { Patient } from '@/types'
+
+type PatientStatus = 'active' | 'paused' | 'discharged'
 import NewPatientModal from '@/components/features/patients/NewPatientModal'
 import ImportPatientsModal from '@/components/features/patients/ImportPatientsModal'
-import { usePatients } from '@/hooks/useApi'
+import { usePatients, useUpdatePatient } from '@/hooks/useApi'
 import { PLANS, useSubscriptionStore } from '@/store/subscription'
 import toast from 'react-hot-toast'
 import { patientMatchesSearch } from '@/lib/patientSearch'
@@ -28,6 +30,7 @@ export default function PatientsPage() {
     : ''
   const [search, setSearch] = useState(initialSearch)
   const [filter, setFilter] = useState<'all' | 'active' | 'paused' | 'discharged'>('all')
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
   const [careMode, setCareMode] = useState<'all' | 'psychotherapy' | 'neuropsychological_assessment'>('all')
   const [showModal, setShowModal] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
@@ -86,6 +89,22 @@ export default function PatientsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex items-center bg-neutral-100 p-1 rounded-xl">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-1.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-neutral-800' : 'text-neutral-400 hover:text-neutral-600'}`}
+              aria-label="Visualização em lista"
+            >
+              <LayoutList className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('kanban')}
+              className={`p-1.5 rounded-lg transition-all ${viewMode === 'kanban' ? 'bg-white shadow-sm text-neutral-800' : 'text-neutral-400 hover:text-neutral-600'}`}
+              aria-label="Visualização em kanban"
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+          </div>
           <button
             onClick={() => setShowImportModal(true)}
             className="btn-secondary flex items-center gap-2"
@@ -146,6 +165,8 @@ export default function PatientsPage() {
             <div key={i} className="h-20 bg-neutral-100 rounded-2xl animate-pulse" />
           ))}
         </div>
+      ) : viewMode === 'kanban' ? (
+        <KanbanBoard patients={filtered} />
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<UsersRound className="h-7 w-7" strokeWidth={1.8} />}
@@ -191,6 +212,91 @@ export default function PatientsPage() {
         reachedPatientLimit={reachedPatientLimit}
         currentPlanName={currentPlan.name}
       />
+    </div>
+  )
+}
+
+const KANBAN_COLUMNS: { status: PatientStatus; label: string; color: string; bg: string }[] = [
+  { status: 'active',     label: 'Ativo',   color: 'text-emerald-700', bg: 'bg-emerald-50 dark:bg-emerald-950/30' },
+  { status: 'paused',     label: 'Pausado', color: 'text-amber-700',   bg: 'bg-amber-50 dark:bg-amber-950/30' },
+  { status: 'discharged', label: 'Alta',    color: 'text-sky-700',     bg: 'bg-sky-50 dark:bg-sky-950/30' },
+]
+
+function KanbanBoard({ patients }: { patients: Patient[] }) {
+  const updatePatient = useUpdatePatient()
+  const dragId = useRef<string | null>(null)
+  const [dragOver, setDragOver] = useState<PatientStatus | null>(null)
+
+  function handleDrop(status: PatientStatus) {
+    if (!dragId.current) return
+    const patient = patients.find(p => p.id === dragId.current)
+    if (!patient || patient.status === status) return
+    updatePatient.mutate(
+      { id: patient.id, data: { status } },
+      { onError: () => toast.error('Erro ao atualizar status') },
+    )
+    dragId.current = null
+    setDragOver(null)
+  }
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
+      {KANBAN_COLUMNS.map(col => {
+        const colPatients = patients.filter(p => p.status === col.status)
+        const isOver = dragOver === col.status
+        return (
+          <div
+            key={col.status}
+            onDragOver={e => { e.preventDefault(); setDragOver(col.status) }}
+            onDragLeave={() => setDragOver(null)}
+            onDrop={() => handleDrop(col.status)}
+            className={`rounded-2xl p-3 min-h-[200px] transition-all ${col.bg} ${isOver ? 'ring-2 ring-sage-400 ring-offset-2' : ''}`}
+          >
+            <div className={`flex items-center justify-between mb-3 px-1`}>
+              <h3 className={`text-sm font-bold ${col.color}`}>{col.label}</h3>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full bg-white/70 ${col.color}`}>
+                {colPatients.length}
+              </span>
+            </div>
+            <div className="space-y-2">
+              {colPatients.length === 0 && (
+                <p className="text-center text-xs text-neutral-400 py-8">Nenhum aqui</p>
+              )}
+              {colPatients.map(patient => (
+                <div
+                  key={patient.id}
+                  draggable
+                  onDragStart={() => { dragId.current = patient.id }}
+                  onDragEnd={() => setDragOver(null)}
+                  className="bg-white dark:bg-neutral-900 rounded-xl p-3 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-lifted transition-all"
+                >
+                  <Link to={`/pacientes/${patient.id}`} className="flex items-center gap-2.5 group" draggable={false}>
+                    <Avatar name={patient.name} colorClass={patient.avatarColor} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate text-neutral-800 group-hover:text-sage-700 transition-colors">
+                        {patient.name}
+                      </p>
+                      <p className="text-xs text-neutral-400 truncate">
+                        {patient.billingType === 'monthly_package'
+                          ? `${formatCurrency(Number(patient.monthlyPackagePrice ?? 0))}/mês`
+                          : `${formatCurrency(Number(patient.sessionPrice ?? 0))}/sessão`}
+                      </p>
+                    </div>
+                  </Link>
+                  {patient.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {patient.tags.slice(0, 2).map(tag => <TagBadge key={tag} tag={tag} small />)}
+                      {patient.tags.length > 2 && (
+                        <span className="text-xs text-neutral-400 self-center">+{patient.tags.length - 2}</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
