@@ -12,7 +12,6 @@ import {
   useConfirmBooking, useRejectBooking, usePayBooking,
   useDailyBookingLink, useAvailability, useSaveAvailability,
   useSyncBookingAppointments, useBlockedDates, useAddBlockedDate, useAddBlockedWeek, useRemoveBlockedDate,
-  useAvailabilityBlocks, useAddAvailabilityBlock, useRemoveAvailabilityBlock,
 } from '@/hooks/useApi'
 import { useTerms } from '@/hooks/useTerms'
 
@@ -389,7 +388,8 @@ const WEEKDAYS = [
   { d: 0, label: 'Dom' },
 ]
 
-type DaySlot = { enabled: boolean; startTime: string; endTime: string }
+type TimeRange = { startTime: string; endTime: string }
+type DaySlot = { enabled: boolean; ranges: TimeRange[] }
 type BookingModality = 'presencial' | 'online'
 
 const MODALITIES: { key: BookingModality; label: string }[] = [
@@ -400,7 +400,7 @@ const MODALITIES: { key: BookingModality; label: string }[] = [
 function createEmptySchedule(): Record<number, DaySlot> {
   const base: Record<number, DaySlot> = {}
   WEEKDAYS.forEach(({ d }) => {
-    base[d] = { enabled: false, startTime: '09:00', endTime: '18:00' }
+    base[d] = { enabled: false, ranges: [{ startTime: '09:00', endTime: '18:00' }] }
   })
   return base
 }
@@ -436,23 +436,11 @@ function BookingSettings({ page }: { page: any }) {
   const addBlockedDate = useAddBlockedDate()
   const addBlockedWeek = useAddBlockedWeek()
   const removeBlockedDate = useRemoveBlockedDate()
-  const { data: availabilityBlocks = [] } = useAvailabilityBlocks()
-  const addAvailabilityBlock = useAddAvailabilityBlock()
-  const removeAvailabilityBlock = useRemoveAvailabilityBlock()
   const [blockedForm, setBlockedForm] = useState<{ date: string; reason: string; scope: 'day' | 'week' }>({
     date: '',
     reason: '',
     scope: 'day',
   })
-  const [blockForm, setBlockForm] = useState<{ type: 'weekly' | 'date'; weekday: number; date: string; startTime: string; endTime: string; reason: string }>({
-    type: 'weekly',
-    weekday: 1,
-    date: '',
-    startTime: '12:00',
-    endTime: '13:00',
-    reason: '',
-  })
-
   const [form, setForm] = useState({
     isActive:           page?.isActive ?? true,
     slug:               page?.slug ?? '',
@@ -515,10 +503,10 @@ function BookingSettings({ page }: { page: any }) {
     }
     MODALITIES.forEach(({ key }) => {
       WEEKDAYS.forEach(({ d }) => {
-        const slot = savedSlots.find(s => s.weekday === d && (s.modality ?? 'online') === key)
-        next[key][d] = slot
-          ? { enabled: true, startTime: slot.startTime.slice(0, 5), endTime: slot.endTime.slice(0, 5) }
-          : { enabled: false, startTime: '09:00', endTime: '18:00' }
+        const daySlots = savedSlots.filter(s => s.weekday === d && (s.modality ?? 'online') === key)
+        next[key][d] = daySlots.length
+          ? { enabled: true, ranges: daySlots.map(s => ({ startTime: s.startTime.slice(0, 5), endTime: s.endTime.slice(0, 5) })) }
+          : { enabled: false, ranges: [{ startTime: '09:00', endTime: '18:00' }] }
       })
     })
     setSchedules(next)
@@ -533,14 +521,25 @@ function BookingSettings({ page }: { page: any }) {
       },
     }))
   }
-  function setTime(d: number, field: 'startTime' | 'endTime', val: string) {
-    setSchedules(s => ({
-      ...s,
-      [scheduleTab]: {
-        ...s[scheduleTab],
-        [d]: { ...s[scheduleTab][d], [field]: val },
-      },
-    }))
+  function setRangeTime(d: number, i: number, field: 'startTime' | 'endTime', val: string) {
+    setSchedules(s => {
+      const ranges = s[scheduleTab][d].ranges.map((r, idx) => idx === i ? { ...r, [field]: val } : r)
+      return { ...s, [scheduleTab]: { ...s[scheduleTab], [d]: { ...s[scheduleTab][d], ranges } } }
+    })
+  }
+  function addRange(d: number) {
+    setSchedules(s => {
+      const arr = s[scheduleTab][d].ranges
+      const last = arr[arr.length - 1] ?? { startTime: '09:00', endTime: '18:00' }
+      const ranges = [...s[scheduleTab][d].ranges, { startTime: last.endTime, endTime: last.endTime }]
+      return { ...s, [scheduleTab]: { ...s[scheduleTab], [d]: { ...s[scheduleTab][d], ranges } } }
+    })
+  }
+  function removeRange(d: number, i: number) {
+    setSchedules(s => {
+      const ranges = s[scheduleTab][d].ranges.filter((_, idx) => idx !== i)
+      return { ...s, [scheduleTab]: { ...s[scheduleTab], [d]: { ...s[scheduleTab][d], ranges } } }
+    })
   }
 
   function minutes(time: string) {
@@ -588,10 +587,10 @@ function BookingSettings({ page }: { page: any }) {
     const invalidSlot = MODALITIES.flatMap(({ key }) =>
       WEEKDAYS
         .filter(({ d }) => schedules[key][d]?.enabled)
-        .map(({ d, label }) => ({ modality: key, label, slot: schedules[key][d] })),
-    ).find(({ modality, slot }) => {
-      const start = minutes(slot.startTime)
-      const end = minutes(slot.endTime)
+        .flatMap(({ d, label }) => schedules[key][d].ranges.map(r => ({ modality: key, label, range: r }))),
+    ).find(({ modality, range }) => {
+      const start = minutes(range.startTime)
+      const end = minutes(range.endTime)
       const duration = modality === 'presencial' ? form.presencialSessionDuration : form.onlineSessionDuration
       return start >= end || end - start < duration
     })
@@ -619,12 +618,12 @@ function BookingSettings({ page }: { page: any }) {
       const slots = MODALITIES.flatMap(({ key }) =>
         WEEKDAYS
           .filter(({ d }) => schedules[key][d]?.enabled)
-          .map(({ d }) => ({
+          .flatMap(({ d }) => schedules[key][d].ranges.map(r => ({
             weekday: d,
             modality: key,
-            startTime: schedules[key][d].startTime,
-            endTime: schedules[key][d].endTime,
-          })),
+            startTime: r.startTime,
+            endTime: r.endTime,
+          }))),
       )
       await saveAvailability.mutateAsync(slots)
       toast.success('Configurações salvas')
@@ -655,32 +654,6 @@ function BookingSettings({ page }: { page: any }) {
     }
   }
 
-  async function blockTime() {
-    const start = minutes(blockForm.startTime)
-    const end = minutes(blockForm.endTime)
-    if (start >= end) {
-      toast.error('Horario inicial precisa ser menor que o final.')
-      return
-    }
-    if (blockForm.type === 'date' && !blockForm.date) {
-      toast.error('Escolha a data do bloqueio.')
-      return
-    }
-    try {
-      await addAvailabilityBlock.mutateAsync({
-        type: blockForm.type,
-        weekday: blockForm.type === 'weekly' ? blockForm.weekday : undefined,
-        date: blockForm.type === 'date' ? blockForm.date : undefined,
-        startTime: blockForm.startTime,
-        endTime: blockForm.endTime,
-        reason: blockForm.reason.trim() || undefined,
-      })
-      setBlockForm(form => ({ ...form, date: '', reason: '' }))
-      toast.success('Horario bloqueado no link publico.')
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Erro ao bloquear horario.')
-    }
-  }
 
   const selectedWeekStart = blockedForm.date
     ? startOfWeek(parseISO(blockedForm.date), { weekStartsOn: 1 })
@@ -874,7 +847,7 @@ function BookingSettings({ page }: { page: any }) {
             const slot = currentSchedule[d]
             return (
               <div key={d} className={cn(
-                'flex items-center gap-3 p-3 rounded-xl border transition-all',
+                'flex items-start gap-3 p-3 rounded-xl border transition-all',
                 slot.enabled
                   ? 'border-sage-200 dark:border-sage-400/40 bg-sage-50 dark:bg-sage-500/15'
                   : 'border-neutral-100 dark:border-white/10 bg-neutral-50 dark:bg-black/15'
@@ -882,7 +855,7 @@ function BookingSettings({ page }: { page: any }) {
                 {/* Toggle */}
                 <button type="button" onClick={() => toggleDay(d)}
                   className={cn(
-                    'w-11 h-6 rounded-full transition-colors shrink-0',
+                    'w-11 h-6 rounded-full transition-colors shrink-0 mt-0.5',
                     slot.enabled ? 'bg-sage-500' : 'bg-neutral-200 dark:bg-white/20'
                   )}>
                   <div className={cn(
@@ -890,25 +863,41 @@ function BookingSettings({ page }: { page: any }) {
                     slot.enabled ? 'translate-x-5' : ''
                   )} />
                 </button>
-                <span className={cn('w-8 text-sm font-medium shrink-0', slot.enabled ? 'text-sage-700 dark:text-sage-200' : 'text-neutral-400 dark:text-neutral-300')}>
+
+                <span className={cn('w-8 text-sm font-medium shrink-0 pt-1', slot.enabled ? 'text-sage-700 dark:text-sage-200' : 'text-neutral-400 dark:text-neutral-300')}>
                   {label}
                 </span>
+
                 {slot.enabled ? (
-                  <div className="flex items-center gap-2 flex-1 flex-wrap">
-                    <input
-                      type="time" value={slot.startTime}
-                      onChange={e => setTime(d, 'startTime', e.target.value)}
-                      className="input-field py-1.5 text-sm w-28"
-                    />
-                    <span className="text-neutral-400 text-xs">até</span>
-                    <input
-                      type="time" value={slot.endTime}
-                      onChange={e => setTime(d, 'endTime', e.target.value)}
-                      className="input-field py-1.5 text-sm w-28"
-                    />
+                  <div className="flex flex-wrap items-start gap-2 flex-1">
+                    {slot.ranges.map((range, i) => (
+                      <div key={i} className="flex items-center gap-1.5 bg-white dark:bg-black/20 border border-neutral-200 dark:border-white/10 rounded-lg px-2 py-1.5">
+                        <input
+                          type="time" value={range.startTime}
+                          onChange={e => setRangeTime(d, i, 'startTime', e.target.value)}
+                          className="text-sm text-neutral-700 dark:text-neutral-200 bg-transparent border-none outline-none w-[4.5rem]"
+                        />
+                        <span className="text-neutral-300 text-xs">–</span>
+                        <input
+                          type="time" value={range.endTime}
+                          onChange={e => setRangeTime(d, i, 'endTime', e.target.value)}
+                          className="text-sm text-neutral-700 dark:text-neutral-200 bg-transparent border-none outline-none w-[4.5rem]"
+                        />
+                        {slot.ranges.length > 1 && (
+                          <button type="button" onClick={() => removeRange(d, i)}
+                            className="ml-0.5 text-neutral-300 hover:text-rose-400 transition-colors text-xs leading-none">
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button type="button" onClick={() => addRange(d)}
+                      className="h-8 w-8 rounded-lg border border-dashed border-sage-300 dark:border-sage-500/40 text-sage-500 hover:bg-sage-100 dark:hover:bg-sage-500/20 transition-colors flex items-center justify-center text-lg leading-none">
+                      +
+                    </button>
                   </div>
                 ) : (
-                  <span className="text-xs text-neutral-400 flex-1">Indisponível</span>
+                  <span className="text-xs text-neutral-400 flex-1 pt-1">Indisponível</span>
                 )}
               </div>
             )
@@ -1176,113 +1165,6 @@ function BookingSettings({ page }: { page: any }) {
               </button>
             </div>
           ))}
-        </div>
-      </div>
-
-      <div className="card space-y-4">
-        <div>
-          <h2 className="section-title">Horarios bloqueados</h2>
-          <p className="text-xs text-neutral-400">
-            Use para esconder intervalos especificos do link publico sem apagar seu expediente semanal.
-          </p>
-        </div>
-        <div className="inline-flex w-full rounded-xl bg-neutral-100 p-1 dark:bg-black/20 sm:w-auto">
-          {([
-            { value: 'weekly', label: 'Toda semana' },
-            { value: 'date', label: 'Data especifica' },
-          ] as const).map(option => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => setBlockForm(form => ({ ...form, type: option.value }))}
-              className={cn(
-                'flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors sm:flex-none',
-                blockForm.type === option.value
-                  ? 'bg-white text-neutral-800 shadow-sm dark:bg-sage-500/25 dark:text-sage-100'
-                  : 'text-neutral-500 hover:text-neutral-700 dark:text-neutral-300 dark:hover:text-white',
-              )}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[170px_120px_120px_1fr_auto]">
-          {blockForm.type === 'weekly' ? (
-            <select
-              value={blockForm.weekday}
-              onChange={e => setBlockForm(f => ({ ...f, weekday: Number(e.target.value) }))}
-              className="input-field"
-            >
-              {WEEKDAYS.map(({ d, label }) => (
-                <option key={d} value={d}>{label}</option>
-              ))}
-            </select>
-          ) : (
-            <input
-              type="date"
-              value={blockForm.date}
-              onChange={e => setBlockForm(f => ({ ...f, date: e.target.value }))}
-              className="input-field"
-            />
-          )}
-          <input
-            type="time"
-            value={blockForm.startTime}
-            onChange={e => setBlockForm(f => ({ ...f, startTime: e.target.value }))}
-            className="input-field"
-          />
-          <input
-            type="time"
-            value={blockForm.endTime}
-            onChange={e => setBlockForm(f => ({ ...f, endTime: e.target.value }))}
-            className="input-field"
-          />
-          <input
-            maxLength={255}
-            value={blockForm.reason}
-            onChange={e => setBlockForm(f => ({ ...f, reason: e.target.value }))}
-            className="input-field"
-            placeholder="Motivo opcional"
-          />
-          <button
-            type="button"
-            onClick={blockTime}
-            disabled={addAvailabilityBlock.isPending}
-            className="btn-secondary text-sm disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {addAvailabilityBlock.isPending ? 'Bloqueando...' : 'Bloquear horario'}
-          </button>
-        </div>
-        <p className="text-xs text-neutral-400">
-          Agendamentos ja confirmados continuam na agenda. O bloqueio so impede novos agendamentos publicos naquele intervalo.
-        </p>
-        <div className="space-y-2">
-          {availabilityBlocks.length === 0 ? (
-            <p className="py-2 text-sm text-neutral-400">Nenhum horario bloqueado.</p>
-          ) : availabilityBlocks.map((block) => {
-            const weekdayLabel = WEEKDAYS.find(day => day.d === block.weekday)?.label ?? ''
-            const targetLabel = block.type === 'weekly'
-              ? `Toda semana - ${weekdayLabel}`
-              : new Date(`${String(block.date).slice(0, 10)}T00:00:00`).toLocaleDateString('pt-BR')
-            return (
-              <div key={block.id} className="flex items-center justify-between gap-3 rounded-xl border border-neutral-100 px-3 py-2 dark:border-white/10 dark:bg-black/15">
-                <div>
-                  <p className="text-sm font-medium text-neutral-700 dark:text-neutral-100">
-                    {targetLabel} - {block.startTime.slice(0, 5)} ate {block.endTime.slice(0, 5)}
-                  </p>
-                  {block.reason && <p className="text-xs text-neutral-400">{block.reason}</p>}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removeAvailabilityBlock.mutateAsync(block.id)}
-                  className="rounded-lg p-2 text-neutral-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10 dark:hover:text-rose-200"
-                  title="Remover bloqueio"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            )
-          })}
         </div>
       </div>
 
