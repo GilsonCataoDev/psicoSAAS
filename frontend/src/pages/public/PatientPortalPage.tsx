@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import { api, type AuthAxiosRequestConfig } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
 import { termsFor } from '@/lib/terms'
+import { councilLabel } from '@/lib/professions'
 
 type PatientPortal = {
   patient: {
@@ -124,7 +125,7 @@ export default function PatientPortalPage() {
   const professional = useMemo(() => {
     if (!portal.data) return ''
     return portal.data.psychologist.crp
-      ? `${portal.data.psychologist.name} · CRP ${portal.data.psychologist.crp}`
+      ? `${portal.data.psychologist.name} · ${councilLabel(portal.data.psychologist.profession)} ${portal.data.psychologist.crp}`
       : portal.data.psychologist.name
   }, [portal.data])
 

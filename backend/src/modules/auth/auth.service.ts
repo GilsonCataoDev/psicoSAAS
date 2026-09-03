@@ -12,6 +12,7 @@ import { getAdminEmails } from '../../common/guards/admin.guard'
 import { RiskEngineService } from '../../common/security/risk-engine.service'
 import { SuspiciousActivityService } from '../../common/security/suspicious-activity.service'
 import { StorageService } from '../../common/storage/storage.service'
+import { COUNCIL_REGISTRATION_FORMAT, CRP_FORMAT, requiresCrp } from '../../common/professions'
 import { User }         from './entities/user.entity'
 import { RefreshToken } from './entities/refresh-token.entity'
 import { LoginAttempt } from './entities/login-attempt.entity'
@@ -96,6 +97,12 @@ export class AuthService {
     if (exists) throw new ConflictException('E-mail já cadastrado')
     if (!dto.termsAccepted) {
       throw new BadRequestException('E necessario aceitar os Termos de Uso')
+    }
+
+    // RegisterDto so cobra formato de CRP para psicologia (@ValidateIf), entao
+    // o registro das demais profissoes chega sem validacao nenhuma.
+    if (dto.crp && !requiresCrp(dto.profession) && !COUNCIL_REGISTRATION_FORMAT.test(dto.crp)) {
+      throw new BadRequestException('Registro profissional inválido')
     }
 
     const { referralCode, password, termsAccepted: _termsAccepted, termsVersion, ...userData } = dto
@@ -365,6 +372,14 @@ export class AuthService {
   async updateProfile(id: string, data: UpdateProfileDto): Promise<SafeUser> {
     const user = await this.users.findOneBy({ id })
     if (!user) throw new NotFoundException()
+
+    // A profissao efetiva pode vir no proprio PATCH ou ja estar no cadastro.
+    // Só psicologia tem formato fixo de registro; os demais conselhos variam.
+    const profession = data.profession ?? user.profession
+    if (data.crp && requiresCrp(profession) && !CRP_FORMAT.test(data.crp)) {
+      throw new BadRequestException('CRP inválido. Use uma região entre 01 e 24')
+    }
+
     Object.assign(user, data)
     await this.users.save(user)
     return this.toSafeUser(user)

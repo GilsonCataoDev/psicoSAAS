@@ -88,6 +88,6 @@ export const DOC_TYPE_DESCRIPTIONS: Record<DocType, string> = {
   declaracao:     'Comprova comparecimento ou acompanhamento',
   recibo:         'Comprovante de pagamento',
   relatorio:      'Relato tecnico conforme finalidade informada',
-  atestado:       'Certifica condicao psicologica quando aplicavel',
+  atestado:       'Certifica condicao de saude quando aplicavel',
   encaminhamento: 'Referencia a outro profissional ou servico',
 }

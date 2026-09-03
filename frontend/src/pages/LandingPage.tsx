@@ -17,6 +17,7 @@ import {
 import BrandLogo from '@/components/ui/BrandLogo'
 import { usePublicTestimonials } from '@/hooks/api/testimonial'
 import { track, EVENTS } from '@/lib/analytics'
+import { councilLabel } from '@/lib/professions'
 
 const trustSignals = [
   'Feito para profissionais de saúde',
@@ -451,7 +452,7 @@ export default function LandingPage() {
                     {item.avatarUrl ? <img src={item.avatarUrl} alt="" loading="lazy" className="h-10 w-10 rounded-full object-cover" /> : <span className="flex h-10 w-10 items-center justify-center rounded-full bg-sage-100 text-sm font-bold text-sage-800">{(item.displayName || item.firstName).slice(0, 1).toUpperCase()}</span>}
                     <span className="min-w-0">
                       <strong className="block truncate text-sm text-[#211F1C]">{item.displayName || item.firstName}</strong>
-                      <span className="block text-xs text-[#6D675D]">{[item.specialty, item.crp ? `CRP ${item.crp}` : null, item.city].filter(Boolean).join(' · ') || 'Psicóloga usuária do UseCognia'}</span>
+                      <span className="block text-xs text-[#6D675D]">{[item.specialty, item.crp ? `${councilLabel(item.profession)} ${item.crp}` : null, item.city].filter(Boolean).join(' · ') || 'Profissional usuário do UseCognia'}</span>
                     </span>
                   </figcaption>
                 </motion.figure>

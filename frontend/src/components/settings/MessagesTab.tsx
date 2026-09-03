@@ -46,7 +46,7 @@ export function MessagesTab({
             <p className="font-medium">WhatsApp conectado</p>
             <p className="mt-1 text-sage-700">
               {whatsappStatus?.profileName ? `${whatsappStatus.profileName} · ` : ''}
-              {whatsappStatus?.phone ? `+${whatsappStatus.phone}` : 'Numero conectado pela instancia da psicologa'}
+              {whatsappStatus?.phone ? `+${whatsappStatus.phone}` : 'Numero conectado pela instancia do profissional'}
             </p>
           </div>
         )}

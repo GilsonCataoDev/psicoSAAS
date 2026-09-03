@@ -8,7 +8,7 @@ import { useAuthStore } from '@/store/auth'
 import { useSubscriptionStore } from '@/store/subscription'
 import { api } from '@/lib/api'
 import { isValidCrpFormat, getCrpRegion, openCfpVerification, formatCrpInput } from '@/lib/crp'
-import { DEFAULT_PROFESSION, PROFESSIONS, PROFESSION_LABELS, requiresCrp, type Profession } from '@/lib/professions'
+import { DEFAULT_PROFESSION, PROFESSIONS, PROFESSION_LABELS, councilLabel, requiresCrp, type Profession } from '@/lib/professions'
 import toast from 'react-hot-toast'
 import { track, EVENTS, trackMetaConversion } from '@/lib/analytics'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
@@ -73,6 +73,13 @@ export default function RegisterPage() {
   const selectedProfession = watch('profession')
   const showCrp = requiresCrp(selectedProfession)
 
+  // Trocar de profissao troca o conselho: um "06/123456" digitado como
+  // psicologia nao pode sobrar num cadastro de nutricao, e vice-versa.
+  useEffect(() => {
+    setCrpValue('')
+    setValue('crp', '', { shouldValidate: false })
+  }, [showCrp, setValue])
+
   const crpValid = isValidCrpFormat(crpValue)
   const crpRegion = getCrpRegion(crpValue)
 
@@ -104,7 +111,9 @@ export default function RegisterPage() {
         termsAccepted: data.terms,
         termsVersion: TERMS_VERSION,
         profession: data.profession,
-        ...(showCrp ? (isStudent ? { isStudent: true } : { crp: data.crp }) : {}),
+        ...(showCrp
+          ? (isStudent ? { isStudent: true } : { crp: data.crp })
+          : (crpValue.trim() ? { crp: crpValue.trim() } : {})),
         ...(referralCode ? { referralCode } : {}),
       })
       if (res.data.tokens) {
@@ -234,6 +243,28 @@ export default function RegisterPage() {
           />
           {errors.phone && <p className="text-rose-500 text-xs mt-1">{errors.phone.message}</p>}
         </div>
+
+        {/* Os demais conselhos nao tem formato fixo nem consulta publica
+            padronizada, entao o registro entra como texto livre e opcional. */}
+        {!showCrp && (
+        <div>
+          <label htmlFor="register-council" className="label">
+            {councilLabel(selectedProfession)} <span className="text-neutral-400 font-normal">(opcional)</span>
+          </label>
+          <input
+            id="register-council"
+            value={crpValue}
+            onChange={e => setCrpValue(e.target.value.slice(0, 30))}
+            className="input-field"
+            placeholder="Ex: CRN-3 12345"
+            maxLength={30}
+            autoComplete="off"
+          />
+          <p className="text-xs text-neutral-400 mt-1">
+            Aparece no seu link público de agendamento. Dá para preencher depois no perfil.
+          </p>
+        </div>
+        )}
 
         {/* CRP e a condicao de estudante sao do conselho de psicologia. */}
         {showCrp && (

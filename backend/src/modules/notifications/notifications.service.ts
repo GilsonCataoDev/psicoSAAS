@@ -1273,7 +1273,7 @@ export class NotificationsService {
   }
 
   private getWhatsAppInstance(ownerId: string): string {
-    if (!ownerId) throw new BadRequestException('Identificador do psicologo ausente')
+    if (!ownerId) throw new BadRequestException('Identificador do profissional ausente')
     const safeId = ownerId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 24).toLowerCase()
     return `${this.WA_INSTANCE_PREFIX}-${safeId}`
   }
@@ -1505,7 +1505,7 @@ export class NotificationsService {
         `Data: ${booking.date} as ${String(booking.time).slice(0, 5)}\n` +
         `\nConfirmar: ${this.withWhatsAppUtm(confirmUrl)}`
       await this.sendWhatsApp(page.psychologist.phone, psychMsg, page.psychologistId, {
-        type: 'Aviso ao psicologo',
+        type: 'Aviso ao profissional',
         patientName: booking.patientName,
       })
     }
@@ -1601,7 +1601,7 @@ export class NotificationsService {
 
     if (phone) {
       await this.sendWhatsApp(phone, msg, page.psychologistId, {
-        type: 'Aviso ao psicologo',
+        type: 'Aviso ao profissional',
         patientName: booking.patientName,
       })
     }

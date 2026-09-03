@@ -4,6 +4,7 @@ import { Copy, Download, Loader2, Mail, Shield, CheckCircle, ExternalLink, Check
 import Modal from '@/components/ui/Modal'
 import { Documento, docTypeLabels } from '@/types/prontuario'
 import { useAuthStore } from '@/store/auth'
+import { DEFAULT_PROFESSION, PROFESSION_LABELS, councilLabel, type Profession } from '@/lib/professions'
 import { api } from '@/lib/api'
 import { useSendDocumentByEmail } from '@/hooks/useApi'
 import toast from 'react-hot-toast'
@@ -22,7 +23,8 @@ export default function DocumentPreviewModal({
   open: boolean
   onClose: () => void
 }) {
-  const labels = docTypeLabels(useAuthStore(s => s.user?.profession))
+  const profession = useAuthStore(s => s.user?.profession)
+  const labels = docTypeLabels(profession)
   const [qrCode, setQrCode] = useState('')
   const [downloading, setDownloading] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -130,7 +132,7 @@ export default function DocumentPreviewModal({
               <div>
                 <div className="w-40 h-px border-t-2 border-neutral-400 mb-2" />
                 <p className="font-medium text-sm text-neutral-800">{doc.psychologistName}</p>
-                <p className="text-xs text-neutral-500">Psicólogo(a) - CRP {crp}</p>
+                <p className="text-xs text-neutral-500">{PROFESSION_LABELS[(profession || DEFAULT_PROFESSION) as Profession]} - {councilLabel(profession)} {crp}</p>
                 <p className="text-xs text-neutral-400 mt-0.5">{signedDate}</p>
               </div>
 

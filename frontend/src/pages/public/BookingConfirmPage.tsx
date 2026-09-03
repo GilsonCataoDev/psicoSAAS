@@ -5,6 +5,7 @@ import BrandLogo from '@/components/ui/BrandLogo'
 import { api } from '@/lib/api'
 import { createGoogleCalendarUrl, createIcsContent, type CalendarEvent } from '@/lib/calendar'
 import { termsFor } from '@/lib/terms'
+import { councilLabel } from '@/lib/professions'
 
 type ConfirmAction = 'confirmar' | 'cancelar'
 
@@ -108,7 +109,7 @@ export default function BookingConfirmPage({ fixedAction }: { fixedAction?: Conf
 
     const booking = result.booking
     const professional = booking.psychologistName ?? 'UseCognia'
-    const crp = booking.psychologistCrp ? ` - CRP ${booking.psychologistCrp}` : ''
+    const crp = booking.psychologistCrp ? ` - ${councilLabel(booking.profession)} ${booking.psychologistCrp}` : ''
     const modality = booking.modality === 'online' ? 'Online' : 'Presencial'
 
     return {

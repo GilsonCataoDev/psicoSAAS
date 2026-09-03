@@ -113,7 +113,10 @@ export default function SettingsPage() {
   const crpRegion = getCrpRegion(crp)
 
   function handleCrpChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setCrp(formatCrpInput(e.target.value))
+    // formatCrpInput impoe NN/NNNNNN — isso destroi registros de outros
+    // conselhos (ex: "CREFITO-3/12345-F"), entao so vale para psicologia.
+    const value = e.target.value
+    setCrp(requiresCrp(profession) ? formatCrpInput(value) : value.slice(0, 30))
   }
 
   async function saveProfile() {

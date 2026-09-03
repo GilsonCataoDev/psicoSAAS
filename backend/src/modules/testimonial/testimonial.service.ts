@@ -124,7 +124,7 @@ export class TestimonialService {
   async getPublic() {
     type Row = {
       firstName: string; displayName: string; crp: string | null; specialty: string | null
-      city: string | null; avatarUrl: string | null; rating: number | null
+      city: string | null; avatarUrl: string | null; rating: number | null; profession: string | null
       text: string | null; createdAt: string
     }
     const rows = await this.dataSource.query<Row[]>(`
@@ -132,6 +132,9 @@ export class TestimonialService {
         split_part(u.name, ' ', 1) AS "firstName",
         CASE WHEN t."publicIdentityConsent" = true THEN COALESCE(t."publicDisplayName", split_part(u.name, ' ', 1)) ELSE split_part(u.name, ' ', 1) END AS "displayName",
         CASE WHEN t."publicIdentityConsent" = true THEN t."publicCrp" ELSE NULL END AS crp,
+        -- A profissao so acompanha o registro: sem ela a landing rotula
+        -- qualquer conselho como "CRP".
+        CASE WHEN t."publicIdentityConsent" = true THEN u.profession ELSE NULL END AS profession,
         CASE WHEN t."publicIdentityConsent" = true THEN t."publicSpecialty" ELSE NULL END AS specialty,
         CASE WHEN t."publicIdentityConsent" = true THEN t."publicCity" ELSE NULL END AS city,
         CASE WHEN t."publicIdentityConsent" = true THEN t."publicAvatarUrl" ELSE NULL END AS "avatarUrl",
@@ -152,6 +155,7 @@ export class TestimonialService {
         firstName: r.firstName,
         displayName: r.displayName,
         crp: r.crp,
+        profession: r.profession,
         specialty: r.specialty,
         city: r.city,
         avatarUrl: r.avatarUrl,

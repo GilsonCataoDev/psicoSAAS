@@ -316,7 +316,7 @@ export default function EvolucaoPsicologicaPage() {
             {[
               { icon: '🔒', label: 'Processado no navegador' },
               { icon: '🇧🇷', label: 'Desenvolvido no Brasil' },
-              { icon: '⚕️', label: 'Para psicólogos e terapeutas' },
+              { icon: '⚕️', label: 'Para profissionais de saúde' },
               { icon: '✅', label: 'Revisão profissional obrigatória' },
             ].map(t => (
               <div key={t.label} className="flex flex-col items-center gap-1">

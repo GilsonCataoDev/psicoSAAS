@@ -12,7 +12,7 @@ import { PLAN_LIMITS } from '../../common/plans'
 import { PlanAccessService } from '../../common/plan-access/plan-access.service'
 import { EmailService } from '../email/email.service'
 import { termsFor } from '../../common/terms'
-import { requiresCrp } from '../../common/professions'
+import { DEFAULT_PROFESSION, requiresCrp } from '../../common/professions'
 
 export interface CreateDocumentDto {
   patientId: string
@@ -468,6 +468,8 @@ export class DocumentsService {
       patientName: string
       psychologistName: string
       psychologistCrp: string
+      /** Conselho de quem assinou: a pagina publica rotula CRP/CRN/CREFITO por aqui. */
+      profession: string
       signedAt: Date
       createdAt: Date
       fingerprint: string
@@ -507,6 +509,7 @@ export class DocumentsService {
         patientName: doc.patientName,
         psychologistName: doc.psychologistName,
         psychologistCrp: doc.psychologistCrp,
+        profession: signer?.profession ?? DEFAULT_PROFESSION,
         signedAt: doc.signedAt,
         createdAt: doc.createdAt,
         fingerprint: doc.signHash.slice(0, 16).toUpperCase(),

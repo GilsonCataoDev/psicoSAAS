@@ -4,7 +4,7 @@ import { AlertTriangle, ChevronLeft, Loader2, Sparkles } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import { Patient } from '@/types'
 import { Documento, DocType, DOC_TYPE_DESCRIPTIONS, docTypeLabels, docTypesFor, DOC_TYPE_ICONS } from '@/types/prontuario'
-import { hasPsychologyModules } from '@/lib/professions'
+import { councilLabel, hasPsychologyModules } from '@/lib/professions'
 import { formatCurrency } from '@/lib/utils'
 import { DocumentAiField, useCreateDocument, useDefaultTemplate, useGenerateDocumentAiDraft } from '@/hooks/useApi'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
@@ -41,7 +41,7 @@ function buildContent(data: FormData, patient: Patient, type: DocType, user: { n
   const requester = data.requester?.trim() || 'Pessoa atendida'
   const purpose = data.purpose?.trim() || 'Finalidade informada pela pessoa solicitante'
   const place = data.place?.trim() || '[cidade/UF]'
-  const author = user?.crp ? `${user.name} - CRP ${user.crp}` : (user?.name ?? 'Profissional responsável')
+  const author = user?.crp ? `${user.name} - ${councilLabel(profession)} ${user.crp}` : (user?.name ?? 'Profissional responsável')
 
   switch (type) {
     case 'declaracao':
@@ -468,8 +468,8 @@ export default function GenerateDocModal({
           {/* Preview da assinatura */}
           <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-4 space-y-1">
             <p className="text-xs text-neutral-400 uppercase tracking-wide font-medium">Assinatura digital</p>
-            <p className="text-sm font-medium text-neutral-700">{user?.name ?? 'Psicólogo(a)'}</p>
-            <p className="text-xs text-neutral-500">CRP {user?.crp ?? '00/000000'}</p>
+            <p className="text-sm font-medium text-neutral-700">{user?.name ?? 'Profissional'}</p>
+            <p className="text-xs text-neutral-500">{councilLabel(user?.profession)} {user?.crp ?? '—'}</p>
             <p className="text-xs text-neutral-400">{new Date().toLocaleDateString('pt-BR', { dateStyle: 'full' })}</p>
           </div>
 

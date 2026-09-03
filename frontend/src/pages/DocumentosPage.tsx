@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { Documento, DocumentoListItem, DocType, docTypeLabels, DOC_TYPE_ICONS } from '@/types/prontuario'
 import { useAuthStore } from '@/store/auth'
+import { councilLabel } from '@/lib/professions'
 import { formatDate } from '@/lib/utils'
 import { openCfpVerification } from '@/lib/crp'
 import { usePatients, useDocuments, useDeleteDocument } from '@/hooks/useApi'
@@ -143,7 +144,7 @@ export default function DocumentosPage() {
           <div className="flex-1 min-w-0">
             <p className="font-medium">Certificação digital ativa</p>
             <p className="text-sage-100 text-sm mt-0.5">
-              {user?.name ?? 'Profissional'}{user?.crp ? ` · CRP ${user.crp}` : ''}
+              {user?.name ?? 'Profissional'}{user?.crp ? ` · ${councilLabel(user.profession)} ${user.crp}` : ''}
             </p>
             <p className="text-sage-200 text-xs mt-1">
               Documentos assinados com código único verificável{showCfp ? ' · Válidos conforme CFP Res. 006/2019' : ''}

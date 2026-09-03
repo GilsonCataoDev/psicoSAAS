@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { track, EVENTS } from '@/lib/analytics'
 import { termsFor } from '@/lib/terms'
-import { DEFAULT_PROFESSION, PROFESSION_LABELS, type Profession } from '@/lib/professions'
+import { DEFAULT_PROFESSION, PROFESSION_LABELS, councilLabel, requiresCrp, type Profession } from '@/lib/professions'
 import {
   useBookingContactMemory,
   useForgetBookingContact,
@@ -325,7 +325,7 @@ export default function BookingPage() {
           )}
           {page.psychologistCrp && (
             <p className="text-xs text-neutral-400 dark:text-neutral-400 text-center mb-4">
-              CRP {page.psychologistCrp}
+              {councilLabel((page as any).profession)} {page.psychologistCrp}
             </p>
           )}
 
@@ -429,16 +429,22 @@ export default function BookingPage() {
           <div className="flex-1 min-w-0">
             <p className="font-medium text-neutral-800 dark:text-neutral-100 text-sm leading-snug line-clamp-2">{page.psychologistName}</p>
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-              <p className="text-xs text-neutral-400">CRP {page.psychologistCrp}</p>
-              <button
-                type="button"
-                onClick={() => window.open('https://cadastro.cfp.org.br/', '_blank', 'noopener,noreferrer')}
-                className="flex items-center gap-0.5 text-xs text-sage-600 hover:text-sage-700 hover:underline transition-colors"
-              >
-                <ShieldCheck className="w-3 h-3" />
-                Verificar registro
-                <ExternalLink className="w-2.5 h-2.5" />
-              </button>
+              {page.psychologistCrp && (
+                <p className="text-xs text-neutral-400">{councilLabel((page as any).profession)} {page.psychologistCrp}</p>
+              )}
+              {/* A consulta publica do CFP so vale para psicologia; os demais
+                  conselhos tem cada um o seu portal. */}
+              {page.psychologistCrp && requiresCrp((page as any).profession) && (
+                <button
+                  type="button"
+                  onClick={() => window.open('https://cadastro.cfp.org.br/', '_blank', 'noopener,noreferrer')}
+                  className="flex items-center gap-0.5 text-xs text-sage-600 hover:text-sage-700 hover:underline transition-colors"
+                >
+                  <ShieldCheck className="w-3 h-3" />
+                  Verificar registro
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </button>
+              )}
             </div>
           </div>
         </div>

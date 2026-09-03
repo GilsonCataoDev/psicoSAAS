@@ -2,7 +2,7 @@ import { Camera, CheckCircle2, ExternalLink, LogOut } from 'lucide-react'
 import { type User } from '@/store/auth'
 import Avatar from '@/components/ui/Avatar'
 import { openCfpVerification } from '@/lib/crp'
-import { PROFESSIONS, PROFESSION_LABELS, requiresCrp, type Profession } from '@/lib/professions'
+import { DEFAULT_PROFESSION, PROFESSIONS, PROFESSION_LABELS, councilLabel, requiresCrp, type Profession } from '@/lib/professions'
 import { termsFor } from '@/lib/terms'
 
 interface Props {
@@ -32,6 +32,13 @@ export function ProfileTab({
   savingProfile, uploadingAvatar, saveProfile, uploadAvatar, handleLogout,
 }: Props) {
   const showCrp = requiresCrp(profession)
+  const council = councilLabel(profession)
+  // "Ex: Personal Trainer Clínica" nao existe — o exemplo precisa ser
+  // gramatical em qualquer profissao da lista.
+  const professionKey = (profession || DEFAULT_PROFESSION) as Profession
+  const specialtyPlaceholder = professionKey === 'outro'
+    ? 'Ex: sua área de atuação'
+    : `Ex: área de atuação em ${PROFESSION_LABELS[professionKey]}`
   const t = termsFor(profession)
   return (
     <div className="card space-y-4">
@@ -39,7 +46,7 @@ export function ProfileTab({
       <div className="rounded-2xl border border-sage-100 bg-sage-50 px-4 py-3 text-sm text-sage-800">
         <p className="font-medium">Dados exibidos ao {t.patient}</p>
         <p className="mt-1 text-sage-700">
-          Nome, CRP, especialidade, telefone e foto podem aparecer no link público de agendamento e em mensagens operacionais.
+          Nome, {council}, especialidade, telefone e foto podem aparecer no link público de agendamento e em mensagens operacionais.
         </p>
       </div>
       <div className="flex flex-col gap-3 rounded-2xl border border-neutral-100 bg-neutral-50 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -81,11 +88,15 @@ export function ProfileTab({
             Define os termos usados no sistema e quais recursos aparecem para você.
           </p>
         </div>
-        <div className={showCrp ? '' : 'hidden'}>
-          <label className="label">CRP</label>
+        {/* Todo conselho tem registro; so o rotulo, o formato e a verificacao
+            publica mudam. Esconder o campo deixava as demais profissoes sem
+            como informar CRN/CREFITO/CRO no link publico de agendamento. */}
+        <div>
+          <label className="label">{council}</label>
           <input value={crp} onChange={handleCrpChange} className="input-field"
-            placeholder="06/123456" maxLength={9} />
-          {crpValid && (
+            placeholder={showCrp ? '06/123456' : 'Ex: CRN-3 12345'}
+            maxLength={showCrp ? 9 : 30} />
+          {showCrp && crpValid && (
             <div className="flex items-center justify-between mt-1.5">
               <p className="text-xs text-emerald-600 flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3" />{crpRegion ?? 'CRP válido'}
@@ -96,14 +107,14 @@ export function ProfileTab({
               </button>
             </div>
           )}
-          {crp && !crpValid && (
+          {showCrp && crp && !crpValid && (
             <p className="mt-1.5 text-xs text-rose-500">Revise o formato do CRP antes de salvar.</p>
           )}
         </div>
         <div>
           <label className="label">Especialidade</label>
           <input value={specialty} onChange={e => setSpecialty(e.target.value)}
-            className="input-field" placeholder="Ex: Psicologia Clínica" />
+            className="input-field" placeholder={specialtyPlaceholder} />
         </div>
         <div>
           <label className="label">Telefone / WhatsApp</label>

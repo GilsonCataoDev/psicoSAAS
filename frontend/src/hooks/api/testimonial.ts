@@ -26,6 +26,7 @@ export interface PublicTestimonial {
   firstName: string
   displayName: string
   crp: string | null
+  profession: string | null
   specialty: string | null
   city: string | null
   avatarUrl: string | null
