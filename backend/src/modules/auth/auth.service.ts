@@ -1,14 +1,18 @@
-import {
+﻿import {
   BadRequestException, ConflictException, ForbiddenException, HttpException, HttpStatus,
-  Injectable, Logger, NotFoundException, UnauthorizedException,
+  Injectable, Logger, NotFoundException, Optional, UnauthorizedException,
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { DataSource, Repository } from 'typeorm'
 import { JwtService } from '@nestjs/jwt'
-import * as bcrypt from 'bcryptjs'
 import { randomBytes } from 'crypto'
-import { generateCsrfToken, hashToken } from '../../common/crypto/encrypt.util'
+import { blindIndex, generateCsrfToken, hashToken } from '../../common/crypto/encrypt.util'
+import { hashPassword, verifyPassword, DUMMY_ARGON2_HASH } from '../../common/password/password.util'
 import { getAdminEmails } from '../../common/guards/admin.guard'
+import { RiskEngineService } from '../../common/security/risk-engine.service'
+import { SuspiciousActivityService } from '../../common/security/suspicious-activity.service'
+import { StorageService } from '../../common/storage/storage.service'
+import { COUNCIL_REGISTRATION_FORMAT, CRP_FORMAT, requiresCrp } from '../../common/professions'
 import { User }         from './entities/user.entity'
 import { RefreshToken } from './entities/refresh-token.entity'
 import { LoginAttempt } from './entities/login-attempt.entity'
@@ -21,6 +25,15 @@ import { EmailService }   from '../email/email.service'
 import { ReferralService } from '../referral/referral.service'
 import { AsaasService } from '../billing/asaas.service'
 import { AuditService } from '../audit/audit.service'
+import { ProspectLifecycleService } from '../../common/prospect-lifecycle/prospect-lifecycle.service'
+import { PlanAccessService } from '../../common/plan-access/plan-access.service'
+
+/** Campos de UpdatePreferencesDto que só têm efeito em contas com plano Pro
+ * (automação de cobrança/lembrete via WhatsApp). O bloqueio real acontece no
+ * momento do envio (NotificationsService.canUseWhatsAppAutomation), mas
+ * gravá-los para conta Free é defesa em profundidade desnecessária — se
+ * não for Pro, eles são ignorados aqui em vez de persistidos "mortos". */
+const PRO_ONLY_PREFERENCE_FIELDS = ['autoCharge', 'lateReminder', 'chargeTemplate', 'lateReminderTemplate'] as const
 
 // ── Tipagem de retorno ─────────────────────────────────────────────────────────
 export interface AuthTokens {
@@ -53,23 +66,28 @@ export const CURRENT_TERMS_VERSION = '2026-05-02'
 
 @Injectable()
 export class AuthService {
-  private readonly logger     = new Logger(AuthService.name)
+  private readonly logger      = new Logger(AuthService.name)
   private readonly auditLogger = new Logger('AuditLog')
 
   /** Brute-force protection: max 10 falhas por email em 15 minutos */
-  private readonly MAX_ATTEMPTS  = 10
-  private readonly WINDOW_MS     = 15 * 60 * 1000
+  private readonly MAX_ATTEMPTS = 10
+  private readonly WINDOW_MS    = 15 * 60 * 1000
 
   constructor(
-    @InjectRepository(User)         private users:    Repository<User>,
-    @InjectRepository(RefreshToken) private rtRepo:   Repository<RefreshToken>,
+    @InjectRepository(User)         private users:         Repository<User>,
+    @InjectRepository(RefreshToken) private rtRepo:        Repository<RefreshToken>,
     @InjectRepository(LoginAttempt) private loginAttempts: Repository<LoginAttempt>,
-    private dataSource: DataSource,
-    private jwt:      JwtService,
-    private email:    EmailService,
-    private referral: ReferralService,
-    private asaas:    AsaasService,
-    private auditService: AuditService,
+    private dataSource:    DataSource,
+    private jwt:           JwtService,
+    private email:         EmailService,
+    private referral:      ReferralService,
+    private asaas:         AsaasService,
+    private auditService:  AuditService,
+    private riskEngine:    RiskEngineService,
+    private suspicious:    SuspiciousActivityService,
+    private storage:       StorageService,
+    private planAccess:    PlanAccessService,
+    @Optional() private readonly prospectLifecycle?: ProspectLifecycleService,
   ) {}
 
   // ── Registro ───────────────────────────────────────────────────────────────
@@ -81,8 +99,14 @@ export class AuthService {
       throw new BadRequestException('E necessario aceitar os Termos de Uso')
     }
 
+    // RegisterDto so cobra formato de CRP para psicologia (@ValidateIf), entao
+    // o registro das demais profissoes chega sem validacao nenhuma.
+    if (dto.crp && !requiresCrp(dto.profession) && !COUNCIL_REGISTRATION_FORMAT.test(dto.crp)) {
+      throw new BadRequestException('Registro profissional inválido')
+    }
+
     const { referralCode, password, termsAccepted: _termsAccepted, termsVersion, ...userData } = dto
-    const passwordHash = await bcrypt.hash(password, 12)
+    const passwordHash = await hashPassword(password)
     const verificationToken = randomBytes(32).toString('hex')
     const user = this.users.create({
       ...userData,
@@ -96,14 +120,22 @@ export class AuthService {
     })
     await this.users.save(user)
 
+    await this.prospectLifecycle?.markRegistered({
+      userId: user.id,
+      email: user.email,
+      phone: user.phone,
+    }).catch(err => this.logger.warn(
+      `[Register] Falha ao sincronizar funil user=${user.id}: ${err?.message ?? err}`,
+    ))
+
     if (referralCode) {
       await this.referral.applyReferral(referralCode, user).catch((err) => {
-        this.logger.warn(`[Register] Falha ao aplicar indicação user=${user.id}: ${err?.message ?? err}`)
+        this.logger.warn(`[Register] Falha ao aplicar indicacao user=${user.id}: ${err?.message ?? err}`)
       })
     }
 
     this.email.sendEmailVerification(user.name, user.email, verificationToken)
-      .catch(err => this.logger.error(`[Register] Falha ao enviar verificação user=${user.id}: ${err?.message}`))
+      .catch(err => this.logger.error(`[Register] Falha ao enviar verificacao user=${user.id}: ${err?.message}`))
     this.email.sendWelcome(user.name, user.email)
       .catch(err => this.logger.error(`[Register] Falha ao enviar boas-vindas user=${user.id}: ${err?.message}`))
     this.audit('REGISTER', { userId: user.id, ip })
@@ -120,8 +152,8 @@ export class AuthService {
     }
 
     user.emailVerified = true
-    user.emailVerificationToken = undefined
-    user.emailVerificationExpiry = undefined
+    user.emailVerificationToken = null
+    user.emailVerificationExpiry = null
     await this.users.save(user)
 
     this.audit('EMAIL_VERIFIED', { userId: user.id })
@@ -148,20 +180,71 @@ export class AuthService {
   async login(dto: LoginDto, ip?: string, userAgent?: string): Promise<AuthResult> {
     const email = dto.email.toLowerCase()
 
-    // Rate limit por email antes de qualquer operação
+    // Bloqueia IPs com ataques cross-account (credential stuffing)
+    if (ip && await this.suspicious.isIpBlocked(ip)) {
+      this.audit('LOGIN_IP_BLOCKED', { email: this.maskEmail(email), ip })
+      throw new HttpException(
+        { message: 'Acesso temporariamente bloqueado. Tente novamente em 15 minutos.' },
+        HttpStatus.TOO_MANY_REQUESTS,
+      )
+    }
+
+    // Rate limit por email (brute-force direcionado)
     await this.checkLoginRateLimit(email, ip)
 
-    const user = await this.users.findOneBy({ email })
+    const user = await this.users.createQueryBuilder('user')
+      .addSelect('user.passwordHash')
+      .where('LOWER(user.email) = :email', { email })
+      .getOne()
 
-    // Tempo constante mesmo se user não existe (previne timing attack)
-    const dummyHash = '$2a$12$dummyhashtopreventtimingattack000000000000000000000000'
-    const hash  = user?.passwordHash ?? dummyHash
-    const valid = await bcrypt.compare(dto.password, hash)
+    // Tempo constante mesmo se user nao existe (previne timing attack)
+    const hash  = user?.passwordHash ?? DUMMY_ARGON2_HASH
+    const { valid, needsRehash } = await verifyPassword(dto.password, hash)
 
     if (!user || !valid) {
       await this.recordLoginFailure(email)
+      await this.suspicious.recordFailedAttempt(ip ?? '', email)
       this.audit('LOGIN_FAILED', { email: this.maskEmail(email), ip })
       throw new UnauthorizedException('Credenciais inválidas')
+    }
+
+    if (user.isActive === false) {
+      this.audit('LOGIN_BLOCKED_INACTIVE', { userId: user.id, ip })
+      throw new UnauthorizedException('Conta desativada. Contate o suporte.')
+    }
+
+    // Rehash transparente de bcrypt legado para Argon2id
+    if (needsRehash) {
+      user.passwordHash = await hashPassword(dto.password)
+      await this.users.save(user)
+      this.audit('PASSWORD_REHASHED_ARGON2', { userId: user.id })
+    }
+
+    // Risk engine: avalia sinais de ameaca apos senha valida
+    const risk = await this.riskEngine.assessLoginRisk(user.id, ip ?? '')
+
+    if (risk.level === 'critical') {
+      // Revoga todas as sessoes e bloqueia login
+      await this.rtRepo.update({ userId: user.id, revoked: false }, { revoked: true })
+      await this.auditService.record({
+        userId: user.id,
+        action: 'LOGIN_BLOCKED_CRITICAL_RISK',
+        resource: 'auth',
+        ip,
+        metadata: { score: risk.score, signals: risk.signals },
+      })
+      this.audit('LOGIN_BLOCKED_CRITICAL_RISK', { userId: user.id, ip, score: String(risk.score) })
+      throw new UnauthorizedException('Login bloqueado por atividade suspeita. Faca login novamente ou contate o suporte.')
+    }
+
+    if (risk.level === 'high' || risk.level === 'medium') {
+      await this.auditService.record({
+        userId: user.id,
+        action: `LOGIN_RISK_${risk.level.toUpperCase()}`,
+        resource: 'auth',
+        ip,
+        metadata: { score: risk.score, signals: risk.signals },
+      })
     }
 
     await this.clearLoginAttempts(email)
@@ -172,89 +255,94 @@ export class AuthService {
 
   // ── Refresh Token ──────────────────────────────────────────────────────────
 
-  /**
-   * Rotaciona o refresh token:
-   * 1. Valida o token bruto recebido do cookie
-   * 2. Detecta replay attack (token revogado → invalida toda a sessão)
-   * 3. Revoga o token atual e cria um novo par (access + refresh)
-   */
   async refresh(rawToken: string, ip?: string, userAgent?: string): Promise<AuthResult> {
     if (!rawToken) throw new UnauthorizedException('Refresh token ausente')
 
     const tokenHash = hashToken(rawToken)
-    const rt = await this.rtRepo
-      .createQueryBuilder('rt')
-      .addSelect('rt.tokenHash')
-      .where('rt.tokenHash = :tokenHash', { tokenHash })
-      .getOne()
+    // Lançar uma exceção de dentro de dataSource.transaction() reverte TUDO que
+    // foi feito na transação, inclusive o update de "revoga todas as sessões"
+    // do ramo de replay abaixo — por isso o outcome é só retornado aqui, e a
+    // exceção correspondente só é lançada DEPOIS que a transação já commitou.
+    const outcome = await this.dataSource.transaction(async manager => {
+      const refreshTokens = manager.getRepository(RefreshToken)
+      const users = manager.getRepository(User)
+      // O lock serializa usos concorrentes do mesmo token. Sem ele, duas
+      // requisições poderiam ler revoked=false e emitir dois sucessores.
+      const rt = await refreshTokens
+        .createQueryBuilder('rt')
+        .setLock('pessimistic_write')
+        .addSelect('rt.tokenHash')
+        .where('rt.tokenHash = :tokenHash', { tokenHash })
+        .getOne()
 
-    if (!rt) {
-      throw new UnauthorizedException('Sessão inválida. Faça login novamente.')
-    }
+      if (!rt) {
+        return { ok: false as const, message: 'Sessão inválida. Faça login novamente.' }
+      }
 
-    // ── Replay attack detection ──────────────────────────────────────────────
-    if (rt.revoked) {
-      // Token revogado sendo reutilizado → sessão provavelmente comprometida
-      await this.rtRepo.update({ userId: rt.userId }, { revoked: true })
-      this.audit('REFRESH_REPLAY_DETECTED', { userId: rt.userId, ip })
-      throw new UnauthorizedException('Sessão comprometida. Faça login novamente.')
-    }
+      if (rt.revoked) {
+        // Cascata de segurança: reuso de um token já rotacionado é sinal de
+        // vazamento — revoga toda a cadeia de sessão, não só o token reusado.
+        await refreshTokens.update({ userId: rt.userId }, { revoked: true })
+        this.audit('REFRESH_REPLAY_DETECTED', { userId: rt.userId, ip })
+        return { ok: false as const, message: 'Sessão comprometida. Faça login novamente.' }
+      }
 
-    if (new Date() > rt.expiresAt) {
-      throw new UnauthorizedException('Sessão expirada. Faça login novamente.')
-    }
+      if (new Date() > rt.expiresAt) {
+        return { ok: false as const, message: 'Sessão expirada. Faça login novamente.' }
+      }
 
-    // Revoga token antigo (soft delete para audit)
-    await this.rtRepo.update(rt.id, { revoked: true })
+      rt.revoked = true
+      await refreshTokens.save(rt)
 
-    const user = await this.users.findOneBy({ id: rt.userId })
-    if (!user) throw new UnauthorizedException('Usuário não encontrado')
+      const user = await users.findOneBy({ id: rt.userId })
+      if (!user) return { ok: false as const, message: 'Usuario nao encontrado' }
 
-    this.audit('REFRESH_TOKEN_ROTATED', { userId: user.id, ip })
+      if (user.isActive === false) {
+        await refreshTokens.update({ userId: user.id, revoked: false }, { revoked: true })
+        this.audit('REFRESH_BLOCKED_INACTIVE', { userId: user.id, ip })
+        return { ok: false as const, message: 'Conta desativada. Contate o suporte.' }
+      }
 
-    return this.buildResult(user, ip, userAgent)
+      this.audit('REFRESH_TOKEN_ROTATED', { userId: user.id, ip })
+      const result = await this.buildResult(user, ip, userAgent, refreshTokens)
+      return { ok: true as const, result }
+    })
+
+    if (!outcome.ok) throw new UnauthorizedException(outcome.message)
+    return outcome.result
   }
 
-  /**
-   * Revoga todos os refresh tokens do usuário (logout completo).
-   * Garante que nenhuma sessão paralela permaneça ativa.
-   */
   async revokeAllTokens(userId: string, ip?: string): Promise<void> {
     await this.rtRepo.update({ userId, revoked: false }, { revoked: true })
     this.audit('LOGOUT', { userId, ip })
   }
 
-  // ── Impersonação (admin "ver como") ─────────────────────────────────────────
+  // ── Impersonacao (admin "ver como") ─────────────────────────────────────────
 
-  /**
-   * Emite um access token de curta duração (15 min) para o admin visualizar
-   * a plataforma como outro usuário. NÃO cria/rotaciona refresh token — a
-   * sessão original do admin permanece intacta e é restaurada automaticamente
-   * quando o access token expirar (ou via /auth/refresh explícito), pois o
-   * refresh_token continua sendo o do admin.
-   */
   async impersonate(admin: { id: string; email: string }, targetUserId: string, ip?: string): Promise<ImpersonationResult> {
     if (targetUserId === admin.id) {
-      throw new BadRequestException('Você já está autenticado como você mesmo')
+      throw new BadRequestException('Voce ja esta autenticado como voce mesmo')
     }
 
     const target = await this.users.findOneBy({ id: targetUserId })
-    if (!target) throw new NotFoundException('Usuário não encontrado')
+    if (!target) throw new NotFoundException('Usuario nao encontrado')
 
     if (getAdminEmails().includes(target.email.toLowerCase())) {
-      throw new ForbiddenException('Não é possível visualizar como outro administrador')
+      throw new ForbiddenException('Nao e possivel visualizar como outro administrador')
     }
 
+    const csrfSeed = randomBytes(16).toString('hex')
     const accessToken = this.jwt.sign(
       {
         sub: target.id,
         email: target.email,
+        csrfSeed,
         impersonatedBy: admin.id,
         impersonatedByEmail: admin.email,
       },
       { expiresIn: '15m' },
     )
-    const csrfToken = generateCsrfToken(target.id)
+    const csrfToken = generateCsrfToken(target.id, csrfSeed)
 
     await this.auditService.record({
       userId: admin.id,
@@ -284,6 +372,14 @@ export class AuthService {
   async updateProfile(id: string, data: UpdateProfileDto): Promise<SafeUser> {
     const user = await this.users.findOneBy({ id })
     if (!user) throw new NotFoundException()
+
+    // A profissao efetiva pode vir no proprio PATCH ou ja estar no cadastro.
+    // Só psicologia tem formato fixo de registro; os demais conselhos variam.
+    const profession = data.profession ?? user.profession
+    if (data.crp && requiresCrp(profession) && !CRP_FORMAT.test(data.crp)) {
+      throw new BadRequestException('CRP inválido. Use uma região entre 01 e 24')
+    }
+
     Object.assign(user, data)
     await this.users.save(user)
     return this.toSafeUser(user)
@@ -292,7 +388,20 @@ export class AuthService {
   async updateAvatar(id: string, buffer: Buffer): Promise<SafeUser> {
     const user = await this.users.findOneBy({ id })
     if (!user) throw new NotFoundException()
-    user.avatarUrl = `data:image/jpeg;base64,${buffer.toString('base64')}`
+
+    if (this.storage.isConfigured()) {
+      // Apaga avatar anterior se era do storage (não é base64 legado)
+      if (user.avatarUrl && !user.avatarUrl.startsWith('data:')) {
+        const oldKey = this.storage.keyFromUrl(user.avatarUrl)
+        if (oldKey) await this.storage.delete(oldKey)
+      }
+      const key = `avatars/${id}-${Date.now()}.jpg`
+      user.avatarUrl = await this.storage.upload(key, buffer, 'image/jpeg')
+    } else {
+      // Fallback legado: base64 no banco (sem storage configurado)
+      user.avatarUrl = `data:image/jpeg;base64,${buffer.toString('base64')}`
+    }
+
     await this.users.save(user)
     return this.toSafeUser(user)
   }
@@ -302,6 +411,10 @@ export class AuthService {
     if (!user) throw new NotFoundException()
 
     const sanitizedPreferences: Record<string, unknown> = { ...preferences }
+    const wantsProOnlyField = PRO_ONLY_PREFERENCE_FIELDS.some(field => field in sanitizedPreferences)
+    if (wantsProOnlyField && !(await this.planAccess.hasAccess(id, 'pro', user.email))) {
+      for (const field of PRO_ONLY_PREFERENCE_FIELDS) delete sanitizedPreferences[field]
+    }
     const next = { ...(user.preferences ?? {}), ...sanitizedPreferences }
     delete next.asaasApiKey
     user.preferences = next
@@ -319,12 +432,14 @@ export class AuthService {
   }
 
   async changePassword(id: string, currentPassword: string, newPassword: string): Promise<{ message: string }> {
-    const user = await this.users.findOneBy({ id })
+    const user = await this.users.createQueryBuilder('user')
+      .addSelect('user.passwordHash')
+      .where('user.id = :id', { id })
+      .getOne()
     if (!user) throw new NotFoundException()
-    const valid = await bcrypt.compare(currentPassword, user.passwordHash)
-    // Mensagem genérica — não diferencia "senha errada" de "conta inexistente"
+    const { valid } = await verifyPassword(currentPassword, user.passwordHash)
     if (!valid) throw new UnauthorizedException('Credenciais inválidas')
-    user.passwordHash = await bcrypt.hash(newPassword, 12)
+    user.passwordHash = await hashPassword(newPassword)
     await this.users.save(user)
     this.audit('PASSWORD_CHANGED', { userId: id })
     return { message: 'Senha alterada com sucesso' }
@@ -339,7 +454,7 @@ export class AuthService {
 
     if (!user) throw new NotFoundException()
 
-    const valid = await bcrypt.compare(password, user.passwordHash)
+    const { valid } = await verifyPassword(password, user.passwordHash)
     if (!valid) throw new UnauthorizedException('Senha invalida')
 
     const subscriptions = await this.dataSource.query(
@@ -353,6 +468,18 @@ export class AuthService {
 
     for (const subscription of subscriptions) {
       await this.asaas.cancelSubscription(subscription.gatewaySubscriptionId)
+    }
+
+    const externalObjects: Array<{ storageKey: string }> = await this.dataSource.query(
+      `SELECT pa."storageKey"
+         FROM "patient_attachments" pa
+        WHERE pa."psychologistId" = $1
+          AND pa."storageKey" IS NOT NULL`,
+      [id],
+    )
+    const avatarKey = user.avatarUrl ? this.storage.keyFromUrl(user.avatarUrl) : null
+    for (const key of [...externalObjects.map(item => item.storageKey), ...(avatarKey ? [avatarKey] : [])]) {
+      await this.storage.deleteStrict(key)
     }
 
     await this.dataSource.transaction(async (manager) => {
@@ -378,18 +505,20 @@ export class AuthService {
       await manager.query('DELETE FROM "refresh_tokens" WHERE "userId" = $1', [id])
       await manager.query('DELETE FROM "audit_logs" WHERE "userId"::text = $1::text', [id])
       await manager.query('DELETE FROM "login_attempts" WHERE "email" = $1', [user.email])
-      await manager.query('DELETE FROM "email_logs" WHERE "to" = $1', [user.email])
+      await manager.query('DELETE FROM "email_logs" WHERE "toHash" = $1', [
+        blindIndex(user.email, 'email-log-recipient'),
+      ])
       await manager.query('DELETE FROM "users" WHERE "id" = $1', [id])
     })
 
     this.audit('ACCOUNT_DELETED', { userId: id, ip })
   }
 
-  // ── Recuperação de senha ───────────────────────────────────────────────────
+  // ── Recuperacao de senha ───────────────────────────────────────────────────
 
   async forgotPassword(email: string): Promise<void> {
     const user = await this.users.findOneBy({ email: email.toLowerCase().trim() })
-    if (!user) return   // resposta idêntica para evitar user enumeration
+    if (!user) return
 
     const token = randomBytes(32).toString('hex')
     user.resetPasswordToken  = hashToken(token)
@@ -401,53 +530,47 @@ export class AuthService {
   }
 
   async resetPassword(token: string, newPassword: string): Promise<void> {
-    if (!token || !newPassword) throw new BadRequestException('Dados inválidos')
+    if (!token || !newPassword) throw new BadRequestException('Dados invalidos')
     if (newPassword.length < 8) throw new BadRequestException('A senha deve ter pelo menos 8 caracteres')
 
     const user = await this.users.findOneBy({ resetPasswordToken: hashToken(token) })
     if (!user || !user.resetPasswordExpiry || user.resetPasswordExpiry < new Date()) {
-      throw new BadRequestException('Link inválido ou expirado. Solicite um novo.')
+      throw new BadRequestException('Link invalido ou expirado. Solicite um novo.')
     }
 
-    user.passwordHash        = await bcrypt.hash(newPassword, 12)
-    user.resetPasswordToken  = undefined
-    user.resetPasswordExpiry = undefined
+    user.passwordHash        = await hashPassword(newPassword)
+    user.resetPasswordToken  = null
+    user.resetPasswordExpiry = null
     await this.users.save(user)
 
-    // Revoga todas as sessões após reset de senha
     await this.rtRepo.update({ userId: user.id }, { revoked: true })
     this.audit('PASSWORD_RESET_SUCCESS', { userId: user.id })
   }
 
   // ── CSRF ───────────────────────────────────────────────────────────────────
 
-  /** Token stateless — HMAC(JWT_SECRET, "csrf:" + userId) */
-  generateCsrfToken(userId: string): string {
-    return generateCsrfToken(userId)
+  /** Token stateless — HMAC(JWT_SECRET, "csrf:" + userId + ":" + csrfSeed) */
+  generateCsrfToken(userId: string, csrfSeed?: string): string {
+    return generateCsrfToken(userId, csrfSeed)
   }
 
   // ── Internos ───────────────────────────────────────────────────────────────
 
-  /**
-   * Monta o resultado completo de autenticação:
-   * - Access token JWT de curta duração (15 min)
-   * - Refresh token opaco, armazenado hashed no DB (7 dias)
-   * - CSRF token stateless derivado do userId
-   */
   private async buildResult(
     user: User,
     ip?: string,
     userAgent?: string,
+    refreshTokens: Repository<RefreshToken> = this.rtRepo,
   ): Promise<AuthResult> {
+    const csrfSeed    = randomBytes(16).toString('hex')
     const accessToken = this.jwt.sign(
-      { sub: user.id, email: user.email },
+      { sub: user.id, email: user.email, csrfSeed },
       { expiresIn: '15m' },
     )
 
-    const refreshToken = await this.createRefreshToken(user.id, ip, userAgent)
-    const csrfToken    = generateCsrfToken(user.id)
-
-    const safeUser = this.toSafeUser(user)
+    const refreshToken = await this.createRefreshToken(user.id, ip, userAgent, refreshTokens)
+    const csrfToken    = generateCsrfToken(user.id, csrfSeed)
+    const safeUser     = this.toSafeUser(user)
 
     return { user: safeUser, tokens: { accessToken, refreshToken }, csrfToken }
   }
@@ -476,9 +599,14 @@ export class AuthService {
     return safe
   }
 
-  private async createRefreshToken(userId: string, ip?: string, userAgent?: string): Promise<string> {
+  private async createRefreshToken(
+    userId: string,
+    ip?: string,
+    userAgent?: string,
+    refreshTokens: Repository<RefreshToken> = this.rtRepo,
+  ): Promise<string> {
     const rawToken = randomBytes(40).toString('hex')
-    const rt = this.rtRepo.create({
+    const rt = refreshTokens.create({
       tokenHash: hashToken(rawToken),
       userId,
       ipAddress: ip,
@@ -486,10 +614,8 @@ export class AuthService {
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     })
     try {
-      await this.rtRepo.save(rt)
+      await refreshTokens.save(rt)
     } catch (err: any) {
-      // Causa mais comum: tabela refresh_tokens não existe (synchronize: false em prod)
-      // Solução: adicionar TYPEORM_SYNC=true no Railway e reimplantar uma vez
       this.logger.error(`createRefreshToken falhou: ${err?.message ?? err}`)
       throw err
     }
@@ -527,14 +653,13 @@ export class AuthService {
         await repo.save(repo.create({ email, count: 1, resetAt }))
         return
       }
-
-      entry.count += 1 // Contador persistente evita reset por restart ou múltiplas instâncias.
+      entry.count += 1
       await repo.save(entry)
     })
   }
 
   private async clearLoginAttempts(email: string): Promise<void> {
-    await this.loginAttempts.delete({ email }) // Sucesso de login limpa a janela distribuída.
+    await this.loginAttempts.delete({ email })
   }
 
   // ── Audit log ─────────────────────────────────────────────────────────────

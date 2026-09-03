@@ -20,6 +20,7 @@ import { ChangePasswordDto }    from './dto/change-password.dto'
 import { ForgotPasswordDto }    from './dto/forgot-password.dto'
 import { ResetPasswordDto }     from './dto/reset-password.dto'
 import { DeleteAccountDto }     from './dto/delete-account.dto'
+import { AVATAR_UPLOAD_OPTIONS } from './avatar-upload.config'
 
 // ── Cookie helpers ────────────────────────────────────────────────────────────
 
@@ -128,14 +129,12 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Throttle({ short: { limit: 10, ttl: 60000 } })
   async refresh(
-    @Body() body: { refreshToken?: string },
     @Request() req: Req,
     @Response({ passthrough: true }) res: Res,
   ) {
     const rawToken = req.cookies?.[REFRESH_COOKIE]
       ?? req.cookies?.[LEGACY_REFRESH_COOKIE]
       ?? (isNativeClient(req) ? req.headers['x-refresh-token'] as string | undefined : undefined)
-      ?? (isNativeClient(req) ? body?.refreshToken : undefined)
     const result   = await this.auth.refresh(rawToken, getIp(req), req.headers['user-agent'])
     this.setAuthCookies(res, result.tokens)
     return authResponse(req, result)
@@ -174,6 +173,7 @@ export class AuthController {
   ) {
     const result = await this.auth.impersonate({ id: req.user.id, email: req.user.email }, userId, getIp(req))
     res.cookie(ACCESS_COOKIE, result.accessToken, accessCookieOpts())
+    // csrfToken da impersonação já inclui csrfSeed via buildResult do impersonate
     return { user: result.user, csrfToken: result.csrfToken }
   }
 
@@ -189,7 +189,7 @@ export class AuthController {
   me(@Request() req: any) {
     return {
       ...req.user,
-      csrfToken: this.auth.generateCsrfToken(req.user.id),
+      csrfToken: this.auth.generateCsrfToken(req.user.id, req.user.csrfSeed),
     }
   }
 
@@ -200,7 +200,7 @@ export class AuthController {
     return {
       user: {
         ...req.user,
-        csrfToken: this.auth.generateCsrfToken(req.user.id),
+        csrfToken: this.auth.generateCsrfToken(req.user.id, req.user.csrfSeed),
       },
       subscription: await this.billing.getMine(req.user),
     }
@@ -215,37 +215,21 @@ export class AuthController {
 
   @Post('avatar')
   @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
-  @UseInterceptors(FileInterceptor('avatar', {
-    limits: {
-      fileSize: 1024 * 1024,
-      files: 1,
-      fields: 0,
-      parts: 1,
-      fieldNameSize: 32,
-      fieldSize: 0,
-    },
-    fileFilter: (_req, file, cb) => {
-      if (!['image/jpeg', 'image/jpg'].includes(file.mimetype)) {
-        cb(new BadRequestException('A foto precisa ser um arquivo JPG'), false)
-        return
-      }
-      cb(null, true)
-    },
-  }))
+  @UseInterceptors(FileInterceptor('avatar', AVATAR_UPLOAD_OPTIONS))
   uploadAvatar(@Request() req: any, @UploadedFile() file: any) {
     if (!file) throw new BadRequestException('Envie uma imagem JPG')
     return this.auth.updateAvatar(req.user.id, file.buffer)
   }
 
   @Patch('preferences')
-  @UseGuards(JwtAuthGuard, CsrfGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
   @SkipThrottle()
   updatePreferences(@Request() req: any, @Body() dto: UpdatePreferencesDto) {
     return this.auth.updatePreferences(req.user.id, dto)
   }
 
   @Patch('onboarding')
-  @UseGuards(JwtAuthGuard, CsrfGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
   @SkipThrottle()
   updateOnboarding(@Request() req: any, @Body() dto: UpdateOnboardingDto) {
     return this.auth.updateOnboarding(req.user.id, dto)

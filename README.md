@@ -312,6 +312,10 @@ Cobertura atual: brute-force de login, rotação/replay de refresh token, expira
 | `SENTRY_DSN` | Monitoramento de erros (opcional) |
 | `WHATSAPP_API_URL` / `WHATSAPP_API_KEY` / `WHATSAPP_INSTANCE_PREFIX` | Integração WhatsApp (opcional) |
 | `TYPEORM_SYNC` | Manter ausente/false em producao; use migrations |
+| `DB_POOL_MAX` | Maximo de conexoes do pool Postgres por instancia; padrao `10` |
+| `DB_IDLE_TIMEOUT_MS` | Tempo para fechar conexao ociosa; padrao `30000` |
+| `DB_CONNECTION_TIMEOUT_MS` | Timeout para abrir conexao; padrao `5000` |
+| `DB_APPLICATION_NAME` | Nome da aplicacao nas conexoes Postgres; padrao `usecognia-api` |
 
 ---
 
@@ -417,7 +421,7 @@ Tipografia:
 
 ### Aguardando configuração de API
 - [ ] Transcrição de áudio de sessão — requer `GROQ_API_KEY` (Whisper Large v3 Turbo, ~US$0,033/sessão de 50 min). `OPENAI_API_KEY` fica como fallback opcional.
-- [ ] Resumo sugestivo por IA — requer `ANTHROPIC_API_KEY` (Claude Haiku, ~R$0,02/resumo)
+- [ ] Resumo e rascunho de prontuario por IA — requer `ANTHROPIC_API_KEY` (Claude Haiku 4.5, liberado a partir do Essencial). O backend registra tokens e custo estimado em `ai_usage` usando US$1/M tokens de entrada e US$5/M tokens de saida.
 
 ### Próximas versões
 - [ ] App mobile (React Native)

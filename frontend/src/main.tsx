@@ -10,6 +10,8 @@ import { readPersistedStorage } from '@/lib/storageMigration'
 import { useAuthStore } from '@/store/auth'
 import { useSubscriptionStore } from '@/store/subscription'
 import { applyTheme, ThemeMode } from '@/store/theme'
+import AnalyticsConsentBanner from '@/components/privacy/AnalyticsConsentBanner'
+import RouteSeo from '@/components/seo/RouteSeo'
 import './index.css'
 
 const CHUNK_RECOVERY_KEY = 'usecognia.chunk-recovery-at'
@@ -123,9 +125,6 @@ window.addEventListener('load', () => {
             </div>
           ), { duration: 10000 })
         },
-        onOfflineReady() {
-          toast.success('UseCognia pronto para abrir mais rapido neste dispositivo.')
-        },
       })
     })
 }, { once: true })
@@ -151,7 +150,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter basename={(import.meta.env.BASE_URL || '/').replace(/\/$/, '') || '/'}>
+        <RouteSeo />
         <App />
+        <AnalyticsConsentBanner />
         <Toaster
           position="top-right"
           toastOptions={{

@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState } from 'react'
-import { Users, CalendarCheck, Wallet, Clock, ArrowRight, Video, MapPin, AlertTriangle, Sparkles, MessageSquareText, Ban, TimerReset, CheckCircle2, ShieldCheck, NotebookPen, AlertCircle, ExternalLink } from 'lucide-react'
+import { Users, CalendarCheck, Wallet, Clock, ArrowRight, Video, MapPin, AlertTriangle, Sparkles, MessageSquareText, Ban, TimerReset, CheckCircle2, ShieldCheck, NotebookPen, AlertCircle, ExternalLink, ListTodo } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -13,6 +13,8 @@ import { useDashboard } from '@/hooks/api/dashboard'
 import { useSessions } from '@/hooks/api/sessions'
 import ReferralCard from '@/components/features/referral/ReferralCard'
 import { OnboardingProfile, useOnboardingStore } from '@/store/onboarding'
+import { useTerms } from '@/hooks/useTerms'
+import type { Terms } from '@/lib/terms'
 
 const OnboardingWizard = lazy(() => import('@/components/onboarding/OnboardingWizard'))
 const NewSessionModal = lazy(() => import('@/components/features/sessions/NewSessionModal'))
@@ -44,22 +46,22 @@ type SuggestedAction = {
   icon: typeof Users
 }
 
-function onboardingSummary(profile: OnboardingProfile) {
+function onboardingSummary(profile: OnboardingProfile, t: Terms) {
   const usage = {
     solo: 'uso individual',
     assistant: 'uso com atendente',
     clinic: 'rotina de clinica',
   }[profile.usageMode]
   const volume = {
-    '0_5': '0 a 5 pacientes',
-    '6_10': '6 a 10 pacientes',
-    more_10: 'mais de 10 pacientes',
+    '0_5': `0 a 5 ${t.patients}`,
+    '6_10': `6 a 10 ${t.patients}`,
+    more_10: `mais de 10 ${t.patients}`,
     student: 'estudante',
   }[profile.patientVolume]
   return `${usage} · ${volume}`
 }
 
-function suggestedActions(profile?: OnboardingProfile, stats?: any): SuggestedAction[] {
+function suggestedActions(t: Terms, profile?: OnboardingProfile, stats?: any): SuggestedAction[] {
   if (!profile) return []
 
   const actions: SuggestedAction[] = []
@@ -101,7 +103,7 @@ function suggestedActions(profile?: OnboardingProfile, stats?: any): SuggestedAc
       add({
         id: 'booking',
         title: 'Ative o link publico',
-        text: 'Permita que pacientes escolham horarios disponiveis sem troca de mensagens.',
+        text: `Permita que ${t.patients} escolham horarios disponiveis sem troca de mensagens.`,
         href: '/agendamentos?tab=settings',
         cta: 'Configurar link',
         icon: ExternalLink,
@@ -113,7 +115,7 @@ function suggestedActions(profile?: OnboardingProfile, stats?: any): SuggestedAc
         title: 'Organize prontuario e evolucao',
         text: 'Depois da primeira sessao, registre a evolucao em um fluxo simples.',
         href: '/pacientes',
-        cta: 'Ver pacientes',
+        cta: `Ver ${t.patients}`,
         icon: NotebookPen,
       })
     }
@@ -154,13 +156,14 @@ function suggestedActions(profile?: OnboardingProfile, stats?: any): SuggestedAc
 }
 
 export default function DashboardPage() {
+  const t = useTerms()
   const { data: stats, isLoading: loading } = useDashboard()
   const { data: recentSessions = [] } = useSessions()
   const user = useAuthStore(s => s.user)
   const onboardingCompleted = useOnboardingStore(s => s.completed)
   const onboardingProfile = useOnboardingStore(s => s.profile)
   const firstName = user?.name?.split(' ')[0] ?? 'Psicólogo(a)'
-  const [sessionDefaults, setSessionDefaults] = useState<{ patientId: string; date: string; appointmentId: string } | null>(null)
+  const [sessionDefaults, setSessionDefaults] = useState<{ patientId: string; date: string; appointmentId: string; modality?: 'presencial' | 'online' } | null>(null)
 
 
   const today = format(new Date(), 'yyyy-MM-dd')
@@ -170,9 +173,15 @@ export default function DashboardPage() {
 
   const s = stats ?? {} as any
   const sessionsToday = s?.todayAppointments?.length ?? 0
+  const registeredAppointmentIds = new Set(recentSessions.map((session: any) => session.appointmentId).filter(Boolean))
+  const completedWithoutRecord = (s?.todayAppointments ?? []).filter((appointment: any) =>
+    appointment.status === 'completed' && !registeredAppointmentIds.has(appointment.id)
+  )
+  const scheduledToday = (s?.todayAppointments ?? []).filter((appointment: any) => appointment.status === 'scheduled')
+  const dailyPendingCount = completedWithoutRecord.length + overduePayments.length
   const registeredSessions = Number(s?.registeredSessions ?? 0)
   const estimatedSavedMinutes = Math.max(registeredSessions * 30, s?.roi?.estimatedMinutesSaved ?? 0)
-  const nextActions = suggestedActions(onboardingProfile, s)
+  const nextActions = suggestedActions(t, onboardingProfile, s)
 
   function openVideoAppointment(appt: any) {
     const link = appt.meetingUrl || String(appt.notes ?? '').match(VIDEO_LINK_RE)?.[0]
@@ -237,7 +246,7 @@ export default function DashboardPage() {
           <div className="mt-5 flex items-center gap-3 pt-4 border-t border-white/10">
             <div className="flex items-center gap-1.5 text-xs text-sage-100">
               <CalendarCheck className="w-3.5 h-3.5 text-sage-300" />
-              <span>{sessionsToday} {sessionsToday === 1 ? 'sessão' : 'sessões'} hoje</span>
+              <span>{sessionsToday} {sessionsToday === 1 ? t.session : t.sessions} hoje</span>
             </div>
             {(s?.pendingPayments ?? 0) > 0 && (
               <>
@@ -274,13 +283,57 @@ export default function DashboardPage() {
             <AlertTriangle className="w-4 h-4 text-amber-500 dark:text-amber-200" />
           </div>
           <p className="text-sm text-amber-800 dark:text-amber-100">
-            <strong>{s.inactivePatients} pessoa{s.inactivePatients !== 1 ? 's' : ''}</strong> sem sessão há mais de 30 dias.{' '}
+            <strong>{s.inactivePatients} pessoa{s.inactivePatients !== 1 ? 's' : ''}</strong> sem {t.session} há mais de 30 dias.{' '}
             <Link to="/pacientes" className="underline underline-offset-2 hover:no-underline font-medium">
               Ver quem são →
             </Link>
           </p>
         </div>
       )}
+
+      <section className="card border-sage-100 bg-gradient-to-br from-white to-sage-50/50 dark:border-white/10 dark:from-cognia-panel dark:to-cognia-panel">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sage-100 text-sage-700 dark:bg-white/10 dark:text-sage-200">
+              <ListTodo className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-neutral-800 dark:text-white">Meu dia</h2>
+              <p className="text-xs text-neutral-500 dark:text-neutral-300">
+                {dailyPendingCount === 0 ? 'Nenhuma pendência crítica. Você está em dia.' : `${dailyPendingCount} ação${dailyPendingCount === 1 ? '' : 'ões'} para encerrar o dia.`}
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-center sm:min-w-[360px]">
+            <div className="rounded-xl bg-white px-3 py-2 dark:bg-white/5">
+              <strong className="block text-lg text-neutral-800 dark:text-white">{scheduledToday.length}</strong>
+              <span className="text-[11px] text-neutral-500 dark:text-neutral-300">a atender</span>
+            </div>
+            <div className="rounded-xl bg-white px-3 py-2 dark:bg-white/5">
+              <strong className={`block text-lg ${completedWithoutRecord.length ? 'text-amber-600' : 'text-neutral-800 dark:text-white'}`}>{completedWithoutRecord.length}</strong>
+              <span className="text-[11px] text-neutral-500 dark:text-neutral-300">sem evolução</span>
+            </div>
+            <Link to="/financeiro" className="rounded-xl bg-white px-3 py-2 transition-colors hover:bg-amber-50 dark:bg-white/5 dark:hover:bg-white/10">
+              <strong className={`block text-lg ${overduePayments.length ? 'text-rose-600' : 'text-neutral-800 dark:text-white'}`}>{overduePayments.length}</strong>
+              <span className="text-[11px] text-neutral-500 dark:text-neutral-300">em atraso</span>
+            </Link>
+          </div>
+        </div>
+        {completedWithoutRecord.length > 0 && (
+          <div className="mt-4 border-t border-sage-100 pt-3 dark:border-white/10">
+            <p className="mb-2 text-xs font-semibold text-neutral-600 dark:text-neutral-200">Concluir registros de hoje</p>
+            <div className="flex flex-wrap gap-2">
+              {completedWithoutRecord.map((appointment: any) => (
+                <button key={appointment.id} type="button"
+                  onClick={() => setSessionDefaults({ patientId: appointment.patientId, date: appointment.date, appointmentId: appointment.id, modality: appointment.modality })}
+                  className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 hover:bg-amber-100 dark:border-amber-300/20 dark:bg-amber-400/10 dark:text-amber-100">
+                  <NotebookPen className="h-3.5 w-3.5" /> {appointment.patient?.name ?? appointment.patientName ?? t.patientCapitalized}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
 
       {/* ── Stats ───────────────────────────────────────────────────── */}
       {onboardingCompleted && onboardingProfile && nextActions.length > 0 && (
@@ -294,7 +347,7 @@ export default function DashboardPage() {
                 Sugestoes para o seu perfil
               </h2>
               <p className="text-xs text-neutral-400 dark:text-neutral-300">
-                {onboardingSummary(onboardingProfile)}
+                {onboardingSummary(onboardingProfile, t)}
               </p>
             </div>
             <Link to="/configuracoes" className="text-xs font-semibold text-sage-600 hover:text-sage-700 dark:text-sage-300 dark:hover:text-sage-200">
@@ -325,7 +378,7 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard
-          label="Pacientes ativos"
+          label={`${t.patientsCapitalized} ativos`}
           value={s?.activePatients ?? 0}
           icon={<Users className="w-4 h-4" />}
           accent="sage"
@@ -352,6 +405,28 @@ export default function DashboardPage() {
           accent={(s?.pendingPayments ?? 0) > 0 ? 'amber' : 'sage'}
         />
       </div>
+
+      {s?.advancedAnalyticsLocked && (
+        <div className="rounded-2xl border border-sage-200 bg-gradient-to-br from-sage-50 to-white p-5 shadow-card dark:border-white/10 dark:from-cognia-panel dark:to-cognia-panel">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="mb-2 flex items-center gap-2 text-sage-700 dark:text-sage-200">
+                <Sparkles className="h-4 w-4" />
+                <span className="text-xs font-bold uppercase tracking-[0.16em]">Relatórios avançados · Pro</span>
+              </div>
+              <h2 className="text-base font-semibold text-neutral-800 dark:text-white">
+                Comparecimento, faltas, ROI e evolução da receita
+              </h2>
+              <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-300">
+                Os dados básicos continuam disponíveis. O plano Pro libera indicadores para acompanhar a operação.
+              </p>
+            </div>
+            <Link to="/planos" className="btn-primary shrink-0 px-4 py-2 text-sm">
+              Conhecer o Pro
+            </Link>
+          </div>
+        </div>
+      )}
 
       {(s?.clinicIndicators?.totalAppointments ?? 0) > 0 && (
         <div className="card">
@@ -383,7 +458,7 @@ export default function DashboardPage() {
             <div className="rounded-xl bg-neutral-50 px-4 py-3 dark:bg-white/5">
               <Users className="mb-2 h-4 w-4 text-neutral-600 dark:text-neutral-200" />
               <p className="text-xl font-semibold text-neutral-800 dark:text-white">{s.clinicIndicators.avgSessionsPerActivePatient}</p>
-              <p className="text-xs text-neutral-500 dark:text-neutral-300">sessões por paciente</p>
+              <p className="text-xs text-neutral-500 dark:text-neutral-300">{t.sessions} por {t.patient}</p>
             </div>
           </div>
           {(s.clinicIndicators.noShows ?? 0) + (s.clinicIndicators.cancelled ?? 0) > 0 && (
@@ -395,7 +470,7 @@ export default function DashboardPage() {
       )}
 
       {/* ── Agenda + Receita ─────────────────────────────────────────── */}
-      {registeredSessions > 0 && (
+      {registeredSessions > 0 && !s?.advancedAnalyticsLocked && (
         <div className="rounded-2xl border border-sage-100 bg-white p-4 shadow-card dark:border-white/10 dark:bg-cognia-panel">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
@@ -414,7 +489,7 @@ export default function DashboardPage() {
               <div className="rounded-xl bg-sage-50 px-3 py-3 dark:bg-white/5">
                 <CheckCircle2 className="mb-1 h-4 w-4 text-sage-700 dark:text-sage-200" />
                 <p className="text-base font-semibold text-neutral-800 dark:text-white">{registeredSessions}</p>
-                <p className="text-xs text-neutral-500 dark:text-neutral-300">sessões registradas</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-300">{t.sessions} registradas</p>
               </div>
               <div className="rounded-xl bg-mist-50 px-3 py-3 dark:bg-white/5">
                 <Ban className="mb-1 h-4 w-4 text-mist-700 dark:text-mist-200" />
@@ -438,9 +513,9 @@ export default function DashboardPage() {
 
           {registeredSessions >= 5 && (
             <div className="mt-4 grid gap-2 border-t border-neutral-100 pt-4 text-sm text-neutral-600 dark:border-white/10 dark:text-neutral-300 sm:grid-cols-3">
-              <span>Última semana: {s?.sessionsThisWeek ?? 0} sessões</span>
+              <span>Última semana: {s?.sessionsThisWeek ?? 0} {t.sessions}</span>
               <span>Proxima semana: tendencia de crescimento</span>
-              <span>Pacientes em inadimplencia: {s?.pendingPayments ?? 0}</span>
+              <span>{t.patientsCapitalized} em inadimplencia: {s?.pendingPayments ?? 0}</span>
             </div>
           )}
 
@@ -510,10 +585,10 @@ export default function DashboardPage() {
               <div className="w-12 h-12 bg-sage-50 rounded-2xl flex items-center justify-center mx-auto mb-3 dark:bg-white/5">
                 <Sparkles className="w-5 h-5 text-sage-400 dark:text-sage-200" />
               </div>
-              <p className="text-sm font-medium text-neutral-600 mb-1 dark:text-neutral-100">Nenhuma sessão hoje</p>
+              <p className="text-sm font-medium text-neutral-600 mb-1 dark:text-neutral-100">Nenhuma {t.session} hoje</p>
               <p className="text-xs text-neutral-400 mb-4 dark:text-neutral-300">Um bom dia para organizar seus registros.</p>
               <Link to="/agenda" className="btn-secondary text-xs px-4 py-2">
-                Agendar sessão
+                Agendar {t.session}
               </Link>
             </div>
           ) : (
@@ -561,11 +636,11 @@ export default function DashboardPage() {
                     )}
                     {appt.status !== 'completed' && (
                       <button
-                        onClick={() => setSessionDefaults({ patientId: appt.patientId, date: appt.date, appointmentId: appt.id })}
-                        title="Registrar sessão"
+                        onClick={() => setSessionDefaults({ patientId: appt.patientId, date: appt.date, appointmentId: appt.id, modality: appt.modality })}
+                        title={`Preparar ou registrar ${t.session}`}
                         className="opacity-100 transition-opacity flex items-center gap-1 rounded-xl bg-sage-50 border border-sage-200 px-2 py-1 text-xs font-medium text-sage-700 hover:bg-sage-100 dark:border-sage-300/20 dark:bg-sage-400/10 dark:text-sage-100 dark:hover:bg-sage-400/15 sm:opacity-0 sm:group-hover:opacity-100"
                       >
-                        <NotebookPen className="w-3 h-3" /> Registrar
+                        <NotebookPen className="w-3 h-3" /> Preparar
                       </button>
                     )}
                   </div>
@@ -594,13 +669,19 @@ export default function DashboardPage() {
           })()}
 
           <div className="flex-1 min-h-[100px]">
-            <LightweightChart
-              data={(s?.revenueChart ?? []).map((item: any) => ({ label: item.mes, value: Number(item.valor) || 0 }))}
-              height={110}
-              color="#4DA8DA"
-              fillOpacity={0.22}
-              formatValue={formatCurrency}
-            />
+            {s?.advancedAnalyticsLocked ? (
+              <div className="flex h-[110px] items-center justify-center rounded-xl bg-neutral-50 px-4 text-center text-xs text-neutral-500 dark:bg-white/5 dark:text-neutral-300">
+                Histórico e comparação mensal disponíveis no plano Pro.
+              </div>
+            ) : (
+              <LightweightChart
+                data={(s?.revenueChart ?? []).map((item: any) => ({ label: item.mes, value: Number(item.valor) || 0 }))}
+                height={110}
+                color="#4DA8DA"
+                fillOpacity={0.22}
+                formatValue={formatCurrency}
+              />
+            )}
           </div>
 
           <Link to="/financeiro"
@@ -615,7 +696,7 @@ export default function DashboardPage() {
       {recentSessions.length > 0 && (
         <div className="card">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="section-title mb-0">Sessões recentes</h2>
+            <h2 className="section-title mb-0">{t.sessionsCapitalized} recentes</h2>
             <Link to="/sessoes"
               className="flex items-center gap-1 text-xs font-medium text-sage-600 hover:text-sage-700 transition-colors dark:text-sage-300 dark:hover:text-sage-200">
               Ver todas <ArrowRight className="w-3 h-3" />

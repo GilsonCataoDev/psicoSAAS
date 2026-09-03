@@ -7,6 +7,7 @@ import { User } from '../auth/entities/user.entity'
 import { Subscription } from './entities/subscription.entity'
 import { WebhookEvent } from './entities/webhook-event.entity'
 import { AsaasService } from './asaas.service'
+import { secretsMatch } from '../../common/crypto/encrypt.util'
 
 @Injectable()
 export class BillingWebhookService {
@@ -34,7 +35,7 @@ export class BillingWebhookService {
       headers['access-token'] ??
       payload?.accessToken
 
-    return received === expected
+    return secretsMatch(typeof received === 'string' ? received : undefined, expected)
   }
 
   async process(payload: any): Promise<void> {
@@ -72,6 +73,14 @@ export class BillingWebhookService {
         await this.applyPromotionCycle(subscription, payload)
         break
       case 'PAYMENT_OVERDUE':
+      case 'PAYMENT_DELETED':
+      case 'PAYMENT_REFUNDED':
+      case 'PAYMENT_PARTIALLY_REFUNDED':
+      case 'PAYMENT_REFUND_IN_PROGRESS':
+      case 'PAYMENT_CHARGEBACK_REQUESTED':
+      case 'PAYMENT_CHARGEBACK_DISPUTE':
+      case 'PAYMENT_AWAITING_CHARGEBACK_REVERSAL':
+      case 'PAYMENT_RECEIVED_IN_CASH_UNDONE':
         subscription.status = 'past_due'
         subscription.trialEndsAt = null
         this.sendPaymentFailedEmail(subscription.userId).catch((err) => {
@@ -80,8 +89,16 @@ export class BillingWebhookService {
         break
       case 'SUBSCRIPTION_CANCELLED':
       case 'SUBSCRIPTION_DELETED':
-        subscription.status = 'canceled'
-        subscription.cancelAtPeriodEnd = false
+      case 'SUBSCRIPTION_INACTIVATED':
+        if (
+          subscription.cancelAtPeriodEnd
+          && subscription.currentPeriodEnd
+          && new Date(subscription.currentPeriodEnd).getTime() > Date.now()
+        ) {
+          subscription.status = 'active'
+        } else {
+          this.downgradeToFree(subscription)
+        }
         break
       default:
         this.logger.log(`[Asaas webhook] Evento ignorado event=${eventType}`)
@@ -114,7 +131,11 @@ export class BillingWebhookService {
     }
 
     try {
-      await this.asaas.updateSubscriptionPlan(subscription.gatewaySubscriptionId, subscription.plan)
+      await this.asaas.updateSubscriptionPlan(
+        subscription.gatewaySubscriptionId,
+        subscription.plan,
+        { updatePendingPayments: true },
+      )
       this.logger.log(`[Asaas webhook] Promo ${subscription.promoCode} encerrada; assinatura ${subscription.id} voltou ao valor cheio`)
       subscription.lastPromoPaymentId = paymentId
       subscription.promoCyclesUsed = nextCycle
@@ -208,6 +229,22 @@ export class BillingWebhookService {
       netValue: payment?.netValue ?? null,
       billingType: payment?.billingType ?? null,
     }
+  }
+
+  private downgradeToFree(subscription: Subscription): void {
+    subscription.plan = 'free'
+    subscription.status = 'active'
+    subscription.gatewayCustomerId = null
+    subscription.gatewaySubscriptionId = null
+    subscription.currentPeriodEnd = new Date()
+    subscription.trialEndsAt = null
+    subscription.cancelAtPeriodEnd = false
+    subscription.promoCode = null
+    subscription.promoDiscountPercent = 0
+    subscription.promoCyclesTotal = 0
+    subscription.promoCyclesUsed = 0
+    subscription.regularMonthlyValue = null
+    subscription.lastPromoPaymentId = null
   }
 
   private async sendPaymentFailedEmail(userId: string): Promise<void> {

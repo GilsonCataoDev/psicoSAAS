@@ -66,14 +66,37 @@
         font-weight: 700;
         cursor: pointer;
       }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          color-scheme: dark;
+          background: #101915;
+          color: #f2f7f4;
+        }
+
+        main {
+          border-color: #2a4438;
+          background: #17241e;
+          box-shadow: none;
+        }
+
+        p {
+          color: #b7c8bf;
+        }
+      }
     </style>
   </head>
   <body>
     <main>
       <div class="mark">UC</div>
       <h1>Sem conexao no momento</h1>
-      <p>Algumas telas do UseCognia precisam de internet para proteger e sincronizar os dados clinicos. Verifique a conexao e tente novamente.</p>
+      <p>Seus dados continuam protegidos. O UseCognia precisa de internet para carregar e sincronizar informacoes clinicas.</p>
       <button type="button" onclick="window.location.reload()">Tentar novamente</button>
     </main>
+    <script>
+      window.addEventListener('online', function () {
+        window.location.reload()
+      })
+    </script>
   </body>
 </html>

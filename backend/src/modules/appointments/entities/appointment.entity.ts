@@ -4,6 +4,7 @@ import {
 } from 'typeorm'
 import { Patient } from '../../patients/entities/patient.entity'
 import { User } from '../../auth/entities/user.entity'
+import { encryptedTextTransformer } from '../../../common/crypto/encrypt.util'
 
 @Entity('appointments')
 export class Appointment {
@@ -14,15 +15,15 @@ export class Appointment {
   @Column({ type: 'text', default: 'scheduled' }) status: string
   @Column({ type: 'text', default: 'presencial' }) modality: string
   @Column({ nullable: true }) meetingUrl?: string
-  @Column({ nullable: true }) notes?: string
+  @Column({ type: 'text', nullable: true, transformer: encryptedTextTransformer }) notes?: string
   @Column({ default: false }) isRecurring: boolean
   @Column({ nullable: true }) recurringFrequency?: string
   @Column({ nullable: true }) recurringGroupId?: string
   @Column({ default: false }) isFixedScheduleException: boolean
   @Column({ nullable: true }) originalDate?: string
   @Column({ nullable: true }) originalTime?: string
-  @Column({ type: 'timestamptz', nullable: true }) reminder24hSentAt?: Date
-  @Column({ type: 'timestamptz', nullable: true }) reminder2hSentAt?: Date
+  @Column({ type: 'timestamptz', nullable: true }) reminder24hSentAt?: Date | null
+  @Column({ type: 'timestamptz', nullable: true }) reminder2hSentAt?: Date | null
   @Column() patientId: string
   @ManyToOne(() => Patient, (p) => p.appointments, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'patientId' }) patient: Relation<Patient>

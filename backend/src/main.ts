@@ -16,6 +16,15 @@ import helmet from 'helmet'
 import * as cookieParser from 'cookie-parser'
 import compression = require('compression')
 
+// Placeholders do backend/.env.example — se algum desses valores chegar em
+// produção, quer dizer que o .env foi copiado sem ser editado. Têm mais de
+// 32 caracteres, então passariam despercebidos pela checagem de comprimento.
+const KNOWN_SECRET_PLACEHOLDERS = new Set([
+  'your-super-secret-jwt-key-change-in-production-min-32-chars',
+  'your-sign-secret-key-change-in-production-min-32-chars',
+  'change-this-encryption-secret-min-32-chars',
+])
+
 async function bootstrap() {
   // ── Validação de variáveis críticas na inicialização ───────────────────────
   const requiredEnv = ['JWT_SECRET', 'DATABASE_URL', 'SIGN_SECRET', 'ENCRYPTION_KEY']
@@ -31,17 +40,44 @@ async function bootstrap() {
   if ((process.env.ENCRYPTION_KEY ?? '').length < 32) {
     throw new Error('ENCRYPTION_KEY deve ter ao menos 32 caracteres')
   }
+  for (const key of ['JWT_SECRET', 'SIGN_SECRET', 'ENCRYPTION_KEY']) {
+    if (KNOWN_SECRET_PLACEHOLDERS.has(process.env[key] ?? '')) {
+      throw new Error(
+        `${key} ainda está com o valor de exemplo do .env.example. Gere um valor real com: openssl rand -hex 32`,
+      )
+    }
+  }
   if (process.env.NODE_ENV === 'production' && !process.env.ASAAS_WEBHOOK_TOKEN) {
     throw new Error('ASAAS_WEBHOOK_TOKEN obrigatório em produção para validar webhooks do Asaas')
   }
+  if (process.env.NODE_ENV === 'production' && !process.env.ADMIN_EMAILS) {
+    throw new Error('ADMIN_EMAILS obrigatório em produção (sem fallback hardcoded de admin)')
+  }
+  if (process.env.NODE_ENV === 'production' && process.env.TYPEORM_SYNC === 'true') {
+    throw new Error('TYPEORM_SYNC=true é proibido em produção. Use migrations: npm run migration:run')
+  }
 
   // ── Sentry (erros em produção) ─────────────────────────────────────────────
+  // Nunca deve receber dados clínicos: sendDefaultPii fica explicitamente
+  // desligado e beforeSend remove cookies/Authorization e faz uma varredura
+  // best-effort por padrões de e-mail/telefone em campos livres (defesa
+  // extra — o ideal é nunca colocar PII em `extra`, mas erros futuros podem
+  // vazar algo sem essa camada).
   if (process.env.SENTRY_DSN) {
     const Sentry = await import('@sentry/node')
     Sentry.init({
       dsn: process.env.SENTRY_DSN,
       environment: process.env.NODE_ENV ?? 'development',
       tracesSampleRate: 0.1,   // 10% das transações
+      sendDefaultPii: false,
+      beforeSend(event) {
+        if (event.request) {
+          delete event.request.cookies
+          if (event.request.headers) delete event.request.headers['authorization']
+        }
+        scrubPiiPatterns(event)
+        return event
+      },
     })
   }
 
@@ -50,6 +86,10 @@ async function bootstrap() {
   // exatos recebidos — o body-parser padrão já reconstrói o JSON, o que
   // invalidaria a assinatura HMAC calculada sobre o payload original.
   const app = await NestFactory.create(AppModule, { rawBody: true })
+
+  // Confia no X-Forwarded-For do primeiro proxy (Railway/Vercel/Cloudflare).
+  // Sem isso, req.ip é sempre o IP do proxy e o rate-limit por IP não funciona.
+  app.getHttpAdapter().getInstance().set('trust proxy', 1)
 
   // ── Headers de segurança HTTP (Helmet) ─────────────────────────────────────
   app.use(helmet({
@@ -78,8 +118,6 @@ async function bootstrap() {
     'http://localhost:5173',
     'http://127.0.0.1:5173',
     'https://gilsoncataodev.github.io',
-    'http://usecognia.com.br',
-    'http://www.usecognia.com.br',
     'https://usecognia.com.br',
     'https://www.usecognia.com.br',
     'https://usecognia.vercel.app',
@@ -130,3 +168,23 @@ async function bootstrap() {
   new Logger('Bootstrap').log(`UseCognia API rodando na porta ${port}`)
 }
 bootstrap()
+
+const EMAIL_PATTERN = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g
+const PHONE_PATTERN = /(?:\+?55)?\s*\(?\d{2}\)?\s*9?\d{4}-?\d{4}/g
+
+/** Redação best-effort de e-mail/telefone em campos livres antes de enviar ao Sentry. */
+function scrubPiiPatterns(event: Record<string, any>): void {
+  const redact = (value: unknown): unknown => {
+    if (typeof value === 'string') {
+      return value.replace(EMAIL_PATTERN, '[redacted-email]').replace(PHONE_PATTERN, '[redacted-phone]')
+    }
+    if (Array.isArray(value)) return value.map(redact)
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, redact(v)]))
+    }
+    return value
+  }
+
+  if (event.message) event.message = redact(event.message)
+  if (event.extra) event.extra = redact(event.extra)
+}

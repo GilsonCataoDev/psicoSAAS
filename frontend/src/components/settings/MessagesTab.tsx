@@ -1,7 +1,6 @@
-import { type UseMutationResult } from '@tanstack/react-query'
-import { type Template } from '@/hooks/api/templates'
 import { type Prefs } from './types'
 import { type WhatsAppLog, type WhatsAppStatus } from './types'
+import { useTerms } from '@/hooks/useTerms'
 
 interface Props {
   prefs: Prefs
@@ -14,13 +13,10 @@ interface Props {
   whatsappQr: string
   whatsappBusy: boolean
   whatsappLogs: WhatsAppLog[]
-  messageTemplates: Template[]
-  createTemplate: UseMutationResult<any, any, any, any>
   connectWhatsApp: () => void
   testWhatsApp: () => void
   resetWhatsApp: () => void
   savePrefs: (section?: string) => void
-  saveTemplate: (type: 'whatsapp_message' | 'receipt', name: string, content: string) => void
 }
 
 function previewMessage(template: string) {
@@ -33,9 +29,9 @@ function previewMessage(template: string) {
 export function MessagesTab({
   prefs, setPref, savingPrefs, hasProAutomation,
   whatsappConnected, whatsappConfigured, whatsappStatus, whatsappQr, whatsappBusy, whatsappLogs,
-  messageTemplates, createTemplate,
-  connectWhatsApp, testWhatsApp, resetWhatsApp, savePrefs, saveTemplate,
+  connectWhatsApp, testWhatsApp, resetWhatsApp, savePrefs,
 }: Props) {
+  const t = useTerms()
   return (
     <div className="space-y-5">
       <div className="card space-y-4">
@@ -50,7 +46,7 @@ export function MessagesTab({
             <p className="font-medium">WhatsApp conectado</p>
             <p className="mt-1 text-sage-700">
               {whatsappStatus?.profileName ? `${whatsappStatus.profileName} · ` : ''}
-              {whatsappStatus?.phone ? `+${whatsappStatus.phone}` : 'Numero conectado pela instancia da psicologa'}
+              {whatsappStatus?.phone ? `+${whatsappStatus.phone}` : 'Numero conectado pela instancia do profissional'}
             </p>
           </div>
         )}
@@ -93,7 +89,7 @@ export function MessagesTab({
                 {whatsappBusy ? 'Gerando QR Code...' : whatsappQr ? 'Gerar novo QR Code' : 'Conectar WhatsApp'}
               </button>
             )}
-            {!whatsappConnected && whatsappQr && (
+            {(whatsappConnected || whatsappQr) && (
               <button type="button" onClick={resetWhatsApp} disabled={whatsappBusy} className="btn-secondary text-sm">
                 Reiniciar conexao
               </button>
@@ -123,6 +119,16 @@ export function MessagesTab({
                   <p className="text-xs text-neutral-400">
                     {new Date(log.createdAt).toLocaleString('pt-BR')} {log.recipientPhone ? `· +${log.recipientPhone}` : ''}
                   </p>
+                  {log.status === 'sent' && log.providerStatus === 'unverified' && (
+                    <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                      Enviado, mas não foi possível confirmar se o conteúdo chegou ao {t.patient}. Se ele não recebeu, reenvie.
+                    </p>
+                  )}
+                  {log.status === 'sent' && log.providerStatus !== 'unverified' && typeof log.contentLength === 'number' && (
+                    <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                      Conteúdo confirmado · {log.contentLength} caracteres
+                    </p>
+                  )}
                   {log.status === 'failed' && log.error && (
                     <p className="mt-1 text-xs text-red-600">{log.error}</p>
                   )}
@@ -138,20 +144,6 @@ export function MessagesTab({
 
       <div className="card space-y-4">
         <h2 className="section-title">Modelo de confirmação</h2>
-        {messageTemplates.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {messageTemplates.map(template => (
-              <button
-                key={template.id}
-                type="button"
-                className="rounded-full border border-sage-100 bg-sage-50 px-3 py-1 text-xs font-medium text-sage-700 hover:bg-sage-100"
-                onClick={() => setPref('confirmationTemplate', template.content)}
-              >
-                Usar {template.name}
-              </button>
-            ))}
-          </div>
-        )}
         <p className="text-xs text-neutral-400">
           Variáveis: <code className="bg-neutral-100 px-1 rounded">{'{{nome}}'}</code>{' '}
           <code className="bg-neutral-100 px-1 rounded">{'{{data}}'}</code>{' '}
@@ -165,32 +157,13 @@ export function MessagesTab({
           value={prefs.confirmationTemplate}
           onChange={e => setPref('confirmationTemplate', e.target.value)} />
         <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Prévia para paciente</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Prévia para {t.patient}</p>
           <p className="whitespace-pre-line text-sm text-neutral-700">{previewMessage(prefs.confirmationTemplate)}</p>
         </div>
-        <button type="button" className="btn-secondary text-xs w-fit"
-          disabled={!hasProAutomation || createTemplate.isPending}
-          onClick={() => saveTemplate('whatsapp_message', 'Confirmacao personalizada', prefs.confirmationTemplate)}>
-          Salvar como template
-        </button>
       </div>
 
       <div className="card space-y-4">
-        <h2 className="section-title">Modelo de lembrete</h2>
-        {messageTemplates.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {messageTemplates.map(template => (
-              <button
-                key={template.id}
-                type="button"
-                className="rounded-full border border-sage-100 bg-sage-50 px-3 py-1 text-xs font-medium text-sage-700 hover:bg-sage-100"
-                onClick={() => setPref('reminderTemplate', template.content)}
-              >
-                Usar {template.name}
-              </button>
-            ))}
-          </div>
-        )}
+        <h2 className="section-title">Modelo de lembrete — 24h antes</h2>
         <p className="text-xs text-neutral-400">
           Variáveis: <code className="bg-neutral-100 px-1 rounded">{'{{nome}}'}</code>{' '}
           <code className="bg-neutral-100 px-1 rounded">{'{{data}}'}</code>{' '}
@@ -198,17 +171,29 @@ export function MessagesTab({
         </p>
         <textarea rows={3} className="input-field resize-none text-sm"
           disabled={!hasProAutomation}
-          value={prefs.reminderTemplate}
-          onChange={e => setPref('reminderTemplate', e.target.value)} />
+          value={prefs.reminderTemplate24h}
+          onChange={e => setPref('reminderTemplate24h', e.target.value)} />
         <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Prévia para paciente</p>
-          <p className="whitespace-pre-line text-sm text-neutral-700">{previewMessage(prefs.reminderTemplate)}</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Prévia para {t.patient}</p>
+          <p className="whitespace-pre-line text-sm text-neutral-700">{previewMessage(prefs.reminderTemplate24h)}</p>
         </div>
-        <button type="button" className="btn-secondary text-xs w-fit"
-          disabled={!hasProAutomation || createTemplate.isPending}
-          onClick={() => saveTemplate('whatsapp_message', 'Lembrete personalizado', prefs.reminderTemplate)}>
-          Salvar como template
-        </button>
+      </div>
+
+      <div className="card space-y-4">
+        <h2 className="section-title">Modelo de lembrete — 1h antes</h2>
+        <p className="text-xs text-neutral-400">
+          Variáveis: <code className="bg-neutral-100 px-1 rounded">{'{{nome}}'}</code>{' '}
+          <code className="bg-neutral-100 px-1 rounded">{'{{data}}'}</code>{' '}
+          <code className="bg-neutral-100 px-1 rounded">{'{{hora}}'}</code>
+        </p>
+        <textarea rows={3} className="input-field resize-none text-sm"
+          disabled={!hasProAutomation}
+          value={prefs.reminderTemplate2h}
+          onChange={e => setPref('reminderTemplate2h', e.target.value)} />
+        <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">Prévia para {t.patient}</p>
+          <p className="whitespace-pre-line text-sm text-neutral-700">{previewMessage(prefs.reminderTemplate2h)}</p>
+        </div>
       </div>
 
       <div className="flex justify-end">

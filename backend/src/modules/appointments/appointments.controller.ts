@@ -1,13 +1,14 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
+import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
 import { AppointmentsService } from './appointments.service'
 import { CreateAppointmentDto } from './dto/create-appointment.dto'
-import { UpdateAppointmentDto } from './dto/update-appointment.dto'
+import { UpdateAppointmentDto, UpdateAppointmentStatusDto } from './dto/update-appointment.dto'
 import { UpdateGroupDto } from './dto/update-group.dto'
 
 @Controller('appointments')
-@UseGuards(JwtAuthGuard, CsrfGuard)
+@UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
 export class AppointmentsController {
   constructor(private svc: AppointmentsService) {}
 
@@ -54,8 +55,8 @@ export class AppointmentsController {
   }
 
   @Patch(':id/status')
-  updateStatus(@Param('id') id: string, @Body('status') status: string, @Request() req: any) {
-    return this.svc.updateStatus(id, status, req.user.id)
+  updateStatus(@Param('id') id: string, @Body() body: UpdateAppointmentStatusDto, @Request() req: any) {
+    return this.svc.updateStatus(id, body.status, req.user.id)
   }
 
   @Delete(':id') remove(@Param('id') id: string, @Request() req: any) { return this.svc.remove(id, req.user.id) }

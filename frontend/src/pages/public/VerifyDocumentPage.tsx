@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { Shield, CheckCircle2, XCircle, Loader2, ExternalLink, FileText } from 'lucide-react'
 import { api, type AuthAxiosRequestConfig } from '@/lib/api'
 import BrandLogo from '@/components/ui/BrandLogo'
+import { councilLabel } from '@/lib/professions'
 
 type DocType = 'declaracao' | 'recibo' | 'relatorio' | 'atestado' | 'encaminhamento'
 
@@ -19,10 +20,13 @@ interface VerifyResult {
   document?: {
     signCode: string
     type: DocType
+    /** Ja resolvido pela profissao de quem assinou; TYPE_LABELS e so fallback. */
+    typeLabel?: string
     title: string
     patientName: string
     psychologistName: string
     psychologistCrp: string
+    profession?: string
     signedAt: string
     createdAt: string
     fingerprint?: string
@@ -106,7 +110,7 @@ export default function VerifyDocumentPage() {
                   <div>
                     <p className="text-xs text-neutral-400">Tipo de documento</p>
                     <p className="font-medium text-neutral-800">
-                      {TYPE_LABELS[result.document.type] ?? result.document.type}
+                      {result.document.typeLabel ?? TYPE_LABELS[result.document.type] ?? result.document.type}
                     </p>
                   </div>
                 </div>
@@ -118,7 +122,7 @@ export default function VerifyDocumentPage() {
                   {[
                     { label: 'Emitido para', value: result.document.patientName },
                     { label: 'Psicólogo(a) responsável', value: result.document.psychologistName },
-                    { label: 'CRP', value: result.document.psychologistCrp },
+                    { label: councilLabel(result.document.profession), value: result.document.psychologistCrp },
                     {
                       label: 'Data de assinatura',
                       value: new Date(result.document.signedAt).toLocaleDateString('pt-BR', {

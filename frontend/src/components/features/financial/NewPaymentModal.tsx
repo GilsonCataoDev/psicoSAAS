@@ -3,6 +3,8 @@ import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
 import { usePatients, useCreateFinancial } from '@/hooks/useApi'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
+import { EXPENSE_CATEGORIES } from '@/lib/financial-forecast'
+import { useTerms } from '@/hooks/useTerms'
 
 type FormData = {
   patientId: string
@@ -10,16 +12,18 @@ type FormData = {
   amount: number
   method: string
   type: 'income' | 'expense'
+  category: string
   dueDate: string
   paidNow: boolean
 }
 
 export default function NewPaymentModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const t = useTerms()
   const { data: patients = [] } = usePatients()
   const createFinancial = useCreateFinancial()
 
   const { register, handleSubmit, watch, reset, formState: { isSubmitting } } = useForm<FormData>({
-    defaultValues: { type: 'income', method: 'pix', dueDate: new Date().toISOString().split('T')[0], paidNow: false },
+    defaultValues: { type: 'income', method: 'pix', category: '', dueDate: new Date().toISOString().split('T')[0], paidNow: false },
   })
 
   const paidNow = watch('paidNow')
@@ -37,6 +41,7 @@ export default function NewPaymentModal({ open, onClose }: { open: boolean; onCl
         description: data.description,
         amount: data.amount,
         type: data.type,
+        category: data.type === 'expense' ? (data.category || undefined) : undefined,
         dueDate: data.dueDate || undefined,
         status: data.paidNow ? 'paid' : 'pending',
         paidAt: data.paidNow ? new Date().toISOString() : undefined,
@@ -70,18 +75,28 @@ export default function NewPaymentModal({ open, onClose }: { open: boolean; onCl
           </div>
         </div>
 
-        <div>
-          <label className="label">Pessoa (opcional)</label>
-          <select {...register('patientId')} className="input-field">
-            <option value="">Nenhuma</option>
-            {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-        </div>
+        {type === 'expense' ? (
+          <div>
+            <label className="label">Categoria</label>
+            <select {...register('category')} className="input-field">
+              <option value="">Sem categoria</option>
+              {EXPENSE_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+            </select>
+          </div>
+        ) : (
+          <div>
+            <label className="label">Pessoa (opcional)</label>
+            <select {...register('patientId')} className="input-field">
+              <option value="">Nenhuma</option>
+              {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="sm:col-span-2">
             <label className="label">Descrição</label>
-            <input {...register('description', { required: true })} className="input-field" placeholder="Ex: Sessão 23/04, Supervisão..." />
+            <input {...register('description', { required: true })} className="input-field" placeholder={`Ex: ${t.sessionCapitalized} 23/04, Supervisão...`} />
           </div>
           <div>
             <label className="label">Valor (R$)</label>

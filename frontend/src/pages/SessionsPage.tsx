@@ -7,6 +7,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { formatDateRelative } from '@/lib/utils'
 import { useSessions, useDeleteSession } from '@/hooks/useApi'
+import { useTerms } from '@/hooks/useTerms'
 import toast from 'react-hot-toast'
 
 const NewSessionModal = lazy(() => import('@/components/features/sessions/NewSessionModal'))
@@ -14,6 +15,7 @@ const NewSessionModal = lazy(() => import('@/components/features/sessions/NewSes
 const MOODS = ['', '1', '2', '3', '4', '5']
 
 export default function SessionsPage() {
+  const t = useTerms()
   const [showModal, setShowModal] = useState(false)
   const [sessionToDelete, setSessionToDelete] = useState<any | null>(null)
   const [search, setSearch] = useState('')
@@ -34,10 +36,10 @@ export default function SessionsPage() {
     if (!sessionToDelete) return
     try {
       await deleteSession.mutateAsync(sessionToDelete.id)
-      toast.success('Sessão excluída')
+      toast.success(`${t.sessionCapitalized} excluída`)
       setSessionToDelete(null)
     } catch {
-      toast.error('Erro ao excluir sessão')
+      toast.error(`Erro ao excluir ${t.session}`)
     }
   }
 
@@ -45,16 +47,16 @@ export default function SessionsPage() {
     <div className="animate-slide-up space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="page-title">Sessões</h1>
+          <h1 className="page-title">{t.sessionsCapitalized}</h1>
           <p className="page-subtitle">
             {sessions.length > 0
-              ? `${sessions.length} sessão${sessions.length !== 1 ? 'ões' : ''} registrada${sessions.length !== 1 ? 's' : ''}`
+              ? `${sessions.length} ${sessions.length !== 1 ? t.sessions : t.session} registrada${sessions.length !== 1 ? 's' : ''}`
               : 'Registre como foi cada atendimento'}
           </p>
         </div>
-        <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2" aria-label="Como foi a sessão?">
+        <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2" aria-label={`Como foi a ${t.session}?`}>
           <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Como foi a sessão?</span>
+          <span className="hidden sm:inline">Como foi a {t.session}?</span>
         </button>
       </div>
 
@@ -65,7 +67,7 @@ export default function SessionsPage() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar por paciente..."
+            placeholder={`Buscar por ${t.patient}...`}
             className="input-field pl-9 py-2 text-sm"
           />
         </div>
@@ -101,11 +103,11 @@ export default function SessionsPage() {
       {!isLoading && sessions.length === 0 && (
         <EmptyState
           icon={<NotebookPen className="h-7 w-7" strokeWidth={1.8} />}
-          title={hasFilters ? 'Nenhuma sessão encontrada' : 'Nenhuma sessão registrada ainda'}
+          title={hasFilters ? `Nenhuma ${t.session} encontrada` : `Nenhuma ${t.session} registrada ainda`}
           description={hasFilters ? 'Tente ajustar os filtros de busca.' : 'Após cada atendimento, registre o que aconteceu. Seus registros ficam seguros e organizados aqui.'}
           action={!hasFilters ? (
             <button onClick={() => setShowModal(true)} className="btn-primary">
-              Registrar primeira sessão
+              Registrar primeira {t.session}
             </button>
           ) : undefined}
         />
@@ -116,11 +118,11 @@ export default function SessionsPage() {
           {sessions.map(session => (
             <div key={session.id} className="card hover:shadow-lifted hover:-translate-y-px transition-all duration-200 p-4 group">
               <div className="flex items-start gap-3">
-                <Avatar name={session.patient?.name ?? 'Paciente removido'} colorClass={session.patient?.avatarColor} />
+                <Avatar name={session.patient?.name ?? `${t.patientCapitalized} removido`} colorClass={session.patient?.avatarColor} />
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <h3 className="font-semibold text-neutral-800 text-sm">{session.patient?.name ?? 'Paciente removido'}</h3>
+                    <h3 className="font-semibold text-neutral-800 text-sm">{session.patient?.name ?? `${t.patientCapitalized} removido`}</h3>
                     <span className="text-neutral-200 text-xs">-</span>
                     <span className="text-xs text-neutral-400 tabular-nums">{formatDateRelative(session.date)}</span>
                     <span className="text-neutral-200 text-xs hidden sm:inline">-</span>
@@ -133,7 +135,7 @@ export default function SessionsPage() {
                   )}
                   {(session.tags?.length ?? 0) > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1.5">
-                      {session.tags.map(t => <TagBadge key={t} tag={t} small />)}
+                      {session.tags.map(tag => <TagBadge key={tag} tag={tag} small />)}
                     </div>
                   )}
                   <Link
@@ -141,13 +143,13 @@ export default function SessionsPage() {
                     className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-sage-600 hover:text-sage-700"
                   >
                     <FileText className="h-3.5 w-3.5" />
-                    Ver no prontuário
+                    Ver no {t.record}
                   </Link>
                 </div>
 
                 <div className="flex flex-col items-end gap-1.5 shrink-0">
                   {session.mood && (
-                    <span className="text-xl leading-none" title="Humor na sessão">
+                    <span className="text-xl leading-none" title={`Humor na ${t.session}`}>
                       {MOODS[session.mood]}
                     </span>
                   )}
@@ -155,7 +157,7 @@ export default function SessionsPage() {
                   <button
                     onClick={() => setSessionToDelete(session)}
                     className="sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-rose-50 text-neutral-300 hover:text-rose-500"
-                    title="Excluir sessão"
+                    title={`Excluir ${t.session}`}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -177,9 +179,9 @@ export default function SessionsPage() {
       </Suspense>
       <ConfirmDialog
         open={!!sessionToDelete}
-        title="Excluir sessão"
-        description={`Excluir a sessão de ${sessionToDelete?.patient?.name ?? 'paciente removido'}? O registro clínico será removido definitivamente.`}
-        confirmLabel="Excluir sessão"
+        title={`Excluir ${t.session}`}
+        description={`Excluir a ${t.session} de ${sessionToDelete?.patient?.name ?? `${t.patient} removido`}? O registro clínico será removido definitivamente.`}
+        confirmLabel={`Excluir ${t.session}`}
         loading={deleteSession.isPending}
         onClose={() => setSessionToDelete(null)}
         onConfirm={handleDelete}

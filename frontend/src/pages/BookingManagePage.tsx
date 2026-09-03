@@ -4,13 +4,16 @@ import { Link2, Check, X, Wallet, Settings, Clock, RefreshCw, Trash2, MessageCir
 import { copyText, formatCurrency, formatDateRelative } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import { addDays, format, parseISO, startOfWeek } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 import { openWhatsApp } from '@/lib/whatsapp'
 import {
   useBookings, useBookingPage, useSaveBookingPage,
   useConfirmBooking, useRejectBooking, usePayBooking,
   useDailyBookingLink, useAvailability, useSaveAvailability,
-  useSyncBookingAppointments, useBlockedDates, useAddBlockedDate, useRemoveBlockedDate,
+  useSyncBookingAppointments, useBlockedDates, useAddBlockedDate, useAddBlockedWeek, useRemoveBlockedDate,
 } from '@/hooks/useApi'
+import { useTerms } from '@/hooks/useTerms'
 
 const STATUS_CONFIG = {
   pending:   { label: 'Pendente',       className: 'bg-amber-100 text-amber-700'      },
@@ -35,6 +38,7 @@ const BOOKING_FILTERS = [
 ] as const
 
 export default function BookingManagePage() {
+  const t = useTerms()
   const [searchParams] = useSearchParams()
   const [tab, setTab] = useState<'requests' | 'settings'>(
     searchParams.get('tab') === 'settings' ? 'settings' : 'requests'
@@ -69,7 +73,7 @@ export default function BookingManagePage() {
 
   async function confirm(id: string) {
     await confirmBooking.mutateAsync(id)
-    toast.success('Sessão confirmada')
+    toast.success(`${t.sessionCapitalized} confirmada`)
   }
 
   async function reject(id: string) {
@@ -217,14 +221,14 @@ function BookingCard({ booking, onConfirm, onReject, onMarkPaid }: {
   const [messageModalOpen, setMessageModalOpen] = useState(false)
   const [messageDraft, setMessageDraft] = useState('')
 
+  // Usado só na mensagem de WhatsApp pro paciente (defaultPatientMessage/insertCancellationLink) — utm_source fixo aqui é seguro.
   function getCancellationUrl() {
     const token = booking.cancellationCode ?? booking.confirmationToken
     if (!token) return ''
 
     const appBaseUrl = new URL(import.meta.env.BASE_URL || '/', window.location.origin).toString()
-    return booking.cancellationCode
-      ? `${appBaseUrl}c/${token}`
-      : `${appBaseUrl}agendar/cancelar/${token}`
+    const path = booking.cancellationCode ? `c/${token}` : `agendar/cancelar/${token}`
+    return `${appBaseUrl}${path}?utm_source=whatsapp&utm_medium=message`
   }
 
   function defaultPatientMessage() {
@@ -384,7 +388,8 @@ const WEEKDAYS = [
   { d: 0, label: 'Dom' },
 ]
 
-type DaySlot = { enabled: boolean; startTime: string; endTime: string }
+type TimeRange = { startTime: string; endTime: string }
+type DaySlot = { enabled: boolean; ranges: TimeRange[] }
 type BookingModality = 'presencial' | 'online'
 
 const MODALITIES: { key: BookingModality; label: string }[] = [
@@ -395,7 +400,7 @@ const MODALITIES: { key: BookingModality; label: string }[] = [
 function createEmptySchedule(): Record<number, DaySlot> {
   const base: Record<number, DaySlot> = {}
   WEEKDAYS.forEach(({ d }) => {
-    base[d] = { enabled: false, startTime: '09:00', endTime: '18:00' }
+    base[d] = { enabled: false, ranges: [{ startTime: '09:00', endTime: '18:00' }] }
   })
   return base
 }
@@ -423,18 +428,23 @@ function initialBreakInterval(page: any, modality: BookingModality): number {
 }
 
 function BookingSettings({ page }: { page: any }) {
+  const t = useTerms()
   const saveBookingPage = useSaveBookingPage()
   const { data: savedSlots = [] } = useAvailability()
   const saveAvailability = useSaveAvailability()
   const { data: blockedDates = [] } = useBlockedDates()
   const addBlockedDate = useAddBlockedDate()
+  const addBlockedWeek = useAddBlockedWeek()
   const removeBlockedDate = useRemoveBlockedDate()
-  const [blockedForm, setBlockedForm] = useState({ date: '', reason: '' })
-
+  const [blockedForm, setBlockedForm] = useState<{ date: string; reason: string; scope: 'day' | 'week' }>({
+    date: '',
+    reason: '',
+    scope: 'day',
+  })
   const [form, setForm] = useState({
     isActive:           page?.isActive ?? true,
     slug:               page?.slug ?? '',
-    title:               page?.title ?? 'Agende sua sessão',
+    title:               page?.title ?? `Agende sua ${t.session}`,
     avatarUrl:           page?.avatarUrl ?? '',
     description:         page?.description ?? '',
     // +() converte string "150.00" do PostgreSQL decimal para número
@@ -446,7 +456,7 @@ function BookingSettings({ page }: { page: any }) {
     presencialSlotInterval: initialBreakInterval(page, 'presencial'),
     onlineSlotInterval:     initialBreakInterval(page, 'online'),
     minAdvanceDays:      +(page?.minAdvanceDays ?? 0),
-    maxAdvanceDays:      +(page?.maxAdvanceDays ?? 30),
+    allowNextMonthBooking: page?.allowNextMonthBooking ?? false,
     pixKey:              page?.pixKey ?? '',
     confirmationMessage: page?.confirmationMessage ?? '',
     allowPresencial:     page?.allowPresencial ?? true,
@@ -458,7 +468,7 @@ function BookingSettings({ page }: { page: any }) {
     setForm({
       isActive:           page.isActive ?? true,
       slug:               page.slug ?? '',
-      title:               page.title ?? 'Agende sua sessão',
+      title:               page.title ?? `Agende sua ${t.session}`,
       avatarUrl:           page.avatarUrl ?? '',
       description:         page.description ?? '',
       sessionPrice:        +(page.sessionPrice ?? 150),
@@ -469,7 +479,7 @@ function BookingSettings({ page }: { page: any }) {
       presencialSlotInterval: initialBreakInterval(page, 'presencial'),
       onlineSlotInterval:     initialBreakInterval(page, 'online'),
       minAdvanceDays:      +(page.minAdvanceDays ?? 0),
-      maxAdvanceDays:      +(page.maxAdvanceDays ?? 30),
+      allowNextMonthBooking: page.allowNextMonthBooking ?? false,
       pixKey:              page.pixKey ?? '',
       confirmationMessage: page.confirmationMessage ?? '',
       allowPresencial:     page.allowPresencial ?? true,
@@ -493,10 +503,10 @@ function BookingSettings({ page }: { page: any }) {
     }
     MODALITIES.forEach(({ key }) => {
       WEEKDAYS.forEach(({ d }) => {
-        const slot = savedSlots.find(s => s.weekday === d && (s.modality ?? 'online') === key)
-        next[key][d] = slot
-          ? { enabled: true, startTime: slot.startTime.slice(0, 5), endTime: slot.endTime.slice(0, 5) }
-          : { enabled: false, startTime: '09:00', endTime: '18:00' }
+        const daySlots = savedSlots.filter(s => s.weekday === d && (s.modality ?? 'online') === key)
+        next[key][d] = daySlots.length
+          ? { enabled: true, ranges: daySlots.map(s => ({ startTime: s.startTime.slice(0, 5), endTime: s.endTime.slice(0, 5) })) }
+          : { enabled: false, ranges: [{ startTime: '09:00', endTime: '18:00' }] }
       })
     })
     setSchedules(next)
@@ -511,14 +521,25 @@ function BookingSettings({ page }: { page: any }) {
       },
     }))
   }
-  function setTime(d: number, field: 'startTime' | 'endTime', val: string) {
-    setSchedules(s => ({
-      ...s,
-      [scheduleTab]: {
-        ...s[scheduleTab],
-        [d]: { ...s[scheduleTab][d], [field]: val },
-      },
-    }))
+  function setRangeTime(d: number, i: number, field: 'startTime' | 'endTime', val: string) {
+    setSchedules(s => {
+      const ranges = s[scheduleTab][d].ranges.map((r, idx) => idx === i ? { ...r, [field]: val } : r)
+      return { ...s, [scheduleTab]: { ...s[scheduleTab], [d]: { ...s[scheduleTab][d], ranges } } }
+    })
+  }
+  function addRange(d: number) {
+    setSchedules(s => {
+      const arr = s[scheduleTab][d].ranges
+      const last = arr[arr.length - 1] ?? { startTime: '09:00', endTime: '18:00' }
+      const ranges = [...s[scheduleTab][d].ranges, { startTime: last.endTime, endTime: last.endTime }]
+      return { ...s, [scheduleTab]: { ...s[scheduleTab], [d]: { ...s[scheduleTab][d], ranges } } }
+    })
+  }
+  function removeRange(d: number, i: number) {
+    setSchedules(s => {
+      const ranges = s[scheduleTab][d].ranges.filter((_, idx) => idx !== i)
+      return { ...s, [scheduleTab]: { ...s[scheduleTab], [d]: { ...s[scheduleTab][d], ranges } } }
+    })
   }
 
   function minutes(time: string) {
@@ -563,28 +584,19 @@ function BookingSettings({ page }: { page: any }) {
       toast.error('A antecedência mínima precisa ficar entre 0 e 30 dias.')
       return false
     }
-    if (form.maxAdvanceDays < 1 || form.maxAdvanceDays > 180) {
-      toast.error('A antecedência máxima precisa ficar entre 1 e 180 dias.')
-      return false
-    }
-    if (form.maxAdvanceDays < form.minAdvanceDays) {
-      toast.error('A antecedência máxima precisa ser maior que a mínima.')
-      return false
-    }
-
     const invalidSlot = MODALITIES.flatMap(({ key }) =>
       WEEKDAYS
         .filter(({ d }) => schedules[key][d]?.enabled)
-        .map(({ d, label }) => ({ modality: key, label, slot: schedules[key][d] })),
-    ).find(({ modality, slot }) => {
-      const start = minutes(slot.startTime)
-      const end = minutes(slot.endTime)
+        .flatMap(({ d, label }) => schedules[key][d].ranges.map(r => ({ modality: key, label, range: r }))),
+    ).find(({ modality, range }) => {
+      const start = minutes(range.startTime)
+      const end = minutes(range.endTime)
       const duration = modality === 'presencial' ? form.presencialSessionDuration : form.onlineSessionDuration
       return start >= end || end - start < duration
     })
 
     if (invalidSlot) {
-      toast.error(`Revise ${invalidSlot.label} em ${invalidSlot.modality}: horário insuficiente para a duração da sessão.`)
+      toast.error(`Revise ${invalidSlot.label} em ${invalidSlot.modality}: horário insuficiente para a duração da ${t.session}.`)
       return false
     }
 
@@ -606,12 +618,12 @@ function BookingSettings({ page }: { page: any }) {
       const slots = MODALITIES.flatMap(({ key }) =>
         WEEKDAYS
           .filter(({ d }) => schedules[key][d]?.enabled)
-          .map(({ d }) => ({
+          .flatMap(({ d }) => schedules[key][d].ranges.map(r => ({
             weekday: d,
             modality: key,
-            startTime: schedules[key][d].startTime,
-            endTime: schedules[key][d].endTime,
-          })),
+            startTime: r.startTime,
+            endTime: r.endTime,
+          }))),
       )
       await saveAvailability.mutateAsync(slots)
       toast.success('Configurações salvas')
@@ -626,16 +638,26 @@ function BookingSettings({ page }: { page: any }) {
       return
     }
     try {
-      await addBlockedDate.mutateAsync({
+      const payload = {
         date: blockedForm.date,
         reason: blockedForm.reason.trim() || undefined,
-      })
-      setBlockedForm({ date: '', reason: '' })
-      toast.success('Data bloqueada.')
+      }
+      if (blockedForm.scope === 'week') {
+        await addBlockedWeek.mutateAsync(payload)
+      } else {
+        await addBlockedDate.mutateAsync(payload)
+      }
+      setBlockedForm(form => ({ ...form, date: '', reason: '' }))
+      toast.success(blockedForm.scope === 'week' ? 'Semana bloqueada.' : 'Data bloqueada.')
     } catch {
-      toast.error('Erro ao bloquear data.')
+      toast.error(blockedForm.scope === 'week' ? 'Erro ao bloquear semana.' : 'Erro ao bloquear data.')
     }
   }
+
+
+  const selectedWeekStart = blockedForm.date
+    ? startOfWeek(parseISO(blockedForm.date), { weekStartsOn: 1 })
+    : null
 
   const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }))
   const isSaving = saveBookingPage.isPending || saveAvailability.isPending
@@ -667,7 +689,7 @@ function BookingSettings({ page }: { page: any }) {
     {
       label: 'Link publico ativo',
       done: form.isActive,
-      hint: form.isActive ? 'Pacientes conseguem acessar.' : 'Ative quando quiser receber agendamentos.',
+      hint: form.isActive ? `${t.patientsCapitalized} conseguem acessar.` : 'Ative quando quiser receber agendamentos.',
     },
     {
       label: 'URL personalizada',
@@ -677,7 +699,7 @@ function BookingSettings({ page }: { page: any }) {
     {
       label: 'Perfil com foto ou texto',
       done: Boolean(form.avatarUrl.trim() || form.description.trim()),
-      hint: 'Ajuda o paciente a reconhecer o profissional.',
+      hint: `Ajuda o ${t.patient} a reconhecer o profissional.`,
     },
     {
       label: 'Modalidade escolhida',
@@ -699,7 +721,7 @@ function BookingSettings({ page }: { page: any }) {
           <div>
             <h2 className="section-title mb-1">Preparar link publico</h2>
             <p className="text-sm text-neutral-500 dark:text-neutral-300">
-              Mantemos suas configuracoes atuais e mostramos apenas o que pode melhorar antes de enviar o link para pacientes.
+              Mantemos suas configuracoes atuais e mostramos apenas o que pode melhorar antes de enviar o link para {t.patients}.
             </p>
           </div>
           <span className={cn(
@@ -744,8 +766,8 @@ function BookingSettings({ page }: { page: any }) {
             <h2 className="section-title mb-1">Status do link público</h2>
             <p className="text-sm text-neutral-500 dark:text-neutral-300">
               {form.isActive
-                ? 'Pacientes conseguem acessar e reservar horários pelo seu link.'
-                : 'O link fica pausado e pacientes não conseguem agendar.'}
+                ? `${t.patientsCapitalized} conseguem acessar e reservar horários pelo seu link.`
+                : `O link fica pausado e ${t.patients} não conseguem agendar.`}
             </p>
           </div>
           <button
@@ -785,7 +807,7 @@ function BookingSettings({ page }: { page: any }) {
             className={cn('btn-secondary flex items-center justify-center gap-2 text-sm', (!publicUrl || !form.isActive) && 'pointer-events-none opacity-50')}
           >
             <ExternalLink className="h-4 w-4" />
-            {form.isActive ? 'Visualizar como paciente' : 'Link pausado'}
+            {form.isActive ? `Visualizar como ${t.patient}` : 'Link pausado'}
           </a>
         </div>
       </div>
@@ -825,7 +847,7 @@ function BookingSettings({ page }: { page: any }) {
             const slot = currentSchedule[d]
             return (
               <div key={d} className={cn(
-                'flex items-center gap-3 p-3 rounded-xl border transition-all',
+                'flex items-start gap-3 p-3 rounded-xl border transition-all',
                 slot.enabled
                   ? 'border-sage-200 dark:border-sage-400/40 bg-sage-50 dark:bg-sage-500/15'
                   : 'border-neutral-100 dark:border-white/10 bg-neutral-50 dark:bg-black/15'
@@ -833,7 +855,7 @@ function BookingSettings({ page }: { page: any }) {
                 {/* Toggle */}
                 <button type="button" onClick={() => toggleDay(d)}
                   className={cn(
-                    'w-11 h-6 rounded-full transition-colors shrink-0',
+                    'w-11 h-6 rounded-full transition-colors shrink-0 mt-0.5',
                     slot.enabled ? 'bg-sage-500' : 'bg-neutral-200 dark:bg-white/20'
                   )}>
                   <div className={cn(
@@ -841,25 +863,41 @@ function BookingSettings({ page }: { page: any }) {
                     slot.enabled ? 'translate-x-5' : ''
                   )} />
                 </button>
-                <span className={cn('w-8 text-sm font-medium shrink-0', slot.enabled ? 'text-sage-700 dark:text-sage-200' : 'text-neutral-400 dark:text-neutral-300')}>
+
+                <span className={cn('w-8 text-sm font-medium shrink-0 pt-1', slot.enabled ? 'text-sage-700 dark:text-sage-200' : 'text-neutral-400 dark:text-neutral-300')}>
                   {label}
                 </span>
+
                 {slot.enabled ? (
-                  <div className="flex items-center gap-2 flex-1 flex-wrap">
-                    <input
-                      type="time" value={slot.startTime}
-                      onChange={e => setTime(d, 'startTime', e.target.value)}
-                      className="input-field py-1.5 text-sm w-28"
-                    />
-                    <span className="text-neutral-400 text-xs">até</span>
-                    <input
-                      type="time" value={slot.endTime}
-                      onChange={e => setTime(d, 'endTime', e.target.value)}
-                      className="input-field py-1.5 text-sm w-28"
-                    />
+                  <div className="flex flex-wrap items-start gap-2 flex-1">
+                    {slot.ranges.map((range, i) => (
+                      <div key={i} className="flex items-center gap-1.5 bg-white dark:bg-black/20 border border-neutral-200 dark:border-white/10 rounded-lg px-2 py-1.5">
+                        <input
+                          type="time" value={range.startTime}
+                          onChange={e => setRangeTime(d, i, 'startTime', e.target.value)}
+                          className="text-sm text-neutral-700 dark:text-neutral-200 bg-transparent border-none outline-none w-[4.5rem]"
+                        />
+                        <span className="text-neutral-300 text-xs">–</span>
+                        <input
+                          type="time" value={range.endTime}
+                          onChange={e => setRangeTime(d, i, 'endTime', e.target.value)}
+                          className="text-sm text-neutral-700 dark:text-neutral-200 bg-transparent border-none outline-none w-[4.5rem]"
+                        />
+                        {slot.ranges.length > 1 && (
+                          <button type="button" onClick={() => removeRange(d, i)}
+                            className="ml-0.5 text-neutral-300 hover:text-rose-400 transition-colors text-xs leading-none">
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button type="button" onClick={() => addRange(d)}
+                      className="h-8 w-8 rounded-lg border border-dashed border-sage-300 dark:border-sage-500/40 text-sage-500 hover:bg-sage-100 dark:hover:bg-sage-500/20 transition-colors flex items-center justify-center text-lg leading-none">
+                      +
+                    </button>
                   </div>
                 ) : (
-                  <span className="text-xs text-neutral-400 flex-1">Indisponível</span>
+                  <span className="text-xs text-neutral-400 flex-1 pt-1">Indisponível</span>
                 )}
               </div>
             )
@@ -900,7 +938,7 @@ function BookingSettings({ page }: { page: any }) {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="label">Valor da sessão (R$)</label>
+            <label className="label">Valor da {t.session} (R$)</label>
             <input type="number" value={form.sessionPrice} onChange={e => set('sessionPrice', +e.target.value)} className="input-field" />
           </div>
           <div>
@@ -954,12 +992,37 @@ function BookingSettings({ page }: { page: any }) {
             <input type="number" min={0} max={30} value={form.minAdvanceDays} onChange={e => set('minAdvanceDays', +e.target.value)} className="input-field" />
             <p className="text-xs text-neutral-400 mt-1">Ex: 1 impede agendamento para hoje.</p>
           </div>
-          <div>
-            <label className="label">Agendar até quantos dias à frente</label>
-            <input type="number" min={1} max={180} value={form.maxAdvanceDays} onChange={e => set('maxAdvanceDays', +e.target.value)} className="input-field" />
-            <p className="text-xs text-neutral-400 mt-1">Ex: 15 impede que alguem marque para daqui dois meses.</p>
-          </div>
         </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={form.allowNextMonthBooking}
+          onClick={() => set('allowNextMonthBooking', !form.allowNextMonthBooking)}
+          className={cn(
+            'flex w-full items-center justify-between gap-4 rounded-2xl border p-4 text-left transition-colors',
+            form.allowNextMonthBooking
+              ? 'border-sage-300 bg-sage-50 dark:border-sage-400/40 dark:bg-sage-500/15'
+              : 'border-neutral-200 bg-neutral-50 dark:border-white/10 dark:bg-black/15',
+          )}
+        >
+          <span>
+            <span className="block text-sm font-semibold text-neutral-800 dark:text-neutral-100">
+              Liberar agendamentos para o próximo mês
+            </span>
+            <span className="mt-1 block text-xs text-neutral-500 dark:text-neutral-300">
+              O mês atual fica sempre disponível. Meses posteriores ao próximo continuam bloqueados.
+            </span>
+          </span>
+          <span className={cn(
+            'relative h-6 w-11 shrink-0 rounded-full transition-colors',
+            form.allowNextMonthBooking ? 'bg-sage-600' : 'bg-neutral-300 dark:bg-neutral-600',
+          )}>
+            <span className={cn(
+              'absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform',
+              form.allowNextMonthBooking ? 'translate-x-6' : 'translate-x-1',
+            )} />
+          </span>
+        </button>
         <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4 dark:border-white/10 dark:bg-black/15">
           <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-400">Previa do link publico</p>
           <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-neutral-950">
@@ -971,7 +1034,7 @@ function BookingSettings({ page }: { page: any }) {
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">{displayName}</p>
-                <p className="text-xs text-neutral-500 dark:text-neutral-300">{form.title || 'Agende sua sessão'}</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-300">{form.title || `Agende sua ${t.session}`}</p>
                 {form.description.trim() && (
                   <p className="mt-2 line-clamp-3 text-xs text-neutral-500 dark:text-neutral-300">{form.description.trim()}</p>
                 )}
@@ -982,7 +1045,7 @@ function BookingSettings({ page }: { page: any }) {
                 {formatCurrency(form.sessionPrice)}
               </div>
               <div className="rounded-xl bg-neutral-50 px-3 py-2 text-xs text-neutral-500 dark:bg-white/5 dark:text-neutral-300">
-                {form.maxAdvanceDays} dias abertos
+                {form.allowNextMonthBooking ? 'Mês atual + próximo' : 'Somente mês atual'}
               </div>
               <div className="rounded-xl bg-neutral-50 px-3 py-2 text-xs text-neutral-500 dark:bg-white/5 dark:text-neutral-300">
                 {[form.allowPresencial && 'Presencial', form.allowOnline && 'Online'].filter(Boolean).join(' / ') || 'Sem modalidade'}
@@ -1029,6 +1092,26 @@ function BookingSettings({ page }: { page: any }) {
       <div className="card space-y-4">
         <h2 className="section-title">Datas bloqueadas</h2>
         <p className="text-xs text-neutral-400">Férias, feriados e dias sem atendimento não aparecem como disponíveis no link público.</p>
+        <div className="inline-flex w-full rounded-xl bg-neutral-100 p-1 dark:bg-black/20 sm:w-auto">
+          {([
+            { value: 'day', label: 'Bloquear um dia' },
+            { value: 'week', label: 'Bloquear uma semana' },
+          ] as const).map(option => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setBlockedForm(form => ({ ...form, scope: option.value }))}
+              className={cn(
+                'flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors sm:flex-none',
+                blockedForm.scope === option.value
+                  ? 'bg-white text-neutral-800 shadow-sm dark:bg-sage-500/25 dark:text-sage-100'
+                  : 'text-neutral-500 hover:text-neutral-700 dark:text-neutral-300 dark:hover:text-white',
+              )}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-[160px_1fr_auto] gap-3">
           <input
             type="date"
@@ -1037,15 +1120,30 @@ function BookingSettings({ page }: { page: any }) {
             className="input-field"
           />
           <input
+            maxLength={255}
             value={blockedForm.reason}
             onChange={e => setBlockedForm(f => ({ ...f, reason: e.target.value }))}
             className="input-field"
-            placeholder="Motivo opcional"
+            placeholder={blockedForm.scope === 'week' ? 'Motivo da semana (opcional)' : 'Motivo opcional'}
           />
-          <button type="button" onClick={blockDate} className="btn-secondary text-sm">
-            Bloquear
+          <button
+            type="button"
+            onClick={blockDate}
+            disabled={addBlockedDate.isPending || addBlockedWeek.isPending}
+            className="btn-secondary text-sm disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {addBlockedDate.isPending || addBlockedWeek.isPending
+              ? 'Bloqueando...'
+              : blockedForm.scope === 'week' ? 'Bloquear semana' : 'Bloquear dia'}
           </button>
         </div>
+        {blockedForm.scope === 'week' && selectedWeekStart && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-100">
+            A semana de {format(selectedWeekStart, 'dd/MM', { locale: ptBR })} a{' '}
+            {format(addDays(selectedWeekStart, 6), 'dd/MM/yyyy', { locale: ptBR })} será bloqueada.
+            Agendamentos já confirmados não serão cancelados.
+          </div>
+        )}
         <div className="space-y-2">
           {blockedDates.length === 0 ? (
             <p className="text-sm text-neutral-400 py-2">Nenhuma data bloqueada.</p>

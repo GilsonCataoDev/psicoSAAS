@@ -1,7 +1,12 @@
-import { IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator'
+import { IsIn, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator'
 import { Transform } from 'class-transformer'
+import { COUNCIL_REGISTRATION_FORMAT, PROFESSIONS, type Profession } from '../../../common/professions'
 
 export class UpdateProfileDto {
+  @IsOptional()
+  @IsIn(PROFESSIONS, { message: 'Profissão inválida' })
+  profession?: Profession
+
   @IsOptional()
   @IsString()
   @MinLength(2, { message: 'Nome deve ter ao menos 2 caracteres' })
@@ -9,9 +14,14 @@ export class UpdateProfileDto {
   @Transform(({ value }) => value?.trim())
   name?: string
 
+  /**
+   * Registro no conselho de classe — CRP, CRN, CREFITO, CRO... O formato varia
+   * por conselho, entao aqui so restringimos o charset. O formato do CRP e
+   * cobrado em AuthService.updateProfile, que conhece a profissao efetiva.
+   */
   @IsOptional()
   @IsString()
-  @Matches(/^(0[1-9]|1[0-9]|2[0-4])\/\d{4,6}$/, { message: 'CRP inválido. Use uma região entre 01 e 24' })
+  @Matches(COUNCIL_REGISTRATION_FORMAT, { message: 'Registro profissional inválido' })
   @Transform(({ value }) => value?.trim())
   crp?: string
 

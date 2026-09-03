@@ -15,6 +15,9 @@ import { BookingPage } from '../booking/entities/booking-page.entity'
 import { Booking } from '../booking/entities/booking.entity'
 import { Subscription } from '../billing/entities/subscription.entity'
 import { AuditLog } from '../audit/entities/audit-log.entity'
+import { NeuropsychAssessment } from '../neuropsych-assessments/entities/neuropsych-assessment.entity'
+import { NeuropsychBatteryItem } from '../neuropsych-assessments/entities/neuropsych-battery-item.entity'
+import { PatientAttachment } from '../patients/entities/patient-attachment.entity'
 
 type EncryptedProntuario = {
   __encrypted: 'usecognia.prontuario.v1' | 'psicosaas.prontuario.v1'
@@ -38,6 +41,9 @@ export class DataExportService {
     @InjectRepository(Booking) private readonly bookings: Repository<Booking>,
     @InjectRepository(Subscription) private readonly subscriptions: Repository<Subscription>,
     @InjectRepository(AuditLog) private readonly auditLogs: Repository<AuditLog>,
+    @InjectRepository(NeuropsychAssessment) private readonly neuropsychAssessments: Repository<NeuropsychAssessment>,
+    @InjectRepository(NeuropsychBatteryItem) private readonly neuropsychBatteryItems: Repository<NeuropsychBatteryItem>,
+    @InjectRepository(PatientAttachment) private readonly patientAttachments: Repository<PatientAttachment>,
   ) {}
 
   async buildExport(userId: string) {
@@ -56,8 +62,11 @@ export class DataExportService {
       bookings,
       subscriptions,
       auditLogs,
+      neuropsychAssessments,
+      neuropsychBatteryItems,
+      patientAttachments,
     ] = await Promise.all([
-      this.patients.find({ where: { psychologistId: userId }, order: { name: 'ASC' } }),
+      this.patients.find({ where: { psychologistId: userId } }),
       this.appointments.find({ where: { psychologistId: userId }, order: { date: 'ASC', time: 'ASC' } }),
       this.sessions.find({ where: { psychologistId: userId }, order: { date: 'DESC' } }),
       this.financial.find({ where: { psychologistId: userId }, order: { createdAt: 'DESC' } }),
@@ -68,6 +77,13 @@ export class DataExportService {
       this.bookings.find({ where: { psychologistId: userId }, order: { date: 'DESC', time: 'DESC' } }),
       this.subscriptions.find({ where: { userId }, order: { createdAt: 'DESC' } }),
       this.auditLogs.find({ where: { userId }, order: { createdAt: 'DESC' }, take: 500 }),
+      this.neuropsychAssessments.find({ where: { psychologistId: userId }, order: { createdAt: 'DESC' } }),
+      this.neuropsychBatteryItems.find({ where: { psychologistId: userId }, order: { createdAt: 'DESC' } }),
+      this.patientAttachments.find({
+        where: { psychologistId: userId },
+        select: ['id', 'patientId', 'filename', 'mimeType', 'size', 'createdAt'],
+        order: { createdAt: 'DESC' },
+      }),
     ])
 
     return {
@@ -89,6 +105,9 @@ export class DataExportService {
         requests: bookings,
       },
       auditLogs,
+      neuropsychAssessments: neuropsychAssessments.map(assessment => this.cleanNeuropsychAssessment(assessment)),
+      neuropsychBatteryItems: neuropsychBatteryItems.map(item => this.cleanNeuropsychBatteryItem(item)),
+      patientAttachments,
     }
   }
 
@@ -169,6 +188,9 @@ export class DataExportService {
     row('Datas bloqueadas', payload.availability.blockedDates.length)
     row('Horarios semanais', payload.availability.weeklySlots.length)
     row('Eventos de auditoria', payload.auditLogs.length)
+    row('Avaliacoes neuropsicologicas', payload.neuropsychAssessments.length)
+    row('Procedimentos de avaliacao', payload.neuropsychBatteryItems.length)
+    row('Anexos de pacientes', payload.patientAttachments.length)
 
     sectionTitle('Pacientes')
     if (payload.patients.length === 0) {
@@ -284,6 +306,27 @@ export class DataExportService {
     void signHash
     void signerIp
     return safeDocument
+  }
+
+  private cleanNeuropsychAssessment(assessment: NeuropsychAssessment) {
+    return {
+      ...assessment,
+      referralQuestion: safeDecrypt(assessment.referralQuestion),
+      clinicalHistory: safeDecrypt(assessment.clinicalHistory),
+      clinicalHypotheses: safeDecrypt(assessment.clinicalHypotheses),
+      qualitativeObservations: safeDecrypt(assessment.qualitativeObservations),
+      integrationDraft: safeDecrypt(assessment.integrationDraft),
+      professionalConclusion: safeDecrypt(assessment.professionalConclusion),
+    }
+  }
+
+  private cleanNeuropsychBatteryItem(item: NeuropsychBatteryItem) {
+    return {
+      ...item,
+      purpose: safeDecrypt(item.purpose),
+      resultSummary: safeDecrypt(item.resultSummary),
+      qualitativeNotes: safeDecrypt(item.qualitativeNotes),
+    }
   }
 
   private cleanPreferences(preferences?: Record<string, unknown>): Record<string, unknown> | undefined {

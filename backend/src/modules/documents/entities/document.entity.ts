@@ -3,6 +3,7 @@ import {
   CreateDateColumn, ManyToOne, JoinColumn, Index,
 } from 'typeorm'
 import { User } from '../../auth/entities/user.entity'
+import { encryptedTextTransformer } from '../../../common/crypto/encrypt.util'
 
 export type DocType = 'declaracao' | 'recibo' | 'relatorio' | 'atestado' | 'encaminhamento'
 
@@ -21,13 +22,13 @@ export class Document {
   @Column()
   patientId: string
 
-  @Column()
+  @Column({ type: 'text', transformer: encryptedTextTransformer })
   patientName: string
 
   @Column({ type: 'varchar' })
   type: DocType
 
-  @Column()
+  @Column({ type: 'text', transformer: encryptedTextTransformer })
   title: string
 
   @Column({ type: 'text' })
@@ -47,14 +48,15 @@ export class Document {
   signedAt: Date
 
   /** IP do signatário */
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: encryptedTextTransformer })
   signerIp?: string
 
-  @Column()
+  @Column({ type: 'text', transformer: encryptedTextTransformer })
   psychologistName: string
 
-  @Column()
-  psychologistCrp: string
+  /** CRP e do conselho de psicologia: nulo nas demais profissoes. */
+  @Column({ nullable: true, type: 'varchar' })
+  psychologistCrp: string | null
 
   @CreateDateColumn()
   createdAt: Date

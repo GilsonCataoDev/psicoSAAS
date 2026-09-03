@@ -2,6 +2,7 @@ import { BadRequestException, Controller, ForbiddenException, Headers, Logger, P
 import { ConfigService } from '@nestjs/config'
 import { Throttle } from '@nestjs/throttler'
 import { PublicRoute } from '../../common/decorators/public-route.decorator'
+import { secretsMatch } from '../../common/crypto/encrypt.util'
 import { AdminService } from './admin.service'
 
 @PublicRoute()
@@ -19,7 +20,7 @@ export class InternalCleanupController {
   async cleanupTestUsers(@Headers('x-internal-secret') secret: string | undefined) {
     const expected = this.cfg.get<string>('INTERNAL_CLEANUP_SECRET')
     if (!expected) throw new BadRequestException('INTERNAL_CLEANUP_SECRET não configurado')
-    if (secret !== expected) throw new ForbiddenException('Secret inválido')
+    if (!secretsMatch(secret, expected)) throw new ForbiddenException('Secret inválido')
 
     const result = await this.admin.cleanupTestUsers()
     this.logger.log(`cleanup:test-users deletados=${result.deleted}`)

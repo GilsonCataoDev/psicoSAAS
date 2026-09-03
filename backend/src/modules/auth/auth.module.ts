@@ -1,4 +1,4 @@
-import { Module, forwardRef } from '@nestjs/common'
+﻿import { Module, forwardRef } from '@nestjs/common'
 import { JwtModule } from '@nestjs/jwt'
 import { PassportModule } from '@nestjs/passport'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -12,6 +12,7 @@ import { LoginAttempt }    from './entities/login-attempt.entity'
 import { ReferralModule }  from '../referral/referral.module'
 import { BillingModule }   from '../billing/billing.module'
 import { AuditModule }     from '../audit/audit.module'
+import { PlanAccessModule } from '../../common/plan-access/plan-access.module'
 
 @Module({
   imports: [
@@ -21,14 +22,18 @@ import { AuditModule }     from '../audit/audit.module'
       inject: [ConfigService],
       useFactory: (cfg: ConfigService) => ({
         secret: cfg.get('JWT_SECRET'),
-        // Default expiresIn definido por segurança — o controller sobrescreve
-        // explicitamente em cada sign() call com '15m'
-        signOptions: { expiresIn: '15m' },
+        signOptions: {
+          expiresIn: '15m',
+          issuer: cfg.get<string>('JWT_ISSUER') ?? 'usecognia-api',
+          audience: cfg.get<string>('JWT_AUDIENCE') ?? 'usecognia-app',
+        },
       }),
     }),
     forwardRef(() => ReferralModule),
     BillingModule,
     AuditModule,
+    PlanAccessModule,
+    // SecurityModule e StorageModule sao @Global() — nao precisam ser importados aqui
   ],
   controllers: [AuthController],
   providers:   [AuthService, JwtStrategy],

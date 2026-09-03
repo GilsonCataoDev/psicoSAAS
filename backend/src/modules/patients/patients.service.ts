@@ -1,16 +1,25 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common'
+import { Injectable, NotFoundException, ForbiddenException, Logger, Optional } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { In, MoreThanOrEqual, Not, Repository } from 'typeorm'
+import { DataSource, In, MoreThanOrEqual, Not, Repository } from 'typeorm'
 import { randomBytes } from 'crypto'
 import PDFDocument = require('pdfkit')
 import { Patient } from './entities/patient.entity'
 import { CreatePatientDto } from './dto/create-patient.dto'
 import { UpdatePatientDto } from './dto/update-patient.dto'
 import { UpdatePatientPortalIntakeDto } from './dto/patient-portal.dto'
-import { Subscription } from '../billing/entities/subscription.entity'
 import { Appointment } from '../appointments/entities/appointment.entity'
-import { PLAN_LIMITS, normalizePlan } from '../../common/plans'
-import { encrypt, hashToken, safeDecrypt } from '../../common/crypto/encrypt.util'
+import { PLAN_LIMITS } from '../../common/plans'
+import { PlanAccessService } from '../../common/plan-access/plan-access.service'
+import { blindIndex, encrypt, hashToken, safeDecrypt } from '../../common/crypto/encrypt.util'
+import { FinancialService } from '../financial/financial.service'
+import { formatCrpForDisplay } from '../auth/entities/user.entity'
+import { ProntuarioExportOptions, canIncludePrivateNotes, filterProntuarioSessions, normalizeProntuarioExportOptions } from './prontuario-export.util'
+import { ProspectLifecycleService } from '../../common/prospect-lifecycle/prospect-lifecycle.service'
+import { Document } from '../documents/entities/document.entity'
+import { PatientAttachment } from './entities/patient-attachment.entity'
+import { StorageService } from '../../common/storage/storage.service'
+import { DEFAULT_PROFESSION } from '../../common/professions'
+import { termsFor } from '../../common/terms'
 
 type EncryptedProntuario = {
   __encrypted: 'usecognia.prontuario.v1' | 'psicosaas.prontuario.v1'
@@ -28,7 +37,12 @@ export type PatientListItemDto = Pick<
   | 'race'
   | 'gender'
   | 'sexualOrientation'
+  | 'careMode'
   | 'sessionPrice'
+  | 'billingType'
+  | 'monthlyPackagePrice'
+  | 'monthlyIncludedSessions'
+  | 'billingDay'
   | 'sessionDuration'
   | 'startDate'
   | 'hasFixedSchedule'
@@ -57,6 +71,7 @@ type PatientPortalDto = {
   psychologist: {
     name: string
     crp?: string | null
+    profession: string
   }
   appointments: Array<{
     id: string
@@ -76,13 +91,24 @@ type PatientPortalDto = {
 
 const PRONTUARIO_ENCRYPTED_MARKER = 'usecognia.prontuario.v1'
 const LEGACY_PRONTUARIO_ENCRYPTED_MARKER = 'psicosaas.prontuario.v1'
+const PATIENT_ENCRYPTED_FIELDS = [
+  'birthDate', 'pronouns', 'race', 'gender', 'sexualOrientation', 'cpfCnpj',
+] as const
 
 @Injectable()
 export class PatientsService {
+  private readonly logger = new Logger(PatientsService.name)
+
   constructor(
     @InjectRepository(Patient) private repo: Repository<Patient>,
-    @InjectRepository(Subscription) private subs: Repository<Subscription>,
     @InjectRepository(Appointment) private appointments: Repository<Appointment>,
+    @InjectRepository(Document) private documents: Repository<Document>,
+    @InjectRepository(PatientAttachment) private patientAttachments: Repository<PatientAttachment>,
+    private financial: FinancialService,
+    private readonly planAccess: PlanAccessService,
+    private readonly storage: StorageService,
+    private readonly dataSource: DataSource,
+    @Optional() private readonly prospectLifecycle?: ProspectLifecycleService,
   ) {}
 
   // ─── Helpers de criptografia ────────────────────────────────────────────────
@@ -91,10 +117,22 @@ export class PatientsService {
    * Retorna uma cópia do DTO com privateNotes criptografadas.
    * Campos ausentes não são modificados.
    */
-  private encryptFields<T extends { privateNotes?: string; prontuario?: object }>(dto: T): T {
+  encryptFields<T extends { privateNotes?: string; prontuario?: object } & Record<string, any>>(dto: T): T {
     const encrypted: any = { ...dto }
     if (dto.privateNotes) encrypted.privateNotes = encrypt(dto.privateNotes)
     if (dto.prontuario) encrypted.prontuario = this.encryptProntuario(dto.prontuario as Record<string, any>)
+    for (const field of PATIENT_ENCRYPTED_FIELDS) {
+      if (typeof dto[field] === 'string' && dto[field].length > 0) encrypted[field] = encrypt(dto[field])
+    }
+    if (Object.prototype.hasOwnProperty.call(dto, 'email')) {
+      encrypted.emailHash = dto.email
+        ? blindIndex(String(dto.email), 'patient-email')
+        : null
+    }
+    if (Object.prototype.hasOwnProperty.call(dto, 'phone')) {
+      const phone = dto.phone ? String(dto.phone).replace(/\D/g, '') : ''
+      encrypted.phoneHash = phone ? blindIndex(phone, 'patient-phone') : null
+    }
     return encrypted
   }
 
@@ -107,6 +145,9 @@ export class PatientsService {
 
     if (p.privateNotes) p.privateNotes = safeDecrypt(p.privateNotes)
     if (p.prontuario) p.prontuario = this.decryptProntuario(p.prontuario)
+    for (const field of PATIENT_ENCRYPTED_FIELDS) {
+      if (p[field]) p[field] = safeDecrypt(p[field])
+    }
 
     // Descriptografa anotações das sessões se foram carregadas via relação
     if (p.sessions?.length) {
@@ -158,13 +199,9 @@ export class PatientsService {
   // ─── Limites de plano ────────────────────────────────────────────────────────
 
   private async checkPatientLimit(userId: string) {
-    const sub  = await this.subs.findOne({ where: { userId } })
-    const plan = normalizePlan((sub?.status === 'active' || sub?.status === 'trialing') ? sub.plan : 'free')
-
-    const limit = PLAN_LIMITS[plan].maxPatients
+    const { plan, limit, count } = await this.getPlanUsage(userId)
     if (limit === -1) return
 
-    const count = await this.repo.count({ where: { psychologistId: userId, status: 'active' } })
     if (count >= limit) {
       throw new ForbiddenException({
         message: `Limite de ${limit} pessoa${limit !== 1 ? 's' : ''} atingido para o plano ${plan}. Faça upgrade para adicionar mais.`,
@@ -174,22 +211,43 @@ export class PatientsService {
     }
   }
 
+  async getPlanUsage(userId: string): Promise<{ plan: string; limit: number; count: number }> {
+    const plan = await this.planAccess.getCurrentPlan(userId)
+    const limit = PLAN_LIMITS[plan].maxPatients
+    const count = await this.repo.count({ where: { psychologistId: userId, status: 'active' } })
+    return { plan, limit, count }
+  }
+
+  /**
+   * Vagas restantes de pacientes ativos para o plano do usuário.
+   * Retorna Number.MAX_SAFE_INTEGER para planos sem limite (pro/premium).
+   * Usado pela importação em massa para truncar o lote de uma vez, sem
+   * recontar o banco a cada linha processada.
+   */
+  async getRemainingPatientSlots(userId: string): Promise<number> {
+    const { limit, count } = await this.getPlanUsage(userId)
+    if (limit === -1) return Number.MAX_SAFE_INTEGER
+    return Math.max(0, limit - count)
+  }
+
   // ─── API pública ─────────────────────────────────────────────────────────────
 
   async findAll(psychologistId: string): Promise<PatientListItemDto[]> {
     const patients = await this.repo.find({
       where: { psychologistId },
-      order: { name: 'ASC' },
       // Listagem nunca deve carregar prontuário, privateNotes nem ids internos de gateway.
       select: [
         'id', 'name', 'email', 'phone', 'birthDate', 'pronouns', 'race', 'gender',
-        'sexualOrientation', 'sessionPrice', 'sessionDuration', 'startDate',
+        'sexualOrientation', 'careMode', 'sessionPrice', 'billingType', 'monthlyPackagePrice',
+        'monthlyIncludedSessions', 'billingDay', 'sessionDuration', 'startDate',
         'hasFixedSchedule', 'fixedScheduleWeekday', 'fixedScheduleTime',
         'fixedScheduleFrequency', 'fixedScheduleModality', 'tags', 'status',
         'cpfCnpj', 'createdAt', 'updatedAt',
       ],
     })
     return patients
+      .map(patient => this.dec(patient) as PatientListItemDto)
+      .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
   }
 
   async findOne(id: string, psychologistId: string): Promise<Patient> {
@@ -202,7 +260,12 @@ export class PatientsService {
     const encrypted = this.encryptFields(dto)
     // status 'active' definido explicitamente (não depende só do default DB)
     const patient   = this.repo.create({ status: 'active', ...encrypted, psychologistId })
-    return this.dec(await this.repo.save(patient))
+    const saved = await this.repo.save(patient)
+    await this.ensureCurrentMonthlyCharge(saved)
+    await this.prospectLifecycle?.markActivated(psychologistId).catch(err => this.logger.warn(
+      `[CreatePatient] Falha ao sincronizar funil user=${psychologistId}: ${err?.message ?? err}`,
+    ))
+    return this.dec(saved)
   }
 
   async update(id: string, dto: UpdatePatientDto, psychologistId: string): Promise<Patient> {
@@ -210,7 +273,14 @@ export class PatientsService {
     const patient   = await this.findRaw(id, psychologistId)
     const encrypted = this.encryptFields(dto)
     Object.assign(patient, encrypted)
-    return this.dec(await this.repo.save(patient))
+    const saved = await this.repo.save(patient)
+    await this.ensureCurrentMonthlyCharge(saved)
+    return this.dec(saved)
+  }
+
+  private async ensureCurrentMonthlyCharge(patient: Patient): Promise<void> {
+    if (patient.status !== 'active' || patient.billingType !== 'monthly_package') return
+    await this.financial.ensureMonthlyPackageCharge(patient, new Date()).catch(() => undefined)
   }
 
   async createPortalLink(id: string, psychologistId: string): Promise<{ url: string }> {
@@ -255,7 +325,10 @@ export class PatientsService {
       },
       psychologist: {
         name: patient.psychologist?.name ?? 'Profissional responsável',
-        crp: patient.psychologist?.crp ?? null,
+        crp: patient.psychologist ? formatCrpForDisplay(patient.psychologist) : null,
+        // Portal é aberto pelo paciente sem sessão: o vocabulário da tela
+        // precisa vir daqui, não de um usuário logado.
+        profession: patient.psychologist?.profession ?? DEFAULT_PROFESSION,
       },
       appointments: upcoming.map(appointment => ({
         id: appointment.id,
@@ -287,7 +360,7 @@ export class PatientsService {
       }),
     }
 
-    Object.assign(patient, this.pickDefined({
+    Object.assign(patient, this.encryptFields(this.pickDefined({
       email: dto.email,
       phone: dto.phone,
       birthDate: dto.birthDate,
@@ -295,16 +368,45 @@ export class PatientsService {
       race: dto.race,
       gender: dto.gender,
       sexualOrientation: dto.sexualOrientation,
-      prontuario: this.encryptProntuario(prontuario),
-    }))
+      prontuario,
+    })))
 
     await this.repo.save(patient)
     return { saved: true }
   }
 
+  /**
+   * Exclui a pessoa e todo o histórico clínico dependente. Sessões, agendamentos,
+   * avaliações neuropsicológicas, anexos e vínculos de instrumentos já têm ON
+   * DELETE CASCADE no banco. Documento é a exceção — não tem FK pra Patient (só
+   * a coluna patientId) — por isso é apagado explicitamente aqui, na mesma
+   * transação da remoção da pessoa, pra nunca sobrar linha órfã se uma das duas
+   * falhar no meio. Lançamentos financeiros ficam de propósito (SET NULL) —
+   * preserva o histórico de faturamento mesmo após a exclusão da pessoa.
+   *
+   * Os storageKeys dos anexos em R2 são coletados antes da transação: a
+   * CASCADE apaga a linha no Postgres, mas não aciona storage.delete() (isso
+   * só acontece em PatientAttachmentsService.remove(), usado no fluxo normal
+   * de exclusão avulsa). A limpeza do bucket roda depois do commit, best-effort
+   * — storage.delete() já engole falhas de rede/S3 internamente.
+   */
   async remove(id: string, psychologistId: string) {
     const patient = await this.findRaw(id, psychologistId)
-    return this.repo.softRemove(patient)
+
+    const attachments = await this.patientAttachments.find({
+      where: { patientId: id, psychologistId },
+      select: ['storageKey'],
+    })
+
+    const removed = await this.dataSource.transaction(async manager => {
+      await manager.delete(Document, { patientId: id, userId: psychologistId })
+      return manager.remove(patient)
+    })
+
+    const storageKeys = attachments.map(a => a.storageKey).filter((key): key is string => !!key)
+    await Promise.all(storageKeys.map(key => this.storage.delete(key)))
+
+    return removed
   }
 
   private async findByPortalToken(token: string, relations?: string[]): Promise<Patient> {
@@ -314,6 +416,20 @@ export class PatientsService {
       ...(relations ? { relations } : {}),
     })
     if (!patient) throw new NotFoundException('Portal não encontrado')
+
+    // Expiracao obrigatoria: configuracao invalida volta ao limite seguro de 30 dias.
+    const configuredTtl = Number(process.env.PORTAL_TOKEN_TTL_DAYS)
+    const ttlDays = Number.isFinite(configuredTtl) && configuredTtl > 0 ? configuredTtl : 30
+    if (!patient.portalTokenCreatedAt) {
+      throw new NotFoundException('Link expirado. Solicite um novo ao seu profissional.')
+    }
+    if (patient.portalTokenCreatedAt) {
+      const ageMs = Date.now() - new Date(patient.portalTokenCreatedAt).getTime()
+      if (ageMs > ttlDays * 24 * 60 * 60 * 1000) {
+        throw new NotFoundException('Link expirado. Solicite um novo ao seu profissional.')
+      }
+    }
+
     return patient
   }
 
@@ -328,22 +444,28 @@ export class PatientsService {
     psychologistId: string,
     psychologistName: string,
     psychologistCrp: string,
-  ): Promise<{ filename: string; buffer: Buffer }> {
+    exportOptions: ProntuarioExportOptions = {},
+    profession?: string,
+  ): Promise<{ filename: string; stream: PDFKit.PDFDocument }> {
+    const t = termsFor(profession)
     const patient = await this.findRaw(patientId, psychologistId, ['sessions'])
     const p = this.dec(patient)
+    const options = normalizeProntuarioExportOptions(exportOptions)
+    const patientCopy = options.audience === 'patient'
+    const includePrivateNotes = canIncludePrivateNotes(options)
 
-    const sessions = (p.sessions ?? [])
-      .filter(s => s.summary || s.privateNotes || s.nextSteps)
-      .sort((a, b) => a.date.localeCompare(b.date))
+    const sessions = options.sections.has('evolutions')
+      ? filterProntuarioSessions(p.sessions ?? [], options)
+        .filter(s => s.summary || (includePrivateNotes && s.privateNotes) || s.nextSteps)
+        .sort((a, b) => a.date.localeCompare(b.date))
+      : []
 
     const pdf = new PDFDocument({ size: 'A4', margin: 42, bufferPages: true, info: {
-      Title: `Prontuário — ${p.name}`,
+      Title: `${patientCopy ? t.recordCopyTitle : t.recordCapitalized} — ${p.name}`,
       Author: psychologistName,
-      Subject: 'Prontuário Clínico',
-      Keywords: 'UseCognia, prontuário, psicologia',
+      Subject: t.recordTitle,
+      Keywords: `UseCognia, ${t.record}`,
     } })
-    const done = this.collectPdf(pdf)
-
     const W = pdf.page.width
     const H = pdf.page.height
     const L = 44, R = W - 44
@@ -365,7 +487,7 @@ export class PatientsService {
       const fy = H - 38
       pdf.strokeColor(line).lineWidth(0.8).moveTo(L, fy).lineTo(R, fy).stroke()
       pdf.fillColor(muted).font('Helvetica').fontSize(7)
-        .text(`UseCognia  |  Prontuário Clínico — ${p.name}`, L, fy + 8, { width: CW - 80, lineBreak: false })
+        .text(`UseCognia  |  ${patientCopy ? `Cópia entregue ao ${t.patient}` : t.recordTitle} — ${p.name}`, L, fy + 8, { width: CW - 80, lineBreak: false })
       pdf.text(`Página ${page} de ${total}`, R - 60, fy + 8, { width: 60, align: 'right', lineBreak: false })
     }
 
@@ -417,7 +539,7 @@ export class PatientsService {
     pdf.fillColor(sageDark).font('Helvetica-Bold').fontSize(10).text('UseCognia', L, 24, { lineBreak: false })
     pdf.fillColor(muted).font('Helvetica').fontSize(7).text('Plataforma para psicólogos e terapeutas', L, 38, { lineBreak: false })
 
-    pdf.fillColor(ink).font('Helvetica-Bold').fontSize(18).text('Prontuário Clínico', L, 56, { width: CW })
+    pdf.fillColor(ink).font('Helvetica-Bold').fontSize(18).text(patientCopy ? t.recordCopyTitle : t.recordTitle, L, 56, { width: CW })
     pdf.fillColor(sage).font('Helvetica-Bold').fontSize(12).text(p.name, L, 78, { width: CW })
 
     pdf.strokeColor(line).lineWidth(1).moveTo(L, 110).lineTo(R, 110).stroke()
@@ -440,13 +562,15 @@ export class PatientsService {
     pdf.y = 178
 
     // ── Dados do Paciente ─────────────────────────────────────────────────────
-    sectionTitle('Dados do Paciente')
-    fieldPair('NOME COMPLETO', p.name, 'STATUS', p.status === 'active' ? 'Em atendimento' : p.status === 'paused' ? 'Pausado' : 'Alta')
-    fieldPair('DATA DE NASCIMENTO', p.birthDate ? new Date(p.birthDate).toLocaleDateString('pt-BR') : undefined, 'CPF / CNPJ', p.cpfCnpj)
-    fieldPair('E-MAIL', p.email, 'TELEFONE', p.phone)
-    fieldPair('INÍCIO DO ACOMPANHAMENTO', p.startDate ? new Date(p.startDate).toLocaleDateString('pt-BR') : undefined, 'PRONOMES', p.pronouns)
+    if (options.sections.has('identification')) {
+      sectionTitle('Dados do Paciente')
+      fieldPair('NOME COMPLETO', p.name, 'STATUS', p.status === 'active' ? 'Em atendimento' : p.status === 'paused' ? 'Pausado' : 'Alta')
+      fieldPair('DATA DE NASCIMENTO', p.birthDate ? new Date(p.birthDate).toLocaleDateString('pt-BR') : undefined, 'CPF / CNPJ', p.cpfCnpj)
+      fieldPair('E-MAIL', p.email, 'TELEFONE', p.phone)
+      fieldPair('INÍCIO DO ACOMPANHAMENTO', p.startDate ? new Date(p.startDate).toLocaleDateString('pt-BR') : undefined, 'PRONOMES', p.pronouns)
+    }
 
-    if (p.privateNotes?.trim()) {
+    if (includePrivateNotes && p.privateNotes?.trim()) {
       checkPageBreak(40)
       field('ANOTAÇÕES PRIVADAS', p.privateNotes, { wide: true })
     }
@@ -459,7 +583,7 @@ export class PatientsService {
       const hasPlano    = pr.abordagem || pr.objetivos || pr.frequencia || pr.duracaoPrevista
       const hasDados    = pr.escolaridade || pr.profissao || pr.estadoCivil || pr.religiao
 
-      if (hasAnamnese) {
+      if (hasAnamnese && options.sections.has('anamnesis')) {
         checkPageBreak(80)
         sectionTitle('Anamnese')
         field('QUEIXA PRINCIPAL', pr.queixaPrincipal, { wide: true })
@@ -470,7 +594,7 @@ export class PatientsService {
         field('CONDIÇÕES MÉDICAS', pr.condicoesMedicas, { wide: true })
       }
 
-      if (hasPlano) {
+      if (hasPlano && options.sections.has('treatment_plan')) {
         checkPageBreak(80)
         sectionTitle('Plano Terapêutico')
         field('ABORDAGEM', pr.abordagem, { wide: true })
@@ -478,14 +602,14 @@ export class PatientsService {
         fieldPair('FREQUÊNCIA', pr.frequencia, 'DURAÇÃO PREVISTA', pr.duracaoPrevista)
       }
 
-      if (hasDados) {
+      if (hasDados && options.sections.has('identification')) {
         checkPageBreak(60)
         sectionTitle('Dados Complementares')
         fieldPair('ESCOLARIDADE', pr.escolaridade, 'PROFISSÃO', pr.profissao)
         fieldPair('ESTADO CIVIL', pr.estadoCivil, 'RELIGIÃO', pr.religiao)
       }
 
-      if (pr.contatoEmergenciaNome) {
+      if (!patientCopy && pr.contatoEmergenciaNome && options.sections.has('identification')) {
         checkPageBreak(50)
         sectionTitle('Contato de Emergência')
         fieldPair('NOME', pr.contatoEmergenciaNome, 'RELAÇÃO', pr.contatoEmergenciaRelacao)
@@ -494,7 +618,7 @@ export class PatientsService {
     }
 
     // ── Evolução (sessões) ────────────────────────────────────────────────────
-    if (sessions.length > 0) {
+    if (sessions.length > 0 && options.sections.has('evolutions')) {
       checkPageBreak(60)
       sectionTitle('Evolução — Registro de Sessões')
 
@@ -535,7 +659,7 @@ export class PatientsService {
           pdf.moveDown(0.6)
         }
 
-        if (s.privateNotes?.trim()) {
+        if (includePrivateNotes && s.privateNotes?.trim()) {
           checkPageBreak(40)
           pdf.rect(L, pdf.y, 3, 0).fill(sage)
           pdf.fillColor(muted).font('Helvetica-Bold').fontSize(6.8).text('ANOTAÇÕES PRIVADAS', L + 6, pdf.y, { width: CW - 12, lineBreak: false })
@@ -553,9 +677,11 @@ export class PatientsService {
     pdf.moveDown(1)
     pdf.roundedRect(L, pdf.y, CW, 38, 6).fillAndStroke('#EEF8F3', '#CFE5D9')
     pdf.fillColor(sageDark).font('Helvetica-Bold').fontSize(7.5)
-      .text('DOCUMENTO CONFIDENCIAL', L + 14, pdf.y + 8, { width: CW - 28, lineBreak: false })
+      .text(patientCopy ? 'CÓPIA DISPONIBILIZADA AO PACIENTE' : 'DOCUMENTO CONFIDENCIAL', L + 14, pdf.y + 8, { width: CW - 28, lineBreak: false })
     pdf.fillColor(muted).font('Helvetica').fontSize(7)
-      .text('Este prontuário contém informações sigilosas protegidas pelo sigilo profissional (CFP). Uso restrito ao profissional responsável.', L + 14, pdf.y + 10, { width: CW - 28, lineGap: 1.2 })
+      .text(patientCopy
+        ? 'Documento com dados pessoais e clínicos. Armazene e compartilhe de forma segura. Anotações privadas do profissional não fazem parte desta cópia.'
+        : 'Este prontuário contém informações sigilosas protegidas pelo sigilo profissional (CFP). Uso restrito ao profissional responsável.', L + 14, pdf.y + 10, { width: CW - 28, lineGap: 1.2 })
 
     const range = pdf.bufferedPageRange()
     for (let i = range.start; i < range.start + range.count; i++) {
@@ -563,20 +689,12 @@ export class PatientsService {
       drawFooter(i + 1, range.count)
     }
 
-    pdf.end()
-
     const safeName = p.name.replace(/[^a-zA-Z0-9À-ɏ\s]/g, '').trim().replace(/\s+/g, '_')
-    const filename = `Prontuario_${safeName}_${new Date().toISOString().slice(0, 10)}.pdf`
+    const filename = `${patientCopy ? 'Copia_Prontuario' : 'Backup_Profissional'}_${safeName}_${new Date().toISOString().slice(0, 10)}.pdf`
 
-    return { filename, buffer: await done }
-  }
-
-  private collectPdf(pdf: PDFKit.PDFDocument): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
-      const chunks: Buffer[] = []
-      pdf.on('data', chunk => chunks.push(Buffer.from(chunk)))
-      pdf.on('end', () => resolve(Buffer.concat(chunks)))
-      pdf.on('error', reject)
-    })
+    // Não bufferizamos o PDF inteiro em memória (chunks[] + Buffer.concat) — o
+    // chamador faz pdf.pipe(res) e só então chama pdf.end(), deixando o stream
+    // fluir direto pro socket em vez de duplicar o documento inteiro no heap.
+    return { filename, stream: pdf }
   }
 }

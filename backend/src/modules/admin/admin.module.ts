@@ -8,10 +8,11 @@ import { BillingModule } from '../billing/billing.module'
 import { AdminService } from './admin.service'
 import { AdminController } from './admin.controller'
 import { InternalCleanupController } from './internal-cleanup.controller'
+import { AdminCampaignService } from './admin-campaign.service'
 
 @Module({
   imports: [TypeOrmModule.forFeature([User, Subscription, WebhookEvent, EmailLog]), BillingModule],
   controllers: [AdminController, InternalCleanupController],
-  providers: [AdminService],
+  providers: [AdminService, AdminCampaignService],
 })
 export class AdminModule {}

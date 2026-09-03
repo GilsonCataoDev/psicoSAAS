@@ -1,4 +1,5 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm'
+import { encryptedTextTransformer } from '../../../common/crypto/encrypt.util'
 
 @Entity('audit_logs')
 @Index(['userId', 'createdAt'])
@@ -21,10 +22,10 @@ export class AuditLog {
   @Column({ type: 'jsonb', nullable: true })
   metadata?: Record<string, unknown>
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: encryptedTextTransformer })
   ip?: string
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: encryptedTextTransformer })
   userAgent?: string
 
   @CreateDateColumn()

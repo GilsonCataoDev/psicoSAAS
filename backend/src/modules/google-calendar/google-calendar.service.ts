@@ -4,7 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import axios from 'axios'
 import { createHmac } from 'crypto'
 import { Repository } from 'typeorm'
-import { encryptSecret, safeDecryptSecret } from '../../common/crypto/encrypt.util'
+import { encryptSecret, safeDecryptSecret, secretsMatch } from '../../common/crypto/encrypt.util'
 import { User } from '../auth/entities/user.entity'
 import { Appointment } from '../appointments/entities/appointment.entity'
 
@@ -24,6 +24,12 @@ type GoogleCalendarPrefs = {
   googleCalendarExpiresAt?: string
   googleCalendarLastSyncedAt?: string
   googleCalendarLastSyncError?: string
+  googleCalendarInvitePatients?: boolean
+}
+
+type GoogleCalendarEvent = {
+  id: string
+  attendees?: Array<{ email?: string; responseStatus?: string }>
 }
 
 function safeGoogleCalendarError(err: any): string {
@@ -50,6 +56,7 @@ export class GoogleCalendarService {
         available: this.isConfigured(),
         connected: !!prefs.googleCalendarConnected && !!prefs.googleCalendarRefreshToken,
         email: prefs.googleCalendarEmail ?? null,
+        invitePatients: prefs.googleCalendarInvitePatients === true,
         lastSyncedAt: prefs.googleCalendarLastSyncedAt ?? null,
         lastSyncError: prefs.googleCalendarLastSyncError ?? null,
       }
@@ -142,12 +149,25 @@ export class GoogleCalendarService {
 
     try {
       const accessToken = await this.getValidAccessToken(user, prefs)
-      await this.deleteExistingEvent(accessToken, appointment.id)
-      await axios.post(
-        'https://www.googleapis.com/calendar/v3/calendars/primary/events',
-        this.toGoogleEvent(appointment),
-        { headers: { Authorization: `Bearer ${accessToken}` } },
-      )
+      const existing = await this.findExistingEvent(accessToken, appointment.id)
+      const event = this.toGoogleEvent(appointment, prefs.googleCalendarInvitePatients === true, existing)
+      const requestConfig = {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        params: { sendUpdates: 'all' },
+      }
+      if (existing) {
+        await axios.put(
+          `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(existing.id)}`,
+          event,
+          requestConfig,
+        )
+      } else {
+        await axios.post(
+          'https://www.googleapis.com/calendar/v3/calendars/primary/events',
+          event,
+          requestConfig,
+        )
+      }
       user.preferences = {
         ...(user.preferences ?? {}),
         googleCalendarLastSyncedAt: new Date().toISOString(),
@@ -165,30 +185,45 @@ export class GoogleCalendarService {
     }
   }
 
-  async deleteAppointment(appointment: Appointment): Promise<void> {
+  async deleteAppointment(appointment: Appointment, notifyGuest = true): Promise<void> {
     const user = await this.users.findOneBy({ id: appointment.psychologistId })
     const prefs = (user?.preferences ?? {}) as GoogleCalendarPrefs
     if (!user || !prefs.googleCalendarConnected || !prefs.googleCalendarRefreshToken) return
 
     try {
       const accessToken = await this.getValidAccessToken(user, prefs)
-      await this.deleteExistingEvent(accessToken, appointment.id)
+      await this.deleteExistingEvent(accessToken, appointment.id, notifyGuest)
     } catch (err: any) {
       this.logger.warn(`Falha ao remover evento do Google Agenda status=${err?.response?.status ?? 'unknown'}`)
     }
   }
 
-  private toGoogleEvent(appointment: Appointment) {
+  private toGoogleEvent(appointment: Appointment, invitePatient: boolean, existing?: GoogleCalendarEvent) {
     const timeZone = this.config.get<string>('GOOGLE_CALENDAR_TIMEZONE') ?? 'America/Sao_Paulo'
     const { start, end } = this.appointmentDateTimes(appointment.date, appointment.time, appointment.duration || 50)
     const patientName = appointment.patient?.name ?? 'Paciente'
     const modality = appointment.modality === 'online' ? 'Online' : 'Presencial'
     const meetingLine = appointment.meetingUrl ? `\nLink da chamada: ${appointment.meetingUrl}` : ''
 
+    const patientEmail = appointment.patient?.email?.trim().toLowerCase()
+    const existingAttendee = existing?.attendees?.find(attendee => attendee.email?.toLowerCase() === patientEmail)
+    const attendees = invitePatient && patientEmail
+      ? [{
+          email: patientEmail,
+          displayName: patientName,
+          responseStatus: existingAttendee?.responseStatus ?? 'needsAction',
+        }]
+      : []
+
     return {
-      summary: `Sessao - ${patientName}`,
-      description: `Sessao agendada pela UseCognia.\nModalidade: ${modality}${meetingLine}`,
+      summary: invitePatient && patientEmail ? 'Compromisso agendado' : `Sessao - ${patientName}`,
+      description: `${invitePatient && patientEmail ? 'Compromisso' : 'Sessao'} agendado pela UseCognia.\nModalidade: ${modality}${meetingLine}`,
       location: appointment.meetingUrl || modality,
+      visibility: 'private',
+      guestsCanInviteOthers: false,
+      guestsCanModify: false,
+      guestsCanSeeOtherGuests: false,
+      attendees,
       start: { dateTime: start, timeZone },
       end: { dateTime: end, timeZone },
       extendedProperties: {
@@ -199,8 +234,8 @@ export class GoogleCalendarService {
     }
   }
 
-  private async deleteExistingEvent(accessToken: string, appointmentId: string): Promise<void> {
-    const { data } = await axios.get<{ items?: Array<{ id: string }> }>(
+  private async findExistingEvent(accessToken: string, appointmentId: string): Promise<GoogleCalendarEvent | undefined> {
+    const { data } = await axios.get<{ items?: GoogleCalendarEvent[] }>(
       'https://www.googleapis.com/calendar/v3/calendars/primary/events',
       {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -212,10 +247,18 @@ export class GoogleCalendarService {
       },
     )
 
-    for (const event of data.items ?? []) {
+    return data.items?.[0]
+  }
+
+  private async deleteExistingEvent(accessToken: string, appointmentId: string, notifyGuests = false): Promise<void> {
+    const event = await this.findExistingEvent(accessToken, appointmentId)
+    if (event) {
       await axios.delete(
         `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(event.id)}`,
-        { headers: { Authorization: `Bearer ${accessToken}` } },
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          params: { sendUpdates: notifyGuests ? 'all' : 'none' },
+        },
       )
     }
   }
@@ -287,7 +330,7 @@ export class GoogleCalendarService {
     if (Number(expiresAt) < Date.now()) throw new BadRequestException('Conexao expirada. Tente novamente.')
     const payload = `${userId}.${expiresAt}`
     const expected = createHmac('sha256', this.getRequiredConfig('JWT_SECRET')).update(payload).digest('hex')
-    if (signature !== expected) throw new BadRequestException('Estado OAuth invalido')
+    if (!secretsMatch(signature, expected)) throw new BadRequestException('Estado OAuth invalido')
     return userId
   }
 

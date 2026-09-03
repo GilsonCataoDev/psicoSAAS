@@ -1,6 +1,6 @@
 import { api } from './api'
 
-type PushStatus = {
+export type PushStatus = {
   configured: boolean
   subscribed: boolean
   publicKey: string | null
@@ -24,7 +24,13 @@ export function isPushSupported() {
 
 export async function getPushStatus(): Promise<PushStatus> {
   const { data } = await api.get('/notifications/push/status')
-  return data
+  if (!isPushSupported()) return { ...data, subscribed: false }
+
+  // O backend informa se existe algum dispositivo inscrito. Para o botao
+  // "neste navegador", a fonte correta e a inscricao local deste dispositivo.
+  const registration = await navigator.serviceWorker.getRegistration()
+  const localSubscription = await registration?.pushManager.getSubscription()
+  return { ...data, subscribed: Boolean(localSubscription) }
 }
 
 async function getServiceWorkerRegistration() {

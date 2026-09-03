@@ -1,7 +1,8 @@
 import axios, { AxiosRequestConfig } from 'axios'
 import { useAuthStore } from '@/store/auth'
 
-export const USE_MOCK = false
+declare const __USE_MOCK__: string
+export const USE_MOCK = typeof __USE_MOCK__ !== 'undefined' ? __USE_MOCK__ === 'true' : false
 
 export type AuthAxiosRequestConfig = AxiosRequestConfig & {
   _retry?: boolean

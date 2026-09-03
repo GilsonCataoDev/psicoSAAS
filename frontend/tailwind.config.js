@@ -65,6 +65,10 @@ module.exports = {
           800: '#37332e',
           900: '#211f1c',
         },
+        cognia: {
+          // Fundo de card no dark mode — mesmo tom usado em index.css (.card, select etc.)
+          panel: '#17211d',
+        },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],

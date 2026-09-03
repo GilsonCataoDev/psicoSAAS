@@ -4,17 +4,20 @@ import { DataSource, In, Repository } from 'typeorm'
 import { User } from '../auth/entities/user.entity'
 import { AsaasService } from './asaas.service'
 import { Subscription } from './entities/subscription.entity'
+import { termsFor } from '../../common/terms'
+import { hasPsychologyModules } from '../../common/professions'
+import { isCompedProEmail, LATEST_SUBSCRIPTION_ORDER, PLAN_PRICES } from '../../common/plans'
 
-const TRIAL_DAYS = 7
-const PLAN_PRICES: Record<string, number> = { essencial: 79, pro: 149 }
-const ACTIVATION_OFFER_CODE = 'ROTINA20'
+const TRIAL_DAYS = 14
+const ACTIVATION_OFFER_CODE = 'PRO3490'
+const ACTIVATION_OFFER_VALUE = 34.90
 const REFERRAL_OFFER_CODE = 'INDICACAO20'
+/** Formata no padrao brasileiro: 97.90 -> "97,90". */
+function brl(value: number): string {
+  return value.toFixed(2).replace('.', ',')
+}
+
 const BETA_FREE_ACCESS = process.env.BETA_FREE_ACCESS !== 'false'
-const DEFAULT_COMPED_PRO_EMAILS = ['gilsonfilho96@outlook.com']
-const COMPED_PRO_EMAILS = (process.env.COMPED_PRO_EMAILS ?? DEFAULT_COMPED_PRO_EMAILS.join(','))
-  .split(',')
-  .map(email => email.trim().toLowerCase())
-  .filter(Boolean)
 
 @Injectable()
 export class BillingService {
@@ -28,7 +31,7 @@ export class BillingService {
   async getMine(user: Pick<User, 'id' | 'email'>) {
     const subscription = await this.repo.findOne({
       where: { userId: user.id },
-      order: { createdAt: 'DESC' },
+      order: LATEST_SUBSCRIPTION_ORDER,
     })
 
     if (!subscription) {
@@ -65,8 +68,14 @@ export class BillingService {
       && subscription.currentPeriodEnd
       && new Date(subscription.currentPeriodEnd).getTime() <= Date.now()
     ) {
-      subscription.status = 'canceled'
+      subscription.plan = 'free'
+      subscription.status = 'active'
+      subscription.gatewayCustomerId = null
+      subscription.gatewaySubscriptionId = null
       subscription.cancelAtPeriodEnd = false
+      subscription.currentPeriodEnd = new Date()
+      subscription.trialEndsAt = null
+      this.clearPromotion(subscription)
       return this.repo.save(subscription)
     }
 
@@ -76,14 +85,14 @@ export class BillingService {
   async subscribe(user: User, plan = 'pro', creditCardToken?: string) {
     if (!PLAN_PRICES[plan]) throw new BadRequestException('Plano invalido')
 
-    if (!creditCardToken) {
-      throw new BadRequestException('Cartão de crédito obrigatório para iniciar o teste')
-    }
-
     const existing = await this.repo.findOne({
       where: { userId: user.id },
-      order: { createdAt: 'DESC' },
+      order: LATEST_SUBSCRIPTION_ORDER,
     })
+
+    if (!creditCardToken) {
+      return this.startLocalTrial(user, plan, existing)
+    }
 
     const canUpgradeFromFree = existing?.status === 'active' && existing.plan === 'free' && !existing.gatewaySubscriptionId
     const canAttachPaymentToLocalTrial = existing?.status === 'trialing' && !existing.gatewaySubscriptionId
@@ -131,8 +140,10 @@ export class BillingService {
         creditCardToken,
         nextDueDate,
         promo ? {
-          valueOverride: this.discountedValue(plan, promo.discountPercent),
-          descriptionSuffix: `${promo.code} ${promo.discountPercent}% por ${promo.cycles} meses`,
+          valueOverride: promo.fixedValue ?? this.discountedValue(plan, promo.discountPercent),
+          descriptionSuffix: promo.fixedValue
+            ? `${promo.code} por ${promo.cycles} ciclo`
+            : `${promo.code} ${promo.discountPercent}% por ${promo.cycles} meses`,
         } : undefined,
       )
     } catch (err) {
@@ -152,6 +163,8 @@ export class BillingService {
           promoCyclesUsed: previousSubscription.promoCyclesUsed,
           regularMonthlyValue: previousSubscription.regularMonthlyValue,
           lastPromoPaymentId: previousSubscription.lastPromoPaymentId,
+          upgradeOfferViewedAt: previousSubscription.upgradeOfferViewedAt,
+          activationOfferRedeemedAt: previousSubscription.activationOfferRedeemedAt,
         })
         await this.repo.save(saved)
       } else {
@@ -167,15 +180,52 @@ export class BillingService {
       trialEndsAt,
       hasUsedTrial: true,
       currentPeriodEnd: null,
+      activationOfferRedeemedAt: promo?.code === ACTIVATION_OFFER_CODE
+        ? new Date()
+        : saved.activationOfferRedeemedAt,
     })
 
     return this.toPublicSubscription(await this.repo.save(saved))
   }
 
+  private async startLocalTrial(user: User, plan: string, existing: Subscription | null) {
+    if (existing?.status === 'trialing') {
+      throw new ConflictException('Seu teste gratis ja esta ativo')
+    }
+    if (existing?.hasUsedTrial) {
+      throw new BadRequestException('O teste gratis desta conta ja foi utilizado. Informe o cartao para assinar.')
+    }
+    if (existing?.gatewaySubscriptionId || (existing?.status === 'active' && existing.plan !== 'free')) {
+      throw new ConflictException('Usuario ja possui uma assinatura ativa')
+    }
+
+    const promo = await this.getApplicablePromotion(user, plan, existing)
+    const subscription = existing ?? this.repo.create({ userId: user.id })
+    Object.assign(subscription, {
+      userId: user.id,
+      plan,
+      status: 'trialing',
+      trialEndsAt: new Date(Date.now() + TRIAL_DAYS * 86400000),
+      currentPeriodEnd: null,
+      cancelAtPeriodEnd: false,
+      hasUsedTrial: true,
+      gatewayCustomerId: null,
+      gatewaySubscriptionId: null,
+      promoCode: promo?.code ?? null,
+      promoDiscountPercent: promo?.discountPercent ?? 0,
+      promoCyclesTotal: promo?.cycles ?? 0,
+      promoCyclesUsed: 0,
+      regularMonthlyValue: promo ? String(PLAN_PRICES[plan].toFixed(2)) : null,
+      lastPromoPaymentId: null,
+    })
+
+    return this.toPublicSubscription(await this.repo.save(subscription))
+  }
+
   async activateFree(user: Pick<User, 'id' | 'email'>) {
     const existing = await this.repo.findOne({
       where: { userId: user.id },
-      order: { createdAt: 'DESC' },
+      order: LATEST_SUBSCRIPTION_ORDER,
     })
 
     if (existing?.gatewaySubscriptionId && existing.status !== 'canceled') {
@@ -196,48 +246,62 @@ export class BillingService {
     return this.toPublicSubscription(await this.repo.save(subscription))
   }
 
-  async getFreeUpgradeOffer(user: Pick<User, 'id' | 'email'>) {
+  async getFreeUpgradeOffer(user: Pick<User, 'id' | 'email' | 'profession'>) {
     const subscription = await this.repo.findOne({
       where: { userId: user.id },
-      order: { createdAt: 'DESC' },
+      order: LATEST_SUBSCRIPTION_ORDER,
     })
+    const t = termsFor(user.profession)
     const plan = subscription?.plan ?? 'free'
     const activeFree = subscription?.status === 'active' && plan === 'free'
 
-    type Row = { daysSinceSignup: string; patients: string; sessions: string }
-    const [row] = await this.dataSource.query<Row[]>(`
-      SELECT
-        FLOOR(EXTRACT(EPOCH FROM (NOW() - u."createdAt")) / 86400)::int AS "daysSinceSignup",
-        (SELECT COUNT(*)::int FROM patients p WHERE p."psychologistId" = u.id) AS patients,
-        (SELECT COUNT(*)::int FROM sessions s WHERE s."psychologistId" = u.id) AS sessions
-      FROM users u
-      WHERE u.id = $1
-      LIMIT 1
-    `, [user.id])
-
-    const daysSinceSignup = Number(row?.daysSinceSignup ?? 0)
-    const patients = Number(row?.patients ?? 0)
-    const sessions = Number(row?.sessions ?? 0)
-    const activated = patients >= 2 || sessions >= 1
-    const eligible = activeFree && daysSinceSignup >= 7 && activated
+    const eligible = activeFree && !subscription?.activationOfferRedeemedAt
 
     return {
       eligible,
-      daysSinceSignup,
-      patients,
-      sessions,
-      offerCode: eligible ? 'ROTINA20' : null,
+      shouldNotify: eligible && !subscription?.upgradeOfferViewedAt,
+      offerCode: eligible ? ACTIVATION_OFFER_CODE : null,
+      promotionalPrice: eligible ? ACTIVATION_OFFER_VALUE : null,
+      regularPrice: PLAN_PRICES.pro,
+      includesTrial: eligible && !subscription?.hasUsedTrial,
       discount: eligible ? {
-        essencial: '20% nos 3 primeiros meses',
-        pro: '30% nos 3 primeiros meses',
+        // Derivado das constantes: preco anunciado nao pode divergir do cobrado.
+        pro: `1º mês por R$ ${brl(ACTIVATION_OFFER_VALUE)}; depois R$ ${brl(PLAN_PRICES.pro)}/mês`,
       } : null,
-      title: 'Sua rotina ja comecou. Agora libere mais limite.',
-      message: 'Continue com documentos, mais pacientes, transcricao por IA e automacoes para reduzir retrabalho.',
-      benefits: [
-        'Essencial: 50 pacientes, documentos/PDF e 10 min de transcricao',
-        'Pro: pacientes ilimitados, WhatsApp automatico, instrumentos e 120 min de IA',
-      ],
+      title: 'O UseCognia Pro ficou ainda mais completo',
+      message: 'Conheça as novidades e organize toda a rotina clínica em um só lugar.',
+      // Instrumentos e avaliacao neuropsicologica sao psi-only: anunciar isso a
+      // outra profissao seria vender um recurso que a conta nem enxerga.
+      benefits: hasPsychologyModules(user.profession)
+        ? [
+          'Pacientes ilimitados, prontuário, documentos e financeiro completo',
+          'WhatsApp, lembretes, teleatendimento e Google Agenda',
+          'Instrumentos, avaliação neuropsicológica e apoio de IA',
+        ]
+        : [
+          `${t.patientsCapitalized} ilimitados, ${t.record}, documentos e financeiro completo`,
+          'WhatsApp, lembretes, teleatendimento e Google Agenda',
+          'Apoio de IA na rotina de atendimento',
+        ],
     }
+  }
+
+  async acknowledgeFreeUpgradeOffer(userId: string) {
+    const subscription = await this.repo.findOne({
+      where: { userId },
+      order: LATEST_SUBSCRIPTION_ORDER,
+    })
+
+    if (
+      subscription?.status === 'active'
+      && subscription.plan === 'free'
+      && !subscription.upgradeOfferViewedAt
+    ) {
+      subscription.upgradeOfferViewedAt = new Date()
+      await this.repo.save(subscription)
+    }
+
+    return { acknowledged: true }
   }
 
   async updateCard(userId: string, creditCardToken?: string, plan?: string) {
@@ -246,7 +310,7 @@ export class BillingService {
 
     const subscription = await this.repo.findOne({
       where: { userId, status: In(['active', 'past_due']) },
-      order: { createdAt: 'DESC' },
+      order: LATEST_SUBSCRIPTION_ORDER,
     })
 
     if (!subscription?.gatewaySubscriptionId) {
@@ -273,7 +337,7 @@ export class BillingService {
 
     const subscription = await this.repo.findOne({
       where: { userId: user.id, status: In(['active', 'trialing', 'past_due']) },
-      order: { createdAt: 'DESC' },
+      order: LATEST_SUBSCRIPTION_ORDER,
     })
 
     if (!subscription) throw new NotFoundException('Assinatura ativa nao encontrada')
@@ -291,30 +355,55 @@ export class BillingService {
     subscription.plan = plan
     subscription.cancelAtPeriodEnd = false
     this.clearPromotion(subscription)
-    if (subscription.status === 'past_due') subscription.status = 'active'
-
     return this.toPublicSubscription(await this.repo.save(subscription))
   }
 
   async cancel(user: Pick<User, 'id' | 'email'>) {
     const subscription = await this.repo.findOne({
       where: { userId: user.id, status: In(['active', 'trialing', 'past_due']) },
-      order: { createdAt: 'DESC' },
+      order: LATEST_SUBSCRIPTION_ORDER,
     })
 
     if (!subscription) throw new NotFoundException('Assinatura ativa nao encontrada')
 
-    if (subscription.gatewaySubscriptionId) {
-      await this.asaas.cancelSubscription(subscription.gatewaySubscriptionId)
-    }
-
-    const periodEnd = subscription.currentPeriodEnd
+    let periodEnd = subscription.currentPeriodEnd
       ? new Date(subscription.currentPeriodEnd)
       : null
 
+    if (subscription.gatewaySubscriptionId && subscription.status === 'active') {
+      try {
+        const snapshot = await this.asaas.getSubscriptionBilling(subscription.gatewaySubscriptionId)
+        const gatewayPeriodEnd = snapshot.subscription.nextDueDate
+          ? new Date(`${snapshot.subscription.nextDueDate}T00:00:00.000Z`)
+          : null
+        if (gatewayPeriodEnd && gatewayPeriodEnd.getTime() > Date.now()) {
+          periodEnd = gatewayPeriodEnd
+        }
+      } catch {
+        // Se a conciliação falhar, usa a data local para não impedir o cancelamento.
+      }
+    }
+
     if (subscription.status === 'active' && periodEnd && periodEnd.getTime() > Date.now()) {
       subscription.cancelAtPeriodEnd = true
-      return this.toPublicSubscription(await this.repo.save(subscription))
+      subscription.currentPeriodEnd = periodEnd
+      const scheduled = await this.repo.save(subscription)
+
+      if (subscription.gatewaySubscriptionId) {
+        try {
+          await this.asaas.cancelSubscription(subscription.gatewaySubscriptionId)
+        } catch (err) {
+          scheduled.cancelAtPeriodEnd = false
+          await this.repo.save(scheduled)
+          throw err
+        }
+      }
+
+      return this.toPublicSubscription(scheduled)
+    }
+
+    if (subscription.gatewaySubscriptionId) {
+      await this.asaas.cancelSubscription(subscription.gatewaySubscriptionId)
     }
 
     subscription.plan = 'free'
@@ -328,13 +417,13 @@ export class BillingService {
   }
 
   private isCompedProUser(user: Pick<User, 'email'>): boolean {
-    return COMPED_PRO_EMAILS.includes(user.email.toLowerCase())
+    return isCompedProEmail(user.email)
   }
 
   private async ensureCompedProSubscription(user: Pick<User, 'id' | 'email'>) {
     const subscription = await this.repo.findOne({
       where: { userId: user.id },
-      order: { createdAt: 'DESC' },
+      order: LATEST_SUBSCRIPTION_ORDER,
     }) ?? this.repo.create({ userId: user.id })
 
     if (subscription.gatewaySubscriptionId && subscription.status !== 'canceled') {
@@ -365,7 +454,7 @@ export class BillingService {
   private async ensureBetaFreeSubscription(user: Pick<User, 'id' | 'email'>) {
     const subscription = await this.repo.findOne({
       where: { userId: user.id },
-      order: { createdAt: 'DESC' },
+      order: LATEST_SUBSCRIPTION_ORDER,
     }) ?? this.repo.create({ userId: user.id })
 
     Object.assign(subscription, {
@@ -397,19 +486,28 @@ export class BillingService {
   }
 
   private async getApplicablePromotion(
-    user: Pick<User, 'id' | 'email'>,
+    user: Pick<User, 'id' | 'email' | 'profession'>,
     plan: string,
     existing?: Subscription | null,
-  ): Promise<{ code: string; discountPercent: number; cycles: number } | null> {
+  ): Promise<{ code: string; discountPercent: number; cycles: number; fixedValue?: number } | null> {
     if (!PLAN_PRICES[plan]) return null
     if (existing?.gatewaySubscriptionId) return null
+    if (existing?.promoCode && existing.promoCyclesTotal > existing.promoCyclesUsed) {
+      return {
+        code: existing.promoCode,
+        discountPercent: existing.promoDiscountPercent,
+        cycles: existing.promoCyclesTotal,
+        fixedValue: existing.promoCode === ACTIVATION_OFFER_CODE ? ACTIVATION_OFFER_VALUE : undefined,
+      }
+    }
 
     const activationOffer = await this.getFreeUpgradeOffer(user)
     if (activationOffer.eligible) {
       return {
         code: ACTIVATION_OFFER_CODE,
-        discountPercent: plan === 'pro' ? 30 : 20,
-        cycles: 3,
+        discountPercent: 0,
+        cycles: 1,
+        fixedValue: ACTIVATION_OFFER_VALUE,
       }
     }
 

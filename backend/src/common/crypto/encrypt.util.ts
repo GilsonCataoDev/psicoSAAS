@@ -10,7 +10,8 @@
  * Requisito: variável de ambiente ENCRYPTION_KEY com ≥ 32 chars.
  * A chave derivada é cacheada em memória para performance.
  */
-import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, scryptSync } from 'crypto'
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, scryptSync, timingSafeEqual } from 'crypto'
+import type { ValueTransformer } from 'typeorm'
 
 const ALG    = 'aes-256-gcm' as const
 const SALT   = 'usecognia-field-enc-v1'
@@ -116,6 +117,28 @@ export function hashToken(token: string): string {
 }
 
 /**
+ * Índice determinístico e não reversível para localizar campos cifrados.
+ * O contexto impede correlação do mesmo valor entre tabelas/campos diferentes.
+ */
+export function blindIndex(value: string, context: string): string {
+  return createHmac('sha256', getKey())
+    .update(`${context}:${value.trim().toLowerCase()}`)
+    .digest('hex')
+}
+
+/** Transformer para campos sempre cifrados, inclusive quando carregados por relações TypeORM. */
+export const encryptedTextTransformer: ValueTransformer = {
+  to(value: string | null | undefined): string | null | undefined {
+    if (!value) return value
+    return encrypt(value)
+  },
+  from(value: string | null | undefined): string | null | undefined {
+    if (!value) return value
+    return safeDecrypt(value)
+  },
+}
+
+/**
  * Gera um CSRF token stateless via HMAC-SHA256(JWT_SECRET, "csrf:" + userId).
  *
  * - Determinístico: mesma saída para o mesmo userId sem precisar de DB.
@@ -124,7 +147,22 @@ export function hashToken(token: string): string {
  * - Utilizado no padrão Synchronizer Token: retornado no body do login/me,
  *   armazenado em memória no frontend e enviado via header X-CSRF-Token.
  */
-export function generateCsrfToken(userId: string): string {
+export function generateCsrfToken(userId: string, csrfSeed?: string): string {
   const secret = process.env.JWT_SECRET ?? ''
-  return createHmac('sha256', secret).update(`csrf:${userId}`).digest('hex')
+  // Tokens emitidos antes da introdução do csrfSeed não têm o campo no JWT.
+  // Nesses casos mantemos o formato legado para não invalidar sessões ativas no deploy.
+  const payload = csrfSeed ? `csrf:${userId}:${csrfSeed}` : `csrf:${userId}`
+  return createHmac('sha256', secret).update(payload).digest('hex')
+}
+
+/**
+ * Compara dois segredos em tempo constante.
+ * Hasheia ambos antes de comparar para aceitar comprimentos diferentes
+ * sem vazar o tamanho do segredo esperado.
+ */
+export function secretsMatch(provided: string | undefined, expected: string | undefined): boolean {
+  if (!provided || !expected) return false
+  const a = createHash('sha256').update(provided).digest()
+  const b = createHash('sha256').update(expected).digest()
+  return timingSafeEqual(a, b)
 }

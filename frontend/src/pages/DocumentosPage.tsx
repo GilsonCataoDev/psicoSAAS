@@ -4,8 +4,9 @@ import {
   FilePlus, Shield, Download, Eye, Search, ExternalLink, Trash2, Copy,
   FileSignature, LoaderCircle,
 } from 'lucide-react'
-import { Documento, DocumentoListItem, DocType, DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '@/types/prontuario'
+import { Documento, DocumentoListItem, DocType, docTypeLabels, DOC_TYPE_ICONS } from '@/types/prontuario'
 import { useAuthStore } from '@/store/auth'
+import { councilLabel, formatRegistration } from '@/lib/professions'
 import { formatDate } from '@/lib/utils'
 import { openCfpVerification } from '@/lib/crp'
 import { usePatients, useDocuments, useDeleteDocument } from '@/hooks/useApi'
@@ -14,6 +15,7 @@ import { api } from '@/lib/api'
 import EmptyState from '@/components/ui/EmptyState'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import { hasPsychologyModules } from '@/lib/professions'
 
 const GenerateDocModal = lazy(() => import('@/components/features/prontuario/GenerateDocModal'))
 const DocumentPreviewModal = lazy(() => import('@/components/features/prontuario/DocumentPreviewModal'))
@@ -31,6 +33,9 @@ function ModalLoadingOverlay() {
 export default function DocumentosPage() {
   const [searchParams] = useSearchParams()
   const user = useAuthStore(s => s.user)
+  // A resolucao do CFP so vale para psicologia.
+  const showCfp = hasPsychologyModules(user?.profession)
+  const labels = docTypeLabels(user?.profession)
   const [showGenerate, setShowGenerate] = useState(false)
   const { data: patients = [], isLoading: patientsLoading } = usePatients({ enabled: showGenerate })
   const { data: docs = [], isLoading } = useDocuments()
@@ -139,19 +144,21 @@ export default function DocumentosPage() {
           <div className="flex-1 min-w-0">
             <p className="font-medium">Certificação digital ativa</p>
             <p className="text-sage-100 text-sm mt-0.5">
-              {user?.name ?? 'Psicólogo(a)'} · CRP {user?.crp ?? '00/000000'}
+              {user?.name ?? 'Profissional'}{user?.crp ? ` · ${formatRegistration(user.profession, user.crp)}` : ''}
             </p>
             <p className="text-sage-200 text-xs mt-1">
-              Documentos assinados com código único verificável · Válidos conforme CFP Res. 006/2019
+              Documentos assinados com código único verificável{showCfp ? ' · Válidos conforme CFP Res. 006/2019' : ''}
             </p>
-            <button
-              type="button"
-              onClick={openCfpVerification}
-              className="mt-2 inline-flex items-center gap-1 text-xs text-white/80 hover:text-white hover:underline transition-colors"
-            >
-              Verificar registro ativo no portal CFP
-              <ExternalLink className="w-3 h-3" />
-            </button>
+            {showCfp && (
+              <button
+                type="button"
+                onClick={openCfpVerification}
+                className="mt-2 inline-flex items-center gap-1 text-xs text-white/80 hover:text-white hover:underline transition-colors"
+              >
+                Verificar registro ativo no portal CFP
+                <ExternalLink className="w-3 h-3" />
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -160,7 +167,7 @@ export default function DocumentosPage() {
       <div>
         <p className="text-sm font-medium text-neutral-600 mb-3">Gerar documento rápido</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-          {(Object.entries(DOC_TYPE_LABELS) as [DocType, string][]).map(([type, label]) => (
+          {(Object.entries(labels) as [DocType, string][]).map(([type, label]) => (
             <button key={type} onClick={() => { setGenerateType(type); setShowGenerate(true) }}
               className="card p-3 text-center hover:shadow-lifted hover:-translate-y-px transition-all cursor-pointer hover:border-sage-200 group">
               <UseCogniaIcon name={DOC_TYPE_ICONS[type]} size={32} />
@@ -185,7 +192,7 @@ export default function DocumentosPage() {
             className={`flex-none px-3 py-1.5 rounded-lg text-xs transition-all ${typeFilter === 'all' ? 'bg-white shadow-sm font-medium text-neutral-800' : 'text-neutral-500'}`}>
             Todos
           </button>
-          {(Object.entries(DOC_TYPE_LABELS) as [DocType, string][]).map(([type, label]) => (
+          {(Object.entries(labels) as [DocType, string][]).map(([type, label]) => (
             <button key={type} onClick={() => setTypeFilter(type)}
               className={`flex-none px-3 py-1.5 rounded-lg text-xs transition-all whitespace-nowrap ${typeFilter === type ? 'bg-white shadow-sm font-medium text-neutral-800' : 'text-neutral-500'}`}>
               <span className="inline-flex items-center gap-1.5">
@@ -278,8 +285,8 @@ function DocCard({ doc, previewLoading, onPreview, onDownload, onCopyLink, onDel
         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
           <span className="text-xs text-neutral-400">{formatDate(doc.signedAt)}</span>
           <span className="text-neutral-200">·</span>
-          <span className="text-xs text-sage-600 flex items-center gap-1">
-            <Shield className="w-3 h-3" />Assinado
+          <span className={`text-xs flex items-center gap-1 ${doc.needsReview ? 'text-amber-600' : 'text-sage-600'}`}>
+            <Shield className="w-3 h-3" />{doc.needsReview ? 'Revisão necessária' : 'Assinado'}
           </span>
           <span className="text-neutral-200">·</span>
           <span className="text-xs font-mono text-neutral-400">{doc.signCode}</span>

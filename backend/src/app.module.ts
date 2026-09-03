@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common'
+﻿import { Module } from '@nestjs/common'
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -24,43 +24,66 @@ import { TemplatesModule } from './modules/templates/templates.module'
 import { AdminModule } from './modules/admin/admin.module'
 import { TestimonialModule } from './modules/testimonial/testimonial.module'
 import { ChurnModule } from './modules/churn/churn.module'
-import { Subscription as BillingSubscription } from './modules/billing/entities/subscription.entity'
+import { ProspectingModule } from './modules/prospecting/prospecting.module'
 import { PlanGuard } from './common/guards/plan.guard'
 import { SubscriptionGuard } from './common/guards/subscription.guard'
 import { LastActiveInterceptor } from './common/interceptors/last-active.interceptor'
 import { AdvisoryLockModule } from './common/advisory-lock/advisory-lock.module'
+import { StorageModule } from './common/storage/storage.module'
+import { SecurityModule } from './common/security/security.module'
+import { AuditInterceptor } from './modules/audit/interceptors/audit.interceptor'
+import { MonitoringModule } from './common/monitoring/monitoring.module'
 import { HealthController } from './health.controller'
+import { NeuropsychAssessmentsModule } from './modules/neuropsych-assessments/neuropsych-assessments.module'
+import { PrivacyModule } from './common/privacy/privacy.module'
+import { PlanAccessModule } from './common/plan-access/plan-access.module'
+import { AiGovernanceModule } from './modules/ai-governance/ai-governance.module'
+import { ProspectLifecycleModule } from './common/prospect-lifecycle/prospect-lifecycle.module'
+import { ProductHelpModule } from './modules/product-help/product-help.module'
+
+const readPositiveInt = (value: string | undefined, fallback: number): number => {
+  const parsed = Number(value)
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback
+}
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
 
-    // ── Rate limiting global ─────────────────────────────────────────────────
     ThrottlerModule.forRoot([
-      { name: 'short', ttl: 1000,  limit: 3   }, // 3 req/s (anti-DDoS)
-      { name: 'long',  ttl: 60000, limit: 100  }, // 100 req/min por IP
+      { name: 'short', ttl: 1000,  limit: 3   },
+      { name: 'long',  ttl: 60000, limit: 100  },
     ]),
 
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (cfg: ConfigService) => ({
         type: 'postgres',
-        url: cfg.get('DATABASE_URL'),
+        url: cfg.getOrThrow<string>('DATABASE_URL'),
         autoLoadEntities: true,
-        synchronize: cfg.get('NODE_ENV') !== 'production' || cfg.get('TYPEORM_SYNC') === 'true',
+        synchronize: cfg.get<string>('TYPEORM_SYNC') === 'true' && cfg.get<string>('NODE_ENV') !== 'production',
+        // Só usado por test/env-setup.ts — nunca em produção (guardado pelo mesmo NODE_ENV acima).
+        dropSchema: cfg.get<string>('TYPEORM_DROP_SCHEMA') === 'true' && cfg.get<string>('NODE_ENV') !== 'production',
         logging: ['error'],
         extra: {
-          max: 10,                    // tamanho do pool de conexões
-          idleTimeoutMillis: 30_000,  // libera conexões ociosas após 30s
-          connectionTimeoutMillis: 5_000,
+          max: readPositiveInt(cfg.get<string>('DB_POOL_MAX'), 10),
+          idleTimeoutMillis: readPositiveInt(cfg.get<string>('DB_IDLE_TIMEOUT_MS'), 30_000),
+          connectionTimeoutMillis: readPositiveInt(cfg.get<string>('DB_CONNECTION_TIMEOUT_MS'), 5_000),
+          application_name: cfg.get<string>('DB_APPLICATION_NAME') ?? 'usecognia-api',
         },
       }),
     }),
 
-    // Disponibiliza Subscription repository para o PlanGuard global
-    TypeOrmModule.forFeature([BillingSubscription]),
-
     AdvisoryLockModule,
+    PlanAccessModule,
+    StorageModule,
+    SecurityModule,
+    AuditModule,
+    MonitoringModule,
+    PrivacyModule,
+    AiGovernanceModule,
+    ProspectLifecycleModule,
+    ProductHelpModule,
     AuthModule,
     PatientsModule,
     AppointmentsModule,
@@ -77,18 +100,20 @@ import { HealthController } from './health.controller'
     DataExportModule,
     GoogleCalendarModule,
     InstrumentAssignmentsModule,
-    AuditModule,
+    NeuropsychAssessmentsModule,
     TemplatesModule,
     AdminModule,
     TestimonialModule,
     ChurnModule,
+    ProspectingModule,
   ],
   controllers: [HealthController],
   providers: [
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
-    { provide: APP_GUARD, useClass: SubscriptionGuard },
-    { provide: APP_GUARD, useClass: PlanGuard },
+    { provide: APP_GUARD,       useClass: ThrottlerGuard },
+    { provide: APP_GUARD,       useClass: SubscriptionGuard },
+    { provide: APP_GUARD,       useClass: PlanGuard },
     { provide: APP_INTERCEPTOR, useClass: LastActiveInterceptor },
+    { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
   ],
 })
 export class AppModule {}

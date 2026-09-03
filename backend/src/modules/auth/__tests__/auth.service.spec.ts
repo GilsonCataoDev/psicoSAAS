@@ -12,6 +12,10 @@ import { EmailService } from '../../email/email.service'
 import { ReferralService } from '../../referral/referral.service'
 import { AsaasService } from '../../billing/asaas.service'
 import { AuditService } from '../../audit/audit.service'
+import { RiskEngineService } from '../../../common/security/risk-engine.service'
+import { SuspiciousActivityService } from '../../../common/security/suspicious-activity.service'
+import { StorageService } from '../../../common/storage/storage.service'
+import { PlanAccessService } from '../../../common/plan-access/plan-access.service'
 
 const makeUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-1',
@@ -50,20 +54,22 @@ const makeRefreshToken = (overrides: Partial<RefreshToken> = {}): RefreshToken =
 } as RefreshToken)
 
 function makeRepo<T>(overrides: Partial<Record<keyof T, jest.Mock>> = {}) {
-  return {
+  const repo: any = {
     findOneBy: jest.fn(),
     findOne: jest.fn(),
     save: jest.fn(),
     create: jest.fn(v => v),
     update: jest.fn(),
     count: jest.fn(),
-    createQueryBuilder: jest.fn(() => ({
-      addSelect: jest.fn().mockReturnThis(),
-      where: jest.fn().mockReturnThis(),
-      getOne: jest.fn(),
-    })),
     ...overrides,
   }
+  repo.createQueryBuilder = (overrides as any).createQueryBuilder ?? jest.fn(() => ({
+    setLock: jest.fn().mockReturnThis(),
+    addSelect: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    getOne: jest.fn(() => repo.findOneBy({})),
+  }))
+  return repo
 }
 
 describe('AuthService', () => {
@@ -104,10 +110,20 @@ describe('AuthService', () => {
         { provide: ReferralService, useValue: { applyReferral: jest.fn() } },
         { provide: AsaasService, useValue: { cancelSubscription: jest.fn().mockResolvedValue(undefined) } },
         { provide: AuditService, useValue: { record: jest.fn().mockResolvedValue(undefined) } },
+        { provide: RiskEngineService, useValue: { assessLoginRisk: jest.fn().mockResolvedValue({ level: 'low' }) } },
+        { provide: SuspiciousActivityService, useValue: { isIpBlocked: jest.fn().mockResolvedValue(false), recordFailedAttempt: jest.fn().mockResolvedValue(undefined) } },
+        { provide: StorageService, useValue: { isConfigured: jest.fn().mockReturnValue(false), upload: jest.fn(), delete: jest.fn(), deleteStrict: jest.fn(), keyFromUrl: jest.fn() } },
+        { provide: PlanAccessService, useValue: { hasAccess: jest.fn().mockResolvedValue(false), getCurrentPlan: jest.fn().mockResolvedValue('free') } },
         {
           provide: DataSource,
           useValue: {
-            transaction: jest.fn((fn: any) => fn({ getRepository: jest.fn(() => loginAttemptManagerRepo) })),
+            transaction: jest.fn((fn: any) => fn({
+              getRepository: jest.fn((entity: any) => entity === RefreshToken
+                ? rtRepo
+                : entity === User
+                  ? usersRepo
+                  : loginAttemptManagerRepo),
+            })),
           },
         },
       ],
@@ -160,6 +176,7 @@ describe('AuthService', () => {
     it('revokes all sessions when a revoked token is replayed', async () => {
       const revokedRt = makeRefreshToken({ revoked: true })
       const qb = {
+        setLock: jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue(revokedRt),
@@ -178,6 +195,7 @@ describe('AuthService', () => {
 
     it('throws when token not found', async () => {
       const qb = {
+        setLock: jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue(null),
@@ -190,6 +208,7 @@ describe('AuthService', () => {
     it('throws when token is expired', async () => {
       const expiredRt = makeRefreshToken({ expiresAt: new Date(Date.now() - 1000) })
       const qb = {
+        setLock: jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue(expiredRt),
@@ -249,6 +268,7 @@ describe('AuthService', () => {
           email: 'test@example.com',
           password: 'Password1!',
           crp: '01/123456',
+          phone: '11987654321',
           specialty: 'Clínica Geral',
           termsAccepted: true,
           termsVersion: '2026-05-02',

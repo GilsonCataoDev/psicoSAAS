@@ -1,27 +1,36 @@
-import { useParams, Link } from 'react-router-dom'
+import { useNavigate, useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, Phone, Mail, Calendar, Plus, Lock,
   ClipboardList, MessageCircle, CheckCircle2, Save,
   CalendarDays, Banknote, Clock, FileText, Pencil,
-  BookOpenText, BarChart3, Copy, Paperclip, Download, Trash2, Eye,
+  BookOpenText, BrainCircuit, BarChart3, Copy, Paperclip, Download, Trash2, Eye, Sparkles, Loader2,
 } from 'lucide-react'
 import { SCALE_CONFIGS, getCriticalResponses, interpretScaleResult } from '@/lib/scale-scoring'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
-import { formatDate, formatCurrency, formatDateRelative } from '@/lib/utils'
+import { formatDate, formatCurrency, formatDateRelative, patientStartDate } from '@/lib/utils'
 import { useState, useEffect } from 'react'
 import {
   usePatient, useSessions, useFinancial,
-  useMarkFinancialPaid, useSendCharge, useUpdatePatient,
+  useMarkFinancialPaid, useSendCharge, useUpdatePatient, useDeletePatient,
   useInstrumentAssignments, useUpdateInstrumentAnswers, useCreatePatientPortalLink, type InstrumentAssignment,
   usePatientAttachments, useUploadPatientAttachment, useDeletePatientAttachment,
   downloadPatientAttachment, previewPatientAttachment, type PatientAttachment,
+  useCreateNeuropsychAssessment, useNeuropsychAssessments,
+  useAssessmentAiInterpretation, useAppointments,
 } from '@/hooks/useApi'
 import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
 import { track, EVENTS } from '@/lib/analytics'
 import LightweightChart from '@/components/ui/LightweightChart'
+import EditPatientModal from '@/components/features/patients/EditPatientModal'
+import DeletePatientDialog from '@/components/features/patients/DeletePatientDialog'
+import RecurringSessionsCard from '@/components/features/patients/RecurringSessionsCard'
+import LegacyNotesMigrationModal from '@/components/features/patients/LegacyNotesMigrationModal'
+import { useHasPlan } from '@/store/subscription'
+import { buildPatientDetailSummary, buildScaleEvolutionSeries } from '@/lib/patient-detail-summary'
+import { useTerms } from '@/hooks/useTerms'
 
 const MOODS = ['', '1', '2', '3', '4', '5']
 const WEEKDAYS = ['Domingo', 'Segunda', 'Terca', 'Quarta', 'Quinta', 'Sexta', 'Sabado']
@@ -31,18 +40,11 @@ const PATIENT_STATUS_OPTIONS = [
   { value: 'discharged', label: 'Alta' },
 ] as const
 
-const PRONTUARIO_FIELDS = [
-  { key: 'queixaPrincipal', label: 'Queixa principal' },
-  { key: 'historicoDoenca', label: 'História da situação atual' },
-  { key: 'antecedentesPessoais', label: 'Antecedentes pessoais' },
-  { key: 'historicoFamiliar', label: 'Histórico familiar' },
-  { key: 'abordagem', label: 'Abordagem' },
-  { key: 'objetivos', label: 'Objetivos terapêuticos' },
-  { key: 'frequencia', label: 'Frequência' },
-] as const
-
 export default function PatientDetailPage() {
+  const t = useTerms()
   const { id } = useParams()
+  const navigate = useNavigate()
+  const hasProPlan = useHasPlan('pro')
   useEffect(() => { if (id) track(EVENTS.PATIENT_VIEWED) }, [id])
   const { data: patient, isLoading } = usePatient(id ?? '')
   const { data: allSessions = [] } = useSessions({ patientId: id, includeClinical: true })
@@ -52,10 +54,20 @@ export default function PatientDetailPage() {
   const updatePatient = useUpdatePatient()
   const { data: instrumentAssignments = [] } = useInstrumentAssignments(id)
   const updateInstrumentAnswers = useUpdateInstrumentAnswers()
+  const assessmentAiInterpretation = useAssessmentAiInterpretation()
   const createPortalLink = useCreatePatientPortalLink()
   const { data: attachments = [] } = usePatientAttachments(id)
   const uploadAttachment = useUploadPatientAttachment(id)
   const deleteAttachment = useDeletePatientAttachment(id)
+  const { data: neuropsychAssessments = [] } = useNeuropsychAssessments({}, hasProPlan)
+  const createNeuropsychAssessment = useCreateNeuropsychAssessment()
+  const { data: patientAppointments = [] } = useAppointments({ patientId: id })
+  const lastAppointment = [...patientAppointments]
+    .filter(a => a.status !== 'cancelled')
+    .sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`))[0] ?? null
+  const patientAssessments = neuropsychAssessments.filter(assessment => assessment.patientId === id)
+  const activeAssessment = patientAssessments.find(assessment => ['planning', 'in_progress', 'integration'].includes(assessment.status))
+  const latestAssessment = activeAssessment ?? patientAssessments[0]
   const [downloadingAttachmentId, setDownloadingAttachmentId] = useState<string | null>(null)
   const [previewAttachment, setPreviewAttachment] = useState<PatientAttachment | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -73,8 +85,8 @@ export default function PatientDetailPage() {
       return
     }
     try {
-      await uploadAttachment.mutateAsync(file)
-      toast.success('Documento anexado ao prontuário')
+      await uploadAttachment.mutateAsync({ file })
+      toast.success(`Documento anexado ao ${t.record}`)
     } catch (e: any) {
       toast.error(e?.response?.data?.message ?? 'Não foi possível anexar o documento.')
     }
@@ -120,8 +132,38 @@ export default function PatientDetailPage() {
     setPreviewUrl(null)
     setPreviewAttachment(null)
   }
+
+  async function openOrStartNeuropsychAssessment() {
+    if (activeAssessment) {
+      navigate(`/avaliacoes/${activeAssessment.id}`)
+      return
+    }
+    if (!id) return
+    try {
+      const created = await createNeuropsychAssessment.mutateAsync({ patientId: id })
+      toast.success('Avaliação iniciada')
+      navigate(`/avaliacoes/${created.id}`)
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message ?? 'Não foi possível iniciar a avaliação')
+    }
+  }
   const [tab, setTab] = useState<'record' | 'timeline' | 'responses' | 'notes' | 'financial'>('record')
   const [showSessionModal, setShowSessionModal] = useState(false)
+  const [showLegacyMigration, setShowLegacyMigration] = useState(false)
+  const [showEditPatientModal, setShowEditPatientModal] = useState(false)
+  const [showDeletePatientModal, setShowDeletePatientModal] = useState(false)
+  const deletePatient = useDeletePatient()
+
+  async function handleDeletePatient() {
+    if (!patient) return
+    try {
+      await deletePatient.mutateAsync(patient.id)
+      toast.success('Pessoa excluída')
+      navigate('/pacientes')
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'Erro ao excluir pessoa.')
+    }
+  }
   const [editingResponse, setEditingResponse] = useState<InstrumentAssignment | null>(null)
   const [editedAnswers, setEditedAnswers] = useState<Record<string, string>>({})
   const [fixedSchedule, setFixedSchedule] = useState({
@@ -133,7 +175,11 @@ export default function PatientDetailPage() {
   })
   const [careSettings, setCareSettings] = useState({
     status: 'active' as 'active' | 'paused' | 'discharged',
+    billingType: 'per_session' as 'per_session' | 'monthly_package',
     sessionPrice: 0,
+    monthlyPackagePrice: 0,
+    monthlyIncludedSessions: 4,
+    billingDay: 5,
     sessionDuration: 50,
   })
   const [demographicSettings, setDemographicSettings] = useState({
@@ -157,7 +203,11 @@ export default function PatientDetailPage() {
     })
     setCareSettings({
       status: patient.status,
+      billingType: patient.billingType ?? 'per_session',
       sessionPrice: Number(patient.sessionPrice ?? 0),
+      monthlyPackagePrice: Number(patient.monthlyPackagePrice ?? 0),
+      monthlyIncludedSessions: patient.monthlyIncludedSessions ?? 4,
+      billingDay: patient.billingDay ?? 5,
       sessionDuration: patient.sessionDuration ?? 50,
     })
     setDemographicSettings({
@@ -168,7 +218,11 @@ export default function PatientDetailPage() {
   }, [
     patient?.id,
     patient?.status,
+    patient?.billingType,
     patient?.sessionPrice,
+    patient?.monthlyPackagePrice,
+    patient?.monthlyIncludedSessions,
+    patient?.billingDay,
     patient?.sessionDuration,
     patient?.race,
     patient?.gender,
@@ -212,7 +266,11 @@ export default function PatientDetailPage() {
         id,
         data: {
           status: careSettings.status,
+          billingType: careSettings.billingType,
           sessionPrice: careSettings.sessionPrice,
+          monthlyPackagePrice: careSettings.monthlyPackagePrice,
+          monthlyIncludedSessions: careSettings.monthlyIncludedSessions,
+          billingDay: careSettings.billingDay,
           sessionDuration: careSettings.sessionDuration,
         },
       })
@@ -245,15 +303,35 @@ export default function PatientDetailPage() {
           sexualOrientation: demographicSettings.sexualOrientation,
         },
       })
-      toast.success('Informações do paciente salvas')
+      toast.success(`Informações do ${t.patient} salvas`)
     } catch {
-      toast.error('Erro ao salvar informações do paciente.')
+      toast.error(`Erro ao salvar informações do ${t.patient}.`)
     }
   }
 
   function openResponse(response: InstrumentAssignment) {
     setEditingResponse(response)
     setEditedAnswers(response.answers ?? {})
+    assessmentAiInterpretation.reset()
+  }
+
+  function generateAssessmentInterpretation() {
+    if (!editingResponse) return
+    const interpretation = scaleInterpretation(editingResponse)
+    if (!interpretation) return
+    const critical = criticalResponses(editingResponse)
+    assessmentAiInterpretation.mutate({
+      id: editingResponse.id,
+      scaleName: editingResponse.title,
+      scoreDetails: {
+        score: interpretation.score,
+        level: interpretation.level?.label,
+        subscales: interpretation.subscales.map(s => ({ label: s.label, score: s.score, level: s.level.label })),
+      },
+      criticalFlags: critical.map(c => ({ label: c.label, note: c.note })),
+    }, {
+      onError: () => toast.error('Não foi possível gerar a interpretação por IA.'),
+    })
   }
 
   function criticalResponses(response: InstrumentAssignment | null) {
@@ -282,7 +360,7 @@ export default function PatientDetailPage() {
     try {
       const { url } = await createPortalLink.mutateAsync(id)
       await navigator.clipboard.writeText(url)
-      toast.success('Link copiado. Envie ao paciente para preencher os dados antes da sessão.')
+      toast.success(`Link copiado. Envie ao ${t.patient} para preencher os dados antes da ${t.session}.`)
     } catch {
       toast.error('Não foi possível gerar o link.')
     }
@@ -303,23 +381,16 @@ export default function PatientDetailPage() {
     </div>
   )
 
-  const totalPaid    = financialRecords.filter(r => r.status === 'paid').reduce((s, r) => s + Number(r.amount), 0)
-  const totalPending = financialRecords.filter(r => r.status !== 'paid').reduce((s, r) => s + Number(r.amount), 0)
-  const clinicalSessions = allSessions.filter(session => !session.tags?.some(tag => String(tag) === 'instrumento'))
   const prontuario = patient.prontuario ?? {}
-
-  const moodChartData = (() => {
-    const withMood = [...clinicalSessions].reverse().filter(s => s.mood)
-    if (withMood.length < 2) return []
-    return withMood.map(s => ({
-      label: formatDate(s.date),
-      humor: s.mood,
-    }))
-  })()
-  const filledProntuarioFields = PRONTUARIO_FIELDS.filter(field => {
-    const value = prontuario[field.key]
-    return typeof value === 'string' && value.trim().length > 0
-  })
+  const {
+    totalPaid,
+    totalPending,
+    clinicalSessions,
+    monthlySessionsUsed,
+    moodChartData,
+    filledProntuarioFields,
+  } = buildPatientDetailSummary(financialRecords, allSessions, prontuario)
+  const scaleEvolutionSeries = buildScaleEvolutionSeries(instrumentAssignments)
 
   return (
     <div className="animate-slide-up space-y-5 max-w-4xl">
@@ -327,7 +398,7 @@ export default function PatientDetailPage() {
       <Link to="/pacientes"
         className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-700 transition-colors">
         <ArrowLeft className="w-4 h-4" />
-        <span>Pacientes</span>
+        <span>{t.patientsCapitalized}</span>
       </Link>
 
       {/* Header card */}
@@ -366,6 +437,13 @@ export default function PatientDetailPage() {
 
               {/* Ações — desktop */}
               <div className="hidden sm:flex gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowEditPatientModal(true)}
+                  className="btn-secondary text-sm flex items-center gap-1.5"
+                >
+                  <Pencil className="w-3.5 h-3.5" /> Editar
+                </button>
                 <button onClick={copyPortalLink}
                   disabled={createPortalLink.isPending}
                   className="btn-secondary text-sm flex items-center gap-1.5">
@@ -373,11 +451,19 @@ export default function PatientDetailPage() {
                 </button>
                 <Link to={`/prontuario/${patient.id}`}
                   className="btn-secondary text-sm flex items-center gap-1.5">
-                  <ClipboardList className="w-3.5 h-3.5" /> Prontuário
+                  <ClipboardList className="w-3.5 h-3.5" /> {t.recordCapitalized}
                 </Link>
                 <button onClick={() => setShowSessionModal(true)}
                   className="btn-primary text-sm flex items-center gap-1.5">
-                  <Plus className="w-3.5 h-3.5" /> Nova sessão
+                  <Plus className="w-3.5 h-3.5" /> Nova {t.session}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDeletePatientModal(true)}
+                  title="Excluir pessoa"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl text-neutral-300 transition-colors hover:bg-rose-50 hover:text-rose-500"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
@@ -391,19 +477,33 @@ export default function PatientDetailPage() {
         </div>
 
         {/* Ações — mobile */}
-        <div className="flex gap-2 mt-4 sm:hidden">
+        <div className="grid grid-cols-2 gap-2 mt-4 sm:hidden">
+          <button
+            type="button"
+            onClick={() => setShowEditPatientModal(true)}
+            className="btn-secondary text-sm flex items-center gap-1.5 justify-center"
+          >
+            <Pencil className="w-3.5 h-3.5" /> Editar
+          </button>
           <button onClick={copyPortalLink}
             disabled={createPortalLink.isPending}
-            className="btn-secondary text-sm flex items-center gap-1.5 flex-1 justify-center">
+            className="btn-secondary text-sm flex items-center gap-1.5 justify-center">
             <Copy className="w-3.5 h-3.5" /> Portal
           </button>
           <Link to={`/prontuario/${patient.id}`}
-            className="btn-secondary text-sm flex items-center gap-1.5 flex-1 justify-center">
-            <ClipboardList className="w-3.5 h-3.5" /> Prontuário
+            className="btn-secondary text-sm flex items-center gap-1.5 justify-center">
+            <ClipboardList className="w-3.5 h-3.5" /> {t.recordCapitalized}
           </Link>
           <button onClick={() => setShowSessionModal(true)}
-            className="btn-primary text-sm flex items-center gap-1.5 flex-1 justify-center">
-            <Plus className="w-3.5 h-3.5" /> Nova sessão
+            className="btn-primary text-sm flex items-center gap-1.5 justify-center">
+            <Plus className="w-3.5 h-3.5" /> Nova {t.session}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowDeletePatientModal(true)}
+            className="col-span-2 flex items-center justify-center gap-1.5 rounded-xl py-2 text-sm text-rose-500 hover:bg-rose-50"
+          >
+            <Trash2 className="w-3.5 h-3.5" /> Excluir pessoa
           </button>
         </div>
 
@@ -411,11 +511,16 @@ export default function PatientDetailPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-5 pt-5 border-t border-neutral-100">
           <div>
             <p className="text-xs text-neutral-400 mb-0.5">Em acompanhamento desde</p>
-            <p className="font-semibold text-neutral-700 text-sm">{formatDate(patient.startDate)}</p>
+            <p className="font-semibold text-neutral-700 text-sm">{formatDate(patientStartDate(patient.startDate, patient.createdAt))}</p>
           </div>
           <div>
-            <p className="text-xs text-neutral-400 mb-0.5">Valor por sessão</p>
-            <p className="font-semibold text-neutral-700 text-sm">{formatCurrency(patient.sessionPrice)}</p>
+            <p className="text-xs text-neutral-400 mb-0.5">
+              {patient.billingType === 'monthly_package' ? 'Pacote mensal' : `Valor por ${t.session}`}
+            </p>
+            <p className="font-semibold text-neutral-700 text-sm">
+              {formatCurrency(patient.billingType === 'monthly_package' ? patient.monthlyPackagePrice : patient.sessionPrice)}
+              {patient.billingType === 'monthly_package' && <span className="font-normal text-neutral-400"> · {monthlySessionsUsed}/{patient.monthlyIncludedSessions} {t.sessions}</span>}
+            </p>
           </div>
           <div>
             <p className="text-xs text-neutral-400 mb-0.5">Duração</p>
@@ -426,9 +531,9 @@ export default function PatientDetailPage() {
         <div className="mt-5 rounded-xl border border-sage-100 bg-sage-50 px-4 py-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-sage-800">Portal do paciente</p>
+              <p className="text-sm font-semibold text-sage-800">Portal do {t.patient}</p>
               <p className="mt-1 text-xs leading-relaxed text-sage-700">
-                Copie um link seguro para o paciente revisar dados, contato de emergência e próximos horários antes da sessão.
+                Copie um link seguro para o {t.patient} revisar dados, contato de emergência e próximos horários antes da {t.session}.
               </p>
             </div>
             <button
@@ -444,11 +549,50 @@ export default function PatientDetailPage() {
         </div>
       </div>
 
+      {hasProPlan && (patient.careMode === 'neuropsychological_assessment' || latestAssessment) && (
+        <section className="rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white p-5 shadow-card dark:border-violet-900/50 dark:from-violet-950/30 dark:to-cognia-panel">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+            <div className="flex items-start gap-3">
+              <span className="rounded-xl bg-violet-100 p-2.5 text-violet-700 dark:bg-violet-900/50 dark:text-violet-200"><BrainCircuit className="h-5 w-5" /></span>
+              <div><h2 className="font-semibold text-neutral-900 dark:text-white">Avaliação neuropsicológica</h2>
+                <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">{activeAssessment
+                  ? `${activeAssessment.batteryProgress.applied}/${activeAssessment.batteryProgress.total} procedimentos aplicados · avaliação em andamento`
+                  : latestAssessment
+                    ? 'A avaliação mais recente foi concluída ou arquivada. Você pode consultá-la na área de avaliações.'
+                    : 'Organize história, bateria, resultados, integração e relatório final.'}</p></div>
+            </div>
+            {activeAssessment ? <button type="button" onClick={openOrStartNeuropsychAssessment} className="btn-primary shrink-0">Abrir avaliação</button> : latestAssessment ? <Link to={`/avaliacoes/${latestAssessment.id}`} className="btn-secondary shrink-0 text-center">Ver última avaliação</Link> : <button type="button" onClick={openOrStartNeuropsychAssessment} disabled={createNeuropsychAssessment.isPending} className="btn-primary shrink-0">{createNeuropsychAssessment.isPending ? 'Iniciando...' : 'Iniciar avaliação'}</button>}
+          </div>
+        </section>
+      )}
+
+      {patient.hasFixedSchedule && (
+        <RecurringSessionsCard
+          patient={patient}
+          anchorDate={lastAppointment?.date ?? null}
+          anchorLabel={lastAppointment ? `Última ${t.session} em ${formatDate(lastAppointment.date)}` : `Sem ${t.sessions} registradas ainda`}
+        />
+      )}
+
+      <EditPatientModal
+        open={showEditPatientModal}
+        onClose={() => setShowEditPatientModal(false)}
+        patient={patient}
+      />
+
+      <DeletePatientDialog
+        open={showDeletePatientModal}
+        patientName={patient.name}
+        loading={deletePatient.isPending}
+        onConfirm={handleDeletePatient}
+        onClose={() => setShowDeletePatientModal(false)}
+      />
+
       <div className="card space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <ClipboardList className="w-4 h-4 text-sage-600" />
-            <h2 className="font-semibold text-neutral-800 text-sm">Informações do paciente</h2>
+            <h2 className="font-semibold text-neutral-800 text-sm">Informações do {t.patient}</h2>
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
@@ -509,15 +653,13 @@ export default function PatientDetailPage() {
             </select>
           </div>
           <div>
-            <label className="label">Valor da sessão (R$)</label>
-            <input
-              type="number"
-              min={0}
-              step="0.01"
-              value={careSettings.sessionPrice}
-              onChange={e => setCareSettings(s => ({ ...s, sessionPrice: Number(e.target.value) }))}
-              className="input-field"
-            />
+            <label className="label">Forma de cobrança</label>
+            <select value={careSettings.billingType}
+              onChange={e => setCareSettings(s => ({ ...s, billingType: e.target.value as typeof careSettings.billingType }))}
+              className="input-field">
+              <option value="per_session">Por {t.session}</option>
+              <option value="monthly_package">Pacote mensal</option>
+            </select>
           </div>
           <div>
             <label className="label">Duração (min)</label>
@@ -530,6 +672,38 @@ export default function PatientDetailPage() {
               className="input-field"
             />
           </div>
+          {careSettings.billingType === 'monthly_package' ? (
+            <>
+              <div>
+                <label className="label">Valor do pacote (R$)</label>
+                <input type="number" min={0} step="0.01" value={careSettings.monthlyPackagePrice}
+                  onChange={e => setCareSettings(s => ({ ...s, monthlyPackagePrice: Number(e.target.value) }))}
+                  className="input-field" />
+              </div>
+              <div>
+                <label className="label">{t.sessionsCapitalized} incluídas/mês</label>
+                <input type="number" min={1} max={31} value={careSettings.monthlyIncludedSessions}
+                  onChange={e => setCareSettings(s => ({ ...s, monthlyIncludedSessions: Number(e.target.value) }))}
+                  className="input-field" />
+              </div>
+              <div>
+                <label className="label">Dia do vencimento</label>
+                <input type="number" min={1} max={31} value={careSettings.billingDay}
+                  onChange={e => setCareSettings(s => ({ ...s, billingDay: Number(e.target.value) }))}
+                  className="input-field" />
+              </div>
+              <div className="flex items-end text-xs text-neutral-500">
+                Uso neste mês: <strong className="ml-1 text-neutral-700">{monthlySessionsUsed}/{careSettings.monthlyIncludedSessions}</strong>
+              </div>
+            </>
+          ) : (
+            <div>
+              <label className="label">Valor da {t.session} (R$)</label>
+              <input type="number" min={0} step="0.01" value={careSettings.sessionPrice}
+                onChange={e => setCareSettings(s => ({ ...s, sessionPrice: Number(e.target.value) }))}
+                className="input-field" />
+            </div>
+          )}
           <div className="flex items-end">
             <button onClick={saveCareSettings} disabled={updatePatient.isPending} className="btn-primary text-sm w-full">
               {updatePatient.isPending ? 'Salvando...' : 'Salvar'}
@@ -641,19 +815,19 @@ export default function PatientDetailPage() {
       {/* Tabs */}
       <div className="flex gap-1 bg-neutral-100 p-1 rounded-xl">
         {[
-          { id: 'record',    label: 'Prontuário',  icon: BookOpenText  },
+          { id: 'record',    label: t.recordCapitalized,  icon: BookOpenText  },
           { id: 'timeline',  label: 'Histórico',    icon: CalendarDays  },
           { id: 'responses', label: 'Respostas',    icon: FileText      },
           { id: 'notes',     label: 'Anotacoes privadas', icon: Lock          },
           { id: 'financial', label: 'Financeiro',   icon: Banknote      },
-        ].map(t => (
-          <button key={t.id} onClick={() => setTab(t.id as any)}
+        ].map(tabItem => (
+          <button key={tabItem.id} onClick={() => setTab(tabItem.id as any)}
             className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-sm transition-all text-center ${
-              tab === t.id
+              tab === tabItem.id
                 ? 'bg-white text-neutral-800 shadow-sm font-semibold'
                 : 'text-neutral-500 hover:text-neutral-700'
             }`}>
-            {t.label}
+            {tabItem.label}
           </button>
         ))}
       </div>
@@ -666,10 +840,10 @@ export default function PatientDetailPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <BookOpenText className="h-4 w-4 text-sage-600" />
-                  <h2 className="section-title mb-0">Prontuário clínico</h2>
+                  <h2 className="section-title mb-0">{t.recordCapitalized} clínico</h2>
                 </div>
                 <p className="mt-1 text-sm text-neutral-400">
-                  Identificação, anamnese, plano terapêutico e evoluções ficam reunidos nesta pessoa.
+                  Identificação, {t.intake}, plano terapêutico e evoluções ficam reunidos nesta pessoa.
                 </p>
               </div>
               <Link to={`/prontuario/${patient.id}`} className="btn-secondary shrink-0 text-sm">
@@ -680,8 +854,8 @@ export default function PatientDetailPage() {
             {filledProntuarioFields.length === 0 ? (
               <div className="mt-5 rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-8 text-center">
                 <ClipboardList className="mx-auto h-8 w-8 text-neutral-300" />
-                <p className="mt-3 font-medium text-neutral-600">Prontuário ainda sem dados clínicos</p>
-                <p className="mt-1 text-sm text-neutral-400">Abra o prontuário completo para preencher a anamnese e o plano terapêutico.</p>
+                <p className="mt-3 font-medium text-neutral-600">{t.recordCapitalized} ainda sem dados clínicos</p>
+                <p className="mt-1 text-sm text-neutral-400">Abra o {t.record} completo para preencher a {t.intake} e o plano terapêutico.</p>
               </div>
             ) : (
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -698,7 +872,7 @@ export default function PatientDetailPage() {
           </div>
 
           <div className="card">
-            <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
               <div className="flex items-center gap-2">
                 <CalendarDays className="h-4 w-4 text-sage-600" />
                 <h2 className="section-title mb-0">Evoluções</h2>
@@ -711,7 +885,7 @@ export default function PatientDetailPage() {
             {clinicalSessions.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-8 text-center">
                 <p className="font-medium text-neutral-600">Nenhuma evolução registrada</p>
-                <p className="mt-1 text-sm text-neutral-400">As evoluções aparecem aqui assim que uma sessão for registrada.</p>
+                <p className="mt-1 text-sm text-neutral-400">As evoluções aparecem aqui assim que uma {t.session} for registrada.</p>
               </div>
             ) : (
               <div className="divide-y divide-neutral-100">
@@ -741,29 +915,34 @@ export default function PatientDetailPage() {
 
           {/* ── Documentos anexados ─────────────────────────────────── */}
           <div className="card">
-            <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
               <div>
                 <div className="flex items-center gap-2">
                   <Paperclip className="h-4 w-4 text-sage-600" />
                   <h2 className="section-title mb-0">Documentos</h2>
                 </div>
                 <p className="mt-1 text-sm text-neutral-400">
-                  Material anterior de evolução, laudos e outros documentos deste paciente. PDF, JPG ou PNG até 10 MB.
+                  Material anterior de evolução, laudos e outros documentos deste {t.patient}. PDF, JPG ou PNG até 10 MB.
                 </p>
               </div>
-              <label className={`btn-secondary shrink-0 cursor-pointer text-sm ${uploadAttachment.isPending ? 'pointer-events-none opacity-60' : ''}`}>
-                {uploadAttachment.isPending ? 'Enviando...' : 'Anexar arquivo'}
-                <input
-                  type="file"
-                  accept="application/pdf,image/jpeg,image/png"
-                  className="hidden"
-                  disabled={uploadAttachment.isPending}
-                  onChange={event => {
-                    handleAttachmentUpload(event.target.files?.[0])
-                    event.target.value = ''
-                  }}
-                />
-              </label>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => setShowLegacyMigration(true)} className="btn-primary shrink-0 text-sm">
+                  Migrar anotações em papel
+                </button>
+                <label className={`btn-secondary shrink-0 cursor-pointer text-sm ${uploadAttachment.isPending ? 'pointer-events-none opacity-60' : ''}`}>
+                  {uploadAttachment.isPending ? 'Enviando...' : 'Anexar arquivo'}
+                  <input
+                    type="file"
+                    accept="application/pdf,image/jpeg,image/png"
+                    className="hidden"
+                    disabled={uploadAttachment.isPending}
+                    onChange={event => {
+                      handleAttachmentUpload(event.target.files?.[0])
+                      event.target.value = ''
+                    }}
+                  />
+                </label>
+              </div>
             </div>
 
             {attachments.length === 0 ? (
@@ -822,7 +1001,7 @@ export default function PatientDetailPage() {
         <div className="space-y-3">
           {moodChartData.length >= 2 && (
             <div className="card">
-              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-3">Humor por sessão</p>
+              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-3">Humor por {t.session}</p>
               <div className="h-[100px]">
                 <LightweightChart
                   data={moodChartData.map(item => ({ label: item.label, value: Number(item.humor) || 0 }))}
@@ -843,10 +1022,10 @@ export default function PatientDetailPage() {
               <div className="w-12 h-12 bg-sage-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
                 <CalendarDays className="w-5 h-5 text-sage-400" />
               </div>
-              <p className="font-medium text-neutral-600 mb-1">Nenhuma sessão ainda</p>
-              <p className="text-sm text-neutral-400 mb-4">O histórico de sessões aparecerá aqui.</p>
+              <p className="font-medium text-neutral-600 mb-1">Nenhuma {t.session} ainda</p>
+              <p className="text-sm text-neutral-400 mb-4">O histórico de {t.sessions} aparecerá aqui.</p>
               <button onClick={() => setShowSessionModal(true)} className="btn-secondary text-sm">
-                Registrar sessão
+                Registrar {t.session}
               </button>
             </div>
           ) : (
@@ -859,13 +1038,13 @@ export default function PatientDetailPage() {
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-neutral-700 text-sm">Sessão · {s.duration} min</p>
+                  <p className="font-semibold text-neutral-700 text-sm">{t.sessionCapitalized} · {s.duration} min</p>
                   {s.summary && (
                     <p className="text-sm text-neutral-500 mt-1 line-clamp-2 leading-relaxed">{s.summary}</p>
                   )}
                   {s.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
-                      {s.tags.map(t => <TagBadge key={t} tag={t} small />)}
+                      {s.tags.map(tag => <TagBadge key={tag} tag={tag} small />)}
                     </div>
                   )}
                 </div>
@@ -881,6 +1060,33 @@ export default function PatientDetailPage() {
       {/* ── Respostas de formulários ─────────────────────────────────── */}
       {tab === 'responses' && (
         <div className="space-y-3">
+          {scaleEvolutionSeries.length > 0 && (
+            <div className="space-y-3">
+              {scaleEvolutionSeries.map(series => {
+                const thresholds = SCALE_CONFIGS[series.instrumentId]?.thresholds
+                const maxScore = thresholds?.[thresholds.length - 1]?.max
+                return (
+                  <div key={series.instrumentId} className="card">
+                    <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-3">
+                      Evolução · {series.title}
+                    </p>
+                    <div className="h-[100px]">
+                      <LightweightChart
+                        data={series.points}
+                        height={100}
+                        color="#4DA8DA"
+                        fillOpacity={0.1}
+                        min={0}
+                        max={maxScore}
+                        showYAxis
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
           {instrumentAssignments.filter(item => item.status === 'completed').length === 0 ? (
             <div className="card py-12 text-center">
               <FileText className="mx-auto h-9 w-9 text-neutral-300" />
@@ -1052,6 +1258,14 @@ export default function PatientDetailPage() {
         defaultPatientId={patient.id}
       />
 
+      <LegacyNotesMigrationModal
+        open={showLegacyMigration}
+        onClose={() => setShowLegacyMigration(false)}
+        patientId={patient.id}
+        patientName={patient.name}
+        sessionDuration={patient.sessionDuration}
+      />
+
       <Modal
         open={!!previewAttachment}
         onClose={closeAttachmentPreview}
@@ -1114,6 +1328,35 @@ export default function PatientDetailPage() {
             </div>
           )
         })()}
+        {editingResponse?.score != null && (
+          <div className="mb-4 rounded-xl border border-neutral-100 bg-white p-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-neutral-700 flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-sage-600" /> Interpretação por IA
+              </p>
+              <button
+                type="button"
+                onClick={generateAssessmentInterpretation}
+                disabled={assessmentAiInterpretation.isPending}
+                className="btn-secondary text-xs px-2.5 py-1"
+              >
+                {assessmentAiInterpretation.isPending
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : assessmentAiInterpretation.data ? 'Gerar de novo' : 'Gerar rascunho'}
+              </button>
+            </div>
+            {assessmentAiInterpretation.data?.criticalAlert && (
+              <p className="mt-2 rounded-lg bg-red-50 p-2 text-xs font-medium leading-relaxed text-red-800">
+                {assessmentAiInterpretation.data.criticalAlert}
+              </p>
+            )}
+            {assessmentAiInterpretation.data?.draft && (
+              <p className="mt-2 text-xs leading-relaxed text-neutral-600">
+                {assessmentAiInterpretation.data.draft}
+              </p>
+            )}
+          </div>
+        )}
         {editingResponse?.answers && SCALE_CONFIGS[editingResponse.instrumentId] ? (
           <div className="space-y-3">
             {SCALE_CONFIGS[editingResponse.instrumentId].items.map((item, index) => {

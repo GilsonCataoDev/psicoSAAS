@@ -19,13 +19,25 @@ UseCognia é indicado para psicólogos, terapeutas e estagiários clínicos que 
 ## Planos
 
 - Gratuito: até 10 pacientes, sem cartão de crédito
-- Essencial: R$79/mês — agenda, pacientes, documentos, financeiro básico
-- Pro: R$149/mês — recursos ilimitados, instrumentos clínicos, WhatsApp automático, IA
+- Pro: R$97,90/mês — recursos ilimitados, documentos, instrumentos clínicos, WhatsApp automático, IA
 
 ## Links
 
 - Site: https://usecognia.com.br
+- Blog: https://usecognia.com.br/blog
+- Guia sobre prontuário psicológico: https://usecognia.com.br/blog/como-organizar-prontuario-psicologico-com-seguranca
+- Guia de software para psicólogo em 2026: https://usecognia.com.br/blog/software-para-psicologo-guia-completo-2026
 - Cadastro gratuito: https://usecognia.com.br/cadastro
 - Perguntas frequentes: https://usecognia.com.br/plataforma#faq
 - Política de privacidade: https://usecognia.com.br/privacidade
 - Segurança: https://usecognia.com.br/seguranca
+
+## Conteúdos do blog
+
+- Atualizações para psicólogos: o que merece atenção na semana de 21 de agosto de 2026: https://usecognia.com.br/blog/psicologia-em-pauta-semana-2026-08-21
+- Prontuário psicológico atualizado: por que é importante: https://usecognia.com.br/blog/prontuario-psicologico-atualizado-importancia
+- Psicologia em pauta: notícias de 14 de agosto de 2026: https://usecognia.com.br/blog/psicologia-em-pauta-2026-08-14
+- LGPD para psicólogos: guia prático para proteger dados clínicos: https://usecognia.com.br/blog/lgpd-para-psicologos-guia-pratico
+- Declaração de comparecimento psicológico: como organizar e emitir: https://usecognia.com.br/blog/declaracao-de-comparecimento-psicologo-como-fazer
+- Como organizar o prontuário psicológico com mais segurança: https://usecognia.com.br/blog/como-organizar-prontuario-psicologico-com-seguranca
+- Software para psicólogo: guia completo para escolher em 2026: https://usecognia.com.br/blog/software-para-psicologo-guia-completo-2026

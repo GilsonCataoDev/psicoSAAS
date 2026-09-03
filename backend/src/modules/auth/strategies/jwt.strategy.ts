@@ -16,13 +16,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       ]),
       ignoreExpiration: false,
       secretOrKey: cfg.get<string>('JWT_SECRET'),
+      issuer: cfg.get<string>('JWT_ISSUER') ?? 'usecognia-api',
+      audience: cfg.get<string>('JWT_AUDIENCE') ?? 'usecognia-app',
       passReqToCallback: false,
     })
   }
 
-  async validate(payload: { sub: string; email: string; impersonatedBy?: string; impersonatedByEmail?: string }) {
+  async validate(payload: { sub: string; email: string; csrfSeed?: string; impersonatedBy?: string; impersonatedByEmail?: string }) {
     const user = await this.auth.findById(payload.sub)
     if (!user) throw new UnauthorizedException('Sessão inválida')
+    if (user.isActive === false) throw new UnauthorizedException('Conta desativada')
     const {
       passwordHash: _passwordHash,
       resetPasswordToken: _resetPasswordToken,
@@ -35,6 +38,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       safe.preferences = this.cleanPreferences(safe.preferences)
     }
     safe.isAdmin = getAdminEmails().includes((safe.email ?? '').toLowerCase())
+    safe.csrfSeed = payload.csrfSeed  // undefined em tokens legados — tratado em generateCsrfToken
     if (payload.impersonatedBy) {
       safe.impersonatedBy = payload.impersonatedBy
       safe.impersonatedByEmail = payload.impersonatedByEmail

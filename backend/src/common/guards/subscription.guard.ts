@@ -6,10 +6,8 @@ import {
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { AuthGuard } from '@nestjs/passport'
-import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
 import { PUBLIC_ROUTE_KEY } from '../decorators/public-route.decorator'
-import { Subscription } from '../../modules/billing/entities/subscription.entity'
+import { PlanAccessService } from '../plan-access/plan-access.service'
 
 const GRACE_PERIOD_DAYS = 3
 
@@ -17,8 +15,7 @@ const GRACE_PERIOD_DAYS = 3
 export class SubscriptionGuard extends AuthGuard('jwt') implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    @InjectRepository(Subscription)
-    private readonly subscriptions: Repository<Subscription>,
+    private readonly planAccess: PlanAccessService,
   ) {
     super()
   }
@@ -35,10 +32,7 @@ export class SubscriptionGuard extends AuthGuard('jwt') implements CanActivate {
     const userId = req.user?.id
     if (!userId) throw new ForbiddenException('Plano inativo')
 
-    const subscription = await this.subscriptions.findOne({
-      where: { userId },
-      order: { createdAt: 'DESC' },
-    })
+    const subscription = await this.planAccess.getLatestSubscription(userId)
 
     if (!subscription) return true
     if (subscription.status === 'active' || subscription.status === 'trialing') return true

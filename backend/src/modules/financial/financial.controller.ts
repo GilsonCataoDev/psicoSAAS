@@ -5,13 +5,16 @@ import {
 import { Throttle } from '@nestjs/throttler'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
+import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
 import { FinancialService } from './financial.service'
 import { CreateFinancialDto } from './dto/create-financial.dto'
 import { MarkPaidDto } from './dto/mark-paid.dto'
+import { CreateRecurringExpenseDto, UpdateRecurringExpenseDto } from './dto/recurring-expense.dto'
 import { RequirePlan } from '../../common/decorators/require-plan.decorator'
+import { secretsMatch } from '../../common/crypto/encrypt.util'
 
 @Controller('financial')
-@UseGuards(JwtAuthGuard, CsrfGuard)
+@UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
 export class FinancialController {
   constructor(private svc: FinancialService) {}
 
@@ -56,6 +59,26 @@ export class FinancialController {
   remove(@Param('id') id: string, @Request() req: any) {
     return this.svc.remove(id, req.user.id)
   }
+
+  @Get('recurring-expenses')
+  findRecurringExpenses(@Request() req: any) {
+    return this.svc.findRecurringExpenses(req.user.id)
+  }
+
+  @Post('recurring-expenses')
+  createRecurringExpense(@Body() dto: CreateRecurringExpenseDto, @Request() req: any) {
+    return this.svc.createRecurringExpense(dto, req.user.id)
+  }
+
+  @Patch('recurring-expenses/:id')
+  updateRecurringExpense(@Param('id') id: string, @Body() dto: UpdateRecurringExpenseDto, @Request() req: any) {
+    return this.svc.updateRecurringExpense(id, dto, req.user.id)
+  }
+
+  @Delete('recurring-expenses/:id')
+  deleteRecurringExpense(@Param('id') id: string, @Request() req: any) {
+    return this.svc.deleteRecurringExpense(id, req.user.id)
+  }
 }
 
 // Rota separada, fora do guard JWT
@@ -71,7 +94,7 @@ export class AsaasWebhookController {
     @Body() body: { event: string; payment: any },
   ) {
     const expected = process.env.ASAAS_WEBHOOK_TOKEN
-    if (!expected || token !== expected) return { ok: false } // Sem segredo configurado, o webhook não é processado.
+    if (!secretsMatch(token, expected)) return { ok: false } // Sem segredo configurado, o webhook não é processado.
 
     await this.svc.handleAsaasWebhook(body.event, body.payment)
     return { ok: true }

@@ -15,8 +15,39 @@ export class AiUsage {
   @Column({ type: 'int', default: 0 })
   transcriptionSeconds: number
 
+  /** Transcrição de chamada (sessão online inteira) — contada por sessão/mês, não por minuto. */
+  @Column({ type: 'int', default: 0 })
+  callTranscriptions: number
+
   @Column({ type: 'int', default: 0 })
   summaryRequests: number
+
+  @Column({ type: 'int', default: 0 })
+  neuropsychAnalyses: number
+
+  /**
+   * Custo real do Copiloto Neuropsicológico — separado das colunas genéricas
+   * abaixo (usadas por outras funcionalidades de IA) para o orçamento global
+   * mensal do Copiloto não se misturar com custo de outras features.
+   * bigint: linha "sentinela" (orçamento global) acumula de todas as contas.
+   */
+  @Column({ type: 'bigint', default: 0 })
+  neuropsychInputTokens: string
+
+  @Column({ type: 'bigint', default: 0 })
+  neuropsychOutputTokens: string
+
+  @Column({ type: 'bigint', default: 0 })
+  neuropsychCostUsdMicros: string
+
+  @Column({ type: 'int', default: 0 })
+  aiInputTokens: number
+
+  @Column({ type: 'int', default: 0 })
+  aiOutputTokens: number
+
+  @Column({ type: 'int', default: 0 })
+  aiCostUsdMicros: number
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date

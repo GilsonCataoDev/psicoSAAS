@@ -8,24 +8,41 @@ import { useAuthStore } from '@/store/auth'
 import { useSubscriptionStore } from '@/store/subscription'
 import { api } from '@/lib/api'
 import { isValidCrpFormat, getCrpRegion, openCfpVerification, formatCrpInput } from '@/lib/crp'
+import { DEFAULT_PROFESSION, PROFESSIONS, PROFESSION_LABELS, councilLabel, requiresCrp, type Profession } from '@/lib/professions'
 import toast from 'react-hot-toast'
-import { track, EVENTS } from '@/lib/analytics'
+import { track, EVENTS, trackMetaConversion } from '@/lib/analytics'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 
 const schema = z.object({
   name: z.string().min(3, 'Nome muito curto'),
   email: z.string().email('E-mail inválido'),
-  crp: z
+  profession: z.enum(PROFESSIONS).default(DEFAULT_PROFESSION),
+  isStudent: z.boolean().optional(),
+  crp: z.string().optional(),
+  phone: z
     .string()
-    .refine(isValidCrpFormat, 'CRP inválido. Use uma região entre 01 e 24.'),
+    .transform((v) => v.replace(/\D/g, ''))
+    .refine((v) => v.length === 10 || v.length === 11, 'Telefone inválido. Use DDD + número.'),
   password: z.string()
     .min(8, 'Mínimo 8 caracteres')
     .regex(/[A-Z]/, 'Precisa de ao menos uma letra maiúscula')
     .regex(/[a-z]/, 'Precisa de ao menos uma letra minúscula')
     .regex(/\d/, 'Precisa de ao menos um número')
     .regex(/[@$!%*?&\-_#]/, 'Precisa de ao menos um símbolo (@$!%*?&-_#)'),
-  crpConfirmed: z.boolean().refine((v) => v, 'Confirme que seu CRP está ativo'),
+  crpConfirmed: z.boolean().optional(),
   terms: z.boolean().refine((v) => v, 'Você precisa aceitar os termos'),
+}).superRefine((data, ctx) => {
+  // CRP é do conselho de psicologia: as demais profissões têm outros conselhos
+  // e não passam por esta validação.
+  if (!requiresCrp(data.profession)) return
+  // Estudante sem CRP pula a validação de CRP/confirmação — completa depois no perfil.
+  if (data.isStudent) return
+  if (!isValidCrpFormat(data.crp ?? '')) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['crp'], message: 'CRP inválido. Use uma região entre 01 e 24.' })
+  }
+  if (!data.crpConfirmed) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['crpConfirmed'], message: 'Confirme que seu CRP está ativo' })
+  }
 })
 
 type FormData = z.infer<typeof schema>
@@ -34,6 +51,7 @@ const TERMS_VERSION = '2026-05-02'
 
 export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
+  const [isStudent, setIsStudent] = useState(false)
   const [crpValue, setCrpValue] = useState('')
   const [referralCode, setReferralCode] = useState<string | null>(null)
   const [searchParams] = useSearchParams()
@@ -47,9 +65,20 @@ export default function RegisterPage() {
     if (ref) setReferralCode(ref.toUpperCase())
   }, [searchParams])
 
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
+    defaultValues: { profession: DEFAULT_PROFESSION },
   })
+
+  const selectedProfession = watch('profession')
+  const showCrp = requiresCrp(selectedProfession)
+
+  // Trocar de profissao troca o conselho: um "06/123456" digitado como
+  // psicologia nao pode sobrar num cadastro de nutricao, e vice-versa.
+  useEffect(() => {
+    setCrpValue('')
+    setValue('crp', '', { shouldValidate: false })
+  }, [showCrp, setValue])
 
   const crpValid = isValidCrpFormat(crpValue)
   const crpRegion = getCrpRegion(crpValue)
@@ -60,6 +89,17 @@ export default function RegisterPage() {
     setValue('crp', formatted, { shouldValidate: formatted.length >= 7 })
   }
 
+  function handleIsStudentChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const checked = e.target.checked
+    setIsStudent(checked)
+    setValue('isStudent', checked)
+    if (checked) {
+      setCrpValue('')
+      setValue('crp', '', { shouldValidate: false })
+      setValue('crpConfirmed', false, { shouldValidate: false })
+    }
+  }
+
   async function onSubmit(data: FormData) {
     setLoading(true)
     try {
@@ -67,9 +107,13 @@ export default function RegisterPage() {
         name: data.name,
         email: data.email,
         password: data.password,
-        crp: data.crp,
+        phone: data.phone,
         termsAccepted: data.terms,
         termsVersion: TERMS_VERSION,
+        profession: data.profession,
+        ...(showCrp
+          ? (isStudent ? { isStudent: true } : { crp: data.crp })
+          : (crpValue.trim() ? { crp: crpValue.trim() } : {})),
         ...(referralCode ? { referralCode } : {}),
       })
       if (res.data.tokens) {
@@ -97,13 +141,21 @@ export default function RegisterPage() {
         }
       }
 
-      track(EVENTS.REGISTER)
+      track(EVENTS.REGISTER, {
+        source: searchParams.get('utm_source') ?? (referralCode ? 'referral' : 'direct'),
+        medium: searchParams.get('utm_medium') ?? 'none',
+        campaign: searchParams.get('utm_campaign') ?? 'none',
+        has_referral: Boolean(referralCode),
+      })
+      trackMetaConversion('CompleteRegistration')
       toast.success(
         freePlanActivated
           ? 'Plano gratis liberado! Seja bem-vindo(a)'
           : 'Conta criada! Vamos terminar a ativacao do plano gratis no painel.',
       )
-      navigate('/')
+      // 'essencial' mantido no fallback por compatibilidade com links antigos (plano descontinuado, vira Pro).
+      const requestedPlan = searchParams.get('plano')
+      navigate(requestedPlan === 'essencial' || requestedPlan === 'pro' ? '/planos?plano=pro' : '/')
     } catch (err: any) {
       const status = err?.response?.status
       const msg = err?.response?.data?.message
@@ -160,7 +212,85 @@ export default function RegisterPage() {
           {errors.email && <p className="text-rose-500 text-xs mt-1">{errors.email.message}</p>}
         </div>
 
+        <div>
+          <label htmlFor="register-profession" className="label">Profissão</label>
+          <select
+            id="register-profession"
+            {...register('profession')}
+            className="input-field"
+            aria-invalid={!!errors.profession}
+          >
+            {PROFESSIONS.map(item => (
+              <option key={item} value={item}>{PROFESSION_LABELS[item as Profession]}</option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-neutral-400">
+            Define os termos usados no sistema e quais recursos aparecem para você.
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="register-phone" className="label">Telefone (WhatsApp)</label>
+          <input
+            id="register-phone"
+            {...register('phone')}
+            type="tel"
+            className="input-field"
+            placeholder="(00) 00000-0000"
+            autoComplete="tel"
+            inputMode="numeric"
+            aria-invalid={!!errors.phone}
+          />
+          {errors.phone && <p className="text-rose-500 text-xs mt-1">{errors.phone.message}</p>}
+        </div>
+
+        {/* Os demais conselhos nao tem formato fixo nem consulta publica
+            padronizada, entao o registro entra como texto livre e opcional. */}
+        {!showCrp && (
+        <div>
+          <label htmlFor="register-council" className="label">
+            {councilLabel(selectedProfession)} <span className="text-neutral-400 font-normal">(opcional)</span>
+          </label>
+          <input
+            id="register-council"
+            value={crpValue}
+            onChange={e => setCrpValue(e.target.value.slice(0, 30))}
+            className="input-field"
+            placeholder="Ex: CRN-3 12345"
+            maxLength={30}
+            autoComplete="off"
+          />
+          <p className="text-xs text-neutral-400 mt-1">
+            Aparece no seu link público de agendamento. Dá para preencher depois no perfil.
+          </p>
+        </div>
+        )}
+
+        {/* CRP e a condicao de estudante sao do conselho de psicologia. */}
+        {showCrp && (
+        <div className="flex items-start gap-2 pt-1">
+          <input
+            type="checkbox"
+            id="isStudent"
+            checked={isStudent}
+            onChange={handleIsStudentChange}
+            className="mt-0.5 accent-sage-500"
+          />
+          <label htmlFor="isStudent" className="text-sm text-neutral-500 cursor-pointer">
+            Sou estudante, ainda não tenho CRP
+          </label>
+        </div>
+        )}
+
+        {showCrp && isStudent && (
+          <p className="text-xs text-neutral-400 -mt-2">
+            Sem CRP, você pode usar agenda, pacientes e financeiro normalmente, mas não poderá
+            emitir documentos oficiais (atestados, relatórios, recibos) até adicionar seu CRP no perfil.
+          </p>
+        )}
+
         {/* ── CRP com validação em tempo real ────────────────────────── */}
+        {showCrp && !isStudent && (
         <div>
           <label htmlFor="register-crp" className="label">CRP</label>
           <div className="relative">
@@ -218,6 +348,7 @@ export default function RegisterPage() {
             <p className="text-neutral-400 text-xs mt-1">Formato: 00/000000 (região/número)</p>
           )}
         </div>
+        )}
 
         <div>
           <label htmlFor="register-password" className="label">Senha</label>
@@ -233,6 +364,7 @@ export default function RegisterPage() {
           {errors.password && <p className="text-rose-500 text-xs mt-1">{errors.password.message}</p>}
         </div>
 
+        {showCrp && !isStudent && (
         <div className="flex items-start gap-2 pt-1">
           <input
             {...register('crpConfirmed')}
@@ -247,6 +379,7 @@ export default function RegisterPage() {
             </button>
           </label>
         </div>
+        )}
         {errors.crpConfirmed && <p className="text-rose-500 text-xs">{errors.crpConfirmed.message}</p>}
 
         <div className="flex items-start gap-2 pt-1">

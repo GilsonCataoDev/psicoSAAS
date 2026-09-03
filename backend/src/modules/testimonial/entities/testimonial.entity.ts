@@ -27,6 +27,30 @@ export class Testimonial {
   @Column({ default: false })
   publicConsent: boolean
 
+  @Column({ default: false })
+  publicIdentityConsent: boolean
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  publicDisplayName: string | null
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  publicCrp: string | null
+
+  @Column({ type: 'varchar', length: 120, nullable: true })
+  publicSpecialty: string | null
+
+  @Column({ type: 'varchar', length: 120, nullable: true })
+  publicCity: string | null
+
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  publicAvatarUrl: string | null
+
+  @Column({ type: 'timestamptz', nullable: true })
+  publicConsentAt: Date | null
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  publicConsentVersion: string | null
+
   @CreateDateColumn()
   createdAt: Date
 }

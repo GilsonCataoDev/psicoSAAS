@@ -2,17 +2,9 @@ import {
   Injectable, CanActivate, ExecutionContext, ForbiddenException,
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
-import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
 import { PLAN_KEY, PlanLevel } from '../decorators/require-plan.decorator'
-import { Subscription } from '../../modules/billing/entities/subscription.entity'
-import { PLAN_LIMITS, normalizePlan } from '../plans'
-
-const PLAN_ORDER: Record<PlanLevel, number> = { free: 0, basic: 1, essencial: 1, pro: 2, premium: 2 }
-const COMPED_PRO_EMAILS = (process.env.COMPED_PRO_EMAILS ?? 'gilsonfilho96@outlook.com')
-  .split(',')
-  .map(email => email.trim().toLowerCase())
-  .filter(Boolean)
+import { hasPlanAccess, PLAN_LIMITS } from '../plans'
+import { PlanAccessService } from '../plan-access/plan-access.service'
 
 export { PLAN_LIMITS }
 
@@ -20,7 +12,7 @@ export { PLAN_LIMITS }
 export class PlanGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
-    @InjectRepository(Subscription) private subs: Repository<Subscription>,
+    private readonly planAccess: PlanAccessService,
   ) {}
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
@@ -32,17 +24,10 @@ export class PlanGuard implements CanActivate {
     const req = ctx.switchToHttp().getRequest()
     const userId = req.user?.id
     if (!userId) return false
-    if (req.user?.email && COMPED_PRO_EMAILS.includes(String(req.user.email).toLowerCase())) return true
 
-    const sub = await this.subs.findOne({
-      where: { userId },
-      order: { createdAt: 'DESC' },
-    })
-    const currentPlan = normalizePlan(
-      (sub?.status === 'active' || sub?.status === 'trialing') ? sub.plan : 'free',
-    ) as PlanLevel
+    const currentPlan = await this.planAccess.getCurrentPlan(userId, req.user?.email)
 
-    if (PLAN_ORDER[currentPlan] >= PLAN_ORDER[requiredPlan]) return true
+    if (hasPlanAccess(currentPlan, requiredPlan)) return true
 
     throw new ForbiddenException({
       message: `Esta funcionalidade requer o plano ${requiredPlan} ou superior.`,

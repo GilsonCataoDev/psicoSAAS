@@ -3,6 +3,7 @@ import {
   ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn,
 } from 'typeorm'
 import { User } from '../../auth/entities/user.entity'
+import { encryptedTextTransformer } from '../../../common/crypto/encrypt.util'
 
 /**
  * Agendamento realizado pelo paciente via link público.
@@ -14,9 +15,11 @@ export class Booking {
   @PrimaryGeneratedColumn('uuid') id: string
 
   // Dados do paciente (pode ser novo ou existente)
-  @Column() patientName: string
-  @Column({ nullable: true }) patientEmail?: string
-  @Column({ nullable: true }) patientPhone?: string
+  @Column({ type: 'text', transformer: encryptedTextTransformer }) patientName: string
+  @Column({ type: 'text', nullable: true, transformer: encryptedTextTransformer }) patientEmail?: string
+  @Column({ type: 'text', nullable: true, transformer: encryptedTextTransformer }) patientPhone?: string
+  @Column({ type: 'varchar', length: 64, nullable: true, select: false }) patientEmailHash?: string
+  @Column({ type: 'varchar', length: 64, nullable: true, select: false }) patientPhoneHash?: string
 
   @Column({ type: 'date' }) date: string
   @Column({ type: 'time' }) time: string
@@ -29,6 +32,8 @@ export class Booking {
   // Token único para confirmar/cancelar via link no e-mail/WhatsApp
   @Column({ unique: true }) confirmationToken: string
   @Column({ unique: true, nullable: true }) cancellationCode?: string
+  @Column({ type: 'text', nullable: true }) confirmationTokenEncrypted?: string
+  @Column({ type: 'text', nullable: true }) cancellationCodeEncrypted?: string
   @Column({ type: 'timestamptz' }) tokenExpiresAt: Date   // expira em 48h
   @Column({ nullable: true }) confirmedAt?: Date
   @Column({ nullable: true }) cancelledAt?: Date
@@ -58,4 +63,7 @@ export class Booking {
 
   @CreateDateColumn() createdAt: Date
   @UpdateDateColumn() updatedAt: Date
+
+  publicConfirmationToken?: string
+  publicCancellationCode?: string
 }

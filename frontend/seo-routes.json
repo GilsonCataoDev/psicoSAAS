@@ -1,0 +1,50 @@
+[
+  {
+    "paths": ["/", "/plataforma"],
+    "canonicalPath": "/",
+    "title": "UseCognia | Prontuário e gestão clínica para psicólogos",
+    "description": "Organize prontuários, pacientes, agenda e pagamentos em um só fluxo. Plano grátis para psicólogos, sem cartão e sem prazo para expirar."
+  },
+  {
+    "paths": ["/precos"],
+    "canonicalPath": "/precos",
+    "title": "Preços e planos para psicólogos | UseCognia",
+    "description": "Compare os planos do UseCognia para organizar agenda, prontuário, pacientes, documentos e financeiro. Comece grátis, sem cartão."
+  },
+  {
+    "paths": ["/seguranca"],
+    "canonicalPath": "/seguranca",
+    "title": "Segurança e proteção de dados | UseCognia",
+    "description": "Conheça os controles técnicos e organizacionais usados pelo UseCognia para proteger dados clínicos e apoiar a conformidade com a LGPD."
+  },
+  {
+    "paths": ["/privacidade"],
+    "canonicalPath": "/privacidade",
+    "title": "Política de Privacidade | UseCognia",
+    "description": "Saiba como o UseCognia coleta, utiliza, protege, conserva e exclui dados pessoais conforme a LGPD."
+  },
+  {
+    "paths": ["/termos"],
+    "canonicalPath": "/termos",
+    "title": "Termos de Uso | UseCognia",
+    "description": "Consulte as condições de uso, responsabilidades e limites aplicáveis à plataforma UseCognia."
+  },
+  {
+    "paths": ["/dpa"],
+    "canonicalPath": "/dpa",
+    "title": "Acordo de Tratamento de Dados | UseCognia",
+    "description": "Consulte o acordo que define papéis, instruções, segurança, suboperadores e tratamento de dados pessoais no UseCognia."
+  },
+  {
+    "paths": ["/acessibilidade"],
+    "canonicalPath": "/acessibilidade",
+    "title": "Acessibilidade | UseCognia",
+    "description": "Conheça os recursos e compromissos de acessibilidade digital do UseCognia."
+  },
+  {
+    "paths": ["/ferramenta/evolucao"],
+    "canonicalPath": "/ferramenta/evolucao",
+    "title": "Gerador de evolução psicológica | UseCognia",
+    "description": "Organize um rascunho de evolução psicológica com linguagem profissional e revisão obrigatória do psicólogo."
+  }
+]

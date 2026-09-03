@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import * as QRCode from 'qrcode'
 import { Copy, Download, Loader2, Mail, Shield, CheckCircle, ExternalLink, Check } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
-import { Documento, DOC_TYPE_LABELS } from '@/types/prontuario'
+import { Documento, docTypeLabels } from '@/types/prontuario'
+import { useAuthStore } from '@/store/auth'
+import { DEFAULT_PROFESSION, PROFESSION_LABELS, formatRegistration, hasPsychologyModules, type Profession } from '@/lib/professions'
 import { api } from '@/lib/api'
 import { useSendDocumentByEmail } from '@/hooks/useApi'
 import toast from 'react-hot-toast'
@@ -21,6 +23,8 @@ export default function DocumentPreviewModal({
   open: boolean
   onClose: () => void
 }) {
+  const profession = useAuthStore(s => s.user?.profession)
+  const labels = docTypeLabels(profession)
   const [qrCode, setQrCode] = useState('')
   const [downloading, setDownloading] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -104,15 +108,15 @@ export default function DocumentPreviewModal({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={DOC_TYPE_LABELS[doc.type]} size="lg">
+    <Modal open={open} onClose={onClose} title={labels[doc.type]} size="lg">
       <div className="space-y-4">
         <div className="border border-neutral-200 rounded-2xl overflow-hidden">
           <div className="bg-neutral-50 border-b border-neutral-100 px-6 py-4 text-center">
             <p className="font-display text-lg font-medium text-neutral-800">
-              {DOC_TYPE_LABELS[doc.type].toUpperCase()}
+              {labels[doc.type].toUpperCase()}
             </p>
             <p className="text-xs text-neutral-400 mt-0.5">
-              Conselho Federal de Psicologia - Res. 006/2019
+              {hasPsychologyModules(profession) ? 'Conselho Federal de Psicologia - Res. 006/2019' : ''}
             </p>
           </div>
 
@@ -128,7 +132,7 @@ export default function DocumentPreviewModal({
               <div>
                 <div className="w-40 h-px border-t-2 border-neutral-400 mb-2" />
                 <p className="font-medium text-sm text-neutral-800">{doc.psychologistName}</p>
-                <p className="text-xs text-neutral-500">Psicólogo(a) - CRP {crp}</p>
+                <p className="text-xs text-neutral-500">{PROFESSION_LABELS[(profession || DEFAULT_PROFESSION) as Profession]}{crp ? ` - ${formatRegistration(profession, crp)}` : ''}</p>
                 <p className="text-xs text-neutral-400 mt-0.5">{signedDate}</p>
               </div>
 
@@ -150,11 +154,13 @@ export default function DocumentPreviewModal({
               </div>
             </div>
 
-            <div className="bg-sage-50 border border-sage-100 rounded-xl px-4 py-3 flex items-center gap-3">
-              <CheckCircle className="w-4 h-4 text-sage-600 shrink-0" />
+            <div className={`${doc.needsReview ? 'bg-amber-50 border-amber-200' : 'bg-sage-50 border-sage-100'} border rounded-xl px-4 py-3 flex items-center gap-3`}>
+              <CheckCircle className={`w-4 h-4 shrink-0 ${doc.needsReview ? 'text-amber-600' : 'text-sage-600'}`} />
               <div className="min-w-0 flex-1">
-                <p className="text-xs text-sage-700 font-medium">Documento com autenticidade verificável</p>
-                <p className="text-xs font-mono text-sage-600 mt-0.5">Código: {doc.signCode}</p>
+                <p className={`text-xs font-medium ${doc.needsReview ? 'text-amber-800' : 'text-sage-700'}`}>
+                  {doc.needsReview ? 'Documento incompleto: gere uma nova versão preenchida' : 'Documento com autenticidade verificável'}
+                </p>
+                <p className={`text-xs font-mono mt-0.5 ${doc.needsReview ? 'text-amber-700' : 'text-sage-600'}`}>Código: {doc.signCode}</p>
               </div>
               <a
                 href={verificationUrl}

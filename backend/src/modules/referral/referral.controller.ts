@@ -1,9 +1,10 @@
 import { Controller, Get, Req, UseGuards } from '@nestjs/common'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { ReferralService } from './referral.service'
+import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
 
 @Controller('referral')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, NoImpersonationGuard)
 export class ReferralController {
   constructor(private svc: ReferralService) {}
 

@@ -13,6 +13,8 @@ export default function TestimonialModal({ open, onDone }: Props) {
   const [hover, setHover] = useState(0)
   const [text, setText] = useState('')
   const [publicConsent, setPublicConsent] = useState(false)
+  const [publicIdentityConsent, setPublicIdentityConsent] = useState(false)
+  const [publicCity, setPublicCity] = useState('')
   const [submitted, setSubmitted] = useState(false)
 
   const submit = useSubmitTestimonial()
@@ -26,7 +28,13 @@ export default function TestimonialModal({ open, onDone }: Props) {
   function handleSubmit() {
     if (!rating) return
     submit.mutate(
-      { rating, text: text.trim() || undefined, publicConsent },
+      {
+        rating,
+        text: text.trim() || undefined,
+        publicConsent,
+        publicIdentityConsent: publicConsent && publicIdentityConsent,
+        publicCity: publicIdentityConsent ? publicCity.trim() || undefined : undefined,
+      },
       {
         onSuccess: () => {
           setSubmitted(true)
@@ -83,7 +91,10 @@ export default function TestimonialModal({ open, onDone }: Props) {
               value={text}
               onChange={event => {
                 setText(event.target.value)
-                if (!event.target.value.trim()) setPublicConsent(false)
+                if (!event.target.value.trim()) {
+                  setPublicConsent(false)
+                  setPublicIdentityConsent(false)
+                }
               }}
               placeholder="Ex: Reduzi as faltas, organizo melhor meu consultório..."
               rows={4}
@@ -96,14 +107,39 @@ export default function TestimonialModal({ open, onDone }: Props) {
             <input
               type="checkbox"
               checked={publicConsent}
-              onChange={event => setPublicConsent(event.target.checked)}
+              onChange={event => {
+                setPublicConsent(event.target.checked)
+                if (!event.target.checked) setPublicIdentityConsent(false)
+              }}
               disabled={!text.trim()}
               className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-sage-600 focus:ring-sage-500"
             />
             <span className="text-xs leading-5 text-neutral-600">
-              Autorizo a publicação deste texto nos canais do UseCognia. A autorização é opcional e não inclui dados clínicos.
+              Autorizo a publicação deste texto, da nota e do meu primeiro nome nos canais do UseCognia. A autorização é opcional e não inclui dados clínicos.
             </span>
           </label>
+
+          {publicConsent && (
+            <div className="space-y-3 rounded-xl border border-sage-200 bg-sage-50 p-3">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={publicIdentityConsent}
+                  onChange={event => setPublicIdentityConsent(event.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-sage-600 focus:ring-sage-500"
+                />
+                <span className="text-xs leading-5 text-neutral-700">
+                  Também autorizo exibir meu nome completo e, quando disponíveis no perfil, foto, especialidade e CRP. Posso solicitar a retirada pelo suporte.
+                </span>
+              </label>
+              {publicIdentityConsent && (
+                <label className="block text-xs font-medium text-neutral-700">
+                  Cidade (opcional)
+                  <input value={publicCity} onChange={event => setPublicCity(event.target.value)} maxLength={120} placeholder="Ex.: Recife, PE" className="mt-1.5 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-sage-500" />
+                </label>
+              )}
+            </div>
+          )}
 
           <div className="flex gap-2 justify-end pt-1">
             <button

@@ -14,6 +14,11 @@ build/
 .env.*.local
 **/.env
 **/.env.local
+# Cópias locais de env de teste (o .example correspondente fica versionado)
+.env.e2e-local
+.env.e2e.local
+**/.env.e2e-local
+**/.env.e2e.local
 
 # Logs
 logs/
@@ -38,6 +43,10 @@ Thumbs.db
 # Coverage
 coverage/
 
+# Local development tools and generated architecture maps
+.tools/
+graphify-out/
+
 # Playwright
 test-results/
 playwright-report/
@@ -45,3 +54,12 @@ playwright-report/
 **/playwright-report/
 
 .vercel
+
+# Backend build artifacts (não commitar — gerados por `nest build`)
+backend/data-source.js
+backend/data-source.js.map
+backend/data-source.d.ts
+
+# Venv local do gerador do relatório de auditoria de segurança
+docs/security-audit/venv/
+docs/security-audit/__pycache__/

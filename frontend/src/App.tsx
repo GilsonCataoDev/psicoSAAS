@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { useAuthStore } from '@/store/auth'
+import { hasPsychologyModules } from '@/lib/professions'
 import { useSubscriptionStore } from '@/store/subscription'
 import AuthLayout from '@/components/layout/AuthLayout'
 
@@ -30,10 +31,17 @@ const LegalPage           = lazy(() => import('@/pages/LegalPage'))
 const SecurityPage        = lazy(() => import('@/pages/SecurityPage'))
 const DpaPage             = lazy(() => import('@/pages/DpaPage'))
 const AccessibilityPage   = lazy(() => import('@/pages/AccessibilityPage'))
+const BlogPage            = lazy(() => import('@/pages/BlogPage'))
+const BlogPostPage        = lazy(() => import('@/pages/BlogPostPage'))
 const InstrumentosPage    = lazy(() => import('@/pages/InstrumentosPage'))
 const AdminPage           = lazy(() => import('@/pages/AdminPage'))
 const TestimonialsPage    = lazy(() => import('@/pages/admin/TestimonialsPage'))
 const ChurnPage           = lazy(() => import('@/pages/admin/ChurnPage'))
+const NeuropsychAssessmentsPage = lazy(() => import('@/pages/NeuropsychAssessmentsPage'))
+const NeuropsychAssessmentPage = lazy(() => import('@/pages/NeuropsychAssessmentPage'))
+const ProspectingPage     = lazy(() => import('@/pages/admin/ProspectingPage'))
+const RelatoriosPage      = lazy(() => import('@/pages/RelatoriosPage'))
+const CRMPage             = lazy(() => import('@/pages/CRMPage'))
 
 // Public pages — lazy loaded
 const BookingPage         = lazy(() => import('@/pages/public/BookingPage'))
@@ -42,6 +50,7 @@ const VerifyDocumentPage  = lazy(() => import('@/pages/public/VerifyDocumentPage
 const InstrumentResponsePage = lazy(() => import('@/pages/public/InstrumentResponsePage'))
 const EvolucaoPsicologicaPage = lazy(() => import('@/pages/public/EvolucaoPsicologicaPage'))
 const PatientPortalPage   = lazy(() => import('@/pages/public/PatientPortalPage'))
+const NeuropsychShareLaudoPage = lazy(() => import('@/pages/public/NeuropsychShareLaudoPage'))
 
 function PageLoader() {
   return (
@@ -87,6 +96,16 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   return isAdmin ? <>{children}</> : <Navigate to="/dashboard" replace />
 }
 
+/**
+ * Módulos exclusivos de psicologia (instrumentos psicométricos, laudo
+ * neuropsicológico). Esconder o link do menu não basta — sem isto a URL
+ * continuaria acessível para outras profissões.
+ */
+function PsychologyOnlyRoute({ children }: { children: React.ReactNode }) {
+  const profession = useAuthStore(state => state.user?.profession)
+  return hasPsychologyModules(profession) ? <>{children}</> : <Navigate to="/dashboard" replace />
+}
+
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   return isAuthenticated ? <Navigate to="/dashboard" replace /> : <>{children}</>
@@ -111,6 +130,9 @@ export default function App() {
         <Route path="/seguranca" element={<SecurityPage />} />
         <Route path="/dpa" element={<DpaPage />} />
         <Route path="/acessibilidade" element={<AccessibilityPage />} />
+        <Route path="/blog" element={<BlogPage />} />
+        <Route path="/blog/:slug" element={<BlogPostPage />} />
+        <Route path="/precos" element={<PricingPage publicView />} />
 
         {/* ── Rotas públicas de autenticação ──────────────────────── */}
         <Route path="/register" element={<Navigate to="/cadastro" replace />} />
@@ -134,6 +156,7 @@ export default function App() {
         <Route path="/verificar/:code" element={<VerifyDocumentPage />} />
         <Route path="/ferramenta/evolucao" element={<EvolucaoPsicologicaPage />} />
         <Route path="/portal/:token" element={<PatientPortalPage />} />
+        <Route path="/laudo/:token" element={<NeuropsychShareLaudoPage />} />
 
         {/* ── App interno (autenticado) ────────────────────────────── */}
         <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
@@ -142,6 +165,7 @@ export default function App() {
           <Route path="admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
           <Route path="admin/depoimentos" element={<AdminRoute><TestimonialsPage /></AdminRoute>} />
           <Route path="admin/churn" element={<AdminRoute><ChurnPage /></AdminRoute>} />
+          <Route path="admin/prospeccao" element={<AdminRoute><ProspectingPage /></AdminRoute>} />
           <Route element={<SubscriptionRoute />}>
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="pacientes" element={<PatientsPage />} />
@@ -153,7 +177,11 @@ export default function App() {
             <Route path="sessoes" element={<SessionsPage />} />
             <Route path="financeiro" element={<FinancialPage />} />
             <Route path="configuracoes" element={<SettingsPage />} />
-            <Route path="instrumentos" element={<ProOnlyRoute><InstrumentosPage /></ProOnlyRoute>} />
+            <Route path="relatorios" element={<RelatoriosPage />} />
+            <Route path="crm" element={<CRMPage />} />
+            <Route path="instrumentos" element={<PsychologyOnlyRoute><ProOnlyRoute><InstrumentosPage /></ProOnlyRoute></PsychologyOnlyRoute>} />
+            <Route path="avaliacoes" element={<PsychologyOnlyRoute><ProOnlyRoute><NeuropsychAssessmentsPage /></ProOnlyRoute></PsychologyOnlyRoute>} />
+            <Route path="avaliacoes/:id" element={<PsychologyOnlyRoute><ProOnlyRoute><NeuropsychAssessmentPage /></ProOnlyRoute></PsychologyOnlyRoute>} />
           </Route>
         </Route>
 

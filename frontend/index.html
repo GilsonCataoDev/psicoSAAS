@@ -7,17 +7,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
     <!-- SEO primário -->
-    <title>UseCognia | Agenda, prontuário e documentos para psicólogos</title>
-    <meta name="description" content="Plataforma de gestão para psicólogos autônomos: agenda com lembretes automáticos, prontuário digital, documentos verificáveis por QR Code e financeiro do consultório. Teste 7 dias grátis." />
-    <meta name="keywords" content="software para psicólogo, gestão de consultório, prontuário psicológico, agenda psicólogo, lembretes de consulta, documentos psicologia" />
+    <title>UseCognia | Prontuário e gestão clínica para profissionais de saúde</title>
+    <meta name="description" content="Organize registros, pessoas atendidas, agenda e pagamentos em um só fluxo. Plano grátis para profissionais de saúde, sem cartão e sem prazo para expirar." />
+    <meta name="keywords" content="software para profissionais de saúde, gestão de consultório, software para psicólogo, prontuário psicológico, agenda psicólogo, software para nutricionista, software para fisioterapeuta, prontuário eletrônico, lembretes de consulta" />
     <link rel="canonical" href="https://usecognia.com.br/" />
+    <link rel="alternate" type="application/rss+xml" title="Blog UseCognia" href="https://usecognia.com.br/feed.xml" />
 
     <!-- Open Graph (WhatsApp, LinkedIn, Facebook) -->
     <meta property="og:site_name" content="UseCognia" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://usecognia.com.br/" />
-    <meta property="og:title" content="Agende sua consulta online" />
-    <meta property="og:description" content="Escolha um horário disponível e confirme seu agendamento com segurança pelo UseCognia." />
+    <meta property="og:title" content="UseCognia | Prontuário e gestão clínica para profissionais de saúde" />
+    <meta property="og:description" content="Organize prontuários, pacientes, agenda e pagamentos em um só fluxo. Comece grátis, sem cartão." />
     <meta property="og:image" content="https://usecognia.com.br/og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -25,8 +26,8 @@
 
     <!-- Twitter / X Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Agende sua consulta online" />
-    <meta name="twitter:description" content="Escolha um horário disponível e confirme seu agendamento com segurança pelo UseCognia." />
+    <meta name="twitter:title" content="UseCognia | Prontuário e gestão clínica para profissionais de saúde" />
+    <meta name="twitter:description" content="Organize prontuários, pacientes, agenda e pagamentos em um só fluxo. Comece grátis, sem cartão." />
     <meta name="twitter:image" content="https://usecognia.com.br/og-image.png" />
 
     <!-- PWA -->
@@ -41,14 +42,15 @@
     {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
+      "@id": "https://usecognia.com.br/#software",
       "name": "UseCognia",
       "url": "https://usecognia.com.br",
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "Web",
       "inLanguage": "pt-BR",
-      "description": "Plataforma de gestão para psicólogos autônomos: agenda com lembretes automáticos via WhatsApp, prontuário digital criptografado, documentos com verificação por QR Code e controle financeiro do consultório.",
+      "description": "Plataforma de gestão para profissionais de saúde autônomos: agenda, registro clínico com campos sensíveis criptografados, documentos com verificação por QR Code e controle financeiro do consultório.",
       "featureList": [
-        "Agenda com lembretes automáticos via WhatsApp",
+        "Agenda com lembretes automáticos via WhatsApp no plano Pro, quando a integração estiver configurada",
         "Prontuário eletrônico com criptografia",
         "Documentos com assinatura digital e QR Code",
         "Escalas clínicas validadas (PHQ-9, GAD-7, DASS-21)",
@@ -62,19 +64,12 @@
           "name": "Plano Gratuito",
           "price": "0",
           "priceCurrency": "BRL",
-          "description": "Teste gratuito de 7 dias, sem cartão de crédito"
-        },
-        {
-          "@type": "Offer",
-          "name": "Plano Essencial",
-          "price": "79",
-          "priceCurrency": "BRL",
-          "billingIncrement": "P1M"
+          "description": "Plano gratuito sem prazo para expirar e sem cartão de crédito"
         },
         {
           "@type": "Offer",
           "name": "Plano Pro",
-          "price": "149",
+          "price": "97.90",
           "priceCurrency": "BRL",
           "billingIncrement": "P1M"
         }
@@ -96,7 +91,7 @@
           "name": "O UseCognia é gratuito?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Sim. Você pode testar gratuitamente por 7 dias sem precisar de cartão de crédito. Após o período, os planos começam em R$79/mês."
+            "text": "Sim. O plano gratuito não exige cartão e não tem prazo para expirar. Os planos pagos adicionam mais capacidade e automações."
           }
         },
         {
@@ -104,7 +99,7 @@
           "name": "O prontuário eletrônico é seguro?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Sim. As notas clínicas são criptografadas com AES-256-GCM. A plataforma está em conformidade com a LGPD e as resoluções do CFP sobre prontuário eletrônico."
+            "text": "As notas clínicas são criptografadas com AES-256-GCM, com conexão HTTPS, autenticação individual e isolamento entre contas. A adequação à LGPD é um processo contínuo e não substitui as obrigações profissionais do usuário."
           }
         },
         {
@@ -120,7 +115,7 @@
           "name": "Como funcionam os lembretes automáticos?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Os lembretes são enviados automaticamente via WhatsApp para os pacientes antes de cada consulta. Você conecta seu WhatsApp uma vez e o sistema cuida do resto."
+            "text": "No plano Pro, lembretes podem ser enviados via WhatsApp 24h e 1h antes da consulta quando a integração estiver conectada e o provedor estiver disponível."
           }
         }
       ]

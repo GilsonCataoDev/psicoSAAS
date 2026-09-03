@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
-import { AlertTriangle, ChevronLeft } from 'lucide-react'
+import { AlertTriangle, ChevronLeft, Loader2, Sparkles } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import { Patient } from '@/types'
-import { Documento, DocType, DOC_TYPE_DESCRIPTIONS, DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '@/types/prontuario'
+import { Documento, DocType, DOC_TYPE_DESCRIPTIONS, docTypeLabels, docTypesFor, DOC_TYPE_ICONS } from '@/types/prontuario'
+import { formatRegistration, hasPsychologyModules } from '@/lib/professions'
 import { formatCurrency } from '@/lib/utils'
-import { useCreateDocument, useDefaultTemplate } from '@/hooks/useApi'
+import { DocumentAiField, useCreateDocument, useDefaultTemplate, useGenerateDocumentAiDraft } from '@/hooks/useApi'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 import toast from 'react-hot-toast'
 import { track, EVENTS } from '@/lib/analytics'
@@ -28,7 +29,10 @@ type FormData = {
   referralTo?: string
 }
 
-function buildContent(data: FormData, patient: Patient, type: DocType, user: { name: string; crp?: string } | null): string {
+type AiEditableField = 'demand' | 'procedure' | 'conclusion' | 'extraText'
+
+function buildContent(data: FormData, patient: Patient, type: DocType, user: { name: string; crp?: string } | null, profession?: string | null): string {
+  const psi = hasPsychologyModules(profession)
   const today = new Date().toLocaleDateString('pt-BR')
   const startDate = data.startDate ? new Date(data.startDate).toLocaleDateString('pt-BR') : '__/__/____'
   const endDate = data.endDate ? new Date(data.endDate).toLocaleDateString('pt-BR') : '__/__/____'
@@ -37,7 +41,7 @@ function buildContent(data: FormData, patient: Patient, type: DocType, user: { n
   const requester = data.requester?.trim() || 'Pessoa atendida'
   const purpose = data.purpose?.trim() || 'Finalidade informada pela pessoa solicitante'
   const place = data.place?.trim() || '[cidade/UF]'
-  const author = `${user?.name ?? 'Psicólogo(a)'} - CRP ${user?.crp ?? '00/000000'}`
+  const author = user?.crp ? `${user.name} - ${formatRegistration(profession, user.crp)}` : (user?.name ?? 'Profissional responsável')
 
   switch (type) {
     case 'declaracao':
@@ -48,16 +52,16 @@ Solicitante: ${requester}
 Finalidade: ${purpose}
 Profissional responsável: ${author}
 
-Declaro, para os devidos fins, que a pessoa acima identificada ${data.attendanceSchedule ? `realiza/realizou acompanhamento psicológico em ${data.attendanceSchedule}` : `compareceu/realizou ${sessionCount} (${sessionCountWords}) atendimento(s) psicológico(s) no período de ${startDate} a ${endDate}`}.
+Declaro, para os devidos fins, que a pessoa acima identificada ${data.attendanceSchedule ? `realiza/realizou acompanhamento${psi ? ' psicológico' : ''} em ${data.attendanceSchedule}` : `compareceu/realizou ${sessionCount} (${sessionCountWords}) atendimento(s)${psi ? ' psicológico(s)' : ''} no período de ${startDate} a ${endDate}`}.
 
-Esta declaração registra apenas informações objetivas sobre a prestação de serviço psicológico, sem sintomas, situações ou estados psicológicos, conforme Res. CFP n. 06/2019.
+${psi ? 'Esta declaração registra apenas informações objetivas sobre a prestação de serviço psicológico, sem sintomas, situações ou estados psicológicos, conforme Res. CFP n. 06/2019.' : 'Esta declaração registra apenas informações objetivas sobre a prestação do serviço, sem detalhes do conteúdo do atendimento.'}
 
 ${place}, ${today}.`
 
     case 'recibo':
       return `RECIBO DE PAGAMENTO
 
-Recebi de ${patient.name} a quantia de ${data.sessionValue ? formatCurrency(data.sessionValue) : 'R$ ____'} referente a serviço psicológico prestado em ${today}.
+Recebi de ${patient.name} a quantia de ${data.sessionValue ? formatCurrency(data.sessionValue) : 'R$ ____'} referente a serviço${psi ? ' psicológico' : ''} prestado em ${today}.
 
 Este recibo comprova pagamento e não substitui documento fiscal quando este for exigível pela legislação aplicável.`
 
@@ -130,6 +134,23 @@ function numToWords(n: number): string {
   return words[n] ?? String(n)
 }
 
+function missingRequiredField(data: FormData, type: DocType): string | null {
+  const missing = (value?: string) => !value?.trim()
+  if (type !== 'recibo' && missing(data.purpose)) return 'Informe a finalidade do documento.'
+  if (type !== 'recibo' && missing(data.place)) return 'Informe o local de emissão.'
+  if (type === 'declaracao' && missing(data.attendanceSchedule) && (!data.startDate || !data.endDate || !data.sessionCount)) {
+    return 'Informe o comparecimento ou preencha período e número de sessões.'
+  }
+  if (type === 'recibo' && (!data.sessionValue || data.sessionValue <= 0)) return 'Informe o valor recebido.'
+  if ((type === 'relatorio' || type === 'atestado') && missing(data.demand)) return 'Preencha a descrição da demanda.'
+  if ((type === 'relatorio' || type === 'atestado') && missing(data.procedure)) return 'Preencha o procedimento.'
+  if ((type === 'relatorio' || type === 'atestado') && missing(data.conclusion)) return 'Preencha a conclusão.'
+  if (type === 'relatorio' && missing(data.extraText)) return 'Preencha o desenvolvimento clínico.'
+  if (type === 'encaminhamento' && missing(data.referralTo)) return 'Informe o profissional ou serviço de destino.'
+  if (type === 'encaminhamento' && missing(data.extraText)) return 'Informe a justificativa do encaminhamento.'
+  return null
+}
+
 export default function GenerateDocModal({
   open, onClose, onGenerate, patients, user, initialType,
 }: {
@@ -137,12 +158,16 @@ export default function GenerateDocModal({
   onClose: () => void
   onGenerate: (doc: Documento) => void
   patients: Patient[]
-  user: { name: string; crp?: string } | null
+  user: { name: string; crp?: string; profession?: string } | null
   initialType?: DocType
 }) {
+  const labels = docTypeLabels(user?.profession)
+  const availableTypes = docTypesFor(user?.profession)
   const [step, setStep] = useState<'type' | 'form'>('type')
   const [selectedType, setSelectedType] = useState<DocType>('declaracao')
+  const [aiSuggestion, setAiSuggestion] = useState<{ formField: AiEditableField; draft: string } | null>(null)
   const createDocument = useCreateDocument()
+  const generateAiDraft = useGenerateDocumentAiDraft()
   const { data: receiptTemplate } = useDefaultTemplate('receipt')
   const { register, handleSubmit, watch, reset, setValue, formState: { isSubmitting } } = useForm<FormData>({
     defaultValues: { type: 'declaracao' },
@@ -165,14 +190,62 @@ export default function GenerateDocModal({
 
   function handleClose() {
     setStep('type')
+    setAiSuggestion(null)
     reset()
     onClose()
   }
 
+  async function requestAiDraft(formField: AiEditableField) {
+    if (!['relatorio', 'atestado', 'encaminhamento'].includes(selectedType)) return
+    const input = String(watch(formField) ?? '').trim()
+    if (input.length < 20) {
+      toast.error('Escreva ao menos 20 caracteres de anotações antes de usar a IA.')
+      return
+    }
+    const field: DocumentAiField = formField === 'extraText'
+      ? (selectedType === 'encaminhamento' ? 'referralReason' : 'analysis')
+      : formField
+    try {
+      const result = await generateAiDraft.mutateAsync({
+        documentType: selectedType as 'relatorio' | 'atestado' | 'encaminhamento',
+        field,
+        input,
+      })
+      setAiSuggestion({ formField, draft: result.draft })
+    } catch (err: any) {
+      const message = err?.response?.data?.message
+      toast.error(typeof message === 'string' ? message : 'Não foi possível gerar a sugestão.')
+    }
+  }
+
+  function applyAiSuggestion() {
+    if (!aiSuggestion) return
+    setValue(aiSuggestion.formField, aiSuggestion.draft, { shouldDirty: true, shouldTouch: true })
+    setAiSuggestion(null)
+    toast.success('Sugestão adicionada. Revise antes de assinar.')
+  }
+
+  function aiButton(field: AiEditableField) {
+    const isCurrent = generateAiDraft.isPending && !aiSuggestion
+    return (
+      <button
+        type="button"
+        onClick={() => requestAiDraft(field)}
+        disabled={generateAiDraft.isPending}
+        className="mt-1.5 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-violet-700 hover:bg-violet-50 disabled:opacity-50 dark:text-violet-300 dark:hover:bg-violet-500/10"
+      >
+        {isCurrent ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+        Organizar com IA
+      </button>
+    )
+  }
+
   async function onSubmit(data: FormData) {
     if (!patient) { toast.error('Selecione uma pessoa'); return }
-    const content = buildContent({ ...data, type: selectedType }, patient, selectedType, user)
-    const title = `${DOC_TYPE_LABELS[selectedType]} — ${patient.name}`
+    const validationError = missingRequiredField(data, selectedType)
+    if (validationError) { toast.error(validationError); return }
+    const content = buildContent({ ...data, type: selectedType }, patient, selectedType, user, user?.profession)
+    const title = `${labels[selectedType]} — ${patient.name}`
     try {
       const doc = await createDocument.mutateAsync({
         patientId: patient.id,
@@ -187,7 +260,7 @@ export default function GenerateDocModal({
       handleClose()
     } catch (err: any) {
       if (err?.response?.status === 403) {
-        toast.error('Plano Essencial necessário para gerar documentos.')
+        toast.error('Plano Pro necessário para gerar documentos.')
       } else {
         toast.error('Erro ao gerar documento.')
       }
@@ -203,12 +276,12 @@ export default function GenerateDocModal({
 
   return (
     <Modal open={open} onClose={handleClose} title="Gerar documento" size="lg"
-      description="Documentos com assinatura digital · CFP Res. 006/2019">
+      description={hasPsychologyModules(user?.profession) ? 'Documentos com assinatura digital · CFP Res. 006/2019' : 'Documentos com assinatura digital'}>
       {step === 'type' ? (
         <div className="space-y-4">
           <p className="text-sm text-neutral-500">Selecione o tipo de documento:</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {(Object.entries(DOC_TYPE_LABELS) as [DocType, string][]).map(([type, label]) => (
+            {availableTypes.map(type => ({ type, label: labels[type] })).map(({ type, label }) => (
               <button key={type}
                 onClick={() => { setSelectedType(type); setStep('form') }}
                 className={`flex min-h-24 items-center gap-3 p-4 rounded-2xl border text-left transition-all hover:border-sage-300 hover:bg-sage-50 ${
@@ -234,7 +307,7 @@ export default function GenerateDocModal({
               Voltar
             </button>
             <UseCogniaIcon name={DOC_TYPE_ICONS[selectedType]} size={24} className="text-sage-600" />
-            <span className="font-medium text-sm text-neutral-700">{DOC_TYPE_LABELS[selectedType]}</span>
+            <span className="font-medium text-sm text-neutral-700">{labels[selectedType]}</span>
           </div>
 
           {receiptTemplate && (
@@ -327,12 +400,14 @@ export default function GenerateDocModal({
                 <textarea {...register('demand')} rows={3}
                   className="input-field resize-none text-sm"
                   placeholder="Descreva a demanda e o motivo da solicitacao do documento." />
+                {aiButton('demand')}
               </div>
               <div>
                 <label className="label">Procedimento</label>
                 <textarea {...register('procedure')} rows={3}
                   className="input-field resize-none text-sm"
                   placeholder="Informe procedimentos utilizados, periodo, fontes consultadas e limites." />
+                {aiButton('procedure')}
               </div>
             </div>
           )}
@@ -343,6 +418,7 @@ export default function GenerateDocModal({
               <textarea {...register('conclusion')} rows={3}
                 className="input-field resize-none text-sm"
                 placeholder="Registre uma conclusao tecnica limitada a finalidade do documento." />
+              {aiButton('conclusion')}
             </div>
           )}
 
@@ -354,6 +430,29 @@ export default function GenerateDocModal({
               <textarea {...register('extraText')} rows={4}
                 className="input-field resize-none text-sm"
                 placeholder="Descreva as informações relevantes para este documento..." />
+              {aiButton('extraText')}
+            </div>
+          )}
+
+          {aiSuggestion && (
+            <div className="rounded-2xl border border-violet-200 bg-violet-50/70 p-4 dark:border-violet-400/20 dark:bg-violet-500/10">
+              <div className="flex items-center gap-2 text-sm font-semibold text-violet-900 dark:text-violet-100">
+                <Sparkles className="h-4 w-4" /> Sugestão da IA
+              </div>
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-neutral-700 dark:text-neutral-200">
+                {aiSuggestion.draft}
+              </p>
+              <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
+                A IA pode errar. O texto só entra no documento depois da sua confirmação e ainda deve ser revisado.
+              </p>
+              <div className="mt-3 flex gap-2">
+                <button type="button" onClick={applyAiSuggestion} className="btn-primary px-3 py-2 text-xs">
+                  Usar esta sugestão
+                </button>
+                <button type="button" onClick={() => setAiSuggestion(null)} className="btn-secondary px-3 py-2 text-xs">
+                  Descartar
+                </button>
+              </div>
             </div>
           )}
 
@@ -369,8 +468,8 @@ export default function GenerateDocModal({
           {/* Preview da assinatura */}
           <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-4 space-y-1">
             <p className="text-xs text-neutral-400 uppercase tracking-wide font-medium">Assinatura digital</p>
-            <p className="text-sm font-medium text-neutral-700">{user?.name ?? 'Psicólogo(a)'}</p>
-            <p className="text-xs text-neutral-500">CRP {user?.crp ?? '00/000000'}</p>
+            <p className="text-sm font-medium text-neutral-700">{user?.name ?? 'Profissional'}</p>
+            <p className="text-xs text-neutral-500">{formatRegistration(user?.profession, user?.crp) ?? '—'}</p>
             <p className="text-xs text-neutral-400">{new Date().toLocaleDateString('pt-BR', { dateStyle: 'full' })}</p>
           </div>
 

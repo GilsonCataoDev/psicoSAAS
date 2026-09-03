@@ -8,6 +8,6 @@ export class OverrideSubscriptionDto {
 
   @IsOptional()
   @IsString()
-  @IsIn(['free', 'essencial', 'pro'])
+  @IsIn(['free', 'pro'])
   plan?: string
 }

@@ -24,6 +24,12 @@ export function formatDate(date: string | Date | null | undefined, pattern = 'dd
   }
 }
 
+export function patientStartDate(startDate?: string, createdAt?: string): string | undefined {
+  if (!startDate) return createdAt
+  const today = new Date().toISOString().slice(0, 10)
+  return startDate.slice(0, 10) <= today ? startDate : createdAt
+}
+
 export function formatDateRelative(date: string | Date | null | undefined): string {
   if (!date) return '—'
   try {

@@ -4,24 +4,28 @@ import {
 } from 'typeorm'
 import { Patient } from '../../patients/entities/patient.entity'
 import { User } from '../../auth/entities/user.entity'
+import { encryptedTextTransformer } from '../../../common/crypto/encrypt.util'
 
 @Entity('financial_records')
 export class FinancialRecord {
   @PrimaryGeneratedColumn('uuid') id: string
   @Column({ type: 'text', default: 'income' }) type: 'income' | 'expense'
   @Column({ type: 'decimal', precision: 10, scale: 2 }) amount: number
-  @Column() description: string
+  @Column({ type: 'text', transformer: encryptedTextTransformer }) description: string
   @Column({ type: 'text', default: 'pending' }) status: string
+  @Column({ length: 40, nullable: true }) category?: string
   @Column({ nullable: true }) dueDate?: string
   @Column({ nullable: true }) paidAt?: string
   @Column({ nullable: true }) method?: string
   @Column({ nullable: true }) sessionId?: string
   @Column({ nullable: true }) appointmentId?: string
   @Column({ nullable: true }) bookingId?: string
+  @Column({ length: 7, nullable: true }) packageMonth?: string
   @Column({ nullable: true }) receiptUrl?: string
   @Column({ nullable: true }) asaasPaymentId?: string
   @Column({ nullable: true }) paymentLinkUrl?: string
   @Column({ nullable: true }) patientId?: string
+  @Column({ nullable: true }) lastReminderSentAt?: string
   @ManyToOne(() => Patient, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'patientId' }) patient?: Patient
   @Column() psychologistId: string

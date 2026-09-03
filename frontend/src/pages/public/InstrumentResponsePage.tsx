@@ -87,6 +87,7 @@ export default function InstrumentResponsePage() {
   const submit = useSubmitPublicInstrument(token)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [result, setResult] = useState<SubmitResult | null>(null)
+  const [consentAccepted, setConsentAccepted] = useState(false)
 
   const instrumentId = data?.instrumentId ?? ''
   const scaleConfig = SCALE_CONFIGS[instrumentId]
@@ -125,6 +126,10 @@ export default function InstrumentResponsePage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!consentAccepted) {
+      toast.error('Confirme o consentimento antes de enviar.')
+      return
+    }
     if (!allAnswered && !isScale) {
       toast.error('Preencha pelo menos um campo antes de enviar.')
       return
@@ -244,6 +249,18 @@ export default function InstrumentResponsePage() {
                 </div>
               )}
 
+              <label className="flex items-start gap-3 rounded-xl border border-sage-100 bg-sage-50 px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={consentAccepted}
+                  onChange={e => setConsentAccepted(e.target.checked)}
+                  className="mt-1"
+                />
+                <span className="text-xs leading-relaxed text-sage-800">
+                  Entendo que este instrumento Ã© um apoio ao acompanhamento e autorizo o envio das minhas respostas para a profissional responsÃ¡vel.
+                </span>
+              </label>
+
               <div className="flex items-center justify-between border-t border-neutral-100 pt-4">
                 <p className="text-xs text-neutral-400">
                   {isScale && !allAnswered
@@ -252,7 +269,7 @@ export default function InstrumentResponsePage() {
                 </p>
                 <button
                   type="submit"
-                  disabled={submit.isPending || (isScale ? !allAnswered : !allAnswered)}
+                  disabled={submit.isPending || !consentAccepted || (isScale ? !allAnswered : !allAnswered)}
                   className="btn-primary ml-auto min-w-32 text-sm"
                 >
                   {submit.isPending ? 'Enviando...' : 'Enviar respostas'}

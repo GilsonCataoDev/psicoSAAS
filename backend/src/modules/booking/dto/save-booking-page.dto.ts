@@ -38,6 +38,10 @@ export class SaveBookingPageDto {
 
   @IsBoolean() @IsOptional()
   @Transform(({ value }) => value === 'true' || value === true)
+  allowNextMonthBooking?: boolean
+
+  @IsBoolean() @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
   requirePaymentUpfront?: boolean
 
   @IsString() @IsOptional() @MaxLength(180) pixKey?: string

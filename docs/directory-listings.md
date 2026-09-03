@@ -40,8 +40,7 @@ Psicólogos, terapeutas e estagiários clínicos autônomos no Brasil que atende
 | Plano | Preço | Limite |
 |---|---|---|
 | Gratuito | R$ 0 | Até 10 pacientes, sem cartão |
-| Essencial | R$ 79/mês | Até 50 pacientes |
-| Pro | R$ 149/mês | Ilimitado + automações + IA |
+| Pro | R$ 97,90/mês | Ilimitado + automações + IA |
 
 ## Links
 

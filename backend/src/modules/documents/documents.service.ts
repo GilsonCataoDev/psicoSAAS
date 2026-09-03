@@ -8,9 +8,11 @@ import * as QRCode from 'qrcode'
 import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
 import { Document, DocType } from './entities/document.entity'
 import { User } from '../auth/entities/user.entity'
-import { Subscription } from '../billing/entities/subscription.entity'
-import { PLAN_LIMITS } from '../../common/guards/plan.guard'
+import { PLAN_LIMITS } from '../../common/plans'
+import { PlanAccessService } from '../../common/plan-access/plan-access.service'
 import { EmailService } from '../email/email.service'
+import { termsFor } from '../../common/terms'
+import { DEFAULT_PROFESSION, requiresCrp } from '../../common/professions'
 
 export interface CreateDocumentDto {
   patientId: string
@@ -20,13 +22,24 @@ export interface CreateDocumentDto {
   content: string
 }
 
-const DOC_TYPE_LABELS: Record<DocType, string> = {
-  declaracao: 'Declaração de Comparecimento',
-  recibo: 'Recibo de Pagamento',
-  relatorio: 'Relatório Psicológico',
-  atestado: 'Atestado Psicológico',
-  encaminhamento: 'Carta de Encaminhamento',
+/**
+ * Titulo impresso no cabecalho do PDF e usado no assunto do e-mail. Relatorio
+ * e atestado sao os unicos que afirmam a natureza do documento — um
+ * nutricionista emitindo "ATESTADO PSICOLOGICO" estaria assinando documento
+ * factualmente errado.
+ */
+function docTypeLabels(profession?: string | null): Record<DocType, string> {
+  const psi = requiresCrp(profession)
+  return {
+    declaracao: 'Declaração de Comparecimento',
+    recibo: 'Recibo de Pagamento',
+    relatorio: psi ? 'Relatório Psicológico' : 'Relatório',
+    atestado: psi ? 'Atestado Psicológico' : 'Atestado',
+    encaminhamento: 'Carta de Encaminhamento',
+  }
 }
+
+const UNFILLED_TEMPLATE_RE = /\[[^\]]+\]|_{3,}|00\/000000|R\$\s*_{2,}/
 
 @Injectable()
 export class DocumentsService {
@@ -37,9 +50,10 @@ export class DocumentsService {
 
   constructor(
     @InjectRepository(Document) private repo: Repository<Document>,
-    @InjectRepository(Subscription) private subs: Repository<Subscription>,
+    @InjectRepository(User) private users: Repository<User>,
     private cfg: ConfigService,
     private email: EmailService,
+    private readonly planAccess: PlanAccessService,
   ) {
     // SIGN_SECRET deve ter >= 32 chars — validado no bootstrap
     this.signSecret = cfg.getOrThrow('SIGN_SECRET')
@@ -58,8 +72,9 @@ export class DocumentsService {
     const data = `${content}:${userId}:${timestamp}`
     const fullHash = createHmac('sha256', this.signSecret).update(data).digest('hex')
     const year = new Date().getFullYear()
-    // Código curto (8 chars hex) — legível e único na prática
-    const shortCode = fullHash.slice(0, 8).toUpperCase()
+    // Código curto (14 chars hex = 56 bits) — legível e resistente a força bruta
+    // mesmo se o rate-limit da rota de verificação for contornado via múltiplos IPs.
+    const shortCode = fullHash.slice(0, 14).toUpperCase()
     const signCode = `PS-${year}-${shortCode}`
     return { signCode, signHash: fullHash }
   }
@@ -83,7 +98,8 @@ export class DocumentsService {
 
   private exposeDocument(doc: Document): Document {
     const { signHash: _signHash, signerIp: _signerIp, ...safeDoc } = doc as any
-    return { ...safeDoc, content: this.decryptContent(doc.content) } as Document
+    const content = this.decryptContent(doc.content)
+    return { ...safeDoc, content, needsReview: UNFILLED_TEMPLATE_RE.test(content) } as Document
   }
 
   private collectPdf(pdf: PDFKit.PDFDocument): Promise<Buffer> {
@@ -126,7 +142,20 @@ export class DocumentsService {
   // ─── Criar e assinar documento ────────────────────────────────────────────
 
   async create(user: User, dto: CreateDocumentDto, signerIp?: string): Promise<Document> {
+    // Relatorio e atestado psicologicos sao atos privativos regulados pela
+    // Res. CFP 06/2019: esconder no frontend nao basta, a rota tem que recusar.
+    if (!requiresCrp(user.profession) && ['relatorio', 'atestado'].includes(dto.type)) {
+      throw new BadRequestException('Este tipo de documento e exclusivo de contas de psicologia.')
+    }
+    // CRP e do conselho de psicologia. Exigi-lo de outras profissoes travaria
+    // a emissao de documentos para elas — cada uma tem seu proprio conselho.
+    if (requiresCrp(user.profession) && !user.crp) {
+      throw new BadRequestException('Documentos oficiais assinados exigem CRP ativo. Adicione seu CRP no perfil para desbloquear esse recurso.')
+    }
     await this.checkDocumentLimit(user.id)
+    if (UNFILLED_TEMPLATE_RE.test(dto.content)) {
+      throw new BadRequestException('Preencha todos os campos obrigatórios antes de assinar o documento.')
+    }
 
     const timestamp = Date.now()
     const { signCode, signHash } = this.generateSignature(dto.content, user.id, timestamp)
@@ -134,7 +163,7 @@ export class DocumentsService {
     // Garante unicidade (colisão improvável mas tratada)
     const exists = await this.repo.findOne({ where: { signCode } })
     const finalCode = exists
-      ? `PS-${new Date().getFullYear()}-${randomBytes(4).toString('hex').toUpperCase()}`
+      ? `PS-${new Date().getFullYear()}-${randomBytes(7).toString('hex').toUpperCase()}`
       : signCode
 
     const doc = this.repo.create({
@@ -146,7 +175,7 @@ export class DocumentsService {
       signedAt: new Date(timestamp),
       signerIp,
       psychologistName: user.name,
-      psychologistCrp: user.crp,
+      psychologistCrp: user.crp ?? null,
     })
 
     const saved = await this.repo.save(doc)
@@ -155,13 +184,7 @@ export class DocumentsService {
   }
 
   private async checkDocumentLimit(userId: string): Promise<void> {
-    const sub = await this.subs.findOne({
-      where: { userId },
-      order: { createdAt: 'DESC' },
-    })
-    const plan = (sub?.status === 'active' || sub?.status === 'trialing')
-      ? (sub.plan as keyof typeof PLAN_LIMITS)
-      : 'free'
+    const plan = await this.planAccess.getCurrentPlan(userId)
 
     const limit = PLAN_LIMITS[plan]?.maxDocuments ?? 0
     if (limit === -1) return
@@ -181,10 +204,9 @@ export class DocumentsService {
   async findByUser(userId: string, type?: DocType): Promise<Partial<Document>[]> {
     const where: any = { userId }
     if (type) where.type = type
-    return this.repo.find({
+    const documents = await this.repo.find({
       where,
       order: { createdAt: 'DESC' },
-      // Conteúdo criptografado, hash e IP não pertencem à listagem.
       select: [
         'id',
         'patientId',
@@ -196,7 +218,12 @@ export class DocumentsService {
         'psychologistName',
         'psychologistCrp',
         'createdAt',
+        'content',
       ],
+    })
+    return documents.map(doc => {
+      const { content: _content, ...summary } = doc as any
+      return { ...summary, needsReview: UNFILLED_TEMPLATE_RE.test(this.decryptContent(doc.content)) }
     })
   }
 
@@ -206,12 +233,17 @@ export class DocumentsService {
     return this.exposeDocument(doc)
   }
 
-  async generatePdf(id: string, userId: string): Promise<{ filename: string; buffer: Buffer }> {
+  async generatePdf(id: string, userId: string, profession?: string): Promise<{ filename: string; buffer: Buffer }> {
+    const t = termsFor(profession)
+    const docLabels = docTypeLabels(profession)
     const stored = await this.repo.findOne({ where: { id } })
     if (!stored) throw new NotFoundException()
     if (stored.userId !== userId) throw new NotFoundException()
 
     const content = this.decryptContent(stored.content)
+    if (UNFILLED_TEMPLATE_RE.test(content)) {
+      throw new BadRequestException('Documento incompleto. Revise e gere uma nova versão antes de baixar.')
+    }
     const verificationUrl = this.getVerificationUrl(stored.signCode)
     const qrBuffer = await QRCode.toBuffer(verificationUrl, {
       errorCorrectionLevel: 'M',
@@ -227,7 +259,7 @@ export class DocumentsService {
       info: {
         Title: stored.title,
         Author: stored.psychologistName,
-        Subject: DOC_TYPE_LABELS[stored.type] ?? stored.type,
+        Subject: docLabels[stored.type] ?? stored.type,
         Keywords: `UseCognia, ${stored.signCode}, autenticidade`,
       },
     })
@@ -255,10 +287,10 @@ export class DocumentsService {
       pdf.fillColor(sageDark).font('Helvetica-Bold').fontSize(11)
         .text('UseCognia', left, 28, { width: 130, lineBreak: false })
       pdf.fillColor(muted).font('Helvetica').fontSize(7)
-        .text('Documento psicológico com verificação digital', left, 45, { width: 245, lineBreak: false })
+        .text(`Documento ${t.documentKind} com verificação digital`, left, 45, { width: 245, lineBreak: false })
 
       pdf.fillColor(ink).font('Helvetica-Bold').fontSize(15.5)
-        .text(DOC_TYPE_LABELS[stored.type].toUpperCase(), left, 63, { width: contentWidth - 172, lineBreak: false })
+        .text(docLabels[stored.type].toUpperCase(), left, 63, { width: contentWidth - 172, lineBreak: false })
 
       pdf.roundedRect(right - 152, 27, 152, 44, 6).fillAndStroke('#FFFFFF', '#DCE8DF')
       pdf.fillColor(muted).font('Helvetica-Bold').fontSize(6.4)
@@ -287,7 +319,7 @@ export class DocumentsService {
     pdf.fillColor(ink).font('Helvetica-Bold').fontSize(8.4)
       .text(stored.psychologistName, left + 14, metaTop + 24, { width: 185, lineBreak: false })
     pdf.fillColor(muted).font('Helvetica').fontSize(7)
-      .text(`CRP ${stored.psychologistCrp}`, left + 14, metaTop + 36, { width: 185, lineBreak: false })
+      .text(stored.psychologistCrp ? `CRP ${stored.psychologistCrp}` : '', left + 14, metaTop + 36, { width: 185, lineBreak: false })
 
     pdf.strokeColor('#EDF1EE').lineWidth(1).moveTo(left + 210, metaTop + 9).lineTo(left + 210, metaTop + 39).stroke()
     pdf.fillColor(muted).font('Helvetica-Bold').fontSize(6.4)
@@ -341,7 +373,7 @@ export class DocumentsService {
     pdf.fillColor(ink).font('Helvetica-Bold').fontSize(8.8)
       .text(stored.psychologistName, left + 18, signatureY + 47, { width: 250, lineBreak: false })
     pdf.fillColor(muted).font('Helvetica').fontSize(7.2)
-      .text(`Psicólogo(a) - CRP ${stored.psychologistCrp}`, left + 18, signatureY + 60, { width: 250, lineBreak: false })
+      .text(stored.psychologistCrp ? `Psicólogo(a) - CRP ${stored.psychologistCrp}` : 'Profissional responsável', left + 18, signatureY + 60, { width: 250, lineBreak: false })
       .text(`Assinado digitalmente em ${issuedAt}`, left + 18, signatureY + 72, { width: 250, lineBreak: false })
 
     const qrX = right - 80
@@ -382,7 +414,7 @@ export class DocumentsService {
 
   // ─── Enviar documento por email ──────────────────────────────────────────
 
-  async sendDocumentByEmail(id: string, userId: string, to: string): Promise<{ sent: boolean; to: string }> {
+  async sendDocumentByEmail(id: string, userId: string, to: string, profession?: string): Promise<{ sent: boolean; to: string }> {
     if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
       throw new BadRequestException('E-mail de destinatário inválido')
     }
@@ -390,13 +422,13 @@ export class DocumentsService {
     const doc = await this.repo.findOne({ where: { id, userId } })
     if (!doc) throw new NotFoundException()
 
-    const { filename, buffer } = await this.generatePdf(id, userId)
+    const { filename, buffer } = await this.generatePdf(id, userId, profession)
 
     await this.email.sendDocumentEmail({
       to,
       recipientName: doc.patientName.split(' ')[0],
       docTitle: doc.title,
-      docTypeLabel: DOC_TYPE_LABELS[doc.type] ?? doc.type,
+      docTypeLabel: docTypeLabels(profession)[doc.type] ?? doc.type,
       psychologistName: doc.psychologistName,
       psychologistCrp: doc.psychologistCrp,
       signCode: doc.signCode,
@@ -429,10 +461,15 @@ export class DocumentsService {
     document?: {
       signCode: string
       type: DocType
+      /** Rotulo ja resolvido pela profissao de quem assinou — a pagina publica
+       *  nao tem sessao para deduzir isso sozinha. */
+      typeLabel: string
       title: string
       patientName: string
       psychologistName: string
       psychologistCrp: string
+      /** Conselho de quem assinou: a pagina publica rotula CRP/CRN/CREFITO por aqui. */
+      profession: string
       signedAt: Date
       createdAt: Date
       fingerprint: string
@@ -451,22 +488,28 @@ export class DocumentsService {
     const content = this.decryptContent(doc.content)
     const data = `${content}:${doc.userId}:${timestamp}`
     const recomputedHash = createHmac('sha256', this.signSecret).update(data).digest('hex')
-    const valid = recomputedHash === doc.signHash
+    const valid = recomputedHash === doc.signHash && !UNFILLED_TEMPLATE_RE.test(content)
 
     if (!valid) {
       this.logger.warn(`[Verificação] Hash inválido para código ${signCode} — possível adulteração`)
       return { valid: false }
     }
 
+    // Rotulo resolvido pela profissao de quem assinou, para a pagina publica
+    // nao contradizer o titulo impresso no proprio PDF.
+    const signer = await this.users.findOne({ where: { id: doc.userId }, select: ['id', 'profession'] })
+
     return {
       valid: true,
       document: {
         signCode: doc.signCode,
         type: doc.type,
+        typeLabel: docTypeLabels(signer?.profession)[doc.type] ?? doc.type,
         title: doc.title,
         patientName: doc.patientName,
         psychologistName: doc.psychologistName,
         psychologistCrp: doc.psychologistCrp,
+        profession: signer?.profession ?? DEFAULT_PROFESSION,
         signedAt: doc.signedAt,
         createdAt: doc.createdAt,
         fingerprint: doc.signHash.slice(0, 16).toUpperCase(),

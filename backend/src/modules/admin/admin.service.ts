@@ -25,6 +25,7 @@ import { EmailLog } from '../email/entities/email-log.entity'
 import { AsaasService } from '../billing/asaas.service'
 import { OverrideSubscriptionDto } from './dto/override-subscription.dto'
 import { ListAdminUsersDto } from './dto/list-admin-users.dto'
+import { PLAN_PRICES } from '../../common/plans'
 
 @Injectable()
 export class AdminService {
@@ -193,7 +194,7 @@ export class AdminService {
           .getMany(),
       ])
 
-    const integrations = this.getIntegrationStatus()
+    const integrations = await this.getIntegrationStatus()
 
     return {
       generatedAt: new Date().toISOString(),
@@ -234,7 +235,7 @@ export class AdminService {
     }
   }
 
-  private getIntegrationStatus() {
+  private async getIntegrationStatus() {
     const whatsappUrl = this.cfg.get<string>('WHATSAPP_API_URL') ?? ''
     const whatsappKey = this.cfg.get<string>('WHATSAPP_API_KEY') ?? ''
     const resendKey = this.cfg.get<string>('RESEND_API_KEY') ?? ''
@@ -243,6 +244,24 @@ export class AdminService {
     const asaasWebhookToken = this.cfg.get<string>('ASAAS_WEBHOOK_TOKEN') ?? ''
     const webPushPublic = this.cfg.get<string>('WEB_PUSH_PUBLIC_KEY') ?? ''
     const webPushPrivate = this.cfg.get<string>('WEB_PUSH_PRIVATE_KEY') ?? ''
+
+    let whatsappDeliveries: Array<{ status: string }> = []
+    try {
+      whatsappDeliveries = await this.dataSource.query(`
+        SELECT status FROM whatsapp_delivery_logs
+        WHERE "createdAt" > NOW() - INTERVAL '24 hours'
+        ORDER BY "createdAt" DESC LIMIT 20
+      `)
+    } catch {
+      // A migration pode ainda não ter sido aplicada em um ambiente novo.
+    }
+    const whatsappConfigured = Boolean(
+      whatsappUrl && whatsappKey
+      && !whatsappUrl.includes('your-evolution-api')
+      && whatsappKey !== 'your-api-key'
+    )
+    const whatsappFailures = whatsappDeliveries.filter(item => item.status === 'failed').length
+    const whatsappSent = whatsappDeliveries.filter(item => item.status === 'sent').length
 
     return {
       resend: {
@@ -254,12 +273,9 @@ export class AdminService {
         webhookProtected: Boolean(asaasWebhookToken),
       },
       whatsapp: {
-        configured: Boolean(
-          whatsappUrl
-          && whatsappKey
-          && !whatsappUrl.includes('your-evolution-api')
-          && whatsappKey !== 'your-api-key',
-        ),
+        configured: whatsappConfigured,
+        operational: whatsappDeliveries.length === 0 ? null : whatsappSent > 0 && whatsappFailures <= whatsappSent,
+        last24h: { sent: whatsappSent, failed: whatsappFailures },
       },
       webPush: {
         configured: Boolean(webPushPublic && webPushPrivate),
@@ -305,7 +321,7 @@ export class AdminService {
            SELECT 1 FROM ai_usage au
            WHERE au."userId" = u.id::text
              AND au."updatedAt" > NOW() - INTERVAL '30 days'
-             AND (au."transcriptionSeconds" > 0 OR au."summaryRequests" > 0)
+             AND (au."transcriptionSeconds" > 0 OR au."summaryRequests" > 0 OR au."callTranscriptions" > 0)
          ))                                                    AS "hasAiUsageLast30d"
       FROM users u
       LEFT JOIN LATERAL (
@@ -374,13 +390,14 @@ export class AdminService {
     // Uso financeiro — 10 pts
     const financialPts = r.hasFinancialLast30d ? 10 : 0
 
-    // Uso de IA (só Pro) — 10 pts; Free nunca marca aqui, teto bruto = 90
-    const aiPts = r.plan === 'pro' && r.hasAiUsageLast30d ? 10 : 0
+    // Uso de IA (Pro) - 10 pts; Free nunca marca aqui.
+    const hasAiPlan = r.plan === 'pro'
+    const aiPts = hasAiPlan && r.hasAiUsageLast30d ? 10 : 0
 
     const rawScore = recency + patientPts + sessionPts + financialPts + aiPts
 
-    // Normaliza pelo teto do plano para que Free e Pro usem a mesma escala 0-100
-    const maxPossible = r.plan === 'pro' ? 100 : 90
+    // Normaliza pelo teto do plano para que Free e planos pagos usem a mesma escala 0-100.
+    const maxPossible = hasAiPlan ? 100 : 90
     const score = Math.min(100, Math.round((rawScore / maxPossible) * 100))
 
     return { rawScore, score }
@@ -405,7 +422,7 @@ export class AdminService {
 
     const mrr = byPlanStatus
       .filter(r => r.status === 'active')
-      .reduce((sum, r) => sum + ({ essencial: 79, pro: 149 }[r.plan] ?? 0) * Number(r.count), 0)
+      .reduce((sum, r) => sum + (PLAN_PRICES[r.plan] ?? 0) * Number(r.count), 0)
 
     return { totalUsers, activeUsers, byPlanStatus, mrr }
   }
@@ -488,6 +505,8 @@ export class AdminService {
 
     await this.deleteFrom(tx, 'booking_pages', '"psychologistId"::text = ANY($1::text[])', [userIds])
     await this.deleteFrom(tx, 'availability_slots', '"psychologistId"::text = ANY($1::text[])', [userIds])
+    await this.deleteFrom(tx, 'extra_availability_slots', '"psychologistId"::text = ANY($1::text[])', [userIds])
+    await this.deleteFrom(tx, 'availability_blocks', '"psychologistId"::text = ANY($1::text[])', [userIds])
     await this.deleteFrom(tx, 'blocked_dates', '"psychologistId"::text = ANY($1::text[])', [userIds])
     await this.deleteFrom(tx, 'billing_subscriptions', '"userId"::text = ANY($1::text[])', [userIds])
     await this.deleteFrom(tx, 'refresh_tokens', '"userId"::text = ANY($1::text[])', [userIds])

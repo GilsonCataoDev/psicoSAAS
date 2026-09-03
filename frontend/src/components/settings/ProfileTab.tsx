@@ -2,6 +2,8 @@ import { Camera, CheckCircle2, ExternalLink, LogOut } from 'lucide-react'
 import { type User } from '@/store/auth'
 import Avatar from '@/components/ui/Avatar'
 import { openCfpVerification } from '@/lib/crp'
+import { DEFAULT_PROFESSION, PROFESSIONS, PROFESSION_LABELS, councilLabel, requiresCrp, type Profession } from '@/lib/professions'
+import { termsFor } from '@/lib/terms'
 
 interface Props {
   user: User | null
@@ -11,6 +13,8 @@ interface Props {
   handleCrpChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   crpValid: boolean
   crpRegion: string | null
+  profession: string
+  setProfession: (v: string) => void
   specialty: string
   setSpecialty: (v: string) => void
   phone: string
@@ -24,16 +28,25 @@ interface Props {
 
 export function ProfileTab({
   user, name, setName, crp, handleCrpChange, crpValid, crpRegion,
-  specialty, setSpecialty, phone, setPhone,
+  profession, setProfession, specialty, setSpecialty, phone, setPhone,
   savingProfile, uploadingAvatar, saveProfile, uploadAvatar, handleLogout,
 }: Props) {
+  const showCrp = requiresCrp(profession)
+  const council = councilLabel(profession)
+  // "Ex: Personal Trainer Clínica" nao existe — o exemplo precisa ser
+  // gramatical em qualquer profissao da lista.
+  const professionKey = (profession || DEFAULT_PROFESSION) as Profession
+  const specialtyPlaceholder = professionKey === 'outro'
+    ? 'Ex: sua área de atuação'
+    : `Ex: área de atuação em ${PROFESSION_LABELS[professionKey]}`
+  const t = termsFor(profession)
   return (
     <div className="card space-y-4">
       <h2 className="section-title">Seus dados</h2>
       <div className="rounded-2xl border border-sage-100 bg-sage-50 px-4 py-3 text-sm text-sage-800">
-        <p className="font-medium">Dados exibidos ao paciente</p>
+        <p className="font-medium">Dados exibidos ao {t.patient}</p>
         <p className="mt-1 text-sage-700">
-          Nome, CRP, especialidade, telefone e foto podem aparecer no link público de agendamento e em mensagens operacionais.
+          Nome, {council}, especialidade, telefone e foto podem aparecer no link público de agendamento e em mensagens operacionais.
         </p>
       </div>
       <div className="flex flex-col gap-3 rounded-2xl border border-neutral-100 bg-neutral-50 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -64,11 +77,26 @@ export function ProfileTab({
           <label className="label">Nome completo</label>
           <input value={name} onChange={e => setName(e.target.value)} className="input-field" />
         </div>
+        <div className="col-span-1 sm:col-span-2">
+          <label className="label">Profissão</label>
+          <select value={profession} onChange={e => setProfession(e.target.value)} className="input-field">
+            {PROFESSIONS.map(p => (
+              <option key={p} value={p}>{PROFESSION_LABELS[p as Profession]}</option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-neutral-400">
+            Define os termos usados no sistema e quais recursos aparecem para você.
+          </p>
+        </div>
+        {/* Todo conselho tem registro; so o rotulo, o formato e a verificacao
+            publica mudam. Esconder o campo deixava as demais profissoes sem
+            como informar CRN/CREFITO/CRO no link publico de agendamento. */}
         <div>
-          <label className="label">CRP</label>
+          <label className="label">{council}</label>
           <input value={crp} onChange={handleCrpChange} className="input-field"
-            placeholder="06/123456" maxLength={9} />
-          {crpValid && (
+            placeholder={showCrp ? '06/123456' : 'Ex: CRN-3 12345'}
+            maxLength={showCrp ? 9 : 30} />
+          {showCrp && crpValid && (
             <div className="flex items-center justify-between mt-1.5">
               <p className="text-xs text-emerald-600 flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3" />{crpRegion ?? 'CRP válido'}
@@ -79,14 +107,14 @@ export function ProfileTab({
               </button>
             </div>
           )}
-          {crp && !crpValid && (
+          {showCrp && crp && !crpValid && (
             <p className="mt-1.5 text-xs text-rose-500">Revise o formato do CRP antes de salvar.</p>
           )}
         </div>
         <div>
           <label className="label">Especialidade</label>
           <input value={specialty} onChange={e => setSpecialty(e.target.value)}
-            className="input-field" placeholder="Ex: Psicologia Clínica" />
+            className="input-field" placeholder={specialtyPlaceholder} />
         </div>
         <div>
           <label className="label">Telefone / WhatsApp</label>

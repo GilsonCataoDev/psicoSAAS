@@ -1,10 +1,11 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm'
-import { DataSource, Repository } from 'typeorm'
+import { DataSource, In, Repository } from 'typeorm'
 import { TenantHealth, RiskLevel, Recommendation, ScoreBreakdown } from './entities/tenant-health.entity'
 import { TenantActivation } from './entities/tenant-activation.entity'
 import { TenantAlert, AlertType } from './entities/tenant-alert.entity'
 import { EmailService } from '../email/email.service'
+import { AiService } from '../sessions/ai.service'
 
 // ─── Score weights — single source of truth, easy to adjust ──────────────────
 const WEIGHTS = {
@@ -30,6 +31,7 @@ interface TenantStatsRow {
   id: string
   name: string
   email: string
+  phone: string | null
   createdAt: Date
   lastActiveAt: Date | null
   plan: string | null
@@ -52,6 +54,9 @@ export interface ChurnRiskResult {
   reasons: string[]
   recommendations: Recommendation[]
   scoreBreakdown: ScoreBreakdown
+  patientCount: number
+  sessionCount: number
+  daysSinceLastActive: number | null
 }
 
 export interface BehaviorTimeline {
@@ -75,6 +80,7 @@ export class ChurnService {
     @InjectRepository(TenantActivation) private readonly activationRepo: Repository<TenantActivation>,
     @InjectRepository(TenantAlert) private readonly alertRepo: Repository<TenantAlert>,
     private readonly email: EmailService,
+    private readonly ai: AiService,
   ) {}
 
   // ─── Public API ─────────────────────────────────────────────────────────────
@@ -97,7 +103,18 @@ export class ChurnService {
     const activations = await this.activationRepo.find({ where: { activated: true } })
     const activationRate = total > 0 ? Math.round((activations.length / total) * 100) : 0
 
-    const pendingAlerts = await this.alertRepo.count({ where: { resolved: false } })
+    const pendingAlertRows = await this.ds.query<Array<{ count: string }>>(`
+      SELECT COUNT(*)::int AS count FROM (
+        SELECT DISTINCT a."userId", a.type
+        FROM tenant_alerts a
+        INNER JOIN users u ON u.id = a."userId"
+        WHERE a.resolved = false AND u."isActive" = true
+          AND u.email NOT ILIKE '%@example.com'
+          AND u.email NOT ILIKE '%+test%'
+          AND u.name NOT ILIKE '%e2e%'
+      ) pending
+    `)
+    const pendingAlerts = Number(pendingAlertRows[0]?.count ?? 0)
 
     return {
       summary: { total, healthy, atRisk, critical, activationRate, pendingAlerts },
@@ -109,7 +126,11 @@ export class ChurnService {
   async calculateChurnRisk(userId: string): Promise<ChurnRiskResult> {
     const rows = await this.fetchAllStats({ userId })
     if (!rows.length) {
-      return { riskLevel: 'CRITICAL', score: 0, reasons: ['Usuário não encontrado'], recommendations: [], scoreBreakdown: { patients: 0, sessions: 0, appointments: 0, whatsapp: 0, recency: 0, penalties: 0 } }
+      return {
+        riskLevel: 'CRITICAL', score: 0, reasons: ['Usuário não encontrado'], recommendations: [],
+        scoreBreakdown: { patients: 0, sessions: 0, appointments: 0, whatsapp: 0, recency: 0, penalties: 0 },
+        patientCount: 0, sessionCount: 0, daysSinceLastActive: null,
+      }
     }
     return this.scoreRow(rows[0])
   }
@@ -117,8 +138,13 @@ export class ChurnService {
   async checkActivation(userId: string): Promise<TenantActivation> {
     const rows = await this.fetchAllStats({ userId })
     if (!rows.length) throw new Error(`User ${userId} not found`)
-    const row = rows[0]
+    return this.persistActivation(rows[0])
+  }
 
+  private async persistActivation(
+    row: TenantStatsRow,
+    existingActivation?: TenantActivation | null,
+  ): Promise<TenantActivation> {
     const patients = Number(row.patientCount)
     const sessions = Number(row.sessionCount)
     const appointments = Number(row.appointmentCount)
@@ -129,9 +155,11 @@ export class ChurnService {
     const condB = patients >= 3
     const isActivated = condA || condB
 
-    let activation = await this.activationRepo.findOne({ where: { userId } })
+    let activation = existingActivation === undefined
+      ? await this.activationRepo.findOne({ where: { userId: row.id } })
+      : existingActivation
     if (!activation) {
-      activation = this.activationRepo.create({ userId })
+      activation = this.activationRepo.create({ userId: row.id })
     }
 
     const wasActivated = activation.activated
@@ -148,7 +176,7 @@ export class ChurnService {
     if (!isActivated && daysSinceSignup >= 7 && !activation.needsOnboarding) {
       activation.needsOnboarding = true
       activation.needsOnboardingAt = new Date()
-      await this.createAlert(userId, 'not_activated_7d',
+      await this.createAlert(row.id, 'not_activated_7d',
         `${row.name} não se ativou após ${daysSinceSignup} dias do cadastro.`,
         { daysSinceSignup })
     }
@@ -174,10 +202,16 @@ export class ChurnService {
   }
 
   async getAlerts(filters: { userId?: string; resolved?: boolean } = {}) {
-    const where: Record<string, unknown> = {}
-    if (filters.userId) where.userId = filters.userId
-    if (filters.resolved !== undefined) where.resolved = filters.resolved
-    return this.alertRepo.find({ where, order: { createdAt: 'DESC' }, take: 100 })
+    const qb = this.alertRepo.createQueryBuilder('alert')
+      .innerJoin('users', 'user', 'user.id = alert."userId"')
+      .distinctOn(['alert."userId"', 'alert.type'])
+      .where('user."isActive" = true')
+      .andWhere("user.email NOT ILIKE '%@example.com'")
+      .andWhere("user.email NOT ILIKE '%+test%'")
+      .andWhere("user.name NOT ILIKE '%e2e%'")
+    if (filters.userId) qb.andWhere('alert."userId" = :userId', { userId: filters.userId })
+    if (filters.resolved !== undefined) qb.andWhere('alert.resolved = :resolved', { resolved: filters.resolved })
+    return qb.orderBy('alert."userId"').addOrderBy('alert.type').addOrderBy('alert."createdAt"', 'DESC').take(100).getMany()
   }
 
   async resolveAlert(alertId: string) {
@@ -188,13 +222,26 @@ export class ChurnService {
 
   async recalculateAll(): Promise<{ processed: number; errors: number }> {
     const rows = await this.fetchAllStats()
+    const userIds = rows.map(row => row.id)
+    const [healthRows, activationRows, unresolvedAlerts] = userIds.length
+      ? await Promise.all([
+          this.healthRepo.findBy({ userId: In(userIds) }),
+          this.activationRepo.findBy({ userId: In(userIds) }),
+          this.alertRepo.findBy({ userId: In(userIds), resolved: false }),
+        ])
+      : [[], [], []]
+    const healthByUser = new Map(healthRows.map(row => [row.userId, row]))
+    const activationByUser = new Map(activationRows.map(row => [row.userId, row]))
+    const openAlertKeys = new Set(
+      unresolvedAlerts.map(alert => `${alert.userId}:${alert.type}`),
+    )
     let processed = 0
     let errors = 0
 
     for (const row of rows) {
       try {
-        await this.persistScore(row)
-        await this.checkActivation(row.id)
+        await this.persistScore(row, healthByUser.get(row.id) ?? null, openAlertKeys)
+        await this.persistActivation(row, activationByUser.get(row.id) ?? null)
         processed++
       } catch (err: any) {
         this.logger.error(`Score calc failed for ${row.id}: ${err?.message}`)
@@ -210,17 +257,22 @@ export class ChurnService {
 
   async getAnalytics() {
     const [total, activated7d, activated30d, riskCounts] = await Promise.all([
-      this.ds.query<[{ count: string }]>('SELECT COUNT(*)::int as count FROM users WHERE "isActive" = true'),
+      this.ds.query<[{ count: string }]>(`SELECT COUNT(*)::int as count FROM users WHERE "isActive" = true AND email NOT ILIKE '%@example.com' AND email NOT ILIKE '%+test%' AND name NOT ILIKE '%e2e%'`),
       this.ds.query<[{ count: string }]>(`
-        SELECT COUNT(*)::int as count FROM tenant_activations
-        WHERE activated = true AND "activatedAt" > NOW() - INTERVAL '7 days'
+        SELECT COUNT(*)::int as count FROM tenant_activations ta INNER JOIN users u ON u.id = ta."userId"
+        WHERE ta.activated = true AND ta."activatedAt" > NOW() - INTERVAL '7 days'
+          AND u."isActive" = true AND u.email NOT ILIKE '%@example.com' AND u.email NOT ILIKE '%+test%' AND u.name NOT ILIKE '%e2e%'
       `),
       this.ds.query<[{ count: string }]>(`
-        SELECT COUNT(*)::int as count FROM tenant_activations
-        WHERE activated = true AND "activatedAt" > NOW() - INTERVAL '30 days'
+        SELECT COUNT(*)::int as count FROM tenant_activations ta INNER JOIN users u ON u.id = ta."userId"
+        WHERE ta.activated = true AND ta."activatedAt" > NOW() - INTERVAL '30 days'
+          AND u."isActive" = true AND u.email NOT ILIKE '%@example.com' AND u.email NOT ILIKE '%+test%' AND u.name NOT ILIKE '%e2e%'
       `),
       this.ds.query<Array<{ riskLevel: string; count: string }>>(`
-        SELECT "riskLevel", COUNT(*)::int as count FROM tenant_health GROUP BY "riskLevel"
+        SELECT th."riskLevel", COUNT(*)::int as count FROM tenant_health th
+        INNER JOIN users u ON u.id = th."userId"
+        WHERE u."isActive" = true AND u.email NOT ILIKE '%@example.com' AND u.email NOT ILIKE '%+test%' AND u.name NOT ILIKE '%e2e%'
+        GROUP BY th."riskLevel"
       `),
     ])
 
@@ -248,14 +300,21 @@ export class ChurnService {
     appointments: number
     score: number
   }): Promise<{ riskLevel: RiskLevel; explanation: string; recommendations: Recommendation[] }> {
-    // Architecture ready for OpenAI/Claude integration — returns rule-based response for now
     const risk = this.scoreToRiskLevel(input.score)
     const reasons = this.buildReasons(input.daysWithoutLogin, input.patients, input.sessions, input.appointments)
     const recs = this.buildRecommendations(input.patients, input.sessions, input.appointments, input.daysWithoutLogin)
 
+    let explanation = reasons.join('. ') || 'Usuário com boa atividade.'
+    try {
+      const ai = await this.ai.generateChurnDiagnosis({ ...input, reasons })
+      if (ai.text) explanation = ai.text
+    } catch (err: any) {
+      this.logger.warn(`Diagnóstico por IA indisponível, usando explicação por regras: ${err?.message ?? 'erro desconhecido'}`)
+    }
+
     return {
       riskLevel: risk,
-      explanation: reasons.join('. ') || 'Usuário com boa atividade.',
+      explanation,
       recommendations: recs,
     }
   }
@@ -263,7 +322,7 @@ export class ChurnService {
   // ─── Internal scoring logic ──────────────────────────────────────────────────
 
   private scoreRow(row: TenantStatsRow): ChurnRiskResult & {
-    id: string; name: string; email: string; plan: string | null
+    id: string; name: string; email: string; hasPhone: boolean; plan: string | null
     subscriptionStatus: string | null; lastActiveAt: Date | null; createdAt: Date
     daysSinceLastActive: number | null; patientCount: number; sessionCount: number
     tier: 'green' | 'yellow' | 'red'
@@ -308,6 +367,8 @@ export class ChurnService {
       id: row.id,
       name: row.name,
       email: row.email,
+      // O painel só precisa saber se existe telefone; o valor sensível fica no backend.
+      hasPhone: Boolean(row.phone),
       plan: row.plan,
       subscriptionStatus: row.subscriptionStatus,
       lastActiveAt: row.lastActiveAt,
@@ -358,10 +419,16 @@ export class ChurnService {
     return recs.sort((a, b) => a.priority - b.priority)
   }
 
-  private async persistScore(row: TenantStatsRow): Promise<void> {
+  private async persistScore(
+    row: TenantStatsRow,
+    existingHealth?: TenantHealth | null,
+    openAlertKeys?: Set<string>,
+  ): Promise<void> {
     const scored = this.scoreRow(row)
 
-    let health = await this.healthRepo.findOne({ where: { userId: row.id } })
+    let health = existingHealth === undefined
+      ? await this.healthRepo.findOne({ where: { userId: row.id } })
+      : existingHealth
     const previousScore = health?.score ?? null
 
     if (!health) health = this.healthRepo.create({ userId: row.id })
@@ -378,40 +445,69 @@ export class ChurnService {
 
     // Generate alerts based on score changes
     if (previousScore !== null) {
-      await this.generateAlerts(row.id, row.name, scored.score, previousScore, scored.riskLevel)
+      const daysSinceActive = row.lastActiveAt ? this.daysSince(row.lastActiveAt) : null
+      await this.generateAlerts(
+        row.id,
+        row.name,
+        scored.score,
+        previousScore,
+        scored.riskLevel,
+        daysSinceActive,
+        openAlertKeys,
+      )
     }
   }
 
-  private async generateAlerts(userId: string, name: string, score: number, previousScore: number, riskLevel: RiskLevel): Promise<void> {
+  private async generateAlerts(
+    userId: string,
+    name: string,
+    score: number,
+    previousScore: number,
+    riskLevel: RiskLevel,
+    daysSinceActive: number | null,
+    openAlertKeys?: Set<string>,
+  ): Promise<void> {
     const drop = previousScore - score
     const wasHealthy = previousScore >= 70
     const isNowUnhealthy = score < 70
-    const daysSinceActive = await this.getUserDaysSinceActive(userId)
 
     if (drop >= 30) {
       await this.createAlertIfNew(userId, 'score_dropped',
         `Health score de ${name} caiu ${drop} pontos (${previousScore} → ${score}).`,
-        { previousScore, currentScore: score, drop })
+        { previousScore, currentScore: score, drop }, openAlertKeys)
     }
     if (daysSinceActive !== null && daysSinceActive >= 7) {
       await this.createAlertIfNew(userId, 'no_login_7d',
         `${name} está sem login há ${daysSinceActive} dias.`,
-        { daysSinceActive })
+        { daysSinceActive }, openAlertKeys)
     }
     if (wasHealthy && isNowUnhealthy) {
       await this.createAlertIfNew(userId, 'lost_healthy_status',
         `${name} perdeu o status saudável (score: ${score}).`,
-        { score })
+        { score }, openAlertKeys)
     }
     if (riskLevel === 'CRITICAL') {
       await this.createAlertIfNew(userId, 'critical_risk',
         `${name} está em risco crítico (score: ${score}).`,
-        { score })
+        { score }, openAlertKeys)
     }
   }
 
-  private async createAlertIfNew(userId: string, type: AlertType, message: string, metadata: Record<string, unknown>): Promise<void> {
+  private async createAlertIfNew(
+    userId: string,
+    type: AlertType,
+    message: string,
+    metadata: Record<string, unknown>,
+    openAlertKeys?: Set<string>,
+  ): Promise<void> {
     // Avoid duplicate unresolved alerts of the same type
+    const key = `${userId}:${type}`
+    if (openAlertKeys) {
+      if (openAlertKeys.has(key)) return
+      await this.createAlert(userId, type, message, metadata)
+      openAlertKeys.add(key)
+      return
+    }
     const existing = await this.alertRepo.findOne({ where: { userId, type, resolved: false } })
     if (existing) return
     await this.createAlert(userId, type, message, metadata)
@@ -421,19 +517,16 @@ export class ChurnService {
     await this.alertRepo.save(this.alertRepo.create({ userId, type, message, metadata }))
   }
 
-  private async getUserDaysSinceActive(userId: string): Promise<number | null> {
-    const rows = await this.ds.query<Array<{ lastActiveAt: Date | null }>>(
-      `SELECT "lastActiveAt" FROM users WHERE id = $1 LIMIT 1`, [userId],
-    )
-    if (!rows.length || !rows[0].lastActiveAt) return null
-    return this.daysSince(rows[0].lastActiveAt)
-  }
-
   // ─── Data fetching ───────────────────────────────────────────────────────────
 
   private async fetchAllStats(filters: { userId?: string; riskLevel?: RiskLevel; plan?: string; days?: number } = {}): Promise<TenantStatsRow[]> {
     const params: unknown[] = []
-    const conditions: string[] = [`u."isActive" = true`]
+    const conditions: string[] = [
+      `u."isActive" = true`,
+      `u.email NOT ILIKE '%@example.com'`,
+      `u.email NOT ILIKE '%+test%'`,
+      `u.name NOT ILIKE '%e2e%'`,
+    ]
 
     if (filters.userId) {
       params.push(filters.userId)
@@ -455,6 +548,7 @@ export class ChurnService {
         u.id,
         u.name,
         u.email,
+        u.phone,
         u."createdAt",
         u."lastActiveAt",
         sub.plan,

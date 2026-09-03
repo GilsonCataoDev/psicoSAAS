@@ -4,26 +4,29 @@ import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
+import { useTerms } from '@/hooks/useTerms'
+import type { Terms } from '@/lib/terms'
 
-const steps = [
+function buildSteps(t: Terms) {
+  return [
   {
     icon: Sparkles,
     title: 'Bem-vindo ao UseCognia',
-    text: 'Aqui voce controla agenda, pacientes, prontuario e financeiro em um fluxo simples.',
+    text: `Aqui voce controla agenda, ${t.patients}, ${t.record} e financeiro em um fluxo simples.`,
     cta: 'Comecar',
     path: '/',
   },
   {
     icon: Users,
-    title: 'Crie seu primeiro paciente',
+    title: `Crie seu primeiro ${t.patient}`,
     text: 'Use apenas nome e WhatsApp para sair do zero rapido. O resto pode completar depois.',
-    cta: 'Criar paciente agora',
+    cta: `Criar ${t.patient} agora`,
     path: '/pacientes?new=1',
   },
   {
     icon: CalendarDays,
     title: 'Agende a primeira sessao',
-    text: 'Depois de criar o paciente, marque uma sessao na agenda visual.',
+    text: `Depois de criar o ${t.patient}, marque um atendimento na agenda visual.`,
     cta: 'Agendar agora',
     path: '/agenda?new=1',
   },
@@ -48,15 +51,18 @@ const steps = [
     cta: 'Concluir',
     path: '/',
   },
-]
+  ]
+}
 
 export default function OnboardingTour() {
+  const t = useTerms()
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const updateUser = useAuthStore((s) => s.updateUser)
   const [saving, setSaving] = useState(false)
+  const steps = useMemo(() => buildSteps(t), [t])
   const currentStep = Math.min(user?.onboardingStep ?? 0, steps.length - 1)
-  const step = useMemo(() => steps[currentStep], [currentStep])
+  const step = useMemo(() => steps[currentStep], [steps, currentStep])
 
   if (!user || user.firstLogin === false) return null
 
@@ -90,7 +96,7 @@ export default function OnboardingTour() {
   }
 
   return (
-    <div className="pointer-events-none fixed inset-x-3 bottom-20 z-[70] flex justify-end sm:bottom-5 sm:right-5 sm:left-auto">
+    <div data-testid="onboarding-tour" className="pointer-events-none fixed inset-x-3 bottom-20 z-[70] flex justify-end sm:bottom-5 sm:right-5 sm:left-auto">
       <div className="pointer-events-auto w-full max-w-md rounded-3xl border border-sage-100 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-cognia-panel dark:text-white">
         <div className="flex items-start gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sage-100 text-sage-700 dark:bg-sage-500/20 dark:text-sage-200">
@@ -116,6 +122,7 @@ export default function OnboardingTour() {
         <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
           <button
             type="button"
+            data-testid="onboarding-tour-close"
             onClick={skip}
             disabled={saving}
             className="h-11 rounded-xl px-4 text-sm font-medium text-gray-500 hover:text-gray-800 disabled:opacity-60 dark:text-gray-300"

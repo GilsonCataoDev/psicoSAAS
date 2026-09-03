@@ -1,7 +1,13 @@
-import { Equals, IsBoolean, IsEmail, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator'
+import { Equals, IsBoolean, IsEmail, IsIn, IsOptional, IsString, Matches, MaxLength, MinLength, ValidateIf } from 'class-validator'
 import { Transform } from 'class-transformer'
+import { PROFESSIONS, type Profession } from '../../../common/professions'
 
 export class RegisterDto {
+  /** Ausente = 'psicologia' (comportamento histórico). */
+  @IsOptional()
+  @IsIn(PROFESSIONS, { message: 'Profissão inválida' })
+  profession?: Profession
+
   @IsString()
   @MinLength(2, { message: 'Nome deve ter ao menos 2 caracteres' })
   @MaxLength(100)
@@ -13,10 +19,25 @@ export class RegisterDto {
   @Transform(({ value }) => value?.toLowerCase().trim())
   email: string
 
+  @IsOptional()
+  @IsBoolean()
+  isStudent?: boolean
+
+  /**
+   * CRP é obrigatório só para psicologia (o padrão). Estudante sem CRP
+   * (isStudent=true) pula a validação de formato — completa depois no perfil.
+   * Outras profissões têm outros conselhos e não passam por aqui.
+   */
+  @ValidateIf(o => !o.isStudent && (!o.profession || o.profession === 'psicologia'))
   @IsString()
   @Matches(/^(0[1-9]|1[0-9]|2[0-4])\/\d{4,6}$/, { message: 'CRP inválido. Use uma região entre 01 e 24' })
   @Transform(({ value }) => value?.trim())
-  crp: string
+  crp?: string
+
+  @IsString()
+  @Matches(/^\d{10,11}$/, { message: 'Telefone inválido. Use DDD + número (10 ou 11 dígitos)' })
+  @Transform(({ value }) => value?.replace(/\D/g, ''))
+  phone: string
 
   /**
    * Senha forte: 8+ chars, maiúscula, minúscula, número e símbolo.

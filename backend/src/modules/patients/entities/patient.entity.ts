@@ -5,16 +5,21 @@ import {
 import { User } from '../../auth/entities/user.entity'
 import { Session } from '../../sessions/entities/session.entity'
 import { Appointment } from '../../appointments/entities/appointment.entity'
+import { encryptedTextTransformer } from '../../../common/crypto/encrypt.util'
 
 export type PatientStatus = 'active' | 'paused' | 'discharged'
+export type PatientBillingType = 'per_session' | 'monthly_package'
+export type PatientCareMode = 'psychotherapy' | 'neuropsychological_assessment'
 
 @Entity('patients')
 export class Patient {
   @PrimaryGeneratedColumn('uuid') id: string
 
-  @Column() name: string
-  @Column({ nullable: true }) email?: string
-  @Column({ nullable: true }) phone?: string
+  @Column({ type: 'text', transformer: encryptedTextTransformer }) name: string
+  @Column({ type: 'text', nullable: true, transformer: encryptedTextTransformer }) email?: string
+  @Column({ type: 'text', nullable: true, transformer: encryptedTextTransformer }) phone?: string
+  @Column({ type: 'varchar', length: 64, nullable: true, select: false }) emailHash?: string
+  @Column({ type: 'varchar', length: 64, nullable: true, select: false }) phoneHash?: string
   @Column({ nullable: true }) birthDate?: string
   @Column({ nullable: true }) pronouns?: string
   @Column({ nullable: true }) race?: string
@@ -24,8 +29,23 @@ export class Patient {
   @Column({ type: 'text', default: 'active' })
   status: PatientStatus
 
+  @Column({ type: 'text', default: 'psychotherapy' })
+  careMode: PatientCareMode
+
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   sessionPrice: number
+
+  @Column({ type: 'text', default: 'per_session' })
+  billingType: PatientBillingType
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  monthlyPackagePrice: number
+
+  @Column({ type: 'int', default: 4 })
+  monthlyIncludedSessions: number
+
+  @Column({ type: 'int', default: 5 })
+  billingDay: number
 
   @Column({ default: 50 }) sessionDuration: number
   @Column({ nullable: true }) startDate?: string

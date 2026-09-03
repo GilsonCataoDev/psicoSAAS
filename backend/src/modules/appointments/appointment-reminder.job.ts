@@ -7,9 +7,10 @@ import { NotificationsService, WhatsAppDeliveryResult, PushDeliveryResult } from
 import { EmailService } from '../email/email.service'
 import { User } from '../auth/entities/user.entity'
 import { AdvisoryLockService, JOB_LOCK_KEYS } from '../../common/advisory-lock/advisory-lock.service'
+import { HeartbeatService } from '../../common/monitoring/heartbeat.service'
 
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000
-const TWO_HOURS_MS = 2 * 60 * 60 * 1000
+const ONE_HOUR_MS = 60 * 60 * 1000
 const DAY_MS = 24 * 60 * 60 * 1000
 
 @Injectable()
@@ -27,6 +28,7 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
     private readonly config: ConfigService,
     private readonly email: EmailService,
     private readonly lock: AdvisoryLockService,
+    private readonly heartbeat: HeartbeatService,
   ) {}
 
   onModuleInit(): void {
@@ -43,6 +45,7 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
     this.running = true
     try {
       await this.lock.withLock(JOB_LOCK_KEYS.APPOINTMENT_REMINDER, () => this.runLocked())
+      this.heartbeat.ping('BETTERSTACK_HEARTBEAT_REMINDER_URL')
     } finally {
       this.running = false
     }
@@ -64,13 +67,6 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
     let sent = 0
     const planCache = new Map<string, boolean>()
     for (const appointment of upcoming) {
-      if (this.email.isRateLimited()) {
-        this.logger.warn(
-          `Lembretes por e-mail pausados por limite do provedor. Retry em ${Math.ceil(this.email.getRateLimitRetryAfterMs() / 1000)}s.`,
-        )
-        break
-      }
-
       const prefs = (appointment.psychologist?.preferences ?? {}) as Record<string, any>
       const startsAt = this.appointmentStartsAt(appointment)
       const diff = startsAt.getTime() - now.getTime()
@@ -80,7 +76,7 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
       }
       const canUseWhatsApp = planCache.get(appointment.psychologistId)!
 
-      if (!appointment.reminder24hSentAt && prefs.reminder24h !== false && diff <= DAY_MS && diff > TWO_HOURS_MS) {
+      if (!appointment.reminder24hSentAt && prefs.reminder24h !== false && diff <= DAY_MS && diff > ONE_HOUR_MS) {
         const result = canUseWhatsApp
           ? await this.notifications.sendAppointmentReminder(appointment, '24h')
           : await this.notifications.sendAppointmentPushReminder(appointment, '24h')
@@ -89,22 +85,29 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
           appointment.reminder24hSentAt = new Date()
           await this.appointments.save(appointment)
           sent++
+        } else if ('pendingReconciliation' in result && result.pendingReconciliation) {
+          this.logger.warn(`Lembrete 24h aguardando reconciliacao: appointment ${appointment.id}`)
         } else if (appointment.patient?.email) {
           try {
-            const psychologistName = (appointment.psychologist as any)?.name ?? 'seu psicólogo(a)'
+            const psychologistName = (appointment.psychologist as any)?.name ?? 'seu profissional'
             await this.email.sendSessionReminder({
               patientName: appointment.patient.name,
               patientEmail: appointment.patient.email,
               date: appointment.date,
               time: appointment.time,
               psychologistName,
+              profession: (appointment.psychologist as any)?.profession,
             })
             appointment.reminder24hSentAt = new Date()
             await this.appointments.save(appointment)
             sent++
           } catch (err: any) {
             this.logger.warn(`Falha ao enviar lembrete por e-mail para appointment ${appointment.id}: ${err?.message}`)
-            if (this.email.isRateLimited()) break
+            if (this.email.isRateLimited()) {
+              this.logger.warn(
+                `Fallback por e-mail do lembrete 24h pausado por limite do provedor. appointment ${appointment.id}; proximos lembretes WhatsApp continuam.`,
+              )
+            }
           }
         } else if (this.shouldStopRetrying(result)) {
           appointment.reminder24hSentAt = new Date()
@@ -113,36 +116,45 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
         }
       }
 
-      if (!appointment.reminder2hSentAt && prefs.reminder2h !== false && diff <= TWO_HOURS_MS && diff > 0) {
+      // Os nomes reminder2h* permanecem no banco/preferencias por compatibilidade.
+      // O disparo comercializado e exibido ao usuario acontece 1h antes.
+      if (!appointment.reminder2hSentAt && prefs.reminder2h !== false && diff <= ONE_HOUR_MS && diff > 0) {
         const result = canUseWhatsApp
-          ? await this.notifications.sendAppointmentReminder(appointment, '2h')
-          : await this.notifications.sendAppointmentPushReminder(appointment, '2h')
+          ? await this.notifications.sendAppointmentReminder(appointment, '1h')
+          : await this.notifications.sendAppointmentPushReminder(appointment, '1h')
         const delivered = Number(result.sent) > 0
         if (delivered) {
           appointment.reminder2hSentAt = new Date()
           await this.appointments.save(appointment)
           sent++
+        } else if ('pendingReconciliation' in result && result.pendingReconciliation) {
+          this.logger.warn(`Lembrete 1h aguardando reconciliacao: appointment ${appointment.id}`)
         } else if (appointment.patient?.email) {
           try {
-            const psychologistName = (appointment.psychologist as any)?.name ?? 'seu psicólogo(a)'
+            const psychologistName = (appointment.psychologist as any)?.name ?? 'seu profissional'
             await this.email.sendSessionReminder({
               patientName: appointment.patient.name,
               patientEmail: appointment.patient.email,
               date: appointment.date,
               time: appointment.time,
               psychologistName,
+              profession: (appointment.psychologist as any)?.profession,
             })
             appointment.reminder2hSentAt = new Date()
             await this.appointments.save(appointment)
             sent++
           } catch (err: any) {
-            this.logger.warn(`Falha ao enviar lembrete 2h por e-mail para appointment ${appointment.id}: ${err?.message}`)
-            if (this.email.isRateLimited()) break
+            this.logger.warn(`Falha ao enviar lembrete 1h por e-mail para appointment ${appointment.id}: ${err?.message}`)
+            if (this.email.isRateLimited()) {
+              this.logger.warn(
+                `Fallback por e-mail do lembrete 1h pausado por limite do provedor. appointment ${appointment.id}; proximos lembretes WhatsApp continuam.`,
+              )
+            }
           }
         } else if (this.shouldStopRetrying(result)) {
           appointment.reminder2hSentAt = new Date()
           await this.appointments.save(appointment)
-          this.logger.warn(`Lembrete 2h marcado como processado apos falha nao retentavel: appointment ${appointment.id}`)
+          this.logger.warn(`Lembrete 1h marcado como processado apos falha nao retentavel: appointment ${appointment.id}`)
         }
       }
     }
@@ -188,15 +200,16 @@ export class AppointmentReminderJob implements OnModuleInit, OnModuleDestroy {
       const message = this.buildDailyAgendaDigestMessage(psychologist, appointments)
       const result = await this.notifications.sendDailyAgendaDigest(psychologistId, targetPhone, message)
 
+      if (!result.sent) {
+        this.logger.warn(`Resumo diario da agenda nao enviado para user ${psychologistId}: ${result.error ?? result.reason}`)
+        if (!result.nonRetryable) continue
+      }
+
       psychologist.preferences = {
         ...prefs,
         dailyAgendaDigestLastSentDate: today,
       }
       await this.users.save(psychologist)
-
-      if (!result.sent) {
-        this.logger.warn(`Resumo diario da agenda nao enviado para user ${psychologistId}: ${result.error ?? result.reason}`)
-      }
     }
   }
 

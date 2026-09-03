@@ -20,7 +20,7 @@ export class ListAdminUsersDto {
   search?: string
 
   @IsOptional()
-  @IsIn(['free', 'essencial', 'pro'])
+  @IsIn(['free', 'pro'])
   plan?: string
 
   @IsOptional()

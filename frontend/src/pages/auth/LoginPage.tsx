@@ -7,7 +7,7 @@ import { Eye, EyeOff, LogIn, ShieldCheck } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
 import toast from 'react-hot-toast'
-import { track, EVENTS } from '@/lib/analytics'
+import { track, EVENTS, trackReactivationIfNeeded } from '@/lib/analytics'
 
 const schema = z.object({
   email: z.string().email('E-mail inválido'),
@@ -43,6 +43,7 @@ export default function LoginPage() {
       setAuth(res.data.user)
       if (res.data.csrfToken) setCsrfToken(res.data.csrfToken)
       track(EVENTS.LOGIN)
+      trackReactivationIfNeeded()
       navigate('/')
     } catch (err: any) {
       logout()
@@ -65,7 +66,7 @@ export default function LoginPage() {
       <h2 className="font-display text-3xl font-bold text-neutral-900 mb-1">
         Acesse a UseCognia
       </h2>
-      <p className="text-neutral-500 mb-8">Organize agenda, pacientes e financeiro em poucos cliques.</p>
+      <p className="text-neutral-500 mb-8">Organize agenda, atendimentos e financeiro em poucos cliques.</p>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>

@@ -4,12 +4,12 @@ import { ptBR } from 'date-fns/locale'
 import {
   AlertTriangle, CheckCircle2,
   Users, ShieldAlert, Bell, BellOff, ChevronDown, ChevronUp,
-  RefreshCw, Mail, MessageCircle, Loader2, Target,
+  RefreshCw, Mail, MessageCircle, Loader2, Target, Sparkles,
 } from 'lucide-react'
 import {
   useChurnDashboard, useChurnAnalytics, useChurnAlerts,
   useResolveChurnAlert, useSendReactivationEmail, ChurnAccount, ChurnRiskLevel,
-  useUserTimeline,
+  useUserTimeline, useChurnAiDiagnosis, useSendChurnWhatsApp,
 } from '@/hooks/useApi'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
@@ -87,6 +87,15 @@ function AccountRow({ account }: { account: ChurnAccount }) {
   const [expanded, setExpanded] = useState(false)
   const risk = RISK_CONFIG[account.riskLevel]
   const sendEmail = useSendReactivationEmail()
+  const aiDiagnose = useChurnAiDiagnosis()
+  const sendWhatsApp = useSendChurnWhatsApp()
+
+  function handleAiDiagnose(e: React.MouseEvent) {
+    e.stopPropagation()
+    aiDiagnose.mutate(account.id, {
+      onError: () => toast.error('Não foi possível gerar o diagnóstico por IA'),
+    })
+  }
 
   function handleEmail(e: React.MouseEvent) {
     e.stopPropagation()
@@ -96,13 +105,18 @@ function AccountRow({ account }: { account: ChurnAccount }) {
     })
   }
 
-  const whatsappMsg = encodeURIComponent(
-    `Olá ${account.name}! Aqui é a equipe do UseCognia. Percebemos que faz um tempo que você não acessa a plataforma. Podemos te ajudar com algo? 😊`
-  )
-  const whatsappPhone = (account as any).phone?.replace(/\D/g, '')
-  const whatsappUrl = whatsappPhone
-    ? `https://wa.me/55${whatsappPhone}?text=${whatsappMsg}`
-    : `https://wa.me/?text=${whatsappMsg}`
+  function handleSendReactivationWhatsApp(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!account.hasPhone) return
+    if (!window.confirm(`Enviar mensagem de reativação por WhatsApp para ${account.name}?`)) return
+    sendWhatsApp.mutate(account.id, {
+      onSuccess: (result) => {
+        if (result.sent) toast.success(`WhatsApp enviado para ${account.name}`)
+        else toast.error(result.error ?? 'Não foi possível enviar o WhatsApp')
+      },
+      onError: () => toast.error('Não foi possível enviar o WhatsApp'),
+    })
+  }
 
   return (
     <Fragment>
@@ -160,15 +174,17 @@ function AccountRow({ account }: { account: ChurnAccount }) {
                 ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 : <Mail className="h-3.5 w-3.5" />}
             </button>
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Enviar WhatsApp"
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-neutral-200 text-neutral-500 hover:border-emerald-300 hover:text-emerald-700 transition-colors"
+            <button
+              type="button"
+              onClick={handleSendReactivationWhatsApp}
+              disabled={!account.hasPhone || sendWhatsApp.isPending}
+              title={account.hasPhone ? 'Enviar WhatsApp' : 'Conta sem telefone cadastrado'}
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-neutral-200 text-neutral-500 hover:border-emerald-300 hover:text-emerald-700 disabled:opacity-40 transition-colors"
             >
-              <MessageCircle className="h-3.5 w-3.5" />
-            </a>
+              {sendWhatsApp.isPending
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <MessageCircle className="h-3.5 w-3.5" />}
+            </button>
             {expanded ? <ChevronUp className="h-4 w-4 text-neutral-400 ml-1" /> : <ChevronDown className="h-4 w-4 text-neutral-400 ml-1" />}
           </div>
         </td>
@@ -210,6 +226,32 @@ function AccountRow({ account }: { account: ChurnAccount }) {
                   ))
                 }
               </div>
+            </div>
+
+            <div className="mt-3 rounded-xl border border-neutral-100 bg-white p-4 text-sm" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="font-semibold text-neutral-700 flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-sage-600" /> Diagnóstico interno com IA
+                  </p>
+                  <p className="mt-0.5 text-xs text-neutral-400">Uso exclusivo da equipe; nunca é enviado ao psicólogo.</p>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={handleAiDiagnose}
+                    disabled={aiDiagnose.isPending}
+                    className="btn-secondary text-xs px-2.5 py-1"
+                  >
+                    {aiDiagnose.isPending
+                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      : aiDiagnose.data ? 'Gerar de novo' : 'Gerar'}
+                  </button>
+                </div>
+              </div>
+              {aiDiagnose.data && (
+                <p className="mt-2 text-neutral-600 leading-relaxed">{aiDiagnose.data.explanation}</p>
+              )}
             </div>
 
             <div className="mt-3">
@@ -393,7 +435,6 @@ export default function ChurnPage() {
         >
           <option value="">Todos os planos</option>
           <option value="free">Gratuito</option>
-          <option value="essencial">Essencial</option>
           <option value="pro">Pro</option>
         </select>
         {(riskFilter || planFilter || search) && (

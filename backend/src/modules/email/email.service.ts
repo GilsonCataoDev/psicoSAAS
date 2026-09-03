@@ -4,6 +4,8 @@ import { Repository } from 'typeorm'
 import { ConfigService } from '@nestjs/config'
 import { EmailLog } from './entities/email-log.entity'
 import { EmailSuppression } from './entities/email-suppression.entity'
+import { termsFor } from '../../common/terms'
+import { blindIndex } from '../../common/crypto/encrypt.util'
 
 interface Attachment {
   filename: string
@@ -71,7 +73,9 @@ export class EmailService {
       throw new ServiceUnavailableException('Envio de e-mail nao configurado')
     }
 
-    if (await this.suppressions?.exist({ where: { email: opts.to.toLowerCase().trim() } })) {
+    if (await this.suppressions?.exist({
+      where: { emailHash: blindIndex(opts.to, 'email-suppression') },
+    })) {
       this.logger.warn(`[Email] Envio bloqueado — endereco suprimido (bounce/spam previo)`)
       this.writeLog(opts.to, opts.subject, 'suppressed', 'Endereco na lista de supressao')
       return
@@ -121,7 +125,7 @@ export class EmailService {
           )
         }
 
-        throw new BadGatewayException('Nao foi possivel enviar o e-mail')
+        throw new BadGatewayException(`Nao foi possivel enviar o e-mail (status=${res.status})`)
       }
       this.logger.log(`[Resend] Email enviado subjectChars=${opts.subject.length}`)
       this.writeLog(opts.to, opts.subject, 'sent', null)
@@ -130,7 +134,7 @@ export class EmailService {
         this.writeLog(opts.to, opts.subject, 'failed', (err as Error).message)
         throw err
       }
-      this.logger.error('[Resend] Falha de conexão', err)
+      this.logger.error(`[Resend] Falha de conexao type=${err instanceof Error ? err.name : 'unknown'}`)
       this.writeLog(opts.to, opts.subject, 'failed', (err as Error)?.message ?? 'unknown')
       throw new BadGatewayException('Nao foi possivel conectar ao servico de e-mail')
     }
@@ -178,15 +182,15 @@ export class EmailService {
   // ─── Templates ────────────────────────────────────────────────────────────
 
   async sendWelcome(name: string, email: string) {
-    const firstName = name.split(' ')[0]
+    const firstName = this.escapeHtml(name.split(' ')[0])
     await this.send({
       to: email,
       subject: 'Bem-vindo(a) à UseCognia',
       html: this.wrap(`
         <h1 style="color:#2F7657;font-weight:300;font-size:28px">Olá, ${firstName}!</h1>
         <p style="color:#555;font-size:16px;line-height:1.6">
-          Sua conta foi criada com sucesso. Você tem <strong>7 dias grátis</strong>
-          para explorar o plano escolhido. A cobrança só acontece ao fim do teste.
+          Sua conta foi criada com sucesso no <strong>plano gratuito</strong>, sem cartão.
+          Quando quiser, você poderá testar o plano Pro por 14 dias sem cobrança automática.
         </p>
         <p style="color:#555;font-size:16px;line-height:1.6">Veja o que você pode fazer agora:</p>
         <ul style="color:#555;font-size:15px;line-height:2">
@@ -209,7 +213,7 @@ export class EmailService {
       html: this.wrap(`
         <h1 style="color:#2F7657;font-weight:300;font-size:24px">Redefinir senha</h1>
         <p style="color:#555;font-size:16px;line-height:1.6">
-          Olá, ${name.split(' ')[0]}! Recebemos uma solicitação para redefinir a senha da sua conta.
+          Olá, ${this.escapeHtml(name.split(' ')[0])}! Recebemos uma solicitação para redefinir a senha da sua conta.
         </p>
         <p style="color:#555;font-size:16px;line-height:1.6">
           Este link é válido por <strong>2 horas</strong>.
@@ -232,7 +236,7 @@ export class EmailService {
       html: this.wrap(`
         <h1 style="color:#2F7657;font-weight:300;font-size:24px">Confirme seu e-mail</h1>
         <p style="color:#555;font-size:16px;line-height:1.6">
-          Olá, ${name.split(' ')[0]}! Clique no botão abaixo para confirmar o e-mail da sua conta UseCognia.
+          Olá, ${this.escapeHtml(name.split(' ')[0])}! Clique no botão abaixo para confirmar o e-mail da sua conta UseCognia.
         </p>
         <p style="color:#555;font-size:16px;line-height:1.6">
           Este link é válido por <strong>48 horas</strong>.
@@ -247,15 +251,19 @@ export class EmailService {
     })
   }
 
-  async sendBookingRequest(patientName: string, psychologistEmail: string, date: string, time: string, confirmUrl: string) {
+  async sendBookingRequest(patientName: string, psychologistEmail: string, date: string, time: string, confirmUrl: string, profession?: string) {
+    const t = termsFor(profession)
+    const safePatientName = this.escapeHtml(patientName)
+    const safeDate = this.escapeHtml(date)
+    const safeTime = this.escapeHtml(time)
     await this.send({
       to: psychologistEmail,
-      subject: `Nova solicitação de sessão — ${patientName}`,
+      subject: `Nova solicitação de ${t.session} — ${patientName.replace(/[\r\n]/g, ' ')}`,
       html: this.wrap(`
         <h1 style="color:#2F7657;font-weight:300;font-size:24px">Nova solicitação</h1>
         <p style="color:#555;font-size:16px;line-height:1.6">
-          <strong>${patientName}</strong> solicitou uma sessão para
-          <strong>${date}</strong> às <strong>${time}</strong>.
+          <strong>${safePatientName}</strong> solicitou uma ${t.session} para
+          <strong>${safeDate}</strong> às <strong>${safeTime}</strong>.
         </p>
         <a href="${confirmUrl}" style="display:inline-block;background:#2F7657;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:8px">
           Ver e confirmar
@@ -271,19 +279,21 @@ export class EmailService {
     time: string,
     cancelUrl: string,
     customMessage?: string | null,
+    profession?: string,
   ) {
+    const t = termsFor(profession)
     const messageHtml = customMessage?.trim()
       ? `<p style="color:#555;font-size:16px;line-height:1.6;white-space:pre-line">${this.escapeHtml(customMessage.trim())}</p>`
       : `<p style="color:#555;font-size:16px;line-height:1.6">
-          Ola, ${patientName.split(' ')[0]}! Sua sessao para
-          <strong>${date}</strong> as <strong>${time}</strong> foi confirmada.
+          Ola, ${this.escapeHtml(patientName.split(' ')[0])}! Sua ${t.sessionPlain} para
+          <strong>${this.escapeHtml(date)}</strong> as <strong>${this.escapeHtml(time)}</strong> foi confirmada.
         </p>`
 
     await this.send({
       to: patientEmail,
-      subject: 'Sessão confirmada',
+      subject: `${t.sessionCapitalized} confirmada`,
       html: this.wrap(`
-        <h1 style="color:#2F7657;font-weight:300;font-size:24px">Sua sessão foi confirmada</h1>
+        <h1 style="color:#2F7657;font-weight:300;font-size:24px">Sua ${t.session} foi confirmada</h1>
         ${messageHtml}
         <p style="color:#888;font-size:14px">
           Precisa cancelar? <a href="${cancelUrl}" style="color:#2F7657">Clique aqui</a> com pelo menos 24h de antecedência.
@@ -298,18 +308,20 @@ export class EmailService {
     date: string,
     time: string,
     reason?: string,
+    profession?: string,
   ) {
+    const t = termsFor(profession)
     const safePatientName = this.escapeHtml(patientName)
     const safeDate = this.escapeHtml(date)
     const safeTime = this.escapeHtml(time)
     const safeReason = reason ? this.escapeHtml(reason) : ''
     await this.send({
       to: psychologistEmail,
-      subject: `Sessão cancelada — ${patientName.replace(/[\r\n]/g, ' ')}`,
+      subject: `${t.sessionCapitalized} cancelada — ${patientName.replace(/[\r\n]/g, ' ')}`,
       html: this.wrap(`
-        <h1 style="color:#2F7657;font-weight:300;font-size:24px">Sessão cancelada</h1>
+        <h1 style="color:#2F7657;font-weight:300;font-size:24px">${t.sessionCapitalized} cancelada</h1>
         <p style="color:#555;font-size:16px;line-height:1.6">
-          <strong>${safePatientName}</strong> cancelou a sessão de
+          <strong>${safePatientName}</strong> cancelou a ${t.session} de
           <strong>${safeDate}</strong> às <strong>${safeTime}</strong>.
         </p>
         ${safeReason ? `<p style="color:#555;font-size:15px;line-height:1.6"><strong>Motivo:</strong> ${safeReason}</p>` : ''}
@@ -327,6 +339,41 @@ export class EmailService {
     })[char]!)
   }
 
+  async sendProUpgradeOffer(name: string, email: string) {
+    const firstName = this.escapeHtml(name.trim().split(/\s+/)[0] || 'profissional')
+    await this.send({
+      to: email,
+      subject: 'Novidades no UseCognia + Pro por R$ 34,90 no primeiro mês',
+      html: this.wrap(`
+        <h1 style="color:#2F7657;font-weight:300;font-size:26px">Olá, ${firstName}!</h1>
+        <p style="color:#555;font-size:16px;line-height:1.6">
+          O UseCognia ganhou novos recursos para deixar a rotina clínica mais organizada:
+        </p>
+        <ul style="color:#555;font-size:15px;line-height:1.9;padding-left:20px">
+          <li>agenda e link público de agendamento;</li>
+          <li>prontuário, documentos e assinatura digital;</li>
+          <li>financeiro, lembretes e integração com WhatsApp;</li>
+          <li>instrumentos e avaliação neuropsicológica;</li>
+          <li>migração de anotações em papel para a ficha do paciente.</li>
+        </ul>
+        <div style="background:#eef8f3;border:1px solid #cfe5d9;border-radius:14px;padding:18px;margin:24px 0">
+          <p style="margin:0;color:#21372d;font-size:17px;line-height:1.5">
+            Para contas Free elegíveis, o <strong>primeiro mês do plano Pro sai por R$ 34,90</strong>.
+            Depois, o valor volta para R$ 97,90 por mês. Sem fidelidade.
+          </p>
+        </div>
+        <a href="${this.appUrl('/planos')}" style="display:inline-block;background:#2F7657;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:600">
+          Conhecer o plano Pro
+        </a>
+        <p style="color:#888;font-size:13px;line-height:1.5;margin-top:28px">
+          Você recebeu esta mensagem por possuir uma conta no UseCognia.
+          As preferências de comunicação podem ser alteradas em
+          <a href="${this.appUrl('/configuracoes')}" style="color:#2F7657">Configurações</a>.
+        </p>
+      `),
+    })
+  }
+
   async sendTrialEndingReminder(name: string, email: string, daysLeft: number) {
     await this.send({
       to: email,
@@ -334,7 +381,7 @@ export class EmailService {
       html: this.wrap(`
         <h1 style="color:#2F7657;font-weight:300;font-size:24px">Período de teste terminando</h1>
         <p style="color:#555;font-size:16px;line-height:1.6">
-          Olá, ${name.split(' ')[0]}! Seu período de teste acaba em <strong>${daysLeft} dia${daysLeft !== 1 ? 's' : ''}</strong>.
+          Olá, ${this.escapeHtml(name.split(' ')[0])}! Seu período de teste acaba em <strong>${daysLeft} dia${daysLeft !== 1 ? 's' : ''}</strong>.
         </p>
         <p style="color:#555;font-size:16px;line-height:1.6">
           A cobrança do plano escolhido será feita no cartão cadastrado. Você ainda pode trocar de plano ou cancelar antes do fim do teste.
@@ -347,13 +394,15 @@ export class EmailService {
   }
 
   async sendReferralReward(name: string, email: string, referredName: string) {
+    const safeFirstName = this.escapeHtml(name.split(' ')[0])
+    const safeReferredName = this.escapeHtml(referredName)
     await this.send({
       to: email,
       subject: 'Você ganhou 30 dias de benefício',
       html: this.wrap(`
         <h1 style="color:#2F7657;font-weight:300;font-size:24px">Você ganhou 30 dias de benefício</h1>
         <p style="color:#555;font-size:16px;line-height:1.6">
-          Parabéns, ${name.split(' ')[0]}! <strong>${referredName}</strong> se cadastrou usando sua indicação.
+          Parabéns, ${safeFirstName}! <strong>${safeReferredName}</strong> se cadastrou usando sua indicação.
           Liberamos 30 dias de benefício na sua conta.
         </p>
         <a href="${this.frontendUrl}" style="display:inline-block;background:#2F7657;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:8px">
@@ -364,13 +413,15 @@ export class EmailService {
   }
 
   async sendReferralWelcomeBonus(name: string, email: string, referrerName: string) {
+    const safeFirstName = this.escapeHtml(name.split(' ')[0])
+    const safeReferrerName = this.escapeHtml(referrerName)
     await this.send({
       to: email,
       subject: 'Você ganhou 30 dias de Pro de boas-vindas',
       html: this.wrap(`
         <h1 style="color:#2F7657;font-weight:300;font-size:24px">Você ganhou 30 dias de Pro</h1>
         <p style="color:#555;font-size:16px;line-height:1.6">
-          Olá, ${name.split(' ')[0]}! Como você se cadastrou pelo convite de <strong>${referrerName}</strong>,
+          Olá, ${safeFirstName}! Como você se cadastrou pelo convite de <strong>${safeReferrerName}</strong>,
           liberamos 30 dias do plano Pro na sua conta — automação de WhatsApp, instrumentos clínicos e mais, sem custo.
         </p>
         <a href="${this.frontendUrl}" style="display:inline-block;background:#2F7657;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:600;margin-top:8px">
@@ -386,7 +437,9 @@ export class EmailService {
     date: string
     time: string
     psychologistName: string
+    profession?: string
   }) {
+    const t = termsFor(opts.profession)
     const first = opts.patientName.split(' ')[0]
     const dateLabel = (() => {
       try {
@@ -398,9 +451,9 @@ export class EmailService {
 
     await this.send({
       to: opts.patientEmail,
-      subject: `Lembrete de sessão — ${dateLabel}`,
+      subject: `Lembrete de ${t.session} — ${dateLabel}`,
       html: this.wrap(`
-        <h1 style="color:#2F7657;font-weight:300;font-size:24px">Lembrete de sessão</h1>
+        <h1 style="color:#2F7657;font-weight:300;font-size:24px">Lembrete de ${t.session}</h1>
         <p style="color:#555;font-size:16px;line-height:1.6">
           Olá, ${this.escapeHtml(first)}! Passando para lembrar que temos nosso encontro amanhã:
         </p>
@@ -427,17 +480,23 @@ export class EmailService {
     filename: string
     pdfBase64: string
   }) {
+    const safeDocTypeLabel = this.escapeHtml(opts.docTypeLabel)
+    const safeRecipientName = this.escapeHtml(opts.recipientName)
+    const safeDocTitle = this.escapeHtml(opts.docTitle)
+    const safePsychologistName = this.escapeHtml(opts.psychologistName)
+    const safePsychologistCrp = this.escapeHtml(opts.psychologistCrp)
+    const safeSignCode = this.escapeHtml(opts.signCode)
     await this.send({
       to: opts.to,
-      subject: `${opts.docTypeLabel} — ${opts.psychologistName}`,
+      subject: `${opts.docTypeLabel} — ${opts.psychologistName}`.replace(/[\r\n]/g, ' '),
       html: this.wrap(`
         <h1 style="color:#2F7657;font-weight:300;font-size:22px">
-          ${opts.docTypeLabel}
+          ${safeDocTypeLabel}
         </h1>
         <p style="color:#555;font-size:15px;line-height:1.6">
-          Olá, ${opts.recipientName}. Segue em anexo o documento
-          <strong>${opts.docTitle}</strong>, emitido por
-          <strong>${opts.psychologistName}</strong> (CRP ${opts.psychologistCrp}).
+          Olá, ${safeRecipientName}. Segue em anexo o documento
+          <strong>${safeDocTitle}</strong>, emitido por
+          <strong>${safePsychologistName}</strong> (CRP ${safePsychologistCrp}).
         </p>
         <p style="color:#555;font-size:15px;line-height:1.6">
           Você pode verificar a autenticidade do documento a qualquer momento:
@@ -447,7 +506,7 @@ export class EmailService {
                   border-radius:10px;text-decoration:none;font-weight:600;margin-top:4px;margin-bottom:16px">
           Verificar autenticidade
         </a>
-        <p style="color:#aaa;font-size:12px">Código: ${opts.signCode}</p>
+        <p style="color:#aaa;font-size:12px">Código: ${safeSignCode}</p>
       `),
       attachments: [{ filename: opts.filename, content: opts.pdfBase64 }],
     })
@@ -457,7 +516,13 @@ export class EmailService {
 
   private writeLog(to: string, subject: string, status: 'sent' | 'failed' | 'suppressed', error: string | null): void {
     if (!this.logs) return
-    this.logs.save(this.logs.create({ to, subject: subject.slice(0, 255), status, error }))
+    this.logs.save(this.logs.create({
+      to,
+      toHash: blindIndex(to, 'email-log-recipient'),
+      subject: subject.slice(0, 255),
+      status,
+      error: error ? error.slice(0, 500) : null,
+    }))
       .catch(e => this.logger.warn(`[EmailLog] Falha ao gravar log: ${e?.message}`))
   }
 

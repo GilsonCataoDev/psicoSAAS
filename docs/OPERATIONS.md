@@ -2,6 +2,16 @@
 
 Checklist pratico para manter o ambiente de producao seguro e recuperavel.
 
+## Healthcheck automatizado
+
+`GET /health` (sem autenticacao) checa conectividade real com o banco e retorna sempre HTTP 200 — `status: "ok"` ou `"degraded"` (nunca 503, ver ADR-010 em `decisions.md`). E o endpoint usado pelo `healthcheckPath` do Railway (`backend/railway.json`).
+
+```bash
+curl https://psicosaas-production-2d6c.up.railway.app/api/health
+```
+
+Heartbeats opcionais (Better Stack) podem ser configurados por job critico via `BETTERSTACK_HEARTBEAT_REMINDER_URL` e `BETTERSTACK_HEARTBEAT_PAYMENT_URL` — sem essas vars, nada muda no comportamento (ver ADR-011).
+
 ## Monitoramento minimo
 
 Verificar diariamente no painel Admin:
@@ -59,7 +69,9 @@ npm run migration:run
 
 Migration mais recente:
 
-- `NormalizeFinancialLinks1782600000000`: adiciona `appointmentId` e `bookingId` em `financial_records`, faz backfill de registros antigos, cria indices de performance e checks de consistencia para tipo/status/metodo de pagamento.
+- `AddPatientAttachmentStorageKey1782900000000`: adiciona `storageKey` em `patient_attachments` e torna `data` nullable, pra suportar o driver R2 opcional sem afetar anexos existentes (ver ADR-012 em `decisions.md`).
+
+**Nota — bootstrap local em banco vazio:** a cadeia de migrations assume que a tabela `users` ja existe antes de `CreateRefreshTokensTable1714500000000` rodar; num Postgres completamente vazio (sem `synchronize` nem `init.sql` legado), `npm run migration:run` falha com `relation "users" does not exist`. Em desenvolvimento local, a forma mais simples de bootstrap e rodar a API com `TYPEORM_SYNC=true` fora de producao para o TypeORM criar o schema a partir das entidades, depois usar migrations nos ambientes que ja tem o banco de producao/staging existente. Nunca habilitar `TYPEORM_SYNC=true` em producao. `database/init.sql` esta desatualizado (schema legado em snake_case) — nao usar pra bootstrap novo.
 
 ## Teste de restauracao
 

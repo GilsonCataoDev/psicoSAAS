@@ -9,6 +9,7 @@ import { useOnboardingStore } from '@/store/onboarding'
 import { useSubscriptionStore } from '@/store/subscription'
 import { track, EVENTS } from '@/lib/analytics'
 import { cn } from '@/lib/utils'
+import { useTerms } from '@/hooks/useTerms'
 
 type ChecklistItem = {
   id: string
@@ -21,6 +22,7 @@ type ChecklistItem = {
 }
 
 export default function OnboardingWizard() {
+  const t = useTerms()
   const { complete, skip } = useOnboardingStore()
   const subscription = useSubscriptionStore(s => s.subscription)
   const plan = String(subscription.planId ?? subscription.plan ?? 'free')
@@ -35,18 +37,18 @@ export default function OnboardingWizard() {
   const items = useMemo<ChecklistItem[]>(() => [
     {
       id: 'first_patient',
-      title: 'Adicione o primeiro paciente',
-      description: 'Desbloqueia agenda, prontuário, financeiro e documentos.',
-      cta: 'Adicionar paciente',
+      title: `Adicione o primeiro ${t.patient}`,
+      description: `Desbloqueia agenda, ${t.record}, financeiro e documentos.`,
+      cta: `Adicionar ${t.patient}`,
       href: '/pacientes?new=1',
       done: patients.length > 0,
       icon: Users,
     },
     {
       id: 'first_appointment',
-      title: 'Agende a primeira sessão',
+      title: `Agende a primeira ${t.session}`,
       description: 'Defina data, horário e modalidade para iniciar a rotina.',
-      cta: 'Agendar sessão',
+      cta: `Agendar ${t.session}`,
       href: '/agenda?new=1',
       done: appointments.length > 0,
       icon: CalendarPlus,
@@ -54,13 +56,13 @@ export default function OnboardingWizard() {
     {
       id: 'booking_page',
       title: 'Configure seu link público',
-      description: 'Permita que pacientes solicitem horários pelo seu link.',
+      description: `Permita que ${t.patients} solicitem horários pelo seu link.`,
       cta: 'Configurar link',
       href: '/agendamentos',
       done: Boolean(bookingPage?.isActive && bookingPage?.slug),
       icon: Link2,
     },
-    {
+    ...(hasProAutomation ? [{
       id: 'whatsapp',
       title: 'Conecte o WhatsApp',
       description: 'Prepare lembretes automáticos para reduzir faltas.',
@@ -68,8 +70,8 @@ export default function OnboardingWizard() {
       href: '/configuracoes?tab=messages',
       done: Boolean(whatsappStatus?.connected),
       icon: MessageCircle,
-    },
-  ], [appointments.length, bookingPage, patients.length, whatsappStatus?.connected])
+    } as ChecklistItem] : []),
+  ], [appointments.length, bookingPage, hasProAutomation, patients.length, whatsappStatus?.connected])
 
   const doneCount = items.filter(item => item.done).length
   const progress = Math.round((doneCount / items.length) * 100)
@@ -240,7 +242,7 @@ export default function OnboardingWizard() {
       <div className="border-t border-sage-50 bg-sage-50/55 px-5 py-3 dark:border-white/5 dark:bg-white/5">
         <p className="flex items-center gap-2 text-xs text-sage-800 dark:text-sage-200">
           <CalendarDays className="h-3.5 w-3.5 shrink-0" />
-          Meta: saia com paciente, sessão, link público e lembretes preparados.
+          Meta: saia com {t.patient}, primeira {t.session} e seu link público preparados.
         </p>
       </div>
 

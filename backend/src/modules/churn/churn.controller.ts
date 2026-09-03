@@ -1,13 +1,18 @@
-import { Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common'
+import { Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
+import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { AdminGuard } from '../../common/guards/admin.guard'
 import { ChurnService } from './churn.service'
 import { RiskLevel } from './entities/tenant-health.entity'
+import { ChurnContactService } from './churn-contact.service'
 
 @Controller('admin/churn')
-@UseGuards(JwtAuthGuard, AdminGuard)
+@UseGuards(JwtAuthGuard, CsrfGuard, AdminGuard)
 export class ChurnController {
-  constructor(private readonly svc: ChurnService) {}
+  constructor(
+    private readonly svc: ChurnService,
+    private readonly contacts: ChurnContactService,
+  ) {}
 
   @Get('dashboard')
   getDashboard(
@@ -43,6 +48,18 @@ export class ChurnController {
     return this.svc.calculateChurnRisk(userId)
   }
 
+  @Get('user/:userId/ai-diagnose')
+  async getUserAiDiagnose(@Param('userId') userId: string) {
+    const risk = await this.svc.calculateChurnRisk(userId)
+    return this.svc.aiDiagnose({
+      daysWithoutLogin: risk.daysSinceLastActive ?? 0,
+      patients: risk.patientCount,
+      sessions: risk.sessionCount,
+      appointments: 0,
+      score: risk.score,
+    })
+  }
+
   @Get('user/:userId/timeline')
   getUserTimeline(@Param('userId') userId: string) {
     return this.svc.getBehaviorTimeline(userId)
@@ -56,5 +73,10 @@ export class ChurnController {
   @Post('user/:userId/send-reactivation')
   sendReactivation(@Param('userId') userId: string) {
     return this.svc.sendReactivationEmail(userId)
+  }
+
+  @Post('user/:userId/send-whatsapp')
+  sendWhatsApp(@Req() req: any, @Param('userId') userId: string) {
+    return this.contacts.sendReactivationWhatsApp(userId, req.user.id)
   }
 }

@@ -2,8 +2,10 @@ import { CalendarPlus, CheckCircle2, Copy, FileText, Gift, MessageSquareText, Sp
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useReferral } from '@/components/features/referral/useReferral'
+import { useTerms } from '@/hooks/useTerms'
 
 export default function FirstSessionCelebration() {
+  const t = useTerms()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const { stats, referralUrl, copied, copyLink, shareWhatsApp } = useReferral(open)
@@ -72,7 +74,7 @@ export default function FirstSessionCelebration() {
           <p className="text-sm font-semibold">Proximos passos</p>
           <div className="mt-3 grid gap-2 text-sm text-gray-600 dark:text-gray-300">
             <button type="button" onClick={() => navigate('/pacientes')} className="flex items-center gap-2 text-left hover:text-sage-700">
-              <CalendarPlus size={16} /> Importar mais 4 pacientes
+              <CalendarPlus size={16} /> Importar mais 4 {t.patients}
             </button>
             <button type="button" onClick={() => navigate('/configuracoes?tab=messages')} className="flex items-center gap-2 text-left hover:text-sage-700">
               <MessageSquareText size={16} /> Ativar WhatsApp automatico

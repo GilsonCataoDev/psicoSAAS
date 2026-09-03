@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { Webhook } from 'svix'
 import { EmailSuppression } from './entities/email-suppression.entity'
+import { blindIndex } from '../../common/crypto/encrypt.util'
 
 type ResendWebhookEvent = {
   type: string
@@ -70,10 +71,11 @@ export class EmailWebhookService {
   }
 
   private async suppress(email: string, reason: 'bounced' | 'complained', sourceEventType: string): Promise<void> {
-    const exists = await this.suppressions.exist({ where: { email } })
+    const emailHash = blindIndex(email, 'email-suppression')
+    const exists = await this.suppressions.exist({ where: { emailHash } })
     if (exists) return
 
-    await this.suppressions.save(this.suppressions.create({ email, reason, sourceEventType }))
-    this.logger.warn(`[Resend webhook] Endereco suprimido email=${email} motivo=${reason}`)
+    await this.suppressions.save(this.suppressions.create({ email, emailHash, reason, sourceEventType }))
+    this.logger.warn(`[Resend webhook] Endereco suprimido motivo=${reason}`)
   }
 }

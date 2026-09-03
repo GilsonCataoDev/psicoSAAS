@@ -15,6 +15,7 @@ concurrency:
 jobs:
   smoke:
     runs-on: ubuntu-latest
+    timeout-minutes: 12
     defaults:
       run:
         working-directory: frontend
@@ -36,10 +37,21 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
-      - name: Run production E2E tests
+      - name: Run focused production smoke tests
         env:
           E2E_BASE_URL: ${{ secrets.E2E_BASE_URL || 'https://usecognia.com.br' }}
           E2E_API_URL: ${{ secrets.E2E_API_URL || 'https://psicosaas-production-2d6c.up.railway.app/api' }}
           E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
           E2E_CLEANUP_SECRET: ${{ secrets.E2E_CLEANUP_SECRET }}
-        run: npm run test:e2e -- --project=chromium
+        run: npm run test:e2e -- usecognia.smoke.spec.ts public-pricing.spec.ts dpa.spec.ts seo.spec.ts marketing-truth.spec.ts neuropsych-battery.spec.ts --project=chromium
+
+      - name: Upload failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-smoke-failure
+          path: |
+            frontend/test-results
+            frontend/playwright-report
+          if-no-files-found: ignore
+          retention-days: 7

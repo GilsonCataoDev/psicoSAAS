@@ -7,13 +7,15 @@ import {
   Bell, CalendarDays, Lock, User, MessageSquare, Shield, Zap, Wallet, ExternalLink,
 } from 'lucide-react'
 import { isValidCrpFormat, getCrpRegion, formatCrpInput } from '@/lib/crp'
+import { DEFAULT_PROFESSION, requiresCrp } from '@/lib/professions'
 import { useSubscriptionStore, PLANS } from '@/store/subscription'
 import toast from 'react-hot-toast'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { disableWebPush, enableWebPush, getPushStatus, sendTestWebPush } from '@/lib/pushNotifications'
 import { isNativeApp } from '@/lib/nativeAuth'
 import { userSafeError } from '@/lib/userSafeError'
-import { DEFAULT_PREFS, type Prefs, type AuditLog, type WhatsAppLog, type WhatsAppStatus } from '@/components/settings/types'
+import { track, EVENTS } from '@/lib/analytics'
+import { DEFAULT_PREFS, LEGACY_DEFAULT_REMINDER_1H_TEMPLATE, type Prefs, type AuditLog, type WhatsAppLog, type WhatsAppStatus } from '@/components/settings/types'
 import { ProfileTab } from '@/components/settings/ProfileTab'
 import { NotifyTab } from '@/components/settings/NotifyTab'
 import { MessagesTab } from '@/components/settings/MessagesTab'
@@ -22,6 +24,13 @@ import { PaymentTab } from '@/components/settings/PaymentTab'
 import { PlanTab } from '@/components/settings/PlanTab'
 import { PrivacyTab } from '@/components/settings/PrivacyTab'
 import { SecurityTab } from '@/components/settings/SecurityTab'
+import {
+  getAnalyticsConsent,
+  identifyUser,
+  setAnalyticsConsent,
+  subscribeAnalyticsConsent,
+} from '@/lib/analytics'
+import { useTerms } from '@/hooks/useTerms'
 
 const GOOGLE_CALENDAR_ENABLED = true
 
@@ -41,8 +50,10 @@ const EDITABLE_PREF_KEYS = [
   'reminder24h',
   'reminder2h',
   'dailyAgendaDigest',
+  'marketingEmails',
   'chargeAfterSession',
   'bookingConfirmation',
+  'googleCalendarInvitePatients',
   'pixKeyType',
   'pixKey',
   'pixName',
@@ -50,22 +61,35 @@ const EDITABLE_PREF_KEYS = [
   'lateReminder',
   'includeReceipt',
   'chargeTemplate',
+  'lateReminderTemplate',
   'whatsapp',
   'confirmationTemplate',
   'reminderTemplate',
+  'reminderTemplate24h',
+  'reminderTemplate2h',
 ] as const
 
 export default function SettingsPage() {
+  const t = useTerms()
   const user = useAuthStore(s => s.user)
   const isAuthenticated = useAuthStore(s => s.isAuthenticated)
   const updateUser = useAuthStore(s => s.updateUser)
   const logout = useAuthStore(s => s.logout)
+  const [analyticsEnabled, setAnalyticsEnabled] = useState(() => getAnalyticsConsent() === true)
   const [searchParams, setSearchParams] = useSearchParams()
   const [tab, setTab] = useState(
     searchParams.get('tab') === 'integrations' && !GOOGLE_CALENDAR_ENABLED
       ? 'profile'
       : searchParams.get('tab') ?? 'profile',
   )
+
+  useEffect(() => subscribeAnalyticsConsent(setAnalyticsEnabled), [])
+
+  function updateAnalyticsConsent(enabled: boolean) {
+    setAnalyticsConsent(enabled)
+    if (enabled && user?.id) identifyUser(user.id)
+    toast.success(enabled ? 'Métricas de uso ativadas neste navegador.' : 'Métricas de uso desativadas neste navegador.')
+  }
 
   useEffect(() => {
     const requestedTab = searchParams.get('tab')
@@ -79,6 +103,7 @@ export default function SettingsPage() {
   // ── Perfil ─────────────────────────────────────────────────────────────────
   const [name, setName] = useState(user?.name ?? '')
   const [crp, setCrp]   = useState(user?.crp ?? '')
+  const [profession, setProfession] = useState(user?.profession ?? DEFAULT_PROFESSION)
   const [specialty, setSpecialty] = useState(user?.specialty ?? '')
   const [phone, setPhone] = useState('')
   const [savingProfile, setSavingProfile] = useState(false)
@@ -88,18 +113,22 @@ export default function SettingsPage() {
   const crpRegion = getCrpRegion(crp)
 
   function handleCrpChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setCrp(formatCrpInput(e.target.value))
+    // formatCrpInput impoe NN/NNNNNN — isso destroi registros de outros
+    // conselhos (ex: "CREFITO-3/12345-F"), entao so vale para psicologia.
+    const value = e.target.value
+    setCrp(requiresCrp(profession) ? formatCrpInput(value) : value.slice(0, 30))
   }
 
   async function saveProfile() {
-    if (!crpValid) {
+    // CRP só é exigido de psicologia — outras profissões têm outros conselhos.
+    if (requiresCrp(profession) && !crpValid) {
       toast.error('CRP inválido. Use uma região entre 01 e 24.')
       return
     }
     setSavingProfile(true)
     try {
-      const updated = await api.patch('/auth/profile', { name, crp, specialty, phone }).then(r => r.data)
-      updateUser({ name: updated.name, crp: updated.crp, specialty: updated.specialty, phone: updated.phone, avatarUrl: updated.avatarUrl })
+      const updated = await api.patch('/auth/profile', { name, crp, profession, specialty, phone }).then(r => r.data)
+      updateUser({ name: updated.name, crp: updated.crp, profession: updated.profession, specialty: updated.specialty, phone: updated.phone, avatarUrl: updated.avatarUrl })
       toast.success('Perfil atualizado')
     } catch {
       toast.error('Erro ao salvar perfil.')
@@ -155,7 +184,6 @@ export default function SettingsPage() {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
   const [loadingAudit, setLoadingAudit] = useState(false)
   const [whatsappLogs, setWhatsappLogs] = useState<WhatsAppLog[]>([])
-  const { data: messageTemplates = [] } = useTemplates('whatsapp_message')
   const { data: receiptTemplates = [] } = useTemplates('receipt')
   const createTemplate = useCreateTemplate()
   const { subscription, setSubscription, resetSubscription } = useSubscriptionStore()
@@ -165,7 +193,26 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const userPrefs = (user as any)?.preferences ?? {}
-    setPrefs(prev => ({ ...prev, ...userPrefs }))
+    // Migração suave: quem já tinha um único template de lembrete customizado
+    // (antes da separação 24h/2h) continua vendo o próprio texto nas duas
+    // caixas novas, em vez de ser trocado silenciosamente pelo padrão genérico.
+    const legacyReminder = typeof userPrefs.reminderTemplate === 'string' && userPrefs.reminderTemplate.trim()
+      ? userPrefs.reminderTemplate
+      : undefined
+    const migratedPrefs = legacyReminder
+      ? {
+          reminderTemplate24h: userPrefs.reminderTemplate24h ?? legacyReminder,
+          reminderTemplate2h: userPrefs.reminderTemplate2h ?? legacyReminder,
+          ...userPrefs,
+        }
+      : userPrefs
+    const reminderTemplate2h = migratedPrefs.reminderTemplate2h === LEGACY_DEFAULT_REMINDER_1H_TEMPLATE
+      ? DEFAULT_PREFS.reminderTemplate2h
+      : migratedPrefs.reminderTemplate2h
+    const normalizedPrefs = reminderTemplate2h === undefined
+      ? migratedPrefs
+      : { ...migratedPrefs, reminderTemplate2h }
+    setPrefs(prev => ({ ...prev, ...normalizedPrefs }))
     setPhone(user?.phone ?? '')
 
     if (!isAuthenticated) { setLoadingPrefs(false); return }
@@ -181,6 +228,7 @@ export default function SettingsPage() {
           ...prev,
           googleCalendarConnected: !!data.connected,
           googleCalendarEmail: data.email ?? '',
+          googleCalendarInvitePatients: data.invitePatients === true,
         }))
       })
       .catch((err) => {
@@ -450,6 +498,7 @@ export default function SettingsPage() {
     try {
       const { data } = await api.post('/billing/cancel')
       setSubscription(data)
+      track(EVENTS.SUBSCRIPTION_CANCELED, { plan: subscription.plan ?? 'free', type: isTrialing ? 'trial' : 'paid' })
       toast.success(data.cancelAtPeriodEnd ? 'Plano cancelado. Acesso mantido ate o fim do periodo.' : 'Plano cancelado.')
     } catch (e: any) {
       toast.error(userSafeError(e, 'Erro ao cancelar assinatura.'))
@@ -547,7 +596,7 @@ export default function SettingsPage() {
                 <div>
                   <p className="text-sm font-semibold text-sage-800 dark:text-sage-100">Agenda pública e horários</p>
                   <p className="mt-1 text-sm text-sage-700 dark:text-sage-200">
-                    Configure disponibilidade, bloqueios, duração, pausas e o link que o paciente usa para agendar.
+                    Configure disponibilidade, bloqueios, duração, pausas e o link que o {t.patient} usa para agendar.
                   </p>
                 </div>
                 <Link to="/agendamentos?tab=settings" className="btn-secondary inline-flex w-fit items-center gap-2 bg-white text-sm dark:bg-white/10">
@@ -564,6 +613,7 @@ export default function SettingsPage() {
               name={name} setName={setName}
               crp={crp} handleCrpChange={handleCrpChange}
               crpValid={crpValid} crpRegion={crpRegion}
+              profession={profession} setProfession={setProfession}
               specialty={specialty} setSpecialty={setSpecialty}
               phone={phone} setPhone={setPhone}
               savingProfile={savingProfile} uploadingAvatar={uploadingAvatar}
@@ -589,9 +639,8 @@ export default function SettingsPage() {
               whatsappConnected={whatsappConnected} whatsappConfigured={whatsappConfigured}
               whatsappStatus={whatsappStatus} whatsappQr={whatsappQr}
               whatsappBusy={whatsappBusy} whatsappLogs={whatsappLogs}
-              messageTemplates={messageTemplates} createTemplate={createTemplate}
               connectWhatsApp={connectWhatsApp} testWhatsApp={testWhatsApp} resetWhatsApp={resetWhatsApp}
-              savePrefs={savePrefs} saveTemplate={saveTemplate}
+              savePrefs={savePrefs}
             />
           )}
 
@@ -602,6 +651,7 @@ export default function SettingsPage() {
               googleLastSyncedAt={googleLastSyncedAt} googleLastSyncError={googleLastSyncError}
               setConfirmDisconnectGoogle={setConfirmDisconnectGoogle}
               connectGoogleCalendar={connectGoogleCalendar}
+              togglePref={togglePref}
             />
           )}
 
@@ -626,6 +676,8 @@ export default function SettingsPage() {
 
           {tab === 'privacy' && (
             <PrivacyTab
+              analyticsEnabled={analyticsEnabled}
+              updateAnalyticsConsent={updateAnalyticsConsent}
               exportingData={exportingData} loadingAudit={loadingAudit} auditLogs={auditLogs}
               deletePassword={deletePassword} setDeletePassword={setDeletePassword}
               deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm}
@@ -649,7 +701,7 @@ export default function SettingsPage() {
       <ConfirmDialog
         open={confirmDisconnectGoogle}
         title="Desconectar Google Agenda"
-        description="Novas sessões não serão sincronizadas com o Google Agenda após a desconexão."
+        description={`Novos ${t.sessions} não serão sincronizados com o Google Agenda após a desconexão.`}
         confirmLabel="Desconectar"
         loading={calendarBusy}
         tone="warning"
@@ -671,7 +723,7 @@ export default function SettingsPage() {
       <ConfirmDialog
         open={confirmDeleteAccount}
         title="Excluir conta definitivamente"
-        description="Todos os pacientes, prontuários, sessões, agenda, financeiro, documentos, preferências e tokens de acesso serão removidos. Esta ação não pode ser desfeita."
+        description={`Todos os ${t.patients}, ${t.record}s, ${t.sessions}, agenda, financeiro, documentos, preferências e tokens de acesso serão removidos. Esta ação não pode ser desfeita.`}
         confirmLabel="Excluir definitivamente"
         loading={deletingAccount}
         onClose={() => setConfirmDeleteAccount(false)}

@@ -11,21 +11,23 @@ import Avatar from '@/components/ui/Avatar'
 import { usePatients } from '@/hooks/api/patients'
 import { patientMatchesSearch } from '@/lib/patientSearch'
 import { useThemeStore } from '@/store/theme'
+import { safeInternalPath } from '@/lib/safeNavigation'
+import { useTerms } from '@/hooks/useTerms'
 
 const TYPE_ICON: Record<NotificationType, React.ReactNode> = {
-  booking_request:   <Calendar  className="w-3.5 h-3.5 text-sage-500"    />,
-  booking_confirmed: <Check     className="w-3.5 h-3.5 text-emerald-500" />,
-  payment:           <CreditCard className="w-3.5 h-3.5 text-mist-600" />,
-  reminder:          <Clock     className="w-3.5 h-3.5 text-amber-500"   />,
-  system:            <Settings2 className="w-3.5 h-3.5 text-neutral-400" />,
+  booking_request: <Calendar className="w-3.5 h-3.5 text-sage-500" />,
+  booking_confirmed: <Check className="w-3.5 h-3.5 text-emerald-500" />,
+  payment: <CreditCard className="w-3.5 h-3.5 text-mist-600" />,
+  reminder: <Clock className="w-3.5 h-3.5 text-amber-500" />,
+  system: <Settings2 className="w-3.5 h-3.5 text-neutral-400" />,
 }
 
 const TYPE_BG: Record<NotificationType, string> = {
-  booking_request:   'bg-sage-50',
+  booking_request: 'bg-sage-50',
   booking_confirmed: 'bg-emerald-50',
-  payment:           'bg-mist-50',
-  reminder:          'bg-amber-50',
-  system:            'bg-neutral-100',
+  payment: 'bg-mist-50',
+  reminder: 'bg-amber-50',
+  system: 'bg-neutral-100',
 }
 
 function timeAgo(iso: string) {
@@ -56,8 +58,10 @@ function NotifItem({ n, onRead, onRemove }: {
       <div className="flex flex-col items-end gap-1 shrink-0">
         {!n.read && <span className="w-1.5 h-1.5 bg-sage-500 rounded-full mt-1.5" />}
         <button
+          type="button"
           onClick={e => { e.stopPropagation(); onRemove() }}
           className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:text-rose-400 text-neutral-300"
+          aria-label="Remover notificação"
         >
           <X className="w-3 h-3" />
         </button>
@@ -67,17 +71,19 @@ function NotifItem({ n, onRead, onRemove }: {
 }
 
 export default function TopBar() {
+  const t = useTerms()
   const user = useAuthStore(s => s.user)
   const firstName = user?.name?.split(' ')[0] ?? 'Psicólogo(a)'
   const [searchOpen, setSearchOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [panelOpen, setPanelOpen] = useState(false)
+  const [systemPrefersDark, setSystemPrefersDark] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
   const { data: patients = [] } = usePatients({ enabled: searchOpen })
   const themeMode = useThemeStore(s => s.mode)
   const toggleTheme = useThemeStore(s => s.toggleMode)
-  const isDark = themeMode === 'dark' || document.documentElement.classList.contains('dark')
+  const isDark = themeMode === 'dark' || (themeMode === 'system' && systemPrefersDark)
 
   const { notifications, markRead, markAllRead, remove } = useNotificationStore()
   const unread = notifications.filter(n => !n.read).length
@@ -95,10 +101,21 @@ export default function TopBar() {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
+  useEffect(() => {
+    if (themeMode !== 'system') return
+    const query = window.matchMedia?.('(prefers-color-scheme: dark)')
+    if (!query) return
+    setSystemPrefersDark(query.matches)
+    const listener = (event: MediaQueryListEvent) => setSystemPrefersDark(event.matches)
+    query.addEventListener('change', listener)
+    return () => query.removeEventListener('change', listener)
+  }, [themeMode])
+
   function handleClickNotif(n: AppNotification) {
     markRead(n.id)
     setPanelOpen(false)
-    if (n.link) navigate(n.link)
+    const destination = safeInternalPath(n.link)
+    if (destination) navigate(destination)
   }
 
   function closeSearch() {
@@ -125,27 +142,25 @@ export default function TopBar() {
 
   return (
     <header className="bg-white/85 backdrop-blur-xl border-b border-sage-100/70 px-4 lg:px-6 py-3 flex items-center gap-3 shrink-0 sticky top-0 z-30">
-
-      {/* Logo mobile */}
       <div className="lg:hidden flex items-center gap-2 mr-auto">
         <BrandLogo compact />
         <span className="font-display font-bold text-neutral-900 tracking-tight">UseCognia</span>
       </div>
 
-      {/* Saudação desktop — visível fora do dashboard (o dashboard tem a própria) */}
       <div className="hidden lg:block flex-1">
         <p className="text-sm font-medium text-neutral-600">
           Bem-vindo de volta, <span className="text-sage-700">{firstName}</span>
         </p>
       </div>
 
-      {/* Search */}
       <div className={cn('hidden md:flex relative transition-all duration-200', searchOpen ? 'flex-1 max-w-xs' : 'w-auto')}>
         {!searchOpen ? (
           <button
+            id="patient-search"
+            type="button"
             onClick={() => setSearchOpen(true)}
             className="p-2 rounded-xl hover:bg-neutral-100 text-neutral-400 hover:text-neutral-600 transition-colors"
-            aria-label="Abrir busca de pacientes"
+            aria-label={`Abrir busca de ${t.patients}`}
           >
             <Search className="w-4 h-4" />
           </button>
@@ -156,7 +171,7 @@ export default function TopBar() {
               id="patient-search"
               autoFocus
               type="text"
-              placeholder="Buscar pacientes..."
+              placeholder={`Buscar ${t.patients}...`}
               value={search}
               onChange={event => setSearch(event.target.value)}
               onKeyDown={handleSearchSubmit}
@@ -201,7 +216,7 @@ export default function TopBar() {
                     }}
                     className="w-full px-3 py-3 text-left text-sm text-neutral-500 hover:bg-neutral-50"
                   >
-                    Nenhum resultado. Ver pacientes
+                    Nenhum resultado. Ver {t.patients}
                   </button>
                 )}
               </div>
@@ -232,7 +247,6 @@ export default function TopBar() {
         </button>
       )}
 
-      {/* Notificações */}
       <button
         type="button"
         onClick={() => navigate('/configuracoes?tab=profile')}
@@ -270,8 +284,12 @@ export default function TopBar() {
                 {unread > 0 && <p className="text-xs text-neutral-400">{unread} não lida{unread !== 1 ? 's' : ''}</p>}
               </div>
               {unread > 0 && (
-                <button onClick={markAllRead} title="Marcar todas como lidas"
-                  className="p-1.5 rounded-lg hover:bg-neutral-100 text-neutral-400 hover:text-sage-600 transition-colors">
+                <button
+                  type="button"
+                  onClick={markAllRead}
+                  title="Marcar todas como lidas"
+                  className="p-1.5 rounded-lg hover:bg-neutral-100 text-neutral-400 hover:text-sage-600 transition-colors"
+                >
                   <CheckCheck className="w-4 h-4" />
                 </button>
               )}
@@ -295,6 +313,7 @@ export default function TopBar() {
             {notifications.length > 0 && (
               <div className="px-4 py-2.5 border-t border-neutral-100 flex justify-end">
                 <button
+                  type="button"
                   onClick={() => useNotificationStore.getState().clearAll()}
                   className="flex items-center gap-1 text-xs text-neutral-400 hover:text-rose-400 transition-colors"
                 >

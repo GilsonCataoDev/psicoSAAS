@@ -2,6 +2,17 @@
 
 Checklist objetivo para validar os pontos que não devem ser automatizados com cobrança real.
 
+## 0. Healthcheck rápido
+
+Antes de qualquer smoke test mais longo, confirmar que o serviço básico responde:
+
+```bash
+curl https://psicosaas-production-2d6c.up.railway.app/api/health
+# esperado: {"status":"ok",...,"checks":{"database":"ok"}}
+```
+
+Se `status` vier `"degraded"`, investigar o banco antes de prosseguir com o resto do checklist — os outros testes provavelmente vão falhar.
+
 ## 1. E2E automático
 
 Rodar localmente:
@@ -11,7 +22,7 @@ cd frontend
 npm run test:e2e
 ```
 
-O teste cria uma conta descartável em produção, ativa o plano grátis, cria paciente, registra evolução, valida financeiro/dashboard e apaga a conta no final.
+O teste cria uma conta descartável em produção, ativa o plano grátis, cria paciente, registra evolução, valida financeiro/dashboard e apaga a conta no final. O formulário de cadastro exige telefone (`RegisterDto.phone`) — `e2e/helpers.ts:registerAndActivateFree` já preenche.
 
 Variáveis úteis:
 

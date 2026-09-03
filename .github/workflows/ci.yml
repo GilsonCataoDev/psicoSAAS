@@ -11,8 +11,35 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  secrets-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (histórico completo para varrer commits)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks (detecção de segredos)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   backend:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: usecognia_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U test -d usecognia_test"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
     defaults:
       run:
         working-directory: backend
@@ -31,11 +58,20 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
+      - name: Audit dependencies (high+)
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Lint
+        run: npm run lint
+
       - name: Build (TypeScript)
         run: npm run build
 
       - name: Run unit tests
         run: npm test
+
+      - name: Run PostgreSQL integration tests
+        run: npm run test:integration
 
   frontend:
     runs-on: ubuntu-latest
@@ -57,6 +93,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Audit dependencies (high+)
+        run: npm run audit:prod
+
+      - name: Run unit tests
+        run: npm run test:unit
+
       - name: Build (typecheck + vite build)
         env:
           VITE_API_URL: https://psicosaas-production-2d6c.up.railway.app/api
@@ -66,4 +108,22 @@ jobs:
 
       - name: Lint
         run: npm run lint
-        continue-on-error: true
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run public E2E gate
+        env:
+          PLAYWRIGHT_LOCAL: 'true'
+        run: npm run test:e2e -- public-pricing.spec.ts dpa.spec.ts seo.spec.ts marketing-truth.spec.ts booking-responsive.spec.ts --project=chromium
+
+      - name: Upload E2E failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-public-e2e-failure
+          path: |
+            frontend/test-results
+            frontend/playwright-report
+          if-no-files-found: ignore
+          retention-days: 7
