@@ -1,6 +1,6 @@
 import {
   Entity, PrimaryGeneratedColumn, Column,
-  CreateDateColumn, UpdateDateColumn, OneToMany,
+  CreateDateColumn, UpdateDateColumn, OneToMany, Relation,
 } from 'typeorm'
 import { Patient } from '../../patients/entities/patient.entity'
 
@@ -78,7 +78,7 @@ export class User {
   lastActiveAt?: Date
 
   @OneToMany(() => Patient, (p) => p.psychologist)
-  patients: Patient[]
+  patients: Relation<Patient[]>
 
   @CreateDateColumn()
   createdAt: Date

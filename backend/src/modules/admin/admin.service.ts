@@ -2,6 +2,22 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { ConfigService } from '@nestjs/config'
 import { InjectRepository } from '@nestjs/typeorm'
 import { DataSource, EntityManager, MoreThan, Repository } from 'typeorm'
+
+const ALLOWED_TABLES = new Set([
+  'patients', 'appointments', 'sessions', 'financial_records',
+  'patient_attachments', 'instrument_assignments', 'documents',
+  'bookings', 'booking_pages', 'availability_slots', 'blocked_dates',
+  'billing_subscriptions', 'refresh_tokens', 'push_subscriptions',
+  'whatsapp_delivery_logs', 'audit_logs', 'tenant_health',
+  'tenant_activations', 'tenant_alerts', 'ai_usage', 'testimonials',
+  'referrals', 'login_attempts', 'users',
+])
+
+function assertSqlIdentifier(name: string, label: string): void {
+  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) {
+    throw new BadRequestException(`Invalid SQL identifier for ${label}: ${name}`)
+  }
+}
 import { User } from '../auth/entities/user.entity'
 import { Subscription, BillingSubscriptionStatus } from '../billing/entities/subscription.entity'
 import { WebhookEvent } from '../billing/entities/webhook-event.entity'
@@ -437,6 +453,8 @@ export class AdminService {
       `)
 
       for (const fk of fks) {
+        assertSqlIdentifier(fk.table_name, 'table_name')
+        assertSqlIdentifier(fk.column_name, 'column_name')
         await tx.query(`DELETE FROM "${fk.table_name}" WHERE "${fk.column_name}"::text = ANY($1::text[])`, [ids])
       }
       await tx.query(`DELETE FROM users WHERE id = ANY($1::uuid[])`, [ids])
@@ -486,12 +504,14 @@ export class AdminService {
   }
 
   private async selectIds(tx: EntityManager, table: string, where: string, params: unknown[]): Promise<string[]> {
+    if (!ALLOWED_TABLES.has(table)) throw new BadRequestException(`Table not allowed: ${table}`)
     if (!await this.tableExists(tx, table)) return []
     const rows: { id: string }[] = await tx.query(`SELECT id FROM "${table}" WHERE ${where}`, params)
     return rows.map(row => row.id)
   }
 
   private async deleteFrom(tx: EntityManager, table: string, where: string, params: unknown[]): Promise<void> {
+    if (!ALLOWED_TABLES.has(table)) throw new BadRequestException(`Table not allowed: ${table}`)
     if (!await this.tableExists(tx, table)) return
     await tx.query(`DELETE FROM "${table}" WHERE ${where}`, params)
   }

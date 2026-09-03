@@ -1,6 +1,6 @@
 import {
   Entity, PrimaryGeneratedColumn, Column, ManyToOne,
-  OneToMany, CreateDateColumn, UpdateDateColumn, JoinColumn,
+  OneToMany, CreateDateColumn, UpdateDateColumn, JoinColumn, Relation,
 } from 'typeorm'
 import { User } from '../../auth/entities/user.entity'
 import { Session } from '../../sessions/entities/session.entity'
@@ -59,10 +59,10 @@ export class Patient {
   @Column({ nullable: true }) psychologistId: string
   @ManyToOne(() => User, (u) => u.patients, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'psychologistId' })
-  psychologist: User
+  psychologist: Relation<User>
 
-  @OneToMany(() => Session, (s) => s.patient) sessions: Session[]
-  @OneToMany(() => Appointment, (a) => a.patient) appointments: Appointment[]
+  @OneToMany(() => Session, (s) => s.patient) sessions: Relation<Session[]>
+  @OneToMany(() => Appointment, (a) => a.patient) appointments: Relation<Appointment[]>
 
   @CreateDateColumn() createdAt: Date
   @UpdateDateColumn() updatedAt: Date

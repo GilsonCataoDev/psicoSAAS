@@ -70,7 +70,7 @@ export class NotificationsService {
     @InjectRepository(WhatsAppDeliveryLog) private whatsAppLogs: Repository<WhatsAppDeliveryLog>,
   ) {
     this.BASE_URL     = cfg.get('FRONTEND_URL') ?? 'http://localhost:3000'
-    this.WA_URL       = cfg.get('WHATSAPP_API_URL') ?? ''
+    this.WA_URL       = this.sanitizeBaseUrl(cfg.get('WHATSAPP_API_URL') ?? '')
     this.WA_KEY       = cfg.get('WHATSAPP_API_KEY') ?? ''
     this.WA_INSTANCE_PREFIX = cfg.get('WHATSAPP_INSTANCE_PREFIX') ?? 'usecognia'
     this.waEnabled    = !!(
@@ -526,6 +526,17 @@ export class NotificationsService {
     return clean
       ? `WhatsApp respondeu ${status}: ${clean}`.slice(0, 240)
       : `WhatsApp respondeu ${status}`
+  }
+
+  private sanitizeBaseUrl(raw: string): string {
+    if (!raw) return ''
+    try {
+      const parsed = new URL(raw)
+      if (!['https:', 'http:'].includes(parsed.protocol)) return ''
+      return parsed.origin
+    } catch {
+      return ''
+    }
   }
 
   private getWhatsAppInstance(ownerId: string): string {

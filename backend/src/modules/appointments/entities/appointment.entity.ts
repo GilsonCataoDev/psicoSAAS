@@ -1,6 +1,6 @@
 import {
   Entity, PrimaryGeneratedColumn, Column, ManyToOne,
-  CreateDateColumn, JoinColumn,
+  CreateDateColumn, JoinColumn, Relation,
 } from 'typeorm'
 import { Patient } from '../../patients/entities/patient.entity'
 import { User } from '../../auth/entities/user.entity'
@@ -25,9 +25,9 @@ export class Appointment {
   @Column({ type: 'timestamptz', nullable: true }) reminder2hSentAt?: Date
   @Column() patientId: string
   @ManyToOne(() => Patient, (p) => p.appointments, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'patientId' }) patient: Patient
+  @JoinColumn({ name: 'patientId' }) patient: Relation<Patient>
   @Column() psychologistId: string
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'psychologistId' }) psychologist: User
+  @JoinColumn({ name: 'psychologistId' }) psychologist: Relation<User>
   @CreateDateColumn() createdAt: Date
 }
