@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import { AlertTriangle, BrainCircuit, Download, Filter, LayoutGrid, LayoutList, Plus, Search, Upload, UsersRound, X } from 'lucide-react'
+import { AlertTriangle, BrainCircuit, Download, Filter, LayoutGrid, LayoutList, Plus, Search, TrendingUp, Upload, UsersRound, X } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
@@ -8,7 +8,7 @@ import { formatCurrency, formatDate, patientStartDate } from '@/lib/utils'
 import { Patient } from '@/types'
 import NewPatientModal from '@/components/features/patients/NewPatientModal'
 import ImportPatientsModal from '@/components/features/patients/ImportPatientsModal'
-import { usePatients, useUpdatePatient, useSessions } from '@/hooks/useApi'
+import { usePatients, useUpdatePatient, useSessions, useRetentionMetrics } from '@/hooks/useApi'
 import { PLANS, useSubscriptionStore } from '@/store/subscription'
 import toast from 'react-hot-toast'
 import { patientMatchesSearch } from '@/lib/patientSearch'
@@ -30,7 +30,7 @@ export default function PatientsPage() {
     : ''
   const [search, setSearch] = useState(initialSearch)
   const [filter, setFilter] = useState<'all' | 'active' | 'paused' | 'discharged'>('all')
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
+  const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'metrics'>('list')
   const [careMode, setCareMode] = useState<'all' | 'psychotherapy' | 'neuropsychological_assessment'>('all')
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [filterTags, setFilterTags] = useState<string[]>([])
@@ -180,6 +180,13 @@ export default function PatientsPage() {
               aria-label="Visualização em kanban"
             >
               <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('metrics')}
+              className={`p-1.5 rounded-lg transition-all ${viewMode === 'metrics' ? 'bg-white shadow-sm text-neutral-800' : 'text-neutral-400 hover:text-neutral-600'}`}
+              aria-label="Métricas de retenção"
+            >
+              <TrendingUp className="w-4 h-4" />
             </button>
           </div>
           <button
@@ -363,6 +370,8 @@ export default function PatientsPage() {
             <div key={i} className="h-20 bg-neutral-100 rounded-2xl animate-pulse" />
           ))}
         </div>
+      ) : viewMode === 'metrics' ? (
+        <RetentionPanel />
       ) : viewMode === 'kanban' ? (
         <KanbanBoard patients={filtered} />
       ) : filtered.length === 0 ? (
@@ -412,6 +421,75 @@ export default function PatientsPage() {
         reachedPatientLimit={reachedPatientLimit}
         currentPlanName={currentPlan.name}
       />
+    </div>
+  )
+}
+
+function RetentionPanel() {
+  const { data, isLoading } = useRetentionMetrics()
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {[...Array(3)].map((_, i) => <div key={i} className="h-28 rounded-2xl bg-neutral-100 animate-pulse" />)}
+      </div>
+    )
+  }
+
+  if (!data) return null
+
+  const total = data.statusBreakdown.active + data.statusBreakdown.paused + data.statusBreakdown.discharged
+  const retentionRate = total > 0 ? Math.round((data.statusBreakdown.active / total) * 100) : 0
+  const maxNew = Math.max(...data.byMonth.map(m => m.newPatients), 1)
+
+  return (
+    <div className="space-y-4">
+      {/* KPIs */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: 'Ativos',          value: data.statusBreakdown.active,     color: 'text-emerald-700' },
+          { label: 'Pausados',        value: data.statusBreakdown.paused,     color: 'text-amber-700'   },
+          { label: 'Alta',            value: data.statusBreakdown.discharged, color: 'text-sky-700'     },
+          { label: 'Taxa de retenção',value: `${retentionRate}%`,             color: 'text-sage-700'    },
+        ].map(item => (
+          <div key={item.label} className="card text-center py-4">
+            <p className={`text-2xl font-bold ${item.color}`}>{item.value}</p>
+            <p className="text-xs text-neutral-400 mt-0.5">{item.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Tempo médio de tratamento */}
+      <div className="card flex items-center gap-3 p-4">
+        <TrendingUp className="w-5 h-5 text-sage-600 shrink-0" />
+        <div>
+          <p className="text-sm font-semibold text-neutral-700">Tempo médio de tratamento (ativos)</p>
+          <p className="text-2xl font-bold text-sage-700 mt-0.5">
+            {data.avgTreatmentDays >= 30
+              ? `${Math.round(data.avgTreatmentDays / 30)} meses`
+              : `${data.avgTreatmentDays} dias`}
+          </p>
+        </div>
+      </div>
+
+      {/* Novos pacientes por mês */}
+      <div className="card p-4 space-y-3">
+        <p className="text-sm font-semibold text-neutral-700">Novos pacientes por mês</p>
+        <div className="space-y-2">
+          {data.byMonth.map(m => (
+            <div key={m.label} className="flex items-center gap-3">
+              <span className="w-16 text-xs text-neutral-500 shrink-0">{m.label}</span>
+              <div className="flex-1 bg-neutral-100 rounded-full h-5 overflow-hidden">
+                <div
+                  className="h-full bg-sage-400 rounded-full transition-all duration-500"
+                  style={{ width: `${(m.newPatients / maxNew) * 100}%` }}
+                />
+              </div>
+              <span className="w-6 text-xs font-semibold text-neutral-700 text-right shrink-0">{m.newPatients}</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }

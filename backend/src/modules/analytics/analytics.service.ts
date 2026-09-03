@@ -367,4 +367,56 @@ export class AnalyticsService {
       },
     }
   }
+
+  async getRetentionMetrics(userId: string) {
+    const now = new Date()
+
+    const months = Array.from({ length: 6 }, (_, i) => {
+      const d = subMonths(now, 5 - i)
+      return {
+        label: `${PT_MONTHS[d.getMonth()]}/${format(d, 'yy')}`,
+        start: format(startOfMonth(d), 'yyyy-MM-dd'),
+        end:   format(endOfMonth(d),   'yyyy-MM-dd'),
+      }
+    })
+
+    const [newByMonth, statusBreakdown, avgTreatmentRaw] = await Promise.all([
+      // novos pacientes por mês (createdAt)
+      Promise.all(months.map(m =>
+        this.patients.createQueryBuilder('p')
+          .where('p.psychologistId = :userId', { userId })
+          .andWhere('CAST(p.createdAt AS DATE) BETWEEN :start AND :end', { start: m.start, end: m.end })
+          .getCount()
+          .then(count => ({ label: m.label, newPatients: count })),
+      )),
+
+      // breakdown atual por status
+      this.patients.createQueryBuilder('p')
+        .select('p.status', 'status')
+        .addSelect('COUNT(*)', 'count')
+        .where('p.psychologistId = :userId', { userId })
+        .groupBy('p.status')
+        .getRawMany<{ status: string; count: string }>(),
+
+      // tempo médio de tratamento (dias) para pacientes ativos
+      this.patients.createQueryBuilder('p')
+        .select("AVG(EXTRACT(EPOCH FROM (NOW() - p.createdAt)) / 86400)", 'avgDays')
+        .where('p.psychologistId = :userId', { userId })
+        .andWhere("p.status = 'active'")
+        .getRawOne<{ avgDays: string }>(),
+    ])
+
+    const statusMap: Record<string, number> = {}
+    for (const row of statusBreakdown) statusMap[row.status] = Number(row.count)
+
+    return {
+      byMonth: newByMonth,
+      statusBreakdown: {
+        active:     statusMap['active']     ?? 0,
+        paused:     statusMap['paused']     ?? 0,
+        discharged: statusMap['discharged'] ?? 0,
+      },
+      avgTreatmentDays: Math.round(Number(avgTreatmentRaw?.avgDays ?? 0)),
+    }
+  }
 }

@@ -36,4 +36,9 @@ export class AnalyticsController {
       requiredPlan: 'pro',
     }
   }
+
+  @Get('retention')
+  retention(@Req() req: any) {
+    return this.svc.getRetentionMetrics(req.user.id)
+  }
 }
