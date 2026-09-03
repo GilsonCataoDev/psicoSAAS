@@ -128,8 +128,8 @@ const faqs = [
     answer: 'Não para começar no plano grátis. Cartão só é necessário ao contratar um plano pago.',
   },
   {
-    question: 'A plataforma é compatível com as normas do CFP?',
-    answer: 'O UseCognia oferece recursos de organização, controle de acesso e registro que apoiam a rotina profissional. A adequação de cada documento e atendimento às normas aplicáveis continua sob responsabilidade do psicólogo.',
+    question: 'A plataforma atende às normas do meu conselho?',
+    answer: 'O UseCognia oferece recursos de organização, controle de acesso e registro que apoiam a rotina de qualquer profissional de saúde. Cada conselho — CFP, CFN, COFFITO, CFO e afins — tem suas próprias resoluções, e a adequação de cada documento e atendimento às normas aplicáveis continua sob responsabilidade do profissional.',
   },
   {
     question: 'Consigo emitir declarações e atestados em PDF?',
@@ -473,7 +473,7 @@ export default function LandingPage() {
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Por que agora</p>
             <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Você não estudou para virar administrador de agenda.</h2>
             <p className="mt-4 leading-relaxed text-[#5F5A51]">
-              Seu trabalho precisa de presença e escuta. Quando agenda, lembretes, registros e pagamentos ficam espalhados, a burocracia ocupa o tempo que deveria voltar para você e seus pacientes.
+              Seu trabalho precisa de presença e atenção. Quando agenda, lembretes, registros e pagamentos ficam espalhados, a burocracia ocupa o tempo que deveria voltar para você e seus pacientes.
             </p>
           </motion.div>
           <motion.div
