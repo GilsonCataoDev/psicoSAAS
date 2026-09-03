@@ -60,6 +60,11 @@ export class PatientsController {
     stream.end()
   }
 
+  @Get(':id/contact-logs')
+  getContactLogs(@Param('id') id: string, @Request() req: any) {
+    return this.svc.getContactLogs(id, req.user.id)
+  }
+
   // O guard de classe bloqueia toda a area de pacientes durante impersonacao.
   @Get(':id')
   async findOne(@Param('id') id: string, @Request() req: any) {

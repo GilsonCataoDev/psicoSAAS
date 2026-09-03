@@ -121,6 +121,23 @@ export type ProntuarioExportOptions = {
   sections?: Array<'identification' | 'anamnesis' | 'treatment_plan' | 'evolutions'>
 }
 
+export type ContactLog = {
+  id: string
+  type: string
+  status: 'sent' | 'failed'
+  error?: string | null
+  providerStatus?: string | null
+  createdAt: string
+}
+
+export function usePatientContactLogs(patientId: string) {
+  return useQuery<ContactLog[]>({
+    queryKey: ['contact-logs', patientId],
+    queryFn: () => api.get(`/patients/${patientId}/contact-logs`).then(r => r.data),
+    enabled: !!patientId,
+  })
+}
+
 export function useExportProntuario(patientId: string) {
   return useMutation({
     mutationFn: async (options: ProntuarioExportOptions = {}) => {

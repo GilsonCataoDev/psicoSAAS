@@ -14,9 +14,10 @@ import { AuditModule } from '../audit/audit.module'
 import { FinancialModule } from '../financial/financial.module'
 import { NeuropsychAssessment } from '../neuropsych-assessments/entities/neuropsych-assessment.entity'
 import { Document } from '../documents/entities/document.entity'
+import { WhatsAppDeliveryLog } from '../notifications/entities/whatsapp-delivery-log.entity'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Patient, PatientAttachment, Appointment, NeuropsychAssessment, Document]), AuditModule, FinancialModule],
+  imports: [TypeOrmModule.forFeature([Patient, PatientAttachment, Appointment, NeuropsychAssessment, Document, WhatsAppDeliveryLog]), AuditModule, FinancialModule],
   // PatientsImportController precisa vir antes de PatientsController: sua rota
   // "patients/import" seria capturada por "patients/:id" (com id="import") se
   // PatientsController fosse registrado primeiro.

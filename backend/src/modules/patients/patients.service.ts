@@ -20,6 +20,7 @@ import { PatientAttachment } from './entities/patient-attachment.entity'
 import { StorageService } from '../../common/storage/storage.service'
 import { DEFAULT_PROFESSION } from '../../common/professions'
 import { termsFor } from '../../common/terms'
+import { WhatsAppDeliveryLog } from '../notifications/entities/whatsapp-delivery-log.entity'
 
 type EncryptedProntuario = {
   __encrypted: 'usecognia.prontuario.v1' | 'psicosaas.prontuario.v1'
@@ -104,6 +105,7 @@ export class PatientsService {
     @InjectRepository(Appointment) private appointments: Repository<Appointment>,
     @InjectRepository(Document) private documents: Repository<Document>,
     @InjectRepository(PatientAttachment) private patientAttachments: Repository<PatientAttachment>,
+    @InjectRepository(WhatsAppDeliveryLog) private waLogs: Repository<WhatsAppDeliveryLog>,
     private financial: FinancialService,
     private readonly planAccess: PlanAccessService,
     private readonly storage: StorageService,
@@ -194,6 +196,15 @@ export class PatientsService {
     })
     if (!patient) throw new NotFoundException('Pessoa não encontrada')
     return patient
+  }
+
+  async getContactLogs(patientId: string, userId: string) {
+    return this.waLogs.find({
+      where: { patientId, userId },
+      order: { createdAt: 'DESC' },
+      take: 50,
+      select: ['id', 'type', 'status', 'error', 'createdAt', 'providerStatus'],
+    })
   }
 
   // ─── Limites de plano ────────────────────────────────────────────────────────

@@ -18,6 +18,7 @@ import {
   downloadPatientAttachment, previewPatientAttachment, type PatientAttachment,
   useCreateNeuropsychAssessment, useNeuropsychAssessments,
   useAssessmentAiInterpretation, useAppointments,
+  usePatientContactLogs, type ContactLog,
 } from '@/hooks/useApi'
 import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 import Modal from '@/components/ui/Modal'
@@ -147,7 +148,7 @@ export default function PatientDetailPage() {
       toast.error(error?.response?.data?.message ?? 'Não foi possível iniciar a avaliação')
     }
   }
-  const [tab, setTab] = useState<'record' | 'timeline' | 'responses' | 'notes' | 'financial'>('record')
+  const [tab, setTab] = useState<'record' | 'timeline' | 'responses' | 'notes' | 'financial' | 'contacts'>('record')
   const [showSessionModal, setShowSessionModal] = useState(false)
   const [showLegacyMigration, setShowLegacyMigration] = useState(false)
   const [showEditPatientModal, setShowEditPatientModal] = useState(false)
@@ -820,6 +821,7 @@ export default function PatientDetailPage() {
           { id: 'responses', label: 'Respostas',    icon: FileText      },
           { id: 'notes',     label: 'Anotacoes privadas', icon: Lock          },
           { id: 'financial', label: 'Financeiro',   icon: Banknote      },
+          { id: 'contacts',  label: 'Contatos',     icon: MessageCircle },
         ].map(tabItem => (
           <button key={tabItem.id} onClick={() => setTab(tabItem.id as any)}
             className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-sm transition-all text-center ${
@@ -1252,6 +1254,11 @@ export default function PatientDetailPage() {
         </div>
       )}
 
+      {/* ── Histórico de contatos ─────────────────────────────────────── */}
+      {tab === 'contacts' && (
+        <ContactLogsSection patientId={patient.id} />
+      )}
+
       <NewSessionModal
         open={showSessionModal}
         onClose={() => setShowSessionModal(false)}
@@ -1416,6 +1423,68 @@ export default function PatientDetailPage() {
           </pre>
         )}
       </Modal>
+    </div>
+  )
+}
+
+const CONTACT_TYPE_LABELS: Record<string, string> = {
+  reminder_1h:          'Lembrete 1h',
+  reminder_24h:         'Lembrete 24h',
+  booking_confirmation: 'Confirmação de consulta',
+  payment_link:         'Link de pagamento',
+  manual:               'Mensagem manual',
+}
+
+function ContactLogsSection({ patientId }: { patientId: string }) {
+  const { data: logs = [], isLoading } = usePatientContactLogs(patientId)
+
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        {[...Array(3)].map((_, i) => <div key={i} className="h-14 rounded-xl bg-neutral-100 animate-pulse" />)}
+      </div>
+    )
+  }
+
+  if (logs.length === 0) {
+    return (
+      <div className="card text-center py-10 text-sm text-neutral-400">
+        <MessageCircle className="mx-auto h-7 w-7 mb-2 opacity-40" strokeWidth={1.5} />
+        Nenhuma mensagem enviada para este paciente ainda.
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      {logs.map((log: ContactLog) => (
+        <div key={log.id} className="card flex items-start gap-3 p-4">
+          <div className={`mt-0.5 h-2 w-2 rounded-full shrink-0 ${log.status === 'sent' ? 'bg-emerald-400' : 'bg-red-400'}`} />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-medium text-neutral-700">
+                {CONTACT_TYPE_LABELS[log.type] ?? log.type}
+              </span>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                log.status === 'sent'
+                  ? 'bg-emerald-50 text-emerald-700'
+                  : 'bg-red-50 text-red-700'
+              }`}>
+                {log.status === 'sent' ? 'Enviado' : 'Falhou'}
+              </span>
+              {log.providerStatus && (
+                <span className="text-xs text-neutral-400">{log.providerStatus}</span>
+              )}
+            </div>
+            {log.error && (
+              <p className="text-xs text-red-500 mt-0.5 truncate">{log.error}</p>
+            )}
+            <p className="text-xs text-neutral-400 mt-0.5">
+              {new Date(log.createdAt).toLocaleString('pt-BR')}
+            </p>
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
