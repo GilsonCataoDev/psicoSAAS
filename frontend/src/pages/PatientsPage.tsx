@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import { BrainCircuit, Filter, LayoutGrid, LayoutList, Plus, Search, Upload, UsersRound, X } from 'lucide-react'
+import { AlertTriangle, BrainCircuit, Filter, LayoutGrid, LayoutList, Plus, Search, Upload, UsersRound, X } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
@@ -8,7 +8,7 @@ import { formatCurrency, formatDate, patientStartDate } from '@/lib/utils'
 import { Patient } from '@/types'
 import NewPatientModal from '@/components/features/patients/NewPatientModal'
 import ImportPatientsModal from '@/components/features/patients/ImportPatientsModal'
-import { usePatients, useUpdatePatient } from '@/hooks/useApi'
+import { usePatients, useUpdatePatient, useSessions } from '@/hooks/useApi'
 import { PLANS, useSubscriptionStore } from '@/store/subscription'
 import toast from 'react-hot-toast'
 import { patientMatchesSearch } from '@/lib/patientSearch'
@@ -40,7 +40,25 @@ export default function PatientsPage() {
   const [showModal, setShowModal] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
   const { data: patients = [], isLoading } = usePatients()
+  const { data: allSessions = [] } = useSessions()
   const subscription = useSubscriptionStore((s) => s.subscription)
+
+  const INACTIVE_WEEKS = 3
+  const inactiveThreshold = new Date(Date.now() - INACTIVE_WEEKS * 7 * 24 * 60 * 60 * 1000)
+
+  const lastSessionByPatient = allSessions.reduce<Record<string, Date>>((acc, s) => {
+    const d = new Date(s.date)
+    if (!acc[s.patientId] || d > acc[s.patientId]) acc[s.patientId] = d
+    return acc
+  }, {})
+
+  const inactivePatients = patients.filter(p => {
+    if (p.status !== 'active') return false
+    const last = lastSessionByPatient[p.id]
+    return !last || last < inactiveThreshold
+  })
+
+  const [dismissedInactive, setDismissedInactive] = useState(false)
 
   const allTags = Array.from(new Set(patients.flatMap(p => (p.tags ?? []) as string[]))).sort((a, b) => a.localeCompare(b, 'pt-BR'))
 
@@ -150,6 +168,35 @@ export default function PatientsPage() {
           </button>
         </div>
       </div>
+
+      {/* Alerta de pacientes inativos */}
+      {!dismissedInactive && inactivePatients.length > 0 && (
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-amber-800">
+              {inactivePatients.length} {inactivePatients.length === 1 ? `${t.patient} ativo sem sessão` : `${t.patients} ativos sem sessão`} há mais de {INACTIVE_WEEKS} semanas
+            </p>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {inactivePatients.slice(0, 5).map(p => (
+                <Link
+                  key={p.id}
+                  to={`/pacientes/${p.id}`}
+                  className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 hover:bg-amber-200 transition-colors font-medium"
+                >
+                  {p.name}
+                </Link>
+              ))}
+              {inactivePatients.length > 5 && (
+                <span className="text-xs text-amber-600 self-center">+{inactivePatients.length - 5} mais</span>
+              )}
+            </div>
+          </div>
+          <button onClick={() => setDismissedInactive(true)} className="text-amber-400 hover:text-amber-600 transition-colors shrink-0" aria-label="Fechar">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
@@ -307,7 +354,9 @@ export default function PatientsPage() {
                 </span>
               </div>
               <div className="grid gap-3">
-                {groupedPatients[letter].map((patient) => <PatientCard key={patient.id} patient={patient} />)}
+                {groupedPatients[letter].map((patient) => (
+                  <PatientCard key={patient.id} patient={patient} inactive={inactivePatients.some(p => p.id === patient.id)} />
+                ))}
               </div>
             </section>
           ))}
@@ -410,7 +459,7 @@ function KanbanBoard({ patients }: { patients: Patient[] }) {
   )
 }
 
-function PatientCard({ patient }: { patient: Patient }) {
+function PatientCard({ patient, inactive }: { patient: Patient; inactive?: boolean }) {
   const t = useTerms()
   return (
     <Link
@@ -424,6 +473,11 @@ function PatientCard({ patient }: { patient: Patient }) {
           <h3 className="font-semibold text-neutral-800 text-sm group-hover:text-sage-700 transition-colors">
             {patient.name}
           </h3>
+          {inactive && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+              <AlertTriangle className="h-3 w-3" /> Sem sessão
+            </span>
+          )}
           {patient.pronouns && (
             <span className="text-xs text-neutral-400">({patient.pronouns})</span>
           )}
