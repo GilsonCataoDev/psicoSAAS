@@ -12,8 +12,10 @@ test.describe('Promessas públicas verificáveis', () => {
   test('landing descreve o público que consegue concluir o cadastro', async ({ page }) => {
     await page.goto('/')
 
-    await expect(page.getByText('Gestão clínica para psicólogos com CRP ativo', { exact: true })).toBeVisible()
+    await expect(page.getByText('Gestão clínica para profissionais de saúde', { exact: true })).toBeVisible()
     await expect(page.locator('body')).not.toContainText(/terapeutas e estagiários|estagiários clínicos/i)
+    // nao mais psicologia-only
+    await expect(page.locator('body')).not.toContainText(/para psicólogos com CRP ativo/i)
   })
 
   test('preços não anuncia cobrança ou garantias inexistentes', async ({ page }) => {
