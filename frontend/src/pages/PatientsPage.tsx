@@ -1,13 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import { BrainCircuit, LayoutGrid, LayoutList, Plus, Search, Upload, UsersRound } from 'lucide-react'
+import { BrainCircuit, Filter, LayoutGrid, LayoutList, Plus, Search, Upload, UsersRound, X } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
 import { formatCurrency, formatDate, patientStartDate } from '@/lib/utils'
 import { Patient } from '@/types'
-
-type PatientStatus = 'active' | 'paused' | 'discharged'
 import NewPatientModal from '@/components/features/patients/NewPatientModal'
 import ImportPatientsModal from '@/components/features/patients/ImportPatientsModal'
 import { usePatients, useUpdatePatient } from '@/hooks/useApi'
@@ -17,6 +15,8 @@ import { patientMatchesSearch } from '@/lib/patientSearch'
 import { useTerms } from '@/hooks/useTerms'
 import { hasPsychologyModules } from '@/lib/professions'
 import { useAuthStore } from '@/store/auth'
+
+type PatientStatus = 'active' | 'paused' | 'discharged'
 
 export default function PatientsPage() {
   const t = useTerms()
@@ -32,16 +32,42 @@ export default function PatientsPage() {
   const [filter, setFilter] = useState<'all' | 'active' | 'paused' | 'discharged'>('all')
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
   const [careMode, setCareMode] = useState<'all' | 'psychotherapy' | 'neuropsychological_assessment'>('all')
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [filterTags, setFilterTags] = useState<string[]>([])
+  const [filterBilling, setFilterBilling] = useState<'all' | 'per_session' | 'monthly_package'>('all')
+  const [filterDateFrom, setFilterDateFrom] = useState('')
+  const [filterDateTo, setFilterDateTo] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
   const { data: patients = [], isLoading } = usePatients()
   const subscription = useSubscriptionStore((s) => s.subscription)
 
+  const allTags = Array.from(new Set(patients.flatMap(p => (p.tags ?? []) as string[]))).sort((a, b) => a.localeCompare(b, 'pt-BR'))
+
+  const hasAdvancedFilter = filterTags.length > 0 || filterBilling !== 'all' || filterDateFrom || filterDateTo
+
+  function clearAdvanced() {
+    setFilterTags([])
+    setFilterBilling('all')
+    setFilterDateFrom('')
+    setFilterDateTo('')
+  }
+
+  function toggleTag(tag: string) {
+    setFilterTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
+  }
+
   const filtered = patients.filter((p) => {
     const matchSearch = patientMatchesSearch(p, search)
     const matchFilter = filter === 'all' || p.status === filter
     const matchCareMode = careMode === 'all' || p.careMode === careMode
-    return matchSearch && matchFilter && matchCareMode
+    const ptags = (p.tags ?? []) as string[]
+    const matchTags = filterTags.length === 0 || filterTags.every(tag => ptags.includes(tag))
+    const matchBilling = filterBilling === 'all' || p.billingType === filterBilling
+    const startIso = patientStartDate(p.startDate, p.createdAt) ?? ''
+    const matchFrom = !filterDateFrom || startIso >= filterDateFrom
+    const matchTo = !filterDateTo || startIso <= filterDateTo
+    return matchSearch && matchFilter && matchCareMode && matchTags && matchBilling && matchFrom && matchTo
   }).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }))
 
   const groupedPatients = filtered.reduce<Record<string, Patient[]>>((groups, patient) => {
@@ -157,7 +183,90 @@ export default function PatientsPage() {
             <option value="neuropsychological_assessment">Avaliação neuropsicológica</option>
           </select>
         )}
+        <button
+          onClick={() => setShowAdvanced(v => !v)}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm border transition-all ${
+            hasAdvancedFilter
+              ? 'border-sage-400 bg-sage-50 text-sage-700 font-semibold'
+              : 'border-neutral-200 bg-white text-neutral-500 hover:text-neutral-700'
+          }`}
+        >
+          <Filter className="w-3.5 h-3.5" />
+          Avançado
+          {hasAdvancedFilter && (
+            <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-sage-500 text-[10px] text-white font-bold">
+              {filterTags.length + (filterBilling !== 'all' ? 1 : 0) + (filterDateFrom ? 1 : 0) + (filterDateTo ? 1 : 0)}
+            </span>
+          )}
+        </button>
       </div>
+
+      {showAdvanced && (
+        <div className="rounded-2xl border border-neutral-200 bg-white p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-neutral-700">Filtros avançados</span>
+            {hasAdvancedFilter && (
+              <button onClick={clearAdvanced} className="flex items-center gap-1 text-xs text-neutral-400 hover:text-red-500 transition-colors">
+                <X className="w-3.5 h-3.5" /> Limpar
+              </button>
+            )}
+          </div>
+
+          {allTags.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-neutral-500 mb-2">Tags</p>
+              <div className="flex flex-wrap gap-1.5">
+                {allTags.map(tag => (
+                  <button
+                    key={tag}
+                    onClick={() => toggleTag(tag)}
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${
+                      filterTags.includes(tag)
+                        ? 'bg-sage-500 text-white border-sage-500'
+                        : 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:border-sage-300'
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs font-medium text-neutral-500 block mb-1">Cobrança</label>
+              <select
+                value={filterBilling}
+                onChange={e => setFilterBilling(e.target.value as typeof filterBilling)}
+                className="input-field w-full"
+              >
+                <option value="all">Todos</option>
+                <option value="per_session">Por sessão</option>
+                <option value="monthly_package">Pacote mensal</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-neutral-500 block mb-1">Início a partir de</label>
+              <input
+                type="date"
+                value={filterDateFrom}
+                onChange={e => setFilterDateFrom(e.target.value)}
+                className="input-field w-full"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-neutral-500 block mb-1">Início até</label>
+              <input
+                type="date"
+                value={filterDateTo}
+                onChange={e => setFilterDateTo(e.target.value)}
+                className="input-field w-full"
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="space-y-3">
