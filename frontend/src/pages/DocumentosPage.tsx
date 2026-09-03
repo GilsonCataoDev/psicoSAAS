@@ -149,14 +149,16 @@ export default function DocumentosPage() {
             <p className="text-sage-200 text-xs mt-1">
               Documentos assinados com código único verificável{showCfp ? ' · Válidos conforme CFP Res. 006/2019' : ''}
             </p>
-            <button
-              type="button"
-              onClick={openCfpVerification}
-              className="mt-2 inline-flex items-center gap-1 text-xs text-white/80 hover:text-white hover:underline transition-colors"
-            >
-              Verificar registro ativo no portal CFP
-              <ExternalLink className="w-3 h-3" />
-            </button>
+            {showCfp && (
+              <button
+                type="button"
+                onClick={openCfpVerification}
+                className="mt-2 inline-flex items-center gap-1 text-xs text-white/80 hover:text-white hover:underline transition-colors"
+              >
+                Verificar registro ativo no portal CFP
+                <ExternalLink className="w-3 h-3" />
+              </button>
+            )}
           </div>
         </div>
       </div>
