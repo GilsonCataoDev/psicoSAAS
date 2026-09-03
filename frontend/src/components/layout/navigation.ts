@@ -22,6 +22,8 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { to: '/instrumentos', icon: 'instruments', label: 'Instrumentos', proOnly: true, psychologyOnly: true },
   { to: '/avaliacoes', icon: 'assessments', label: 'Avaliações', proOnly: true, psychologyOnly: true },
   { to: '/financeiro', icon: 'financial', label: 'Financeiro', mobile: true },
+  { to: '/crm', icon: 'public-link', label: 'CRM' },
+  { to: '/relatorios', icon: 'sessions', label: 'Relatórios' },
   { to: '/configuracoes', icon: 'settings', label: 'Ajustes' },
 ]
 

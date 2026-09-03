@@ -40,6 +40,8 @@ const ChurnPage           = lazy(() => import('@/pages/admin/ChurnPage'))
 const NeuropsychAssessmentsPage = lazy(() => import('@/pages/NeuropsychAssessmentsPage'))
 const NeuropsychAssessmentPage = lazy(() => import('@/pages/NeuropsychAssessmentPage'))
 const ProspectingPage     = lazy(() => import('@/pages/admin/ProspectingPage'))
+const RelatoriosPage      = lazy(() => import('@/pages/RelatoriosPage'))
+const CRMPage             = lazy(() => import('@/pages/CRMPage'))
 
 // Public pages — lazy loaded
 const BookingPage         = lazy(() => import('@/pages/public/BookingPage'))
@@ -175,6 +177,8 @@ export default function App() {
             <Route path="sessoes" element={<SessionsPage />} />
             <Route path="financeiro" element={<FinancialPage />} />
             <Route path="configuracoes" element={<SettingsPage />} />
+            <Route path="relatorios" element={<RelatoriosPage />} />
+            <Route path="crm" element={<CRMPage />} />
             <Route path="instrumentos" element={<PsychologyOnlyRoute><ProOnlyRoute><InstrumentosPage /></ProOnlyRoute></PsychologyOnlyRoute>} />
             <Route path="avaliacoes" element={<PsychologyOnlyRoute><ProOnlyRoute><NeuropsychAssessmentsPage /></ProOnlyRoute></PsychologyOnlyRoute>} />
             <Route path="avaliacoes/:id" element={<PsychologyOnlyRoute><ProOnlyRoute><NeuropsychAssessmentPage /></ProOnlyRoute></PsychologyOnlyRoute>} />
