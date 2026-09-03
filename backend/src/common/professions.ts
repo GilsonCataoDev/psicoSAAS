@@ -86,3 +86,17 @@ export function councilLabel(profession?: string | null): string {
   const key = (profession ?? DEFAULT_PROFESSION) as Profession
   return COUNCIL_LABELS[key] ?? 'Registro profissional'
 }
+
+/**
+ * Formata o registro para exibição inline (label + valor em texto corrido).
+ * Psicologia armazena só o número ("06/123456") → prefixar com "CRP".
+ * Demais profissões armazenam o valor completo ("CRN-3 12345") → exibir direto.
+ * Retorna null quando registration é vazio ou nulo.
+ */
+export function formatRegistration(
+  profession?: string | null,
+  registration?: string | null,
+): string | null {
+  if (!registration) return null
+  return requiresCrp(profession) ? `CRP ${registration}` : registration
+}

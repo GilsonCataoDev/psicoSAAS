@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { track, EVENTS } from '@/lib/analytics'
 import { termsFor } from '@/lib/terms'
-import { DEFAULT_PROFESSION, PROFESSION_LABELS, councilLabel, requiresCrp, type Profession } from '@/lib/professions'
+import { DEFAULT_PROFESSION, PROFESSION_LABELS, councilLabel, formatRegistration, requiresCrp, type Profession } from '@/lib/professions'
 import {
   useBookingContactMemory,
   useForgetBookingContact,
@@ -325,7 +325,7 @@ export default function BookingPage() {
           )}
           {page.psychologistCrp && (
             <p className="text-xs text-neutral-400 dark:text-neutral-400 text-center mb-4">
-              {councilLabel((page as any).profession)} {page.psychologistCrp}
+              {formatRegistration((page as any).profession, page.psychologistCrp)}
             </p>
           )}
 
@@ -430,7 +430,7 @@ export default function BookingPage() {
             <p className="font-medium text-neutral-800 dark:text-neutral-100 text-sm leading-snug line-clamp-2">{page.psychologistName}</p>
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
               {page.psychologistCrp && (
-                <p className="text-xs text-neutral-400">{councilLabel((page as any).profession)} {page.psychologistCrp}</p>
+                <p className="text-xs text-neutral-400">{formatRegistration((page as any).profession, page.psychologistCrp)}</p>
               )}
               {/* A consulta publica do CFP so vale para psicologia; os demais
                   conselhos tem cada um o seu portal. */}

@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { LogOut, ShieldCheck, Zap } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
-import { councilLabel } from '@/lib/professions'
+import { formatRegistration } from '@/lib/professions'
 import { useHasPlan, useSubscriptionStore, PLANS } from '@/store/subscription'
 import { getInitials, cn } from '@/lib/utils'
 import BrandLogo from '@/components/ui/BrandLogo'
@@ -108,7 +108,7 @@ export default function Sidebar() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-neutral-700 truncate leading-tight">{user?.name ?? 'Profissional'}</p>
-            <p className="text-xs text-neutral-400 truncate">{user?.crp ? `${councilLabel(user.profession)} ${user.crp}` : 'Minha conta'}</p>
+            <p className="text-xs text-neutral-400 truncate">{user?.crp ? formatRegistration(user.profession, user.crp) : 'Minha conta'}</p>
           </div>
           <button
             type="button"
