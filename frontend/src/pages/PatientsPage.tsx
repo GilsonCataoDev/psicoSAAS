@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import { AlertTriangle, BrainCircuit, Filter, LayoutGrid, LayoutList, Plus, Search, Upload, UsersRound, X } from 'lucide-react'
+import { AlertTriangle, BrainCircuit, Download, Filter, LayoutGrid, LayoutList, Plus, Search, Upload, UsersRound, X } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
@@ -121,6 +121,39 @@ export default function PatientsPage() {
     setShowModal(true)
   }
 
+  function exportCSV() {
+    const STATUS_LABEL: Record<string, string> = { active: 'Ativo', paused: 'Pausado', discharged: 'Alta' }
+    const BILLING_LABEL: Record<string, string> = { per_session: 'Por sessão', monthly_package: 'Pacote mensal' }
+    const headers = ['Nome', 'Status', 'Email', 'Telefone', 'Cobrança', 'Valor (R$)', 'Tags', 'Início', 'Cadastro']
+    const rows = filtered.map(p => [
+      p.name,
+      STATUS_LABEL[p.status] ?? p.status,
+      p.email ?? '',
+      p.phone ?? '',
+      BILLING_LABEL[p.billingType] ?? p.billingType,
+      p.billingType === 'monthly_package'
+        ? Number(p.monthlyPackagePrice ?? 0).toFixed(2)
+        : Number(p.sessionPrice ?? 0).toFixed(2),
+      (p.tags ?? []).join('; '),
+      formatDate(patientStartDate(p.startDate, p.createdAt)),
+      formatDate(p.createdAt),
+    ])
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(cell => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
+      .join('\n')
+    const bom = '﻿'
+    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `pacientes-${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+    toast.success(`${filtered.length} ${filtered.length === 1 ? t.patient : t.patients} exportado(s)`)
+  }
+
   return (
     <div className="animate-slide-up space-y-5">
       <div className="flex items-center justify-between">
@@ -149,6 +182,15 @@ export default function PatientsPage() {
               <LayoutGrid className="w-4 h-4" />
             </button>
           </div>
+          <button
+            onClick={exportCSV}
+            disabled={filtered.length === 0}
+            className="btn-secondary flex items-center gap-2 disabled:opacity-40"
+            aria-label="Exportar CSV"
+          >
+            <Download className="w-4 h-4" />
+            <span className="hidden sm:inline">Exportar</span>
+          </button>
           <button
             onClick={() => setShowImportModal(true)}
             className="btn-secondary flex items-center gap-2"
