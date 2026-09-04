@@ -48,6 +48,7 @@ export default function FinancialPage() {
   const deleteRecord = useDeleteFinancial()
   const [filter, setFilter] = useState<'all' | 'paid' | 'pending' | 'overdue'>('all')
   const [showNew, setShowNew] = useState(false)
+  const [showReconcile, setShowReconcile] = useState(false)
   const [markRecord, setMarkRecord] = useState<FinancialRecord | null>(null)
   const [recordToDelete, setRecordToDelete] = useState<FinancialRecord | null>(null)
   const recordsSectionRef = useRef<HTMLDivElement | null>(null)
@@ -246,6 +247,10 @@ export default function FinancialPage() {
               <span className="hidden sm:inline">CSV</span>
             </button>
           </div>
+          <button onClick={() => setShowReconcile(true)} className="btn-secondary flex items-center gap-2">
+            <Scale className="w-4 h-4" />
+            <span className="hidden sm:inline">Conciliar</span>
+          </button>
           <button onClick={() => setShowNew(true)} className="btn-primary flex items-center gap-2">
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Novo lancamento</span>
@@ -605,6 +610,7 @@ export default function FinancialPage() {
           </div>
         </div>
       )}>
+        {showReconcile && <ReconcileModal records={records} onClose={() => setShowReconcile(false)} />}
         {showNew && <NewPaymentModal open onClose={() => setShowNew(false)} />}
         {markRecord && (
           <MarkPaidModal
@@ -758,6 +764,153 @@ function FinancialRow({ record, onMarkPaid, onDelete }: {
         <StatusBadge status={record.status} />
       </div>
     </div>
+  )
+}
+
+type BankRow = { date: string; description: string; amount: number }
+type ReconcileMatch = { bank: BankRow; record: FinancialRecord }
+
+function parseCSV(text: string): BankRow[] {
+  const sep = text.includes(';') ? ';' : ','
+  const lines = text.trim().split(/\r?\n/).filter(Boolean)
+  const rows: BankRow[] = []
+  for (const line of lines) {
+    const cols = line.split(sep).map(c => c.replace(/^"|"$/g, '').trim())
+    if (cols.length < 3) continue
+    const [rawDate, description, rawAmount] = cols
+    const amount = parseFloat(rawAmount.replace(/\./g, '').replace(',', '.'))
+    if (!rawDate || isNaN(amount)) continue
+    // Accept DD/MM/YYYY or YYYY-MM-DD
+    const isoDate = /^\d{4}-\d{2}-\d{2}$/.test(rawDate)
+      ? rawDate
+      : rawDate.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1')
+    rows.push({ date: isoDate, description, amount })
+  }
+  return rows.filter(r => r.amount > 0) // credits only for income reconciliation
+}
+
+function dateDistanceDays(a: string, b: string): number {
+  return Math.abs(new Date(a).getTime() - new Date(b).getTime()) / 86400000
+}
+
+function ReconcileModal({ records, onClose }: { records: FinancialRecord[]; onClose: () => void }) {
+  const markPaid = useMarkFinancialPaid()
+  const [bankRows, setBankRows] = useState<BankRow[]>([])
+  const [parsed, setParsed] = useState(false)
+
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = ev => {
+      const text = ev.target?.result as string
+      setBankRows(parseCSV(text))
+      setParsed(true)
+    }
+    reader.readAsText(file, 'latin1')
+  }
+
+  const incomeRecords = records.filter(r => r.type === 'income')
+
+  const { matched, bankOnly, systemOnly } = useMemo(() => {
+    const usedRecord = new Set<string>()
+    const usedBank = new Set<number>()
+    const matched: ReconcileMatch[] = []
+
+    bankRows.forEach((bank, bi) => {
+      const match = incomeRecords.find(r =>
+        !usedRecord.has(r.id) &&
+        Math.abs(Number(r.amount) - bank.amount) < 0.02 &&
+        dateDistanceDays(r.dueDate ?? r.createdAt.slice(0, 10), bank.date) <= 5,
+      )
+      if (match) {
+        usedRecord.add(match.id)
+        usedBank.add(bi)
+        matched.push({ bank, record: match })
+      }
+    })
+
+    const bankOnly = bankRows.filter((_, bi) => !usedBank.has(bi))
+    const systemOnly = incomeRecords.filter(r => !usedRecord.has(r.id) && r.status !== 'paid')
+    return { matched, bankOnly, systemOnly }
+  }, [bankRows, incomeRecords])
+
+  return (
+    <Modal open onClose={onClose} title="Conciliação bancária">
+      <div className="space-y-4 max-w-xl">
+        <p className="text-sm text-neutral-500">
+          Importe o CSV do seu banco (colunas: <strong>Data;Descrição;Valor</strong>). O sistema cruza com os registros financeiros por valor e data (±5 dias).
+        </p>
+        <input type="file" accept=".csv,.txt,.ofx" onChange={handleFile} className="input-field text-sm" />
+
+        {parsed && (
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+            {/* Coincidências */}
+            {matched.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-emerald-700 mb-2">Coincidências ({matched.length})</p>
+                <div className="space-y-1.5">
+                  {matched.map(({ bank, record }) => (
+                    <div key={record.id} className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2 text-sm">
+                      <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-neutral-700 truncate">{record.patient?.name ?? record.description}</p>
+                        <p className="text-xs text-neutral-400">{bank.date} · {bank.description}</p>
+                      </div>
+                      <span className="font-semibold text-emerald-700 shrink-0">{formatCurrency(bank.amount)}</span>
+                      {record.status !== 'paid' && (
+                        <button className="btn-secondary text-xs px-2 py-1 shrink-0"
+                          onClick={() => markPaid.mutate({ id: record.id, method: 'transfer' } as any)}
+                        >Marcar pago</button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Só no banco */}
+            {bankOnly.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-amber-700 mb-2">Apenas no extrato ({bankOnly.length})</p>
+                <div className="space-y-1.5">
+                  {bankOnly.map((r, i) => (
+                    <div key={i} className="flex items-center gap-3 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 text-sm">
+                      <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-neutral-700 truncate">{r.description}</p>
+                        <p className="text-xs text-neutral-400">{r.date}</p>
+                      </div>
+                      <span className="font-semibold text-amber-700 shrink-0">{formatCurrency(r.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Só no sistema */}
+            {systemOnly.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-rose-700 mb-2">Pendentes sem extrato ({systemOnly.length})</p>
+                <div className="space-y-1.5">
+                  {systemOnly.map(r => (
+                    <div key={r.id} className="flex items-center gap-3 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2 text-sm">
+                      <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-neutral-700 truncate">{r.patient?.name ?? r.description}</p>
+                        <p className="text-xs text-neutral-400">{r.dueDate ?? r.createdAt.slice(0, 10)}</p>
+                      </div>
+                      <span className="font-semibold text-rose-700 shrink-0">{formatCurrency(Number(r.amount))}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {bankRows.length > 0 && matched.length === 0 && bankOnly.length === 0 && systemOnly.length === 0 && (
+              <p className="text-sm text-neutral-400 text-center py-4">Nenhum registro para conciliar.</p>
+            )}
+          </div>
+        )}
+      </div>
+    </Modal>
   )
 }
 
