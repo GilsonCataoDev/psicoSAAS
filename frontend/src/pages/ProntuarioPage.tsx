@@ -337,6 +337,31 @@ export default function ProntuarioPage() {
     }
   }
 
+  async function suggestFromLastSession() {
+    if (!hasPro) { toast.error('IA disponivel a partir do plano Pro.'); return }
+    const last = sessions[0]
+    if (!last?.summary?.trim()) {
+      toast.error('Nenhuma evolução anterior encontrada para basear a sugestão.')
+      return
+    }
+    setEvolText(last.summary)
+    setAiMode('evolucao')
+    try {
+      if (!await ensureClinicalAiConsent()) return
+      const { draft, draftId } = await generateProntuarioDraft.mutateAsync({
+        input: last.summary,
+        mode: 'evolucao',
+        patientId: id!,
+      })
+      setAiDraft(draft)
+      setGeneratedAiDraftId(draftId)
+      setAcceptedAiDraftId('')
+      toast.success('Rascunho gerado baseado na última evolução. Revise antes de salvar.')
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'Não foi possível gerar o rascunho.')
+    }
+  }
+
   async function planNextSession() {
     if (!hasPro) {
       toast.error('IA disponivel a partir do plano Pro.')
@@ -652,6 +677,16 @@ export default function ProntuarioPage() {
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row">
+                  <button
+                    type="button"
+                    onClick={suggestFromLastSession}
+                    disabled={generateProntuarioDraft.isPending || !hasPro || sessions.length === 0}
+                    title={!hasPro ? 'IA disponível a partir do plano Pro' : 'Gera rascunho baseado na evolução anterior'}
+                    className="btn-secondary flex items-center justify-center gap-2 text-sm"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    {!hasPro ? 'IA no Pro' : generateProntuarioDraft.isPending ? 'Gerando...' : 'Da última evolução'}
+                  </button>
                   <select
                     value={aiMode}
                     onChange={e => setAiMode(e.target.value as AiProntuarioMode)}
