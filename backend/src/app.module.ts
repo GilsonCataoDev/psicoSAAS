@@ -24,6 +24,7 @@ import { TemplatesModule } from './modules/templates/templates.module'
 import { AdminModule } from './modules/admin/admin.module'
 import { TestimonialModule } from './modules/testimonial/testimonial.module'
 import { ChurnModule } from './modules/churn/churn.module'
+import { NpsModule } from './modules/nps/nps.module'
 import { ProspectingModule } from './modules/prospecting/prospecting.module'
 import { PlanGuard } from './common/guards/plan.guard'
 import { SubscriptionGuard } from './common/guards/subscription.guard'
@@ -106,6 +107,7 @@ const readPositiveInt = (value: string | undefined, fallback: number): number =>
     TestimonialModule,
     ChurnModule,
     ProspectingModule,
+    NpsModule,
   ],
   controllers: [HealthController],
   providers: [

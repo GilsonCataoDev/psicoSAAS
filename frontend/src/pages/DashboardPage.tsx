@@ -11,6 +11,7 @@ import LightweightChart from '@/components/ui/LightweightChart'
 import { useAuthStore } from '@/store/auth'
 import { useDashboard } from '@/hooks/api/dashboard'
 import { useSessions } from '@/hooks/api/sessions'
+import { useNpsResults } from '@/hooks/api/nps'
 import ReferralCard from '@/components/features/referral/ReferralCard'
 import { OnboardingProfile, useOnboardingStore } from '@/store/onboarding'
 import { useTerms } from '@/hooks/useTerms'
@@ -733,6 +734,9 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* NPS */}
+      <NpsCard />
+
       {/* Referral — visível para usuários com ao menos 1 paciente ativo */}
       {onboardingCompleted && (s?.activePatients ?? 0) >= 1 && (
         <ReferralCard />
@@ -746,6 +750,49 @@ export default function DashboardPage() {
             defaults={sessionDefaults}
           />
         </Suspense>
+      )}
+    </div>
+  )
+}
+
+function NpsCard() {
+  const { data, isLoading } = useNpsResults()
+  if (isLoading || !data || data.total === 0) return null
+  const npsLabel = data.npsScore === null ? '—'
+    : data.npsScore >= 50 ? 'Excelente'
+    : data.npsScore >= 0 ? 'Bom'
+    : 'Atenção'
+
+  return (
+    <div className="card space-y-3">
+      <div className="flex items-center justify-between">
+        <h2 className="section-title mb-0">Satisfação dos pacientes (NPS)</h2>
+        <span className="text-xs text-neutral-400">{data.responded} de {data.total} responderam</span>
+      </div>
+      <div className="grid grid-cols-3 gap-3 text-center">
+        <div>
+          <p className="text-2xl font-bold text-sage-600">{data.avg ?? '—'}</p>
+          <p className="text-xs text-neutral-400">Nota média</p>
+        </div>
+        <div>
+          <p className="text-2xl font-bold text-neutral-700">{data.npsScore ?? '—'}</p>
+          <p className="text-xs text-neutral-400">Score NPS · {npsLabel}</p>
+        </div>
+        <div>
+          <p className="text-2xl font-bold text-emerald-600">{data.promoters}</p>
+          <p className="text-xs text-neutral-400">Promotores</p>
+        </div>
+      </div>
+      {data.recentComments.length > 0 && (
+        <div className="space-y-2 pt-1 border-t border-neutral-50">
+          <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Comentários recentes</p>
+          {data.recentComments.slice(0, 3).map((c, i) => (
+            <div key={i} className="bg-neutral-50 rounded-xl px-3 py-2 text-sm">
+              <span className="font-semibold text-sage-600 mr-2">{c.score}/10</span>
+              <span className="text-neutral-600">{c.comment}</span>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )

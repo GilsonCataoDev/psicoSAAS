@@ -50,6 +50,7 @@ const VerifyDocumentPage  = lazy(() => import('@/pages/public/VerifyDocumentPage
 const InstrumentResponsePage = lazy(() => import('@/pages/public/InstrumentResponsePage'))
 const EvolucaoPsicologicaPage = lazy(() => import('@/pages/public/EvolucaoPsicologicaPage'))
 const PatientPortalPage   = lazy(() => import('@/pages/public/PatientPortalPage'))
+const NpsSurveyPage       = lazy(() => import('@/pages/NpsSurveyPage'))
 const NeuropsychShareLaudoPage = lazy(() => import('@/pages/public/NeuropsychShareLaudoPage'))
 
 function PageLoader() {
@@ -156,6 +157,7 @@ export default function App() {
         <Route path="/verificar/:code" element={<VerifyDocumentPage />} />
         <Route path="/ferramenta/evolucao" element={<EvolucaoPsicologicaPage />} />
         <Route path="/portal/:token" element={<PatientPortalPage />} />
+        <Route path="/avaliar/:token" element={<NpsSurveyPage />} />
         <Route path="/laudo/:token" element={<NeuropsychShareLaudoPage />} />
 
         {/* ── App interno (autenticado) ────────────────────────────── */}
