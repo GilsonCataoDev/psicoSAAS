@@ -13,9 +13,10 @@ import { CloudWhatsAppProvider } from './providers/cloud-whatsapp.provider'
 import { WhatsAppCloudWebhookController } from './whatsapp-cloud-webhook.controller'
 import { WhatsAppOutboxRetryJob } from './whatsapp-outbox-retry.job'
 import { WhatsAppOutboxReconciliationJob } from './whatsapp-outbox-reconciliation.job'
+import { Patient } from '../patients/entities/patient.entity'
 
 @Module({
-  imports: [EmailModule, TypeOrmModule.forFeature([User, PushSubscriptionEntity, NativePushTokenEntity, WhatsAppDeliveryLog, WhatsAppOutbox])],
+  imports: [EmailModule, TypeOrmModule.forFeature([User, PushSubscriptionEntity, NativePushTokenEntity, WhatsAppDeliveryLog, WhatsAppOutbox, Patient])],
   controllers: [NotificationsController, PushNotificationsController, WhatsAppCloudWebhookController],
   providers: [NotificationsService, WhatsAppLogRetentionJob, WhatsAppOutboxRetryJob, WhatsAppOutboxReconciliationJob, CloudWhatsAppProvider],
   exports: [NotificationsService],

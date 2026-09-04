@@ -1,6 +1,16 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
+
+export function useSendReengagement() {
+  return useMutation<
+    { sent: number; failed: number; skipped: number },
+    Error,
+    { monthsSince: number; template: string }
+  >({
+    mutationFn: data => api.post('/notifications/whatsapp/reengagement', data).then(r => r.data),
+  })
+}
 
 export function useWhatsAppStatus(options?: { enabled?: boolean }) {
   const userId = useAuthStore(s => s.user?.id)

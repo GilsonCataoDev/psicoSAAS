@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import { AlertTriangle, BrainCircuit, Download, Filter, LayoutGrid, LayoutList, Plus, Search, TrendingUp, Upload, UsersRound, X } from 'lucide-react'
+import { AlertTriangle, BrainCircuit, Download, Filter, LayoutGrid, LayoutList, MessageCircle, Plus, Search, TrendingUp, Upload, UsersRound, X } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
@@ -8,7 +8,8 @@ import { formatCurrency, formatDate, patientStartDate } from '@/lib/utils'
 import { Patient } from '@/types'
 import NewPatientModal from '@/components/features/patients/NewPatientModal'
 import ImportPatientsModal from '@/components/features/patients/ImportPatientsModal'
-import { usePatients, useUpdatePatient, useSessions, useRetentionMetrics } from '@/hooks/useApi'
+import Modal from '@/components/ui/Modal'
+import { usePatients, useUpdatePatient, useSessions, useRetentionMetrics, useSendReengagement } from '@/hooks/useApi'
 import { PLANS, useSubscriptionStore } from '@/store/subscription'
 import toast from 'react-hot-toast'
 import { patientMatchesSearch } from '@/lib/patientSearch'
@@ -39,6 +40,7 @@ export default function PatientsPage() {
   const [filterDateTo, setFilterDateTo] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
+  const [showReengagement, setShowReengagement] = useState(false)
   const { data: patients = [], isLoading } = usePatients()
   const { data: allSessions = [] } = useSessions()
   const subscription = useSubscriptionStore((s) => s.subscription)
@@ -197,6 +199,15 @@ export default function PatientsPage() {
           >
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline">Exportar</span>
+          </button>
+          <button
+            onClick={() => setShowReengagement(true)}
+            className="btn-secondary flex items-center gap-2"
+            aria-label="Campanha de reengajamento"
+            title="Enviar mensagem para pacientes com alta"
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span className="hidden sm:inline">Campanha</span>
           </button>
           <button
             onClick={() => setShowImportModal(true)}
@@ -414,6 +425,7 @@ export default function PatientsPage() {
         </div>
       )}
 
+      {showReengagement && <ReengagementModal onClose={() => setShowReengagement(false)} />}
       <NewPatientModal open={showModal} onClose={() => setShowModal(false)} />
       <ImportPatientsModal
         open={showImportModal}
@@ -422,6 +434,75 @@ export default function PatientsPage() {
         currentPlanName={currentPlan.name}
       />
     </div>
+  )
+}
+
+const DEFAULT_REENGAGEMENT_TEMPLATE = `Olá, {{nome}}! Tudo bem? Gostaríamos de saber como você está e se podemos continuar apoiando sua jornada de saúde. Caso queira retomar o acompanhamento, estamos à disposição. 💙`
+
+function ReengagementModal({ onClose }: { onClose: () => void }) {
+  const sendReengagement = useSendReengagement()
+  const [months, setMonths] = useState(3)
+  const [template, setTemplate] = useState(DEFAULT_REENGAGEMENT_TEMPLATE)
+  const [result, setResult] = useState<{ sent: number; failed: number; skipped: number } | null>(null)
+
+  async function send() {
+    try {
+      const r = await sendReengagement.mutateAsync({ monthsSince: months, template })
+      setResult(r)
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'Erro ao enviar campanha')
+    }
+  }
+
+  return (
+    <Modal open onClose={onClose} title="Campanha de reengajamento">
+      <div className="space-y-4 max-w-lg">
+        {!result ? (
+          <>
+            <p className="text-sm text-neutral-500">
+              Envia uma mensagem via WhatsApp para todos os pacientes com alta há pelo menos <strong>X meses</strong> que possuem telefone cadastrado.
+            </p>
+            <div>
+              <label className="label">Alta há mais de (meses)</label>
+              <input
+                type="number" min={1} max={60} value={months}
+                onChange={e => setMonths(Number(e.target.value))}
+                className="input-field w-32"
+              />
+            </div>
+            <div>
+              <label className="label">Mensagem — use {`{{nome}}`} para o primeiro nome</label>
+              <textarea
+                rows={5} value={template}
+                onChange={e => setTemplate(e.target.value)}
+                maxLength={1000}
+                className="input-field resize-none text-sm w-full"
+              />
+              <p className="text-xs text-neutral-400 mt-1">{template.length}/1000 caracteres</p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={onClose} className="btn-secondary text-sm">Cancelar</button>
+              <button
+                onClick={send}
+                disabled={sendReengagement.isPending || !template.trim()}
+                className="btn-primary text-sm flex items-center gap-2"
+              >
+                <MessageCircle className="w-4 h-4" />
+                {sendReengagement.isPending ? 'Enviando…' : 'Enviar campanha'}
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="text-center space-y-3 py-4">
+            <p className="text-4xl font-bold text-sage-600">{result.sent}</p>
+            <p className="text-sm text-neutral-500">mensagens enviadas</p>
+            {result.failed > 0 && <p className="text-sm text-rose-500">{result.failed} falharam</p>}
+            {result.skipped > 0 && <p className="text-sm text-amber-500">{result.skipped} ignoradas (limite de plano)</p>}
+            <button onClick={onClose} className="btn-primary text-sm mx-auto">Fechar</button>
+          </div>
+        )}
+      </div>
+    </Modal>
   )
 }
 

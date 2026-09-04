@@ -18,6 +18,7 @@ import { RegisterNativePushTokenDto } from './dto/native-push-token.dto'
 import { encrypt, safeDecrypt } from '../../common/crypto/encrypt.util'
 import { PlanAccessService } from '../../common/plan-access/plan-access.service'
 import { termsFor } from '../../common/terms'
+import { Patient } from '../patients/entities/patient.entity'
 import { DEFAULT_PROFESSION } from '../../common/professions'
 import {
   isMeaningfulAutomatedMessage,
@@ -121,6 +122,7 @@ export class NotificationsService {
     @InjectRepository(NativePushTokenEntity) private nativePushTokens: Repository<NativePushTokenEntity>,
     @InjectRepository(WhatsAppDeliveryLog) private whatsAppLogs: Repository<WhatsAppDeliveryLog>,
     @InjectRepository(WhatsAppOutbox) private whatsAppOutbox: Repository<WhatsAppOutbox>,
+    @InjectRepository(Patient) private patients: Repository<Patient>,
     private readonly cloudWhatsApp: CloudWhatsAppProvider,
   ) {
     this.BASE_URL     = cfg.get('FRONTEND_URL') ?? 'http://localhost:3000'
@@ -1315,6 +1317,30 @@ export class NotificationsService {
 
     this.logger.error(`[WA create instance] erro status=${res.status}`)
     throw new BadRequestException(`Nao foi possivel criar a instancia WhatsApp: erro ${res.status}`)
+  }
+
+  async sendReengagement(userId: string, monthsSince: number, template: string): Promise<{ sent: number; failed: number; skipped: number }> {
+    const cutoff = new Date()
+    cutoff.setMonth(cutoff.getMonth() - Math.max(1, monthsSince))
+    const discharged = await this.patients.find({
+      where: { psychologistId: userId, status: 'discharged' as any },
+    })
+    const eligible = discharged.filter(p => p.updatedAt <= cutoff && p.phone)
+    let sent = 0, failed = 0, skipped = 0
+    for (const patient of eligible) {
+      const first = patient.name.split(' ')[0]
+      const msg = template.replace(/\{\{nome\}\}/gi, first)
+      const result = await this.sendWhatsApp(patient.phone!, msg, userId, {
+        type: 'Reengajamento',
+        patientId: patient.id,
+        patientName: patient.name,
+        idempotencyKey: `reengagement:${patient.id}:${cutoff.toISOString().slice(0, 7)}`,
+      })
+      if (result.sent) sent++
+      else if (result.reason === 'plan') { skipped++; break }
+      else failed++
+    }
+    return { sent, failed, skipped }
   }
 
   async scheduleReminder(appointment: any): Promise<void> {
