@@ -1,7 +1,7 @@
 import { lazy, Suspense, useMemo, useRef, useState } from 'react'
 import {
   Wallet, TrendingUp, TrendingDown, Scale, Clock, CheckCircle, Plus, Download, Trash2,
-  Percent, ReceiptText, AlertCircle, Repeat2, Pause, Play, Target, CalendarClock,
+  Percent, ReceiptText, AlertCircle, Repeat2, Pause, Play, Target, CalendarClock, MessageCircle,
 } from 'lucide-react'
 import StatCard from '@/components/ui/StatCard'
 import Avatar from '@/components/ui/Avatar'
@@ -10,7 +10,7 @@ import { StatusBadge } from '@/components/ui/Badge'
 import LightweightChart from '@/components/ui/LightweightChart'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import {
-  useFinancial, useMarkFinancialPaid, useDeleteFinancial,
+  useFinancial, useMarkFinancialPaid, useDeleteFinancial, useSendCharge,
   useRecurringExpenses, useCreateRecurringExpense, useSetRecurringExpenseActive, useDeleteRecurringExpense,
 } from '@/hooks/useApi'
 import { FinancialRecord } from '@/types'
@@ -549,6 +549,9 @@ export default function FinancialPage() {
         })()}
       </div>
 
+      {/* Painel de inadimplência */}
+      <OverduePanel records={records} />
+
       {/* Lista de lancamentos */}
       <div ref={recordsSectionRef} className="card scroll-mt-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
@@ -753,6 +756,74 @@ function FinancialRow({ record, onMarkPaid, onDelete }: {
           {formatCurrency(record.amount)}
         </span>
         <StatusBadge status={record.status} />
+      </div>
+    </div>
+  )
+}
+
+function OverduePanel({ records }: { records: FinancialRecord[] }) {
+  const sendCharge = useSendCharge()
+  const [sending, setSending] = useState<string | null>(null)
+  const today = new Date()
+
+  const overdue = records.filter(r =>
+    r.type === 'income' && (r.status === 'pending' || r.status === 'overdue'),
+  ).sort((a, b) => (a.dueDate ?? a.createdAt) < (b.dueDate ?? b.createdAt) ? -1 : 1)
+
+  if (overdue.length === 0) return null
+
+  function daysOpen(record: FinancialRecord): number {
+    const ref = record.dueDate ?? record.createdAt
+    return Math.floor((today.getTime() - new Date(ref).getTime()) / 86400000)
+  }
+
+  async function charge(id: string) {
+    setSending(id)
+    try {
+      await sendCharge.mutateAsync(id)
+      toast.success('Cobrança enviada via WhatsApp')
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'Erro ao enviar cobrança')
+    } finally { setSending(null) }
+  }
+
+  const total = overdue.reduce((s, r) => s + Number(r.amount), 0)
+
+  return (
+    <div className="card border-rose-100 bg-rose-50/40 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+          <h2 className="section-title mb-0 text-rose-700">Inadimplência</h2>
+        </div>
+        <span className="text-sm font-semibold text-rose-700">{formatCurrency(total)} em aberto</span>
+      </div>
+      <div className="space-y-2">
+        {overdue.map(r => {
+          const days = daysOpen(r)
+          return (
+            <div key={r.id} className="flex items-center gap-3 bg-white rounded-xl px-3 py-2.5 border border-rose-100">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-neutral-800 truncate">{r.patient?.name ?? '—'}</p>
+                <p className="text-xs text-neutral-400 truncate">{displayDescription(r.description)}</p>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-sm font-semibold text-rose-600">{formatCurrency(Number(r.amount))}</p>
+                <p className="text-xs text-neutral-400">{days > 0 ? `${days}d em aberto` : 'Vence hoje'}</p>
+              </div>
+              <button
+                onClick={() => charge(r.id)}
+                disabled={sending === r.id}
+                title="Enviar cobrança via WhatsApp"
+                className="btn-secondary p-2 shrink-0"
+              >
+                {sending === r.id
+                  ? <Clock className="w-4 h-4 animate-spin" />
+                  : <MessageCircle className="w-4 h-4 text-green-600" />}
+              </button>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
