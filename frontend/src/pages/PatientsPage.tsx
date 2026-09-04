@@ -9,7 +9,7 @@ import { Patient } from '@/types'
 import NewPatientModal from '@/components/features/patients/NewPatientModal'
 import ImportPatientsModal from '@/components/features/patients/ImportPatientsModal'
 import Modal from '@/components/ui/Modal'
-import { usePatients, useUpdatePatient, useSessions, useRetentionMetrics, useSendReengagement } from '@/hooks/useApi'
+import { usePatientsPaginated, useUpdatePatient, useSessions, useRetentionMetrics, useSendReengagement } from '@/hooks/useApi'
 import { PLANS, useSubscriptionStore } from '@/store/subscription'
 import toast from 'react-hot-toast'
 import { patientMatchesSearch } from '@/lib/patientSearch'
@@ -38,12 +38,23 @@ export default function PatientsPage() {
   const [filterBilling, setFilterBilling] = useState<'all' | 'per_session' | 'monthly_package'>('all')
   const [filterDateFrom, setFilterDateFrom] = useState('')
   const [filterDateTo, setFilterDateTo] = useState('')
+  const [page, setPage] = useState(1)
   const [showModal, setShowModal] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
   const [showReengagement, setShowReengagement] = useState(false)
-  const { data: patients = [], isLoading } = usePatients()
+
+  const { data: patientsPage, isLoading } = usePatientsPaginated({
+    page, limit: 50, search, status: filter === 'all' ? '' : filter,
+  })
+  const { data: activePage } = usePatientsPaginated({ status: 'active', limit: 1 })
+  const patients = patientsPage?.data ?? []
+  const totalPages = patientsPage?.totalPages ?? 1
+
   const { data: allSessions = [] } = useSessions()
   const subscription = useSubscriptionStore((s) => s.subscription)
+
+  // Reset to first page when main filters change
+  useEffect(() => { setPage(1) }, [search, filter, careMode])
 
   const INACTIVE_WEEKS = 3
   const inactiveThreshold = new Date(Date.now() - INACTIVE_WEEKS * 7 * 24 * 60 * 60 * 1000)
@@ -77,9 +88,8 @@ export default function PatientsPage() {
     setFilterTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
   }
 
+  // Search and status are server-side; only apply advanced local filters here.
   const filtered = patients.filter((p) => {
-    const matchSearch = patientMatchesSearch(p, search)
-    const matchFilter = filter === 'all' || p.status === filter
     const matchCareMode = careMode === 'all' || p.careMode === careMode
     const ptags = (p.tags ?? []) as string[]
     const matchTags = filterTags.length === 0 || filterTags.every(tag => ptags.includes(tag))
@@ -87,8 +97,8 @@ export default function PatientsPage() {
     const startIso = patientStartDate(p.startDate, p.createdAt) ?? ''
     const matchFrom = !filterDateFrom || startIso >= filterDateFrom
     const matchTo = !filterDateTo || startIso <= filterDateTo
-    return matchSearch && matchFilter && matchCareMode && matchTags && matchBilling && matchFrom && matchTo
-  }).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }))
+    return matchCareMode && matchTags && matchBilling && matchFrom && matchTo
+  })
 
   const groupedPatients = filtered.reduce<Record<string, Patient[]>>((groups, patient) => {
     const firstLetter = patient.name.trim().charAt(0).toLocaleUpperCase('pt-BR') || '#'
@@ -104,7 +114,7 @@ export default function PatientsPage() {
     return a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
   })
 
-  const activeCount = patients.filter(p => p.status === 'active').length
+  const activeCount = activePage?.total ?? 0
   const currentPlan = PLANS.find(p => p.id === (subscription.planId ?? subscription.plan)) ?? PLANS[0]
   const patientLimit = currentPlan.maxPatients
   const reachedPatientLimit = patientLimit !== -1 && activeCount >= patientLimit
@@ -422,6 +432,28 @@ export default function PatientsPage() {
               </div>
             </section>
           ))}
+        </div>
+      )}
+
+      {totalPages > 1 && viewMode === 'list' && (
+        <div className="flex items-center justify-center gap-3 pt-2">
+          <button
+            disabled={page <= 1}
+            onClick={() => setPage(p => p - 1)}
+            className="btn-secondary text-sm disabled:opacity-40"
+          >
+            ← Anterior
+          </button>
+          <span className="text-sm text-neutral-500 tabular-nums">
+            {page} / {totalPages}
+          </span>
+          <button
+            disabled={page >= totalPages}
+            onClick={() => setPage(p => p + 1)}
+            className="btn-secondary text-sm disabled:opacity-40"
+          >
+            Próxima →
+          </button>
         </div>
       )}
 

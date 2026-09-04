@@ -19,12 +19,46 @@ export type UpdatePatientData =
   & { [Field in NullablePatientField]?: Patient[Field] | null }
   & { prontuario?: Record<string, any>; privateNotes?: string }
 
+export type PatientsPage = {
+  data: Patient[]
+  total: number
+  page: number
+  totalPages: number
+}
+
+export type UsePatientsOptions = {
+  enabled?: boolean
+  page?: number
+  limit?: number
+  search?: string
+  status?: string
+}
+
+// Backward-compat hook used by modals, agenda, etc. — fetches up to 200 patients at once.
 export function usePatients(options?: { enabled?: boolean }) {
   const userId = useAuthStore(s => s.user?.id)
   return useQuery<Patient[]>({
     queryKey: ['patients', userId],
-    queryFn: () => api.get('/patients').then(r => r.data),
+    queryFn: () =>
+      api.get('/patients', { params: { limit: 200 } }).then(r => (r.data as PatientsPage).data),
     enabled: (options?.enabled ?? true) && !!userId,
+  })
+}
+
+// Paginated hook for the patients list page.
+export function usePatientsPaginated(opts: UsePatientsOptions = {}) {
+  const userId = useAuthStore(s => s.user?.id)
+  const { page = 1, limit = 50, search = '', status = '', enabled = true } = opts
+  return useQuery<PatientsPage>({
+    queryKey: ['patients-paginated', userId, page, limit, search, status],
+    queryFn: () => {
+      const params: Record<string, string | number> = { page, limit }
+      if (search) params.search = search
+      if (status && status !== 'all') params.status = status
+      return api.get('/patients', { params }).then(r => r.data)
+    },
+    enabled: enabled && !!userId,
+    placeholderData: prev => prev,
   })
 }
 
@@ -128,6 +162,24 @@ export type ContactLog = {
   error?: string | null
   providerStatus?: string | null
   createdAt: string
+}
+
+export type AuditEntry = {
+  id: string
+  action: string
+  metadata?: Record<string, unknown> | null
+  ip?: string | null
+  userAgent?: string | null
+  createdAt: string
+}
+
+export function usePatientAuditLog(patientId: string) {
+  return useQuery<AuditEntry[]>({
+    queryKey: ['patient-audit-log', patientId],
+    queryFn: () => api.get(`/patients/${patientId}/audit-log`).then(r => r.data),
+    enabled: !!patientId,
+    staleTime: 30_000,
+  })
 }
 
 export function usePatientContactLogs(patientId: string) {

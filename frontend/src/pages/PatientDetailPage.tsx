@@ -19,6 +19,7 @@ import {
   useCreateNeuropsychAssessment, useNeuropsychAssessments,
   useAssessmentAiInterpretation, useAppointments,
   usePatientContactLogs, type ContactLog,
+  usePatientAuditLog, type AuditEntry,
 } from '@/hooks/useApi'
 import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 import Modal from '@/components/ui/Modal'
@@ -1259,6 +1260,7 @@ export default function PatientDetailPage() {
         <div className="space-y-4">
           <ReminderPrefsCard patient={patient} />
           <ContactLogsSection patientId={patient.id} />
+          <AuditLogCard patientId={patient.id} />
         </div>
       )}
 
@@ -1572,6 +1574,60 @@ function ContactLogsSection({ patientId }: { patientId: string }) {
           </div>
         </div>
       ))}
+    </div>
+  )
+}
+
+const ACTION_LABELS: Record<string, string> = {
+  'patient.viewed':                   'Prontuário visualizado',
+  'patient.updated':                  'Dados atualizados',
+  'patient.prontuario_exported':      'Prontuário exportado (PDF)',
+  'patient.prontuario_patient_copy_exported': 'Cópia para paciente exportada',
+  'patient.portal_link_created':      'Link do portal gerado',
+  'patient.created':                  'Cadastro criado',
+  'patient.deleted':                  'Cadastro excluído',
+}
+
+function AuditLogCard({ patientId }: { patientId: string }) {
+  const { data: entries = [], isLoading } = usePatientAuditLog(patientId)
+  const [expanded, setExpanded] = useState(false)
+  const shown = expanded ? entries : entries.slice(0, 5)
+
+  return (
+    <div className="rounded-2xl border border-neutral-100 bg-white p-5 shadow-card dark:border-white/10 dark:bg-cognia-panel">
+      <h3 className="mb-3 text-sm font-semibold text-neutral-700 dark:text-neutral-200 flex items-center gap-2">
+        <Eye className="w-4 h-4 text-sage-500" />
+        Histórico de acesso ao prontuário
+      </h3>
+
+      {isLoading ? (
+        <div className="space-y-2">
+          {[...Array(3)].map((_, i) => <div key={i} className="h-10 rounded-xl bg-neutral-100 animate-pulse" />)}
+        </div>
+      ) : entries.length === 0 ? (
+        <p className="text-sm text-neutral-400">Nenhum acesso registrado ainda.</p>
+      ) : (
+        <div className="space-y-1">
+          {shown.map((entry: AuditEntry) => (
+            <div key={entry.id} className="flex items-start justify-between gap-2 rounded-lg px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-white/5">
+              <span className="text-neutral-700 dark:text-neutral-200 font-medium">
+                {ACTION_LABELS[entry.action] ?? entry.action}
+              </span>
+              <span className="shrink-0 text-xs text-neutral-400">
+                {new Date(entry.createdAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+              </span>
+            </div>
+          ))}
+          {entries.length > 5 && (
+            <button
+              onClick={() => setExpanded(e => !e)}
+              className="mt-1 w-full text-center text-xs text-sage-600 hover:text-sage-700"
+            >
+              {expanded ? 'Ver menos' : `Ver todos (${entries.length})`}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

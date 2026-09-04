@@ -243,22 +243,45 @@ export class PatientsService {
 
   // ─── API pública ─────────────────────────────────────────────────────────────
 
-  async findAll(psychologistId: string): Promise<PatientListItemDto[]> {
-    const patients = await this.repo.find({
-      where: { psychologistId },
-      // Listagem nunca deve carregar prontuário, privateNotes nem ids internos de gateway.
-      select: [
-        'id', 'name', 'email', 'phone', 'birthDate', 'pronouns', 'race', 'gender',
-        'sexualOrientation', 'careMode', 'sessionPrice', 'billingType', 'monthlyPackagePrice',
-        'monthlyIncludedSessions', 'billingDay', 'sessionDuration', 'startDate',
-        'hasFixedSchedule', 'fixedScheduleWeekday', 'fixedScheduleTime',
-        'fixedScheduleFrequency', 'fixedScheduleModality', 'tags', 'status',
-        'cpfCnpj', 'createdAt', 'updatedAt',
-      ],
-    })
-    return patients
-      .map(patient => this.dec(patient) as PatientListItemDto)
-      .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
+  async findAll(
+    psychologistId: string,
+    opts: { page?: number; limit?: number; search?: string; status?: string } = {},
+  ): Promise<{ data: PatientListItemDto[]; total: number; page: number; totalPages: number }> {
+    const page  = Math.max(1, opts.page  ?? 1)
+    const limit = Math.min(200, Math.max(1, opts.limit ?? 50))
+    const skip  = (page - 1) * limit
+
+    const qb = this.repo.createQueryBuilder('p')
+      .where('p."psychologistId" = :uid', { uid: psychologistId })
+      .select([
+        'p.id', 'p.name', 'p.email', 'p.phone', 'p.birthDate', 'p.pronouns',
+        'p.race', 'p.gender', 'p.sexualOrientation', 'p.careMode',
+        'p.sessionPrice', 'p.billingType', 'p.monthlyPackagePrice',
+        'p.monthlyIncludedSessions', 'p.billingDay', 'p.sessionDuration',
+        'p.startDate', 'p.hasFixedSchedule', 'p.fixedScheduleWeekday',
+        'p.fixedScheduleTime', 'p.fixedScheduleFrequency',
+        'p.fixedScheduleModality', 'p.tags', 'p.status',
+        'p.cpfCnpj', 'p.createdAt', 'p.updatedAt',
+      ])
+
+    if (opts.status && opts.status !== 'all') {
+      qb.andWhere('p.status = :status', { status: opts.status })
+    }
+    if (opts.search?.trim()) {
+      qb.andWhere('unaccent(lower(p.name)) LIKE unaccent(lower(:search))', {
+        search: `%${opts.search.trim()}%`,
+      })
+    }
+
+    qb.orderBy('p.name', 'ASC').skip(skip).take(limit)
+
+    const [patients, total] = await qb.getManyAndCount()
+    return {
+      data: patients.map(p => this.dec(p) as PatientListItemDto),
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    }
   }
 
   async findOne(id: string, psychologistId: string): Promise<Patient> {

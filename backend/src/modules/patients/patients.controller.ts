@@ -19,7 +19,21 @@ export class PatientsController {
     private audit: AuditService,
   ) {}
 
-  @Get() findAll(@Request() req: any) { return this.svc.findAll(req.user.id) }
+  @Get()
+  findAll(
+    @Request() req: any,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.svc.findAll(req.user.id, {
+      page:   page   ? parseInt(page,  10) : undefined,
+      limit:  limit  ? parseInt(limit, 10) : undefined,
+      search,
+      status,
+    })
+  }
 
   @Get(':id/prontuario/export')
   @Throttle({ long: { limit: 5, ttl: 60 * 60 * 1000 } })
@@ -63,6 +77,11 @@ export class PatientsController {
   @Get(':id/contact-logs')
   getContactLogs(@Param('id') id: string, @Request() req: any) {
     return this.svc.getContactLogs(id, req.user.id)
+  }
+
+  @Get(':id/audit-log')
+  getAuditLog(@Param('id') id: string, @Request() req: any) {
+    return this.audit.findForPatient(req.user.id, id)
   }
 
   // O guard de classe bloqueia toda a area de pacientes durante impersonacao.

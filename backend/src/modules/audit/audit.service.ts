@@ -27,6 +27,14 @@ export class AuditService {
     })
   }
 
+  async findForPatient(userId: string, patientId: string): Promise<AuditLog[]> {
+    return this.repo.find({
+      where: { userId, resourceId: patientId },
+      order: { createdAt: 'DESC' },
+      take: 100,
+    })
+  }
+
   async record(input: AuditInput): Promise<void> {
     try {
       await this.repo.save(this.repo.create(input))
