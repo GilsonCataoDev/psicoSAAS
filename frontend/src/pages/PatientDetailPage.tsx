@@ -1256,7 +1256,10 @@ export default function PatientDetailPage() {
 
       {/* ── Histórico de contatos ─────────────────────────────────────── */}
       {tab === 'contacts' && (
-        <ContactLogsSection patientId={patient.id} />
+        <div className="space-y-4">
+          <ReminderPrefsCard patient={patient} />
+          <ContactLogsSection patientId={patient.id} />
+        </div>
       )}
 
       <NewSessionModal
@@ -1433,6 +1436,90 @@ const CONTACT_TYPE_LABELS: Record<string, string> = {
   booking_confirmation: 'Confirmação de consulta',
   payment_link:         'Link de pagamento',
   manual:               'Mensagem manual',
+}
+
+type ReminderPrefs = { enabled: boolean; leads: ('1h' | '24h')[]; channel: 'whatsapp' | 'email' | 'both' }
+const DEFAULT_PREFS: ReminderPrefs = { enabled: true, leads: ['1h', '24h'], channel: 'whatsapp' }
+
+function ReminderPrefsCard({ patient }: { patient: any }) {
+  const update = useUpdatePatient()
+  const [prefs, setPrefs] = useState<ReminderPrefs>(() => ({ ...DEFAULT_PREFS, ...(patient.reminderPrefs ?? {}) }))
+  const [saving, setSaving] = useState(false)
+
+  function toggleLead(lead: '1h' | '24h') {
+    setPrefs(p => ({
+      ...p,
+      leads: p.leads.includes(lead) ? p.leads.filter(l => l !== lead) : [...p.leads, lead],
+    }))
+  }
+
+  async function save() {
+    setSaving(true)
+    try {
+      await update.mutateAsync({ id: patient.id, data: { reminderPrefs: prefs } as any })
+      toast.success('Preferências de lembrete salvas')
+    } catch { toast.error('Erro ao salvar preferências') }
+    finally { setSaving(false) }
+  }
+
+  return (
+    <div className="card space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="section-title mb-0">Lembretes automáticos</h3>
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <span className="text-sm text-neutral-500">{prefs.enabled ? 'Ativo' : 'Inativo'}</span>
+          <button
+            type="button"
+            onClick={() => setPrefs(p => ({ ...p, enabled: !p.enabled }))}
+            className={`w-10 h-6 rounded-full transition-colors ${prefs.enabled ? 'bg-sage-500' : 'bg-neutral-300'}`}
+          >
+            <span className={`block w-4 h-4 bg-white rounded-full shadow transition-transform mx-1 ${prefs.enabled ? 'translate-x-4' : 'translate-x-0'}`} />
+          </button>
+        </label>
+      </div>
+
+      {prefs.enabled && (
+        <div className="space-y-3">
+          <div>
+            <p className="label">Antecedência</p>
+            <div className="flex gap-2">
+              {(['24h', '1h'] as const).map(lead => (
+                <button
+                  key={lead}
+                  type="button"
+                  onClick={() => toggleLead(lead)}
+                  className={`px-3 py-1.5 rounded-xl text-sm border transition-colors ${prefs.leads.includes(lead) ? 'bg-sage-100 border-sage-300 text-sage-800' : 'bg-white border-neutral-200 text-neutral-400'}`}
+                >
+                  {lead === '24h' ? '24 horas antes' : '1 hora antes'}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="label">Canal</p>
+            <div className="flex gap-2 flex-wrap">
+              {([['whatsapp', 'WhatsApp'], ['email', 'E-mail'], ['both', 'Ambos']] as const).map(([val, label]) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setPrefs(p => ({ ...p, channel: val }))}
+                  className={`px-3 py-1.5 rounded-xl text-sm border transition-colors ${prefs.channel === val ? 'bg-sage-100 border-sage-300 text-sage-800' : 'bg-white border-neutral-200 text-neutral-400'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex justify-end">
+        <button onClick={save} disabled={saving} className="btn-primary text-sm flex items-center gap-2">
+          <Save className="w-3.5 h-3.5" />{saving ? 'Salvando…' : 'Salvar'}
+        </button>
+      </div>
+    </div>
+  )
 }
 
 function ContactLogsSection({ patientId }: { patientId: string }) {

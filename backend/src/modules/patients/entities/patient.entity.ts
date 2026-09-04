@@ -76,6 +76,13 @@ export class Patient {
 
   @Column({ type: 'simple-array', nullable: true }) tags: string[]
 
+  /** Preferências de lembrete por paciente — sobrepõe o padrão do profissional */
+  @Column({ type: 'jsonb', nullable: true }) reminderPrefs?: {
+    enabled: boolean
+    leads: ('1h' | '24h')[]
+    channel: 'whatsapp' | 'email' | 'both'
+  }
+
   @Column({ nullable: true }) psychologistId: string
   @ManyToOne(() => User, (u) => u.patients, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'psychologistId' })

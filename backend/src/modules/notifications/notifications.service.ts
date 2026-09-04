@@ -1346,6 +1346,17 @@ export class NotificationsService {
   async sendAppointmentReminder(appointment: any, lead: '24h' | '1h'): Promise<WhatsAppDeliveryResult> {
     const { patient, date, time } = appointment
     const prefs = (appointment.psychologist?.preferences ?? {}) as Record<string, any>
+
+    // Respeita preferências de lembrete do paciente (sobrepõe padrão do profissional)
+    const rp = patient?.reminderPrefs as { enabled?: boolean; leads?: string[]; channel?: string } | undefined
+    if (rp) {
+      if (rp.enabled === false) return { sent: false, error: 'Lembretes desativados para este paciente' }
+      if (Array.isArray(rp.leads) && rp.leads.length > 0 && !rp.leads.includes(lead)) {
+        return { sent: false, error: `Lembrete ${lead} desativado para este paciente` }
+      }
+      if (rp.channel === 'email') return { sent: false, error: 'Paciente configurado para receber lembretes apenas por e-mail' }
+    }
+
     const pushResult = await this.sendAppointmentPushReminder(appointment, lead)
 
     if (!patient?.phone) {
