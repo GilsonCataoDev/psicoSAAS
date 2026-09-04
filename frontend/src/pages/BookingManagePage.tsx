@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Link2, Check, X, Wallet, Settings, Clock, RefreshCw, Trash2, MessageCircle, ExternalLink, Image, AlertCircle } from 'lucide-react'
+import { Link2, Check, X, Wallet, Settings, Clock, RefreshCw, Trash2, MessageCircle, ExternalLink, Image, AlertCircle, Sparkles, Copy } from 'lucide-react'
 import { copyText, formatCurrency, formatDateRelative } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
@@ -12,6 +12,7 @@ import {
   useConfirmBooking, useRejectBooking, usePayBooking,
   useDailyBookingLink, useAvailability, useSaveAvailability,
   useSyncBookingAppointments, useBlockedDates, useAddBlockedDate, useAddBlockedWeek, useRemoveBlockedDate,
+  useSmartSuggest, type SuggestedSlot,
 } from '@/hooks/useApi'
 import { useTerms } from '@/hooks/useTerms'
 
@@ -135,6 +136,8 @@ export default function BookingManagePage() {
           </button>
         </div>
       </div>
+
+      <SmartSuggestCard bookingUrl={bookingUrl} bookingLinkIsActive={bookingLinkIsActive} />
 
       {tab === 'requests' && (
         <>
@@ -1191,6 +1194,67 @@ function BookingSettings({ page }: { page: any }) {
           Salvar configurações
         </button>
       </div>
+    </div>
+  )
+}
+
+function SmartSuggestCard({ bookingUrl, bookingLinkIsActive }: { bookingUrl: string; bookingLinkIsActive: boolean }) {
+  const { data: slots = [], isLoading } = useSmartSuggest({ maxSlots: 8, days: 21 })
+  const [copied, setCopied] = useState<string | null>(null)
+
+  if (!isLoading && slots.length === 0) return null
+
+  const WEEKDAY: Record<number, string> = {
+    0: 'Dom', 1: 'Seg', 2: 'Ter', 3: 'Qua', 4: 'Qui', 5: 'Sex', 6: 'Sáb',
+  }
+
+  async function copySlotLink(slot: SuggestedSlot) {
+    if (!bookingLinkIsActive) { toast('Link público está pausado.'); return }
+    const base = bookingUrl.split('?')[0].replace(/\/$/, '')
+    const link = `${base}?date=${slot.date}&time=${slot.time}`
+    try {
+      await copyText(link)
+      setCopied(`${slot.date}T${slot.time}`)
+      setTimeout(() => setCopied(null), 2000)
+    } catch {
+      toast.error('Não foi possível copiar.')
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-sage-100 bg-sage-50/60 p-4 dark:border-sage-700/30 dark:bg-sage-900/10">
+      <div className="flex items-center gap-2 mb-3">
+        <Sparkles className="w-4 h-4 text-sage-600" />
+        <h3 className="text-sm font-semibold text-sage-800 dark:text-sage-200">Próximos horários livres</h3>
+        {isLoading && <span className="text-xs text-neutral-400 ml-auto">Buscando…</span>}
+      </div>
+      {isLoading ? (
+        <div className="flex gap-2 flex-wrap">
+          {[...Array(4)].map((_, i) => <div key={i} className="h-8 w-28 rounded-lg bg-sage-100 animate-pulse" />)}
+        </div>
+      ) : (
+        <div className="flex gap-2 flex-wrap">
+          {slots.map(slot => {
+            const d = new Date(`${slot.date}T00:00:00`)
+            const key = `${slot.date}T${slot.time}`
+            const label = `${WEEKDAY[d.getDay()]} ${d.getDate().toString().padStart(2, '0')}/${(d.getMonth()+1).toString().padStart(2, '0')} ${slot.time}`
+            return (
+              <button
+                key={key}
+                onClick={() => copySlotLink(slot)}
+                title="Copiar link para este horário"
+                className="flex items-center gap-1.5 rounded-lg border border-sage-200 bg-white px-3 py-1.5 text-xs font-medium text-sage-800 hover:bg-sage-50 transition-colors dark:border-sage-700 dark:bg-sage-900/30 dark:text-sage-200"
+              >
+                {copied === key
+                  ? <Check className="w-3 h-3 text-sage-500" />
+                  : <Copy className="w-3 h-3 text-sage-400" />}
+                {label}
+              </button>
+            )
+          })}
+        </div>
+      )}
+      <p className="mt-2 text-xs text-neutral-400">Clique em um horário para copiar o link de agendamento direto.</p>
     </div>
   )
 }

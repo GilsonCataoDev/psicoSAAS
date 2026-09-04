@@ -30,6 +30,26 @@ export function useBlockedDates() {
   })
 }
 
+export type SuggestedSlot = { date: string; time: string }
+
+export function useSmartSuggest(opts: {
+  enabled?: boolean
+  days?: number
+  sessionDuration?: number
+  buffer?: number
+  modality?: 'presencial' | 'online'
+  maxSlots?: number
+} = {}) {
+  const userId = useAuthStore(s => s.user?.id)
+  const { enabled = true, ...params } = opts
+  return useQuery<SuggestedSlot[]>({
+    queryKey: ['smart-suggest', userId, params],
+    queryFn: () => api.get('/availability/smart-suggest', { params }).then(r => r.data),
+    enabled: enabled && !!userId,
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
 export function useExtraAvailability() {
   const userId = useAuthStore(s => s.user?.id)
   return useQuery<{ id: string; date: string; startTime: string; endTime: string; modality?: 'presencial' | 'online' }[]>({

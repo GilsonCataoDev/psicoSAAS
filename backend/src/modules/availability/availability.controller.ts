@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Request, UseGuards } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, Post, Query, Request, UseGuards } from '@nestjs/common'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
@@ -17,6 +17,24 @@ export class AvailabilityController {
 
   @Get()
   getSlots(@Request() req: any) { return this.svc.findAll(req.user.id) }
+
+  @Get('smart-suggest')
+  getSuggestedSlots(
+    @Request() req: any,
+    @Query('days') days?: string,
+    @Query('sessionDuration') sessionDuration?: string,
+    @Query('buffer') buffer?: string,
+    @Query('modality') modality?: string,
+    @Query('maxSlots') maxSlots?: string,
+  ) {
+    return this.svc.getSuggestedSlots(req.user.id, {
+      days:            days            ? parseInt(days,            10) : undefined,
+      sessionDuration: sessionDuration ? parseInt(sessionDuration, 10) : undefined,
+      buffer:          buffer          ? parseInt(buffer,          10) : undefined,
+      modality:        modality as 'presencial' | 'online' | undefined,
+      maxSlots:        maxSlots        ? parseInt(maxSlots,        10) : undefined,
+    })
+  }
 
   @Post('slots')
   saveSlots(@Request() req: any, @Body() body: SaveAvailabilitySlotsDto) {

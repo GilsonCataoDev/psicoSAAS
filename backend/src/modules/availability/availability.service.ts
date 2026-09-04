@@ -305,6 +305,87 @@ export class AvailabilityService {
     }
   }
 
+  async getSuggestedSlots(
+    psychologistId: string,
+    opts: { days?: number; sessionDuration?: number; buffer?: number; modality?: 'presencial' | 'online'; maxSlots?: number } = {},
+  ): Promise<{ date: string; time: string }[]> {
+    const daysAhead    = Math.min(90, Math.max(1, opts.days          ?? 30))
+    const duration     = Math.max(15, opts.sessionDuration           ?? 50)
+    const buffer       = Math.max(0,  opts.buffer                    ?? 0)
+    const slotSize     = duration + buffer
+    const maxSlots     = Math.min(50, Math.max(1, opts.maxSlots      ?? 10))
+    const modality     = opts.modality
+
+    const now     = new Date()
+    const nowMins = now.getHours() * 60 + now.getMinutes()
+    const today   = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()))
+    const suggested: { date: string; time: string }[] = []
+
+    for (let d = 0; d < daysAhead && suggested.length < maxSlots; d++) {
+      const date   = new Date(today.getTime() + d * 86_400_000)
+      const dateStr = date.toISOString().slice(0, 10)
+      const weekday = date.getUTCDay()
+
+      const isBlocked = await this.isDateBlocked(psychologistId, dateStr)
+      if (isBlocked) continue
+
+      const [weeklySlots, extraSlots, availBlocks, existingAppts, existingBookings] = await Promise.all([
+        this.getSlotsForDay(psychologistId, weekday, modality),
+        this.getExtraSlotsForDate(psychologistId, dateStr, modality),
+        this.getAvailabilityBlocksForDate(psychologistId, dateStr, weekday),
+        this.appointments.find({
+          where: { psychologistId, date: dateStr },
+          select: ['time', 'duration', 'status'],
+        }),
+        this.bookings.find({
+          where: { psychologistId, date: dateStr },
+          select: ['time', 'duration', 'status'],
+        }),
+      ])
+
+      const slots = [...weeklySlots, ...extraSlots]
+      if (!slots.length) continue
+
+      const busyMins: { start: number; end: number }[] = []
+      for (const appt of existingAppts) {
+        if (['cancelled', 'no_show'].includes(appt.status)) continue
+        const s = this.timeToMinutes(appt.time)
+        busyMins.push({ start: s, end: s + Number(appt.duration || 50) })
+      }
+      for (const bk of existingBookings) {
+        if (['cancelled', 'no_show'].includes(bk.status)) continue
+        const s = this.timeToMinutes(bk.time)
+        busyMins.push({ start: s, end: s + Number(bk.duration || 50) })
+      }
+      for (const blk of availBlocks) {
+        const s = this.timeToMinutes(blk.startTime)
+        const e = this.timeToMinutes(blk.endTime)
+        busyMins.push({ start: s, end: e })
+      }
+
+      for (const slot of slots) {
+        if (suggested.length >= maxSlots) break
+        const slotStart = this.timeToMinutes(slot.startTime)
+        const slotEnd   = this.timeToMinutes(slot.endTime)
+        let cur = slotStart
+        while (cur + duration <= slotEnd) {
+          const isToday   = d === 0
+          const isPast    = isToday && cur <= nowMins + 60
+          const overlaps  = busyMins.some(b => this.rangesOverlap(cur, cur + duration, b.start, b.end))
+          if (!isPast && !overlaps) {
+            const hh = String(Math.floor(cur / 60)).padStart(2, '0')
+            const mm = String(cur % 60).padStart(2, '0')
+            suggested.push({ date: dateStr, time: `${hh}:${mm}` })
+            if (suggested.length >= maxSlots) break
+          }
+          cur += slotSize
+        }
+      }
+    }
+
+    return suggested
+  }
+
   private rangesOverlap(startA: number, endA: number, startB: number, endB: number): boolean {
     return startA < endB && startB < endA
   }
