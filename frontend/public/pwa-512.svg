@@ -1,17 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <rect width="512" height="512" rx="112" fill="#1D352D"/>
+  <rect width="512" height="512" rx="112" fill="#0A2920"/>
   <defs>
-    <linearGradient id="cognia-pwa-512" x1="85.3" y1="64" x2="448" y2="448" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#2F7657"/>
+    <linearGradient id="net-g" x1="150" y1="107" x2="362" y2="362" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3EFFC0"/>
       <stop offset="1" stop-color="#4DA8DA"/>
     </linearGradient>
   </defs>
-  <path d="M298.7 80C177 80 85.3 165.3 85.3 256S177 432 298.7 432" fill="none" stroke="url(#cognia-pwa-512)" stroke-width="85.3" stroke-linecap="round"/>
-  <path d="M304 154.7c49.1 0 90.7 38.4 93.9 87.5 30.9 8.5 54.4 37.3 54.4 71.5 0 39.5-30.9 72.5-70.4 74.7" fill="none" stroke="url(#cognia-pwa-512)" stroke-width="29.9" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M298.7 197.3V368M298.7 256l85.3-48M298.7 256l90.7 53.3M298.7 330.7l64 42.7" fill="none" stroke="#B7DFCD" stroke-width="25.6" stroke-linecap="round"/>
-  <circle cx="298.7" cy="256" r="33.1" fill="#B7DFCD"/>
-  <circle cx="384" cy="208" r="33.1" fill="#B7DFCD"/>
-  <circle cx="389.3" cy="309.3" r="33.1" fill="#B7DFCD"/>
-  <circle cx="362.7" cy="373.3" r="33.1" fill="#B7DFCD"/>
-  <circle cx="298.7" cy="330.7" r="33.1" fill="#B7DFCD"/>
+  <path d="M128 320 Q256 469 384 320" stroke="url(#net-g)" stroke-width="37" stroke-linecap="round"/>
+  <path d="M150 235 A107 107 0 0 1 362 235" stroke="url(#net-g)" stroke-width="12.8" fill="none" opacity="0.6"/>
+  <line x1="192" y1="331" x2="320" y2="128" stroke="url(#net-g)" stroke-width="14" stroke-linecap="round" opacity="0.8"/>
+  <line x1="320" y1="331" x2="192" y2="128" stroke="url(#net-g)" stroke-width="14" stroke-linecap="round" opacity="0.8"/>
+  <line x1="150" y1="235" x2="362" y2="235" stroke="url(#net-g)" stroke-width="14" stroke-linecap="round" opacity="0.8"/>
+  <circle cx="256" cy="128" r="30" fill="#3EFFC0"/>
+  <circle cx="150" cy="235" r="30" fill="#5BBFD6"/>
+  <circle cx="362" cy="235" r="30" fill="#3EFFC0"/>
+  <circle cx="192" cy="331" r="30" fill="#7BAAE8"/>
+  <circle cx="320" cy="331" r="30" fill="#7BAAE8"/>
 </svg>

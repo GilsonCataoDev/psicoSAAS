@@ -1,17 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" fill="none">
-  <rect width="192" height="192" rx="44" fill="#1D352D"/>
+  <rect width="192" height="192" rx="48" fill="#0A2920"/>
   <defs>
-    <linearGradient id="cognia-pwa-192" x1="32" y1="24" x2="168" y2="168" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#2F7657"/>
+    <linearGradient id="net-g" x1="56" y1="40" x2="136" y2="136" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3EFFC0"/>
       <stop offset="1" stop-color="#4DA8DA"/>
     </linearGradient>
   </defs>
-  <path d="M112 30C66.4 30 32 62 32 96s34.4 66 80 66" fill="none" stroke="url(#cognia-pwa-192)" stroke-width="32" stroke-linecap="round"/>
-  <path d="M114 58c18.4 0 34 14.4 35.2 32.8 11.6 3.2 20.4 14 20.4 26.8 0 14.8-11.6 27.2-26.4 28" fill="none" stroke="url(#cognia-pwa-192)" stroke-width="11.2" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M112 74v64M112 96l32-18M112 96l34 20M112 124l24 16" fill="none" stroke="#B7DFCD" stroke-width="9.6" stroke-linecap="round"/>
-  <circle cx="112" cy="96" r="12.4" fill="#B7DFCD"/>
-  <circle cx="144" cy="78" r="12.4" fill="#B7DFCD"/>
-  <circle cx="146" cy="116" r="12.4" fill="#B7DFCD"/>
-  <circle cx="136" cy="140" r="12.4" fill="#B7DFCD"/>
-  <circle cx="112" cy="124" r="12.4" fill="#B7DFCD"/>
+  <path d="M48 120 Q96 176 144 120" stroke="url(#net-g)" stroke-width="14" stroke-linecap="round"/>
+  <path d="M56 88 A40 40 0 0 1 136 88" stroke="url(#net-g)" stroke-width="4.8" fill="none" opacity="0.6"/>
+  <line x1="72" y1="124" x2="120" y2="48" stroke="url(#net-g)" stroke-width="5.2" stroke-linecap="round" opacity="0.8"/>
+  <line x1="120" y1="124" x2="72" y2="48" stroke="url(#net-g)" stroke-width="5.2" stroke-linecap="round" opacity="0.8"/>
+  <line x1="56" y1="88" x2="136" y2="88" stroke="url(#net-g)" stroke-width="5.2" stroke-linecap="round" opacity="0.8"/>
+  <circle cx="96" cy="48" r="11.2" fill="#3EFFC0"/>
+  <circle cx="56" cy="88" r="11.2" fill="#5BBFD6"/>
+  <circle cx="136" cy="88" r="11.2" fill="#3EFFC0"/>
+  <circle cx="72" cy="124" r="11.2" fill="#7BAAE8"/>
+  <circle cx="120" cy="124" r="11.2" fill="#7BAAE8"/>
 </svg>
