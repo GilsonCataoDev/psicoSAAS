@@ -5,7 +5,7 @@ import { z } from 'zod'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
 import { useTerms } from '@/hooks/useTerms'
-import { hasPsychologyModules } from '@/lib/professions'
+import { hasPsychologyModules, hasPhysiotherapyModules } from '@/lib/professions'
 import { useAuthStore } from '@/store/auth'
 import { EmotionalTag, Patient, TAG_LABELS } from '@/types'
 import { useCreatePatient, useDefaultTemplate } from '@/hooks/useApi'
@@ -22,7 +22,7 @@ const schema = z.object({
   gender: z.string().optional(),
   sexualOrientation: z.string().optional(),
   careMode: z.enum(['psychotherapy', 'neuropsychological_assessment']),
-  billingType: z.enum(['per_session', 'monthly_package']),
+  billingType: z.enum(['per_session', 'monthly_package', 'session_package']),
   sessionPrice: z.coerce.number().min(0),
   monthlyPackagePrice: z.coerce.number().min(0),
   monthlyIncludedSessions: z.coerce.number().int().min(1).max(31),
@@ -39,7 +39,7 @@ const schema = z.object({
     .optional()
     .or(z.literal('')),
 }).superRefine((data, ctx) => {
-  if (data.billingType === 'monthly_package' && data.monthlyPackagePrice <= 0) {
+  if ((data.billingType === 'monthly_package' || data.billingType === 'session_package') && data.monthlyPackagePrice <= 0) {
     ctx.addIssue({ code: 'custom', path: ['monthlyPackagePrice'], message: 'Informe o valor do pacote' })
   }
 })
@@ -50,7 +50,9 @@ const ALL_TAGS = Object.entries(TAG_LABELS) as [EmotionalTag, string][]
 
 export default function NewPatientModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const t = useTerms()
-  const showCareMode = hasPsychologyModules(useAuthStore(s => s.user?.profession))
+  const profession = useAuthStore(s => s.user?.profession)
+  const showCareMode = hasPsychologyModules(profession)
+  const isFisio = hasPhysiotherapyModules(profession)
   const { register, handleSubmit, reset, watch, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -223,14 +225,23 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
                 <span className="block font-semibold">Por {t.session}</span>
                 <span className="mt-0.5 block text-xs opacity-75">Gera uma cobrança a cada atendimento</span>
               </label>
-              <label className={`cursor-pointer rounded-xl border p-3 text-sm transition-colors ${billingType === 'monthly_package' ? 'border-sage-300 bg-sage-50 text-sage-800' : 'border-neutral-200 text-neutral-600'}`}>
-                <input {...register('billingType')} type="radio" value="monthly_package" className="sr-only" />
-                <span className="block font-semibold">Pacote mensal</span>
-                <span className="mt-0.5 block text-xs opacity-75">Uma cobrança por mês, com {t.sessions} incluídas</span>
-              </label>
+              {!isFisio && (
+                <label className={`cursor-pointer rounded-xl border p-3 text-sm transition-colors ${billingType === 'monthly_package' ? 'border-sage-300 bg-sage-50 text-sage-800' : 'border-neutral-200 text-neutral-600'}`}>
+                  <input {...register('billingType')} type="radio" value="monthly_package" className="sr-only" />
+                  <span className="block font-semibold">Pacote mensal</span>
+                  <span className="mt-0.5 block text-xs opacity-75">Uma cobrança por mês, com {t.sessions} incluídas</span>
+                </label>
+              )}
+              {isFisio && (
+                <label className={`cursor-pointer rounded-xl border p-3 text-sm transition-colors ${billingType === 'session_package' ? 'border-sage-300 bg-sage-50 text-sage-800' : 'border-neutral-200 text-neutral-600'}`}>
+                  <input {...register('billingType')} type="radio" value="session_package" className="sr-only" />
+                  <span className="block font-semibold">Pacote de atendimentos</span>
+                  <span className="mt-0.5 block text-xs opacity-75">Número fixo de sessões pré-pagas</span>
+                </label>
+              )}
             </div>
           </div>
-          {billingType === 'monthly_package' ? (
+          {(billingType === 'monthly_package' || billingType === 'session_package') ? (
             <>
               <div>
                 <label className="label">Valor do pacote (R$)</label>
@@ -238,13 +249,15 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
                 {errors.monthlyPackagePrice && <p className="mt-1 text-xs text-rose-500">{errors.monthlyPackagePrice.message}</p>}
               </div>
               <div>
-                <label className="label">{t.sessionsCapitalized} incluídas por mês</label>
-                <input {...register('monthlyIncludedSessions')} type="number" min={1} max={31} className="input-field" />
+                <label className="label">{billingType === 'session_package' ? 'Total de sessões do pacote' : `${t.sessionsCapitalized} incluídas por mês`}</label>
+                <input {...register('monthlyIncludedSessions')} type="number" min={1} max={200} className="input-field" />
               </div>
-              <div>
-                <label className="label">Dia do vencimento</label>
-                <input {...register('billingDay')} type="number" min={1} max={31} className="input-field" />
-              </div>
+              {billingType === 'monthly_package' && (
+                <div>
+                  <label className="label">Dia do vencimento</label>
+                  <input {...register('billingDay')} type="number" min={1} max={31} className="input-field" />
+                </div>
+              )}
             </>
           ) : (
             <div>
