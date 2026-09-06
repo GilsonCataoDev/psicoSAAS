@@ -43,6 +43,13 @@ class PatientProntuarioDto {
   @IsString() @MaxLength(120) @IsOptional() profissao?: string
   @IsString() @MaxLength(80) @IsOptional() estadoCivil?: string
   @IsString() @MaxLength(120) @IsOptional() religiao?: string
+
+  // Fisioterapia — conteúdo mínimo do prontuário exigido pela Res. COFFITO 414/2012.
+  @IsString() @MaxLength(3000) @IsOptional() exameFisico?: string
+  @IsString() @MaxLength(3000) @IsOptional() diagnosticoFuncional?: string
+  @IsString() @MaxLength(1500) @IsOptional() prognosticoFuncional?: string
+  @IsString() @MaxLength(3000) @IsOptional() recursosTerapeuticos?: string
+  @IsString() @MaxLength(120) @IsOptional() quantitativoAtendimentos?: string
 }
 
 export class CreatePatientDto {

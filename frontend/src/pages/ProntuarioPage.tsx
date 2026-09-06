@@ -13,6 +13,8 @@ import toast from 'react-hot-toast'
 import DictationButton from '@/components/ui/DictationButton'
 import RecordingPanel from '@/components/ui/RecordingPanel'
 import { useHasPlan } from '@/store/subscription'
+import { useAuthStore } from '@/store/auth'
+import { hasPhysiotherapyModules } from '@/lib/professions'
 import PatientRecordDeliveryModal from '@/components/features/patients/PatientRecordDeliveryModal'
 import { useTerms } from '@/hooks/useTerms'
 
@@ -174,6 +176,7 @@ const FIELD = ({
 
 export default function ProntuarioPage() {
   const t = useTerms()
+  const isFisio = hasPhysiotherapyModules(useAuthStore(s => s.user?.profession))
   const { id } = useParams()
   const { data: patient, isLoading: patientLoading } = usePatient(id ?? '')
   const [tab, setTab] = useState<Tab>('identificacao')
@@ -527,13 +530,26 @@ export default function ProntuarioPage() {
               placeholder="Evolução dos sintomas, contexto de surgimento..." />
           </div>
 
+          {isFisio && (
+            <div className="card space-y-4">
+              <h2 className="section-title">Exame físico</h2>
+              <FIELD label="Exame físico (semiologia fisioterapêutica)" rows={5}
+                value={form.exameFisico ?? ''}
+                onChange={v => set('exameFisico', v)}
+                dictation
+                placeholder="Inspeção, palpação, amplitude de movimento, força muscular, testes especiais, marcha..." />
+            </div>
+          )}
+
           <div className="card space-y-4">
             <h2 className="section-title">Antecedentes</h2>
-            <FIELD label="Antecedentes pessoais (saúde mental)" rows={3}
+            <FIELD label={isFisio ? 'Antecedentes pessoais' : 'Antecedentes pessoais (saúde mental)'} rows={3}
               value={form.antecedentesPessoais ?? ''}
               onChange={v => set('antecedentesPessoais', v)}
               dictation
-              placeholder="Histórico de tratamentos anteriores, hospitalizações..." />
+              placeholder={isFisio
+                ? 'Cirurgias, lesões prévias, tratamentos anteriores, comorbidades...'
+                : 'Histórico de tratamentos anteriores, hospitalizações...'} />
             <FIELD label="Histórico familiar" rows={3}
               value={form.historicoFamiliar ?? ''}
               onChange={v => set('historicoFamiliar', v)}
@@ -564,20 +580,53 @@ export default function ProntuarioPage() {
       {tab === 'plano' && (
         <div className="card space-y-4">
           <h2 className="section-title">Plano terapêutico</h2>
+
+          {isFisio && (
+            <>
+              <FIELD label="Diagnóstico cinesiofuncional" rows={3}
+                value={form.diagnosticoFuncional ?? ''}
+                onChange={v => set('diagnosticoFuncional', v)}
+                dictation
+                placeholder="Alterações de função e estrutura identificadas, limitações de atividade e restrições de participação..." />
+              <FIELD label="Prognóstico funcional" rows={3}
+                value={form.prognosticoFuncional ?? ''}
+                onChange={v => set('prognosticoFuncional', v)}
+                dictation
+                placeholder="Evolução funcional esperada e fatores que podem influenciá-la..." />
+            </>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FIELD label="Abordagem teórica"
-              value={form.abordagem ?? ''}
-              onChange={v => set('abordagem', v)}
-              placeholder="Ex: TCC, Psicanálise, Gestalt..." />
+            {!isFisio && (
+              <FIELD label="Abordagem teórica"
+                value={form.abordagem ?? ''}
+                onChange={v => set('abordagem', v)}
+                placeholder="Ex: TCC, Psicanálise, Gestalt..." />
+            )}
             <FIELD label={`Frequência das ${t.sessions}`}
               value={form.frequencia ?? ''}
               onChange={v => set('frequencia', v)}
-              placeholder="Ex: Semanal (50 min)" />
+              placeholder={isFisio ? 'Ex: 3x por semana (40 min)' : 'Ex: Semanal (50 min)'} />
             <FIELD label="Duração prevista do tratamento"
               value={form.duracaoPrevista ?? ''}
               onChange={v => set('duracaoPrevista', v)}
-              placeholder="Ex: 6 a 12 meses" />
+              placeholder={isFisio ? 'Ex: 8 semanas' : 'Ex: 6 a 12 meses'} />
+            {isFisio && (
+              <FIELD label="Quantitativo provável de atendimentos"
+                value={form.quantitativoAtendimentos ?? ''}
+                onChange={v => set('quantitativoAtendimentos', v)}
+                placeholder="Ex: 20 sessões" />
+            )}
           </div>
+
+          {isFisio && (
+            <FIELD label="Recursos e métodos terapêuticos" rows={4}
+              value={form.recursosTerapeuticos ?? ''}
+              onChange={v => set('recursosTerapeuticos', v)}
+              dictation
+              placeholder="Cinesioterapia, terapia manual, eletrotermofototerapia, hidroterapia — com parâmetros de dosagem..." />
+          )}
+
           <FIELD label="Objetivos terapêuticos" rows={4}
             value={form.objetivos ?? ''}
             onChange={v => set('objetivos', v)}

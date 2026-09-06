@@ -14,6 +14,12 @@ export interface Prontuario {
   objetivos: string
   frequencia: string
   duracaoPrevista: string
+  // Fisioterapia — Res. COFFITO 414/2012 (ver hasPhysiotherapyModules)
+  exameFisico: string
+  diagnosticoFuncional: string
+  prognosticoFuncional: string
+  recursosTerapeuticos: string
+  quantitativoAtendimentos: string
   // Contato de emergência
   contatoEmergenciaNome: string
   contatoEmergenciaPhone: string

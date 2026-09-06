@@ -50,6 +50,19 @@ export function hasPsychologyModules(profession?: string | null): boolean {
 }
 
 /**
+ * A Resolução COFFITO 414/2012 exige no prontuário campos que o registro de
+ * psicologia não tem: exame físico por semiologia fisioterapêutica, diagnóstico
+ * e prognóstico cinesiofuncional, e o quantitativo provável de atendimentos.
+ *
+ * Restrito a `fisioterapia`. A 414/2012 também alcança terapia ocupacional, mas
+ * o vocabulário do diagnóstico é outro — incluir TO aqui rotularia a tela dela
+ * com termos que não são os da profissão.
+ */
+export function hasPhysiotherapyModules(profession?: string | null): boolean {
+  return (profession ?? DEFAULT_PROFESSION) === 'fisioterapia'
+}
+
+/**
  * Charset aceito num registro de conselho (CRN-3 12345, CREFITO-3/12345-F...).
  * O formato varia por conselho, entao so barramos o que nao pode aparecer.
  */

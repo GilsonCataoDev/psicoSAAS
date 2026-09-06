@@ -613,8 +613,9 @@ export class PatientsService {
     const pr = p.prontuario as Record<string, string> | undefined
 
     if (pr) {
-      const hasAnamnese = pr.queixaPrincipal || pr.historicoDoenca || pr.antecedentesPessoais || pr.historicoFamiliar || pr.medicamentos || pr.condicoesMedicas
+      const hasAnamnese = pr.queixaPrincipal || pr.historicoDoenca || pr.antecedentesPessoais || pr.historicoFamiliar || pr.medicamentos || pr.condicoesMedicas || pr.exameFisico
       const hasPlano    = pr.abordagem || pr.objetivos || pr.frequencia || pr.duracaoPrevista
+        || pr.diagnosticoFuncional || pr.prognosticoFuncional || pr.recursosTerapeuticos || pr.quantitativoAtendimentos
       const hasDados    = pr.escolaridade || pr.profissao || pr.estadoCivil || pr.religiao
 
       if (hasAnamnese && options.sections.has('anamnesis')) {
@@ -626,14 +627,19 @@ export class PatientsService {
         field('HISTÓRICO FAMILIAR', pr.historicoFamiliar, { wide: true })
         field('MEDICAMENTOS', pr.medicamentos, { wide: true })
         field('CONDIÇÕES MÉDICAS', pr.condicoesMedicas, { wide: true })
+        field('EXAME FÍSICO', pr.exameFisico, { wide: true })
       }
 
       if (hasPlano && options.sections.has('treatment_plan')) {
         checkPageBreak(80)
         sectionTitle('Plano Terapêutico')
+        field('DIAGNÓSTICO CINESIOFUNCIONAL', pr.diagnosticoFuncional, { wide: true })
+        field('PROGNÓSTICO FUNCIONAL', pr.prognosticoFuncional, { wide: true })
         field('ABORDAGEM', pr.abordagem, { wide: true })
+        field('RECURSOS E MÉTODOS TERAPÊUTICOS', pr.recursosTerapeuticos, { wide: true })
         field('OBJETIVOS', pr.objetivos, { wide: true })
         fieldPair('FREQUÊNCIA', pr.frequencia, 'DURAÇÃO PREVISTA', pr.duracaoPrevista)
+        field('QUANTITATIVO PROVÁVEL DE ATENDIMENTOS', pr.quantitativoAtendimentos)
       }
 
       if (hasDados && options.sections.has('identification')) {
