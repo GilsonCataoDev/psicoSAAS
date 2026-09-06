@@ -29,7 +29,8 @@ import {
   instrumentsFor,
 } from '@/features/instruments/instrument-catalog'
 import { useAuthStore } from '@/store/auth'
-import { hasPsychologyModules } from '@/lib/professions'
+import { hasPsychologyModules, hasNutritionModules } from '@/lib/professions'
+import { NutritionCalculators } from '@/features/instruments/NutritionCalculators'
 import type {
   AgeGroup,
   Instrument,
@@ -961,6 +962,10 @@ export default function InstrumentosPage() {
         }}
         showBatteries={hasPsychologyModules(profession)}
       />
+
+      {hasNutritionModules(profession) && (
+        <NutritionCalculators />
+      )}
 
       <AssignmentHistory
         assignments={assignments}

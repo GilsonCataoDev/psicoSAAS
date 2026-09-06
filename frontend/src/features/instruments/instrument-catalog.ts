@@ -3,6 +3,7 @@ import {
   HeartPulse, Activity, BarChart3, ShieldAlert,
   PenLine, Smile, Moon, Gauge, Compass, Users, Brain,
   AlertCircle, Globe, Sun, ListChecks, Zap, TrendingUp, Award, Flame, Frown,
+  Utensils, BookOpen, NotebookPen, Apple,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { DEFAULT_PROFESSION, type Profession } from '@/lib/professions'
@@ -1624,6 +1625,299 @@ Aplicação pelo profissional. Cada uma das 14 tarefas vale de 0 a 4.
 Necessário: cronômetro, cadeira com e sem apoio de braço, banquinho/degrau, régua.
 
 OBSERVAÇÕES DO(A) PROFISSIONAL:`,
+  },
+
+  // ── Nutrição ─────────────────────────────────────────────────────────────────
+
+  {
+    id: 'anamnese-nutricional',
+    title: 'Anamnese Nutricional',
+    description: 'Levantamento inicial completo: hábitos alimentares, histórico de peso, patologias, nível de atividade e objetivos nutricionais.',
+    category: 'formulario',
+    tags: ['anamnese', 'avaliação inicial', 'nutrição', 'hábitos alimentares'],
+    ageGroups: ['adulto'],
+    professions: ['nutricao'],
+    Icon: Utensils,
+    template: `ANAMNESE NUTRICIONAL
+
+IDENTIFICAÇÃO
+Nome completo:
+Data de nascimento:
+Idade:
+Sexo/Gênero:
+Profissão/Ocupação:
+Telefone:
+E-mail:
+
+QUEIXA PRINCIPAL
+Motivo da consulta:
+Objetivo principal (emagrecer, ganhar massa, controle de doença, outro):
+Há quanto tempo busca esse objetivo:
+
+HISTÓRICO DE PESO
+Peso atual (kg):
+Peso desejado (kg):
+Peso habitual (kg):
+Maior peso já atingido (kg) — quando:
+Menor peso na vida adulta (kg) — quando:
+Tentativas anteriores de dieta (descrever):
+
+HÁBITOS ALIMENTARES
+Número de refeições por dia:
+Horário de acordar / dormir:
+Horário das principais refeições:
+Come fora de casa com frequência? Onde:
+Ingestão de água (litros/dia):
+Consumo de bebidas alcoólicas (tipo, frequência):
+Ingestão de cafeína (café, chá, refrigerante):
+Alimentos preferidos:
+Alimentos que não come (motivo):
+Alergias ou intolerâncias alimentares:
+Uso de suplementos alimentares (descrever):
+
+ATIVIDADE FÍSICA
+Pratica exercício físico? Tipo:
+Frequência semanal e duração:
+Nível geral de atividade (sedentário / levemente ativo / ativo / muito ativo):
+
+SAÚDE E PATOLOGIAS
+Doenças diagnosticadas:
+Medicamentos em uso:
+Exames laboratoriais recentes relevantes (glicemia, colesterol, hemograma):
+Cirurgias anteriores (incluindo bariátrica):
+Histórico familiar de doenças metabólicas:
+
+FUNCIONAMENTO INTESTINAL
+Frequência de evacuação:
+Consistência e características das fezes:
+Queixas digestivas (distensão, refluxo, gases, constipação):
+
+SONO E ESTRESSE
+Qualidade do sono (1–10):
+Horas de sono por noite:
+Nível de estresse percebido (1–10):
+Relação com a alimentação em momentos de estresse:
+
+OBSERVAÇÕES DO(A) PROFISSIONAL:`,
+  },
+
+  {
+    id: 'recordatorio-24h',
+    title: 'Recordatório Alimentar 24h',
+    description: 'Registro retrospectivo de tudo que o paciente consumiu nas últimas 24 horas, com horários e estimativas de porção.',
+    category: 'formulario',
+    tags: ['recordatório', 'consumo alimentar', 'ingestão', 'nutrição'],
+    ageGroups: ['adulto'],
+    professions: ['nutricao'],
+    Icon: BookOpen,
+    template: `RECORDATÓRIO ALIMENTAR 24 HORAS
+
+Data de referência:
+Dia da semana (marcar se atípico — feriado, evento social):
+
+DESJEJUM / CAFÉ DA MANHÃ
+Horário:
+Local:
+Alimento / Preparação | Quantidade / Porção estimada
+---------------------------------------------------------
+
+LANCHE DA MANHÃ
+Horário:
+Local:
+Alimento / Preparação | Quantidade / Porção estimada
+---------------------------------------------------------
+
+ALMOÇO
+Horário:
+Local:
+Alimento / Preparação | Quantidade / Porção estimada
+---------------------------------------------------------
+
+LANCHE DA TARDE
+Horário:
+Local:
+Alimento / Preparação | Quantidade / Porção estimada
+---------------------------------------------------------
+
+JANTAR
+Horário:
+Local:
+Alimento / Preparação | Quantidade / Porção estimada
+---------------------------------------------------------
+
+CEIA / LANCHE NOTURNO
+Horário:
+Local:
+Alimento / Preparação | Quantidade / Porção estimada
+---------------------------------------------------------
+
+BEBIDAS AO LONGO DO DIA
+Água (ml/litros):
+Outras bebidas (tipo e quantidade):
+
+SUPLEMENTOS UTILIZADOS NO DIA:
+
+OBSERVAÇÕES (fome, saciedade, emoções associadas):
+
+ANÁLISE DO(A) PROFISSIONAL:`,
+  },
+
+  {
+    id: 'diario-alimentar',
+    title: 'Diário Alimentar',
+    description: 'Registro prospectivo diário de refeições, fome, saciedade e emoções. Ferramenta de automonitoramento entre consultas.',
+    category: 'registro',
+    tags: ['diário', 'automonitoramento', 'alimentação', 'emoções', 'nutrição'],
+    ageGroups: ['adulto'],
+    professions: ['nutricao'],
+    Icon: NotebookPen,
+    template: `DIÁRIO ALIMENTAR
+
+Data:
+Dia da semana:
+
+Para cada refeição, registre:
+• Horário
+• Local (casa, trabalho, restaurante...)
+• O que comeu e bebeu (alimento + quantidade estimada)
+• Fome antes (0–10): 0 = sem fome / 10 = fome extrema
+• Saciedade após (0–10): 0 = insatisfeito / 10 = desconfortavelmente cheio
+• Emoção / contexto (calmo, ansioso, entediado, comemorando...)
+
+─────────────────────────────────────────────
+DESJEJUM — Horário:
+Local:
+Alimentos:
+
+Fome antes: /10   Saciedade após: /10
+Emoção/contexto:
+
+─────────────────────────────────────────────
+LANCHE — Horário:
+Local:
+Alimentos:
+
+Fome antes: /10   Saciedade após: /10
+Emoção/contexto:
+
+─────────────────────────────────────────────
+ALMOÇO — Horário:
+Local:
+Alimentos:
+
+Fome antes: /10   Saciedade após: /10
+Emoção/contexto:
+
+─────────────────────────────────────────────
+LANCHE — Horário:
+Local:
+Alimentos:
+
+Fome antes: /10   Saciedade após: /10
+Emoção/contexto:
+
+─────────────────────────────────────────────
+JANTAR — Horário:
+Local:
+Alimentos:
+
+Fome antes: /10   Saciedade após: /10
+Emoção/contexto:
+
+─────────────────────────────────────────────
+ÁGUA E LÍQUIDOS DO DIA (total estimado):
+
+NOTAS DO DIA (exercício, sono, eventos relevantes):`,
+  },
+
+  {
+    id: 'qfca',
+    title: 'Questionário de Frequência Alimentar (QFCA)',
+    description: 'Levantamento do padrão habitual de consumo alimentar por grupos de alimentos — ferramenta epidemiológica e clínica de triagem.',
+    category: 'formulario',
+    tags: ['frequência alimentar', 'padrão alimentar', 'qfca', 'nutrição'],
+    ageGroups: ['adulto'],
+    professions: ['nutricao'],
+    Icon: Apple,
+    template: `QUESTIONÁRIO DE FREQUÊNCIA DE CONSUMO ALIMENTAR (QFCA)
+
+Para cada grupo de alimentos, indique a frequência de consumo habitual nos últimos 3 meses.
+
+Frequências: D = Diário | S = Semanal (nº de vezes) | M = Mensal (nº de vezes) | R = Raramente | N = Nunca
+
+─── CEREAIS, TUBÉRCULOS E RAÍZES ──────────────────────────────
+Arroz branco                  [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Arroz integral                [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Pão branco / bisnaguinha      [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Pão integral                  [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Macarrão / massa              [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Batata / mandioca / inhame    [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Tapioca / beiju               [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Aveia / granola               [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+
+─── LEGUMINOSAS ────────────────────────────────────────────────
+Feijão                        [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Lentilha / grão-de-bico       [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Soja / tofu                   [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+
+─── CARNES E OVOS ──────────────────────────────────────────────
+Frango (sem pele)             [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Carne bovina (cortes magros)  [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Carne bovina (cortes gordos)  [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Porco / embutidos             [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Peixe / frutos do mar         [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Ovo                           [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+
+─── LATICÍNIOS ─────────────────────────────────────────────────
+Leite integral                [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Leite desnatado / semi        [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Iogurte natural               [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Queijo / requeijão            [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+
+─── FRUTAS ─────────────────────────────────────────────────────
+Banana                        [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Laranja / limão / acerola     [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Maçã / pera                   [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Mamão / melão / melancia      [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Outras frutas                 [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+
+─── HORTALIÇAS ─────────────────────────────────────────────────
+Folhosos (alface, rúcula...)  [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Legumes cozidos               [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Tomate / pepino / cenoura crua[ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+
+─── GORDURAS E ÓLEOS ───────────────────────────────────────────
+Azeite de oliva               [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Óleo vegetal (soja, girassol) [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Manteiga / margarina          [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Creme de leite / maionese     [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Castanhas / nozes / amêndoas  [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+
+─── AÇÚCARES E DOCES ───────────────────────────────────────────
+Açúcar de adição (café, suco) [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Refrigerante com açúcar       [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Refrigerante diet / zero      [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Bolos, biscoitos, doces       [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Sorvete / chocolate           [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+
+─── ULTRAPROCESSADOS ───────────────────────────────────────────
+Embutidos (salsicha, presunto)[ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Salgadinhos / chips           [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Fast-food (hambúrguer, pizza) [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Macarrão instantâneo          [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+
+─── BEBIDAS ────────────────────────────────────────────────────
+Suco natural (fruta)          [ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N   Porção:
+Suco industrializado / caixinha[ ] D [ ] ___x/S [ ] ___x/M [ ] R [ ] N  Porção:
+Água (litros/dia em média):
+Café (colheres de açúcar/xícara):
+Bebida alcoólica (tipo e freq.):
+
+─── SUPLEMENTOS UTILIZADOS ─────────────────────────────────────
+Nome / tipo | Dose | Frequência
+--------------------------------------
+
+IMPRESSÃO GERAL DO(A) PROFISSIONAL:`,
   },
 ]
 

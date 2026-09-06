@@ -54,8 +54,23 @@ describe('instrumentsFor', () => {
   })
 
   it('devolve lista vazia para profissão sem catálogo próprio', () => {
-    expect(instrumentsFor('nutricao')).toEqual([])
     expect(instrumentsFor('odontologia')).toEqual([])
+    expect(instrumentsFor('terapia_ocupacional')).toEqual([])
+  })
+
+  it('entrega à nutrição apenas os instrumentos dela', () => {
+    const nutri = instrumentsFor('nutricao').map(i => i.id)
+    const NUTRI_IDS = ['anamnese-nutricional', 'recordatorio-24h', 'diario-alimentar', 'qfca']
+    expect(nutri.sort()).toEqual([...NUTRI_IDS].sort())
+  })
+
+  it('não vaza instrumento de nutrição para psicologia ou fisioterapia', () => {
+    const psi   = instrumentsFor('psicologia').map(i => i.id)
+    const fisio = instrumentsFor('fisioterapia').map(i => i.id)
+    for (const id of ['anamnese-nutricional', 'recordatorio-24h', 'diario-alimentar', 'qfca']) {
+      expect(psi).not.toContain(id)
+      expect(fisio).not.toContain(id)
+    }
   })
 
   it('registra pontuação para toda escala de fisioterapia do catálogo', () => {

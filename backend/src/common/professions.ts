@@ -63,6 +63,14 @@ export function hasPhysiotherapyModules(profession?: string | null): boolean {
 }
 
 /**
+ * Nutricionistas têm catálogo de instrumentos clínicos e calculadoras
+ * antropométricas/nutricionais próprias.
+ */
+export function hasNutritionModules(profession?: string | null): boolean {
+  return (profession ?? DEFAULT_PROFESSION) === 'nutricao'
+}
+
+/**
  * Charset aceito num registro de conselho (CRN-3 12345, CREFITO-3/12345-F...).
  * O formato varia por conselho, entao so barramos o que nao pode aparecer.
  */

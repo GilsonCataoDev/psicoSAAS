@@ -48,14 +48,26 @@ describe('getNavigationItems', () => {
     expect(getNavigationItems(undefined)).toEqual(NAVIGATION_ITEMS)
   })
 
-  it('esconde módulos exclusivos de psicologia para outras profissões', () => {
-    const rotas = getNavigationItems('nutricao').map(i => i.to)
-    expect(rotas).not.toContain('/instrumentos')
-    expect(rotas).not.toContain('/avaliacoes')
-    // O resto da navegação continua intacto.
-    expect(rotas).toContain('/pacientes')
-    expect(rotas).toContain('/agenda')
-    expect(rotas).toContain('/financeiro')
+  it('esconde módulos exclusivos de psicologia para profissões sem catálogo', () => {
+    // odontologia não tem instrumentos nem avaliações
+    const rotasOdonto = getNavigationItems('odontologia').map(i => i.to)
+    expect(rotasOdonto).not.toContain('/instrumentos')
+    expect(rotasOdonto).not.toContain('/avaliacoes')
+    expect(rotasOdonto).toContain('/pacientes')
+    expect(rotasOdonto).toContain('/agenda')
+    expect(rotasOdonto).toContain('/financeiro')
+  })
+
+  it('mostra /instrumentos para psicologia, fisioterapia e nutricao', () => {
+    expect(getNavigationItems('psicologia').map(i => i.to)).toContain('/instrumentos')
+    expect(getNavigationItems('fisioterapia').map(i => i.to)).toContain('/instrumentos')
+    expect(getNavigationItems('nutricao').map(i => i.to)).toContain('/instrumentos')
+  })
+
+  it('nunca mostra /avaliacoes fora da psicologia', () => {
+    for (const p of ['nutricao', 'fisioterapia', 'odontologia']) {
+      expect(getNavigationItems(p).map(i => i.to)).not.toContain('/avaliacoes')
+    }
   })
 
   it('troca os rótulos de pacientes e sessões para outras profissões', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { hasPhysiotherapyModules, hasPsychologyModules, councilLabel, PROFESSIONS } from './professions'
+import { hasPhysiotherapyModules, hasPsychologyModules, hasNutritionModules, hasInstrumentsModule, councilLabel, PROFESSIONS } from './professions'
 
 describe('hasPhysiotherapyModules', () => {
   it('libera os campos da COFFITO 414/2012 só para fisioterapia', () => {
@@ -28,6 +28,44 @@ describe('hasPhysiotherapyModules', () => {
   it('é mutuamente exclusivo com os módulos de psicologia', () => {
     for (const profession of PROFESSIONS) {
       expect(hasPhysiotherapyModules(profession) && hasPsychologyModules(profession)).toBe(false)
+    }
+  })
+})
+
+describe('hasNutritionModules', () => {
+  it('libera o catálogo e calculadoras só para nutricao', () => {
+    expect(hasNutritionModules('nutricao')).toBe(true)
+  })
+
+  it('não vaza para nenhuma outra profissão', () => {
+    for (const profession of PROFESSIONS.filter(p => p !== 'nutricao')) {
+      expect(hasNutritionModules(profession)).toBe(false)
+    }
+  })
+
+  it('assume false quando a profissão está ausente (conta antiga = psicologia)', () => {
+    expect(hasNutritionModules(undefined)).toBe(false)
+    expect(hasNutritionModules(null)).toBe(false)
+  })
+
+  it('é mutuamente exclusivo com psicologia e fisioterapia', () => {
+    for (const profession of PROFESSIONS) {
+      const flags = [hasPsychologyModules(profession), hasPhysiotherapyModules(profession), hasNutritionModules(profession)]
+      expect(flags.filter(Boolean).length).toBeLessThanOrEqual(1)
+    }
+  })
+})
+
+describe('hasInstrumentsModule', () => {
+  it('habilita instrumentos para psicologia, fisioterapia e nutricao', () => {
+    expect(hasInstrumentsModule('psicologia')).toBe(true)
+    expect(hasInstrumentsModule('fisioterapia')).toBe(true)
+    expect(hasInstrumentsModule('nutricao')).toBe(true)
+  })
+
+  it('não habilita para profissões sem catálogo', () => {
+    for (const p of ['terapia_ocupacional', 'odontologia', 'fonoaudiologia'] as const) {
+      expect(hasInstrumentsModule(p)).toBe(false)
     }
   })
 })

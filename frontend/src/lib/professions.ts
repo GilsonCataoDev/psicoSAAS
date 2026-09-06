@@ -54,12 +54,20 @@ export function hasPhysiotherapyModules(profession?: string | null): boolean {
 }
 
 /**
+ * Nutricionistas têm catálogo de instrumentos clínicos e calculadoras
+ * antropométricas/nutricionais próprias.
+ */
+export function hasNutritionModules(profession?: string | null): boolean {
+  return (profession ?? DEFAULT_PROFESSION) === 'nutricao'
+}
+
+/**
  * Profissões que têm instrumentos próprios no catálogo e por isso enxergam
  * `/instrumentos`. Não confundir com `/avaliacoes` (laudo neuropsicológico),
  * que segue exclusivo de psicologia.
  */
 export function hasInstrumentsModule(profession?: string | null): boolean {
-  return hasPsychologyModules(profession) || hasPhysiotherapyModules(profession)
+  return hasPsychologyModules(profession) || hasPhysiotherapyModules(profession) || hasNutritionModules(profession)
 }
 
 /** CRP só é obrigatório para psicologia — outras profissões têm outros conselhos. */
