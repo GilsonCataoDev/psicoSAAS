@@ -198,7 +198,7 @@ export class SessionsController {
     await this.aiTextQuota.reserve(req.user.id, req.user.email)
     let result
     try {
-      result = await this.ai.generateProntuarioDraft(input, mode, patient.name)
+      result = await this.ai.generateProntuarioDraft(input, mode, patient.name, req.user.profession)
     } catch (error) {
       await this.aiTextQuota.release(req.user.id).catch(() => {})
       throw error

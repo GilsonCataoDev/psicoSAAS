@@ -251,7 +251,7 @@ ${cleanInput || '(sem sessoes anteriores registradas)'}`
     }
   }
 
-  async generateProntuarioDraft(input: string, mode: 'resumo' | 'evolucao' | 'organizar', patientName?: string): Promise<AiTextResult> {
+  async generateProntuarioDraft(input: string, mode: 'resumo' | 'evolucao' | 'organizar', patientName?: string, profession?: string): Promise<AiTextResult> {
     const mocked = await this.mockTextIfEnabled(
       input, 15_000,
       '[MOCK] Rascunho de prontuário de teste E2E. Rascunho gerado por IA, revisar antes de salvar.',
@@ -260,13 +260,14 @@ ${cleanInput || '(sem sessoes anteriores registradas)'}`
     if (mocked) return mocked
 
     const cleanInput = pseudonymizeClinicalText(input.trim(), patientName)?.slice(0, 8000) ?? ''
+    const profissionLabel = profession === 'fisioterapia' ? 'fisioterapeutas' : profession === 'nutricao' ? 'nutricionistas' : 'psicologos e terapeutas'
     const modeInstruction = {
       resumo: 'gere um resumo clinico conciso, em linguagem profissional, preservando apenas informacoes relevantes para acompanhamento.',
       evolucao: 'gere um rascunho de evolucao clinica com demanda trabalhada, intervencoes, resposta observada e proximos passos.',
       organizar: 'organize as anotacoes em blocos: queixa/demanda, conteudo trabalhado, intervencoes, resposta observada e plano/proximos passos.',
     }[mode]
 
-    const prompt = `Voce e um assistente de apoio clinico para psicologos e terapeutas.
+    const prompt = `Voce e um assistente de apoio clinico para ${profissionLabel}.
 Use o texto abaixo somente para organizar um rascunho de prontuario.
 Nao invente fatos, nao feche diagnostico, nao prescreva condutas e nao substitua o julgamento clinico.
 Nao inclua dados pessoais identificaveis. Se houver nome, telefone, email, CPF, endereco ou identificadores, omita.
