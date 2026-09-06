@@ -371,7 +371,7 @@ export default function LandingPage() {
             </motion.h1>
 
             <motion.p variants={fadeUp} className="mx-auto mt-6 max-w-[23rem] text-base leading-relaxed text-white/80 sm:max-w-2xl sm:text-lg">
-              Agenda, pacientes, prontuário e financeiro em um só lugar. Comece gratuitamente com até 10 pacientes, sem cadastrar cartão.
+              Agenda, pacientes, prontuário e financeiro em um só lugar. Experimente 7 dias grátis com acesso completo.
             </motion.p>
 
             <motion.div variants={fadeUp} className="mt-8 flex flex-col items-center gap-3">
@@ -382,7 +382,7 @@ export default function LandingPage() {
                 whileTap={reduce ? undefined : { scale: 0.975 }}
                 className="inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-md bg-[#CFF3DE] px-6 text-sm font-bold text-[#143D2D] shadow-lg shadow-black/15 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
               >
-                Criar minha conta grátis <ArrowRight className="h-4 w-4" />
+                Começar 7 dias grátis <ArrowRight className="h-4 w-4" />
               </MotionLink>
               <span className="text-sm text-white/75">Leva menos de 2 minutos</span>
             </motion.div>
