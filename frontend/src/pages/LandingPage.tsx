@@ -346,7 +346,7 @@ export default function LandingPage() {
               whileTap={reduce ? undefined : { scale: 0.97 }}
               className="hidden rounded-md bg-sage-800 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sage-900 sm:inline-flex"
             >
-              Criar conta grátis
+              7 dias grátis
             </MotionLink>
           </div>
         </div>
@@ -354,48 +354,84 @@ export default function LandingPage() {
 
       <section className="relative overflow-hidden bg-[#1D352D] text-white">
         <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
-        <div className="mx-auto w-full max-w-4xl px-5 py-16 text-center sm:py-20 lg:py-24">
-          <motion.div
-            className="mx-auto w-full max-w-4xl"
-            initial="hidden"
-            animate="show"
-            variants={stagger}
-          >
-            <motion.p variants={fadeUp} className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-3 py-1 text-sm font-semibold text-sage-200">
-              <Sparkles className="h-4 w-4" />
-              Gestão clínica para profissionais de saúde
-            </motion.p>
+        <div className="mx-auto max-w-6xl px-5 py-16 lg:py-24">
+          <div className="grid items-center gap-12 lg:grid-cols-[1fr_340px]">
 
-            <motion.h1 variants={fadeUp} className="mx-auto mt-6 max-w-[22rem] text-[2.1rem] font-bold leading-[1.06] tracking-normal text-white sm:max-w-4xl sm:text-5xl lg:text-6xl">
-              Sua clínica organizada. Mais tempo para cuidar de quem importa.
-            </motion.h1>
+            {/* Coluna esquerda */}
+            <motion.div initial="hidden" animate="show" variants={stagger}>
+              <motion.p variants={fadeUp} className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-3 py-1 text-sm font-semibold text-sage-200">
+                <Sparkles className="h-4 w-4" />
+                Gestão clínica para profissionais de saúde
+              </motion.p>
 
-            <motion.p variants={fadeUp} className="mx-auto mt-6 max-w-[23rem] text-base leading-relaxed text-white/80 sm:max-w-2xl sm:text-lg">
-              Agenda, pacientes, prontuário e financeiro em um só lugar. Experimente 7 dias grátis com acesso completo.
-            </motion.p>
+              <motion.h1 variants={fadeUp} className="mt-6 max-w-xl text-[2.1rem] font-bold leading-[1.06] tracking-normal text-white sm:text-5xl lg:text-[3rem]">
+                Sua clínica organizada. Mais tempo para cuidar de quem importa.
+              </motion.h1>
 
-            <motion.div variants={fadeUp} className="mt-8 flex flex-col items-center gap-3">
+              <motion.p variants={fadeUp} className="mt-5 max-w-lg text-base leading-relaxed text-white/80 sm:text-lg">
+                Agenda, pacientes, prontuário e financeiro em um só lugar.
+              </motion.p>
+
+              <motion.div variants={fadeUp} className="mt-5 flex flex-col gap-2 text-sm text-white/65 sm:flex-row sm:flex-wrap">
+                {trustSignals.map((item) => (
+                  <span key={item} className="inline-flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-sage-300" />
+                    {item}
+                  </span>
+                ))}
+              </motion.div>
+
+              <motion.div variants={fadeUp} className="mt-8 flex flex-wrap items-center gap-4">
+                <MotionLink
+                  to={signupPath}
+                  onClick={() => track(EVENTS.LANDING_CTA_CLICKED, { location: 'hero', destination: 'signup' })}
+                  whileHover={reduce ? undefined : { scale: 1.025 }}
+                  whileTap={reduce ? undefined : { scale: 0.975 }}
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[#CFF3DE] px-6 text-sm font-bold text-[#143D2D] shadow-lg shadow-black/15 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+                >
+                  Começar 7 dias grátis <ArrowRight className="h-4 w-4" />
+                </MotionLink>
+                <Link to="/login" className="text-sm font-semibold text-white/50 hover:text-white/80">
+                  Já tenho conta
+                </Link>
+              </motion.div>
+              <motion.p variants={fadeUp} className="mt-3 text-sm text-white/40">Leva menos de 2 minutos · cartão obrigatório</motion.p>
+            </motion.div>
+
+            {/* Coluna direita — card de trial */}
+            <motion.div
+              initial={{ opacity: 0, y: 28 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.65, ease: EASE, delay: 0.25 }}
+              className="hidden rounded-2xl bg-white p-6 shadow-2xl lg:block"
+            >
+              <div className="mb-1 flex items-start justify-between gap-3">
+                <p className="text-xs font-bold uppercase tracking-[0.15em] text-sage-700">Plano Pro</p>
+                <span className="rounded-full bg-sage-100 px-2.5 py-0.5 text-xs font-semibold text-sage-800">Acesso completo</span>
+              </div>
+              <p className="mt-2 text-3xl font-bold text-[#211F1C]">7 dias <span className="text-sage-700">grátis</span></p>
+              <p className="mt-1 text-sm text-[#6D675D]">R$97,90/mês após o teste</p>
+              <ul className="mt-5 space-y-2.5">
+                {trialItems.map((item) => (
+                  <li key={item} className="flex items-start gap-2.5 text-sm text-[#49443D]">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-sage-600" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
               <MotionLink
                 to={signupPath}
-                onClick={() => track(EVENTS.LANDING_CTA_CLICKED, { location: 'hero', destination: 'signup' })}
-                whileHover={reduce ? undefined : { scale: 1.025 }}
-                whileTap={reduce ? undefined : { scale: 0.975 }}
-                className="inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-md bg-[#CFF3DE] px-6 text-sm font-bold text-[#143D2D] shadow-lg shadow-black/15 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+                onClick={() => track(EVENTS.LANDING_CTA_CLICKED, { location: 'hero_card', destination: 'signup' })}
+                whileHover={reduce ? undefined : { scale: 1.02 }}
+                whileTap={reduce ? undefined : { scale: 0.98 }}
+                className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-sage-800 text-sm font-bold text-white hover:bg-sage-900"
               >
-                Começar 7 dias grátis <ArrowRight className="h-4 w-4" />
+                Começar agora <ArrowRight className="h-4 w-4" />
               </MotionLink>
-              <span className="text-sm text-white/75">Leva menos de 2 minutos</span>
+              <p className="mt-3 text-center text-xs text-[#9C958A]">Cancele antes do vencimento · sem cobrança no teste</p>
             </motion.div>
 
-            <motion.div variants={fadeUp} className="mt-7 flex flex-col justify-center gap-2 text-sm text-white/80 sm:flex-row sm:flex-wrap">
-              {trustSignals.map((item) => (
-                <span key={item} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
-                  <CheckCircle2 className="h-4 w-4 text-sage-200" />
-                  {item}
-                </span>
-              ))}
-            </motion.div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -406,27 +442,21 @@ export default function LandingPage() {
         viewport={{ once: true, margin: '-80px' }}
         variants={stagger}
       >
-        <div className="mx-auto grid max-w-6xl gap-4 px-5 py-8 md:grid-cols-3">
-          <motion.div variants={fadeUp} className="flex items-start gap-3">
-            <ShieldCheck className="mt-0.5 h-5 w-5 text-sage-600" />
-            <div>
-              <p className="text-sm font-semibold text-[#211F1C]">Privacidade visível</p>
-              <p className="mt-1 text-sm text-[#7C776B]">Dados clínicos tratados com cuidado desde a base do produto.</p>
-            </div>
+        <div className="mx-auto grid max-w-6xl gap-0 divide-y divide-[#E7E4DA] px-5 py-0 md:divide-x md:divide-y-0 md:grid-cols-3">
+          <motion.div variants={fadeUp} className="flex flex-col justify-center px-6 py-8 text-center md:px-8">
+            <p className="font-display text-4xl font-bold text-[#1D352D]">Ilimitado</p>
+            <p className="mt-1.5 text-sm font-semibold text-[#211F1C]">Pacientes e atendimentos</p>
+            <p className="mt-1 text-sm text-[#7C776B]">Cresça sem precisar trocar de plano ou pagar por usuário.</p>
           </motion.div>
-          <motion.div variants={fadeUp} className="flex items-start gap-3">
-            <LockKeyhole className="mt-0.5 h-5 w-5 text-sage-600" />
-            <div>
-              <p className="text-sm font-semibold text-[#211F1C]">Verificação pública</p>
-              <p className="mt-1 text-sm text-[#7C776B]">Cada documento pode ser validado por link e código único.</p>
-            </div>
+          <motion.div variants={fadeUp} className="flex flex-col justify-center px-6 py-8 text-center md:px-8">
+            <p className="font-display text-4xl font-bold text-[#1D352D]">24h + 1h</p>
+            <p className="mt-1.5 text-sm font-semibold text-[#211F1C]">Lembretes automáticos</p>
+            <p className="mt-1 text-sm text-[#7C776B]">Antes de cada sessão, sem você digitar nada.</p>
           </motion.div>
-          <motion.div variants={fadeUp} className="flex items-start gap-3">
-            <WalletCards className="mt-0.5 h-5 w-5 text-sage-600" />
-            <div>
-              <p className="text-sm font-semibold text-[#211F1C]">Construído com feedback profissional</p>
-              <p className="mt-1 text-sm text-[#7C776B]">Criado a partir de conversas sobre a rotina de quem atende todos os dias.</p>
-            </div>
+          <motion.div variants={fadeUp} className="flex flex-col justify-center px-6 py-8 text-center md:px-8">
+            <p className="font-display text-4xl font-bold text-[#1D352D]">5 min</p>
+            <p className="mt-1.5 text-sm font-semibold text-[#211F1C]">Até o primeiro paciente</p>
+            <p className="mt-1 text-sm text-[#7C776B]">Setup mínimo. Sem configuração técnica ou treinamento.</p>
           </motion.div>
         </div>
         {realTestimonials.length > 0 && (
