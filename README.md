@@ -1,8 +1,16 @@
 # UseCognia
 
-> Plataforma humanizada para psicólogos e terapeutas — menos burocracia, mais presença.
+> Plataforma clínica para psicólogos, fisioterapeutas e nutricionistas — menos burocracia, mais presença.
 
-UseCognia é um SaaS completo para psicólogos e terapeutas brasileiros que reduz a carga operacional do consultório — gestão de pacientes, agenda, sessões clínicas, financeiro e agendamento online — para que o profissional foque no que importa: o cuidado humano.
+UseCognia é um SaaS completo para profissionais de saúde brasileiros que reduz a carga operacional do consultório — gestão de pacientes/clientes, prontuário eletrônico, agenda, sessões clínicas, financeiro e agendamento online — para que o profissional foque no que importa: o cuidado humano.
+
+## Profissões suportadas
+
+| Profissão | Catálogo de instrumentos | Módulos exclusivos | Cobrança |
+|-----------|--------------------------|-------------------|---------|
+| **Psicologia** | 20+ escalas/formulários (PHQ-9, GAD-7, BDI-II, ASRS, SDQ, PCL-5…) + 4 baterias prontas | Laudo neuropsicológico, abordagem teórica | Por sessão · Pacote mensal |
+| **Fisioterapia** | EVA (dor), Oswestry (ODI), Berg — com pontuação automática | Prontuário COFFITO 414/2012 (exame físico, diagnóstico cinesiofuncional, prognóstico, recursos, quantitativo) | Por sessão · Pacote de atendimentos |
+| **Nutrição** | Anamnese nutricional, Recordatório 24h, Diário alimentar, QFCA | Calculadoras (IMC, RCQ, TMB Mifflin-St Jeor, GET, proteína, hidratação) + plano alimentar por IA | Por sessão |
 
 **Documentação técnica:** [docs/PROJECT_DOCUMENTATION.md](docs/PROJECT_DOCUMENTATION.md)  
 **Referência da API:** [docs/API.md](docs/API.md)  
@@ -22,7 +30,9 @@ UseCognia é um SaaS completo para psicólogos e terapeutas brasileiros que redu
 - **Sessões** — registro de cada encontro com humor, resumo, próximos passos e anotações privadas
 - **Ditado por voz** — campos clínicos preenchíveis por voz (Web Speech API, pt-BR)
 - **Documentos** — geração de declarações, encaminhamentos e atestados com QR code de verificação e envio por e-mail
-- **Instrumentos clínicos** — biblioteca com 16 formulários + 13 escalas validadas (PHQ-9, GAD-7, DASS-21, PCL-5, SRQ-20, AUDIT, ISI, ESS, MEEM, WHODAS 2.0, SDQ, GAF, IES-R, C-SSRS, ASRS-v1.1), com link público para o paciente responder
+- **Instrumentos clínicos** — biblioteca por profissão: psicologia (20+ escalas/formulários com pontuação automática, 4 baterias prontas), fisioterapia (EVA, Oswestry/ODI, Berg), nutrição (anamnese, recordatório 24h, diário alimentar, QFCA); link público para o paciente responder
+- **Calculadoras nutricionais** — IMC (OMS), RCQ, TMB (Mifflin-St Jeor), GET, proteína e hidratação; plano alimentar semanal gerado por IA
+- **Prontuário COFFITO 414/2012** — exame físico, diagnóstico cinesiofuncional, prognóstico funcional, recursos terapêuticos e quantitativo de atendimentos (fisioterapia)
 - **Templates** — modelos reutilizáveis de documentos
 
 ### Agenda e agendamento

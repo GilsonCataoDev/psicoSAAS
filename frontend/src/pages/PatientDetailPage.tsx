@@ -13,6 +13,7 @@ import { useState, useEffect } from 'react'
 import {
   usePatient, useSessions, useFinancial,
   useMarkFinancialPaid, useSendCharge, useUpdatePatient, useDeletePatient,
+  useCreateFinancial,
   useInstrumentAssignments, useUpdateInstrumentAnswers, useCreatePatientPortalLink, type InstrumentAssignment,
   usePatientAttachments, useUploadPatientAttachment, useDeletePatientAttachment,
   downloadPatientAttachment, previewPatientAttachment, type PatientAttachment,
@@ -21,6 +22,8 @@ import {
   usePatientContactLogs, type ContactLog,
   usePatientAuditLog, type AuditEntry,
 } from '@/hooks/useApi'
+import { useAuthStore } from '@/store/auth'
+import { hasPhysiotherapyModules } from '@/lib/professions'
 import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
@@ -53,7 +56,10 @@ export default function PatientDetailPage() {
   const { data: financialRecords = [], isLoading: loadingFinancial } = useFinancial({ patientId: id })
   const markPaid = useMarkFinancialPaid()
   const sendCharge = useSendCharge()
+  const createFinancial = useCreateFinancial()
   const updatePatient = useUpdatePatient()
+  const profession = useAuthStore(s => s.user?.profession)
+  const isFisio = hasPhysiotherapyModules(profession)
   const { data: instrumentAssignments = [] } = useInstrumentAssignments(id)
   const updateInstrumentAnswers = useUpdateInstrumentAnswers()
   const assessmentAiInterpretation = useAssessmentAiInterpretation()
@@ -177,7 +183,7 @@ export default function PatientDetailPage() {
   })
   const [careSettings, setCareSettings] = useState({
     status: 'active' as 'active' | 'paused' | 'discharged',
-    billingType: 'per_session' as 'per_session' | 'monthly_package',
+    billingType: 'per_session' as 'per_session' | 'monthly_package' | 'session_package',
     sessionPrice: 0,
     monthlyPackagePrice: 0,
     monthlyIncludedSessions: 4,
@@ -276,6 +282,21 @@ export default function PatientDetailPage() {
           sessionDuration: careSettings.sessionDuration,
         },
       })
+      // Ao ativar pacote de sessões de fisioterapia sem registro financeiro prévio, cria um automaticamente.
+      if (careSettings.billingType === 'session_package' && careSettings.monthlyPackagePrice > 0) {
+        const jaTemPacote = financialRecords.some(r => (r as any).category === 'pacote-fisio')
+        if (!jaTemPacote) {
+          await createFinancial.mutateAsync({
+            type: 'income',
+            amount: careSettings.monthlyPackagePrice,
+            description: `Pacote de atendimentos — ${careSettings.monthlyIncludedSessions} sessões`,
+            status: 'pending',
+            category: 'pacote-fisio',
+            patientId: id,
+            dueDate: new Date().toISOString().slice(0, 10),
+          })
+        }
+      }
       toast.success('Dados do atendimento salvos')
     } catch {
       toast.error('Erro ao salvar dados do atendimento.')
@@ -660,7 +681,8 @@ export default function PatientDetailPage() {
               onChange={e => setCareSettings(s => ({ ...s, billingType: e.target.value as typeof careSettings.billingType }))}
               className="input-field">
               <option value="per_session">Por {t.session}</option>
-              <option value="monthly_package">Pacote mensal</option>
+              {!isFisio && <option value="monthly_package">Pacote mensal</option>}
+              {isFisio && <option value="session_package">Pacote de atendimentos</option>}
             </select>
           </div>
           <div>
@@ -696,6 +718,36 @@ export default function PatientDetailPage() {
               </div>
               <div className="flex items-end text-xs text-neutral-500">
                 Uso neste mês: <strong className="ml-1 text-neutral-700">{monthlySessionsUsed}/{careSettings.monthlyIncludedSessions}</strong>
+              </div>
+            </>
+          ) : careSettings.billingType === 'session_package' ? (
+            <>
+              <div>
+                <label className="label">Valor do pacote (R$)</label>
+                <input type="number" min={0} step="0.01" value={careSettings.monthlyPackagePrice}
+                  onChange={e => setCareSettings(s => ({ ...s, monthlyPackagePrice: Number(e.target.value) }))}
+                  className="input-field" />
+              </div>
+              <div>
+                <label className="label">Total de sessões</label>
+                <input type="number" min={1} max={200} value={careSettings.monthlyIncludedSessions}
+                  onChange={e => setCareSettings(s => ({ ...s, monthlyIncludedSessions: Number(e.target.value) }))}
+                  className="input-field" />
+              </div>
+              <div className="sm:col-span-2 flex flex-col justify-end gap-1">
+                <div className="flex items-center justify-between text-xs text-neutral-500">
+                  <span>Progresso do pacote</span>
+                  <strong className="text-neutral-700">{clinicalSessions.length}/{careSettings.monthlyIncludedSessions} sessões</strong>
+                </div>
+                <div className="h-2 rounded-full bg-neutral-100 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-sage-500 transition-all"
+                    style={{ width: `${Math.min(100, (clinicalSessions.length / Math.max(1, careSettings.monthlyIncludedSessions)) * 100)}%` }}
+                  />
+                </div>
+                {clinicalSessions.length >= careSettings.monthlyIncludedSessions && (
+                  <p className="text-xs text-amber-600 font-medium">Pacote concluído — considere renovar.</p>
+                )}
               </div>
             </>
           ) : (

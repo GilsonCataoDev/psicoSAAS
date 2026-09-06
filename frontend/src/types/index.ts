@@ -13,7 +13,7 @@ export interface Patient {
   status: 'active' | 'paused' | 'discharged'
   careMode: 'psychotherapy' | 'neuropsychological_assessment'
   sessionPrice: number
-  billingType: 'per_session' | 'monthly_package'
+  billingType: 'per_session' | 'monthly_package' | 'session_package'
   monthlyPackagePrice: number
   monthlyIncludedSessions: number
   billingDay: number
