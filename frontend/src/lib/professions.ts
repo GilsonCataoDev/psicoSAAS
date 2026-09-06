@@ -53,6 +53,15 @@ export function hasPhysiotherapyModules(profession?: string | null): boolean {
   return (profession ?? DEFAULT_PROFESSION) === 'fisioterapia'
 }
 
+/**
+ * Profissões que têm instrumentos próprios no catálogo e por isso enxergam
+ * `/instrumentos`. Não confundir com `/avaliacoes` (laudo neuropsicológico),
+ * que segue exclusivo de psicologia.
+ */
+export function hasInstrumentsModule(profession?: string | null): boolean {
+  return hasPsychologyModules(profession) || hasPhysiotherapyModules(profession)
+}
+
 /** CRP só é obrigatório para psicologia — outras profissões têm outros conselhos. */
 export function requiresCrp(profession?: string | null): boolean {
   return (profession ?? DEFAULT_PROFESSION) === 'psicologia'

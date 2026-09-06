@@ -25,8 +25,10 @@ import {
   CARD_ACCENTS,
   CAT_COLOR,
   CAT_LABEL,
-  INSTRUMENTS,
+  instrumentsFor,
 } from '@/features/instruments/instrument-catalog'
+import { useAuthStore } from '@/store/auth'
+import { hasPsychologyModules } from '@/lib/professions'
 import type {
   AgeGroup,
   Instrument,
@@ -438,14 +440,16 @@ function ObjectiveAndBatteryPanel({
   selectedBattery,
   onObjective,
   onBattery,
+  showBatteries,
 }: {
   objective: typeof OBJECTIVES[number]['value']
   selectedBattery: string
   onObjective: (value: typeof OBJECTIVES[number]['value']) => void
   onBattery: (value: string) => void
+  showBatteries: boolean
 }) {
   return (
-    <div className="grid gap-3 lg:grid-cols-[1.2fr_1fr]">
+    <div className={showBatteries ? 'grid gap-3 lg:grid-cols-[1.2fr_1fr]' : 'grid gap-3'}>
       <div className="card space-y-3">
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-sage-600" />
@@ -471,6 +475,8 @@ function ObjectiveAndBatteryPanel({
         </div>
       </div>
 
+      {/* As baterias combinam instrumentos de psicologia — não fazem sentido em outras profissões. */}
+      {showBatteries && (
       <div className="card space-y-3">
         <div className="flex items-center gap-2">
           <Layers3 className="h-4 w-4 text-mist-600" />
@@ -495,6 +501,7 @@ function ObjectiveAndBatteryPanel({
           ))}
         </div>
       </div>
+      )}
     </div>
   )
 }
@@ -914,10 +921,12 @@ export default function InstrumentosPage() {
 
   const favoriteSet = useMemo(() => new Set(favoriteIds), [favoriteIds])
   const selectedBatteryConfig = BATTERIES.find(item => item.id === selectedBattery)
+  const profession = useAuthStore(s => s.user?.profession)
+  const catalog = useMemo(() => instrumentsFor(profession), [profession])
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim()
-    return INSTRUMENTS.filter(inst => {
+    return catalog.filter(inst => {
       const matchBattery = !selectedBatteryConfig || (selectedBatteryConfig.instrumentIds as readonly string[]).includes(inst.id)
       const matchObjective = matchesObjective(inst, objective)
       const matchCat  = catFilter === 'all' || inst.category === catFilter
@@ -925,7 +934,7 @@ export default function InstrumentosPage() {
       const matchQ    = !q || inst.title.toLowerCase().includes(q) || inst.description.toLowerCase().includes(q) || inst.tags.some(t => t.toLowerCase().includes(q))
       return matchBattery && matchObjective && matchCat && matchAge && matchQ
     }).sort((a, b) => Number(favoriteSet.has(b.id)) - Number(favoriteSet.has(a.id)))
-  }, [search, catFilter, ageFilter, objective, selectedBatteryConfig, favoriteSet])
+  }, [catalog, search, catFilter, ageFilter, objective, selectedBatteryConfig, favoriteSet])
 
   function toggleFavorite(id: string) {
     setFavoriteIds(current => current.includes(id)
@@ -975,6 +984,7 @@ export default function InstrumentosPage() {
           setSelectedBattery(value)
           if (value) setObjective('all')
         }}
+        showBatteries={hasPsychologyModules(profession)}
       />
 
       <AssignmentHistory

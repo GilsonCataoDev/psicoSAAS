@@ -5,6 +5,7 @@ import {
   AlertCircle, Globe, Sun, ListChecks, Zap, TrendingUp, Award, Flame, Frown,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { DEFAULT_PROFESSION, type Profession } from '@/lib/professions'
 
 export type InstrumentCategory = 'formulario' | 'escala' | 'registro' | 'entrevista'
 export type AgeGroup = 'all' | 'infantil' | 'adolescente' | 'adulto'
@@ -18,6 +19,20 @@ export interface Instrument {
   ageGroups: AgeGroup[]
   template: string
   Icon: LucideIcon
+  /**
+   * Profissões que enxergam este instrumento. Ausente = psicologia, que é como
+   * a biblioteca nasceu — assim nenhum item existente muda de comportamento.
+   */
+  professions?: Profession[]
+}
+
+/**
+ * Biblioteca visível para a profissão da conta. Uma fisioterapeuta não deve ver
+ * anamnese psicológica nem PHQ-9, e uma psicóloga não deve ver Oswestry.
+ */
+export function instrumentsFor(profession?: string | null): Instrument[] {
+  const key = (profession || DEFAULT_PROFESSION) as Profession
+  return INSTRUMENTS.filter(i => (i.professions ?? [DEFAULT_PROFESSION]).includes(key))
 }
 
 // ── Metadados de categoria ────────────────────────────────────────────────────
@@ -1545,6 +1560,68 @@ Figuras de referência positiva:
 
 EVENTOS MARCANTES
 Eventos que impactaram a dinâmica familiar:
+
+OBSERVAÇÕES DO(A) PROFISSIONAL:`,
+  },
+
+  // ── Fisioterapia ───────────────────────────────────────────────────────────
+  // Instrumentos de uso livre com versão brasileira validada. SF-36, WOMAC,
+  // DASH e MIF exigem licença comercial e por isso ficam fora do catálogo.
+  {
+    id: 'eva-dor',
+    title: 'EVA — Escala Visual Analógica de Dor',
+    description: 'Intensidade da dor de 0 a 10. Aplicada a cada atendimento, constrói a curva de dor ao longo do tratamento.',
+    category: 'escala',
+    tags: ['dor', 'fisioterapia', 'evolução'],
+    ageGroups: ['all'],
+    professions: ['fisioterapia'],
+    Icon: Gauge,
+    template: `EVA — ESCALA VISUAL ANALÓGICA DE DOR
+
+Marque de 0 a 10 a intensidade da sua dor NESTE MOMENTO.
+
+0 = sem dor
+10 = pior dor que você consegue imaginar
+
+Intensidade da dor:
+
+LOCALIZAÇÃO DA DOR:
+
+O QUE PIORA:
+
+O QUE MELHORA:
+
+OBSERVAÇÕES DO(A) PROFISSIONAL:`,
+  },
+  {
+    id: 'oswestry',
+    title: 'Índice de Oswestry (ODI) — Incapacidade Lombar',
+    description: 'Dez seções sobre o impacto da dor lombar nas atividades diárias. Resultado em percentual de incapacidade.',
+    category: 'escala',
+    tags: ['lombar', 'coluna', 'incapacidade', 'fisioterapia'],
+    ageGroups: ['adulto'],
+    professions: ['fisioterapia'],
+    Icon: Activity,
+    template: `ÍNDICE DE OSWESTRY (ODI)
+
+Responda pensando em como sua coluna afeta o seu dia a dia HOJE.
+Em cada seção, marque a única alternativa que melhor descreve sua situação.
+
+OBSERVAÇÕES DO(A) PROFISSIONAL:`,
+  },
+  {
+    id: 'berg',
+    title: 'Escala de Equilíbrio de Berg',
+    description: 'Catorze tarefas de equilíbrio pontuadas de 0 a 4 pelo profissional. Usada em risco de queda, neurologia e geriatria.',
+    category: 'escala',
+    tags: ['equilíbrio', 'queda', 'neurologia', 'geriatria', 'fisioterapia'],
+    ageGroups: ['adulto'],
+    professions: ['fisioterapia'],
+    Icon: Compass,
+    template: `ESCALA DE EQUILÍBRIO DE BERG
+
+Aplicação pelo profissional. Cada uma das 14 tarefas vale de 0 a 4.
+Necessário: cronômetro, cadeira com e sem apoio de braço, banquinho/degrau, régua.
 
 OBSERVAÇÕES DO(A) PROFISSIONAL:`,
   },

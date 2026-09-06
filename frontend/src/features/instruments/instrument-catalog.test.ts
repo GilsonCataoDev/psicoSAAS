@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { INSTRUMENTS } from './instrument-catalog'
+import { INSTRUMENTS, instrumentsFor } from './instrument-catalog'
+import { SCALE_CONFIGS } from '@/lib/scale-scoring'
 
 describe('instrument catalog', () => {
   it('mantém identificadores únicos', () => {
@@ -24,5 +25,41 @@ describe('instrument catalog', () => {
         ageGroups: expect.arrayContaining(['adulto']),
       }),
     ]))
+  })
+})
+
+describe('instrumentsFor', () => {
+  const FISIO_IDS = ['eva-dor', 'oswestry', 'berg']
+
+  it('não muda nada para psicologia — todo item sem `professions` continua visível', () => {
+    const psi = instrumentsFor('psicologia').map(i => i.id)
+    const semDeclaracao = INSTRUMENTS.filter(i => !i.professions).map(i => i.id)
+    expect(psi).toEqual(semDeclaracao)
+  })
+
+  it('assume psicologia quando a profissão está ausente (conta antiga)', () => {
+    expect(instrumentsFor(undefined)).toEqual(instrumentsFor('psicologia'))
+    expect(instrumentsFor(null)).toEqual(instrumentsFor('psicologia'))
+  })
+
+  it('entrega à fisioterapia apenas os instrumentos dela', () => {
+    expect(instrumentsFor('fisioterapia').map(i => i.id).sort()).toEqual([...FISIO_IDS].sort())
+  })
+
+  it('não vaza instrumento clínico de uma profissão para a outra', () => {
+    const psi = instrumentsFor('psicologia').map(i => i.id)
+    for (const id of FISIO_IDS) expect(psi).not.toContain(id)
+    const fisio = instrumentsFor('fisioterapia').map(i => i.id)
+    for (const id of ['phq9', 'gad7', 'anamnese-adulto']) expect(fisio).not.toContain(id)
+  })
+
+  it('devolve lista vazia para profissão sem catálogo próprio', () => {
+    expect(instrumentsFor('nutricao')).toEqual([])
+    expect(instrumentsFor('odontologia')).toEqual([])
+  })
+
+  it('registra pontuação para toda escala de fisioterapia do catálogo', () => {
+    // Escala sem config no SCALE_CONFIGS é aplicada e não pontua — falha silenciosa.
+    for (const id of FISIO_IDS) expect(SCALE_CONFIGS[id]).toBeDefined()
   })
 })

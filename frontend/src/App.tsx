@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { useAuthStore } from '@/store/auth'
-import { hasPsychologyModules } from '@/lib/professions'
+import { hasInstrumentsModule, hasPsychologyModules } from '@/lib/professions'
 import { useSubscriptionStore } from '@/store/subscription'
 import AuthLayout from '@/components/layout/AuthLayout'
 
@@ -98,13 +98,18 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * Módulos exclusivos de psicologia (instrumentos psicométricos, laudo
- * neuropsicológico). Esconder o link do menu não basta — sem isto a URL
- * continuaria acessível para outras profissões.
+ * Módulos exclusivos de psicologia (laudo neuropsicológico). Esconder o link do
+ * menu não basta — sem isto a URL continuaria acessível para outras profissões.
  */
 function PsychologyOnlyRoute({ children }: { children: React.ReactNode }) {
   const profession = useAuthStore(state => state.user?.profession)
   return hasPsychologyModules(profession) ? <>{children}</> : <Navigate to="/dashboard" replace />
+}
+
+/** Biblioteca de instrumentos — psicologia e fisioterapia têm catálogos próprios. */
+function InstrumentsRoute({ children }: { children: React.ReactNode }) {
+  const profession = useAuthStore(state => state.user?.profession)
+  return hasInstrumentsModule(profession) ? <>{children}</> : <Navigate to="/dashboard" replace />
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
@@ -181,7 +186,7 @@ export default function App() {
             <Route path="configuracoes" element={<SettingsPage />} />
             <Route path="relatorios" element={<RelatoriosPage />} />
             <Route path="crm" element={<CRMPage />} />
-            <Route path="instrumentos" element={<PsychologyOnlyRoute><ProOnlyRoute><InstrumentosPage /></ProOnlyRoute></PsychologyOnlyRoute>} />
+            <Route path="instrumentos" element={<InstrumentsRoute><ProOnlyRoute><InstrumentosPage /></ProOnlyRoute></InstrumentsRoute>} />
             <Route path="avaliacoes" element={<PsychologyOnlyRoute><ProOnlyRoute><NeuropsychAssessmentsPage /></ProOnlyRoute></PsychologyOnlyRoute>} />
             <Route path="avaliacoes/:id" element={<PsychologyOnlyRoute><ProOnlyRoute><NeuropsychAssessmentPage /></ProOnlyRoute></PsychologyOnlyRoute>} />
           </Route>

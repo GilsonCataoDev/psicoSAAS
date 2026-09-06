@@ -96,6 +96,38 @@ const INTENSITY_STATEMENT_0_3: ScaleOption[] = [
   { value: 3, label: 'Senti intensamente / na maior parte do tempo' },
 ]
 
+const EVA_0_10: ScaleOption[] = [
+  { value: 0,  label: '0 — Sem dor' },
+  { value: 1,  label: '1' },
+  { value: 2,  label: '2' },
+  { value: 3,  label: '3' },
+  { value: 4,  label: '4' },
+  { value: 5,  label: '5' },
+  { value: 6,  label: '6' },
+  { value: 7,  label: '7' },
+  { value: 8,  label: '8' },
+  { value: 9,  label: '9' },
+  { value: 10, label: '10 — Pior dor imaginável' },
+]
+
+/** Fallback do ODI: cada seção sobrescreve com os próprios descritores. */
+const ODI_0_5: ScaleOption[] = [
+  { value: 0, label: '0 — Sem limitação' },
+  { value: 1, label: '1' },
+  { value: 2, label: '2' },
+  { value: 3, label: '3' },
+  { value: 4, label: '4' },
+  { value: 5, label: '5 — Limitação máxima' },
+]
+
+const BERG_0_4: ScaleOption[] = [
+  { value: 0, label: '0 — Incapaz de realizar' },
+  { value: 1, label: '1 — Necessita de ajuda significativa' },
+  { value: 2, label: '2 — Necessita de ajuda mínima ou supervisão' },
+  { value: 3, label: '3 — Realiza com supervisão ou desempenho parcial' },
+  { value: 4, label: '4 — Realiza com segurança e independência' },
+]
+
 // ── Scale configs ─────────────────────────────────────────────────────────────
 
 export const SCALE_CONFIGS: Record<string, ScaleConfig> = {
@@ -854,6 +886,160 @@ export const SCALE_CONFIGS: Record<string, ScaleConfig> = {
       { max: 72, label: 'Total elevado', color: 'text-orange-700 bg-orange-50' },
     ],
     note: 'O rastreio da Parte A (≥4 itens com pontuação 3–4) é o critério principal do ASRS. O total de 72 é referência secundária.',
+  },
+
+  // ── EVA — Escala Visual Analógica de Dor ───────────────────────────────────
+  'eva-dor': {
+    options: EVA_0_10,
+    items: [
+      { id: 'q1', label: 'Intensidade da dor neste momento' },
+    ],
+    thresholds: [
+      { max: 0,  label: 'Sem dor',        color: 'text-emerald-700 bg-emerald-50' },
+      { max: 3,  label: 'Dor leve',       color: 'text-yellow-700 bg-yellow-50' },
+      { max: 6,  label: 'Dor moderada',   color: 'text-orange-700 bg-orange-50' },
+      { max: 10, label: 'Dor intensa',    color: 'text-red-700 bg-red-50' },
+    ],
+    note: 'Mede intensidade num instante — o valor isolado diz pouco. O uso clínico está na curva ao longo do tratamento. Diferença de 2 pontos costuma ser adotada como mudança clinicamente relevante.',
+  },
+
+  // ── Índice de Oswestry (ODI) ───────────────────────────────────────────────
+  // 10 seções de 0 a 5 (bruto 0–50). O resultado é percentual: bruto × 2.
+  oswestry: {
+    options: ODI_0_5,
+    items: [
+      { id: 'q1',  label: 'Seção 1 — Intensidade da dor', options: [
+        { value: 0, label: 'Não sinto dor no momento' },
+        { value: 1, label: 'A dor é muito leve no momento' },
+        { value: 2, label: 'A dor é moderada no momento' },
+        { value: 3, label: 'A dor é razoavelmente intensa no momento' },
+        { value: 4, label: 'A dor é muito intensa no momento' },
+        { value: 5, label: 'A dor é a pior imaginável no momento' },
+      ] },
+      { id: 'q2',  label: 'Seção 2 — Cuidados pessoais (lavar-se, vestir-se)', options: [
+        { value: 0, label: 'Cuido de mim normalmente, sem aumentar a dor' },
+        { value: 1, label: 'Cuido de mim normalmente, mas isso aumenta a dor' },
+        { value: 2, label: 'Cuidar de mim dói e faço devagar e com cuidado' },
+        { value: 3, label: 'Preciso de alguma ajuda, mas faço a maior parte sozinho(a)' },
+        { value: 4, label: 'Preciso de ajuda todos os dias na maioria dos cuidados' },
+        { value: 5, label: 'Não me visto, lavo-me com dificuldade e fico na cama' },
+      ] },
+      { id: 'q3',  label: 'Seção 3 — Levantar peso', options: [
+        { value: 0, label: 'Levanto peso sem aumentar a dor' },
+        { value: 1, label: 'Levanto peso, mas isso aumenta a dor' },
+        { value: 2, label: 'A dor impede levantar peso do chão, mas consigo se estiver bem posicionado (ex.: sobre a mesa)' },
+        { value: 3, label: 'A dor impede levantar peso, mas consigo pesos leves ou médios bem posicionados' },
+        { value: 4, label: 'Consigo levantar apenas objetos muito leves' },
+        { value: 5, label: 'Não consigo levantar nem carregar nada' },
+      ] },
+      { id: 'q4',  label: 'Seção 4 — Caminhar', options: [
+        { value: 0, label: 'A dor não me impede de caminhar qualquer distância' },
+        { value: 1, label: 'A dor me impede de caminhar mais de 1,5 km' },
+        { value: 2, label: 'A dor me impede de caminhar mais de 500 m' },
+        { value: 3, label: 'A dor me impede de caminhar mais de 100 m' },
+        { value: 4, label: 'Só consigo caminhar usando bengala ou muletas' },
+        { value: 5, label: 'Fico na cama a maior parte do tempo e me arrasto até o banheiro' },
+      ] },
+      { id: 'q5',  label: 'Seção 5 — Sentar', options: [
+        { value: 0, label: 'Sento em qualquer cadeira pelo tempo que quiser' },
+        { value: 1, label: 'Sento pelo tempo que quiser apenas na minha cadeira favorita' },
+        { value: 2, label: 'A dor me impede de sentar por mais de 1 hora' },
+        { value: 3, label: 'A dor me impede de sentar por mais de 30 minutos' },
+        { value: 4, label: 'A dor me impede de sentar por mais de 10 minutos' },
+        { value: 5, label: 'A dor me impede de sentar' },
+      ] },
+      { id: 'q6',  label: 'Seção 6 — Ficar em pé', options: [
+        { value: 0, label: 'Fico em pé o tempo que quiser, sem aumentar a dor' },
+        { value: 1, label: 'Fico em pé o tempo que quiser, mas isso aumenta a dor' },
+        { value: 2, label: 'A dor me impede de ficar em pé por mais de 1 hora' },
+        { value: 3, label: 'A dor me impede de ficar em pé por mais de 30 minutos' },
+        { value: 4, label: 'A dor me impede de ficar em pé por mais de 10 minutos' },
+        { value: 5, label: 'A dor me impede de ficar em pé' },
+      ] },
+      { id: 'q7',  label: 'Seção 7 — Dormir', options: [
+        { value: 0, label: 'Meu sono nunca é perturbado pela dor' },
+        { value: 1, label: 'Meu sono é ocasionalmente perturbado pela dor' },
+        { value: 2, label: 'Por causa da dor, durmo menos de 6 horas' },
+        { value: 3, label: 'Por causa da dor, durmo menos de 4 horas' },
+        { value: 4, label: 'Por causa da dor, durmo menos de 2 horas' },
+        { value: 5, label: 'A dor me impede totalmente de dormir' },
+      ] },
+      { id: 'q8',  label: 'Seção 8 — Vida sexual', options: [
+        { value: 0, label: 'Normal, sem aumentar a dor' },
+        { value: 1, label: 'Normal, mas aumenta a dor' },
+        { value: 2, label: 'Quase normal, mas muito dolorosa' },
+        { value: 3, label: 'Severamente limitada pela dor' },
+        { value: 4, label: 'Quase inexistente por causa da dor' },
+        { value: 5, label: 'A dor impede qualquer vida sexual' },
+      ] },
+      { id: 'q9',  label: 'Seção 9 — Vida social', options: [
+        { value: 0, label: 'Normal, sem aumentar a dor' },
+        { value: 1, label: 'Normal, mas aumenta a dor' },
+        { value: 2, label: 'Sem efeito importante, exceto em atividades mais intensas (ex.: esporte)' },
+        { value: 3, label: 'Limitada — não saio com a mesma frequência' },
+        { value: 4, label: 'Restrita ao ambiente de casa' },
+        { value: 5, label: 'Não tenho vida social por causa da dor' },
+      ] },
+      { id: 'q10', label: 'Seção 10 — Locomoção / viagens', options: [
+        { value: 0, label: 'Viajo para qualquer lugar sem dor' },
+        { value: 1, label: 'Viajo para qualquer lugar, mas isso aumenta a dor' },
+        { value: 2, label: 'A dor é ruim, mas suporto viagens de mais de 2 horas' },
+        { value: 3, label: 'A dor me restringe a viagens de menos de 1 hora' },
+        { value: 4, label: 'A dor me restringe a viagens curtas e necessárias, de menos de 30 minutos' },
+        { value: 5, label: 'A dor me impede de viajar, exceto para tratamento' },
+      ] },
+    ],
+    subscales: [
+      {
+        id: 'percentual',
+        label: 'Percentual de incapacidade',
+        itemIds: ['q1','q2','q3','q4','q5','q6','q7','q8','q9','q10'],
+        multiplier: 2,
+        thresholds: [
+          { max: 20,  label: 'Incapacidade mínima',   color: 'text-emerald-700 bg-emerald-50' },
+          { max: 40,  label: 'Incapacidade moderada', color: 'text-yellow-700 bg-yellow-50' },
+          { max: 60,  label: 'Incapacidade intensa',  color: 'text-orange-700 bg-orange-50' },
+          { max: 80,  label: 'Aleijado',              color: 'text-red-700 bg-red-50' },
+          { max: 100, label: 'Restrito ao leito',     color: 'text-red-800 bg-red-100' },
+        ],
+      },
+    ],
+    thresholds: [
+      { max: 20,  label: 'Incapacidade mínima',   color: 'text-emerald-700 bg-emerald-50' },
+      { max: 40,  label: 'Incapacidade moderada', color: 'text-yellow-700 bg-yellow-50' },
+      { max: 60,  label: 'Incapacidade intensa',  color: 'text-orange-700 bg-orange-50' },
+      { max: 80,  label: 'Aleijado',              color: 'text-red-700 bg-red-50' },
+      { max: 100, label: 'Restrito ao leito',     color: 'text-red-800 bg-red-100' },
+    ],
+    note: 'O total já é o percentual de incapacidade (soma bruta de 0–50 multiplicada por 2). A seção 8 pode ser omitida quando não se aplica — nesse caso o cálculo padrão do ODI usa 45 como denominador, ajuste que esta versão não faz automaticamente.',
+  },
+
+  // ── Escala de Equilíbrio de Berg ───────────────────────────────────────────
+  // Aplicada pelo profissional. 14 tarefas de 0 a 4, total 0–56.
+  berg: {
+    options: BERG_0_4,
+    items: [
+      { id: 'q1',  label: '1. Posição sentada para posição em pé' },
+      { id: 'q2',  label: '2. Permanecer em pé sem apoio' },
+      { id: 'q3',  label: '3. Permanecer sentado sem apoio nas costas, com os pés apoiados' },
+      { id: 'q4',  label: '4. Posição em pé para posição sentada' },
+      { id: 'q5',  label: '5. Transferências (cadeira para cadeira)' },
+      { id: 'q6',  label: '6. Permanecer em pé sem apoio com os olhos fechados' },
+      { id: 'q7',  label: '7. Permanecer em pé sem apoio com os pés juntos' },
+      { id: 'q8',  label: '8. Alcançar à frente com o braço estendido, permanecendo em pé' },
+      { id: 'q9',  label: '9. Pegar um objeto do chão a partir da posição em pé' },
+      { id: 'q10', label: '10. Virar-se e olhar para trás sobre os ombros direito e esquerdo' },
+      { id: 'q11', label: '11. Girar 360 graus' },
+      { id: 'q12', label: '12. Posicionar os pés alternadamente no degrau ou banquinho' },
+      { id: 'q13', label: '13. Permanecer em pé sem apoio com um pé à frente' },
+      { id: 'q14', label: '14. Permanecer em pé sobre uma perna' },
+    ],
+    thresholds: [
+      { max: 20, label: 'Alto risco de queda',     color: 'text-red-700 bg-red-50' },
+      { max: 40, label: 'Risco moderado de queda', color: 'text-orange-700 bg-orange-50' },
+      { max: 56, label: 'Baixo risco de queda',    color: 'text-emerald-700 bg-emerald-50' },
+    ],
+    note: 'Cada tarefa tem critérios próprios de pontuação (tempo de sustentação, necessidade de apoio, supervisão). Consulte o protocolo completo ao pontuar — as opções aqui são o resumo dos níveis, não os descritores integrais.',
   },
 }
 
