@@ -63,3 +63,7 @@ backend/data-source.d.ts
 # Venv local do gerador do relatório de auditoria de segurança
 docs/security-audit/venv/
 docs/security-audit/__pycache__/
+
+# Claude Code local config and trace index
+.claude/
+.trace-mcp/
