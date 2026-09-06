@@ -7,7 +7,7 @@
     "dev": "vite",
     "prebuild": "node scripts/gen-seo-assets.mjs && node scripts/gen-blog-og-images.mjs",
     "build": "tsc && vite build",
-    "postbuild": "node scripts/create-spa-fallbacks.mjs && node scripts/prerender-blog.mjs",
+    "postbuild": "node scripts/create-spa-fallbacks.mjs && node scripts/prerender-blog.mjs && node scripts/prerender-landing.mjs",
     "preview": "vite preview",
     "preview:dist": "node scripts/serve-dist.mjs",
     "lint": "eslint src --ext ts,tsx",

@@ -8,8 +8,7 @@
 
     <!-- SEO primário -->
     <title>UseCognia | Prontuário e gestão clínica para profissionais de saúde</title>
-    <meta name="description" content="Organize registros, pessoas atendidas, agenda e pagamentos em um só fluxo. Plano grátis para profissionais de saúde, sem cartão e sem prazo para expirar." />
-    <meta name="keywords" content="software para profissionais de saúde, gestão de consultório, software para psicólogo, prontuário psicológico, agenda psicólogo, software para nutricionista, software para fisioterapeuta, prontuário eletrônico, lembretes de consulta" />
+    <meta name="description" content="Prontuário, agenda, documentos e financeiro em um só fluxo para profissionais de saúde autônomos. Teste 7 dias com acesso completo ao plano Pro." />
     <link rel="canonical" href="https://usecognia.com.br/" />
     <link rel="alternate" type="application/rss+xml" title="Blog UseCognia" href="https://usecognia.com.br/feed.xml" />
 
@@ -18,7 +17,7 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://usecognia.com.br/" />
     <meta property="og:title" content="UseCognia | Prontuário e gestão clínica para profissionais de saúde" />
-    <meta property="og:description" content="Organize prontuários, pacientes, agenda e pagamentos em um só fluxo. Comece grátis, sem cartão." />
+    <meta property="og:description" content="Prontuário, agenda, documentos e financeiro em um só fluxo. Teste 7 dias com acesso completo ao plano Pro." />
     <meta property="og:image" content="https://usecognia.com.br/og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -27,7 +26,7 @@
     <!-- Twitter / X Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="UseCognia | Prontuário e gestão clínica para profissionais de saúde" />
-    <meta name="twitter:description" content="Organize prontuários, pacientes, agenda e pagamentos em um só fluxo. Comece grátis, sem cartão." />
+    <meta name="twitter:description" content="Prontuário, agenda, documentos e financeiro em um só fluxo. Teste 7 dias com acesso completo ao plano Pro." />
     <meta name="twitter:image" content="https://usecognia.com.br/og-image.png" />
 
     <!-- PWA -->
@@ -58,22 +57,19 @@
         "Sincronização com Google Calendar",
         "Controle financeiro e cobranças"
       ],
-      "offers": [
-        {
-          "@type": "Offer",
-          "name": "Plano Gratuito",
-          "price": "0",
-          "priceCurrency": "BRL",
-          "description": "Plano gratuito sem prazo para expirar e sem cartão de crédito"
-        },
-        {
-          "@type": "Offer",
-          "name": "Plano Pro",
-          "price": "97.90",
-          "priceCurrency": "BRL",
-          "billingIncrement": "P1M"
+      "offers": {
+        "@type": "Offer",
+        "name": "Plano Pro",
+        "price": "97.90",
+        "priceCurrency": "BRL",
+        "category": "subscription",
+        "description": "Assinatura mensal com 7 dias de teste com acesso completo. Cartão necessário no cadastro; nenhum valor é cobrado durante o teste.",
+        "eligibleDuration": {
+          "@type": "QuantitativeValue",
+          "value": 1,
+          "unitCode": "MON"
         }
-      ],
+      },
       "provider": {
         "@type": "Organization",
         "name": "UseCognia",
@@ -88,34 +84,42 @@
       "mainEntity": [
         {
           "@type": "Question",
-          "name": "O UseCognia é gratuito?",
+          "name": "O teste de 7 dias é realmente gratuito?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Sim. O plano gratuito não exige cartão e não tem prazo para expirar. Os planos pagos adicionam mais capacidade e automações."
+            "text": "Sim. Nenhum valor é cobrado durante os 7 dias de teste. Cancele antes do vencimento e não haverá cobrança."
           }
         },
         {
           "@type": "Question",
-          "name": "O prontuário eletrônico é seguro?",
+          "name": "Preciso cadastrar cartão?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "As notas clínicas são criptografadas com AES-256-GCM, com conexão HTTPS, autenticação individual e isolamento entre contas. A adequação à LGPD é um processo contínuo e não substitui as obrigações profissionais do usuário."
+            "text": "Sim. O cartão é necessário no cadastro para iniciar o teste. Isso garante a continuidade do serviço após o período gratuito caso você opte por continuar."
           }
         },
         {
           "@type": "Question",
-          "name": "Posso usar o UseCognia no celular?",
+          "name": "Quem pode usar o UseCognia?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Sim. O UseCognia funciona como Progressive Web App (PWA) em qualquer smartphone, tablet ou computador, sem precisar instalar nada."
+            "text": "Profissionais de saúde autônomos no Brasil — psicologia, nutrição, fisioterapia, fonoaudiologia, terapia ocupacional, odontologia e afins — que querem organizar agenda, pessoas atendidas, registros e rotina de atendimento. Os termos e os recursos da plataforma se ajustam à profissão escolhida no cadastro."
           }
         },
         {
           "@type": "Question",
-          "name": "Como funcionam os lembretes automáticos?",
+          "name": "Meus dados e os dos meus pacientes ficam seguros?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "No plano Pro, lembretes podem ser enviados via WhatsApp 24h e 1h antes da consulta quando a integração estiver conectada e o provedor estiver disponível."
+            "text": "O UseCognia aplica HTTPS, hash seguro de senhas, controle de acesso e isolamento entre contas. Nenhum sistema é absolutamente seguro; consulte a página de Segurança para conhecer os controles e limites."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "O paciente precisa instalar aplicativo?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Não. A proposta é que links públicos e páginas de confirmação abram direto no navegador do celular ou computador."
           }
         }
       ]

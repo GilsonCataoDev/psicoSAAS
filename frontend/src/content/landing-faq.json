@@ -1,0 +1,42 @@
+[
+  {
+    "question": "Preciso configurar tudo antes de usar?",
+    "answer": "Não. Você pode começar pelo essencial: cadastrar pacientes, organizar agenda e registrar evoluções aos poucos."
+  },
+  {
+    "question": "Quem pode usar o UseCognia?",
+    "answer": "Profissionais de saúde autônomos no Brasil — psicologia, nutrição, fisioterapia, fonoaudiologia, terapia ocupacional, odontologia e afins — que querem organizar agenda, pessoas atendidas, registros e rotina de atendimento. Os termos e os recursos da plataforma se ajustam à profissão escolhida no cadastro."
+  },
+  {
+    "question": "Meus dados e os dos meus pacientes ficam seguros?",
+    "answer": "O UseCognia aplica HTTPS, hash seguro de senhas, controle de acesso e isolamento entre contas. Nenhum sistema é absolutamente seguro; consulte a página de Segurança para conhecer os controles e limites."
+  },
+  {
+    "question": "Como os documentos podem ser verificados?",
+    "answer": "Cada PDF gerado pela plataforma recebe um código único e um QR Code de verificação. O link confirma a integridade e a origem no UseCognia, mas não substitui assinatura qualificada, requisitos legais ou a responsabilidade do profissional."
+  },
+  {
+    "question": "O paciente precisa instalar aplicativo?",
+    "answer": "Não. A proposta é que links públicos e páginas de confirmação abram direto no navegador do celular ou computador."
+  },
+  {
+    "question": "Posso usar se atendo online e presencialmente?",
+    "answer": "Sim. A agenda e os agendamentos públicos permitem configurar modalidades separadas — presencial e online — com disponibilidades e horários distintos para cada uma."
+  },
+  {
+    "question": "O teste de 7 dias é realmente gratuito?",
+    "answer": "Sim. Nenhum valor é cobrado durante os 7 dias de teste. Cancele antes do vencimento e não haverá cobrança."
+  },
+  {
+    "question": "Preciso cadastrar cartão?",
+    "answer": "Sim. O cartão é necessário no cadastro para iniciar o teste. Isso garante a continuidade do serviço após o período gratuito caso você opte por continuar."
+  },
+  {
+    "question": "A plataforma atende às normas do meu conselho?",
+    "answer": "O UseCognia oferece recursos de organização, controle de acesso e registro que apoiam a rotina de qualquer profissional de saúde. Cada conselho — CFP, CFN, COFFITO, CFO e afins — tem suas próprias resoluções, e a adequação de cada documento e atendimento às normas aplicáveis continua sob responsabilidade do profissional."
+  },
+  {
+    "question": "Consigo emitir declarações e atestados em PDF?",
+    "answer": "Sim. A plataforma gera declarações de comparecimento, atestados e outros documentos em PDF formatado, com dados do profissional, do paciente e código de verificação. O documento pode ser impresso ou enviado digitalmente."
+  }
+]
