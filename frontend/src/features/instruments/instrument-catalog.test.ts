@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { INSTRUMENTS, instrumentsFor } from './instrument-catalog'
+import { BATTERIES, INSTRUMENTS, instrumentsFor } from './instrument-catalog'
 import { SCALE_CONFIGS } from '@/lib/scale-scoring'
 
 describe('instrument catalog', () => {
@@ -61,5 +61,25 @@ describe('instrumentsFor', () => {
   it('registra pontuação para toda escala de fisioterapia do catálogo', () => {
     // Escala sem config no SCALE_CONFIGS é aplicada e não pontua — falha silenciosa.
     for (const id of FISIO_IDS) expect(SCALE_CONFIGS[id]).toBeDefined()
+  })
+})
+
+describe('BATTERIES', () => {
+  const catalogIds = new Set(INSTRUMENTS.map(i => i.id))
+
+  it('todos os instrumentIds referenciam ids existentes no catálogo', () => {
+    for (const battery of BATTERIES) {
+      for (const instrumentId of battery.instrumentIds) {
+        expect(
+          catalogIds.has(instrumentId),
+          `Bateria "${battery.id}" referencia id inexistente: "${instrumentId}"`,
+        ).toBe(true)
+      }
+    }
+  })
+
+  it('mantém identificadores únicos de bateria', () => {
+    const ids = BATTERIES.map(b => b.id)
+    expect(new Set(ids).size).toBe(ids.length)
   })
 })

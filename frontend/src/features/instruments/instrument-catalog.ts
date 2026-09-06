@@ -1627,4 +1627,40 @@ OBSERVAÇÕES DO(A) PROFISSIONAL:`,
   },
 ]
 
+// ── Baterias de instrumentos ──────────────────────────────────────────────────
+
+export type Battery = {
+  id: string
+  label: string
+  description: string
+  instrumentIds: string[]
+}
+
+export const BATTERIES: Battery[] = [
+  {
+    id: 'triagem-adulto',
+    label: 'Triagem adulto',
+    description: 'Começo organizado para adulto novo.',
+    instrumentIds: ['anamnese-adulto', 'phq9', 'gad7'],
+  },
+  {
+    id: 'ansiedade',
+    label: 'Ansiedade',
+    description: 'Rastreio e acompanhamento de sintomas ansiosos.',
+    instrumentIds: ['gad7', 'bai-adaptado', 'registro-pensamentos'],
+  },
+  {
+    id: 'humor',
+    label: 'Humor',
+    description: 'Depressão, humor e evolução de sintomas.',
+    instrumentIds: ['phq9', 'bdi2-adaptado', 'diario-humor'],
+  },
+  {
+    id: 'infantojuvenil',
+    label: 'Infantojuvenil',
+    description: 'Entrada para crianças e adolescentes.',
+    instrumentIds: ['anamnese-infantil', 'sdq'],
+  },
+]
+
 // ── Renderizador de linha do template ────────────────────────────────────────

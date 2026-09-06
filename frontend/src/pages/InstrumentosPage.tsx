@@ -22,6 +22,7 @@ import { formatDate as formatUiDate } from '@/lib/utils'
 import { getCriticalResponses, interpretScaleResult, SCALE_CONFIGS } from '@/lib/scale-scoring'
 import { buildScaleEvolutionSeries } from '@/lib/patient-detail-summary'
 import {
+  BATTERIES,
   CARD_ACCENTS,
   CAT_COLOR,
   CAT_LABEL,
@@ -631,32 +632,6 @@ const OBJECTIVES = [
   { value: 'neuro', label: 'Neuropsicologia', hint: 'Atenção, memória e TDAH', terms: ['neuro', 'tdah', 'atenção', 'atencao', 'memória', 'memoria', 'cognitivo'] },
 ] as const
 
-const BATTERIES = [
-  {
-    id: 'triagem-adulto',
-    label: 'Triagem adulto',
-    description: 'Começo organizado para adulto novo.',
-    instrumentIds: ['anamnese-adulto', 'phq-9', 'gad-7'],
-  },
-  {
-    id: 'ansiedade',
-    label: 'Ansiedade',
-    description: 'Rastreio e acompanhamento de sintomas ansiosos.',
-    instrumentIds: ['gad-7', 'bai', 'registro-ansiedade'],
-  },
-  {
-    id: 'humor',
-    label: 'Humor',
-    description: 'Depressão, humor e evolução de sintomas.',
-    instrumentIds: ['phq-9', 'bdi-ii', 'registro-humor'],
-  },
-  {
-    id: 'infantojuvenil',
-    label: 'Infantojuvenil',
-    description: 'Entrada para crianças e adolescentes.',
-    instrumentIds: ['anamnese-infantil', 'sdq', 'snap-iv'],
-  },
-] as const
 
 const STATUS_LABEL: Record<InstrumentAssignment['status'], string> = {
   pending: 'Pendente',
