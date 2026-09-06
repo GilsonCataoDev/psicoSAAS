@@ -1,5 +1,144 @@
 [
   {
+    "slug": "phq-9-gad-7-como-aplicar-interpretar-consultorio",
+    "title": "PHQ-9 e GAD-7: como aplicar e interpretar no consultório",
+    "description": "Entenda como aplicar o PHQ-9 e o GAD-7, como interpretar os escores com responsabilidade clínica e como integrar esses instrumentos ao fluxo do consultório.",
+    "image": "/blog/og/phq-9-gad-7-como-aplicar-interpretar-consultorio.png",
+    "category": "Instrumentos clínicos",
+    "publishedAt": "2026-09-06",
+    "updatedAt": "2026-09-06",
+    "readingMinutes": 9,
+    "author": "Equipe UseCognia",
+    "keywords": [
+      "PHQ-9",
+      "GAD-7",
+      "escalas clínicas psicologia",
+      "como aplicar PHQ-9",
+      "como interpretar GAD-7",
+      "instrumentos de rastreio psicologia"
+    ],
+    "relatedSlugs": [
+      "como-organizar-prontuario-psicologico-com-seguranca",
+      "software-para-psicologo-guia-completo-2026"
+    ],
+    "intro": [
+      "O PHQ-9 e o GAD-7 são instrumentos de rastreio validados amplamente usados em psicologia clínica para monitorar sintomas depressivos e de ansiedade ao longo do acompanhamento. Sua praticidade e respaldo científico fazem deles uma referência frequente em contextos clínicos, pesquisa e saúde coletiva.",
+      "Aplicar corretamente não é apenas pedir que o paciente preencha o formulário. Requer entender o que cada escore indica, o que ele não indica, como integrar o resultado ao raciocínio clínico e como documentar de forma adequada."
+    ],
+    "sections": [
+      {
+        "heading": "1. O que são o PHQ-9 e o GAD-7",
+        "paragraphs": [
+          "O PHQ-9 (Patient Health Questionnaire-9) é um instrumento de rastreio de sintomas depressivos composto por 9 itens, cada um avaliado em uma escala de 0 a 3 — nenhuma vez, vários dias, mais da metade dos dias, quase todos os dias. O escore total varia de 0 a 27. Ele é baseado nos critérios diagnósticos do DSM para episódio depressivo maior e foi validado para o português brasileiro.",
+          "O GAD-7 (Generalized Anxiety Disorder Scale) é um instrumento de rastreio de ansiedade generalizada com 7 itens, na mesma escala de 0 a 3, com escore total de 0 a 21. Também possui versão validada para o português brasileiro e é amplamente utilizado tanto em pesquisa quanto na prática clínica. Os dois instrumentos podem ser aplicados separadamente ou em conjunto, pois sintomas depressivos e ansiosos frequentemente coexistem."
+        ]
+      },
+      {
+        "heading": "2. Quem pode aplicar esses instrumentos",
+        "paragraphs": [
+          "O PHQ-9 e o GAD-7 são escalas de rastreio de uso livre, distintas dos testes psicológicos regulamentados pelo Sistema de Avaliação de Testes Psicológicos (SATEPSI) do CFP. Isso significa que podem ser utilizadas por psicólogos sem necessidade de registro específico junto ao Conselho, dentro das atribuições profissionais da psicologia.",
+          "A aplicação em contexto clínico deve ser feita por profissional habilitado a interpretar os resultados com responsabilidade. Psicólogos que utilizam essas escalas no atendimento devem garantir que a interpretação esteja integrada ao raciocínio clínico e documentada no prontuário. O uso e a interpretação são responsabilidade do profissional."
+        ]
+      },
+      {
+        "heading": "3. Como aplicar: orientações práticas",
+        "paragraphs": [
+          "Apresente o instrumento com clareza antes de entregar ao paciente. Explique que as perguntas se referem a como ele se sentiu nas últimas duas semanas e que as respostas ajudam a acompanhar a evolução ao longo do tratamento. Não é um teste de certo ou errado.",
+          "O preenchimento pode ser feito pelo próprio paciente — autoaplicação, que é o formato mais comum — ou mediado pelo profissional. Em casos de dificuldade de leitura, compreensão ou estados emocionais que impeçam o preenchimento autônomo, o profissional conduz as perguntas verbalmente e registra as respostas.",
+          "Mantenha o contexto seguro. Se o paciente demonstrar desconforto com algum item, especialmente o item 9 do PHQ-9 — que pergunta sobre pensamentos de se machucar ou de que seria melhor estar morto —, acolha a resposta antes de continuar. Esse item exige atenção clínica imediata, independente do escore total."
+        ]
+      },
+      {
+        "heading": "4. Como interpretar os escores do PHQ-9",
+        "paragraphs": [
+          "O escore total do PHQ-9 é categorizado em faixas que indicam a intensidade dos sintomas: de 0 a 4 (mínima), de 5 a 9 (leve), de 10 a 14 (moderada), de 15 a 19 (moderadamente grave) e de 20 a 27 (grave). Escores a partir de 10 são frequentemente usados como ponto de corte para rastreio de depressão clinicamente significativa na literatura.",
+          "O item 9, que avalia pensamentos de morte ou autolesão, deve ser lido e avaliado individualmente, independente do escore total. Qualquer pontuação acima de zero nesse item requer avaliação clínica específica no mesmo atendimento — acolhimento, avaliação de risco e conduta adequada ao caso.",
+          "O escore não é um diagnóstico. Dois pacientes com PHQ-9 igual a 12 podem ter apresentações clínicas completamente distintas. O resultado deve ser integrado à entrevista clínica, à história do paciente e ao julgamento profissional do psicólogo."
+        ]
+      },
+      {
+        "heading": "5. Como interpretar os escores do GAD-7",
+        "paragraphs": [
+          "O escore total do GAD-7 é categorizado em: de 0 a 4 (ansiedade mínima), de 5 a 9 (leve), de 10 a 14 (moderada) e de 15 a 21 (grave). O ponto de corte de 10 é frequentemente adotado para rastreio de transtorno de ansiedade generalizada, com sensibilidade e especificidade adequadas em estudos de validação.",
+          "Assim como no PHQ-9, o escore do GAD-7 é um indicador de intensidade sintomática, não um diagnóstico. Ansiedade moderada no GAD-7 pode estar associada a diferentes condições — fobia específica, transtorno do pânico, estresse situacional, entre outros — que exigem avaliação diferenciada.",
+          "O uso conjunto do PHQ-9 e do GAD-7 é comum porque sintomas depressivos e ansiosos frequentemente coexistem. A análise integrada dos dois escores, junto à entrevista clínica, oferece uma visão mais completa do quadro apresentado."
+        ]
+      },
+      {
+        "heading": "6. Como integrar ao prontuário e ao acompanhamento",
+        "paragraphs": [
+          "Registre a data de aplicação, o escore total, o escore do item 9 do PHQ-9 quando aplicável, a observação clínica sobre o resultado e a conduta decorrente. O registro dos itens individuais é especialmente importante no PHQ-9 — o item 9 exige documentação própria.",
+          "A reaplicação periódica — geralmente a cada quatro a seis semanas, ou conforme o julgamento clínico — permite acompanhar a trajetória do paciente e avaliar a resposta ao tratamento. Compare o escore atual com os anteriores e documente as variações observadas, relacionando-as ao processo terapêutico.",
+          "Evite transformar o escore em único critério de progresso. O paciente pode apresentar melhora clínica subjetiva sem redução proporcional do escore, e o contrário também acontece. O instrumento apoia o raciocínio — não o substitui."
+        ]
+      },
+      {
+        "heading": "7. Limitações que o profissional precisa conhecer",
+        "paragraphs": [
+          "O PHQ-9 e o GAD-7 foram desenvolvidos e validados principalmente em contextos de atenção primária e pesquisa epidemiológica. Sua validade em populações específicas — adolescentes, idosos, pessoas com condições crônicas, contextos culturais distintos — pode ser diferente. Avalie a pertinência do instrumento para cada paciente.",
+          "Esses instrumentos medem sintomas relatados pelo paciente nos últimos 14 dias. Não captam história de vida, funcionamento global, suporte social, fatores de risco específicos nem aspectos da personalidade relevantes para o diagnóstico diferencial. São uma fotografia de um recorte de tempo, não um retrato completo.",
+          "O profissional deve conhecer as propriedades psicométricas básicas dos instrumentos que utiliza — sensibilidade, especificidade e pontos de corte — e saber comunicar ao paciente o que o escore representa e o que ele não representa."
+        ]
+      },
+      {
+        "heading": "8. Como o UseCognia apoia esse fluxo",
+        "paragraphs": [
+          "O UseCognia disponibiliza o PHQ-9 e o GAD-7 diretamente no fluxo clínico, vinculados ao paciente. O profissional aplica, registra o escore e acompanha a evolução ao longo do tempo sem sair do prontuário.",
+          "O uso e a interpretação continuam sob responsabilidade do psicólogo. O sistema organiza o histórico e facilita a documentação — a decisão clínica é sempre do profissional. Disponível em contas de psicologia no plano Pro."
+        ]
+      }
+    ],
+    "checklist": [
+      "Apresentar o instrumento ao paciente antes de aplicar",
+      "Garantir condição adequada para o preenchimento",
+      "Avaliar o item 9 do PHQ-9 individualmente e de forma imediata",
+      "Registrar escore total, data de aplicação e observação clínica no prontuário",
+      "Integrar o resultado ao raciocínio clínico — nunca isolar o escore",
+      "Reaplicar periodicamente para acompanhar a evolução",
+      "Conhecer as limitações do instrumento antes de comunicar resultados ao paciente"
+    ],
+    "references": [
+      {
+        "label": "Kroenke K, Spitzer RL, Williams JB. The PHQ-9: validity of a brief depression severity measure. J Gen Intern Med. 2001",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/11556941/"
+      },
+      {
+        "label": "Spitzer RL, Kroenke K, Williams JB, Löwe B. A brief measure for assessing generalized anxiety disorder. Arch Intern Med. 2006",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/16717171/"
+      },
+      {
+        "label": "Santos IS et al. Validity and reliability of the Patient Health Questionnaire-9 in Brazil. Cad Saúde Pública. 2013",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/23703170/"
+      },
+      {
+        "label": "Moreno AL et al. Factor structure, reliability, and item parameters of the Brazilian-Portuguese version of the GAD-7. Psicologia: Reflexão e Crítica. 2016",
+        "url": "https://psycnet.apa.org/record/2016-14085-001"
+      },
+      {
+        "label": "SATEPSI — Sistema de Avaliação de Testes Psicológicos — CFP",
+        "url": "https://satepsi.cfp.org.br/"
+      }
+    ],
+    "faq": [
+      {
+        "question": "PHQ-9 e GAD-7 são testes psicológicos regulamentados pelo SATEPSI?",
+        "answer": "Não. O PHQ-9 e o GAD-7 são escalas de rastreio de uso livre, distintas dos testes psicológicos que exigem registro no SATEPSI. Psicólogos podem utilizá-los dentro de suas atribuições profissionais, com responsabilidade pela interpretação dos resultados."
+      },
+      {
+        "question": "Um escore alto no PHQ-9 confirma diagnóstico de depressão?",
+        "answer": "Não. O PHQ-9 é um instrumento de rastreio, não de diagnóstico. Escores elevados indicam intensidade sintomática e orientam a avaliação clínica, mas o diagnóstico depende de entrevista estruturada, história do paciente e julgamento profissional do psicólogo."
+      },
+      {
+        "question": "Com que frequência devo reaplicar os instrumentos?",
+        "answer": "Geralmente a cada quatro a seis semanas, ou conforme o julgamento clínico. Não há intervalo único ideal — o profissional define a frequência com base no quadro e nos objetivos do acompanhamento."
+      },
+      {
+        "question": "O que fazer quando o paciente pontua no item 9 do PHQ-9?",
+        "answer": "Qualquer pontuação acima de zero no item 9 exige avaliação clínica imediata no mesmo atendimento, independente do escore total. O profissional deve acolher, avaliar risco e tomar a conduta adequada ao caso antes de encerrar o atendimento."
+      }
+    ]
+  },
+  {
     "slug": "psicologia-em-pauta-semana-2026-08-21",
     "title": "Atualizações para psicólogos: o que merece atenção na semana de 21 de agosto de 2026",
     "description": "Curadoria semanal de atualizações relevantes para psicólogos, com fontes institucionais, impactos práticos, cuidados e perguntas frequentes.",
