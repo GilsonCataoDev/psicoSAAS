@@ -22,8 +22,8 @@ import { councilLabel } from '@/lib/professions'
 const trustSignals = [
   'Feito para profissionais de saúde',
   'Dados protegidos com criptografia',
-  'Até 10 pacientes no plano grátis',
-  'Sem cartão de crédito',
+  '7 dias de teste com acesso completo',
+  'Cancele antes do vencimento',
 ]
 
 const pains = [
@@ -86,12 +86,12 @@ const features = [
   },
 ]
 
-const freeItems = [
-  'Acesso gratuito sem cartão',
-  'Agenda online com link público',
-  'Cadastro de até 10 pacientes',
-  'Prontuário e evoluções em um só lugar',
-  'Ideal para profissionais de saúde no início da rotina',
+const trialItems = [
+  '7 dias com acesso completo ao plano Pro',
+  'Agenda online com link público de agendamento',
+  'Pacientes ilimitados durante o teste',
+  'Prontuário, documentos e financeiro incluídos',
+  'WhatsApp, IA e cobranças quando configurados',
 ]
 
 const faqs = [
@@ -120,12 +120,12 @@ const faqs = [
     answer: 'Sim. A agenda e os agendamentos públicos permitem configurar modalidades separadas — presencial e online — com disponibilidades e horários distintos para cada uma.',
   },
   {
-    question: 'O plano grátis é realmente gratuito?',
-    answer: 'Sim. O plano grátis permite começar sem cartão, com recursos essenciais e limite de até 10 pacientes.',
+    question: 'O teste de 7 dias é realmente gratuito?',
+    answer: 'Sim. Nenhum valor é cobrado durante os 7 dias de teste. Cancele antes do vencimento e não haverá cobrança.',
   },
   {
     question: 'Preciso cadastrar cartão?',
-    answer: 'Não para começar no plano grátis. Cartão só é necessário ao contratar um plano pago.',
+    answer: 'Sim. O cartão é necessário no cadastro para iniciar o teste. Isso garante a continuidade do serviço após o período gratuito caso você opte por continuar.',
   },
   {
     question: 'A plataforma atende às normas do meu conselho?',
@@ -330,7 +330,7 @@ export default function LandingPage() {
           </Link>
           <nav className="hidden items-center gap-6 text-sm font-medium text-[#5F5A51] md:flex">
             <a href="#produto" className="hover:text-sage-700">Produto</a>
-            <a href="#grátis" className="hover:text-sage-700">Plano grátis</a>
+            <a href="#teste" className="hover:text-sage-700">Teste grátis</a>
             <button onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-sage-700">Dúvidas</button>
             <Link to="/blog" className="hover:text-sage-700">Blog</Link>
             <Link to="/seguranca" className="hover:text-sage-700">Segurança</Link>
@@ -596,25 +596,25 @@ export default function LandingPage() {
           </motion.div>
 
           <div className="mt-8 text-center">
-            <a href="#grátis" className="inline-flex items-center gap-2 text-sm font-semibold text-sage-800 underline underline-offset-4 hover:text-sage-950">
-              Ver o que está incluído no plano grátis <ChevronRight className="h-4 w-4" />
+            <a href="#teste" className="inline-flex items-center gap-2 text-sm font-semibold text-sage-800 underline underline-offset-4 hover:text-sage-950">
+              Ver o que está incluído no teste grátis <ChevronRight className="h-4 w-4" />
             </a>
           </div>
         </div>
       </section>
 
-      <section id="grátis" className="mx-auto grid max-w-6xl gap-8 px-5 py-16 lg:grid-cols-[0.9fr_1fr]">
+      <section id="teste" className="mx-auto grid max-w-6xl gap-8 px-5 py-16 lg:grid-cols-[0.9fr_1fr]">
         <motion.div
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, margin: '-80px' }}
           variants={fadeUp}
         >
-          <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">Plano grátis</p>
-          <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Comece sem cartão e organize os primeiros pacientes.</h2>
+          <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">7 dias grátis</p>
+          <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">Experimente tudo por 7 dias antes de pagar.</h2>
           <p className="mt-4 max-w-xl leading-relaxed text-[#5F5A51]">
-            O plano grátis foi pensado para quem quer sair da bagunça inicial sem assumir custo de imediato. Quando precisar de mais limite ou automação, veja os{' '}
-            <Link to="/precos" className="font-semibold text-sage-700 underline underline-offset-2 hover:text-sage-900">planos pagos</Link>.
+            Acesso completo ao plano Pro durante o período de teste. Cancele antes do vencimento e nenhum valor será cobrado. Após os 7 dias, a assinatura é de{' '}
+            <Link to="/precos" className="font-semibold text-sage-700 underline underline-offset-2 hover:text-sage-900">R$97,90/mês</Link>.
           </p>
         </motion.div>
 
@@ -627,13 +627,13 @@ export default function LandingPage() {
         >
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-sage-700">UseCognia Grátis</p>
-              <p className="mt-1 text-3xl font-bold text-[#211F1C]">Gratuito</p>
+              <p className="text-sm font-semibold text-sage-700">UseCognia Pro — Teste</p>
+              <p className="mt-1 text-3xl font-bold text-[#211F1C]">7 dias grátis</p>
             </div>
-            <span className="rounded-full bg-sage-800 px-3 py-1 text-xs font-semibold text-white">sem cartão</span>
+            <span className="rounded-full bg-sage-800 px-3 py-1 text-xs font-semibold text-white">acesso completo</span>
           </div>
           <ul className="space-y-3">
-            {freeItems.map((item) => (
+            {trialItems.map((item) => (
               <li key={item} className="flex items-start gap-3 text-sm font-medium text-[#49443D]">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-sage-600" />
                 {item}
@@ -642,14 +642,14 @@ export default function LandingPage() {
           </ul>
           <MotionLink
             to={signupPath}
-            onClick={() => track(EVENTS.LANDING_CTA_CLICKED, { location: 'free_plan', destination: 'signup' })}
+            onClick={() => track(EVENTS.LANDING_CTA_CLICKED, { location: 'trial_plan', destination: 'signup' })}
             whileHover={reduce ? undefined : { scale: 1.02 }}
             whileTap={reduce ? undefined : { scale: 0.98 }}
             className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-md bg-sage-800 text-sm font-bold text-white hover:bg-sage-900"
           >
-            Criar minha conta grátis
+            Começar 7 dias grátis
           </MotionLink>
-          <p className="mt-3 text-center text-xs text-[#6D675D]">Leva menos de 2 minutos · sem cartão de crédito</p>
+          <p className="mt-3 text-center text-xs text-[#6D675D]">Leva menos de 2 minutos · cancele antes do vencimento</p>
         </motion.div>
       </section>
 
@@ -710,7 +710,7 @@ export default function LandingPage() {
             >
               Criar minha conta grátis <ArrowRight className="h-4 w-4" />
             </MotionLink>
-            <p className="text-sm text-white/75">Sem cartão · até 10 pacientes · cancele quando quiser</p>
+            <p className="text-sm text-white/75">7 dias grátis · acesso completo · cancele antes do vencimento</p>
             <div className="mt-2 flex justify-center gap-4 text-sm text-white/60">
               <Link to="/acessibilidade" className="hover:text-white">Acessibilidade</Link>
               <Link to="/privacidade" className="hover:text-white">Privacidade</Link>
@@ -742,7 +742,7 @@ export default function LandingPage() {
               <p className="mb-4 text-xs font-bold uppercase tracking-[0.15em] text-[#7C776B]">Produto</p>
               <ul className="space-y-2.5 text-sm text-[#49443D]">
                 <li><a href="#produto" className="hover:text-sage-700">Funcionalidades</a></li>
-                <li><a href="#grátis" className="hover:text-sage-700">Plano grátis</a></li>
+                <li><a href="#teste" className="hover:text-sage-700">Teste grátis</a></li>
                 <li><Link to="/precos" className="hover:text-sage-700">Planos pagos</Link></li>
                 <li><Link to="/seguranca" className="hover:text-sage-700">Segurança</Link></li>
                 <li><Link to="/blog" className="hover:text-sage-700">Blog</Link></li>

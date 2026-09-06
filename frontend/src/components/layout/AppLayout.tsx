@@ -248,7 +248,7 @@ function FreeUpgradeOfferModal() {
           <span className="pb-1 text-sm text-neutral-600 dark:text-neutral-300">no primeiro mês</span>
         </div>
         <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-300">
-          Depois, R$ 97,90/mês. {data.includesTrial ? 'Você ainda começa com 14 dias grátis, sem cartão.' : 'Sem fidelidade.'}
+          Depois, R$ 97,90/mês. {data.includesTrial ? 'Você ainda tem 7 dias de teste incluídos.' : 'Sem fidelidade.'}
         </p>
       </div>
 

@@ -37,7 +37,7 @@ export default function PricingPage({ publicView = false }: { publicView?: boole
               Entrar
             </Link>
             <Link to="/cadastro" className="rounded-xl bg-sage-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sage-700">
-              Começar grátis
+              Começar 7 dias grátis
             </Link>
           </div>
         </div>
@@ -189,20 +189,6 @@ function PaidPricingPage({ publicView = false }: { publicView?: boolean }) {
   }
 
   async function subscribe(plan: Plan) {
-    if (plan.id === 'free') {
-      setLoadingPlan(plan.id)
-      try {
-        const { data } = await api.post('/billing/free')
-        setSubscription(data)
-        toast.success('Plano Grátis ativado.')
-      } catch (err: any) {
-        toast.error(userSafeError(err, 'Nao foi possivel ativar o plano gratis.'))
-      } finally {
-        setLoadingPlan(null)
-      }
-      return
-    }
-
     const validationError = validateCard()
     if (validationError) {
       toast.error(validationError)
@@ -224,25 +210,11 @@ function PaidPricingPage({ publicView = false }: { publicView?: boolean }) {
         subscription.status === 'past_due'
           ? `Cartao atualizado. Tentaremos cobrar no plano ${plan.name}.`
           : data.status === 'trialing'
-            ? 'Teste iniciado! Você tem 14 dias grátis.'
+            ? 'Teste iniciado! Você tem 7 dias grátis.'
             : `Plano ${plan.name} ativado. A cobranca seguira o vencimento informado.`,
       )
     } catch (err: any) {
       toast.error(userSafeError(err, 'Cartao invalido ou pagamento recusado.'))
-    } finally {
-      setLoadingPlan(null)
-    }
-  }
-
-  async function startTrial(plan: Plan) {
-    setLoadingPlan(plan.id)
-    try {
-      const { data } = await api.post('/billing/subscribe', { plan: plan.id })
-      setSubscription(data)
-      track(EVENTS.SUBSCRIPTION_ACTIVE, { plan: plan.id, source: 'trial_without_card' })
-      toast.success('Teste Pro iniciado: 14 dias grátis, sem cartão.')
-    } catch (err: any) {
-      toast.error(userSafeError(err, 'Não foi possível iniciar o teste grátis.'))
     } finally {
       setLoadingPlan(null)
     }
@@ -291,20 +263,11 @@ function PaidPricingPage({ publicView = false }: { publicView?: boolean }) {
     const hasPaidPlan = hasActivePlan && currentPlanId !== 'free'
 
     if (isCurrentPlan) return
-    if (plan.id === 'free') {
-      if (hasPaidPlan) setConfirmCancelToFree(true)
-      else subscribe(billingPlan)
-      return
-    }
     if (hasPaidPlan) {
       setPlanChangeTarget(billingPlan)
       return
     }
     track(EVENTS.CHECKOUT_STARTED, { plan: plan.id })
-    if (!subscription.hasUsedTrial && subscription.status !== 'past_due') {
-      startTrial(billingPlan)
-      return
-    }
     setSelectedPlan(billingPlan)
   }
 
@@ -319,7 +282,7 @@ function PaidPricingPage({ publicView = false }: { publicView?: boolean }) {
             Pro por R$ 34,90 no primeiro mês; depois R$ 97,90/mês.
           </p>
           {upgradeOffer.includesTrial && (
-            <p className="mt-1 text-sm">Antes da primeira cobrança, você ainda tem 14 dias grátis sem cartão.</p>
+            <p className="mt-1 text-sm">Antes da primeira cobrança, você ainda tem 7 dias de teste.</p>
           )}
         </aside>
       )}
@@ -343,7 +306,7 @@ function PaidPricingPage({ publicView = false }: { publicView?: boolean }) {
         </div>
       )}
 
-      <section className="grid grid-cols-1 gap-6 px-1 md:grid-cols-3">
+      <section className="mx-auto max-w-lg px-1">
         {PRICING_PLANS.map((plan) => (
           <PricingCard
             key={plan.id}
@@ -455,13 +418,11 @@ function PricingCard({
   const isDisabled = loadingPlan !== null || isCurrentPlan
   const ctaLabel = isCurrentPlan
     ? 'Plano atual'
-    : hasPaidPlan && plan.id === 'free'
-      ? 'Cancelar e ir para Grátis'
-      : hasPaidPlan
-        ? `Trocar para ${plan.name}`
-        : isPastDue
-          ? 'Pagar agora'
-          : plan.cta
+    : hasPaidPlan
+      ? `Trocar para ${plan.name}`
+      : isPastDue
+        ? 'Pagar agora'
+        : plan.cta
 
   return (
     <section
@@ -482,19 +443,11 @@ function PricingCard({
         <h2 className="text-2xl font-bold text-neutral-900 dark:text-white">{plan.name}</h2>
         <p className="mt-2 min-h-12 text-sm font-semibold text-neutral-600 dark:text-neutral-300">{plan.description}</p>
         <div className="mt-5">
-          {plan.id === 'free' ? (
-            <span className="text-4xl font-bold text-neutral-900 dark:text-white">Grátis</span>
-          ) : (
-            <>
-              <span className="text-sm text-neutral-400">R$ </span>
-              <span className="text-4xl font-bold text-neutral-900 dark:text-white">{plan.price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              <span className="ml-1 text-sm text-neutral-500 dark:text-neutral-400">{plan.pricePeriod}</span>
-            </>
-          )}
+          <span className="text-sm text-neutral-400">R$ </span>
+          <span className="text-4xl font-bold text-neutral-900 dark:text-white">{plan.price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          <span className="ml-1 text-sm text-neutral-500 dark:text-neutral-400">{plan.pricePeriod}</span>
         </div>
-        <p className="mt-2 text-xs text-neutral-400">
-          {plan.id === 'free' ? plan.pricePeriod : 'Cobrança mensal'}
-        </p>
+        <p className="mt-2 text-xs text-neutral-400">Cobrança mensal após o teste</p>
       </div>
 
       {plan.roi && (
@@ -614,20 +567,15 @@ function PlanCancelDialog({
   onConfirm: () => void
 }) {
   return (
-    <Modal open={open} onClose={onClose} title="Ir para o plano Grátis" size="sm">
+    <Modal open={open} onClose={onClose} title="Cancelar assinatura" size="sm">
       <div className="space-y-5">
         <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
           <p className="text-sm font-semibold text-neutral-800">
             Cancelar {currentPlan ? `o plano ${currentPlan.name}` : 'o plano pago'}
           </p>
           <p className="mt-1 text-sm leading-relaxed text-neutral-600">
-            Você volta para os limites do plano Grátis. Seus dados continuam salvos, mas recursos pagos deixam de ficar disponíveis.
+            O acesso continua até o fim do período pago. Após o vencimento, sua conta fica sem plano ativo e os recursos Pro deixam de estar disponíveis.
           </p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <PlanMiniCard label="Atual" plan={currentPlan} muted />
-          <PlanMiniCard label="Destino" plan={PLANS.find(plan => plan.id === 'free')} />
         </div>
 
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -641,7 +589,7 @@ function PlanCancelDialog({
             className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-amber-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            Confirmar mudança
+            Confirmar cancelamento
           </button>
         </div>
       </div>
@@ -683,7 +631,7 @@ function PricingComparison() {
           <thead>
             <tr className="border-b border-neutral-200 dark:border-white/10">
               <th className="w-40 px-5 py-4 text-sm font-semibold text-neutral-500 dark:text-neutral-400">Recurso</th>
-              <th className="px-5 py-4 text-sm font-bold text-neutral-700 dark:text-neutral-200">Grátis</th>
+              <th className="px-5 py-4 text-sm font-bold text-neutral-700 dark:text-neutral-200">Sem assinatura</th>
               <th className="bg-purple-50 px-5 py-4 text-sm font-bold text-purple-700 dark:bg-purple-500/10 dark:text-purple-200">Pro</th>
             </tr>
           </thead>
@@ -711,7 +659,7 @@ function PricingComparison() {
             <h3 className="mb-4 text-lg font-bold text-neutral-900 dark:text-white">{row.title}</h3>
             <div className="space-y-3">
               <div className="rounded-xl bg-neutral-50 p-4 dark:bg-white/5">
-                <p className="mb-1 font-semibold text-neutral-600 dark:text-neutral-300">Grátis</p>
+                <p className="mb-1 font-semibold text-neutral-600 dark:text-neutral-300">Sem assinatura</p>
                 <p className="text-sm text-neutral-700 dark:text-neutral-300">{row.free}</p>
               </div>
               <div className="rounded-xl bg-purple-50 p-4 dark:bg-purple-500/10">

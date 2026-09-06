@@ -26,35 +26,16 @@ export type PricingPlan = PlanCatalogEntry & {
 }
 
 export const PRICING_HERO = {
-  title: 'Escolha como quer usar o UseCognia',
+  title: 'Experimente o UseCognia por 7 dias grátis',
   subtitle: 'Organize agenda, pacientes, prontuario e financeiro sem transformar a rotina clinica em planilha.',
-  context: 'Comece grátis e evolua conforme precisar. Recursos de IA, WhatsApp e pagamentos dependem dos provedores externos estarem configurados e disponíveis.',
-  trialCta: 'Teste o Pro por 14 dias',
-  trialSubtext: 'Sem cartão e sem cobrança automática. Depois, você escolhe se quer assinar.',
+  context: 'Acesso completo por 7 dias. Recursos de IA, WhatsApp e pagamentos dependem dos provedores externos estarem configurados e disponíveis.',
+  trialCta: 'Teste o Pro por 7 dias',
+  trialSubtext: 'Cartão obrigatório no cadastro. Nenhuma cobrança durante o teste. Cancele antes do vencimento.',
 }
 
 export const PRICING_PLANS: PricingPlan[] = [
   {
-    ...PLAN_CATALOG[0],
-    pricePeriod: 'Sem prazo para expirar',
-    description: 'Para profissionais de saude testarem a rotina sem custo',
-    badge: null,
-    features: [
-      { type: 'included', title: 'Veja todos os seus atendimentos de uma vez', subtitle: 'Agenda basica' },
-      { type: 'included', title: 'Comece com ate 10 pacientes simultaneos', subtitle: 'Ate 10 pacientes' },
-      { type: 'included', title: 'Pacientes marcam diretamente sem voce digitar', subtitle: 'Link publico simples' },
-      { type: 'included', title: 'Acompanhe quanto ganhou este mes', subtitle: 'Financeiro basico' },
-      { type: 'excluded', title: 'Sem documentos e PDF', subtitle: 'Limitacao' },
-      { type: 'excluded', title: 'Sem instrumentos clinicos', subtitle: 'Limitacao' },
-      { type: 'excluded', title: 'Sem WhatsApp automatico', subtitle: 'Limitacao' },
-      { type: 'excluded', title: 'Sem transcricao de sessoes por IA', subtitle: 'Limitacao' },
-    ],
-    cta: 'Comece gratis agora',
-    ctaSubtext: 'Sem cartao. Sem compromisso. 10 min de setup.',
-    roi: null,
-  },
-  {
-    ...PLAN_CATALOG[1],
+    ...PLAN_CATALOG[1], // Pro
     pricePeriod: '/mes',
     description: 'Tudo em um so lugar: agenda, pacientes, prontuario, documentos, financeiro, WhatsApp automatico e IA',
     badge: 'Plano unico',
@@ -83,8 +64,8 @@ export const PRICING_PLANS: PricingPlan[] = [
       ],
       note: 'Resultados dependem da rotina e do uso de cada profissional',
     },
-    cta: 'Testar Pro por 14 dias',
-    ctaSubtext: 'Sem cartão. Ao terminar, você escolhe se quer assinar.',
+    cta: 'Ativar 7 dias grátis',
+    ctaSubtext: 'Cartão obrigatório. Após o teste, R$97,90/mês. Cancele antes do vencimento.',
   },
 ]
 
@@ -103,14 +84,11 @@ export const PRICING_COMPARISON = {
 }
 
 export const PRICING_FAQ = [
-  { question: 'Posso cancelar a qualquer hora?', answer: 'Sim. O cancelamento pode ser solicitado pelo sistema e segue o ciclo de cobranca e os Termos de Uso vigentes.' },
-  { question: 'Preciso de cartao para começar?', answer: 'Nao. O plano Gratis nao exige cartao e permite organizar ate 10 pacientes.' },
+  { question: 'Posso cancelar a qualquer hora?', answer: 'Sim. Cancele antes do fim do teste e nenhum valor sera cobrado. Apos o teste, o cancelamento pode ser solicitado pelo sistema e segue o ciclo de cobranca e os Termos de Uso vigentes.' },
+  { question: 'Preciso de cartao para começar?', answer: 'Sim. O teste de 7 dias exige um cartao de credito no cadastro. Nenhum valor e cobrado durante o periodo de teste.' },
   { question: 'Como meus dados sao protegidos?', answer: 'O UseCognia aplica HTTPS, controle de acesso, isolamento entre contas, criptografia de campos sensiveis, backup cifrado e exportacao autenticada. Nenhum sistema e absolutamente seguro.' },
-  { question: 'Posso mudar de plano depois?', answer: 'Sim. Voce pode fazer upgrade ou downgrade a qualquer momento entre Gratis e Pro.' },
   { question: 'O que o Pro inclui?', answer: 'Tudo: pacientes ilimitados, documentos, financeiro, WhatsApp automatico, lembretes, cobranca e IA. Contas de psicologia ainda recebem instrumentos clinicos e avaliacao neuropsicologica.' },
-  { question: 'E se eu tiver mais de 10 pacientes?', answer: 'O plano Gratis vai ate 10 pacientes. Acima disso, o Pro e o plano indicado, com pacientes ilimitados.' },
   { question: 'Voces oferecem suporte?', answer: 'Sim. O canal atual e usecognia@gmail.com. O prazo de resposta pode variar conforme a demanda.' },
   { question: 'Posso usar em mais de um dispositivo?', answer: 'Sim. Celular, tablet e computador sincronizados.' },
-  { question: 'Posso ficar no plano Gratis?', answer: 'Sim. Voce pode continuar no Gratis enquanto os limites atenderem sua rotina.' },
-  { question: 'A cobranca do plano Pro e mensal?', answer: 'Sim. Hoje o Pro e cobrado mensalmente.' },
+  { question: 'A cobranca do plano Pro e mensal?', answer: 'Sim. Hoje o Pro e cobrado mensalmente. Apos o teste de 7 dias, a primeira cobranca de R$97,90 e realizada.' },
 ]
