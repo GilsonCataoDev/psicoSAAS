@@ -7,10 +7,12 @@
  */
 export const PROFESSIONS = [
   'psicologia',
+  'psiquiatria',
   'nutricao',
   'fisioterapia',
   'fonoaudiologia',
   'terapia_ocupacional',
+  'assistencia_social',
   'odontologia',
   'personal_trainer',
   'outro',
@@ -22,10 +24,12 @@ export const DEFAULT_PROFESSION: Profession = 'psicologia'
 
 export const PROFESSION_LABELS: Record<Profession, string> = {
   psicologia: 'Psicologia',
+  psiquiatria: 'Psiquiatria',
   nutricao: 'Nutrição',
   fisioterapia: 'Fisioterapia',
   fonoaudiologia: 'Fonoaudiologia',
   terapia_ocupacional: 'Terapia Ocupacional',
+  assistencia_social: 'Serviço Social',
   odontologia: 'Odontologia',
   personal_trainer: 'Personal Trainer',
   outro: 'Outra profissão',
@@ -51,10 +55,12 @@ export function requiresCrp(profession?: string | null): boolean {
  */
 export const COUNCIL_LABELS: Record<Profession, string | null> = {
   psicologia: 'CRP',
+  psiquiatria: 'CRM',
   nutricao: 'CRN',
   fisioterapia: 'CREFITO',
   fonoaudiologia: 'CRFa',
   terapia_ocupacional: 'CREFITO',
+  assistencia_social: 'CRESS',
   odontologia: 'CRO',
   personal_trainer: 'CREF',
   outro: null,

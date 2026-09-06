@@ -8,7 +8,7 @@ import { termsFor } from '../../common/terms'
 import { hasPsychologyModules } from '../../common/professions'
 import { isCompedProEmail, LATEST_SUBSCRIPTION_ORDER, PLAN_PRICES } from '../../common/plans'
 
-const TRIAL_DAYS = 14
+const TRIAL_DAYS = 7
 const ACTIVATION_OFFER_CODE = 'PRO3490'
 const ACTIVATION_OFFER_VALUE = 34.90
 const REFERRAL_OFFER_CODE = 'INDICACAO20'
