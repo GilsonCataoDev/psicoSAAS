@@ -20,6 +20,13 @@ export interface Prontuario {
   prognosticoFuncional: string
   recursosTerapeuticos: string
   quantitativoAtendimentos: string
+  // Nutrição — CFN 599/2018 (ver hasNutritionModules)
+  queixasAlimentares: string
+  habitosAlimentares: string
+  alergiasIntolerâncias: string
+  habitosVida: string
+  diagnosticoNutricional: string
+  condutaNutricional: string
   // Contato de emergência
   contatoEmergenciaNome: string
   contatoEmergenciaPhone: string

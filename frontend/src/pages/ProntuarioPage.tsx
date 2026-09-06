@@ -14,7 +14,7 @@ import DictationButton from '@/components/ui/DictationButton'
 import RecordingPanel from '@/components/ui/RecordingPanel'
 import { useHasPlan } from '@/store/subscription'
 import { useAuthStore } from '@/store/auth'
-import { hasPhysiotherapyModules } from '@/lib/professions'
+import { hasPhysiotherapyModules, hasNutritionModules } from '@/lib/professions'
 import PatientRecordDeliveryModal from '@/components/features/patients/PatientRecordDeliveryModal'
 import { useTerms } from '@/hooks/useTerms'
 
@@ -176,7 +176,9 @@ const FIELD = ({
 
 export default function ProntuarioPage() {
   const t = useTerms()
-  const isFisio = hasPhysiotherapyModules(useAuthStore(s => s.user?.profession))
+  const profession = useAuthStore(s => s.user?.profession)
+  const isFisio = hasPhysiotherapyModules(profession)
+  const isNutri = hasNutritionModules(profession)
   const { id } = useParams()
   const { data: patient, isLoading: patientLoading } = usePatient(id ?? '')
   const [tab, setTab] = useState<Tab>('identificacao')
@@ -530,6 +532,32 @@ export default function ProntuarioPage() {
               placeholder="Evolução dos sintomas, contexto de surgimento..." />
           </div>
 
+          {isNutri && (
+            <div className="card space-y-4">
+              <h2 className="section-title">Avaliação alimentar</h2>
+              <FIELD label="Queixas alimentares" rows={3}
+                value={form.queixasAlimentares ?? ''}
+                onChange={v => set('queixasAlimentares', v)}
+                dictation
+                placeholder="Dificuldades com alimentação, restrições, aversões, histórico de dietas..." />
+              <FIELD label="Hábitos alimentares atuais" rows={4}
+                value={form.habitosAlimentares ?? ''}
+                onChange={v => set('habitosAlimentares', v)}
+                dictation
+                placeholder="Número de refeições, horários, locais, preferências, preparações habituais..." />
+              <FIELD label="Alergias / intolerâncias alimentares" rows={2}
+                value={form.alergiasIntolerâncias ?? ''}
+                onChange={v => set('alergiasIntolerâncias', v)}
+                dictation
+                placeholder="Ex: intolerância à lactose, alergia a crustáceos..." />
+              <FIELD label="Hábitos de vida" rows={3}
+                value={form.habitosVida ?? ''}
+                onChange={v => set('habitosVida', v)}
+                dictation
+                placeholder="Nível de atividade física, padrão de sono, consumo de álcool, tabagismo..." />
+            </div>
+          )}
+
           {isFisio && (
             <div className="card space-y-4">
               <h2 className="section-title">Exame físico</h2>
@@ -543,18 +571,22 @@ export default function ProntuarioPage() {
 
           <div className="card space-y-4">
             <h2 className="section-title">Antecedentes</h2>
-            <FIELD label={isFisio ? 'Antecedentes pessoais' : 'Antecedentes pessoais (saúde mental)'} rows={3}
+            <FIELD label={isFisio ? 'Antecedentes pessoais' : isNutri ? 'Antecedentes pessoais' : 'Antecedentes pessoais (saúde mental)'} rows={3}
               value={form.antecedentesPessoais ?? ''}
               onChange={v => set('antecedentesPessoais', v)}
               dictation
               placeholder={isFisio
                 ? 'Cirurgias, lesões prévias, tratamentos anteriores, comorbidades...'
-                : 'Histórico de tratamentos anteriores, hospitalizações...'} />
+                : isNutri
+                  ? 'Condições de saúde, medicamentos, cirurgias bariátricas, patologias associadas...'
+                  : 'Histórico de tratamentos anteriores, hospitalizações...'} />
             <FIELD label="Histórico familiar" rows={3}
               value={form.historicoFamiliar ?? ''}
               onChange={v => set('historicoFamiliar', v)}
               dictation
-              placeholder="Doenças mentais na família, dinâmicas relevantes..." />
+              placeholder={isNutri
+                ? 'Doenças metabólicas, obesidade, diabetes, dislipidemias na família...'
+                : 'Doenças mentais na família, dinâmicas relevantes...'} />
           </div>
 
           <div className="card space-y-4">
@@ -580,6 +612,21 @@ export default function ProntuarioPage() {
       {tab === 'plano' && (
         <div className="card space-y-4">
           <h2 className="section-title">Plano terapêutico</h2>
+
+          {isNutri && (
+            <>
+              <FIELD label="Diagnóstico nutricional" rows={3}
+                value={form.diagnosticoNutricional ?? ''}
+                onChange={v => set('diagnosticoNutricional', v)}
+                dictation
+                placeholder="Estado nutricional (OMS/ABESO), déficits ou excessos identificados, CID-10 se aplicável..." />
+              <FIELD label="Conduta nutricional" rows={4}
+                value={form.condutaNutricional ?? ''}
+                onChange={v => set('condutaNutricional', v)}
+                dictation
+                placeholder="Plano alimentar, metas calóricas/macros, orientações específicas, suplementação..." />
+            </>
+          )}
 
           {isFisio && (
             <>

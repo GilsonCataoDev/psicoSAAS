@@ -538,11 +538,12 @@ export default function PatientDetailPage() {
           </div>
           <div>
             <p className="text-xs text-neutral-400 mb-0.5">
-              {patient.billingType === 'monthly_package' ? 'Pacote mensal' : `Valor por ${t.session}`}
+              {patient.billingType === 'monthly_package' ? 'Pacote mensal' : patient.billingType === 'session_package' ? 'Pacote de atendimentos' : `Valor por ${t.session}`}
             </p>
             <p className="font-semibold text-neutral-700 text-sm">
-              {formatCurrency(patient.billingType === 'monthly_package' ? patient.monthlyPackagePrice : patient.sessionPrice)}
+              {formatCurrency(patient.billingType === 'per_session' ? patient.sessionPrice : patient.monthlyPackagePrice)}
               {patient.billingType === 'monthly_package' && <span className="font-normal text-neutral-400"> · {monthlySessionsUsed}/{patient.monthlyIncludedSessions} {t.sessions}</span>}
+              {patient.billingType === 'session_package' && <span className="font-normal text-neutral-400"> · {clinicalSessions.length}/{patient.monthlyIncludedSessions} sessões</span>}
             </p>
           </div>
           <div>
