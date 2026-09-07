@@ -164,7 +164,7 @@ export class AppointmentsService {
   private async ensurePendingChargeForCompletedAppointment(appointment: Appointment, psychologistId: string): Promise<void> {
     try {
       const patient = await this.patients.findOne({ where: { id: appointment.patientId, psychologistId } })
-      if (!patient || patient.billingType === 'monthly_package') return
+      if (!patient || patient.billingType === 'monthly_package' || patient.billingType === 'session_package') return
 
       const existing = await this.financial.findOne({
         where: [

@@ -8,7 +8,7 @@ import { Appointment } from '../../appointments/entities/appointment.entity'
 import { encryptedTextTransformer } from '../../../common/crypto/encrypt.util'
 
 export type PatientStatus = 'active' | 'paused' | 'discharged'
-export type PatientBillingType = 'per_session' | 'monthly_package'
+export type PatientBillingType = 'per_session' | 'monthly_package' | 'session_package'
 export type PatientCareMode = 'psychotherapy' | 'neuropsychological_assessment'
 
 @Entity('patients')
