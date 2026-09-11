@@ -50,7 +50,7 @@ jobs:
           sha256sum "$ENCRYPTED_FILENAME" > "${ENCRYPTED_FILENAME}.sha256"
 
       - name: Salvar artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: db-backup-${{ github.run_number }}
           path: |
