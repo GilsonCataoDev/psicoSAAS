@@ -36,6 +36,7 @@ import { Appointment } from '../../modules/appointments/entities/appointment.ent
 import { Booking } from '../../modules/booking/entities/booking.entity'
 import { User } from '../../modules/auth/entities/user.entity'
 import { NeuropsychAssessment } from '../../modules/neuropsych-assessments/entities/neuropsych-assessment.entity'
+import { WhatsAppDeliveryLog } from '../../modules/notifications/entities/whatsapp-delivery-log.entity'
 
 import { FinancialService as FinService } from '../../modules/financial/financial.service'
 import { NotificationsService } from '../../modules/notifications/notifications.service'
@@ -124,6 +125,7 @@ describe('Isolamento entre contas — psicólogo A não acessa dados de B', () =
           { provide: getRepositoryToken(Appointment),       useValue: fakeRepo(appointments) },
           { provide: getRepositoryToken(Document),          useValue: fakeRepo() },
           { provide: getRepositoryToken(PatientAttachment), useValue: fakeRepo() },
+          { provide: getRepositoryToken(WhatsAppDeliveryLog), useValue: fakeRepo() },
           { provide: FinService, useValue: stub() },
           { provide: PlanAccessService, useValue: { getCurrentPlan: jest.fn().mockResolvedValue('pro') } },
           { provide: StorageService, useValue: { delete: jest.fn() } },

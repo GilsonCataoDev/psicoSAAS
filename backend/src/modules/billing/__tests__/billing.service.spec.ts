@@ -195,7 +195,7 @@ describe('BillingService', () => {
         .rejects.toThrow(BadRequestException)
     })
 
-    it('starts a 14-day local trial without credit card', async () => {
+    it('starts a 7-day local trial without credit card', async () => {
       const user = { ...makeUser(), name: 'Test', createdAt: new Date() } as any
       const free = makeSub({ plan: 'free', status: 'active', hasUsedTrial: false, gatewaySubscriptionId: null })
       repo.findOne.mockResolvedValue(free)
@@ -204,7 +204,7 @@ describe('BillingService', () => {
       const result = await service.subscribe(user, 'pro')
 
       expect(result).toEqual(expect.objectContaining({ plan: 'pro', status: 'trialing', hasUsedTrial: true }))
-      expect(new Date((result as any).trialEndsAt).getTime()).toBeGreaterThanOrEqual(before + 14 * 86400000 - 1000)
+      expect(new Date((result as any).trialEndsAt).getTime()).toBeGreaterThanOrEqual(before + 7 * 86400000 - 1000)
       expect(asaas.createCustomer).not.toHaveBeenCalled()
       expect(asaas.createSubscription).not.toHaveBeenCalled()
     })

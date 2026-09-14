@@ -83,6 +83,7 @@ describe('NotificationsService WhatsApp delivery validation', () => {
       nativePushTokens as any,
       whatsAppLogs as any,
       whatsAppOutbox as any,
+      {} as any,
       cloudWhatsApp as any,
     )
   })
@@ -871,7 +872,7 @@ describe('NotificationsService.sendAppointmentReminder — template por lead (24
   beforeEach(() => {
     jest.clearAllMocks()
     users.findOneBy.mockResolvedValue({ email: 'gilsonfilho96@outlook.com' })
-    service = new NotificationsService(cfg, {} as any, planAccess as any, users as any, pushSubscriptions as any, nativePushTokens as any, whatsAppLogs as any, makeOutboxRepo() as any, disabledCloudProvider as any)
+    service = new NotificationsService(cfg, {} as any, planAccess as any, users as any, pushSubscriptions as any, nativePushTokens as any, whatsAppLogs as any, makeOutboxRepo() as any, {} as any, disabledCloudProvider as any)
     sentText = ''
     jest.spyOn(global, 'fetch').mockImplementation(async (_url, init: any) => {
       const body = JSON.parse(init.body)

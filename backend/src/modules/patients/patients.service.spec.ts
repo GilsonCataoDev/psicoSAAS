@@ -28,6 +28,7 @@ describe('PatientsService — edição cadastral', () => {
       {} as any,
       {} as any,
       {} as any,
+      {} as any,
     )
 
     const updated = await service.update(
@@ -82,6 +83,7 @@ describe('PatientsService — edição cadastral', () => {
       patientAttachments as any,
       {} as any,
       {} as any,
+      {} as any,
       storage as any,
       dataSource as any,
     )
@@ -106,6 +108,7 @@ describe('PatientsService — edição cadastral', () => {
     const planAccess = { getCurrentPlan: jest.fn().mockResolvedValue('free') }
     const service = new PatientsService(
       repo as any,
+      {} as any,
       {} as any,
       {} as any,
       {} as any,
