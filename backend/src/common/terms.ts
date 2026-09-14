@@ -60,6 +60,13 @@ const TERMS: Record<Profession | 'generico', Terms> = {
     recordTitle: 'Prontuário Clínico',
     recordCopyTitle: 'Cópia do Prontuário',
   },
+  psiquiatria: {
+    patient: 'paciente', patientCapitalized: 'Paciente', patients: 'pacientes', patientsCapitalized: 'Pacientes',
+    session: 'consulta', sessionCapitalized: 'Consulta', sessions: 'consultas', sessionsCapitalized: 'Consultas',
+    sessionPlain: 'consulta', sessionPlainCapitalized: 'Consulta', sessionPossessivePlain: 'Sua consulta', sessionAgreement: 'a',
+    record: 'prontuário', recordCapitalized: 'Prontuário', documentKind: 'profissional',
+    recordTitle: 'Prontuário Clínico', recordCopyTitle: 'Cópia do Prontuário',
+  },
   generico: {
     patient: 'cliente',
     patientCapitalized: 'Cliente',
@@ -106,6 +113,13 @@ const TERMS: Record<Profession | 'generico', Terms> = {
     sessionPlain: 'atendimento', sessionPlainCapitalized: 'Atendimento', sessionPossessivePlain: 'Seu atendimento', sessionAgreement: 'o',
     record: 'prontuário terapêutico ocupacional', recordCapitalized: 'Prontuário Terapêutico Ocupacional', documentKind: 'terapêutico ocupacional',
     recordTitle: 'Prontuário Terapêutico Ocupacional', recordCopyTitle: 'Cópia do Prontuário Terapêutico Ocupacional',
+  },
+  assistencia_social: {
+    patient: 'usuário', patientCapitalized: 'Usuário', patients: 'usuários', patientsCapitalized: 'Usuários',
+    session: 'atendimento', sessionCapitalized: 'Atendimento', sessions: 'atendimentos', sessionsCapitalized: 'Atendimentos',
+    sessionPlain: 'atendimento', sessionPlainCapitalized: 'Atendimento', sessionPossessivePlain: 'Seu atendimento', sessionAgreement: 'o',
+    record: 'registro de atendimento', recordCapitalized: 'Registro de Atendimento', documentKind: 'profissional',
+    recordTitle: 'Registro de Atendimento', recordCopyTitle: 'Cópia do Registro de Atendimento',
   },
   odontologia: {
     patient: 'paciente', patientCapitalized: 'Paciente', patients: 'pacientes', patientsCapitalized: 'Pacientes',

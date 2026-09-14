@@ -41,7 +41,7 @@ export type ProfessionCapability = (typeof PROFESSION_CAPABILITIES)[number]
 const CAPABILITIES_BY_PROFESSION: Record<Profession, readonly ProfessionCapability[]> = {
   psicologia: ['instruments', 'neuropsych_assessments'],
   psiquiatria: [],
-  nutricao: [],
+  nutricao: ['instruments'],
   fisioterapia: ['instruments'],
   fonoaudiologia: [],
   terapia_ocupacional: [],
@@ -84,7 +84,7 @@ export const PROFESSION_LABELS: Record<Profession, string> = {
  * semanas; escondê-los é uma checagem.
  */
 export function hasPsychologyModules(profession?: string | null): boolean {
-  return hasProfessionCapability(profession, 'instruments')
+  return (profession ?? DEFAULT_PROFESSION) === 'psicologia'
 }
 
 /**

@@ -36,6 +36,12 @@ const TERMS: Record<Profession | 'generico', Terms> = {
     intake: 'anamnese',
     intakeCapitalized: 'Anamnese',
   },
+  psiquiatria: {
+    patient: 'paciente', patientCapitalized: 'Paciente', patients: 'pacientes', patientsCapitalized: 'Pacientes',
+    session: 'consulta', sessionCapitalized: 'Consulta', sessions: 'consultas', sessionsCapitalized: 'Consultas',
+    record: 'prontuário', recordCapitalized: 'Prontuário',
+    intake: 'anamnese', intakeCapitalized: 'Anamnese',
+  },
   generico: {
     patient: 'cliente',
     patientCapitalized: 'Cliente',
@@ -73,6 +79,12 @@ const TERMS: Record<Profession | 'generico', Terms> = {
     session: 'atendimento', sessionCapitalized: 'Atendimento', sessions: 'atendimentos', sessionsCapitalized: 'Atendimentos',
     record: 'prontuário terapêutico ocupacional', recordCapitalized: 'Prontuário Terapêutico Ocupacional',
     intake: 'avaliação terapêutica ocupacional', intakeCapitalized: 'Avaliação terapêutica ocupacional',
+  },
+  assistencia_social: {
+    patient: 'usuário', patientCapitalized: 'Usuário', patients: 'usuários', patientsCapitalized: 'Usuários',
+    session: 'atendimento', sessionCapitalized: 'Atendimento', sessions: 'atendimentos', sessionsCapitalized: 'Atendimentos',
+    record: 'registro de atendimento', recordCapitalized: 'Registro de Atendimento',
+    intake: 'avaliação inicial', intakeCapitalized: 'Avaliação inicial',
   },
   odontologia: {
     patient: 'paciente', patientCapitalized: 'Paciente', patients: 'pacientes', patientsCapitalized: 'Pacientes',
