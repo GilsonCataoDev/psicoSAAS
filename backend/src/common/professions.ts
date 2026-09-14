@@ -26,6 +26,44 @@ export type Profession = (typeof PROFESSIONS)[number]
 
 export const DEFAULT_PROFESSION: Profession = 'psicologia'
 
+/**
+ * Capacidades que não fazem parte do núcleo comum da plataforma. Este é o
+ * ponto único para liberar ferramentas por área, sem espalhar verificações de
+ * profissão pelos controllers e pela interface.
+ */
+export const PROFESSION_CAPABILITIES = [
+  'instruments',
+  'neuropsych_assessments',
+] as const
+
+export type ProfessionCapability = (typeof PROFESSION_CAPABILITIES)[number]
+
+const CAPABILITIES_BY_PROFESSION: Record<Profession, readonly ProfessionCapability[]> = {
+  psicologia: ['instruments', 'neuropsych_assessments'],
+  psiquiatria: [],
+  nutricao: [],
+  fisioterapia: ['instruments'],
+  fonoaudiologia: [],
+  terapia_ocupacional: [],
+  assistencia_social: [],
+  odontologia: [],
+  personal_trainer: [],
+  outro: [],
+}
+
+/**
+ * Retorna se a conta pode usar uma capacidade. Conta antiga sem profissão
+ * preserva o padrão histórico (psicologia); valor desconhecido nunca ganha
+ * acesso a uma ferramenta restrita.
+ */
+export function hasProfessionCapability(
+  profession: string | null | undefined,
+  capability: ProfessionCapability,
+): boolean {
+  const resolved = profession || DEFAULT_PROFESSION
+  return (CAPABILITIES_BY_PROFESSION[resolved as Profession] ?? []).includes(capability)
+}
+
 /** Rótulo exibido na interface para cada profissão. */
 export const PROFESSION_LABELS: Record<Profession, string> = {
   psicologia: 'Psicologia',
@@ -46,7 +84,7 @@ export const PROFESSION_LABELS: Record<Profession, string> = {
  * semanas; escondê-los é uma checagem.
  */
 export function hasPsychologyModules(profession?: string | null): boolean {
-  return (profession ?? DEFAULT_PROFESSION) === 'psicologia'
+  return hasProfessionCapability(profession, 'instruments')
 }
 
 /**

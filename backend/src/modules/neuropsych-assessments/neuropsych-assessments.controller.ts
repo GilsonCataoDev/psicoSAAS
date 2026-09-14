@@ -5,6 +5,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
 import { RequirePlan } from '../../common/decorators/require-plan.decorator'
+import { RequireProfessionCapability } from '../../common/decorators/require-profession-capability.decorator'
 import { AuditService } from '../audit/audit.service'
 import { pdfAttachment } from '../../common/http/content-disposition.util'
 import {
@@ -20,6 +21,7 @@ import { AiConsentService } from '../ai-governance/ai-consent.service'
 @Controller('neuropsych-assessments')
 @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
 @RequirePlan('pro')
+@RequireProfessionCapability('neuropsych_assessments')
 export class NeuropsychAssessmentsController {
   constructor(
     private readonly service: NeuropsychAssessmentsService,

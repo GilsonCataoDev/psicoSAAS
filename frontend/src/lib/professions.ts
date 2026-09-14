@@ -22,6 +22,36 @@ export type Profession = (typeof PROFESSIONS)[number]
 
 export const DEFAULT_PROFESSION: Profession = 'psicologia'
 
+/** Espelho de backend/src/common/professions.ts. */
+export const PROFESSION_CAPABILITIES = [
+  'instruments',
+  'neuropsych_assessments',
+] as const
+
+export type ProfessionCapability = (typeof PROFESSION_CAPABILITIES)[number]
+
+const CAPABILITIES_BY_PROFESSION: Record<Profession, readonly ProfessionCapability[]> = {
+  psicologia: ['instruments', 'neuropsych_assessments'],
+  psiquiatria: [],
+  nutricao: [],
+  fisioterapia: ['instruments'],
+  fonoaudiologia: [],
+  terapia_ocupacional: [],
+  assistencia_social: [],
+  odontologia: [],
+  personal_trainer: [],
+  outro: [],
+}
+
+/** Conta antiga sem profissão preserva psicologia; valor inválido não libera módulo restrito. */
+export function hasProfessionCapability(
+  profession: string | null | undefined,
+  capability: ProfessionCapability,
+): boolean {
+  const resolved = profession || DEFAULT_PROFESSION
+  return (CAPABILITIES_BY_PROFESSION[resolved as Profession] ?? []).includes(capability)
+}
+
 export const PROFESSION_LABELS: Record<Profession, string> = {
   psicologia: 'Psicologia',
   psiquiatria: 'Psiquiatria',
@@ -37,7 +67,7 @@ export const PROFESSION_LABELS: Record<Profession, string> = {
 
 /** Conta de psicologia (padrão) enxerga avaliação neuropsicológica e instrumentos. */
 export function hasPsychologyModules(profession?: string | null): boolean {
-  return (profession ?? DEFAULT_PROFESSION) === 'psicologia'
+  return hasProfessionCapability(profession, 'instruments')
 }
 
 /**
@@ -67,7 +97,7 @@ export function hasNutritionModules(profession?: string | null): boolean {
  * que segue exclusivo de psicologia.
  */
 export function hasInstrumentsModule(profession?: string | null): boolean {
-  return hasPsychologyModules(profession) || hasPhysiotherapyModules(profession) || hasNutritionModules(profession)
+  return hasProfessionCapability(profession, 'instruments')
 }
 
 /** CRP só é obrigatório para psicologia — outras profissões têm outros conselhos. */

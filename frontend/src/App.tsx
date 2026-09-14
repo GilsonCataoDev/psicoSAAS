@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { useAuthStore } from '@/store/auth'
-import { hasInstrumentsModule, hasPsychologyModules } from '@/lib/professions'
+import { hasProfessionCapability, type ProfessionCapability } from '@/lib/professions'
 import { useSubscriptionStore } from '@/store/subscription'
 import AuthLayout from '@/components/layout/AuthLayout'
 
@@ -98,18 +98,12 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * Módulos exclusivos de psicologia (laudo neuropsicológico). Esconder o link do
- * menu não basta — sem isto a URL continuaria acessível para outras profissões.
+ * Ferramentas exclusivas de uma profissão. Esconder o link do menu não basta:
+ * a URL também precisa respeitar a capacidade da conta.
  */
-function PsychologyOnlyRoute({ children }: { children: React.ReactNode }) {
+function ProfessionCapabilityRoute({ capability, children }: { capability: ProfessionCapability, children: React.ReactNode }) {
   const profession = useAuthStore(state => state.user?.profession)
-  return hasPsychologyModules(profession) ? <>{children}</> : <Navigate to="/dashboard" replace />
-}
-
-/** Biblioteca de instrumentos — psicologia e fisioterapia têm catálogos próprios. */
-function InstrumentsRoute({ children }: { children: React.ReactNode }) {
-  const profession = useAuthStore(state => state.user?.profession)
-  return hasInstrumentsModule(profession) ? <>{children}</> : <Navigate to="/dashboard" replace />
+  return hasProfessionCapability(profession, capability) ? <>{children}</> : <Navigate to="/dashboard" replace />
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
@@ -186,9 +180,9 @@ export default function App() {
             <Route path="configuracoes" element={<SettingsPage />} />
             <Route path="relatorios" element={<RelatoriosPage />} />
             <Route path="crm" element={<CRMPage />} />
-            <Route path="instrumentos" element={<InstrumentsRoute><ProOnlyRoute><InstrumentosPage /></ProOnlyRoute></InstrumentsRoute>} />
-            <Route path="avaliacoes" element={<PsychologyOnlyRoute><ProOnlyRoute><NeuropsychAssessmentsPage /></ProOnlyRoute></PsychologyOnlyRoute>} />
-            <Route path="avaliacoes/:id" element={<PsychologyOnlyRoute><ProOnlyRoute><NeuropsychAssessmentPage /></ProOnlyRoute></PsychologyOnlyRoute>} />
+            <Route path="instrumentos" element={<ProfessionCapabilityRoute capability="instruments"><ProOnlyRoute><InstrumentosPage /></ProOnlyRoute></ProfessionCapabilityRoute>} />
+            <Route path="avaliacoes" element={<ProfessionCapabilityRoute capability="neuropsych_assessments"><ProOnlyRoute><NeuropsychAssessmentsPage /></ProOnlyRoute></ProfessionCapabilityRoute>} />
+            <Route path="avaliacoes/:id" element={<ProfessionCapabilityRoute capability="neuropsych_assessments"><ProOnlyRoute><NeuropsychAssessmentPage /></ProOnlyRoute></ProfessionCapabilityRoute>} />
           </Route>
         </Route>
 

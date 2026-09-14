@@ -16,13 +16,11 @@ describe('termsFor', () => {
     expect(termsFor('')).toEqual(termsFor('psicologia'))
   })
 
-  it('usa vocabulário genérico para as demais profissões', () => {
-    for (const profession of ['nutricao', 'fisioterapia', 'personal_trainer', 'outro']) {
-      const t = termsFor(profession)
-      expect(t.patientsCapitalized).toBe('Clientes')
-      expect(t.sessionsCapitalized).toBe('Atendimentos')
-      expect(t.recordCapitalized).toBe('Ficha')
-    }
+  it('usa vocabulário próprio para cada área mapeada', () => {
+    expect(termsFor('nutricao')).toMatchObject({ patientsCapitalized: 'Pacientes', sessionsCapitalized: 'Consultas', recordCapitalized: 'Prontuário Nutricional' })
+    expect(termsFor('fisioterapia')).toMatchObject({ patientsCapitalized: 'Pacientes', sessionsCapitalized: 'Sessões', recordCapitalized: 'Prontuário Fisioterapêutico' })
+    expect(termsFor('personal_trainer')).toMatchObject({ patientsCapitalized: 'Alunos', sessionsCapitalized: 'Treinos', recordCapitalized: 'Ficha de Treino' })
+    expect(termsFor('outro')).toMatchObject({ patientsCapitalized: 'Clientes', sessionsCapitalized: 'Atendimentos', recordCapitalized: 'Ficha' })
   })
 })
 
@@ -30,8 +28,8 @@ describe('termsFor em páginas públicas', () => {
   // As páginas de agendamento, confirmação e portal são abertas pelo paciente
   // sem sessão: a profissão chega no payload da API, não do usuário logado.
   it('usa a profissão vinda da API quando ela existe', () => {
-    expect(termsFor('nutricao').sessionCapitalized).toBe('Atendimento')
-    expect(termsFor('nutricao').patient).toBe('cliente')
+    expect(termsFor('nutricao').sessionCapitalized).toBe('Consulta')
+    expect(termsFor('nutricao').patient).toBe('paciente')
     expect(termsFor('psicologia').sessionCapitalized).toBe('Sessão')
     expect(termsFor('psicologia').patient).toBe('paciente')
   })
@@ -72,8 +70,8 @@ describe('getNavigationItems', () => {
 
   it('troca os rótulos de pacientes e sessões para outras profissões', () => {
     const itens = getNavigationItems('odontologia')
-    expect(itens.find(i => i.to === '/pacientes')?.label).toBe('Clientes')
-    expect(itens.find(i => i.to === '/sessoes')?.label).toBe('Atendimentos')
+    expect(itens.find(i => i.to === '/pacientes')?.label).toBe('Pacientes')
+    expect(itens.find(i => i.to === '/sessoes')?.label).toBe('Consultas')
     // Rótulos que não mudam de vocabulário seguem iguais.
     expect(itens.find(i => i.to === '/financeiro')?.label).toBe('Financeiro')
   })

@@ -1,15 +1,10 @@
-import { DEFAULT_PROFESSION } from './professions'
+import { DEFAULT_PROFESSION, PROFESSIONS, type Profession } from './professions'
 
 /**
  * Vocabulário da interface por profissão.
  *
- * `psicologia` guarda exatamente os termos que o produto sempre usou — é o
- * default, então conta existente não vê mudança nenhuma. Qualquer outra
- * profissão cai em `generico`.
- *
- * Só existem 2 variantes de propósito: manter um dicionário por profissão
- * multiplicaria o custo de tradução por N sem ganho real. Se uma profissão
- * específica pedir vocabulário próprio depois, adiciona a chave dela aqui.
+ * `psicologia` mantém os termos históricos. As demais áreas usam o vocabulário
+ * próprio, mas sem duplicar telas ou alterar o modelo de dados.
  */
 export type Terms = {
   patient: string
@@ -26,7 +21,7 @@ export type Terms = {
   intakeCapitalized: string
 }
 
-const TERMS: Record<'psicologia' | 'generico', Terms> = {
+const TERMS: Record<Profession | 'generico', Terms> = {
   psicologia: {
     patient: 'paciente',
     patientCapitalized: 'Paciente',
@@ -55,6 +50,48 @@ const TERMS: Record<'psicologia' | 'generico', Terms> = {
     intake: 'avaliação inicial',
     intakeCapitalized: 'Avaliação inicial',
   },
+  nutricao: {
+    patient: 'paciente', patientCapitalized: 'Paciente', patients: 'pacientes', patientsCapitalized: 'Pacientes',
+    session: 'consulta', sessionCapitalized: 'Consulta', sessions: 'consultas', sessionsCapitalized: 'Consultas',
+    record: 'prontuário nutricional', recordCapitalized: 'Prontuário Nutricional',
+    intake: 'avaliação nutricional', intakeCapitalized: 'Avaliação nutricional',
+  },
+  fisioterapia: {
+    patient: 'paciente', patientCapitalized: 'Paciente', patients: 'pacientes', patientsCapitalized: 'Pacientes',
+    session: 'sessão', sessionCapitalized: 'Sessão', sessions: 'sessões', sessionsCapitalized: 'Sessões',
+    record: 'prontuário fisioterapêutico', recordCapitalized: 'Prontuário Fisioterapêutico',
+    intake: 'avaliação fisioterapêutica', intakeCapitalized: 'Avaliação fisioterapêutica',
+  },
+  fonoaudiologia: {
+    patient: 'paciente', patientCapitalized: 'Paciente', patients: 'pacientes', patientsCapitalized: 'Pacientes',
+    session: 'atendimento', sessionCapitalized: 'Atendimento', sessions: 'atendimentos', sessionsCapitalized: 'Atendimentos',
+    record: 'prontuário fonoaudiológico', recordCapitalized: 'Prontuário Fonoaudiológico',
+    intake: 'avaliação fonoaudiológica', intakeCapitalized: 'Avaliação fonoaudiológica',
+  },
+  terapia_ocupacional: {
+    patient: 'paciente', patientCapitalized: 'Paciente', patients: 'pacientes', patientsCapitalized: 'Pacientes',
+    session: 'atendimento', sessionCapitalized: 'Atendimento', sessions: 'atendimentos', sessionsCapitalized: 'Atendimentos',
+    record: 'prontuário terapêutico ocupacional', recordCapitalized: 'Prontuário Terapêutico Ocupacional',
+    intake: 'avaliação terapêutica ocupacional', intakeCapitalized: 'Avaliação terapêutica ocupacional',
+  },
+  odontologia: {
+    patient: 'paciente', patientCapitalized: 'Paciente', patients: 'pacientes', patientsCapitalized: 'Pacientes',
+    session: 'consulta', sessionCapitalized: 'Consulta', sessions: 'consultas', sessionsCapitalized: 'Consultas',
+    record: 'prontuário odontológico', recordCapitalized: 'Prontuário Odontológico',
+    intake: 'anamnese', intakeCapitalized: 'Anamnese',
+  },
+  personal_trainer: {
+    patient: 'aluno', patientCapitalized: 'Aluno', patients: 'alunos', patientsCapitalized: 'Alunos',
+    session: 'treino', sessionCapitalized: 'Treino', sessions: 'treinos', sessionsCapitalized: 'Treinos',
+    record: 'ficha de treino', recordCapitalized: 'Ficha de Treino',
+    intake: 'avaliação física', intakeCapitalized: 'Avaliação física',
+  },
+  outro: {
+    patient: 'cliente', patientCapitalized: 'Cliente', patients: 'clientes', patientsCapitalized: 'Clientes',
+    session: 'atendimento', sessionCapitalized: 'Atendimento', sessions: 'atendimentos', sessionsCapitalized: 'Atendimentos',
+    record: 'ficha', recordCapitalized: 'Ficha',
+    intake: 'avaliação inicial', intakeCapitalized: 'Avaliação inicial',
+  },
 }
 
 /**
@@ -62,5 +99,6 @@ const TERMS: Record<'psicologia' | 'generico', Terms> = {
  * node como o resto de `lib/`. O binding React vive em `hooks/useTerms.ts`.
  */
 export function termsFor(profession?: string | null): Terms {
-  return (profession || DEFAULT_PROFESSION) === 'psicologia' ? TERMS.psicologia : TERMS.generico
+  if (!profession) return TERMS[DEFAULT_PROFESSION]
+  return PROFESSIONS.includes(profession as Profession) ? TERMS[profession as Profession] : TERMS.generico
 }

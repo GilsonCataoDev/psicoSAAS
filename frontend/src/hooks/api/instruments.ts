@@ -41,12 +41,12 @@ export type PublicInstrumentData = {
   fields: InstrumentField[]
 }
 
-export function useInstrumentAssignments(patientId?: string) {
+export function useInstrumentAssignments(patientId?: string, enabled = true) {
   const userId = useAuthStore(s => s.user?.id)
   return useQuery<InstrumentAssignment[]>({
     queryKey: ['instrument-assignments', userId, patientId],
     queryFn: () => api.get('/instrument-assignments', { params: { patientId } }).then(r => r.data),
-    enabled: !!userId,
+    enabled: !!userId && enabled,
   })
 }
 

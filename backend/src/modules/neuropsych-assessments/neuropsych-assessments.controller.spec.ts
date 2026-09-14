@@ -3,6 +3,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
 import { PLAN_KEY } from '../../common/decorators/require-plan.decorator'
+import { PROFESSION_CAPABILITY_KEY } from '../../common/decorators/require-profession-capability.decorator'
 import { NeuropsychAssessmentsController } from './neuropsych-assessments.controller'
 
 const GUARDS_METADATA_KEY = '__guards__'
@@ -38,12 +39,13 @@ function req(userId = 'psychologist-1') {
 }
 
 describe('NeuropsychAssessmentsController — autorização', () => {
-  it('protege todas as rotas com autenticação, CSRF, anti-impersonação e plano pro', () => {
+  it('protege todas as rotas com autenticação, CSRF, anti-impersonação, plano pro e profissão', () => {
     const guards = Reflect.getMetadata(GUARDS_METADATA_KEY, NeuropsychAssessmentsController) as unknown[]
     expect(guards).toContain(JwtAuthGuard)
     expect(guards).toContain(CsrfGuard)
     expect(guards).toContain(NoImpersonationGuard)
     expect(Reflect.getMetadata(PLAN_KEY, NeuropsychAssessmentsController)).toBe('pro')
+    expect(Reflect.getMetadata(PROFESSION_CAPABILITY_KEY, NeuropsychAssessmentsController)).toBe('neuropsych_assessments')
   })
 })
 

@@ -266,6 +266,16 @@ describe('AiService — provedor de texto (Groq preferido, Anthropic fallback)',
     expect(result.usage.inputTokens).toBe(40)
     expect(result.usage.outputTokens).toBe(20)
   })
+
+  it('adapta o contexto do rascunho à profissão sem tratar nutricionista como psicólogo', async () => {
+    process.env.GROQ_API_KEY = 'gsk-test-fake-key'
+    createChatMock.mockResolvedValue(fakeChatResponse('rascunho'))
+    await service.generateProntuarioDraft('anotação de teste com contexto suficiente', 'organizar', undefined, 'nutricao')
+    const [params] = createChatMock.mock.calls[0]
+    const prompt = params.messages[0].content as string
+    expect(prompt).toContain('profissional de Nutrição')
+    expect(prompt).not.toContain('para psicologos e terapeutas')
+  })
 })
 
 describe('AiService — mock seam nos rascunhos por IA (paridade com o Copiloto Neuropsicológico)', () => {

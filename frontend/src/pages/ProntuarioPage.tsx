@@ -7,14 +7,14 @@ import {
   useSessionHistory, useAddAddendum, useSnippets, useCreateSnippet, useDeleteSnippet,
 } from '@/hooks/useApi'
 import { TAG_LABELS } from '@/types'
-import { Prontuario } from '@/types/prontuario'
+import { Prontuario, professionalRecordTemplate } from '@/types/prontuario'
 import { formatDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import DictationButton from '@/components/ui/DictationButton'
 import RecordingPanel from '@/components/ui/RecordingPanel'
 import { useHasPlan } from '@/store/subscription'
 import { useAuthStore } from '@/store/auth'
-import { hasPhysiotherapyModules, hasNutritionModules } from '@/lib/professions'
+import { hasPhysiotherapyModules, hasNutritionModules, hasPsychologyModules } from '@/lib/professions'
 import PatientRecordDeliveryModal from '@/components/features/patients/PatientRecordDeliveryModal'
 import { useTerms } from '@/hooks/useTerms'
 
@@ -179,6 +179,8 @@ export default function ProntuarioPage() {
   const profession = useAuthStore(s => s.user?.profession)
   const isFisio = hasPhysiotherapyModules(profession)
   const isNutri = hasNutritionModules(profession)
+  const isPsychology = hasPsychologyModules(profession)
+  const recordTemplate = professionalRecordTemplate(profession)
   const { id } = useParams()
   const { data: patient, isLoading: patientLoading } = usePatient(id ?? '')
   const [tab, setTab] = useState<Tab>('identificacao')
@@ -247,6 +249,13 @@ export default function ProntuarioPage() {
 
   function set(field: keyof Prontuario, value: string) {
     setForm(f => ({ ...f, [field]: value }))
+  }
+
+  function setProfessionalField(field: string, value: string) {
+    setForm(current => ({
+      ...current,
+      professionalFields: { ...(current.professionalFields ?? {}), [field]: value },
+    }))
   }
 
   function toDateInputValue(date: string) {
@@ -448,7 +457,7 @@ export default function ProntuarioPage() {
       {/* Security banner */}
       <div className="flex items-center gap-2.5 bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3 text-sm text-amber-700">
         <Lock className="w-4 h-4 shrink-0" />
-        <span>{t.recordCapitalized} protegido por criptografia AES-256 · Acesso exclusivo do profissional responsável · CFP Res. 001/2009</span>
+        <span>{t.recordCapitalized} protegido por criptografia AES-256 · Acesso exclusivo do profissional responsável{isPsychology ? ' · CFP Res. 001/2009' : ''}</span>
       </div>
 
       {/* Tabs */}
@@ -460,7 +469,9 @@ export default function ProntuarioPage() {
                 ? 'bg-white text-neutral-800 shadow-sm font-medium'
                 : 'text-neutral-500 hover:text-neutral-700'
             }`}>
-            {tabItem.id === 'anamnese' ? t.intakeCapitalized : tabItem.label}
+            {tabItem.id === 'anamnese'
+              ? (isPsychology ? t.intakeCapitalized : recordTemplate.intakeTitle)
+              : tabItem.id === 'plano' && !isPsychology ? recordTemplate.planTitle : tabItem.label}
           </button>
         ))}
       </div>
@@ -518,6 +529,7 @@ export default function ProntuarioPage() {
       {/* ── Anamnese ── */}
       {tab === 'anamnese' && (
         <div className="space-y-4">
+          {isPsychology ? <>
           <div className="card space-y-4">
             <h2 className="section-title">Queixa e histórico</h2>
             <FIELD label="Queixa principal" rows={3}
@@ -605,13 +617,66 @@ export default function ProntuarioPage() {
               dictation
               placeholder="Doenças crónicas, cirurgias relevantes..." />
           </div>
+          </> : <>
+            {recordTemplate.groups.map(group => (
+              <div key={group.title} className="card space-y-4">
+                <h2 className="section-title">{group.title}</h2>
+                {group.fields.map(field => (
+                  <FIELD key={field.key} label={field.label} rows={field.rows}
+                    value={form.professionalFields?.[field.key] ?? ''}
+                    onChange={value => setProfessionalField(field.key, value)}
+                    dictation placeholder={field.placeholder} />
+                ))}
+              </div>
+            ))}
+            {isNutri && (
+              <div className="card space-y-4">
+                <h2 className="section-title">Avaliação alimentar complementar</h2>
+                <FIELD label="Queixas alimentares" rows={3}
+                  value={form.queixasAlimentares ?? ''}
+                  onChange={v => set('queixasAlimentares', v)}
+                  dictation
+                  placeholder="Dificuldades, restrições, aversões e histórico alimentar relevante..." />
+                <FIELD label="Hábitos alimentares atuais" rows={4}
+                  value={form.habitosAlimentares ?? ''}
+                  onChange={v => set('habitosAlimentares', v)}
+                  dictation
+                  placeholder="Refeições, horários, locais e preparações habituais..." />
+                <FIELD label="Alergias / intolerâncias alimentares" rows={2}
+                  value={form.alergiasIntolerâncias ?? ''}
+                  onChange={v => set('alergiasIntolerâncias', v)}
+                  dictation
+                  placeholder="Informações relevantes para o atendimento..." />
+                <FIELD label="Hábitos de vida" rows={3}
+                  value={form.habitosVida ?? ''}
+                  onChange={v => set('habitosVida', v)}
+                  dictation
+                  placeholder="Atividade física, sono, álcool e tabagismo, quando informados..." />
+              </div>
+            )}
+            {isFisio && (
+              <div className="card space-y-4">
+                <h2 className="section-title">Exame físico</h2>
+                <FIELD label="Exame físico (semiologia fisioterapêutica)" rows={5}
+                  value={form.exameFisico ?? ''}
+                  onChange={v => set('exameFisico', v)}
+                  dictation
+                  placeholder="Inspeção, palpação, amplitude de movimento, força muscular e testes relevantes..." />
+              </div>
+            )}
+            {recordTemplate.groups.length === 0 && (
+              <div className="card">
+                <p className="text-sm text-neutral-600 dark:text-neutral-200">Use esta ficha para registrar as informações relevantes do seu atendimento.</p>
+              </div>
+            )}
+          </>}
         </div>
       )}
 
       {/* ── Plano terapêutico ── */}
       {tab === 'plano' && (
         <div className="card space-y-4">
-          <h2 className="section-title">Plano terapêutico</h2>
+          <h2 className="section-title">{isPsychology ? 'Plano terapêutico' : recordTemplate.planTitle}</h2>
 
           {isNutri && (
             <>
@@ -644,17 +709,17 @@ export default function ProntuarioPage() {
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {!isFisio && (
-              <FIELD label="Abordagem teórica"
+            {!isFisio && !isNutri && (
+              <FIELD label={isPsychology ? 'Abordagem teórica' : 'Método / conduta principal'}
                 value={form.abordagem ?? ''}
                 onChange={v => set('abordagem', v)}
-                placeholder="Ex: TCC, Psicanálise, Gestalt..." />
+                placeholder={isPsychology ? 'Ex: TCC, Psicanálise, Gestalt...' : 'Ex.: plano de treino, conduta ou estratégia'} />
             )}
             <FIELD label={`Frequência das ${t.sessions}`}
               value={form.frequencia ?? ''}
               onChange={v => set('frequencia', v)}
               placeholder={isFisio ? 'Ex: 3x por semana (40 min)' : 'Ex: Semanal (50 min)'} />
-            <FIELD label="Duração prevista do tratamento"
+            <FIELD label={isPsychology ? 'Duração prevista do tratamento' : 'Duração prevista do acompanhamento'}
               value={form.duracaoPrevista ?? ''}
               onChange={v => set('duracaoPrevista', v)}
               placeholder={isFisio ? 'Ex: 8 semanas' : 'Ex: 6 a 12 meses'} />
@@ -665,7 +730,6 @@ export default function ProntuarioPage() {
                 placeholder="Ex: 20 sessões" />
             )}
           </div>
-
           {isFisio && (
             <FIELD label="Recursos e métodos terapêuticos" rows={4}
               value={form.recursosTerapeuticos ?? ''}
@@ -674,11 +738,11 @@ export default function ProntuarioPage() {
               placeholder="Cinesioterapia, terapia manual, eletrotermofototerapia, hidroterapia — com parâmetros de dosagem..." />
           )}
 
-          <FIELD label="Objetivos terapêuticos" rows={4}
+          <FIELD label={isPsychology ? 'Objetivos terapêuticos' : recordTemplate.goalLabel} rows={4}
             value={form.objetivos ?? ''}
             onChange={v => set('objetivos', v)}
             dictation
-            placeholder="Metas acordadas com a pessoa em atendimento..." />
+            placeholder={isPsychology ? 'Metas acordadas com a pessoa em atendimento...' : recordTemplate.goalPlaceholder} />
           <div className="bg-sage-50 border border-sage-100 rounded-2xl p-4">
             <p className="text-xs text-sage-700 font-medium mb-1">Início do acompanhamento</p>
             <p className="text-sm text-sage-800">{formatDate(patient.startDate)}</p>
@@ -734,7 +798,7 @@ export default function ProntuarioPage() {
 
           {/* Nova entrada */}
           <div className="card space-y-3">
-            <h2 className="section-title">Nova evolução clínica</h2>
+            <h2 className="section-title">Nova evolução do atendimento</h2>
             <p className="text-xs text-neutral-400">
               Este registro entra no histórico do {t.record} e não gera cobrança no financeiro.
             </p>
@@ -759,7 +823,9 @@ export default function ProntuarioPage() {
               </div>
               <textarea rows={5} value={evolText} onChange={e => setEvolText(e.target.value)}
                 className="input-field resize-none text-sm"
-                placeholder="Descreva o conteúdo trabalhado, observações clínicas, intercorrências, resposta da pessoa ao processo terapêutico..." />
+                placeholder={isPsychology
+                  ? 'Descreva o conteúdo trabalhado, observações clínicas, intercorrências, resposta da pessoa ao processo terapêutico...'
+                  : 'Descreva a conduta realizada, evolução, intercorrências e próximos passos...'} />
             </div>
             <div className="rounded-2xl border border-sage-100 bg-sage-50/70 p-3 dark:border-sage-400/20 dark:bg-sage-500/10">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">

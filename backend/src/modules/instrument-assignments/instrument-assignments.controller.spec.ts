@@ -4,6 +4,7 @@ import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
 import { PUBLIC_ROUTE_KEY } from '../../common/decorators/public-route.decorator'
 import { PLAN_KEY } from '../../common/decorators/require-plan.decorator'
+import { PROFESSION_CAPABILITY_KEY } from '../../common/decorators/require-profession-capability.decorator'
 import { InstrumentAssignmentsController } from './instrument-assignments.controller'
 
 const GUARDS_METADATA_KEY = '__guards__'
@@ -38,6 +39,7 @@ describe('InstrumentAssignmentsController — autorização por rota', () => {
     expect(guards).toContain(JwtAuthGuard)
     expect(guards).toContain(NoImpersonationGuard)
     expect(Reflect.getMetadata(PLAN_KEY, InstrumentAssignmentsController.prototype[methodName as keyof InstrumentAssignmentsController])).toBe('pro')
+    expect(Reflect.getMetadata(PROFESSION_CAPABILITY_KEY, InstrumentAssignmentsController.prototype[methodName as keyof InstrumentAssignmentsController])).toBe('instruments')
   })
 
   it.each(['create', 'updateAnswers', 'generateAiInterpretation', 'setScheduleActive', 'deleteSchedule'])('%s exige CsrfGuard (rota com efeito colateral)', methodName => {
@@ -78,7 +80,7 @@ describe('InstrumentAssignmentsController — repasse ao service', () => {
   })
 
   it('generateAiInterpretation() libera a cota reservada se a chamada de IA falhar', async () => {
-    const { controller, svc, aiTextQuota, ai } = makeController()
+    const { controller, aiTextQuota, ai } = makeController()
     ai.generateAssessmentInterpretation.mockRejectedValue(new Error('falha do provedor'))
     const body = { scaleName: 'BDI-II', scoreDetails: { score: 20 }, criticalFlags: [] } as any
     await expect(controller.generateAiInterpretation(req(), 'assignment-1', body)).rejects.toThrow('falha do provedor')

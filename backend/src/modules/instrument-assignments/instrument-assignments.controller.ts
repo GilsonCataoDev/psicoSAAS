@@ -7,6 +7,7 @@ import { CsrfGuard } from '../auth/guards/csrf.guard'
 import { NoImpersonationGuard } from '../../common/guards/no-impersonation.guard'
 import { PublicRoute } from '../../common/decorators/public-route.decorator'
 import { RequirePlan } from '../../common/decorators/require-plan.decorator'
+import { RequireProfessionCapability } from '../../common/decorators/require-profession-capability.decorator'
 import { InstrumentAssignmentsService } from './instrument-assignments.service'
 import { AiService } from '../sessions/ai.service'
 import { AiTextQuotaService } from '../sessions/ai-text-quota.service'
@@ -60,6 +61,7 @@ export class InstrumentAssignmentsController {
   @Get('instrument-assignments')
   @UseGuards(JwtAuthGuard, NoImpersonationGuard)
   @RequirePlan('pro')
+  @RequireProfessionCapability('instruments')
   findMine(@Req() req: any, @Query('patientId') patientId?: string) {
     return this.svc.findMine(req.user.id, patientId)
   }
@@ -67,6 +69,7 @@ export class InstrumentAssignmentsController {
   @Post('instrument-assignments')
   @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
   @RequirePlan('pro')
+  @RequireProfessionCapability('instruments')
   create(@Req() req: any, @Body() body: CreateInstrumentAssignmentDto) {
     return this.svc.create(body, req.user.id)
   }
@@ -74,6 +77,7 @@ export class InstrumentAssignmentsController {
   @Patch('instrument-assignments/:id/answers')
   @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
   @RequirePlan('pro')
+  @RequireProfessionCapability('instruments')
   updateAnswers(@Req() req: any, @Param('id') id: string, @Body('answers') answers: Record<string, string>) {
     return this.svc.updateAnswers(id, answers ?? {}, req.user.id)
   }
@@ -87,6 +91,7 @@ export class InstrumentAssignmentsController {
   @Post('instrument-assignments/:id/ai-interpretation')
   @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
   @RequirePlan('pro')
+  @RequireProfessionCapability('instruments')
   @Throttle({ default: { limit: 10, ttl: 60 * 1000 } })
   async generateAiInterpretation(@Req() req: any, @Param('id') id: string, @Body() body: AssessmentAiInterpretationDto) {
     await this.svc.findOwned(id, req.user.id)
@@ -111,6 +116,7 @@ export class InstrumentAssignmentsController {
   @Get('instrument-schedules')
   @UseGuards(JwtAuthGuard, NoImpersonationGuard)
   @RequirePlan('pro')
+  @RequireProfessionCapability('instruments')
   findSchedules(@Req() req: any, @Query('patientId') patientId?: string) {
     return this.svc.findSchedules(req.user.id, patientId)
   }
@@ -118,6 +124,7 @@ export class InstrumentAssignmentsController {
   @Patch('instrument-schedules/:id')
   @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
   @RequirePlan('pro')
+  @RequireProfessionCapability('instruments')
   setScheduleActive(@Req() req: any, @Param('id') id: string, @Body() body: SetScheduleActiveDto) {
     return this.svc.setScheduleActive(id, req.user.id, body.active)
   }
@@ -125,6 +132,7 @@ export class InstrumentAssignmentsController {
   @Delete('instrument-schedules/:id')
   @UseGuards(JwtAuthGuard, CsrfGuard, NoImpersonationGuard)
   @RequirePlan('pro')
+  @RequireProfessionCapability('instruments')
   deleteSchedule(@Req() req: any, @Param('id') id: string) {
     return this.svc.deleteSchedule(id, req.user.id)
   }

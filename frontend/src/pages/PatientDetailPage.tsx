@@ -23,7 +23,7 @@ import {
   usePatientAuditLog, type AuditEntry,
 } from '@/hooks/useApi'
 import { useAuthStore } from '@/store/auth'
-import { hasPhysiotherapyModules } from '@/lib/professions'
+import { hasProfessionCapability, hasPhysiotherapyModules, hasPsychologyModules } from '@/lib/professions'
 import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
@@ -47,6 +47,9 @@ const PATIENT_STATUS_OPTIONS = [
 
 export default function PatientDetailPage() {
   const t = useTerms()
+  const profession = useAuthStore(s => s.user?.profession)
+  const isPsychology = hasPsychologyModules(profession)
+  const hasInstruments = hasProfessionCapability(profession, 'instruments')
   const { id } = useParams()
   const navigate = useNavigate()
   const hasProPlan = useHasPlan('pro')
@@ -58,16 +61,15 @@ export default function PatientDetailPage() {
   const sendCharge = useSendCharge()
   const createFinancial = useCreateFinancial()
   const updatePatient = useUpdatePatient()
-  const profession = useAuthStore(s => s.user?.profession)
   const isFisio = hasPhysiotherapyModules(profession)
-  const { data: instrumentAssignments = [] } = useInstrumentAssignments(id)
+  const { data: instrumentAssignments = [] } = useInstrumentAssignments(id, hasInstruments)
   const updateInstrumentAnswers = useUpdateInstrumentAnswers()
   const assessmentAiInterpretation = useAssessmentAiInterpretation()
   const createPortalLink = useCreatePatientPortalLink()
   const { data: attachments = [] } = usePatientAttachments(id)
   const uploadAttachment = useUploadPatientAttachment(id)
   const deleteAttachment = useDeletePatientAttachment(id)
-  const { data: neuropsychAssessments = [] } = useNeuropsychAssessments({}, hasProPlan)
+  const { data: neuropsychAssessments = [] } = useNeuropsychAssessments({}, hasProPlan && isPsychology)
   const createNeuropsychAssessment = useCreateNeuropsychAssessment()
   const { data: patientAppointments = [] } = useAppointments({ patientId: id })
   const lastAppointment = [...patientAppointments]
@@ -573,7 +575,7 @@ export default function PatientDetailPage() {
         </div>
       </div>
 
-      {hasProPlan && (patient.careMode === 'neuropsychological_assessment' || latestAssessment) && (
+      {isPsychology && hasProPlan && (patient.careMode === 'neuropsychological_assessment' || latestAssessment) && (
         <section className="rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white p-5 shadow-card dark:border-violet-900/50 dark:from-violet-950/30 dark:to-cognia-panel">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
             <div className="flex items-start gap-3">
@@ -872,7 +874,7 @@ export default function PatientDetailPage() {
         {[
           { id: 'record',    label: t.recordCapitalized,  icon: BookOpenText  },
           { id: 'timeline',  label: 'Histórico',    icon: CalendarDays  },
-          { id: 'responses', label: 'Respostas',    icon: FileText      },
+           ...(hasInstruments ? [{ id: 'responses', label: 'Respostas', icon: FileText }] : []),
           { id: 'notes',     label: 'Anotacoes privadas', icon: Lock          },
           { id: 'financial', label: 'Financeiro',   icon: Banknote      },
           { id: 'contacts',  label: 'Contatos',     icon: MessageCircle },

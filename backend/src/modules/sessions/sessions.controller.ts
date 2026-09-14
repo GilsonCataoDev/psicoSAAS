@@ -168,13 +168,13 @@ export class SessionsController {
     await this.aiTextQuota.reserve(req.user.id, req.user.email)
     let result
     try {
-      result = await this.ai.generateSessionSummary(transcription, patient.name)
+      result = await this.ai.generateSessionSummary(transcription, patient.name, req.user.profession)
     } catch (error) {
       await this.aiTextQuota.release(req.user.id).catch(() => {})
       throw error
     }
     await this.aiTextQuota.recordUsage(req.user.id, result.usage)
-    const draft = await this.aiDrafts.create({ psychologistId: req.user.id, patientId, kind: 'session_summary', sourceText: transcription, content: result.text, usage: result.usage, promptVersion: 'session-summary-v2' })
+    const draft = await this.aiDrafts.create({ psychologistId: req.user.id, patientId, kind: 'session_summary', sourceText: transcription, content: result.text, usage: result.usage, promptVersion: 'session-summary-v3' })
     return { draft: result.text, draftId: draft.id }
   }
 
@@ -204,7 +204,7 @@ export class SessionsController {
       throw error
     }
     await this.aiTextQuota.recordUsage(req.user.id, result.usage)
-    const draft = await this.aiDrafts.create({ psychologistId: req.user.id, patientId, kind: 'clinical_note', sourceText: input, content: result.text, usage: result.usage, promptVersion: `clinical-note-${mode}-v2` })
+    const draft = await this.aiDrafts.create({ psychologistId: req.user.id, patientId, kind: 'clinical_note', sourceText: input, content: result.text, usage: result.usage, promptVersion: `clinical-note-${mode}-v3` })
     return { draft: result.text, draftId: draft.id }
   }
 
@@ -223,13 +223,13 @@ export class SessionsController {
     await this.aiTextQuota.reserve(req.user.id, req.user.email)
     let result
     try {
-      result = await this.ai.generateSessionPlan(clinicalContext, patient.name)
+      result = await this.ai.generateSessionPlan(clinicalContext, patient.name, req.user.profession)
     } catch (error) {
       await this.aiTextQuota.release(req.user.id).catch(() => {})
       throw error
     }
     await this.aiTextQuota.recordUsage(req.user.id, result.usage)
-    const draft = await this.aiDrafts.create({ psychologistId: req.user.id, patientId, kind: 'session_plan', sourceText: clinicalContext, content: result.text, usage: result.usage, promptVersion: 'session-plan-v2' })
+    const draft = await this.aiDrafts.create({ psychologistId: req.user.id, patientId, kind: 'session_plan', sourceText: clinicalContext, content: result.text, usage: result.usage, promptVersion: 'session-plan-v3' })
     return { draft: result.text, draftId: draft.id }
   }
 

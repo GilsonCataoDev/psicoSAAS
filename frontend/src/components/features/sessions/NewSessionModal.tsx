@@ -3,6 +3,8 @@ import { useForm } from 'react-hook-form'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
 import { useTerms } from '@/hooks/useTerms'
+import { hasPsychologyModules } from '@/lib/professions'
+import { useAuthStore } from '@/store/auth'
 import { EmotionalTag, TAG_LABELS } from '@/types'
 import { cn, formatCurrency, formatDateRelative } from '@/lib/utils'
 import { useAppointments, useCreateAppointment, usePatients, useCreateSession, useDefaultTemplate, useFinancial, useInstrumentAssignments, useSessions } from '@/hooks/useApi'
@@ -34,6 +36,7 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
   defaults?: NewSessionDefaults
 }) {
   const t = useTerms()
+  const isPsychology = hasPsychologyModules(useAuthStore(s => s.user?.profession))
   const [mood, setMood] = useState<number | null>(null)
   const [tags, setTags] = useState<EmotionalTag[]>([])
   const [showPreparation, setShowPreparation] = useState(true)
@@ -61,7 +64,7 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
   const selectedPatient = patients.find(patient => patient.id === selectedPatientId)
   const { data: patientSessions = [], isLoading: loadingPreparation } = useSessions({ patientId: selectedPatientId, includeClinical: true, enabled: open && !!selectedPatientId })
   const { data: patientFinancial = [] } = useFinancial(selectedPatientId ? { patientId: selectedPatientId } : undefined)
-  const { data: instrumentAssignments = [] } = useInstrumentAssignments(selectedPatientId)
+  const { data: instrumentAssignments = [] } = useInstrumentAssignments(selectedPatientId, isPsychology)
   const { data: patientAppointments = [] } = useAppointments({ patientId: selectedPatientId, enabled: open && !!selectedPatientId })
 
   const preparation = useMemo(() => {
@@ -110,22 +113,20 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
     if (!sessionTemplate) return
     setValue('date', defaults?.date ?? new Date().toISOString().split('T')[0])
     setValue('duration', defaults?.duration ?? 50)
-    setValue('summary', [
-      'Presenca: ',
-      'Modalidade: ',
-      'Demanda/tema central: ',
-      'Intervencoes realizadas: ',
-      `Resposta do ${t.patient}: `,
-      'Evolucao observada: ',
+    setValue('summary', isPsychology ? [
+      'Presenca: ', 'Modalidade: ', 'Demanda/tema central: ', 'Intervencoes realizadas: ',
+      `Resposta do ${t.patient}: `, 'Evolucao observada: ',
+    ].join('\n') : [
+      'Presenca: ', 'Modalidade: ', 'Demanda principal: ', 'Condutas realizadas: ',
+      `Resposta do ${t.patient}: `, 'Evolucao observada: ',
     ].join('\n'))
-    setValue('privateNotes', [
-      'Hipoteses de trabalho: ',
-      'Pontos de atencao: ',
-      'Riscos/sinais de alerta: ',
-      'Observacoes para supervisao: ',
+    setValue('privateNotes', isPsychology ? [
+      'Hipoteses de trabalho: ', 'Pontos de atencao: ', 'Riscos/sinais de alerta: ', 'Observacoes para supervisao: ',
+    ].join('\n') : [
+      'Pontos de atencao profissional: ', 'Informacoes de seguranca ou encaminhamento: ', 'Observacoes para o proximo atendimento: ',
     ].join('\n'))
-    setValue('nextSteps', 'Plano para a proxima sessao: ')
-    toast.success('Modelo clínico aplicado')
+    setValue('nextSteps', `Plano para o proximo ${t.session}: `)
+    toast.success('Modelo de atendimento aplicado')
   }
 
   async function onSubmit(data: any) {
@@ -216,10 +217,10 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
                         <span className="flex items-center gap-2 text-neutral-600 dark:text-neutral-300"><Wallet className="h-4 w-4 text-amber-500" /> Pendências</span>
                         <strong className="text-neutral-800 dark:text-white">{preparation.pendingPayments.length} · {formatCurrency(preparation.pendingPayments.reduce((sum, item) => sum + Number(item.amount), 0))}</strong>
                       </div>
-                      <div className="flex items-center justify-between rounded-xl bg-white px-3 py-2.5 text-xs dark:bg-white/5">
+                      {isPsychology && <div className="flex items-center justify-between rounded-xl bg-white px-3 py-2.5 text-xs dark:bg-white/5">
                         <span className="flex items-center gap-2 text-neutral-600 dark:text-neutral-300"><CheckCircle2 className="h-4 w-4 text-mist-500" /> Instrumentos aguardando</span>
                         <strong className="text-neutral-800 dark:text-white">{preparation.pendingInstruments.length}</strong>
-                      </div>
+                      </div>}
                       <div className="flex items-center justify-between rounded-xl bg-white px-3 py-2.5 text-xs dark:bg-white/5">
                         <span className="flex items-center gap-2 text-neutral-600 dark:text-neutral-300"><Clock className="h-4 w-4 text-sage-500" /> Próximo horário</span>
                         <strong className="text-right text-neutral-800 dark:text-white">
@@ -234,7 +235,7 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
           </section>
         )}
 
-        <div>
+        {isPsychology && <div>
           <label className="label">Como a pessoa chegou nesta {t.session}?</label>
           <div className="flex gap-2">
             {MOODS.map(m => (
@@ -250,7 +251,7 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
               </button>
             ))}
           </div>
-        </div>
+        </div>}
 
         <div>
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -266,7 +267,7 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
             </div>
           </div>
           <textarea {...register('summary')} rows={3} className="input-field resize-none"
-            placeholder="O que foi trabalhado, pontos de atenção, avanços observados..." />
+            placeholder={isPsychology ? 'O que foi trabalhado, pontos de atenção, avanços observados...' : 'Condutas realizadas, pontos de atenção e evolução observada...'} />
         </div>
 
         <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 space-y-3">
@@ -278,7 +279,7 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
             <DictationButton value={watch('privateNotes') ?? ''} onChange={value => setValue('privateNotes', value)} />
           </div>
           <textarea {...register('privateNotes')} rows={2} className="input-field resize-none text-sm"
-            placeholder="Percepções, hipóteses de trabalho, reflexões clínicas..." />
+            placeholder={isPsychology ? 'Percepções, hipóteses de trabalho, reflexões clínicas...' : 'Observações profissionais de acesso restrito...'} />
         </div>
 
         <div>
@@ -290,7 +291,7 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
             placeholder={`Tarefas, temas para a próxima ${t.session}...`} />
         </div>
 
-        <div>
+        {isPsychology && <div>
           <label className="label">Temas desta {t.session}</label>
           <div className="flex flex-wrap gap-1.5">
             {(Object.entries(TAG_LABELS) as [EmotionalTag, string][]).map(([tag, label]) => (
@@ -301,7 +302,7 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
               </button>
             ))}
           </div>
-        </div>
+        </div>}
 
         <div>
           <label className="label">Pagamento</label>

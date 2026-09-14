@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common'
 import OpenAI from 'openai'
 import Anthropic from '@anthropic-ai/sdk'
 import { pseudonymizeClinicalText } from '../../common/privacy/clinical-text-pseudonymizer'
+import { PROFESSION_LABELS, Profession } from '../../common/professions'
 
 const CLAUDE_TEXT_MODEL = 'claude-haiku-4-5-20251001'
 export const CLAUDE_HAIKU_INPUT_USD_MICROS_PER_TOKEN = 1
@@ -200,7 +201,7 @@ export class AiService {
     }
   }
 
-  async generateSessionSummary(transcription: string, patientName?: string): Promise<AiTextResult> {
+  async generateSessionSummary(transcription: string, patientName?: string, profession?: string): Promise<AiTextResult> {
     const mocked = await this.mockTextIfEnabled(
       transcription, 15_000,
       '[MOCK] Rascunho de evolução de teste E2E. Revisar antes de salvar.',
@@ -210,7 +211,7 @@ export class AiService {
 
     const cleanInput = pseudonymizeClinicalText(transcription.trim(), patientName)?.slice(0, 6000) ?? ''
 
-    const prompt = `Você é um assistente de apoio clínico para psicólogos e terapeutas. Com base na transcrição abaixo de uma sessão clínica, elabore um rascunho conciso de nota de evolução clínica. Escreva em linguagem técnica, primeira pessoa do profissional, sem diagnóstico. Inclua: demanda trabalhada, intervenções realizadas, resposta observada e próximos passos sugeridos. Preserve com exatidão datas, prazos, contagens de ocorrências e detalhes de eventos históricos ou secundários mencionados — não os substitua por descrições vagas mesmo quando o fato mais recente da sessão dominar o restante do texto. Máximo 250 palavras. O profissional revisará e editará antes de salvar.
+    const prompt = `Você é um assistente de organização de registros para ${this.professionalLabel(profession)}. Com base na transcrição abaixo de um atendimento, elabore um rascunho conciso de evolução. Escreva em linguagem técnica, primeira pessoa do profissional, sem diagnóstico, prescrição ou decisão profissional. Inclua: demanda trabalhada, condutas registradas, resposta observada e próximos passos sugeridos. Preserve com exatidão datas, prazos, contagens de ocorrências e detalhes de eventos históricos ou secundários mencionados — não os substitua por descrições vagas mesmo quando o fato mais recente da sessão dominar o restante do texto. Máximo 250 palavras. O profissional revisará e editará antes de salvar.
 
 Transcrição:
 ${cleanInput}`
@@ -223,7 +224,7 @@ ${cleanInput}`
     }
   }
 
-  async generateSessionPlan(clinicalContext: string, patientName?: string): Promise<AiTextResult> {
+  async generateSessionPlan(clinicalContext: string, patientName?: string, profession?: string): Promise<AiTextResult> {
     const mocked = await this.mockTextIfEnabled(
       clinicalContext, 15_000,
       '[MOCK] Sugestao de planejamento de sessao de teste E2E. Revisar antes de usar.',
@@ -233,12 +234,12 @@ ${cleanInput}`
 
     const cleanInput = pseudonymizeClinicalText(clinicalContext.trim(), patientName)?.slice(0, 8000) ?? ''
 
-    const prompt = `Voce e um assistente de apoio clinico para psicologos e terapeutas.
-Com base no historico de sessoes anteriores abaixo (resumos e proximos passos ja registrados), sugira um plano para a PROXIMA sessao.
-Nao invente fatos, nao feche diagnostico, nao prescreva condutas e nao substitua o julgamento clinico.
-Estruture em topicos curtos: (1) retomar da sessao anterior, (2) foco sugerido para esta sessao, (3) possiveis intervencoes a considerar, (4) pontos de atencao.
+    const prompt = `Voce e um assistente de organizacao de registros para ${this.professionalLabel(profession)}.
+Com base no historico de atendimentos anteriores abaixo (resumos e proximos passos ja registrados), sugira uma estrutura para o PROXIMO atendimento.
+Nao invente fatos, nao feche diagnostico, nao prescreva condutas e nao substitua a decisao profissional.
+Estruture em topicos curtos: (1) retomar do atendimento anterior, (2) foco sugerido, (3) possiveis condutas a considerar, (4) pontos de atencao.
 Escreva em portugues do Brasil, tom tecnico, direto, maximo 200 palavras.
-Finalize com a frase: "Sugestao gerada por IA, ajuste conforme seu julgamento clinico."
+Finalize com a frase: "Sugestao gerada por IA, ajuste conforme sua decisao profissional."
 
 Historico de sessoes anteriores:
 ${cleanInput || '(sem sessoes anteriores registradas)'}`
@@ -260,16 +261,15 @@ ${cleanInput || '(sem sessoes anteriores registradas)'}`
     if (mocked) return mocked
 
     const cleanInput = pseudonymizeClinicalText(input.trim(), patientName)?.slice(0, 8000) ?? ''
-    const profissionLabel = profession === 'fisioterapia' ? 'fisioterapeutas' : profession === 'nutricao' ? 'nutricionistas' : 'psicologos e terapeutas'
     const modeInstruction = {
-      resumo: 'gere um resumo clinico conciso, em linguagem profissional, preservando apenas informacoes relevantes para acompanhamento.',
-      evolucao: 'gere um rascunho de evolucao clinica com demanda trabalhada, intervencoes, resposta observada e proximos passos.',
+      resumo: 'gere um resumo conciso, em linguagem profissional, preservando apenas informacoes relevantes para acompanhamento.',
+      evolucao: 'gere um rascunho de evolucao com demanda trabalhada, condutas registradas, resposta observada e proximos passos.',
       organizar: 'organize as anotacoes em blocos: queixa/demanda, conteudo trabalhado, intervencoes, resposta observada e plano/proximos passos.',
     }[mode]
 
-    const prompt = `Voce e um assistente de apoio clinico para ${profissionLabel}.
+    const prompt = `Voce e um assistente de organizacao de registros para ${this.professionalLabel(profession)}.
 Use o texto abaixo somente para organizar um rascunho de prontuario.
-Nao invente fatos, nao feche diagnostico, nao prescreva condutas e nao substitua o julgamento clinico.
+Nao invente fatos, nao feche diagnostico, nao prescreva condutas e nao substitua a decisao profissional.
 Nao inclua dados pessoais identificaveis. Se houver nome, telefone, email, CPF, endereco ou identificadores, omita.
 Preserve com exatidao todo dado factual especifico do texto original: datas, prazos, contagens de ocorrencias (ex. "terceira vez em 2 meses"), metodos e detalhes de eventos historicos ou secundarios (ex. uma tentativa ou ocorrencia anterior mencionada de passagem). Nunca substitua um fato especifico por uma descricao vaga como "historico previo" sem o detalhe original — isso vale mesmo quando o fato mais recente domina o restante do texto.
 Escreva em portugues do Brasil, tom tecnico e claro.
@@ -285,6 +285,11 @@ ${cleanInput}`
       this.logger.error(`AI prontuario error: ${err?.status ?? err?.name ?? 'unknown'}`)
       throw new BadRequestException('Nao foi possivel gerar o rascunho do prontuario. Tente novamente.')
     }
+  }
+
+  private professionalLabel(profession?: string): string {
+    const label = PROFESSION_LABELS[profession as Profession]
+    return label ? `um profissional de ${label}` : 'um profissional de saúde e bem-estar'
   }
 
   async generateDocumentDraft(

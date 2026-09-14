@@ -27,6 +27,7 @@ import { ChurnModule } from './modules/churn/churn.module'
 import { NpsModule } from './modules/nps/nps.module'
 import { ProspectingModule } from './modules/prospecting/prospecting.module'
 import { PlanGuard } from './common/guards/plan.guard'
+import { ProfessionCapabilityGuard } from './common/guards/profession-capability.guard'
 import { SubscriptionGuard } from './common/guards/subscription.guard'
 import { LastActiveInterceptor } from './common/interceptors/last-active.interceptor'
 import { AdvisoryLockModule } from './common/advisory-lock/advisory-lock.module'
@@ -114,6 +115,7 @@ const readPositiveInt = (value: string | undefined, fallback: number): number =>
     { provide: APP_GUARD,       useClass: ThrottlerGuard },
     { provide: APP_GUARD,       useClass: SubscriptionGuard },
     { provide: APP_GUARD,       useClass: PlanGuard },
+    { provide: APP_GUARD,       useClass: ProfessionCapabilityGuard },
     { provide: APP_INTERCEPTOR, useClass: LastActiveInterceptor },
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
   ],

@@ -25,6 +25,25 @@ class ProntuarioSizeConstraint implements ValidatorConstraintInterface {
   }
 }
 
+/** Campos de ficha por profissão: texto simples, tamanho limitado e sem objetos aninhados. */
+@ValidatorConstraint({ name: 'professionalFields', async: false })
+class ProfessionalFieldsConstraint implements ValidatorConstraintInterface {
+  validate(value: unknown): boolean {
+    if (value === undefined || value === null) return true
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+    const entries = Object.entries(value as Record<string, unknown>)
+    return entries.length <= 16 && entries.every(([key, fieldValue]) =>
+      /^[a-z][a-zA-Z0-9_]{0,63}$/.test(key)
+      && typeof fieldValue === 'string'
+      && fieldValue.length <= 2000,
+    )
+  }
+
+  defaultMessage(): string {
+    return 'professionalFields deve conter até 16 campos de texto válidos'
+  }
+}
+
 class PatientProntuarioDto {
   @IsString() @MaxLength(3000) @IsOptional() queixaPrincipal?: string
   @IsString() @MaxLength(3000) @IsOptional() historicoDoenca?: string
@@ -43,13 +62,16 @@ class PatientProntuarioDto {
   @IsString() @MaxLength(120) @IsOptional() profissao?: string
   @IsString() @MaxLength(80) @IsOptional() estadoCivil?: string
   @IsString() @MaxLength(120) @IsOptional() religiao?: string
-
   // Fisioterapia — conteúdo mínimo do prontuário exigido pela Res. COFFITO 414/2012.
   @IsString() @MaxLength(3000) @IsOptional() exameFisico?: string
   @IsString() @MaxLength(3000) @IsOptional() diagnosticoFuncional?: string
   @IsString() @MaxLength(1500) @IsOptional() prognosticoFuncional?: string
   @IsString() @MaxLength(3000) @IsOptional() recursosTerapeuticos?: string
   @IsString() @MaxLength(120) @IsOptional() quantitativoAtendimentos?: string
+
+  /** Dados próprios da área profissional, definidos pela ficha exibida na interface. */
+  @IsObject() @Validate(ProfessionalFieldsConstraint) @IsOptional()
+  professionalFields?: Record<string, string>
 }
 
 export class CreatePatientDto {
