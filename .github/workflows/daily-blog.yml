@@ -24,12 +24,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout da main
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: main
 
       - name: Configurar Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -76,3 +76,4 @@ jobs:
           git diff --cached --check
           git commit -m "chore(blog): publicar curadoria semanal de $(date -u +%F)"
           git push origin HEAD:main
+
