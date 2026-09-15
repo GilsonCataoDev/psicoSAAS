@@ -17,6 +17,19 @@ describe('instrument catalog', () => {
     }
   })
 
+  it('todo instrumento pontuável do catálogo tem entrada em SCALE_CONFIGS', () => {
+    // Escala sem config é aplicada e não pontua — falha silenciosa em produção.
+    // Apenas instrumentos com category === 'escala' são pontuados; 'formulario',
+    // 'entrevista' e 'registro' são texto livre e não passam pelo motor de pontuação.
+    const escalas = INSTRUMENTS.filter(i => i.category === 'escala')
+    for (const instrumento of escalas) {
+      expect(
+        SCALE_CONFIGS[instrumento.id],
+        `Instrumento "${instrumento.id}" tem category "escala" mas não tem entrada em SCALE_CONFIGS`,
+      ).toBeDefined()
+    }
+  })
+
   it('preserva a anamnese adulta usada pelo fluxo principal', () => {
     expect(INSTRUMENTS).toEqual(expect.arrayContaining([
       expect.objectContaining({
@@ -96,5 +109,24 @@ describe('BATTERIES', () => {
   it('mantém identificadores únicos de bateria', () => {
     const ids = BATTERIES.map(b => b.id)
     expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  it('baterias não referenciam instrumentos exclusivos de fisioterapia ou nutrição', () => {
+    // BATTERIES são de psicologia; nenhum instrumentId pode pertencer a outra profissão.
+    // Um vazamento aqui enviaria ao paciente escalas de dor lombar ou anamnese nutricional.
+    const fisioIds = new Set(instrumentsFor('fisioterapia').map(i => i.id))
+    const nutriIds = new Set(instrumentsFor('nutricao').map(i => i.id))
+    for (const battery of BATTERIES) {
+      for (const id of battery.instrumentIds) {
+        expect(
+          fisioIds.has(id),
+          `Bateria "${battery.id}" referencia instrumento de fisioterapia: "${id}"`,
+        ).toBe(false)
+        expect(
+          nutriIds.has(id),
+          `Bateria "${battery.id}" referencia instrumento de nutrição: "${id}"`,
+        ).toBe(false)
+      }
+    }
   })
 })
