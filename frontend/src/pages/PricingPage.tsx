@@ -12,7 +12,7 @@ import BrandLogo from '@/components/ui/BrandLogo'
 import Modal from '@/components/ui/Modal'
 import { PRICING_COMPARISON, PRICING_FAQ, PRICING_HERO, PRICING_PLANS, PricingPlan, PricingRoiItem } from '@/data/pricingPlans'
 import { userSafeError } from '@/lib/userSafeError'
-import { track, EVENTS } from '@/lib/analytics'
+import { track, EVENTS, trackMetaConversion } from '@/lib/analytics'
 
 function statusMessage(status: string) {
   if (status === 'pending') return 'Aguardando pagamento'
@@ -206,6 +206,7 @@ function PaidPricingPage({ publicView = false }: { publicView?: boolean }) {
       const { data } = await api.post(endpoint, body)
       setSubscription(data)
       track(EVENTS.SUBSCRIPTION_ACTIVE, { plan: plan.id })
+      trackMetaConversion('Subscribe')
       toast.success(
         subscription.status === 'past_due'
           ? `Cartao atualizado. Tentaremos cobrar no plano ${plan.name}.`

@@ -200,7 +200,7 @@ export default function RegisterPage() {
         campaign: searchParams.get('utm_campaign') ?? 'none',
         has_referral: Boolean(referralCode),
       })
-      trackMetaConversion('CompleteRegistration')
+      trackMetaConversion('Lead')
       toast.success('Teste de 7 dias ativado! Seja bem-vindo(a) 🎉')
       const requestedPlan = searchParams.get('plano')
       navigate(requestedPlan === 'essencial' || requestedPlan === 'pro' ? '/planos?plano=pro' : '/')

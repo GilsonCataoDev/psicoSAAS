@@ -7,7 +7,7 @@ import { usePatients } from '@/hooks/api/patients'
 import { useWhatsAppStatus } from '@/hooks/api/notifications'
 import { useOnboardingStore } from '@/store/onboarding'
 import { useSubscriptionStore } from '@/store/subscription'
-import { track, EVENTS } from '@/lib/analytics'
+import { track, EVENTS, trackMetaConversion } from '@/lib/analytics'
 import { cn } from '@/lib/utils'
 import { useTerms } from '@/hooks/useTerms'
 
@@ -81,6 +81,7 @@ export default function OnboardingWizard() {
   useEffect(() => {
     if (doneCount === items.length) {
       track(EVENTS.ONBOARDING_DONE)
+      trackMetaConversion('CompleteRegistration')
       complete()
     }
   }, [complete, doneCount, items.length])
