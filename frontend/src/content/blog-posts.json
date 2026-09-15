@@ -1,5 +1,97 @@
 [
   {
+    "slug": "coffito-414-prontuario-fisioterapeutico-o-que-registrar",
+    "title": "Prontuário fisioterapêutico COFFITO 414: o que registrar",
+    "description": "Guia prático dos campos obrigatórios exigidos pela Resolução COFFITO 414/2012 no prontuário fisioterapêutico.",
+    "image": "/blog/og/coffito-414-prontuario-fisioterapeutico-o-que-registrar.png",
+    "category": "Regulação e compliance",
+    "publishedAt": "2026-09-22",
+    "updatedAt": "2026-09-22",
+    "readingMinutes": 8,
+    "author": "Equipe UseCognia",
+    "keywords": [
+      "prontuário fisioterapêutico COFFITO 414",
+      "o que registrar no prontuário de fisioterapia",
+      "diagnóstico cinesiofuncional",
+      "COFFITO 414/2012",
+      "campos obrigatórios prontuário fisioterapêutico"
+    ],
+    "relatedSlugs": [
+      "como-organizar-prontuario-psicologico-com-seguranca",
+      "lgpd-para-psicologos-guia-pratico"
+    ],
+    "intro": [
+      "Um prontuário incompleto dificulta demonstrar como o paciente foi avaliado, quais decisões orientaram o tratamento e o que aconteceu durante o acompanhamento. Em uma fiscalização do Sistema COFFITO/CREFITO ou em um processo ético, a documentação é uma das principais evidências da assistência prestada.",
+      "A própria Resolução COFFITO nº 414/2012 reconhece o prontuário como instrumento para fiscalização, processos disciplinares e defesa legal. Isso não significa produzir registros longos. O objetivo é manter informações claras, legíveis e suficientes para reconstruir o raciocínio fisioterapêutico e a conduta adotada."
+    ],
+    "sections": [
+      {
+        "heading": "O que a COFFITO 414/2012 estabelece",
+        "paragraphs": [
+          "A Resolução COFFITO nº 414/2012 torna obrigatório o registro das atividades assistenciais e define a estrutura mínima do prontuário fisioterapêutico. Ela admite prontuário físico ou eletrônico e também dispõe sobre identificação profissional, sigilo, acesso do paciente e guarda por pelo menos cinco anos após o último registro."
+        ]
+      },
+      {
+        "heading": "Os campos obrigatórios do prontuário fisioterapêutico",
+        "paragraphs": [
+          "Identificação do paciente: nome completo, data e local de nascimento, gênero, estado civil, profissão e endereços residencial e profissional. Mantenha os dados atualizados e evite abreviações que dificultem a identificação.",
+          "Anamnese fisioterapêutica: queixa principal, história do problema atual, doenças anteriores, hábitos de vida, antecedentes pessoais e familiares e tratamentos já realizados. Registre as informações relevantes para a avaliação físico-funcional.",
+          "Exame físico pela semiologia fisioterapêutica: documente os achados que sustentam sua análise. Conforme o caso, podem ser incluídos goniometria, testes ortopédicos, avaliação postural, força muscular, mobilidade, equilíbrio, marcha, palpação e escala de dor. Sempre registre valores, lado avaliado e condições do teste quando isso afetar a interpretação.",
+          "Exames complementares: descreva exames apresentados pelo paciente e os solicitados pelo fisioterapeuta. Registre data, tipo e achados relevantes para a conduta — não basta anexar o documento.",
+          "Diagnóstico fisioterapêutico: registre o diagnóstico cinesiofuncional, indicando as alterações de movimento, função e desempenho identificadas. Diferentemente do diagnóstico médico, ele descreve a condição físico-funcional que orienta a atuação fisioterapêutica.",
+          "Prognóstico fisioterapêutico: estimativa de evolução funcional com base na avaliação, considerando limitações, potencial de recuperação e necessidade de reavaliação.",
+          "Plano de tratamento e objetivos: procedimentos propostos, recursos, métodos e técnicas a utilizar. Relacione cada conduta a objetivos terapêuticos claros e passíveis de acompanhamento.",
+          "Quantitativo provável de atendimentos: estimativa inicial do número de sessões necessárias. Pode ser revisto após reavaliações, mas a alteração deve ser justificada no prontuário. É um campo específico da fisioterapia e frequentemente ausente em sistemas genéricos de saúde.",
+          "Evolução em cada sessão: em todos os atendimentos, registre a condição apresentada, os procedimentos realizados, a evolução físico-funcional e eventuais intercorrências. Inclua a data e evite descrições genéricas como 'sessão realizada sem alterações'.",
+          "Alta fisioterapêutica e desfecho: na evolução final, registre o motivo do encerramento, a condição físico-funcional na alta, os objetivos alcançados ou pendentes, as orientações fornecidas e eventual encaminhamento.",
+          "Identificação profissional: cada registro deve conter data, assinatura, nome completo e número de inscrição no CREFITO. No prontuário eletrônico, a identificação deve ser vinculada ao registro imediatamente."
+        ]
+      },
+      {
+        "heading": "Erro mais comum no prontuário fisioterapêutico",
+        "paragraphs": [
+          "Um erro recorrente é preencher evoluções como 'realizados exercícios e alongamentos' sem registrar previamente o diagnóstico cinesiofuncional. Em uma fiscalização, isso impede relacionar os achados da avaliação aos objetivos e às condutas escolhidas. A evolução informa o que aconteceu na sessão; o diagnóstico fisioterapêutico explica qual alteração físico-funcional fundamentou o plano."
+        ]
+      },
+      {
+        "heading": "Como o UseCognia resolve isso",
+        "paragraphs": [
+          "O UseCognia organiza os campos da COFFITO 414 no fluxo do prontuário fisioterapêutico. O diagnóstico cinesiofuncional fica separado do diagnóstico médico, o quantitativo provável de atendimentos pode ser registrado por paciente e a evolução de cada sessão segue uma estrutura própria. Isso ajuda a reduzir omissões sem transformar o prontuário em um documento excessivamente longo.",
+          "O prontuário adequado deve permitir compreender a avaliação, o diagnóstico cinesiofuncional, os objetivos, a conduta e a evolução do paciente. Padronizar esses registros facilita a continuidade da assistência e oferece documentação mais consistente em uma fiscalização. Experimente o UseCognia grátis — até 10 pacientes, sem cartão de crédito."
+        ]
+      }
+    ],
+    "checklist": [
+      "Registrar identificação completa do paciente na abertura do prontuário",
+      "Documentar o diagnóstico cinesiofuncional antes de iniciar o plano de tratamento",
+      "Registrar o quantitativo provável de atendimentos e justificar revisões",
+      "Incluir achados objetivos da semiologia fisioterapêutica (goniometria, testes, escalas)",
+      "Preencher a evolução com condição apresentada, procedimentos e resultado a cada sessão",
+      "Registrar a alta com desfecho, objetivos alcançados e orientações fornecidas",
+      "Assinar cada registro com nome completo e número de inscrição no CREFITO"
+    ],
+    "references": [
+      {
+        "label": "Resolução COFFITO nº 414/2012 — Conselho Federal de Fisioterapia e Terapia Ocupacional",
+        "url": "https://www.coffito.gov.br/nsite/?p=3177"
+      }
+    ],
+    "faq": [
+      {
+        "question": "O diagnóstico fisioterapêutico é o mesmo que o diagnóstico médico?",
+        "answer": "Não. O diagnóstico fisioterapêutico é o diagnóstico cinesiofuncional: identifica as alterações de movimento, função e desempenho que fundamentam a conduta fisioterapêutica. É um ato privativo do fisioterapeuta, distinto do diagnóstico nosológico do médico."
+      },
+      {
+        "question": "Por quanto tempo devo guardar o prontuário fisioterapêutico?",
+        "answer": "A COFFITO 414/2012 estabelece guarda mínima de cinco anos após o último registro. Verifique também a legislação local e o regulamento do serviço onde atua, pois pode haver prazos mais longos."
+      },
+      {
+        "question": "Posso usar prontuário eletrônico?",
+        "answer": "Sim. A resolução admite prontuário físico ou eletrônico, desde que garantidos sigilo, integridade dos dados, identificação do profissional vinculada a cada registro e acesso do paciente quando solicitado."
+      }
+    ]
+  },
+  {
     "slug": "psicologia-em-pauta-semana-2026-09-11",
     "title": "Atualizações para psicólogos: o que merece atenção na semana de 11 de setembro de 2026",
     "description": "Curadoria semanal de atualizações relevantes para psicólogos, com fontes institucionais, impactos práticos, cuidados e perguntas frequentes.",
