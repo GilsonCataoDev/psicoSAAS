@@ -36,9 +36,12 @@ const HEADER_ALIASES: Record<string, keyof CreatePatientDto> = {
   'observacoes': 'privateNotes',
 }
 
-const BILLING_TYPE_ALIASES: Record<string, 'per_session' | 'monthly_package'> = {
+const BILLING_TYPE_ALIASES: Record<string, 'per_session' | 'monthly_package' | 'session_package'> = {
   'por sessao': 'per_session',
   'pacote mensal': 'monthly_package',
+  'pacote de atendimentos': 'session_package',
+  'pacote de sessoes': 'session_package',
+  'session_package': 'session_package',
 }
 
 const CARE_MODE_ALIASES: Record<string, 'psychotherapy' | 'neuropsychological_assessment'> = {
