@@ -10,6 +10,8 @@ export const NEWS_SOURCES = [
   { name: 'Conselho Federal de Psicologia', url: 'https://site.cfp.org.br/feed/', host: 'site.cfp.org.br' },
   { name: 'Agência Brasil — Saúde', url: 'https://agenciabrasil.ebc.com.br/rss/saude/feed.xml', host: 'agenciabrasil.ebc.com.br' },
   { name: 'Fiocruz', url: 'https://portal.fiocruz.br/rss.xml', host: 'portal.fiocruz.br' },
+  { name: 'COFFITO', url: 'https://coffito.gov.br/nsite/?feed=rss2', host: 'coffito.gov.br' },
+  { name: 'CFN — Conselho Federal de Nutricionistas', url: 'https://www.cfn.org.br/feed/', host: 'cfn.org.br' },
 ]
 
 const RELEVANCE_TERMS = [
@@ -17,6 +19,15 @@ const RELEVANCE_TERMS = [
   'autismo', 'tdah', 'terapia', 'lgpd', 'dados pessoais', 'privacidade', 'prontuário',
   'prontuario', 'teleatendimento', 'saúde digital', 'saude digital', 'conselho federal de psicologia',
   'resolução', 'resolucao', 'ética profissional', 'etica profissional', 'caps', 'raps', 'burnout',
+  // Fisioterapia
+  'fisioterapeut', 'fisioterapia', 'coffito', 'crefito',
+  'reabilitação', 'reabilitacao', 'cinesiofuncional',
+  'semiologia fisioterapeutica', 'semiologia fisioterapêutica',
+  // Nutrição
+  'nutricionista', 'nutrição', 'nutricao',
+  'cfn', 'conduta nutricional', 'recordatório', 'recordatorio',
+  'avaliação nutricional', 'avaliacao nutricional',
+  'plano alimentar',
 ]
 
 const TOPICS = [
@@ -54,6 +65,20 @@ const TOPICS = [
     implication: 'A adoção de tecnologia deve preservar responsabilidade profissional, segurança dos dados e revisão humana das decisões.',
     checklist: 'Avaliar segurança, finalidade e supervisão humana antes de adotar uma tecnologia',
     keywords: ['tecnologia para psicólogos', 'saúde digital'],
+  },
+  {
+    id: 'fisioterapia',
+    terms: ['fisioterapeut', 'fisioterapia', 'coffito', 'crefito', 'cinesiofuncional', 'reabilitação', 'reabilitacao'],
+    implication: 'O profissional deve consultar o texto original e verificar se a atualização altera documentos, registros clínicos, quantitativo de atendimentos ou a prestação de serviço fisioterapêutico.',
+    checklist: 'Conferir a publicação original do COFFITO antes de alterar procedimentos e registros profissionais',
+    keywords: ['notícias para fisioterapeutas', 'atualização COFFITO', 'fisioterapia no Brasil'],
+  },
+  {
+    id: 'nutricao',
+    terms: ['nutricionista', 'nutrição', 'nutricao', 'cfn', 'conduta nutricional', 'recordatório', 'recordatorio', 'plano alimentar'],
+    implication: 'O profissional deve consultar o texto original e verificar se a atualização altera documentos, registros clínicos, conduta nutricional ou a prestação de serviço.',
+    checklist: 'Conferir a publicação original do CFN antes de alterar procedimentos e registros profissionais',
+    keywords: ['notícias para nutricionistas', 'atualização CFN', 'nutrição no Brasil'],
   },
 ]
 
@@ -179,17 +204,39 @@ export function meetsPublicationThreshold(items, minItems = 2) {
   return items.length >= minItems && new Set(items.map(item => item.source)).size >= minItems
 }
 
-export function buildNewsPost(items, date) {
+const PROFESSION_CONFIG = {
+  psicologia: {
+    slugPrefix: 'psicologia-em-pauta-semana',
+    titlePrefix: 'Atualizações para psicólogos',
+    category: 'Atualidades para psicólogos',
+    baseKeywords: ['notícias para psicólogos', 'psicologia hoje'],
+  },
+  fisioterapia: {
+    slugPrefix: 'fisioterapia-em-pauta-semana',
+    titlePrefix: 'Atualizações para fisioterapeutas',
+    category: 'Atualidades para fisioterapeutas',
+    baseKeywords: ['notícias para fisioterapeutas', 'fisioterapia hoje'],
+  },
+  nutricao: {
+    slugPrefix: 'nutricao-em-pauta-semana',
+    titlePrefix: 'Atualizações para nutricionistas',
+    category: 'Atualidades para nutricionistas',
+    baseKeywords: ['notícias para nutricionistas', 'nutrição hoje'],
+  },
+}
+
+export function buildNewsPost(items, date, profession = 'psicologia') {
+  const config = PROFESSION_CONFIG[profession] ?? PROFESSION_CONFIG.psicologia
   const topics = items.map(classify)
-  const keywords = [...new Set(['notícias para psicólogos', 'psicologia hoje', ...topics.flatMap(topic => topic.keywords)])]
+  const keywords = [...new Set([...config.baseKeywords, ...topics.flatMap(topic => topic.keywords)])]
   const formattedDate = longDate(date)
 
   return {
-    slug: `psicologia-em-pauta-semana-${date}`,
-    title: `Atualizações para psicólogos: o que merece atenção na semana de ${formattedDate}`,
-    description: `Curadoria semanal de atualizações relevantes para psicólogos, com fontes institucionais, impactos práticos, cuidados e perguntas frequentes.`,
-    image: `/blog/og/psicologia-em-pauta-semana-${date}.png`,
-    category: 'Atualidades para psicólogos',
+    slug: `${config.slugPrefix}-${date}`,
+    title: `${config.titlePrefix}: o que merece atenção na semana de ${formattedDate}`,
+    description: `Curadoria semanal de atualizações relevantes para ${config.category.toLowerCase()}, com fontes institucionais, impactos práticos, cuidados e perguntas frequentes.`,
+    image: `/blog/og/${config.slugPrefix}-${date}.png`,
+    category: config.category,
     publishedAt: date,
     updatedAt: date,
     readingMinutes: Math.max(6, items.length * 3),
@@ -198,7 +245,7 @@ export function buildNewsPost(items, date) {
     relatedSlugs: ['software-para-psicologo-guia-completo-2026', 'lgpd-para-psicologos-guia-pratico'],
     intro: [
       `Esta curadoria reúne publicações recentes de fontes institucionais consultadas em ${formattedDate}. Os títulos levam ao conteúdo original para conferência.`,
-      'Selecionamos apenas temas explicitamente ligados à psicologia, e a edição só é publicada quando reúne ao menos duas fontes institucionais independentes. O conteúdo é informativo e não substitui orientação clínica, ética ou jurídica individual.',
+      `Selecionamos apenas temas explicitamente ligados à área, e a edição só é publicada quando reúne ao menos duas fontes institucionais independentes. O conteúdo é informativo e não substitui orientação clínica, ética ou jurídica individual.`,
     ],
     sections: [...items.map((item, index) => {
       const topic = topics[index]
@@ -213,7 +260,7 @@ export function buildNewsPost(items, date) {
       heading: 'Como transformar informação em uma rotina mais organizada',
       paragraphs: [
         'Antes de mudar um procedimento, registre a fonte, confirme se a orientação se aplica ao seu contexto e defina uma ação verificável. Mudanças em comunicação, documentos, agenda ou tratamento de dados devem ser revisadas pelo profissional responsável.',
-        'O UseCognia ajuda a centralizar agenda, pacientes, prontuários, documentos e financeiro. Essa organização reduz tarefas dispersas, mas não substitui decisões técnicas, clínicas ou éticas do psicólogo.',
+        `O UseCognia ajuda a centralizar agenda, pacientes, prontuários, documentos e financeiro. Essa organização reduz tarefas dispersas, mas não substitui decisões técnicas, clínicas ou éticas do profissional.`,
       ],
     }],
     checklist: [...new Set([
@@ -228,7 +275,7 @@ export function buildNewsPost(items, date) {
     faq: [
       {
         question: 'Uma notícia ou publicação institucional muda automaticamente a prática profissional?',
-        answer: 'Não. Consulte a fonte original, verifique a vigência e, quando necessário, busque orientação do CFP, do CRP ou de assessoria especializada antes de alterar procedimentos.',
+        answer: 'Não. Consulte a fonte original, verifique a vigência e, quando necessário, busque orientação do conselho federal da sua profissão ou de assessoria especializada antes de alterar procedimentos.',
       },
       {
         question: 'Posso aplicar uma informação desta curadoria diretamente aos pacientes?',
@@ -251,14 +298,27 @@ async function fetchSource(source) {
   return parseRss(await response.text(), source)
 }
 
+function detectProfession(items) {
+  const topicCounts = {}
+  for (const item of items) {
+    const topic = classify(item)
+    topicCounts[topic.id] = (topicCounts[topic.id] ?? 0) + 1
+  }
+  const professionTopics = { fisioterapia: 'fisioterapia', nutricao: 'nutricao' }
+  let dominantTopic = null
+  let dominantCount = 0
+  for (const [topicId, count] of Object.entries(topicCounts)) {
+    if (count > dominantCount) {
+      dominantCount = count
+      dominantTopic = topicId
+    }
+  }
+  return professionTopics[dominantTopic] ?? 'psicologia'
+}
+
 export async function main({ now = new Date(), dryRun = false } = {}) {
   const posts = JSON.parse(readFileSync(postsPath, 'utf8'))
   const date = dateInSaoPaulo(now)
-  const slug = `psicologia-em-pauta-semana-${date}`
-  if (posts.some(post => post.slug === slug)) {
-    console.log(`Blog semanal: ${slug} já existe`)
-    return { changed: false, reason: 'already-published' }
-  }
 
   const results = await Promise.allSettled(NEWS_SOURCES.map(fetchSource))
   const failures = results.filter(result => result.status === 'rejected')
@@ -269,12 +329,22 @@ export async function main({ now = new Date(), dryRun = false } = {}) {
   const maxItems = Math.min(4, Math.max(2, Number(process.env.BLOG_NEWS_MAX_ITEMS ?? 4)))
   const minItems = Math.min(maxItems, Math.max(2, Number(process.env.BLOG_NEWS_MIN_ITEMS ?? 2)))
   const selected = selectNews(allItems, posts, now, maxItems)
+
+  const profession = process.env.BLOG_PROFESSION ?? detectProfession(selected)
+  const profConfig = PROFESSION_CONFIG[profession] ?? PROFESSION_CONFIG.psicologia
+  const slug = `${profConfig.slugPrefix}-${date}`
+
+  if (posts.some(post => post.slug === slug)) {
+    console.log(`Blog semanal: ${slug} já existe`)
+    return { changed: false, reason: 'already-published' }
+  }
+
   if (!meetsPublicationThreshold(selected, minItems)) {
     console.log(`Blog semanal: qualidade insuficiente (${selected.length}/${minItems} fontes relevantes); publicação ignorada`)
     return { changed: false, reason: 'insufficient-quality' }
   }
 
-  const post = buildNewsPost(selected, date)
+  const post = buildNewsPost(selected, date, profession)
   console.log(`Blog semanal: ${post.slug} com ${selected.length} fontes — ${selected.map(item => item.source).join(', ')}`)
   if (!dryRun) writeFileSync(postsPath, `${JSON.stringify([post, ...posts], null, 2)}\n`, 'utf8')
   return { changed: !dryRun, reason: dryRun ? 'dry-run' : 'published', post }
