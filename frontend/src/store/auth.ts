@@ -62,7 +62,7 @@ export const useAuthStore = create<AuthState>()(
       csrfToken: null,
 
       setAuth: (user) => {
-        identifyUser(user.id)
+        identifyUser(user.id, { profession: user.profession ?? 'psicologia' })
         set({ user, isAuthenticated: true })
       },
 

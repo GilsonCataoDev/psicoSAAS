@@ -199,6 +199,7 @@ export default function RegisterPage() {
         medium: searchParams.get('utm_medium') ?? 'none',
         campaign: searchParams.get('utm_campaign') ?? 'none',
         has_referral: Boolean(referralCode),
+        profession: accountData?.profession ?? 'psicologia',
       })
       trackMetaConversion('Lead')
       toast.success('Teste de 7 dias ativado! Seja bem-vindo(a) 🎉')

@@ -30,7 +30,7 @@ type AnalyticsProps = Record<string, AnalyticsValue>
 
 const ALLOWED_PROPERTIES = new Set([
   'abordagem', 'ciclo', 'days_inactive', 'landing_path', 'location', 'marketing_landing_path',
-  'plan', 'step', 'type', 'use_number',
+  'plan', 'profession', 'step', 'type', 'use_number',
   ...UTM_FIELDS,
   ...UTM_FIELDS.map(f => `first_${f}`),
 ])
@@ -207,7 +207,7 @@ export function initAnalytics() {
  * Links the anonymous session to this user's pseudonymous id.
  * Requires consent — call only after getAnalyticsConsent() === true.
  */
-export function identifyUser(id: string) {
+export function identifyUser(id: string, traits?: AnalyticsProps) {
   if (!id || getAnalyticsConsent() !== true) return
   const generation = identityGeneration
   const digest = window.crypto?.subtle?.digest('SHA-256', new TextEncoder().encode(`usecognia:${id}`))
@@ -217,7 +217,7 @@ export function identifyUser(id: string) {
     if (generation !== identityGeneration) return
     const pid = `uc_${Array.from(new Uint8Array(hash), b => b.toString(16).padStart(2, '0')).join('')}`
     if (isDev) console.debug('[Analytics] identify', pid)
-    else ph?.identify(pid, readStoredAttribution())
+    else ph?.identify(pid, { ...readStoredAttribution(), ...(traits ?? {}) })
   })
 }
 
