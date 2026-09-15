@@ -109,6 +109,21 @@ export function hasNutritionModules(profession?: string | null): boolean {
 }
 
 /**
+ * Indica se a profissão tem acesso ao módulo de instrumentos (escalas,
+ * formulários e avaliações padronizadas). Cobre psicologia, fisioterapia
+ * e nutrição — espelho de `hasInstrumentsModule` do frontend.
+ *
+ * Nota: a autorização real dos endpoints é feita por
+ * `hasProfessionCapability(profession, 'instruments')` via
+ * `ProfessionCapabilityGuard` (global). Esta função existe para manter
+ * o espelho frontend/backend sincronizado e para uso em lógica de negócio
+ * que precise da mesma semântica fora do contexto de request HTTP.
+ */
+export function hasInstrumentsModule(profession?: string | null): boolean {
+  return hasPsychologyModules(profession) || hasPhysiotherapyModules(profession) || hasNutritionModules(profession)
+}
+
+/**
  * Charset aceito num registro de conselho (CRN-3 12345, CREFITO-3/12345-F...).
  * O formato varia por conselho, entao so barramos o que nao pode aparecer.
  */
