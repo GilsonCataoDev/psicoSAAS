@@ -35,7 +35,7 @@ export default function PatientsPage() {
   const [careMode, setCareMode] = useState<'all' | 'psychotherapy' | 'neuropsychological_assessment'>('all')
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [filterTags, setFilterTags] = useState<string[]>([])
-  const [filterBilling, setFilterBilling] = useState<'all' | 'per_session' | 'monthly_package'>('all')
+  const [filterBilling, setFilterBilling] = useState<'all' | 'per_session' | 'monthly_package' | 'session_package'>('all')
   const [filterDateFrom, setFilterDateFrom] = useState('')
   const [filterDateTo, setFilterDateTo] = useState('')
   const [page, setPage] = useState(1)
@@ -135,7 +135,7 @@ export default function PatientsPage() {
 
   function exportCSV() {
     const STATUS_LABEL: Record<string, string> = { active: 'Ativo', paused: 'Pausado', discharged: 'Alta' }
-    const BILLING_LABEL: Record<string, string> = { per_session: 'Por sessão', monthly_package: 'Pacote mensal' }
+    const BILLING_LABEL: Record<string, string> = { per_session: 'Por sessão', monthly_package: 'Pacote mensal', session_package: 'Pacote de atendimentos' }
     const headers = ['Nome', 'Status', 'Email', 'Telefone', 'Cobrança', 'Valor (R$)', 'Tags', 'Início', 'Cadastro']
     const rows = filtered.map(p => [
       p.name,
@@ -143,7 +143,7 @@ export default function PatientsPage() {
       p.email ?? '',
       p.phone ?? '',
       BILLING_LABEL[p.billingType] ?? p.billingType,
-      p.billingType === 'monthly_package'
+      (p.billingType === 'monthly_package' || p.billingType === 'session_package')
         ? Number(p.monthlyPackagePrice ?? 0).toFixed(2)
         : Number(p.sessionPrice ?? 0).toFixed(2),
       (p.tags ?? []).join('; '),
@@ -361,6 +361,7 @@ export default function PatientsPage() {
                 <option value="all">Todos</option>
                 <option value="per_session">Por sessão</option>
                 <option value="monthly_package">Pacote mensal</option>
+                <option value="session_package">Pacote de atendimentos</option>
               </select>
             </div>
             <div>
@@ -670,6 +671,8 @@ function KanbanBoard({ patients }: { patients: Patient[] }) {
                       <p className="text-xs text-neutral-400 truncate">
                         {patient.billingType === 'monthly_package'
                           ? `${formatCurrency(Number(patient.monthlyPackagePrice ?? 0))}/mês`
+                          : patient.billingType === 'session_package'
+                          ? `Pacote de atendimentos · ${formatCurrency(Number(patient.monthlyPackagePrice ?? 0))}`
                           : `${formatCurrency(Number(patient.sessionPrice ?? 0))}/sessão`}
                       </p>
                     </div>
@@ -724,6 +727,8 @@ function PatientCard({ patient, inactive }: { patient: Patient; inactive?: boole
         <p className="text-xs text-neutral-400 mt-0.5 truncate">
           Desde {formatDate(patientStartDate(patient.startDate, patient.createdAt))} · {patient.billingType === 'monthly_package'
             ? `${formatCurrency(Number(patient.monthlyPackagePrice ?? 0))}/mês · ${patient.monthlyIncludedSessions ?? 4} ${t.sessions}`
+            : patient.billingType === 'session_package'
+            ? `Pacote de atendimentos · ${formatCurrency(Number(patient.monthlyPackagePrice ?? 0))}`
             : `${formatCurrency(Number(patient.sessionPrice ?? 0))}/${t.session}`}
         </p>
         {patient.tags.length > 0 && (

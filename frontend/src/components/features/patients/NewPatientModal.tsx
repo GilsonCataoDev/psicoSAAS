@@ -25,7 +25,7 @@ const schema = z.object({
   billingType: z.enum(['per_session', 'monthly_package', 'session_package']),
   sessionPrice: z.coerce.number().min(0),
   monthlyPackagePrice: z.coerce.number().min(0),
-  monthlyIncludedSessions: z.coerce.number().int().min(1).max(31),
+  monthlyIncludedSessions: z.coerce.number().int().min(1).max(200),
   billingDay: z.coerce.number().int().min(1).max(31),
   sessionDuration: z.coerce.number().min(20).max(180),
   hasFixedSchedule: z.boolean().optional(),

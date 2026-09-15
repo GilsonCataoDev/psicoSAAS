@@ -102,7 +102,7 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
 
   useEffect(() => {
     if (!open || !selectedPatient) return
-    setValue('paymentStatus', selectedPatient.billingType === 'monthly_package' ? 'included' : 'pending')
+    setValue('paymentStatus', (selectedPatient.billingType === 'monthly_package' || selectedPatient.billingType === 'session_package') ? 'included' : 'pending')
   }, [open, selectedPatient?.billingType, selectedPatient?.id, setValue])
 
   function toggleTag(tag: EmotionalTag) {
@@ -306,9 +306,11 @@ export default function NewSessionModal({ open, onClose, defaultPatientId, defau
 
         <div>
           <label className="label">Pagamento</label>
-          {selectedPatient?.billingType === 'monthly_package' ? (
+          {(selectedPatient?.billingType === 'monthly_package' || selectedPatient?.billingType === 'session_package') ? (
             <div className="rounded-xl border border-mist-200 bg-mist-50 px-3 py-2.5 text-sm text-mist-800">
-              Incluída no pacote mensal de {formatCurrency(Number(selectedPatient.monthlyPackagePrice ?? 0))}. Nenhuma cobrança avulsa será criada.
+              {selectedPatient.billingType === 'monthly_package'
+                ? `Incluída no pacote mensal de ${formatCurrency(Number(selectedPatient.monthlyPackagePrice ?? 0))}. Nenhuma cobrança avulsa será criada.`
+                : `Incluída no pacote de atendimentos de ${formatCurrency(Number(selectedPatient.monthlyPackagePrice ?? 0))}. Nenhuma cobrança avulsa será criada.`}
               <input {...register('paymentStatus')} type="hidden" value="included" />
             </div>
           ) : (
