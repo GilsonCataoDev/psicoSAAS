@@ -92,6 +92,108 @@
     ]
   },
   {
+    "slug": "cfn-599-prontuario-nutricional-campos-registrar",
+    "title": "Prontuário nutricional CFN 599: quais campos registrar",
+    "description": "Guia prático dos campos obrigatórios do prontuário nutricional segundo a Resolução CFN 594/2017 e o Código de Ética CFN 599/2018.",
+    "image": "/blog/og/cfn-599-prontuario-nutricional-campos-registrar.png",
+    "category": "Regulação e compliance",
+    "publishedAt": "2026-09-25",
+    "updatedAt": "2026-09-25",
+    "readingMinutes": 8,
+    "author": "Equipe UseCognia",
+    "keywords": [
+      "prontuário nutricional CFN 599",
+      "campos obrigatórios prontuário nutricional",
+      "diagnóstico nutricional",
+      "conduta nutricional ato privativo",
+      "CFN 594/2017 prontuário"
+    ],
+    "relatedSlugs": [
+      "coffito-414-prontuario-fisioterapeutico-o-que-registrar",
+      "lgpd-para-psicologos-guia-pratico"
+    ],
+    "intro": [
+      "Um prontuário incompleto dificulta demonstrar como o paciente foi avaliado e quais informações fundamentaram a conduta nutricional. Em uma fiscalização do Sistema CFN/CRN ou em um processo ético, os registros podem ser utilizados para verificar a assistência prestada e a responsabilidade profissional.",
+      "O prontuário nutricional não é apenas uma versão do prontuário médico. Ele contém informações próprias da Nutrição — consumo alimentar, avaliação antropométrica, diagnóstico nutricional, necessidades nutricionais, prescrição dietética e evolução. Esses dados precisam formar uma sequência coerente entre avaliação, decisão profissional e acompanhamento."
+    ],
+    "sections": [
+      {
+        "heading": "O que a CFN 599/2018 estabelece",
+        "paragraphs": [
+          "A Resolução CFN nº 599/2018 aprova o Código de Ética e de Conduta do Nutricionista, mas não apresenta uma lista de campos mínimos para o prontuário. Essa estrutura está na Resolução CFN nº 594/2017, aplicável aos nutricionistas que prestam assistência direta em consultórios, clínicas, hospitais, ambulatórios e outros serviços de saúde."
+        ]
+      },
+      {
+        "heading": "Os campos obrigatórios do prontuário nutricional",
+        "paragraphs": [
+          "Identificação do paciente: nome completo, nascimento, idade, sexo, gênero, estado civil, nacionalidade, naturalidade, etnia, escolaridade, profissão e contatos. Inclua o responsável legal quando necessário e o nome social quando solicitado.",
+          "Triagem e nível de assistência: registre o risco nutricional identificado e o nível de assistência necessário, conforme o protocolo adotado no serviço.",
+          "Anamnese alimentar e nutricional: inclua história clínica e familiar, atividade física, mobilidade, alterações recentes de peso, medicamentos, exames, sintomas digestivos, alergias, intolerâncias, aversões e restrições alimentares. Registre também aspectos socioeconômicos relevantes para o consumo alimentar.",
+          "Inquérito de consumo alimentar: a resolução exige um instrumento de consumo alimentar, mas não determina obrigatoriamente o recordatório de 24 horas. Esse método registra os alimentos, bebidas, quantidades e horários consumidos no dia anterior. Diário alimentar, questionário de frequência alimentar ou outro instrumento adequado também podem ser utilizados.",
+          "Avaliação antropométrica: peso, estatura e IMC são os componentes obrigatórios indicados pela norma. Circunferências, pregas cutâneas e outros métodos de composição corporal são complementares e devem ser usados conforme a finalidade da avaliação. Indicadores clínicos e laboratoriais devem ser registrados quando disponíveis.",
+          "Diagnóstico nutricional: registre a hipótese diagnóstica e, quando aplicável, o diagnóstico nutricional — identificando o estado ou problema nutricional e o protocolo de referência utilizado. O diagnóstico médico identifica doenças; o diagnóstico nutricional descreve condições relacionadas ao estado nutricional que orientam a assistência do nutricionista.",
+          "Necessidades nutricionais: quando aplicável, registre a estimativa das necessidades nutricionais e o método ou referência utilizado para calculá-las.",
+          "Plano alimentar e conduta nutricional: a prescrição deve ser coerente com a avaliação e o diagnóstico. Conforme o caso, registre data, horário, valor energético, consistência, distribuição de nutrientes, fracionamento, doses, volumes, gramaturas e demais orientações pertinentes.",
+          "Evolução em cada consulta: informe data e horário, manutenção ou alteração da conduta, aceitação, tolerância digestiva, antropometria, exame físico nutricional, exames disponíveis e reavaliação do diagnóstico. Evite registros vagos como 'paciente evoluindo bem'.",
+          "Alta nutricional e desfecho: registre o encerramento por alta, abandono ou óbito quando aplicável. Na alta, documente o desfecho do acompanhamento e a orientação final fornecida, ou informe por que ela foi dispensada.",
+          "Identificação profissional: todo registro deve identificar o nutricionista. No prontuário físico, inclua nome, profissão, CRN, jurisdição, assinatura e carimbo. No eletrônico, a autoria deve permanecer vinculada ao profissional conforme os requisitos de segurança aplicáveis."
+        ]
+      },
+      {
+        "heading": "Atenção: conduta nutricional é ato privativo",
+        "paragraphs": [
+          "A assistência nutricional e a prescrição dietética integram as atividades privativas previstas na Lei nº 8.234/1991. Uma ferramenta de inteligência artificial pode auxiliar na organização das informações, mas não substitui a avaliação, o diagnóstico e a decisão do nutricionista. Se uma ferramenta gerar uma sugestão ou rascunho, o profissional deve revisar, corrigir e assumir a autoria da conduta registrada. O prontuário precisa documentar a decisão profissional, e não apenas reproduzir a saída automática de um sistema."
+        ]
+      },
+      {
+        "heading": "Como o UseCognia resolve isso",
+        "paragraphs": [
+          "O UseCognia organiza no fluxo do prontuário campos separados para anamnese alimentar, inquérito de consumo, avaliação antropométrica, diagnóstico nutricional e conduta. A inteligência artificial do sistema pode gerar um rascunho a partir das informações registradas, mas o conteúdo permanece sujeito à revisão e confirmação do nutricionista. Ela não produz uma prescrição pronta nem substitui a responsabilidade profissional.",
+          "O prontuário nutricional deve mostrar a ligação entre dados coletados, avaliação, diagnóstico, prescrição e evolução. Manter essa sequência clara contribui para o exercício ético da profissão e para uma documentação verificável em eventual fiscalização. Experimente o UseCognia grátis — até 10 pacientes, sem cartão de crédito."
+        ]
+      }
+    ],
+    "checklist": [
+      "Registrar identificação completa do paciente na abertura do prontuário, incluindo nome social quando solicitado",
+      "Aplicar triagem de risco nutricional e documentar o nível de assistência necessário",
+      "Preencher anamnese alimentar com histórico clínico, hábitos, intolerâncias e fatores socioeconômicos relevantes",
+      "Registrar inquérito de consumo alimentar (recordatório, diário ou questionário de frequência)",
+      "Documentar avaliação antropométrica com peso, estatura e IMC obrigatoriamente",
+      "Registrar o diagnóstico nutricional com o protocolo de referência utilizado",
+      "Elaborar plano alimentar coerente com a avaliação, documentando valor energético e distribuição de nutrientes",
+      "Preencher evolução a cada consulta com dados objetivos — evitar registros vagos",
+      "Assinar cada registro com nome, CRN, jurisdição e carimbo (físico) ou vínculo eletrônico ao profissional"
+    ],
+    "references": [
+      {
+        "label": "Resolução CFN nº 594/2017 — prontuário nutricional — Conselho Federal de Nutricionistas",
+        "url": "https://cfn.org.br/wp-content/uploads/resolucoes/DOU_594.pdf"
+      },
+      {
+        "label": "Resolução CFN nº 599/2018 — Código de Ética e de Conduta do Nutricionista",
+        "url": "https://cfn.org.br/wp-content/uploads/2018/04/codigo-de-etica.pdf"
+      },
+      {
+        "label": "Lei nº 8.234/1991 — regulamentação da profissão de nutricionista",
+        "url": "https://www.planalto.gov.br/ccivil_03/leis/1989_1994/l8234.htm"
+      }
+    ],
+    "faq": [
+      {
+        "question": "Qual resolução define os campos do prontuário nutricional?",
+        "answer": "A estrutura mínima do prontuário nutricional está na Resolução CFN nº 594/2017. A Resolução CFN nº 599/2018 aprova o Código de Ética e de Conduta, que contém deveres relacionados à documentação, mas não define os campos do prontuário."
+      },
+      {
+        "question": "O recordatório alimentar de 24 horas é obrigatório?",
+        "answer": "A norma exige o registro do consumo alimentar, mas não determina obrigatoriamente o recordatório de 24 horas. O profissional pode utilizar o instrumento mais adequado ao caso — recordatório, diário alimentar ou questionário de frequência alimentar —, desde que o registro seja feito e documentado no prontuário."
+      },
+      {
+        "question": "Uma ferramenta de IA pode gerar a conduta nutricional?",
+        "answer": "Não de forma autônoma. A prescrição dietética e a conduta nutricional são atos privativos do nutricionista, previstos na Lei nº 8.234/1991. Ferramentas de IA podem auxiliar na organização das informações e gerar rascunhos, mas o profissional deve revisar, corrigir e assumir a autoria de tudo que for registrado no prontuário."
+      }
+    ]
+  },
+  {
     "slug": "psicologia-em-pauta-semana-2026-09-11",
     "title": "Atualizações para psicólogos: o que merece atenção na semana de 11 de setembro de 2026",
     "description": "Curadoria semanal de atualizações relevantes para psicólogos, com fontes institucionais, impactos práticos, cuidados e perguntas frequentes.",
