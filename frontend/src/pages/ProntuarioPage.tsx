@@ -596,9 +596,11 @@ export default function ProntuarioPage() {
               value={form.historicoFamiliar ?? ''}
               onChange={v => set('historicoFamiliar', v)}
               dictation
-              placeholder={isNutri
-                ? 'Doenças metabólicas, obesidade, diabetes, dislipidemias na família...'
-                : 'Doenças mentais na família, dinâmicas relevantes...'} />
+              placeholder={isFisio
+                ? 'Doenças ortopédicas, neurológicas ou cardiovasculares na família...'
+                : isNutri
+                  ? 'Doenças metabólicas, obesidade, diabetes, dislipidemias na família...'
+                  : 'Doenças mentais na família, dinâmicas relevantes...'} />
           </div>
 
           <div className="card space-y-4">

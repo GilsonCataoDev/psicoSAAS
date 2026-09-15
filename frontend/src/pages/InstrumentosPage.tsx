@@ -29,7 +29,7 @@ import {
   instrumentsFor,
 } from '@/features/instruments/instrument-catalog'
 import { useAuthStore } from '@/store/auth'
-import { hasPsychologyModules, hasNutritionModules } from '@/lib/professions'
+import { councilLabel, hasPsychologyModules, hasNutritionModules } from '@/lib/professions'
 import { NutritionCalculators } from '@/features/instruments/NutritionCalculators'
 import type {
   AgeGroup,
@@ -88,6 +88,7 @@ function InstrumentModal({
   onClose: () => void
   onSend: (instrument: Instrument) => void
 }) {
+  const profession = useAuthStore(s => s.user?.profession)
   if (!instrument) return null
 
   const inst = instrument   // narrowed local — TypeScript carries this into closures
@@ -136,7 +137,7 @@ html,body{width:210mm;min-height:297mm;margin:0;background:#fff;font-family:Aria
   <p style="font-size:9.5px;color:#6b7280;margin:0 0 4px">${escHtml(inst.description)}</p>
   <span class="badge">${escHtml(catLabel)}</span>
   <span class="badge" style="margin-left:4px">${fieldCount} campos</span>
-  <span class="badge" style="margin-left:4px">Profissional: ___________________________ | CRP: ____________ | Data: ____/____/____</span>
+  <span class="badge" style="margin-left:4px">Profissional: ___________________________ | ${escHtml(councilLabel(profession))}: ____________ | Data: ____/____/____</span>
 </div>
 ${rows}
 <p style="font-size:8px;color:#9ca3af;margin-top:16px;border-top:1px solid #e5e7eb;padding-top:8px">Instrumento de apoio clínico · não substitui prontuário oficial · UseCognia</p>
