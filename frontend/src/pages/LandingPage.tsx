@@ -713,7 +713,7 @@ export default function LandingPage() {
 
       <footer className="border-t border-[#E7E4DA] bg-[#F7F8F5]">
         <div className="mx-auto max-w-6xl px-5 py-12">
-          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
             <div className="col-span-full lg:col-span-1">
               <Link to="/inicio" className="flex items-center gap-2.5">
                 <BrandLogo compact className="shrink-0" />
@@ -737,6 +737,15 @@ export default function LandingPage() {
                 <li><Link to="/precos" className="hover:text-sage-700">Planos pagos</Link></li>
                 <li><Link to="/seguranca" className="hover:text-sage-700">Segurança</Link></li>
                 <li><Link to="/blog" className="hover:text-sage-700">Blog</Link></li>
+              </ul>
+            </div>
+
+            <div>
+              <p className="mb-4 text-xs font-bold uppercase tracking-[0.15em] text-[#7C776B]">Profissões</p>
+              <ul className="space-y-2.5 text-sm text-[#49443D]">
+                <li><Link to="/psicologos" className="hover:text-sage-700">Psicólogos</Link></li>
+                <li><Link to="/fisioterapeutas" className="hover:text-sage-700">Fisioterapeutas</Link></li>
+                <li><Link to="/nutricionistas" className="hover:text-sage-700">Nutricionistas</Link></li>
               </ul>
             </div>
 
