@@ -16,6 +16,12 @@ function Article({ post }: { post: BlogPost }) {
   const leadProfession = post.keywords.some(k => /fisioter/i.test(k)) ? 'fisioterapia'
     : post.keywords.some(k => /nutri/i.test(k)) ? 'nutricao'
     : 'psicologia'
+  const landingHref = leadProfession === 'fisioterapia' ? '/fisioterapeutas'
+    : leadProfession === 'nutricao' ? '/nutricionistas'
+    : null
+  const landingCtaText = leadProfession === 'fisioterapia'
+    ? 'Veja como o UseCognia organiza o prontuário fisioterapêutico →'
+    : 'Veja como o UseCognia organiza o prontuário nutricional →'
   const leadTitle = leadProfession === 'fisioterapia'
     ? 'Checklist COFFITO 414: campos obrigatórios do prontuário fisioterapêutico'
     : leadProfession === 'nutricao'
@@ -58,6 +64,7 @@ function Article({ post }: { post: BlogPost }) {
         <div className="mx-auto grid max-w-5xl gap-10 px-5 py-12 lg:grid-cols-[minmax(0,1fr)_240px] lg:py-16">
           <div className="min-w-0 max-w-3xl text-[1.04rem] leading-8 text-[#49443D] dark:text-neutral-200">
             {post.intro.map(paragraph => <p key={paragraph} className="mb-5 text-justify">{paragraph}</p>)}
+            {landingHref && <aside className="my-8 flex items-center justify-between gap-4 rounded-xl border border-sage-200 bg-sage-50 px-5 py-4 dark:border-sage-400/20 dark:bg-sage-400/10"><p className="text-sm font-semibold text-sage-900 dark:text-sage-100">{landingCtaText}</p><Link to={landingHref} className="shrink-0 rounded-md bg-sage-800 px-4 py-2 text-sm font-bold text-white hover:bg-sage-900">Conhecer</Link></aside>}
             {post.sections.map(section => <section key={section.heading} className="mt-10"><h2 className="mb-4 text-2xl font-bold leading-snug text-[#211F1C] dark:text-neutral-50">{section.heading}</h2>{section.paragraphs.map(paragraph => <p key={paragraph} className="mb-5 text-justify">{paragraph}</p>)}</section>)}
             {post.faq?.length ? <section className="mt-12 border-t border-[#DDE5DC] pt-8 dark:border-white/10"><h2 className="text-2xl font-bold text-[#211F1C] dark:text-neutral-50">Perguntas frequentes</h2><div className="mt-5 space-y-6">{post.faq.map(item => <div key={item.question}><h3 className="font-bold text-[#211F1C] dark:text-neutral-50">{item.question}</h3><p className="mt-2 text-justify text-base leading-7">{item.answer}</p></div>)}</div></section> : null}
             <section className="mt-12 rounded-2xl border border-sage-200 bg-sage-50 p-6 dark:border-sage-400/20 dark:bg-sage-400/10 sm:p-8"><h2 className="text-2xl font-bold text-sage-900 dark:text-sage-100">Checklist rápido</h2><ul className="mt-5 space-y-3">{post.checklist.map(item => <li key={item} className="flex items-start gap-3 text-base leading-6 text-sage-900 dark:text-neutral-100"><CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-sage-600 dark:text-sage-200" /> {item}</li>)}</ul></section>
