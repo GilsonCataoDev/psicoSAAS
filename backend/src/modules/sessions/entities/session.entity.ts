@@ -36,6 +36,13 @@ export class Session {
   /** Nutrição — circunferência abdominal em cm */
   @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true }) nutritionWaistCirc?: number
 
+  /** Fisioterapia — amplitude de movimento em graus (articulação principal do atendimento) — COFFITO */
+  @Column({ type: 'decimal', precision: 5, scale: 1, nullable: true }) physioRom?: number
+  /** Fisioterapia — força muscular (escala MRC 0–5) */
+  @Column({ type: 'decimal', precision: 3, scale: 1, nullable: true }) physioStrength?: number
+  /** Fisioterapia — pontuação funcional genérica (Berg 0–56, ou outra escala) */
+  @Column({ type: 'decimal', precision: 5, scale: 1, nullable: true }) physioFunctional?: number
+
   @Column() patientId: string
   @ManyToOne(() => Patient, (p) => p.sessions, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'patientId' }) patient: Relation<Patient>

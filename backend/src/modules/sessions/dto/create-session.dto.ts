@@ -16,4 +16,7 @@ export class CreateSessionDto {
   @IsNumber() @Min(0) @IsOptional() @Type(() => Number) nutritionWeight?: number
   @IsNumber() @Min(0) @IsOptional() @Type(() => Number) nutritionHeight?: number
   @IsNumber() @Min(0) @IsOptional() @Type(() => Number) nutritionWaistCirc?: number
+  @IsNumber() @Min(0) @IsOptional() @Type(() => Number) physioRom?: number
+  @IsNumber() @Min(0) @IsOptional() @Type(() => Number) physioStrength?: number
+  @IsNumber() @Min(0) @IsOptional() @Type(() => Number) physioFunctional?: number
 }

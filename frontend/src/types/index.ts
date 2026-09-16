@@ -187,6 +187,12 @@ export interface Session {
   nutritionHeight?: number
   /** Nutrição — circunferência abdominal em cm */
   nutritionWaistCirc?: number
+  /** Fisioterapia — amplitude de movimento em graus */
+  physioRom?: number | null
+  /** Fisioterapia — força muscular (escala MRC 0–5) */
+  physioStrength?: number | null
+  /** Fisioterapia — pontuação funcional genérica */
+  physioFunctional?: number | null
   createdAt: string
   updatedAt: string
 }

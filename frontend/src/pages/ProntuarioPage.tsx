@@ -19,6 +19,7 @@ import PatientRecordDeliveryModal from '@/components/features/patients/PatientRe
 import { useTerms } from '@/hooks/useTerms'
 import EvaEvolutionChart from '@/components/instruments/EvaEvolutionChart'
 import AntropometricoChart from '@/components/instruments/AntropometricoChart'
+import FuncionalChart from '@/components/instruments/FuncionalChart'
 
 const TABS = [
   { id: 'identificacao', label: 'Identificação' },
@@ -223,6 +224,14 @@ export default function ProntuarioPage() {
   const [editNutritionWeight, setEditNutritionWeight] = useState('')
   const [editNutritionHeight, setEditNutritionHeight] = useState('')
   const [editNutritionWaistCirc, setEditNutritionWaistCirc] = useState('')
+  // Fisioterapia — medidas funcionais da nova entrada
+  const [evolPhysioRom, setEvolPhysioRom] = useState('')
+  const [evolPhysioStrength, setEvolPhysioStrength] = useState('')
+  const [evolPhysioFunctional, setEvolPhysioFunctional] = useState('')
+  // Fisioterapia — medidas funcionais da edição
+  const [editPhysioRom, setEditPhysioRom] = useState('')
+  const [editPhysioStrength, setEditPhysioStrength] = useState('')
+  const [editPhysioFunctional, setEditPhysioFunctional] = useState('')
   const addAddendum = useAddAddendum()
   const { data: historyEntries = [], isLoading: historyLoading } = useSessionHistory(historyOpenId ?? undefined)
   const filteredSessions = (() => {
@@ -272,7 +281,7 @@ export default function ProntuarioPage() {
     return date?.slice(0, 10) ?? ''
   }
 
-  function startEditingSession(sessionId: string, date: string, summary?: string, s?: { nutritionWeight?: number; nutritionHeight?: number; nutritionWaistCirc?: number }) {
+  function startEditingSession(sessionId: string, date: string, summary?: string, s?: { nutritionWeight?: number; nutritionHeight?: number; nutritionWaistCirc?: number; physioRom?: number | null; physioStrength?: number | null; physioFunctional?: number | null }) {
     setEditingSessionId(sessionId)
     setEditEvolDate(toDateInputValue(date))
     setEditEvolText(summary ?? '')
@@ -280,6 +289,9 @@ export default function ProntuarioPage() {
     setEditNutritionWeight(s?.nutritionWeight != null ? String(s.nutritionWeight) : '')
     setEditNutritionHeight(s?.nutritionHeight != null ? String(s.nutritionHeight) : '')
     setEditNutritionWaistCirc(s?.nutritionWaistCirc != null ? String(s.nutritionWaistCirc) : '')
+    setEditPhysioRom(s?.physioRom != null ? String(s.physioRom) : '')
+    setEditPhysioStrength(s?.physioStrength != null ? String(s.physioStrength) : '')
+    setEditPhysioFunctional(s?.physioFunctional != null ? String(s.physioFunctional) : '')
   }
 
   function cancelEditingSession() {
@@ -290,6 +302,9 @@ export default function ProntuarioPage() {
     setEditNutritionWeight('')
     setEditNutritionHeight('')
     setEditNutritionWaistCirc('')
+    setEditPhysioRom('')
+    setEditPhysioStrength('')
+    setEditPhysioFunctional('')
   }
 
   async function saveEditedSession() {
@@ -304,6 +319,11 @@ export default function ProntuarioPage() {
             nutritionWeight:    editNutritionWeight    !== '' ? Number(editNutritionWeight)    : undefined,
             nutritionHeight:    editNutritionHeight    !== '' ? Number(editNutritionHeight)    : undefined,
             nutritionWaistCirc: editNutritionWaistCirc !== '' ? Number(editNutritionWaistCirc) : undefined,
+          }),
+          ...(isFisio && {
+            physioRom:        editPhysioRom        !== '' ? Number(editPhysioRom)        : undefined,
+            physioStrength:   editPhysioStrength   !== '' ? Number(editPhysioStrength)   : undefined,
+            physioFunctional: editPhysioFunctional !== '' ? Number(editPhysioFunctional) : undefined,
           }),
         },
       })
@@ -948,6 +968,46 @@ export default function ProntuarioPage() {
               </fieldset>
             )}
 
+            {isFisio && (
+              <fieldset className="rounded-xl border border-[#DDE5DC] p-3 dark:border-white/10">
+                <legend className="mb-2 px-1 text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+                  Medidas funcionais do atendimento
+                </legend>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="label">Amplitude (graus)</label>
+                    <input
+                      type="number" step="0.5" min="0" max="360"
+                      value={evolPhysioRom}
+                      onChange={e => setEvolPhysioRom(e.target.value)}
+                      className="input-field text-sm"
+                      placeholder="Ex: 120.0"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Força MRC (0–5)</label>
+                    <input
+                      type="number" step="0.5" min="0" max="5"
+                      value={evolPhysioStrength}
+                      onChange={e => setEvolPhysioStrength(e.target.value)}
+                      className="input-field text-sm"
+                      placeholder="Ex: 3.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Pontuação funcional</label>
+                    <input
+                      type="number" step="0.5" min="0" max="100"
+                      value={evolPhysioFunctional}
+                      onChange={e => setEvolPhysioFunctional(e.target.value)}
+                      className="input-field text-sm"
+                      placeholder="Berg (0–56) ou outra escala"
+                    />
+                  </div>
+                </div>
+              </fieldset>
+            )}
+
             <RecordingPanel
               patientId={id!}
               onApplyTranscription={text => setEvolText(prev => [prev, text].filter(Boolean).join('\n\n'))}
@@ -971,6 +1031,11 @@ export default function ProntuarioPage() {
                         nutritionHeight:    evolNutritionHeight    !== '' ? Number(evolNutritionHeight)    : undefined,
                         nutritionWaistCirc: evolNutritionWaistCirc !== '' ? Number(evolNutritionWaistCirc) : undefined,
                       }),
+                      ...(isFisio && {
+                        physioRom:        evolPhysioRom        !== '' ? Number(evolPhysioRom)        : undefined,
+                        physioStrength:   evolPhysioStrength   !== '' ? Number(evolPhysioStrength)   : undefined,
+                        physioFunctional: evolPhysioFunctional !== '' ? Number(evolPhysioFunctional) : undefined,
+                      }),
                     } as any)
                     setEvolText('')
                     setAiDraft('')
@@ -980,6 +1045,11 @@ export default function ProntuarioPage() {
                       setEvolNutritionWeight('')
                       setEvolNutritionHeight('')
                       setEvolNutritionWaistCirc('')
+                    }
+                    if (isFisio) {
+                      setEvolPhysioRom('')
+                      setEvolPhysioStrength('')
+                      setEvolPhysioFunctional('')
                     }
                     toast.success('Evolucao registrada')
                   } catch { toast.error('Erro ao salvar evolução.') }
@@ -1137,6 +1207,45 @@ export default function ProntuarioPage() {
                         </div>
                       </fieldset>
                     )}
+                    {isFisio && (
+                      <fieldset className="rounded-xl border border-[#DDE5DC] p-3 dark:border-white/10">
+                        <legend className="mb-2 px-1 text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+                          Medidas funcionais do atendimento
+                        </legend>
+                        <div className="grid grid-cols-3 gap-3">
+                          <div>
+                            <label className="label">Amplitude (graus)</label>
+                            <input
+                              type="number" step="0.5" min="0" max="360"
+                              value={editPhysioRom}
+                              onChange={e => setEditPhysioRom(e.target.value)}
+                              className="input-field text-sm"
+                              placeholder="Ex: 120.0"
+                            />
+                          </div>
+                          <div>
+                            <label className="label">Força MRC (0–5)</label>
+                            <input
+                              type="number" step="0.5" min="0" max="5"
+                              value={editPhysioStrength}
+                              onChange={e => setEditPhysioStrength(e.target.value)}
+                              className="input-field text-sm"
+                              placeholder="Ex: 3.5"
+                            />
+                          </div>
+                          <div>
+                            <label className="label">Pontuação funcional</label>
+                            <input
+                              type="number" step="0.5" min="0" max="100"
+                              value={editPhysioFunctional}
+                              onChange={e => setEditPhysioFunctional(e.target.value)}
+                              className="input-field text-sm"
+                              placeholder="Berg (0–56) ou outra escala"
+                            />
+                          </div>
+                        </div>
+                      </fieldset>
+                    )}
                     <div className="flex justify-end gap-2">
                       <button
                         type="button"
@@ -1238,6 +1347,16 @@ export default function ProntuarioPage() {
                 Evolução da Dor (EVA)
               </h2>
               <EvaEvolutionChart patientId={id ?? ''} />
+            </section>
+          )}
+
+          {/* Gráfico de evolução funcional — exclusivo para fisioterapia */}
+          {isFisio && (
+            <section className="mt-8">
+              <h2 className="mb-4 text-lg font-semibold text-[#211F1C] dark:text-neutral-50">
+                Evolução Funcional
+              </h2>
+              <FuncionalChart patientId={id ?? ''} />
             </section>
           )}
 
