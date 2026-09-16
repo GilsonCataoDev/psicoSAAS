@@ -18,6 +18,7 @@ import { hasPhysiotherapyModules, hasNutritionModules, hasPsychologyModules } fr
 import PatientRecordDeliveryModal from '@/components/features/patients/PatientRecordDeliveryModal'
 import { useTerms } from '@/hooks/useTerms'
 import EvaEvolutionChart from '@/components/instruments/EvaEvolutionChart'
+import AntropometricoChart from '@/components/instruments/AntropometricoChart'
 
 const TABS = [
   { id: 'identificacao', label: 'Identificação' },
@@ -214,6 +215,14 @@ export default function ProntuarioPage() {
   const [evolSearch, setEvolSearch] = useState('')
   const [form, setForm] = useState<Partial<Prontuario>>({})
   const [deliveryOpen, setDeliveryOpen] = useState(false)
+  // Nutrição — medidas da nova entrada
+  const [evolNutritionWeight, setEvolNutritionWeight] = useState('')
+  const [evolNutritionHeight, setEvolNutritionHeight] = useState('')
+  const [evolNutritionWaistCirc, setEvolNutritionWaistCirc] = useState('')
+  // Nutrição — medidas da edição
+  const [editNutritionWeight, setEditNutritionWeight] = useState('')
+  const [editNutritionHeight, setEditNutritionHeight] = useState('')
+  const [editNutritionWaistCirc, setEditNutritionWaistCirc] = useState('')
   const addAddendum = useAddAddendum()
   const { data: historyEntries = [], isLoading: historyLoading } = useSessionHistory(historyOpenId ?? undefined)
   const filteredSessions = (() => {
@@ -263,11 +272,14 @@ export default function ProntuarioPage() {
     return date?.slice(0, 10) ?? ''
   }
 
-  function startEditingSession(sessionId: string, date: string, summary?: string) {
+  function startEditingSession(sessionId: string, date: string, summary?: string, s?: { nutritionWeight?: number; nutritionHeight?: number; nutritionWaistCirc?: number }) {
     setEditingSessionId(sessionId)
     setEditEvolDate(toDateInputValue(date))
     setEditEvolText(summary ?? '')
     setEditLocked(isPastEditLock(date))
+    setEditNutritionWeight(s?.nutritionWeight != null ? String(s.nutritionWeight) : '')
+    setEditNutritionHeight(s?.nutritionHeight != null ? String(s.nutritionHeight) : '')
+    setEditNutritionWaistCirc(s?.nutritionWaistCirc != null ? String(s.nutritionWaistCirc) : '')
   }
 
   function cancelEditingSession() {
@@ -275,6 +287,9 @@ export default function ProntuarioPage() {
     setEditEvolDate('')
     setEditEvolText('')
     setEditLocked(false)
+    setEditNutritionWeight('')
+    setEditNutritionHeight('')
+    setEditNutritionWaistCirc('')
   }
 
   async function saveEditedSession() {
@@ -285,6 +300,11 @@ export default function ProntuarioPage() {
         data: {
           date: editEvolDate,
           summary: editEvolText.trim(),
+          ...(isNutri && {
+            nutritionWeight:    editNutritionWeight    !== '' ? Number(editNutritionWeight)    : undefined,
+            nutritionHeight:    editNutritionHeight    !== '' ? Number(editNutritionHeight)    : undefined,
+            nutritionWaistCirc: editNutritionWaistCirc !== '' ? Number(editNutritionWaistCirc) : undefined,
+          }),
         },
       })
       cancelEditingSession()
@@ -888,6 +908,46 @@ export default function ProntuarioPage() {
                 </div>
               )}
             </div>
+            {isNutri && (
+              <fieldset className="rounded-xl border border-[#DDE5DC] p-3 dark:border-white/10">
+                <legend className="mb-2 px-1 text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+                  Medidas da consulta
+                </legend>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="label">Peso (kg)</label>
+                    <input
+                      type="number" step="0.1" min="0" max="300"
+                      value={evolNutritionWeight}
+                      onChange={e => setEvolNutritionWeight(e.target.value)}
+                      className="input-field text-sm"
+                      placeholder="Ex: 72.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Estatura (cm)</label>
+                    <input
+                      type="number" step="0.1" min="0" max="250"
+                      value={evolNutritionHeight}
+                      onChange={e => setEvolNutritionHeight(e.target.value)}
+                      className="input-field text-sm"
+                      placeholder="Ex: 168.0"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Circ. abdominal (cm)</label>
+                    <input
+                      type="number" step="0.1" min="0" max="250"
+                      value={evolNutritionWaistCirc}
+                      onChange={e => setEvolNutritionWaistCirc(e.target.value)}
+                      className="input-field text-sm"
+                      placeholder="Ex: 88.0"
+                    />
+                  </div>
+                </div>
+              </fieldset>
+            )}
+
             <RecordingPanel
               patientId={id!}
               onApplyTranscription={text => setEvolText(prev => [prev, text].filter(Boolean).join('\n\n'))}
@@ -906,11 +966,21 @@ export default function ProntuarioPage() {
                       duration: patient?.sessionDuration ?? 50,
                       paymentStatus: 'waived',
                       aiDraftId: acceptedAiDraftId || undefined,
+                      ...(isNutri && {
+                        nutritionWeight:    evolNutritionWeight    !== '' ? Number(evolNutritionWeight)    : undefined,
+                        nutritionHeight:    evolNutritionHeight    !== '' ? Number(evolNutritionHeight)    : undefined,
+                        nutritionWaistCirc: evolNutritionWaistCirc !== '' ? Number(evolNutritionWaistCirc) : undefined,
+                      }),
                     } as any)
                     setEvolText('')
                     setAiDraft('')
                     setGeneratedAiDraftId('')
                     setAcceptedAiDraftId('')
+                    if (isNutri) {
+                      setEvolNutritionWeight('')
+                      setEvolNutritionHeight('')
+                      setEvolNutritionWaistCirc('')
+                    }
                     toast.success('Evolucao registrada')
                   } catch { toast.error('Erro ao salvar evolução.') }
                 }}
@@ -969,7 +1039,7 @@ export default function ProntuarioPage() {
                   ) : (
                     <button
                       type="button"
-                      onClick={() => startEditingSession(s.id, s.date, s.summary)}
+                      onClick={() => startEditingSession(s.id, s.date, s.summary, s)}
                       className="rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
                       title="Editar evolucao">
                       <Pencil className="h-3.5 w-3.5" />
@@ -1028,6 +1098,45 @@ export default function ProntuarioPage() {
                         className="input-field resize-none text-sm"
                         placeholder="Atualize a evolucao clinica desta sessao..." />
                     </div>
+                    {isNutri && (
+                      <fieldset className="rounded-xl border border-[#DDE5DC] p-3 dark:border-white/10">
+                        <legend className="mb-2 px-1 text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+                          Medidas da consulta
+                        </legend>
+                        <div className="grid grid-cols-3 gap-3">
+                          <div>
+                            <label className="label">Peso (kg)</label>
+                            <input
+                              type="number" step="0.1" min="0" max="300"
+                              value={editNutritionWeight}
+                              onChange={e => setEditNutritionWeight(e.target.value)}
+                              className="input-field text-sm"
+                              placeholder="Ex: 72.5"
+                            />
+                          </div>
+                          <div>
+                            <label className="label">Estatura (cm)</label>
+                            <input
+                              type="number" step="0.1" min="0" max="250"
+                              value={editNutritionHeight}
+                              onChange={e => setEditNutritionHeight(e.target.value)}
+                              className="input-field text-sm"
+                              placeholder="Ex: 168.0"
+                            />
+                          </div>
+                          <div>
+                            <label className="label">Circ. abdominal (cm)</label>
+                            <input
+                              type="number" step="0.1" min="0" max="250"
+                              value={editNutritionWaistCirc}
+                              onChange={e => setEditNutritionWaistCirc(e.target.value)}
+                              className="input-field text-sm"
+                              placeholder="Ex: 88.0"
+                            />
+                          </div>
+                        </div>
+                      </fieldset>
+                    )}
                     <div className="flex justify-end gap-2">
                       <button
                         type="button"
@@ -1129,6 +1238,16 @@ export default function ProntuarioPage() {
                 Evolução da Dor (EVA)
               </h2>
               <EvaEvolutionChart patientId={id ?? ''} />
+            </section>
+          )}
+
+          {/* Gráfico de evolução antropométrica — exclusivo para nutrição */}
+          {isNutri && (
+            <section className="mt-8">
+              <h2 className="mb-4 text-lg font-semibold text-[#211F1C] dark:text-neutral-50">
+                Evolução Antropométrica
+              </h2>
+              <AntropometricoChart patientId={id ?? ''} />
             </section>
           )}
         </div>

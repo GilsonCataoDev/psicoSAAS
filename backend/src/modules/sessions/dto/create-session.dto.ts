@@ -13,4 +13,7 @@ export class CreateSessionDto {
   @IsArray() @IsOptional() tags?: string[]
   @IsIn(['paid','pending','waived','included']) @IsOptional() paymentStatus?: string
   @IsUUID() @IsOptional() aiDraftId?: string
+  @IsNumber() @Min(0) @IsOptional() @Type(() => Number) nutritionWeight?: number
+  @IsNumber() @Min(0) @IsOptional() @Type(() => Number) nutritionHeight?: number
+  @IsNumber() @Min(0) @IsOptional() @Type(() => Number) nutritionWaistCirc?: number
 }

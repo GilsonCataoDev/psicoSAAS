@@ -181,6 +181,12 @@ export interface Session {
   contentHash?: string
   lastEditedAt?: string
   addendaList?: SessionAddendum[]
+  /** Nutrição — peso corporal em kg */
+  nutritionWeight?: number
+  /** Nutrição — estatura em cm */
+  nutritionHeight?: number
+  /** Nutrição — circunferência abdominal em cm */
+  nutritionWaistCirc?: number
   createdAt: string
   updatedAt: string
 }

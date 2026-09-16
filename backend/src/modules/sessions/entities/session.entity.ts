@@ -29,6 +29,13 @@ export class Session {
   /** JSON criptografado de complementos pós-edição (Array<{text, createdAt}>) — nunca sobrescreve o texto original. */
   @Column({ type: 'text', nullable: true }) addenda?: string
 
+  /** Nutrição — peso corporal em kg (CFN Res. 600/2018) */
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true }) nutritionWeight?: number
+  /** Nutrição — estatura em cm */
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true }) nutritionHeight?: number
+  /** Nutrição — circunferência abdominal em cm */
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true }) nutritionWaistCirc?: number
+
   @Column() patientId: string
   @ManyToOne(() => Patient, (p) => p.sessions, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'patientId' }) patient: Relation<Patient>
