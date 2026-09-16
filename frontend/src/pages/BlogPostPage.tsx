@@ -1,6 +1,7 @@
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, CheckCircle2, Clock3, ExternalLink } from 'lucide-react'
 import BlogShell from '@/components/blog/BlogShell'
+import { LeadCaptureForm } from '@/components/marketing/LeadCaptureForm'
 import postsJson from '@/content/blog-posts.json'
 import { usePageSeo } from '@/lib/pageSeo'
 import type { BlogPost } from '@/types/blog'
@@ -12,6 +13,14 @@ function Article({ post }: { post: BlogPost }) {
   const canonicalPath = `/blog/${post.slug}`
   const absoluteImage = new URL(post.image, 'https://usecognia.com.br').toString()
   const relatedPosts = post.relatedSlugs.map(slug => posts.find(item => item.slug === slug)).filter((item): item is BlogPost => Boolean(item))
+  const leadProfession = post.keywords.some(k => /fisioter/i.test(k)) ? 'fisioterapia'
+    : post.keywords.some(k => /nutri/i.test(k)) ? 'nutricao'
+    : 'psicologia'
+  const leadTitle = leadProfession === 'fisioterapia'
+    ? 'Checklist COFFITO 414: campos obrigatórios do prontuário fisioterapêutico'
+    : leadProfession === 'nutricao'
+    ? 'Checklist CFN 594: campos obrigatórios do prontuário nutricional'
+    : 'Organize seu consultório com o UseCognia'
   const faqSchema = post.faq?.length ? { '@type': 'FAQPage', mainEntity: post.faq.map(item => ({ '@type': 'Question', name: item.question, acceptedAnswer: { '@type': 'Answer', text: item.answer } })) } : null
   usePageSeo({
     title: `${post.title} | UseCognia`,
@@ -52,6 +61,7 @@ function Article({ post }: { post: BlogPost }) {
             {post.sections.map(section => <section key={section.heading} className="mt-10"><h2 className="mb-4 text-2xl font-bold leading-snug text-[#211F1C] dark:text-neutral-50">{section.heading}</h2>{section.paragraphs.map(paragraph => <p key={paragraph} className="mb-5 text-justify">{paragraph}</p>)}</section>)}
             {post.faq?.length ? <section className="mt-12 border-t border-[#DDE5DC] pt-8 dark:border-white/10"><h2 className="text-2xl font-bold text-[#211F1C] dark:text-neutral-50">Perguntas frequentes</h2><div className="mt-5 space-y-6">{post.faq.map(item => <div key={item.question}><h3 className="font-bold text-[#211F1C] dark:text-neutral-50">{item.question}</h3><p className="mt-2 text-justify text-base leading-7">{item.answer}</p></div>)}</div></section> : null}
             <section className="mt-12 rounded-2xl border border-sage-200 bg-sage-50 p-6 dark:border-sage-400/20 dark:bg-sage-400/10 sm:p-8"><h2 className="text-2xl font-bold text-sage-900 dark:text-sage-100">Checklist rápido</h2><ul className="mt-5 space-y-3">{post.checklist.map(item => <li key={item} className="flex items-start gap-3 text-base leading-6 text-sage-900 dark:text-neutral-100"><CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-sage-600 dark:text-sage-200" /> {item}</li>)}</ul></section>
+            <section className="mt-12 rounded-2xl border border-sage-200 bg-sage-50 p-6 dark:border-sage-400/20 dark:bg-sage-400/10 sm:p-8"><LeadCaptureForm source={`blog-${post.slug}`} defaultProfession={leadProfession} title={leadTitle} description="Preencha abaixo e receba o checklist no seu e-mail." ctaLabel="Quero o checklist" /></section>
             <section className="mt-12 border-t border-[#DDE5DC] pt-8 dark:border-white/10"><h2 className="text-xl font-bold text-[#211F1C] dark:text-neutral-50">Fontes consultadas</h2><ul className="mt-4 space-y-3 text-sm leading-6">{post.references.map(reference => <li key={reference.url}><a href={reference.url} target="_blank" rel="noreferrer" className="inline-flex items-start gap-2 font-semibold text-sage-700 underline decoration-sage-300 underline-offset-4 hover:text-sage-900 dark:text-sage-200 dark:hover:text-white">{reference.label} <ExternalLink className="mt-1 h-3.5 w-3.5 shrink-0" /></a></li>)}</ul><p className="mt-6 rounded-lg bg-[#F0F1ED] p-4 text-sm leading-6 text-[#5F5A51] dark:bg-white/5 dark:text-neutral-300">Conteúdo informativo. Ele não substitui avaliação profissional nem orientação individual do CFP, do CRP ou de assessoria jurídica especializada.</p></section>
             {relatedPosts.length > 0 && <section className="mt-12 border-t border-[#DDE5DC] pt-8 dark:border-white/10"><h2 className="text-xl font-bold text-[#211F1C] dark:text-neutral-50">Continue lendo</h2><div className="mt-4 grid gap-4">{relatedPosts.map(item => <Link key={item.slug} to={`/blog/${item.slug}`} className="group rounded-xl border border-[#DDE5DC] bg-white p-4 transition hover:border-sage-300 dark:border-white/10 dark:bg-[#17211D]"><span className="text-xs font-bold uppercase tracking-wide text-sage-700">{item.category}</span><span className="mt-1 flex items-center justify-between gap-3 font-bold text-[#211F1C] group-hover:text-sage-700 dark:text-neutral-50">{item.title}<ArrowRight className="h-4 w-4 shrink-0" /></span></Link>)}</div></section>}
           </div>
