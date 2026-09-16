@@ -43,6 +43,10 @@ const ProspectingPage     = lazy(() => import('@/pages/admin/ProspectingPage'))
 const RelatoriosPage      = lazy(() => import('@/pages/RelatoriosPage'))
 const CRMPage             = lazy(() => import('@/pages/CRMPage'))
 
+// Landing pages por profissão — lazy loaded
+const FisioterapeutasPage = lazy(() => import('@/pages/landing/FisioterapeutasPage'))
+const NutricionistasPage  = lazy(() => import('@/pages/landing/NutricionistasPage'))
+
 // Public pages — lazy loaded
 const BookingPage         = lazy(() => import('@/pages/public/BookingPage'))
 const BookingConfirmPage  = lazy(() => import('@/pages/public/BookingConfirmPage'))
@@ -123,6 +127,8 @@ export default function App() {
       <Routes>
         <Route index element={<HomeRoute />} />
         <Route path="/plataforma" element={<LandingPage />} />
+        <Route path="/fisioterapeutas" element={<FisioterapeutasPage />} />
+        <Route path="/nutricionistas" element={<NutricionistasPage />} />
         <Route path="/inicio" element={<Navigate to="/plataforma" replace />} />
         <Route path="/venda" element={<Navigate to="/plataforma" replace />} />
         <Route path="/privacidade" element={<LegalPage type="privacy" />} />
