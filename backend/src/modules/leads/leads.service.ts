@@ -25,7 +25,16 @@ export class LeadsService {
       source:     dto.source ?? null,
     })
 
-    const saved = await this.leads.save(lead)
+    let saved: Lead
+    try {
+      saved = await this.leads.save(lead)
+    } catch (err: any) {
+      if (err?.code === '23505') {
+        const existing = await this.leads.findOneBy({ email: dto.email, source: dto.source ?? null })
+        return existing!
+      }
+      throw err
+    }
 
     this.notifyOwner(saved).catch(err =>
       this.logger.warn(`Falha ao enviar notificação de lead ${saved.id}: ${err?.message}`),
@@ -60,7 +69,7 @@ export class LeadsService {
     await this.email.send({
       to,
       subject: `[UseCognia] Novo lead: ${lead.name} (${lead.profession})`,
-      html: `<pre style="font-family:monospace">${body}</pre>`,
+      html: `<pre style="font-family:monospace;white-space:pre-wrap">${body.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`,
     })
   }
 }

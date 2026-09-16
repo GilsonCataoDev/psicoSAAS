@@ -1,8 +1,9 @@
-import { IsEmail, IsEnum, IsOptional, IsString, MaxLength } from 'class-validator'
+import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator'
 import { LeadProfession } from '../lead.entity'
 
 export class CreateLeadDto {
   @IsString()
+  @IsNotEmpty()
   @MaxLength(200)
   name: string
 

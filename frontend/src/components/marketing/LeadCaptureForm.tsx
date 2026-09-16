@@ -194,6 +194,12 @@ export function LeadCaptureForm({
         >
           {isSubmitting ? 'Enviando…' : ctaLabel}
         </button>
+        <p className="text-center text-xs leading-5 text-gray-500">
+          Seus dados serão usados exclusivamente para contato sobre o UseCognia, conforme nossa{' '}
+          <a href="/privacidade" className="underline hover:text-gray-700">Política de Privacidade</a>.
+          Você pode solicitar exclusão a qualquer momento pelo e-mail{' '}
+          <a href="mailto:privacidade@usecognia.com.br" className="underline hover:text-gray-700">privacidade@usecognia.com.br</a>.
+        </p>
       </form>
     </div>
   )
