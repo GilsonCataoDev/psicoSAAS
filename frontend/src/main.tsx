@@ -11,6 +11,7 @@ import { useAuthStore } from '@/store/auth'
 import { useSubscriptionStore } from '@/store/subscription'
 import { applyTheme, ThemeMode } from '@/store/theme'
 import AnalyticsConsentBanner from '@/components/privacy/AnalyticsConsentBanner'
+import CookieBanner from '@/components/privacy/CookieBanner'
 import RouteSeo from '@/components/seo/RouteSeo'
 import './index.css'
 
@@ -152,6 +153,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <BrowserRouter basename={(import.meta.env.BASE_URL || '/').replace(/\/$/, '') || '/'}>
         <RouteSeo />
         <App />
+        <CookieBanner />
         <AnalyticsConsentBanner />
         <Toaster
           position="top-right"
