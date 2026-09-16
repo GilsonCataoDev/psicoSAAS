@@ -26,6 +26,7 @@ import { TestimonialModule } from './modules/testimonial/testimonial.module'
 import { ChurnModule } from './modules/churn/churn.module'
 import { NpsModule } from './modules/nps/nps.module'
 import { ProspectingModule } from './modules/prospecting/prospecting.module'
+import { LeadsModule } from './modules/leads/leads.module'
 import { PlanGuard } from './common/guards/plan.guard'
 import { ProfessionCapabilityGuard } from './common/guards/profession-capability.guard'
 import { SubscriptionGuard } from './common/guards/subscription.guard'
@@ -109,6 +110,7 @@ const readPositiveInt = (value: string | undefined, fallback: number): number =>
     ChurnModule,
     ProspectingModule,
     NpsModule,
+    LeadsModule,
   ],
   controllers: [HealthController],
   providers: [
