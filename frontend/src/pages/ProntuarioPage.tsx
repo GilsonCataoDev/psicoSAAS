@@ -17,6 +17,7 @@ import { useAuthStore } from '@/store/auth'
 import { hasPhysiotherapyModules, hasNutritionModules, hasPsychologyModules } from '@/lib/professions'
 import PatientRecordDeliveryModal from '@/components/features/patients/PatientRecordDeliveryModal'
 import { useTerms } from '@/hooks/useTerms'
+import EvaEvolutionChart from '@/components/instruments/EvaEvolutionChart'
 
 const TABS = [
   { id: 'identificacao', label: 'Identificação' },
@@ -1119,6 +1120,16 @@ export default function ProntuarioPage() {
             <div className="card text-center py-8 text-neutral-400 text-sm">
               Nenhuma {t.session} registrada ainda.
             </div>
+          )}
+
+          {/* Gráfico de evolução da dor (EVA) — exclusivo para fisioterapia */}
+          {isFisio && (
+            <section className="mt-8">
+              <h2 className="mb-4 text-lg font-semibold text-[#211F1C] dark:text-neutral-50">
+                Evolução da Dor (EVA)
+              </h2>
+              <EvaEvolutionChart patientId={id ?? ''} />
+            </section>
           )}
         </div>
       )}
