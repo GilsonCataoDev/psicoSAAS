@@ -112,13 +112,13 @@ export default function FisioterapeutasPage() {
       {/* ── Hero ── */}
       <section className="relative overflow-hidden bg-[#1D352D] text-white">
         <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
-        <div className="mx-auto max-w-6xl px-5 py-16 lg:py-24">
+        <div className="mx-auto max-w-6xl px-4 py-14 sm:px-5 lg:py-24">
           <div className="max-w-2xl">
             <p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-3 py-1 text-sm font-semibold text-sage-200">
               Para fisioterapeutas
             </p>
 
-            <h1 className="mt-6 text-[2.1rem] font-bold leading-[1.06] tracking-normal text-white sm:text-5xl lg:text-[3rem]">
+            <h1 className="mt-6 text-[1.9rem] font-bold leading-[1.1] tracking-normal text-white sm:text-5xl lg:text-[3rem]">
               Prontuário fisioterapêutico com os campos que o COFFITO exige
             </h1>
 
@@ -148,11 +148,11 @@ export default function FisioterapeutasPage() {
       </section>
 
       {/* ── Dores ── */}
-      <section className="mx-auto max-w-6xl px-5 py-16">
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
         <div className="grid gap-8 lg:grid-cols-[0.9fr_1fr]">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">O problema</p>
-            <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">
+            <h2 className="mt-3 text-2xl font-bold text-[#211F1C] sm:text-3xl">
               O sistema que você usa foi feito para médicos, não para fisioterapeutas.
             </h2>
             <p className="mt-4 leading-relaxed text-[#5F5A51]">
@@ -176,12 +176,12 @@ export default function FisioterapeutasPage() {
 
       {/* ── Features ── */}
       <section id="features" className="border-y border-[#E7E4DA] bg-[#FFFFFF]">
-        <div className="mx-auto max-w-6xl px-5 py-16">
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">
               Funcionalidades
             </p>
-            <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">
+            <h2 className="mt-3 text-2xl font-bold text-[#211F1C] sm:text-3xl">
               Tudo que a clínica de fisioterapia precisa, no mesmo lugar.
             </h2>
             <p className="mt-4 leading-relaxed text-[#5F5A51]">
@@ -209,7 +209,7 @@ export default function FisioterapeutasPage() {
       </section>
 
       {/* ── Lead Capture ── */}
-      <section id="lead" className="mx-auto max-w-6xl px-5 py-16">
+      <section id="lead" className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
         <div className="mx-auto max-w-xl">
           <div className="mb-8 text-center">
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">
@@ -233,12 +233,12 @@ export default function FisioterapeutasPage() {
       </section>
 
       {/* ── CTA final ── */}
-      <section className="bg-[#1D352D] px-5 py-20 text-white">
+      <section className="bg-[#1D352D] px-4 py-20 text-white sm:px-5">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-200">
             Comece grátis
           </p>
-          <h2 className="mt-4 text-3xl font-bold leading-snug">
+          <h2 className="mt-4 text-2xl font-bold leading-snug sm:text-3xl">
             Comece grátis agora — até 10 pacientes, sem cartão de crédito
           </h2>
           <p className="mx-auto mt-4 max-w-lg text-white/80">
@@ -265,7 +265,7 @@ export default function FisioterapeutasPage() {
 
       {/* ── Footer ── */}
       <footer className="border-t border-[#E7E4DA] bg-[#F7F8F5]">
-        <div className="mx-auto max-w-6xl px-5 py-12">
+        <div className="mx-auto max-w-6xl px-4 py-12 sm:px-5">
           <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
             <div className="col-span-full lg:col-span-1">
               <Link to="/inicio" className="flex items-center gap-2.5">

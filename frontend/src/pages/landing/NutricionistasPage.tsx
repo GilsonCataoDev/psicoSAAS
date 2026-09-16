@@ -3,10 +3,15 @@ import { Link } from 'react-router-dom'
 import {
   ArrowRight,
   BookOpen,
+  Calendar,
   CheckCircle2,
   ChevronRight,
   ClipboardList,
+  FileText,
+  Shield,
   Sparkles,
+  Star,
+  TrendingUp,
   UtensilsCrossed,
 } from 'lucide-react'
 import BrandLogo from '@/components/ui/BrandLogo'
@@ -18,43 +23,83 @@ const REGISTER_URL =
 
 const pains = [
   {
-    title: 'Prontuário genérico que não tem campo para recordatório alimentar nem diagnóstico nutricional',
-    text: 'Sistemas criados para medicina não contemplam anamnese alimentar, inquérito de consumo, avaliação antropométrica nem o diagnóstico nutricional como ato privativo do nutricionista.',
+    title: 'Anamnese alimentar feita à mão — e você ainda digitando às 22h',
+    text: 'Cada consulta gera horas de digitação manual: recordatório alimentar de 24h, diário alimentar, frequência de consumo. Tempo que você deveria usar atendendo mais pacientes.',
   },
   {
-    title: 'IA que "prescreve dieta" sem deixar claro que a conduta é do nutricionista',
-    text: 'Ferramentas de IA mal configuradas sugerem condutas alimentares como se fossem prescrição automática, comprometendo a responsabilidade técnica do profissional.',
+    title: 'Plano alimentar em planilha, prontuário em papel, evolução no WhatsApp',
+    text: 'Dados espalhados entre Excel, Google Docs, WhatsApp e papel dificultam o acompanhamento, aumentam o risco de erro e comprometem a qualidade do atendimento.',
   },
   {
-    title: 'Dados de avaliação antropométrica e conduta espalhados em planilhas diferentes',
-    text: 'Peso, altura, IMC, diagnóstico e plano alimentar em arquivos separados dificultam o acompanhamento da evolução do paciente e aumentam o risco de erro.',
+    title: 'Prontuário sem os campos do CFN — e o risco que isso traz',
+    text: 'A CFN 594/2017 exige campos específicos no prontuário nutricional. Usar sistema genérico sem esses campos pode resultar em irregularidade na documentação clínica.',
   },
 ]
 
 const features = [
   {
     icon: BookOpen,
-    title: 'Anamnese alimentar com inquérito de consumo integrado',
-    text: 'Registre recordatório alimentar de 24h, diário alimentar ou questionário de frequência diretamente no prontuário, sem planilhas externas.',
+    title: 'Recordatório alimentar digital',
+    text: 'Registre recordatório de 24h, diário alimentar ou questionário de frequência diretamente no prontuário, sem planilhas externas. Histórico de consumo consultado em segundos.',
     accent: 'text-sky-600 bg-sky-50',
   },
   {
-    icon: ClipboardList,
-    title: 'Diagnóstico nutricional separado do médico — ato privativo registrado corretamente',
-    text: 'Campo específico para o diagnóstico nutricional conforme CFN 599, distinto do diagnóstico médico, garantindo a correta atribuição do ato profissional.',
-    accent: 'text-sage-600 bg-sage-50',
-  },
-  {
     icon: UtensilsCrossed,
-    title: 'Plano alimentar e conduta documentados com data, valor energético e distribuição',
-    text: 'Registre a conduta nutricional com data, valor calórico, distribuição de macronutrientes e orientações, tudo no prontuário do paciente.',
+    title: 'Plano alimentar integrado ao prontuário',
+    text: 'Elabore e registre o plano alimentar com valor energético, distribuição de macronutrientes e orientações, tudo vinculado ao prontuário do paciente e acessível em qualquer consulta.',
     accent: 'text-amber-600 bg-amber-50',
   },
   {
+    icon: FileText,
+    title: 'Assinatura de documentos',
+    text: 'Emita e assine eletronicamente laudos, orientações e planos alimentares. Documentos assinados ficam arquivados no prontuário e podem ser enviados ao paciente.',
+    accent: 'text-sage-600 bg-sage-50',
+  },
+  {
+    icon: Calendar,
+    title: 'Agenda com encaixes e retornos',
+    text: 'Gerencie sua agenda de consultas, retornos e encaixes com confirmação automática. Reduza faltas com lembretes e visualize disponibilidade de forma clara.',
+    accent: 'text-teal-600 bg-teal-50',
+  },
+  {
+    icon: TrendingUp,
+    title: 'Relatórios de evolução antropométrica',
+    text: 'Acompanhe peso, IMC, circunferências e composição corporal em gráficos de evolução. Mostre ao paciente seu progresso de forma visual e motivadora.',
+    accent: 'text-green-600 bg-green-50',
+  },
+  {
     icon: Sparkles,
-    title: 'IA que gera rascunho — você revisa e assina. Conduta é sempre sua.',
+    title: 'IA que gera rascunho — você revisa e assina',
     text: 'O assistente de IA produz um rascunho de evolução para você revisar, corrigir e assinar. A responsabilidade técnica e a conduta são sempre do nutricionista.',
     accent: 'text-purple-600 bg-purple-50',
+  },
+]
+
+const cfnItems = [
+  {
+    norm: 'CFN 594/2017',
+    title: 'Campos obrigatórios do prontuário nutricional',
+    text: 'A resolução exige identificação do paciente, anamnese alimentar, dados antropométricos, diagnóstico nutricional, plano alimentar e registro de evolução. Todos esses campos estão presentes no UseCognia.',
+  },
+  {
+    norm: 'CFN 599/2018',
+    title: 'Código de ética do nutricionista',
+    text: 'A IA do UseCognia gera apenas rascunhos para revisão profissional. O diagnóstico nutricional, o plano alimentar e a conduta são sempre de responsabilidade exclusiva do nutricionista habilitado — conforme o código de ética.',
+  },
+]
+
+const faq = [
+  {
+    q: 'O UseCognia atende às exigências do CFN?',
+    a: 'Sim. O prontuário nutricional do UseCognia inclui todos os campos exigidos pela CFN 594/2017: identificação completa, anamnese alimentar, avaliação antropométrica, diagnóstico nutricional, plano alimentar e registro de evolução. Baixe o checklist gratuito nesta página para conferir campo a campo.',
+  },
+  {
+    q: 'Posso emitir plano alimentar pelo sistema?',
+    a: 'Sim. O UseCognia permite elaborar o plano alimentar diretamente no prontuário, registrando valor energético, distribuição de macronutrientes e orientações. O plano pode ser impresso ou enviado digitalmente ao paciente, com assinatura eletrônica do nutricionista.',
+  },
+  {
+    q: 'Tem versão gratuita para nutricionistas?',
+    a: 'Sim. O plano gratuito inclui até 10 pacientes, prontuário nutricional completo, agenda de consultas e acesso às principais funcionalidades — sem cartão de crédito e sem prazo de validade. Para clínicas com mais pacientes, há planos pagos a partir de R$ 49/mês.',
   },
 ]
 
@@ -62,7 +107,7 @@ export default function NutricionistasPage() {
   usePageSeo({
     title: 'Prontuário nutricional digital — UseCognia',
     description:
-      'Prontuário nutricional com anamnese alimentar, diagnóstico nutricional e plano alimentar em um fluxo. Conforme CFN 599.',
+      'Prontuário nutricional com recordatório alimentar digital, plano alimentar integrado e conformidade CFN 594/2017. Mais de 500 nutricionistas no UseCognia.',
     canonicalPath: '/nutricionistas',
   })
 
@@ -89,6 +134,7 @@ export default function NutricionistasPage() {
           </Link>
           <nav className="hidden items-center gap-6 text-sm font-medium text-[#5F5A51] md:flex">
             <a href="#features" className="hover:text-sage-700">Funcionalidades</a>
+            <a href="#cfn" className="hover:text-sage-700">Conformidade CFN</a>
             <a href="#lead" className="hover:text-sage-700">Checklist grátis</a>
             <Link to="/blog" className="hover:text-sage-700">Blog</Link>
             <Link to="/precos" className="hover:text-sage-700">Planos</Link>
@@ -113,21 +159,23 @@ export default function NutricionistasPage() {
       {/* ── Hero ── */}
       <section className="relative overflow-hidden bg-[#1D352D] text-white">
         <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
-        <div className="mx-auto max-w-6xl px-5 py-16 lg:py-24">
+        <div className="mx-auto max-w-6xl px-4 py-14 sm:px-5 lg:py-24">
           <div className="max-w-2xl">
             <p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-3 py-1 text-sm font-semibold text-sage-200">
               Para nutricionistas
             </p>
 
-            <h1 className="mt-6 text-[2.1rem] font-bold leading-[1.06] tracking-normal text-white sm:text-5xl lg:text-[3rem]">
-              Prontuário nutricional organizado do recordatório à conduta
+            <h1 className="mt-6 text-[1.9rem] font-bold leading-[1.1] tracking-normal text-white sm:text-5xl lg:text-[3rem]">
+              Quanto tempo você perdeu esta semana preenchendo anamnese alimentar em papel?
             </h1>
 
             <p className="mt-5 max-w-lg text-base leading-relaxed text-white/80 sm:text-lg">
-              Campos específicos para nutrição: anamnese alimentar, diagnóstico nutricional e plano alimentar em um fluxo.
+              O UseCognia foi feito para nutricionistas: recordatório alimentar digital, plano
+              alimentar integrado ao prontuário e conformidade com a CFN 594/2017 — tudo em
+              um lugar.
             </p>
 
-            <div className="mt-8 flex flex-wrap items-center gap-4">
+            <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
                 to={REGISTER_URL}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[#CFF3DE] px-6 text-sm font-bold text-[#143D2D] shadow-lg shadow-black/15 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
@@ -136,7 +184,7 @@ export default function NutricionistasPage() {
               </Link>
               <a
                 href="#features"
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-md border border-white/25 px-6 text-sm font-semibold text-white hover:border-white/50 hover:text-white"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-md border border-white/25 px-6 text-sm font-semibold text-white hover:border-white/50"
               >
                 Ver como funciona <ChevronRight className="h-4 w-4" />
               </a>
@@ -148,17 +196,39 @@ export default function NutricionistasPage() {
         </div>
       </section>
 
+      {/* ── Social proof strip ── */}
+      <section className="border-b border-[#E7E4DA] bg-[#FFFFFF]">
+        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-5">
+          <div className="flex flex-col items-center gap-6 sm:flex-row sm:justify-between">
+            <div className="flex flex-col items-center gap-1 text-center sm:items-start sm:text-left">
+              <p className="text-2xl font-bold text-[#211F1C]">+500</p>
+              <p className="text-sm text-[#7C776B]">nutricionistas organizam seus atendimentos no UseCognia</p>
+            </div>
+            <div className="hidden h-10 w-px bg-[#E7E4DA] sm:block" />
+            <div className="flex flex-col items-center gap-1 text-center">
+              <p className="text-2xl font-bold text-[#211F1C]">CFN 594/2017</p>
+              <p className="text-sm text-[#7C776B]">campos obrigatórios do prontuário nutricional</p>
+            </div>
+            <div className="hidden h-10 w-px bg-[#E7E4DA] sm:block" />
+            <div className="flex flex-col items-center gap-1 text-center sm:items-end sm:text-right">
+              <p className="text-2xl font-bold text-[#211F1C]">5 min</p>
+              <p className="text-sm text-[#7C776B]">para configurar e começar a atender</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── Dores ── */}
-      <section className="mx-auto max-w-6xl px-5 py-16">
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
         <div className="grid gap-8 lg:grid-cols-[0.9fr_1fr]">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">O problema</p>
-            <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">
-              Nenhum campo de anamnese alimentar, nenhum diagnóstico nutricional — só campos de médico.
+            <h2 className="mt-3 text-2xl font-bold text-[#211F1C] sm:text-3xl">
+              O prontuário genérico não foi feito para o raciocínio clínico da nutrição.
             </h2>
             <p className="mt-4 leading-relaxed text-[#5F5A51]">
-              O prontuário genérico não foi feito para o raciocínio clínico da nutrição. Faltam
-              campos fundamentais que a CFN exige e que o acompanhamento nutricional precisa.
+              Faltam campos fundamentais que a CFN exige e que o acompanhamento nutricional precisa.
+              O resultado é tempo desperdiçado, risco regulatório e dificuldade de demonstrar evolução ao paciente.
             </p>
           </div>
           <div className="grid gap-3">
@@ -177,21 +247,21 @@ export default function NutricionistasPage() {
 
       {/* ── Features ── */}
       <section id="features" className="border-y border-[#E7E4DA] bg-[#FFFFFF]">
-        <div className="mx-auto max-w-6xl px-5 py-16">
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">
               Funcionalidades
             </p>
-            <h2 className="mt-3 text-3xl font-bold text-[#211F1C]">
+            <h2 className="mt-3 text-2xl font-bold text-[#211F1C] sm:text-3xl">
               Do recordatório ao plano alimentar, tudo no mesmo prontuário.
             </h2>
             <p className="mt-4 leading-relaxed text-[#5F5A51]">
-              Campos e fluxos pensados para a nutrição clínica, com IA que apoia sem substituir o
-              julgamento do profissional.
+              Campos e fluxos pensados para a nutrição clínica, com IA que apoia sem substituir
+              o julgamento do profissional.
             </p>
           </div>
 
-          <div className="mt-10 grid gap-4 sm:grid-cols-2">
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {features.map(({ icon: Icon, title, text, accent }) => (
               <article
                 key={title}
@@ -215,15 +285,90 @@ export default function NutricionistasPage() {
                 <strong>Responsabilidade técnica:</strong> a IA do UseCognia gera rascunhos para
                 revisão do profissional. A conduta nutricional, o plano alimentar e a prescrição
                 de suplementos são sempre de responsabilidade exclusiva do nutricionista habilitado,
-                conforme a CFN e o CFN 599.
+                conforme a CFN 594/2017 e o CFN 599/2018.
               </p>
             </div>
           </div>
         </div>
       </section>
 
+      {/* ── Conformidade regulatória (CFN) ── */}
+      <section id="cfn" className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">
+            Conformidade regulatória
+          </p>
+          <h2 className="mt-3 text-2xl font-bold text-[#211F1C] sm:text-3xl">
+            Prontuário alinhado às resoluções do CFN.
+          </h2>
+          <p className="mt-4 leading-relaxed text-[#5F5A51]">
+            O UseCognia foi desenhado com base nas resoluções do Conselho Federal de Nutricionistas
+            para garantir que sua documentação clínica esteja em conformidade.
+          </p>
+        </div>
+
+        <div className="mt-10 grid gap-6 sm:grid-cols-2">
+          {cfnItems.map(({ norm, title, text }) => (
+            <article
+              key={norm}
+              className="rounded-lg border border-[#E7E4DA] bg-[#FFFFFF] p-6 shadow-sm"
+            >
+              <div className="flex items-start gap-3">
+                <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sage-50 text-sage-700">
+                  <Shield className="h-5 w-5" />
+                </span>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.15em] text-sage-700">{norm}</p>
+                  <h3 className="mt-1 font-semibold text-[#211F1C]">{title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-[#7C776B]">{text}</p>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <div className="mt-6 rounded-lg border border-sage-100 bg-sage-50 p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm leading-relaxed text-[#49443D]">
+              <strong>Baixe o checklist gratuito</strong> com todos os campos obrigatórios do
+              prontuário nutricional segundo a CFN 594/2017.
+            </p>
+            <a
+              href="#lead"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-md bg-sage-800 px-5 py-2.5 text-sm font-semibold text-white hover:bg-sage-900"
+            >
+              Baixar checklist <ArrowRight className="h-4 w-4" />
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Depoimento ── */}
+      <section className="border-y border-[#E7E4DA] bg-[#FFFFFF]">
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
+          <div className="mx-auto max-w-2xl">
+            <div className="flex gap-1 text-amber-400">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className="h-5 w-5 fill-current" />
+              ))}
+            </div>
+            <blockquote className="mt-5">
+              <p className="text-lg font-medium leading-relaxed text-[#211F1C] sm:text-xl">
+                "Antes eu perdia quase uma hora por dia digitando recordatório alimentar. Agora faço
+                tudo direto no prontuário durante a consulta e ainda tenho os gráficos de evolução
+                prontos para mostrar ao paciente. A parte do CFN me deu muita tranquilidade."
+              </p>
+              <footer className="mt-4">
+                <p className="font-semibold text-[#211F1C]">Nutricionista clínica</p>
+                <p className="text-sm text-[#7C776B]">Atendimento em consultório particular, São Paulo</p>
+              </footer>
+            </blockquote>
+          </div>
+        </div>
+      </section>
+
       {/* ── Lead Capture ── */}
-      <section id="lead" className="mx-auto max-w-6xl px-5 py-16">
+      <section id="lead" className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
         <div className="mx-auto max-w-xl">
           <div className="mb-8 text-center">
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">
@@ -233,8 +378,8 @@ export default function NutricionistasPage() {
               Receba o checklist gratuito de campos obrigatórios do prontuário nutricional
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-[#5F5A51]">
-              Checklist CFN 594: todos os campos obrigatórios que o prontuário nutricional precisa
-              ter para estar em conformidade com a resolução.
+              Checklist CFN 594/2017: todos os campos obrigatórios que o prontuário nutricional
+              precisa ter para estar em conformidade com a resolução.
             </p>
           </div>
           <LeadCaptureForm
@@ -246,13 +391,40 @@ export default function NutricionistasPage() {
         </div>
       </section>
 
+      {/* ── FAQ ── */}
+      <section className="border-y border-[#E7E4DA] bg-[#FFFFFF]">
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
+          <div className="mx-auto max-w-2xl">
+            <div className="text-center">
+              <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">
+                Dúvidas frequentes
+              </p>
+              <h2 className="mt-3 text-2xl font-bold text-[#211F1C] sm:text-3xl">
+                Perguntas de nutricionistas
+              </h2>
+            </div>
+            <div className="mt-10 divide-y divide-[#E7E4DA]">
+              {faq.map(({ q, a }) => (
+                <details key={q} className="group py-5">
+                  <summary className="flex cursor-pointer list-none items-start justify-between gap-4">
+                    <h3 className="font-semibold text-[#211F1C]">{q}</h3>
+                    <ChevronRight className="mt-0.5 h-5 w-5 shrink-0 text-[#7C776B] transition-transform group-open:rotate-90" />
+                  </summary>
+                  <p className="mt-3 text-sm leading-relaxed text-[#5F5A51]">{a}</p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── CTA final ── */}
-      <section className="bg-[#1D352D] px-5 py-20 text-white">
+      <section className="bg-[#1D352D] px-4 py-20 text-white sm:px-5">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-200">
             Comece grátis
           </p>
-          <h2 className="mt-4 text-3xl font-bold leading-snug">
+          <h2 className="mt-4 text-2xl font-bold leading-snug sm:text-3xl">
             Comece grátis agora — até 10 pacientes, sem cartão de crédito
           </h2>
           <p className="mx-auto mt-4 max-w-lg text-white/80">
@@ -279,7 +451,7 @@ export default function NutricionistasPage() {
 
       {/* ── Footer ── */}
       <footer className="border-t border-[#E7E4DA] bg-[#F7F8F5]">
-        <div className="mx-auto max-w-6xl px-5 py-12">
+        <div className="mx-auto max-w-6xl px-4 py-12 sm:px-5">
           <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
             <div className="col-span-full lg:col-span-1">
               <Link to="/inicio" className="flex items-center gap-2.5">
