@@ -42,7 +42,8 @@ describe('instrument catalog', () => {
 })
 
 describe('instrumentsFor', () => {
-  const FISIO_IDS = ['eva-dor', 'oswestry', 'berg']
+  const FISIO_IDS = ['eva-dor', 'oswestry', 'berg', 'tinetti', 'dash']
+  const NUTRI_IDS = ['anamnese-nutricional', 'recordatorio-24h', 'diario-alimentar', 'qfca', 'predimed']
 
   it('não muda nada para psicologia — todo item sem `professions` continua visível', () => {
     const psi = instrumentsFor('psicologia').map(i => i.id)
@@ -73,14 +74,13 @@ describe('instrumentsFor', () => {
 
   it('entrega à nutrição apenas os instrumentos dela', () => {
     const nutri = instrumentsFor('nutricao').map(i => i.id)
-    const NUTRI_IDS = ['anamnese-nutricional', 'recordatorio-24h', 'diario-alimentar', 'qfca']
     expect(nutri.sort()).toEqual([...NUTRI_IDS].sort())
   })
 
   it('não vaza instrumento de nutrição para psicologia ou fisioterapia', () => {
     const psi   = instrumentsFor('psicologia').map(i => i.id)
     const fisio = instrumentsFor('fisioterapia').map(i => i.id)
-    for (const id of ['anamnese-nutricional', 'recordatorio-24h', 'diario-alimentar', 'qfca']) {
+    for (const id of NUTRI_IDS) {
       expect(psi).not.toContain(id)
       expect(fisio).not.toContain(id)
     }
@@ -89,6 +89,11 @@ describe('instrumentsFor', () => {
   it('registra pontuação para toda escala de fisioterapia do catálogo', () => {
     // Escala sem config no SCALE_CONFIGS é aplicada e não pontua — falha silenciosa.
     for (const id of FISIO_IDS) expect(SCALE_CONFIGS[id]).toBeDefined()
+  })
+
+  it('registra pontuação para toda escala de nutrição do catálogo', () => {
+    const nutriScalas = instrumentsFor('nutricao').filter(i => i.category === 'escala')
+    for (const i of nutriScalas) expect(SCALE_CONFIGS[i.id]).toBeDefined()
   })
 })
 
@@ -111,21 +116,24 @@ describe('BATTERIES', () => {
     expect(new Set(ids).size).toBe(ids.length)
   })
 
-  it('baterias não referenciam instrumentos exclusivos de fisioterapia ou nutrição', () => {
-    // BATTERIES são de psicologia; nenhum instrumentId pode pertencer a outra profissão.
-    // Um vazamento aqui enviaria ao paciente escalas de dor lombar ou anamnese nutricional.
-    const fisioIds = new Set(instrumentsFor('fisioterapia').map(i => i.id))
-    const nutriIds = new Set(instrumentsFor('nutricao').map(i => i.id))
+  it('baterias não referenciam instrumentos de profissão diferente da sua', () => {
+    // Uma bateria de psicologia não pode ter instrumentos de fisio/nutri, e vice-versa.
+    const idsByProfession: Record<string, Set<string>> = {
+      psicologia:    new Set(instrumentsFor('psicologia').map(i => i.id)),
+      fisioterapia:  new Set(instrumentsFor('fisioterapia').map(i => i.id)),
+      nutricao:      new Set(instrumentsFor('nutricao').map(i => i.id)),
+    }
+    const professions = Object.keys(idsByProfession)
     for (const battery of BATTERIES) {
+      const batteryProfs: string[] = (battery as any).professions ?? ['psicologia']
       for (const id of battery.instrumentIds) {
-        expect(
-          fisioIds.has(id),
-          `Bateria "${battery.id}" referencia instrumento de fisioterapia: "${id}"`,
-        ).toBe(false)
-        expect(
-          nutriIds.has(id),
-          `Bateria "${battery.id}" referencia instrumento de nutrição: "${id}"`,
-        ).toBe(false)
+        for (const prof of professions) {
+          if (batteryProfs.includes(prof)) continue
+          expect(
+            idsByProfession[prof].has(id),
+            `Bateria "${battery.id}" (${batteryProfs.join(',')}) referencia instrumento de ${prof}: "${id}"`,
+          ).toBe(false)
+        }
       }
     }
   })

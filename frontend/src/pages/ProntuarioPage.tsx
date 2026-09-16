@@ -20,6 +20,7 @@ import { useTerms } from '@/hooks/useTerms'
 import EvaEvolutionChart from '@/components/instruments/EvaEvolutionChart'
 import AntropometricoChart from '@/components/instruments/AntropometricoChart'
 import FuncionalChart from '@/components/instruments/FuncionalChart'
+import EscalasEvolutionChart from '@/components/instruments/EscalasEvolutionChart'
 
 const TABS = [
   { id: 'identificacao', label: 'Identificação' },
@@ -1338,6 +1339,16 @@ export default function ProntuarioPage() {
             <div className="card text-center py-8 text-neutral-400 text-sm">
               Nenhuma {t.session} registrada ainda.
             </div>
+          )}
+
+          {/* Gráfico de evolução das escalas psicológicas — exclusivo para psicologia */}
+          {isPsychology && (
+            <section className="mt-8">
+              <h2 className="text-base font-semibold text-neutral-800 dark:text-neutral-100 mb-3">
+                Evolução das Escalas
+              </h2>
+              <EscalasEvolutionChart patientId={id ?? ''} />
+            </section>
           )}
 
           {/* Gráfico de evolução da dor (EVA) — exclusivo para fisioterapia */}

@@ -1,4 +1,4 @@
-import { hasPsychologyModules, type Profession } from '@/lib/professions'
+import { hasPsychologyModules, hasPhysiotherapyModules, hasNutritionModules, type Profession } from '@/lib/professions'
 export interface Prontuario {
   id: string
   patientId: string
@@ -195,26 +195,35 @@ export interface Documento {
 export type DocumentoListItem = Omit<Documento, 'content'>
 
 /**
- * Relatorio e atestado psicologicos sao atos regulados pela Res. CFP 06/2019 e
- * so existem para psicologia — ver DOC_TYPES_FOR abaixo. Os demais tipos sao
- * neutros e apenas perdem a referencia a psicologia.
+ * Relatório psicológico e atestado: Res. CFP 06/2019.
+ * Laudo fisioterapêutico: Res. COFFITO 414/2012.
+ * Relatório nutricional: Res. CFN 599/2018.
+ * Atestado só existe para psicologia — demais profissões não emitem atestado próprio.
  */
 export function docTypeLabels(profession?: string | null): Record<DocType, string> {
-  const psi = hasPsychologyModules(profession)
+  const psi   = hasPsychologyModules(profession)
+  const fisio = hasPhysiotherapyModules(profession)
+  const nutri = hasNutritionModules(profession)
   return {
     declaracao:    'Declaração de Comparecimento',
     recibo:        'Recibo de Pagamento',
-    relatorio:     psi ? 'Relatório Psicológico' : 'Relatório',
-    atestado:      psi ? 'Atestado Psicológico' : 'Atestado',
+    relatorio:     psi   ? 'Relatório Psicológico'
+                 : fisio ? 'Laudo Fisioterapêutico'
+                 : nutri ? 'Relatório Nutricional'
+                 :         'Relatório',
+    atestado:      psi   ? 'Atestado Psicológico'
+                 :         'Atestado',
     encaminhamento:'Encaminhamento',
   }
 }
 
 /** Tipos que a profissao pode emitir. */
 export function docTypesFor(profession?: string | null): DocType[] {
-  return hasPsychologyModules(profession)
-    ? ['declaracao', 'recibo', 'relatorio', 'atestado', 'encaminhamento']
-    : ['declaracao', 'recibo', 'encaminhamento']
+  const base: DocType[] = ['declaracao', 'recibo', 'encaminhamento']
+  if (hasPsychologyModules(profession))    return [...base, 'relatorio', 'atestado']
+  if (hasPhysiotherapyModules(profession)) return [...base, 'relatorio']
+  if (hasNutritionModules(profession))     return [...base, 'relatorio']
+  return base
 }
 
 export const DOC_TYPE_ICONS: Record<DocType, 'documents' | 'billing' | 'success' | 'public-link'> = {

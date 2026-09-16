@@ -1919,6 +1919,154 @@ Nome / tipo | Dose | Frequência
 
 IMPRESSÃO GERAL DO(A) PROFISSIONAL:`,
   },
+
+  // ── Fisioterapia — Tinetti ──────────────────────────────────────────────────
+  {
+    id: 'tinetti',
+    title: 'Escala de Tinetti — Equilíbrio e Marcha',
+    description: 'Avalia equilíbrio estático e marcha em 20 tarefas. Score 0–28: <19 = alto risco de quedas, 19–24 = risco moderado, >24 = baixo risco.',
+    category: 'escala',
+    tags: ['equilíbrio', 'marcha', 'quedas', 'idoso', 'geriatria'],
+    ageGroups: ['adulto'],
+    professions: ['fisioterapia'],
+    Icon: Activity,
+    template: `ESCALA DE TINETTI — EQUILÍBRIO E MARCHA
+
+Aplicação pelo profissional. Equipamento: cadeira sem apoio de braço, cronômetro.
+
+─── PARTE I: EQUILÍBRIO (máx. 16) ──────────────────────────────────────────
+Equilíbrio sentado        (0–1):
+Levantando da cadeira     (0–2):
+Tentativas de levantar    (0–2):
+Equilíbrio em pé (5 seg)  (0–2):
+Equilíbrio pés juntos     (0–2):
+Empurrão — esterno        (0–2):
+Olhos fechados pés juntos (0–1):
+Giro 360° — passos        (0–1):
+Giro 360° — estabilidade  (0–1):
+Sentando                  (0–2):
+
+SUBTOTAL EQUILÍBRIO: ___ / 16
+
+─── PARTE II: MARCHA (máx. 12) ─────────────────────────────────────────────
+Início da marcha          (0–1):
+Comprimento passo pé D    (0–1):
+Altura passo pé D         (0–1):
+Comprimento passo pé E    (0–1):
+Altura passo pé E         (0–1):
+Simetria dos passos       (0–1):
+Continuidade dos passos   (0–1):
+Desvio do trajeto         (0–2):
+Tronco                    (0–2):
+Distância entre calc.     (0–1):
+
+SUBTOTAL MARCHA: ___ / 12
+
+─── RESULTADO ───────────────────────────────────────────────────────────────
+SCORE TOTAL: ___ / 28
+Interpretação: <19 = alto risco  |  19–24 = risco moderado  |  >24 = baixo risco
+
+OBSERVAÇÕES DO(A) PROFISSIONAL:`,
+  },
+
+  // ── Fisioterapia — DASH ──────────────────────────────────────────────────────
+  {
+    id: 'dash',
+    title: 'DASH — Disabilities of the Arm, Shoulder and Hand',
+    description: 'Questionário de incapacidade de membros superiores em 30 itens (escala 1–5). Score 0–100: 0 = sem incapacidade, 100 = máxima incapacidade.',
+    category: 'escala',
+    tags: ['membros superiores', 'ombro', 'punho', 'mão', 'funcionalidade'],
+    ageGroups: ['adulto'],
+    professions: ['fisioterapia'],
+    Icon: ListChecks,
+    template: `DASH — DISABILITIES OF THE ARM, SHOULDER AND HAND
+
+Instrução: marque o número que melhor descreve sua capacidade na última semana.
+1 = Sem dificuldade  2 = Pouca dificuldade  3 = Dificuldade moderada
+4 = Muita dificuldade  5 = Não consegue realizar
+
+─── ATIVIDADES (itens 1–21) ─────────────────────────────────────────────────
+1. Abrir pote novo / apertado:
+2. Escrever:
+3. Girar chave:
+4. Preparar refeição:
+5. Empurrar porta pesada:
+6. Colocar objeto em prateleira alta:
+7. Tarefas domésticas pesadas:
+8. Jardinagem / quintal:
+9. Arrumar a cama:
+10. Carregar sacolas / maletas:
+11. Carregar objeto >5 kg:
+12. Trocar lâmpada acima da cabeça:
+13. Lavar / secar o cabelo:
+14. Lavar as costas:
+15. Vestir suéter:
+16. Usar faca para cortar:
+17. Lazer com pouco esforço no braço:
+18. Lazer com força / impacto (golfe, martelo):
+19. Lazer com livre movimento (badminton, frisbee):
+20. Transporte para atividades:
+21. Atividade sexual:
+
+─── SINTOMAS (itens 22–26) ─────────────────────────────────────────────────
+22. Dor no braço / ombro / mão (semana):
+23. Dor ao realizar atividade:
+24. Formigamento (parestesia):
+25. Fraqueza no membro superior:
+26. Rigidez:
+
+─── IMPACTO (itens 27–30) ──────────────────────────────────────────────────
+27. Dificuldade para dormir por dor:
+28. Menos capaz / confiante / útil:
+29. Trabalho / atividades regulares afetados:
+30. Atividades sociais afetadas:
+
+─── CÁLCULO ────────────────────────────────────────────────────────────────
+Soma dos itens respondidos (soma): ___
+Nº de itens respondidos (n):       ___
+Score DASH = [(soma − n) / (n × 4)] × 100 = ___
+
+Interpretação: 0–20 = leve  |  21–40 = moderada  |  41–60 = significativa  |  >60 = grave
+
+OBSERVAÇÕES DO(A) PROFISSIONAL:`,
+  },
+
+  // ── Nutrição — PREDIMED ───────────────────────────────────────────────────────
+  {
+    id: 'predimed',
+    title: 'PREDIMED — Qualidade da Dieta Mediterrânea',
+    description: 'Avalia adesão à dieta mediterrânea em 14 perguntas binárias (Sim/Não). Score 0–14: ≥10 = boa adesão.',
+    category: 'escala',
+    tags: ['dieta', 'mediterrânea', 'qualidade alimentar', 'prevenção cardiovascular'],
+    ageGroups: ['adulto'],
+    professions: ['nutricao'],
+    Icon: Apple,
+    template: `PREDIMED — QUALIDADE DA DIETA MEDITERRÂNEA
+
+Responda Sim (1) ou Não (0) a cada pergunta.
+
+1. Usa azeite de oliva como principal gordura de cozinha?
+2. Quantidade de azeite por dia ≥ 4 colheres de sopa?
+3. Porções de vegetais por dia ≥ 2 (ao menos 1 crua)?
+4. Porções de frutas por dia ≥ 3?
+5. Porções de carnes vermelhas / embutidos por dia < 1?
+6. Gordura animal (manteiga, margarina, creme) < 1 colher / dia?
+7. Bebidas açucaradas ou sucos industriais < 1 por dia?
+8. Porções de vinho por semana ≥ 7 (se consumidor)?
+9. Porções de leguminosas por semana ≥ 3?
+10. Porções de peixe / frutos do mar por semana ≥ 3?
+11. Produtos de confeitaria industriais < 3 por semana?
+12. Porções de oleaginosas por semana ≥ 3?
+13. Consome mais frango / peixe do que carne bovina?
+14. Molho / refogado de tomate com azeite ≥ 2 vezes/semana?
+
+─── RESULTADO ───────────────────────────────────────────────────────────────
+SCORE TOTAL: ___ / 14
+Interpretação: ≤6 = baixa adesão  |  7–9 = adesão moderada  |  ≥10 = boa adesão
+Referência: Schröder et al., 2011 (adaptação brasileira).
+
+OBSERVAÇÕES DO(A) PROFISSIONAL:`,
+  },
 ]
 
 // ── Baterias de instrumentos ──────────────────────────────────────────────────
@@ -1928,6 +2076,7 @@ export type Battery = {
   label: string
   description: string
   instrumentIds: string[]
+  professions?: string[]
 }
 
 export const BATTERIES: Battery[] = [
@@ -1935,25 +2084,73 @@ export const BATTERIES: Battery[] = [
     id: 'triagem-adulto',
     label: 'Triagem adulto',
     description: 'Começo organizado para adulto novo.',
+    professions: ['psicologia'],
     instrumentIds: ['anamnese-adulto', 'phq9', 'gad7'],
   },
   {
     id: 'ansiedade',
     label: 'Ansiedade',
     description: 'Rastreio e acompanhamento de sintomas ansiosos.',
+    professions: ['psicologia'],
     instrumentIds: ['gad7', 'bai-adaptado', 'registro-pensamentos'],
   },
   {
     id: 'humor',
     label: 'Humor',
     description: 'Depressão, humor e evolução de sintomas.',
+    professions: ['psicologia'],
     instrumentIds: ['phq9', 'bdi2-adaptado', 'diario-humor'],
   },
   {
     id: 'infantojuvenil',
     label: 'Infantojuvenil',
     description: 'Entrada para crianças e adolescentes.',
+    professions: ['psicologia'],
     instrumentIds: ['anamnese-infantil', 'sdq'],
+  },
+  // Fisioterapia
+  {
+    id: 'avaliacao-quadril-joelho',
+    label: 'Quadril e Joelho',
+    description: 'Dor, funcionalidade e capacidade dos membros inferiores.',
+    professions: ['fisioterapia'],
+    instrumentIds: ['eva-dor', 'oswestry'],
+  },
+  {
+    id: 'avaliacao-equilibrio-quedas',
+    label: 'Equilíbrio e Quedas',
+    description: 'Rastreio completo de risco de quedas e equilíbrio.',
+    professions: ['fisioterapia'],
+    instrumentIds: ['eva-dor', 'berg', 'tinetti'],
+  },
+  {
+    id: 'avaliacao-membro-superior',
+    label: 'Membro Superior',
+    description: 'Funcionalidade de ombro, braço e mão.',
+    professions: ['fisioterapia'],
+    instrumentIds: ['eva-dor', 'dash'],
+  },
+  // Nutrição
+  {
+    id: 'consulta-inicial-nutri',
+    label: 'Consulta inicial',
+    description: 'Anamnese e recordatório para primeira consulta nutricional.',
+    professions: ['nutricao'],
+    instrumentIds: ['anamnese-nutricional', 'recordatorio-24h'],
+  },
+  {
+    id: 'monitoramento-alimentar',
+    label: 'Monitoramento alimentar',
+    description: 'Diário e QFCA para acompanhamento contínuo.',
+    professions: ['nutricao'],
+    instrumentIds: ['diario-alimentar', 'qfca'],
+  },
+  {
+    id: 'qualidade-dieta',
+    label: 'Qualidade da dieta',
+    description: 'PREDIMED para avaliar padrão alimentar.',
+    professions: ['nutricao'],
+    instrumentIds: ['predimed'],
   },
 ]
 

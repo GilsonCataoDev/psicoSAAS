@@ -29,7 +29,7 @@ import {
   instrumentsFor,
 } from '@/features/instruments/instrument-catalog'
 import { useAuthStore } from '@/store/auth'
-import { councilLabel, hasPsychologyModules, hasNutritionModules } from '@/lib/professions'
+import { councilLabel, hasNutritionModules, DEFAULT_PROFESSION } from '@/lib/professions'
 import { NutritionCalculators } from '@/features/instruments/NutritionCalculators'
 import type {
   AgeGroup,
@@ -443,14 +443,18 @@ function ObjectiveAndBatteryPanel({
   selectedBattery,
   onObjective,
   onBattery,
-  showBatteries,
+  profession,
 }: {
   objective: typeof OBJECTIVES[number]['value']
   selectedBattery: string
   onObjective: (value: typeof OBJECTIVES[number]['value']) => void
   onBattery: (value: string) => void
-  showBatteries: boolean
+  profession?: string | null
 }) {
+  const visibleBatteries = BATTERIES.filter(b =>
+    !b.professions || b.professions.includes(profession ?? DEFAULT_PROFESSION),
+  )
+  const showBatteries = visibleBatteries.length > 0
   return (
     <div className={showBatteries ? 'grid gap-3 lg:grid-cols-[1.2fr_1fr]' : 'grid gap-3'}>
       <div className="card space-y-3">
@@ -478,7 +482,6 @@ function ObjectiveAndBatteryPanel({
         </div>
       </div>
 
-      {/* As baterias combinam instrumentos de psicologia — não fazem sentido em outras profissões. */}
       {showBatteries && (
       <div className="card space-y-3">
         <div className="flex items-center gap-2">
@@ -486,7 +489,7 @@ function ObjectiveAndBatteryPanel({
           <h2 className="section-title">Modelos de bateria</h2>
         </div>
         <div className="space-y-2">
-          {BATTERIES.map(item => (
+          {visibleBatteries.map(item => (
             <button
               key={item.id}
               type="button"
@@ -961,7 +964,7 @@ export default function InstrumentosPage() {
           setSelectedBattery(value)
           if (value) setObjective('all')
         }}
-        showBatteries={hasPsychologyModules(profession)}
+        profession={profession}
       />
 
       {hasNutritionModules(profession) && (

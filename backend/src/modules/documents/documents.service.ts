@@ -12,7 +12,7 @@ import { PLAN_LIMITS } from '../../common/plans'
 import { PlanAccessService } from '../../common/plan-access/plan-access.service'
 import { EmailService } from '../email/email.service'
 import { termsFor } from '../../common/terms'
-import { DEFAULT_PROFESSION, requiresCrp } from '../../common/professions'
+import { DEFAULT_PROFESSION, requiresCrp, hasPhysiotherapyModules, hasNutritionModules } from '../../common/professions'
 
 export interface CreateDocumentDto {
   patientId: string
@@ -23,17 +23,23 @@ export interface CreateDocumentDto {
 }
 
 /**
- * Titulo impresso no cabecalho do PDF e usado no assunto do e-mail. Relatorio
- * e atestado sao os unicos que afirmam a natureza do documento — um
- * nutricionista emitindo "ATESTADO PSICOLOGICO" estaria assinando documento
- * factualmente errado.
+ * Titulo impresso no cabecalho do PDF e usado no assunto do e-mail.
+ * Relatório psicológico e atestado: Res. CFP 06/2019.
+ * Laudo fisioterapêutico: Res. COFFITO 414/2012.
+ * Relatório nutricional: Res. CFN 599/2018.
+ * Atestado é exclusivo de psicologia — demais profissões não emitem atestado próprio.
  */
 function docTypeLabels(profession?: string | null): Record<DocType, string> {
-  const psi = requiresCrp(profession)
+  const psi   = requiresCrp(profession)
+  const fisio = hasPhysiotherapyModules(profession)
+  const nutri = hasNutritionModules(profession)
   return {
     declaracao: 'Declaração de Comparecimento',
     recibo: 'Recibo de Pagamento',
-    relatorio: psi ? 'Relatório Psicológico' : 'Relatório',
+    relatorio: psi   ? 'Relatório Psicológico'
+             : fisio ? 'Laudo Fisioterapêutico'
+             : nutri ? 'Relatório Nutricional'
+             :         'Relatório',
     atestado: psi ? 'Atestado Psicológico' : 'Atestado',
     encaminhamento: 'Carta de Encaminhamento',
   }
@@ -142,10 +148,13 @@ export class DocumentsService {
   // ─── Criar e assinar documento ────────────────────────────────────────────
 
   async create(user: User, dto: CreateDocumentDto, signerIp?: string): Promise<Document> {
-    // Relatorio e atestado psicologicos sao atos privativos regulados pela
-    // Res. CFP 06/2019: esconder no frontend nao basta, a rota tem que recusar.
-    if (!requiresCrp(user.profession) && ['relatorio', 'atestado'].includes(dto.type)) {
-      throw new BadRequestException('Este tipo de documento e exclusivo de contas de psicologia.')
+    // Atestado é exclusivo de psicologia (Res. CFP 06/2019).
+    // Relatório é permitido para fisio (COFFITO 414/2012) e nutri (CFN 599/2018) também.
+    if (dto.type === 'atestado' && !requiresCrp(user.profession)) {
+      throw new BadRequestException('Atestado é exclusivo de contas de psicologia.')
+    }
+    if (dto.type === 'relatorio' && !requiresCrp(user.profession) && !hasPhysiotherapyModules(user.profession) && !hasNutritionModules(user.profession)) {
+      throw new BadRequestException('Este tipo de documento não está disponível para sua profissão.')
     }
     // CRP e do conselho de psicologia. Exigi-lo de outras profissoes travaria
     // a emissao de documentos para elas — cada uma tem seu proprio conselho.

@@ -46,6 +46,7 @@ const CRMPage             = lazy(() => import('@/pages/CRMPage'))
 // Landing pages por profissão — lazy loaded
 const FisioterapeutasPage = lazy(() => import('@/pages/landing/FisioterapeutasPage'))
 const NutricionistasPage  = lazy(() => import('@/pages/landing/NutricionistasPage'))
+const PsicologosPage      = lazy(() => import('@/pages/landing/PsicologosPage'))
 
 // Public pages — lazy loaded
 const BookingPage         = lazy(() => import('@/pages/public/BookingPage'))
@@ -129,6 +130,7 @@ export default function App() {
         <Route path="/plataforma" element={<LandingPage />} />
         <Route path="/fisioterapeutas" element={<FisioterapeutasPage />} />
         <Route path="/nutricionistas" element={<NutricionistasPage />} />
+        <Route path="/psicologos" element={<PsicologosPage />} />
         <Route path="/inicio" element={<Navigate to="/plataforma" replace />} />
         <Route path="/venda" element={<Navigate to="/plataforma" replace />} />
         <Route path="/privacidade" element={<LegalPage type="privacy" />} />

@@ -1041,6 +1041,149 @@ export const SCALE_CONFIGS: Record<string, ScaleConfig> = {
     ],
     note: 'Cada tarefa tem critérios próprios de pontuação (tempo de sustentação, necessidade de apoio, supervisão). Consulte o protocolo completo ao pontuar — as opções aqui são o resumo dos níveis, não os descritores integrais.',
   },
+
+  // ── Tinetti ────────────────────────────────────────────────────────────────
+  tinetti: {
+    options: [
+      { value: 0, label: '0' },
+      { value: 1, label: '1' },
+      { value: 2, label: '2' },
+    ],
+    items: [
+      // Equilíbrio (máx. 16)
+      { id: 'eq1',  label: 'Equilíbrio sentado',               options: [{ value: 0, label: '0 — Inclina/desliza' }, { value: 1, label: '1 — Estável' }] },
+      { id: 'eq2',  label: 'Levantando da cadeira',            options: [{ value: 0, label: '0 — Incapaz' }, { value: 1, label: '1 — Usa braços' }, { value: 2, label: '2 — Sem braços' }] },
+      { id: 'eq3',  label: 'Tentativas de levantar',           options: [{ value: 0, label: '0 — Incapaz' }, { value: 1, label: '1 — Múltiplas tentativas' }, { value: 2, label: '2 — De uma vez' }] },
+      { id: 'eq4',  label: 'Equilíbrio em pé imediato (5 s)',  options: [{ value: 0, label: '0 — Instável' }, { value: 1, label: '1 — Estável c/ suporte' }, { value: 2, label: '2 — Estável s/ suporte' }] },
+      { id: 'eq5',  label: 'Equilíbrio em pé pés juntos',      options: [{ value: 0, label: '0 — Instável' }, { value: 1, label: '1 — Estável c/ suporte' }, { value: 2, label: '2 — Estável s/ suporte' }] },
+      { id: 'eq6',  label: 'Empurrão — esterno',               options: [{ value: 0, label: '0 — Cai' }, { value: 1, label: '1 — Agarra/cambaleia' }, { value: 2, label: '2 — Estável' }] },
+      { id: 'eq7',  label: 'Olhos fechados pés juntos',        options: [{ value: 0, label: '0 — Instável' }, { value: 1, label: '1 — Estável' }] },
+      { id: 'eq8',  label: 'Giro 360° — passos',               options: [{ value: 0, label: '0 — Descontínuos' }, { value: 1, label: '1 — Contínuos' }] },
+      { id: 'eq9',  label: 'Giro 360° — estabilidade',         options: [{ value: 0, label: '0 — Instável' }, { value: 1, label: '1 — Estável' }] },
+      { id: 'eq10', label: 'Sentando',                         options: [{ value: 0, label: '0 — Inseguro' }, { value: 1, label: '1 — Usa braços/brusco' }, { value: 2, label: '2 — Seguro e suave' }] },
+      // Marcha (máx. 12)
+      { id: 'ma1',  label: 'Início da marcha',                 options: [{ value: 0, label: '0 — Hesitação' }, { value: 1, label: '1 — Sem hesitação' }] },
+      { id: 'ma2',  label: 'Comprimento passo pé D',           options: [{ value: 0, label: '0 — Não ultrapassa pé E' }, { value: 1, label: '1 — Ultrapassa pé E' }] },
+      { id: 'ma3',  label: 'Altura passo pé D',                options: [{ value: 0, label: '0 — Arrasta/eleva muito' }, { value: 1, label: '1 — Passa livremente' }] },
+      { id: 'ma4',  label: 'Comprimento passo pé E',           options: [{ value: 0, label: '0 — Não ultrapassa pé D' }, { value: 1, label: '1 — Ultrapassa pé D' }] },
+      { id: 'ma5',  label: 'Altura passo pé E',                options: [{ value: 0, label: '0 — Arrasta/eleva muito' }, { value: 1, label: '1 — Passa livremente' }] },
+      { id: 'ma6',  label: 'Simetria dos passos',              options: [{ value: 0, label: '0 — Desiguais' }, { value: 1, label: '1 — Aproximadamente iguais' }] },
+      { id: 'ma7',  label: 'Continuidade dos passos',          options: [{ value: 0, label: '0 — Para entre passos' }, { value: 1, label: '1 — Contínuos' }] },
+      { id: 'ma8',  label: 'Desvio do trajeto',                options: [{ value: 0, label: '0 — Desvio marcado' }, { value: 1, label: '1 — Desvio suave/auxiliar' }, { value: 2, label: '2 — Linha reta s/ auxiliar' }] },
+      { id: 'ma9',  label: 'Tronco',                           options: [{ value: 0, label: '0 — Balanço marcado' }, { value: 1, label: '1 — Sem balanço c/ flexão' }, { value: 2, label: '2 — Sem balanço s/ flexão' }] },
+      { id: 'ma10', label: 'Distância entre calcanhares',      options: [{ value: 0, label: '0 — Calcanhares separados' }, { value: 1, label: '1 — Quase se tocam' }] },
+    ],
+    subscales: [
+      {
+        id: 'equilibrio',
+        label: 'Equilíbrio',
+        itemIds: ['eq1', 'eq2', 'eq3', 'eq4', 'eq5', 'eq6', 'eq7', 'eq8', 'eq9', 'eq10'],
+        thresholds: [
+          { max: 8,  label: 'Equilíbrio comprometido', color: 'text-red-700 bg-red-50' },
+          { max: 12, label: 'Equilíbrio reduzido',     color: 'text-orange-700 bg-orange-50' },
+          { max: 16, label: 'Equilíbrio preservado',   color: 'text-emerald-700 bg-emerald-50' },
+        ],
+      },
+      {
+        id: 'marcha',
+        label: 'Marcha',
+        itemIds: ['ma1', 'ma2', 'ma3', 'ma4', 'ma5', 'ma6', 'ma7', 'ma8', 'ma9', 'ma10'],
+        thresholds: [
+          { max: 6,  label: 'Marcha comprometida', color: 'text-red-700 bg-red-50' },
+          { max: 9,  label: 'Marcha reduzida',     color: 'text-orange-700 bg-orange-50' },
+          { max: 12, label: 'Marcha preservada',   color: 'text-emerald-700 bg-emerald-50' },
+        ],
+      },
+    ],
+    thresholds: [
+      { max: 18, label: 'Alto risco de quedas',  color: 'text-red-700 bg-red-50' },
+      { max: 24, label: 'Risco moderado',        color: 'text-orange-700 bg-orange-50' },
+      { max: 28, label: 'Baixo risco',           color: 'text-emerald-700 bg-emerald-50' },
+    ],
+    note: 'Score total 0–28 (equilíbrio 0–16 + marcha 0–12). <19 = alto risco de quedas; 19–24 = risco moderado; >24 = baixo risco.',
+  },
+
+  // ── DASH ───────────────────────────────────────────────────────────────────
+  dash: {
+    options: [
+      { value: 1, label: '1 — Sem dificuldade' },
+      { value: 2, label: '2 — Pouca dificuldade' },
+      { value: 3, label: '3 — Dificuldade moderada' },
+      { value: 4, label: '4 — Muita dificuldade' },
+      { value: 5, label: '5 — Não consegue' },
+    ],
+    items: [
+      { id: 'd1',  label: 'Abrir pote novo ou apertado' },
+      { id: 'd2',  label: 'Escrever' },
+      { id: 'd3',  label: 'Girar a chave' },
+      { id: 'd4',  label: 'Preparar uma refeição' },
+      { id: 'd5',  label: 'Empurrar para abrir uma porta' },
+      { id: 'd6',  label: 'Colocar objetos em prateleira acima da cabeça' },
+      { id: 'd7',  label: 'Tarefas domésticas pesadas (esfregar, lavar janelas)' },
+      { id: 'd8',  label: 'Jardinagem ou quintal' },
+      { id: 'd9',  label: 'Arrumar a cama' },
+      { id: 'd10', label: 'Carregar sacolas ou maletas' },
+      { id: 'd11', label: 'Carregar objeto pesado (>5 kg)' },
+      { id: 'd12', label: 'Trocar lâmpada acima da cabeça' },
+      { id: 'd13', label: 'Lavar ou secar o cabelo' },
+      { id: 'd14', label: 'Lavar as costas' },
+      { id: 'd15', label: 'Vestir suéter' },
+      { id: 'd16', label: 'Usar faca para cortar alimentos' },
+      { id: 'd17', label: 'Atividades de lazer com pouco esforço no braço' },
+      { id: 'd18', label: 'Atividades de lazer com força ou impacto (golfe, martelo)' },
+      { id: 'd19', label: 'Atividades de lazer com livre movimento (badminton, frisbee)' },
+      { id: 'd20', label: 'Transporte (deslocamentos para atividades)' },
+      { id: 'd21', label: 'Atividade sexual' },
+      { id: 'd22', label: 'Dor no braço, ombro ou mão durante a semana' },
+      { id: 'd23', label: 'Dor ao realizar atividade' },
+      { id: 'd24', label: 'Formigamento (parestesia)' },
+      { id: 'd25', label: 'Fraqueza no braço, ombro ou mão' },
+      { id: 'd26', label: 'Rigidez no braço, ombro ou mão' },
+      { id: 'd27', label: 'Dificuldade para dormir por dor/membro superior' },
+      { id: 'd28', label: 'Sentiu-se menos capaz, confiante ou útil' },
+      { id: 'd29', label: 'Trabalho ou atividades regulares foram afetados' },
+      { id: 'd30', label: 'Atividades sociais foram afetadas' },
+    ],
+    thresholds: [
+      // Thresholds aplicados à soma bruta (n=30): score DASH = (soma−30)/120×100
+      // soma ≤54 → DASH ≤20; soma ≤78 → DASH ≤40; soma ≤102 → DASH ≤60; soma ≤150 → DASH ≤100
+      { max: 54,  label: 'Incapacidade leve',        color: 'text-emerald-700 bg-emerald-50' },
+      { max: 78,  label: 'Incapacidade moderada',    color: 'text-yellow-700 bg-yellow-50' },
+      { max: 102, label: 'Incapacidade significativa', color: 'text-orange-700 bg-orange-50' },
+      { max: 150, label: 'Incapacidade grave',       color: 'text-red-700 bg-red-50' },
+    ],
+    note: 'Score DASH = [(soma − n) / (n × 4)] × 100, onde n = nº de itens respondidos (mín. 27). Score 0–100: 0 = sem incapacidade, 100 = máxima incapacidade. Os limiares acima referem-se à soma bruta para n=30.',
+  },
+
+  // ── PREDIMED ───────────────────────────────────────────────────────────────
+  predimed: {
+    options: [
+      { value: 0, label: 'Não' },
+      { value: 1, label: 'Sim' },
+    ],
+    items: [
+      { id: 'p1',  label: 'Usa azeite de oliva como principal gordura de cozinha?' },
+      { id: 'p2',  label: 'Quantidade de azeite consumida por dia ≥ 4 colheres de sopa?' },
+      { id: 'p3',  label: 'Porções de vegetais por dia ≥ 2 (ao menos 1 crua)?' },
+      { id: 'p4',  label: 'Porções de frutas por dia ≥ 3?' },
+      { id: 'p5',  label: 'Porções de carnes vermelhas/embutidos por dia < 1?' },
+      { id: 'p6',  label: 'Gordura animal (manteiga, margarina, creme) < 1 colher de sopa/dia?' },
+      { id: 'p7',  label: 'Bebidas açucaradas ou sucos industriais < 1 por dia?' },
+      { id: 'p8',  label: 'Porções de vinho por semana ≥ 7 (se consumidor)?' },
+      { id: 'p9',  label: 'Porções de leguminosas por semana ≥ 3?' },
+      { id: 'p10', label: 'Porções de peixe/frutos do mar por semana ≥ 3?' },
+      { id: 'p11', label: 'Produtos de confeitaria industriais < 3 por semana?' },
+      { id: 'p12', label: 'Porções de oleaginosas por semana ≥ 3?' },
+      { id: 'p13', label: 'Consome mais frango e peixe do que carne bovina?' },
+      { id: 'p14', label: 'Prepara molho/refogado de tomate com azeite ≥ 2 vezes/semana?' },
+    ],
+    thresholds: [
+      { max: 6,  label: 'Baixa adesão',      color: 'text-red-700 bg-red-50' },
+      { max: 9,  label: 'Adesão moderada',   color: 'text-yellow-700 bg-yellow-50' },
+      { max: 14, label: 'Boa adesão',        color: 'text-emerald-700 bg-emerald-50' },
+    ],
+    note: 'Score 0–14: ≥10 = boa adesão à dieta mediterrânea; 7–9 = moderada; ≤6 = baixa. Referência: Schröder et al., 2011 (adaptação brasileira).',
+  },
 }
 
 // ── Scoring helpers ───────────────────────────────────────────────────────────
