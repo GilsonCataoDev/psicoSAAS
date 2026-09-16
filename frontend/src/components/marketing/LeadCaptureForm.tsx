@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { track, trackMetaConversion } from '@/lib/analytics'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -92,6 +93,8 @@ export function LeadCaptureForm({
       }
 
       setSubmitted(true)
+      track('lead_captured', { profession: values.profession, source: source ?? 'unknown' })
+      trackMetaConversion('Lead')
       onSuccess?.()
     } catch {
       setServerError('Não foi possível conectar ao servidor. Verifique sua conexão.')
