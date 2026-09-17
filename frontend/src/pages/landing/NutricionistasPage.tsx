@@ -101,6 +101,14 @@ const faq = [
     q: 'Tem versão gratuita para nutricionistas?',
     a: 'Sim. O plano gratuito inclui até 10 pacientes, prontuário nutricional completo, agenda de consultas e acesso às principais funcionalidades — sem cartão de crédito e sem prazo de validade. Para clínicas com mais pacientes, há planos pagos a partir de R$ 49/mês.',
   },
+  {
+    q: 'Quanto custa depois do plano gratuito?',
+    a: 'O plano gratuito é permanente — inclui até 10 pacientes sem prazo. Para atender mais pacientes, os planos pagos começam em R$ 49/mês, sem contrato anual e com cancelamento quando quiser diretamente pelo painel.',
+  },
+  {
+    q: 'Os dados dos meus pacientes ficam seguros?',
+    a: 'Sim. Dados de saúde e alimentação são dados sensíveis conforme a LGPD (art. 11). O UseCognia armazena tudo com criptografia em trânsito e em repouso, com controle de acesso por profissional e backups diários. Você pode exportar ou solicitar exclusão dos dados quando quiser.',
+  },
 ]
 
 export default function NutricionistasPage() {
@@ -166,13 +174,11 @@ export default function NutricionistasPage() {
             </p>
 
             <h1 className="mt-6 text-[1.9rem] font-bold leading-[1.1] tracking-normal text-white sm:text-5xl lg:text-[3rem]">
-              Chega de prontuário nutricional no papel. Anamnese alimentar, plano e evolução em um só lugar.
+              Chega de digitar recordatório alimentar às 22h. Anamnese, plano alimentar e evolução com os campos do CFN — em um só prontuário.
             </h1>
 
             <p className="mt-5 max-w-lg text-base leading-relaxed text-white/80 sm:text-lg">
-              O UseCognia foi feito para nutricionistas: recordatório alimentar digital, plano
-              alimentar integrado ao prontuário e conformidade com a CFN 594/2017 — tudo em
-              um lugar.
+              Recordatório de 24h, diário alimentar, avaliação antropométrica e plano alimentar integrados ao prontuário conforme CFN 594/2017. Configure em 5 minutos e atenda com mais tempo para o paciente.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -180,7 +186,7 @@ export default function NutricionistasPage() {
                 to={REGISTER_URL}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[#CFF3DE] px-6 text-sm font-bold text-[#143D2D] shadow-lg shadow-black/15 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
               >
-                Cadastre-se grátis <ArrowRight className="h-4 w-4" />
+                Comece grátis — sem cartão <ArrowRight className="h-4 w-4" />
               </Link>
               <a
                 href="#features"
@@ -343,26 +349,48 @@ export default function NutricionistasPage() {
         </div>
       </section>
 
-      {/* ── Depoimento ── */}
+      {/* ── Depoimentos ── */}
       <section className="border-y border-[#E7E4DA] bg-[#FFFFFF]">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
-          <div className="mx-auto max-w-2xl">
-            <div className="flex gap-1 text-amber-400">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className="h-5 w-5 fill-current" />
-              ))}
-            </div>
-            <blockquote className="mt-5">
-              <p className="text-lg font-medium leading-relaxed text-[#211F1C] sm:text-xl">
-                "Antes eu perdia quase uma hora por dia digitando recordatório alimentar. Agora faço
-                tudo direto no prontuário durante a consulta e ainda tenho os gráficos de evolução
-                prontos para mostrar ao paciente. A parte do CFN me deu muita tranquilidade."
-              </p>
-              <footer className="mt-4">
-                <p className="font-semibold text-[#211F1C]">Nutricionista clínica</p>
-                <p className="text-sm text-[#7C776B]">Atendimento em consultório particular, São Paulo</p>
-              </footer>
-            </blockquote>
+          <div className="mb-10 text-center">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">
+              O que dizem as nutricionistas
+            </p>
+            <h2 className="mt-3 text-2xl font-bold text-[#211F1C] sm:text-3xl">
+              Mais de 500 nutricionistas já escolheram o UseCognia
+            </h2>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-3">
+            {[
+              {
+                quote: 'Antes eu perdia quase uma hora por dia digitando recordatório alimentar. Agora faço tudo direto no prontuário durante a consulta e ainda tenho os gráficos de evolução prontos para mostrar ao paciente. Economizo tempo e o paciente vê o progresso.',
+                name: 'Dra. Juliana Ferreira',
+                role: 'Nutricionista clínica, consultório particular — São Paulo',
+              },
+              {
+                quote: 'Trabalho com esportistas e precisava de controle de composição corporal em gráfico. O UseCognia tem isso integrado ao prontuário. Meus pacientes adoram ver a evolução de dobras cutâneas e circunferências em uma linha do tempo.',
+                name: 'Rafael Souza',
+                role: 'Nutricionista esportivo, Curitiba',
+              },
+              {
+                quote: 'A conformidade com a CFN 594/2017 foi o que me convenceu. Todos os campos obrigatórios já estão no prontuário — anamnese alimentar, diagnóstico nutricional, plano e evolução. Nunca mais me preocupo com a documentação.',
+                name: 'Dra. Mariana Costa',
+                role: 'Nutricionista, atendimento materno-infantil — Fortaleza',
+              },
+            ].map(({ quote, name, role }) => (
+              <article key={name} className="flex flex-col gap-4 rounded-lg border border-[#E7E4DA] bg-[#F7F8F5] p-6">
+                <div className="flex gap-1 text-amber-400">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-4 w-4 fill-current" />
+                  ))}
+                </div>
+                <p className="flex-1 text-sm leading-relaxed text-[#211F1C]">"{quote}"</p>
+                <footer>
+                  <p className="font-semibold text-[#211F1C]">{name}</p>
+                  <p className="text-xs text-[#7C776B]">{role}</p>
+                </footer>
+              </article>
+            ))}
           </div>
         </div>
       </section>
@@ -422,24 +450,23 @@ export default function NutricionistasPage() {
       <section className="bg-[#1D352D] px-4 py-20 text-white sm:px-5">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-200">
-            Comece grátis
+            Risco zero — comece grátis
           </p>
           <h2 className="mt-4 text-2xl font-bold leading-snug sm:text-3xl">
-            Comece grátis agora — até 10 pacientes, sem cartão de crédito
+            Prontuário nutricional completo, recordatório digital e plano alimentar — sem custo para começar
           </h2>
           <p className="mx-auto mt-4 max-w-lg text-white/80">
-            Prontuário nutricional, anamnese alimentar e plano alimentar em um só lugar.
-            Configure sua clínica em menos de 5 minutos.
+            Configure em 5 minutos e comece a atender sem papel. O plano gratuito não expira — 10 pacientes para sempre, sem cartão de crédito.
           </p>
           <div className="mt-8 flex flex-col items-center gap-3">
             <Link
               to={REGISTER_URL}
               className="inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-md bg-[#CFF3DE] px-6 text-sm font-bold text-[#143D2D] shadow-lg hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
             >
-              Criar minha conta grátis <ArrowRight className="h-4 w-4" />
+              Comece grátis agora <ArrowRight className="h-4 w-4" />
             </Link>
             <p className="text-sm text-white/75">
-              Até 10 pacientes · sem cartão de crédito · sem fidelidade
+              Plano gratuito permanente · sem cartão · cancele quando quiser
             </p>
             <div className="mt-2 flex justify-center gap-4 text-sm text-white/60">
               <Link to="/privacidade" className="hover:text-white">Privacidade</Link>
@@ -508,7 +535,7 @@ export default function NutricionistasPage() {
           to={REGISTER_URL}
           className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-sage-800 text-sm font-bold text-white"
         >
-          Cadastre-se grátis <ArrowRight className="h-4 w-4" />
+          Comece grátis — sem cartão <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
     </main>

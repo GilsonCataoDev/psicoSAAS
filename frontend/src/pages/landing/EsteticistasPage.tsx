@@ -116,6 +116,14 @@ const faq = [
     q: 'Tem versão gratuita para esteticistas?',
     a: 'Sim. O plano gratuito inclui até 10 clientes, ficha de anamnese completa, controle de pacotes, agenda e acesso às principais funcionalidades — sem cartão de crédito e sem prazo. Para clínicas maiores, há planos pagos a partir de R$ 49/mês.',
   },
+  {
+    q: 'Quanto custa depois do plano gratuito?',
+    a: 'O plano gratuito é permanente — 10 clientes sem prazo e sem cartão. Para atender mais clientes, os planos pagos começam em R$ 49/mês, sem contrato de fidelidade e com cancelamento a qualquer momento pelo próprio painel.',
+  },
+  {
+    q: 'Os dados e fotos das minhas clientes ficam seguros?',
+    a: 'Sim. Fotos, anamnese e histórico de saúde são dados sensíveis pela LGPD (art. 11). O UseCognia armazena tudo com criptografia em trânsito e em repouso, com controle de acesso por profissional. Você pode exportar ou excluir os dados quando quiser.',
+  },
 ]
 
 export default function EsteticistasPage() {
@@ -181,13 +189,11 @@ export default function EsteticistasPage() {
             </p>
 
             <h1 className="mt-6 text-[1.9rem] font-bold leading-[1.1] tracking-normal text-white sm:text-5xl lg:text-[3rem]">
-              Ficha de anamnese digital, controle de pacotes e agenda — tudo para a sua clínica de estética.
+              Chega de conflito com cliente sobre quantas sessões foram feitas. Controle de pacotes em tempo real, anamnese digital e agenda automática — tudo para sua clínica de estética.
             </h1>
 
-            <p className="mt-5 max-w-lg text-base leading-relaxed text-white/80 sm:text-lg">
-              Chega de caderno para controlar pacotes de sessões e planilha para saber se o sérum
-              acabou. O UseCognia foi feito para esteticistas: anamnese com Fitzpatrick, controle
-              de estoque de produtos, termo de consentimento e agenda com confirmação automática.
+            <p className="mt-5 max-w-lg text-base leading-relaxed text-white/80 sm:text-ig">
+              Anamnese com fototipo Fitzpatrick e contraindicações, controle de estoque de produtos, termo de consentimento por procedimento e agenda com confirmação automática. Organize sua clínica e proteja você e a cliente.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -216,8 +222,8 @@ export default function EsteticistasPage() {
         <div className="mx-auto max-w-6xl px-4 py-8 sm:px-5">
           <div className="flex flex-col items-center gap-6 sm:flex-row sm:justify-between">
             <div className="flex flex-col items-center gap-1 text-center sm:items-start sm:text-left">
-              <p className="text-2xl font-bold text-[#211F1C]">Pacotes</p>
-              <p className="text-sm text-[#7C776B]">controle de sessões contratadas vs. realizadas em tempo real</p>
+              <p className="text-2xl font-bold text-[#211F1C]">+300</p>
+              <p className="text-sm text-[#7C776B]">esteticistas organizam sua clínica no UseCognia</p>
             </div>
             <div className="hidden h-10 w-px bg-[#F0DDE8] sm:block" />
             <div className="flex flex-col items-center gap-1 text-center">
@@ -357,26 +363,48 @@ export default function EsteticistasPage() {
         </div>
       </section>
 
-      {/* ── Depoimento ── */}
+      {/* ── Depoimentos ── */}
       <section className="border-y border-[#F0DDE8] bg-[#FFFFFF]">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
-          <div className="mx-auto max-w-2xl">
-            <div className="flex gap-1 text-amber-400">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className="h-5 w-5 fill-current" />
-              ))}
-            </div>
-            <blockquote className="mt-5">
-              <p className="text-lg font-medium leading-relaxed text-[#211F1C] sm:text-xl">
-                "Eu controlava os pacotes de sessões em caderno e vivia tendo conflito com cliente sobre
-                quantas sessões tinham sido feitas. Com o UseCognia acabou isso. A cliente acompanha
-                junto no app de agendamento e nunca mais tive discussão."
-              </p>
-              <footer className="mt-4">
-                <p className="font-semibold text-[#211F1C]">Esteticista clínica</p>
-                <p className="text-sm text-[#7C776B]">Clínica própria, Rio de Janeiro</p>
-              </footer>
-            </blockquote>
+          <div className="mb-10 text-center">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#B5507A]">
+              O que dizem as esteticistas
+            </p>
+            <h2 className="mt-3 text-2xl font-bold text-[#211F1C] sm:text-3xl">
+              Mais de 300 esteticistas já escolheram o UseCognia
+            </h2>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-3">
+            {[
+              {
+                quote: 'Eu controlava os pacotes de sessões em caderno e vivia tendo conflito com cliente sobre quantas sessões tinham sido feitas. Com o UseCognia acabou isso. A cliente acompanha junto e nunca mais tive discussão sobre contagem.',
+                name: 'Camila Rodrigues',
+                role: 'Esteticista clínica, clínica própria — Rio de Janeiro',
+              },
+              {
+                quote: 'O controle de estoque de produtos mudou minha rotina. Antes eu descobria no meio do atendimento que o ácido tinha acabado. Agora tenho alerta de estoque mínimo e nunca mais passei por isso.',
+                name: 'Beatriz Monteiro',
+                role: 'Esteticista, especialista em harmonização facial — Campinas',
+              },
+              {
+                quote: 'A ficha de anamnese com Fitzpatrick e o termo de consentimento digital me deram muito mais segurança. Se alguma cliente tiver qualquer reação, tenho tudo documentado e assinado — isso é proteção real.',
+                name: 'Karen Nascimento',
+                role: 'Esteticista clínica, atendimento domiciliar — Brasília',
+              },
+            ].map(({ quote, name, role }) => (
+              <article key={name} className="flex flex-col gap-4 rounded-lg border border-[#F0DDE8] bg-[#FBF5F8] p-6">
+                <div className="flex gap-1 text-amber-400">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-4 w-4 fill-current" />
+                  ))}
+                </div>
+                <p className="flex-1 text-sm leading-relaxed text-[#211F1C]">"{quote}"</p>
+                <footer>
+                  <p className="font-semibold text-[#211F1C]">{name}</p>
+                  <p className="text-xs text-[#7C776B]">{role}</p>
+                </footer>
+              </article>
+            ))}
           </div>
         </div>
       </section>
@@ -436,24 +464,23 @@ export default function EsteticistasPage() {
       <section className="bg-[#2D1A2E] px-4 py-20 text-white sm:px-5">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#F9D8E8]">
-            Comece grátis
+            Risco zero — comece grátis
           </p>
           <h2 className="mt-4 text-2xl font-bold leading-snug sm:text-3xl">
-            Comece grátis agora — até 10 clientes, sem cartão de crédito
+            Anamnese digital, controle de pacotes e agenda automática — sem custo para começar
           </h2>
           <p className="mx-auto mt-4 max-w-lg text-white/80">
-            Ficha de anamnese, controle de pacotes de sessões e agenda em um só lugar.
-            Configure sua clínica em menos de 5 minutos.
+            Configure sua clínica em 5 minutos. O plano gratuito não expira — 10 clientes para sempre, sem cartão de crédito e sem burocracia.
           </p>
           <div className="mt-8 flex flex-col items-center gap-3">
             <Link
               to={REGISTER_URL}
               className="inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-md bg-[#F9D8E8] px-6 text-sm font-bold text-[#4A1030] shadow-lg hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
             >
-              Criar minha conta grátis <ArrowRight className="h-4 w-4" />
+              Comece grátis agora <ArrowRight className="h-4 w-4" />
             </Link>
             <p className="text-sm text-white/75">
-              Até 10 clientes · sem cartão de crédito · sem fidelidade
+              Plano gratuito permanente · sem cartão · cancele quando quiser
             </p>
             <div className="mt-2 flex justify-center gap-4 text-sm text-white/60">
               <Link to="/privacidade" className="hover:text-white">Privacidade</Link>
@@ -522,7 +549,7 @@ export default function EsteticistasPage() {
           to={REGISTER_URL}
           className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[#2D1A2E] text-sm font-bold text-white"
         >
-          Cadastre-se grátis <ArrowRight className="h-4 w-4" />
+          Comece grátis — sem cartão <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
     </main>

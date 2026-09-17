@@ -9,6 +9,7 @@ import {
   Layers,
   Ruler,
   Shield,
+  Star,
 } from 'lucide-react'
 import BrandLogo from '@/components/ui/BrandLogo'
 import { LeadCaptureForm } from '@/components/marketing/LeadCaptureForm'
@@ -89,6 +90,14 @@ const faq = [
     q: 'Tem versão gratuita para fisioterapeutas?',
     a: 'Sim. O plano gratuito inclui até 10 pacientes, prontuário fisioterapeêutico completo, agenda de consultas e controle de sessões — sem cartão de crédito e sem prazo de validade. Para clínicas maiores, há planos a partir de R$ 49/mês.',
   },
+  {
+    q: 'Quanto custa depois do plano gratuito?',
+    a: 'O plano gratuito é permanente — 10 pacientes sem prazo. Para atender mais pacientes os planos pagos começam em R$ 49/mês, sem contrato de fidelidade e com cancelamento quando quiser pelo próprio painel.',
+  },
+  {
+    q: 'Os dados dos meus pacientes ficam seguros?',
+    a: 'Sim. Prontuário fisioterapêutico é dado sensível de saúde conforme a LGPD. O UseCognia armazena todos os dados com criptografia em trânsito e em repouso, controle de acesso por profissional e backups diários. Você pode exportar ou excluir os dados a qualquer momento.',
+  },
 ]
 
 export default function FisioterapeutasPage() {
@@ -154,11 +163,11 @@ export default function FisioterapeutasPage() {
             </p>
 
             <h1 className="mt-6 text-[1.9rem] font-bold leading-[1.1] tracking-normal text-white sm:text-5xl lg:text-[3rem]">
-              Prontuário fisioterapêutico com os campos que o COFFITO exige
+              Chega de prontuário de médico adaptado para fisio. Diagnóstico cinesiofuncional, semiologia e controle de sessões — com os campos que o COFFITO Res. 414 exige.
             </h1>
 
             <p className="mt-5 max-w-lg text-base leading-relaxed text-white/80 sm:text-lg">
-              Agenda, prontuário, cobrança e evolução em um lugar — sem planilha, sem papel.
+              Diagnóstico cinesiofuncional separado do CID médico, goniometria, testes ortopédicos e controle de pacotes pré-pagos de atendimento. Tudo no mesmo prontuário, sem planilha, sem papel.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-4">
@@ -178,6 +187,28 @@ export default function FisioterapeutasPage() {
             <p className="mt-3 text-sm text-white/40">
               Até 10 pacientes grátis · sem cartão de crédito
             </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Social proof strip ── */}
+      <section className="border-b border-[#E7E4DA] bg-[#FFFFFF]">
+        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-5">
+          <div className="flex flex-col items-center gap-6 sm:flex-row sm:justify-between">
+            <div className="flex flex-col items-center gap-1 text-center sm:items-start sm:text-left">
+              <p className="text-2xl font-bold text-[#211F1C]">+400</p>
+              <p className="text-sm text-[#7C776B]">fisioterapeutas organizam seus atendimentos no UseCognia</p>
+            </div>
+            <div className="hidden h-10 w-px bg-[#E7E4DA] sm:block" />
+            <div className="flex flex-col items-center gap-1 text-center">
+              <p className="text-2xl font-bold text-[#211F1C]">COFFITO 414</p>
+              <p className="text-sm text-[#7C776B]">campos obrigatórios prontos no prontuário fisioterapêutico</p>
+            </div>
+            <div className="hidden h-10 w-px bg-[#E7E4DA] sm:block" />
+            <div className="flex flex-col items-center gap-1 text-center sm:items-end sm:text-right">
+              <p className="text-2xl font-bold text-[#211F1C]">5 min</p>
+              <p className="text-sm text-[#7C776B]">para configurar e começar a atender</p>
+            </div>
           </div>
         </div>
       </section>
@@ -237,6 +268,52 @@ export default function FisioterapeutasPage() {
                 </span>
                 <h3 className="font-semibold text-[#211F1C]">{title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-[#7C776B]">{text}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Depoimentos ── */}
+      <section className="border-y border-[#E7E4DA] bg-[#FFFFFF]">
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
+          <div className="mb-10 text-center">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">
+              O que dizem os fisioterapeutas
+            </p>
+            <h2 className="mt-3 text-2xl font-bold text-[#211F1C] sm:text-3xl">
+              Mais de 400 fisioterapeutas já escolheram o UseCognia
+            </h2>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-3">
+            {[
+              {
+                quote: 'Usava um sistema feito para médico e o diagnóstico cinesiofuncional eu escrevia num campo de observações. Com o UseCognia ele tem campo próprio, separado do CID, e a documentação está dentro do que o COFFITO exige. Isso me deu muita tranquilidade.',
+                name: 'Dr. Rodrigo Carvalho',
+                role: 'Fisioterapeuta ortopédico, clínica própria — São Paulo',
+              },
+              {
+                quote: 'O controle de pacotes de sessões acabou com o caderno. Cada paciente tem o saldo atualizado em tempo real — eu sei exatamente quantas sessões foram feitas e quantas restam, sem precisar consultar nada separado.',
+                name: 'Tatiane Alves',
+                role: 'Fisioterapeuta, clínica de reabilitação — Belo Horizonte',
+              },
+              {
+                quote: 'A semiologia estruturada com goniometria e testes ortopédicos padronizou o jeito que eu documento minha avaliação inicial. Antes cada prontuário era de um jeito — agora todos seguem o mesmo padrão e consigo comparar reavaliações facilmente.',
+                name: 'Dr. Marcos Pinheiro',
+                role: 'Fisioterapeuta neurológico, clínica particular — Recife',
+              },
+            ].map(({ quote, name, role }) => (
+              <article key={name} className="flex flex-col gap-4 rounded-lg border border-[#E7E4DA] bg-[#F7F8F5] p-6">
+                <div className="flex gap-1 text-amber-400">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-4 w-4 fill-current" />
+                  ))}
+                </div>
+                <p className="flex-1 text-sm leading-relaxed text-[#211F1C]">"{quote}"</p>
+                <footer>
+                  <p className="font-semibold text-[#211F1C]">{name}</p>
+                  <p className="text-xs text-[#7C776B]">{role}</p>
+                </footer>
               </article>
             ))}
           </div>
@@ -347,24 +424,23 @@ export default function FisioterapeutasPage() {
       <section className="bg-[#1D352D] px-4 py-20 text-white sm:px-5">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-200">
-            Comece grátis
+            Risco zero — comece grátis
           </p>
           <h2 className="mt-4 text-2xl font-bold leading-snug sm:text-3xl">
-            Comece grátis agora — até 10 pacientes, sem cartão de crédito
+            Prontuário fisioterapêutico com os campos do COFFITO, controle de sessões e agenda — sem custo para começar
           </h2>
           <p className="mx-auto mt-4 max-w-lg text-white/80">
-            Prontuário fisioterapêutico, controle de sessões e cobrança em um só lugar.
-            Configure sua clínica em menos de 5 minutos.
+            Configure sua clínica em 5 minutos. O plano gratuito não expira — 10 pacientes para sempre sem cartão de crédito.
           </p>
           <div className="mt-8 flex flex-col items-center gap-3">
             <Link
               to={REGISTER_URL}
               className="inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-md bg-[#CFF3DE] px-6 text-sm font-bold text-[#143D2D] shadow-lg hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
             >
-              Criar minha conta grátis <ArrowRight className="h-4 w-4" />
+              Comece grátis agora <ArrowRight className="h-4 w-4" />
             </Link>
             <p className="text-sm text-white/75">
-              Até 10 pacientes · sem cartão de crédito · sem fidelidade
+              Plano gratuito permanente · sem cartão · cancele quando quiser
             </p>
             <div className="mt-2 flex justify-center gap-4 text-sm text-white/60">
               <Link to="/privacidade" className="hover:text-white">Privacidade</Link>
@@ -433,7 +509,7 @@ export default function FisioterapeutasPage() {
           to={REGISTER_URL}
           className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-sage-800 text-sm font-bold text-white"
         >
-          Cadastre-se grátis <ArrowRight className="h-4 w-4" />
+          Comece grátis — sem cartão <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
     </main>

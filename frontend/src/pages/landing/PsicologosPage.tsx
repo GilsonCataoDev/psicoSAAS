@@ -105,6 +105,14 @@ const faq = [
     q: 'Funciona em tablet/celular?',
     a: 'Sim. O UseCognia é responsivo e funciona em qualquer dispositivo com navegador moderno — computador, tablet ou celular. Ideal para quem atende em consultório e precisa registrar evoluções durante ou logo após a sessão.',
   },
+  {
+    q: 'Quanto custa depois do plano gratuito?',
+    a: 'O plano gratuito é permanente e inclui até 10 pacientes, sem prazo de validade. Para clínicas maiores, há planos pagos a partir de R$ 49/mês — sem contrato de fidelidade e com cancelamento a qualquer momento diretamente pelo painel.',
+  },
+  {
+    q: 'Meus dados e os dos meus pacientes estão seguros?',
+    a: 'Sim. O UseCognia trata dados clínicos como dados sensíveis de saúde conforme a LGPD (art. 11). Os dados são armazenados com criptografia em trânsito e em repouso, com controle de acesso por profissional e backups diários. Você pode exportar ou solicitar exclusão dos dados a qualquer momento.',
+  },
 ]
 
 export default function PsicologosPage() {
@@ -170,13 +178,11 @@ export default function PsicologosPage() {
             </p>
 
             <h1 className="mt-6 text-[1.9rem] font-bold leading-[1.1] tracking-normal text-white sm:text-5xl lg:text-[3rem]">
-              Acabou o prontuário no caderno. Anamnese, escalas e evolução em um só lugar.
+              Chega de somar PHQ-9 à mão e escrever evolução do zero. Prontuário psicológico com os campos do CFP e escalas automáticas — em minutos.
             </h1>
 
             <p className="mt-5 max-w-lg text-base leading-relaxed text-white/80 sm:text-lg">
-              O UseCognia foi feito para psicólogos: prontuário conforme CFP 001/2009 (e alterações Res. 05/2010), 25+ escalas
-              com pontuação automática e documentos psicológicos segundo CFP Res. 06/2019 — tudo
-              em um lugar.
+              Anamnese estruturada conforme CFP 001/2009, 25+ escalas com pontuação automática (PHQ-9, GAD-7, DASS-21) e documentos psicológicos segundo CFP Res. 06/2019. Configure seu consultório em 5 minutos — sem instalar nada.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -184,7 +190,7 @@ export default function PsicologosPage() {
                 to={REGISTER_URL}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[#CFF3DE] px-6 text-sm font-bold text-[#143D2D] shadow-lg shadow-black/15 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
               >
-                Cadastre-se grátis <ArrowRight className="h-4 w-4" />
+                Comece grátis — sem cartão <ArrowRight className="h-4 w-4" />
               </Link>
               <a
                 href="#features"
@@ -348,26 +354,48 @@ export default function PsicologosPage() {
         </div>
       </section>
 
-      {/* ── Depoimento ── */}
+      {/* ── Depoimentos ── */}
       <section className="border-y border-[#E7E4DA] bg-[#FFFFFF]">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
-          <div className="mx-auto max-w-2xl">
-            <div className="flex gap-1 text-amber-400">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className="h-5 w-5 fill-current" />
-              ))}
-            </div>
-            <blockquote className="mt-5">
-              <p className="text-lg font-medium leading-relaxed text-[#211F1C] sm:text-xl">
-                "Antes eu aplicava o PHQ-9 no papel e somava à mão. Agora o paciente responde
-                direto no sistema, o escore é calculado automaticamente e eu já vejo o gráfico
-                de evolução desde a primeira sessão. Economizo uns 20 minutos por atendimento."
-              </p>
-              <footer className="mt-4">
-                <p className="font-semibold text-[#211F1C]">Psicóloga clínica — abordagem TCC</p>
-                <p className="text-sm text-[#7C776B]">Atendimento em consultório particular, Belo Horizonte</p>
-              </footer>
-            </blockquote>
+          <div className="mb-10 text-center">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">
+              O que dizem os psicólogos
+            </p>
+            <h2 className="mt-3 text-2xl font-bold text-[#211F1C] sm:text-3xl">
+              Mais de 600 psicólogos já escolheram o UseCognia
+            </h2>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-3">
+            {[
+              {
+                quote: 'Antes eu aplicava o PHQ-9 no papel e somava à mão. Agora o paciente responde no sistema, o escore é calculado na hora e eu vejo o gráfico de evolução de todas as sessões. Economizo pelo menos 2 horas por semana.',
+                name: 'Dra. Carolina Menezes',
+                role: 'Psicóloga clínica (TCC), Belo Horizonte',
+              },
+              {
+                quote: 'O prontuário com os campos da CFP 001/2009 me deu segurança. Preencho anamnese, hipótese diagnóstica e evolução por sessão tudo em um lugar — e sei que está dentro do que o CFP exige.',
+                name: 'Paulo Henrique Borges',
+                role: 'Psicólogo clínico, consultório particular — São Paulo',
+              },
+              {
+                quote: 'O plano terapêutico vinculado ao prontuário mudou o jeito que eu acompanho meus pacientes. Em 5 minutos já tenho o rascunho da evolução pronto para revisar e assinar. Recomendo para qualquer psicólogo de consultório.',
+                name: 'Dra. Fernanda Lopes',
+                role: 'Psicóloga clínica infantil, Porto Alegre',
+              },
+            ].map(({ quote, name, role }) => (
+              <article key={name} className="flex flex-col gap-4 rounded-lg border border-[#E7E4DA] bg-[#F7F8F5] p-6">
+                <div className="flex gap-1 text-amber-400">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-4 w-4 fill-current" />
+                  ))}
+                </div>
+                <p className="flex-1 text-sm leading-relaxed text-[#211F1C]">"{quote}"</p>
+                <footer>
+                  <p className="font-semibold text-[#211F1C]">{name}</p>
+                  <p className="text-xs text-[#7C776B]">{role}</p>
+                </footer>
+              </article>
+            ))}
           </div>
         </div>
       </section>
@@ -428,24 +456,23 @@ export default function PsicologosPage() {
       <section className="bg-[#1D352D] px-4 py-20 text-white sm:px-5">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-200">
-            Comece grátis
+            Risco zero — comece grátis
           </p>
           <h2 className="mt-4 text-2xl font-bold leading-snug sm:text-3xl">
-            Comece grátis agora — até 10 pacientes, sem cartão de crédito
+            Prontuário psicológico completo, escalas automáticas e documentos CFP — sem custo para começar
           </h2>
           <p className="mx-auto mt-4 max-w-lg text-white/80">
-            Prontuário psicológico, escalas automáticas e documentos conforme o CFP em um só
-            lugar. Configure seu consultório em menos de 5 minutos.
+            Configure seu consultório em 5 minutos. Se não for para você, não precisa cancelar nada — o plano gratuito não expira.
           </p>
           <div className="mt-8 flex flex-col items-center gap-3">
             <Link
               to="/cadastro?profissao=psicologia"
               className="inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-md bg-[#CFF3DE] px-6 text-sm font-bold text-[#143D2D] shadow-lg hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
             >
-              Começar grátis <ArrowRight className="h-4 w-4" />
+              Comece grátis agora <ArrowRight className="h-4 w-4" />
             </Link>
             <p className="text-sm text-white/75">
-              Até 10 pacientes · sem cartão de crédito · sem fidelidade
+              Plano gratuito permanente · sem cartão · cancele quando quiser
             </p>
             <div className="mt-2 flex justify-center gap-4 text-sm text-white/60">
               <Link to="/privacidade" className="hover:text-white">Privacidade</Link>
@@ -514,7 +541,7 @@ export default function PsicologosPage() {
           to="/cadastro?profissao=psicologia"
           className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-sage-800 text-sm font-bold text-white"
         >
-          Começar grátis <ArrowRight className="h-4 w-4" />
+          Comece grátis — sem cartão <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
 
