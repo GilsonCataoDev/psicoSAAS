@@ -2115,7 +2115,7 @@ export const BATTERIES: Battery[] = [
     label: 'Quadril e Joelho',
     description: 'Dor, funcionalidade e capacidade dos membros inferiores.',
     professions: ['fisioterapia'],
-    instrumentIds: ['eva-dor', 'oswestry'],
+    instrumentIds: ['eva-dor', 'tinetti', 'berg'],
   },
   {
     id: 'avaliacao-equilibrio-quedas',
