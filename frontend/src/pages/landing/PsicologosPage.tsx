@@ -46,13 +46,13 @@ const features = [
   {
     icon: BarChart3,
     title: '25+ escalas validadas com pontuação automática',
-    text: 'PHQ-9, GAD-7, DASS-21, BDI-II, BAI e outras escalas com aplicação digital, cálculo automático do escore e gráfico de evolução ao longo do tratamento.',
+    text: 'PHQ-9, GAD-7, DASS-21, BDI-II (versão adaptada para o Brasil), BAI (versão adaptada para o Brasil) e outras escalas com aplicação digital, cálculo automático do escore e gráfico de evolução ao longo do tratamento.',
     accent: 'text-sky-600 bg-sky-50',
   },
   {
     icon: Sparkles,
     title: 'Avaliação Neuropsicológica guiada por IA',
-    text: 'Módulo exclusivo para estruturar laudos neuropsicológicos, integrar resultados de instrumentos e gerar rascunho de laudo para revisão do profissional.',
+    text: 'Módulo para auxiliar na estruturação de laudos neuropsicológicos e gerar rascunho de laudo para revisão e validação do profissional. A interpretação dos instrumentos e as conclusões diagnósticas são sempre de responsabilidade exclusiva do neuropsicólogo.',
     accent: 'text-violet-600 bg-violet-50',
   },
   {
@@ -77,7 +77,7 @@ const features = [
 
 const cfpItems = [
   {
-    norm: 'CFP Res. 001/2009',
+    norm: 'CFP Res. 001/2009 (e alterações – Res. 05/2010)',
     title: 'Prontuário Psicológico',
     text: 'Define os campos obrigatórios do prontuário: identificação, demanda, hipótese diagnóstica, evolução e encerramento do caso. O UseCognia estrutura todos esses campos nativamente.',
   },
@@ -99,7 +99,7 @@ const faq = [
   },
   {
     q: 'O relatório psicológico segue o CFP?',
-    a: 'Os modelos de documentos psicológicos foram elaborados com base na CFP Res. 06/2019 e incluem todos os elementos obrigatórios: dados de identificação, método utilizado, análise, conclusão e identificação do profissional com número de CRP. A responsabilidade pelo conteúdo técnico é sempre do psicólogo.',
+    a: 'Os modelos de documentos psicológicos foram elaborados com base na CFP Res. 06/2019 e contemplam os elementos previstos na resolução: dados de identificação, método utilizado, análise, conclusão e identificação do profissional com número de CRP. A responsabilidade pelo conteúdo técnico é sempre do psicólogo.',
   },
   {
     q: 'Funciona em tablet/celular?',
@@ -174,7 +174,7 @@ export default function PsicologosPage() {
             </h1>
 
             <p className="mt-5 max-w-lg text-base leading-relaxed text-white/80 sm:text-lg">
-              O UseCognia foi feito para psicólogos: prontuário conforme CFP 001/2009, 25+ escalas
+              O UseCognia foi feito para psicólogos: prontuário conforme CFP 001/2009 (e alterações Res. 05/2010), 25+ escalas
               com pontuação automática e documentos psicológicos segundo CFP Res. 06/2019 — tudo
               em um lugar.
             </p>
@@ -290,7 +290,7 @@ export default function PsicologosPage() {
                 <strong>Responsabilidade técnica:</strong> a IA do UseCognia gera rascunhos para
                 revisão do profissional. O diagnóstico psicológico, a conduta clínica e os
                 documentos psicológicos são sempre de responsabilidade exclusiva do psicólogo
-                habilitado, conforme a CFP Res. 001/2009 e a CFP Res. 06/2019.
+                habilitado, conforme a CFP Res. 001/2009 (e alterações Res. 05/2010) e a CFP Res. 06/2019.
               </p>
             </div>
           </div>
@@ -336,7 +336,7 @@ export default function PsicologosPage() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm leading-relaxed text-[#49443D]">
               <strong>Baixe o checklist gratuito</strong> com todos os campos obrigatórios do
-              prontuário psicológico segundo a CFP Res. 001/2009.
+              prontuário psicológico segundo a CFP Res. 001/2009 (e alterações Res. 05/2010).
             </p>
             <a
               href="#lead"

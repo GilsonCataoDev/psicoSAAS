@@ -83,7 +83,7 @@ const cfnItems = [
   },
   {
     norm: 'CFN 599/2018',
-    title: 'Código de ética do nutricionista',
+    title: 'Responsabilidade técnica conforme CFN 599/2018',
     text: 'A IA do UseCognia gera apenas rascunhos para revisão profissional. O diagnóstico nutricional, o plano alimentar e a conduta são sempre de responsabilidade exclusiva do nutricionista habilitado — conforme o código de ética.',
   },
 ]
@@ -91,7 +91,7 @@ const cfnItems = [
 const faq = [
   {
     q: 'O UseCognia atende às exigências do CFN?',
-    a: 'Sim. O prontuário nutricional do UseCognia inclui todos os campos exigidos pela CFN 594/2017: identificação completa, anamnese alimentar, avaliação antropométrica, diagnóstico nutricional, plano alimentar e registro de evolução. Baixe o checklist gratuito nesta página para conferir campo a campo.',
+    a: 'Sim. Sim. O prontuário nutricional do UseCognia contempla os campos previstos na CFN 594/2017: identificação completa, anamnese alimentar, avaliação antropométrica, diagnóstico nutricional, plano alimentar e registro de evolução. Baixe o checklist gratuito nesta página para conferir campo a campo.',
   },
   {
     q: 'Posso emitir plano alimentar pelo sistema?',
@@ -166,7 +166,7 @@ export default function NutricionistasPage() {
             </p>
 
             <h1 className="mt-6 text-[1.9rem] font-bold leading-[1.1] tracking-normal text-white sm:text-5xl lg:text-[3rem]">
-              Quanto tempo você perdeu esta semana preenchendo anamnese alimentar em papel?
+              Chega de prontuário nutricional no papel. Anamnese alimentar, plano e evolução em um só lugar.
             </h1>
 
             <p className="mt-5 max-w-lg text-base leading-relaxed text-white/80 sm:text-lg">

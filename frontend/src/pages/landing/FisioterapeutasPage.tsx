@@ -3,10 +3,12 @@ import { Link } from 'react-router-dom'
 import {
   ArrowRight,
   Activity,
+  CheckCircle2,
   ChevronRight,
   FileCheck2,
   Layers,
   Ruler,
+  Shield,
 } from 'lucide-react'
 import BrandLogo from '@/components/ui/BrandLogo'
 import { LeadCaptureForm } from '@/components/marketing/LeadCaptureForm'
@@ -57,6 +59,38 @@ const features = [
   },
 ]
 
+const coffitoItems = [
+  {
+    norm: 'COFFITO Res. 414/2012',
+    title: 'Campos obrigatórios do prontuário fisioterapeêutico',
+    text: 'A resolução exige identificação do paciente, exame físico por semiologia, diagnóstico cinesiofuncional, prognóstico, plano terapêutico com quantitativo provável de atendimentos e registro de evolução por sessão com assinatura e número de CREFITO.',
+  },
+  {
+    norm: 'LGPD — Lei 13.709/2018',
+    title: 'Proteção de dados do paciente',
+    text: 'Prontuário fisioterapeêutico é dado pessoal sensível (LGPD art. 11). O UseCognia adota pseudonimização, controle de acesso por profissional e retenção conforme o prazo regulatório, mantendo a privacidade do paciente em conformidade com a lei.',
+  },
+]
+
+const faq = [
+  {
+    q: 'O prontuário atende às exigências da COFFITO Res. 414/2012?',
+    a: 'Sim. O prontuário fisioterapeêutico do UseCognia contempla os campos previstos na COFFITO Res. 414/2012: identificação, exame físico com semiologia, diagnóstico cinesiofuncional, prognóstico, plano terapêutico, quantitativo de atendimentos e evolução por sessão com identificação do CREFITO.',
+  },
+  {
+    q: 'Posso controlar pacotes de sessões por paciente?',
+    a: 'Sim. O sistema permite cadastrar pacotes pré-pagos de atendimento e controlar automaticamente o saldo de sessões por paciente — eliminando o caderno de controle manual.',
+  },
+  {
+    q: 'Como funciona o diagnóstico cinesiofuncional separado do CID médico?',
+    a: 'O prontuário do UseCognia tem um campo exclusivo para o diagnóstico cinesiofuncional, separado do campo de encaminhamento médico. Isso garante que o raciocínio clínico fisioterapeêutico fique documentado de forma independente, conforme exige a resolução do COFFITO.',
+  },
+  {
+    q: 'Tem versão gratuita para fisioterapeutas?',
+    a: 'Sim. O plano gratuito inclui até 10 pacientes, prontuário fisioterapeêutico completo, agenda de consultas e controle de sessões — sem cartão de crédito e sem prazo de validade. Para clínicas maiores, há planos a partir de R$ 49/mês.',
+  },
+]
+
 export default function FisioterapeutasPage() {
   usePageSeo({
     title: 'Prontuário fisioterapêutico digital — UseCognia',
@@ -88,6 +122,7 @@ export default function FisioterapeutasPage() {
           </Link>
           <nav className="hidden items-center gap-6 text-sm font-medium text-[#5F5A51] md:flex">
             <a href="#features" className="hover:text-sage-700">Funcionalidades</a>
+            <a href="#coffito" className="hover:text-sage-700">Conformidade COFFITO</a>
             <a href="#lead" className="hover:text-sage-700">Checklist grátis</a>
             <Link to="/blog" className="hover:text-sage-700">Blog</Link>
             <Link to="/precos" className="hover:text-sage-700">Planos</Link>
@@ -230,6 +265,81 @@ export default function FisioterapeutasPage() {
             professionOptions={['fisioterapia']}
             ctaLabel="Enviar checklist por e-mail"
           />
+        </div>
+      </section>
+
+      {/* ── Conformidade regulatória (COFFITO) ── */}
+      <section id="coffito" className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">
+            Conformidade regulatória
+          </p>
+          <h2 className="mt-3 text-2xl font-bold text-[#211F1C] sm:text-3xl">
+            Prontuário alinhado às resoluções do COFFITO.
+          </h2>
+          <p className="mt-4 leading-relaxed text-[#5F5A51]">
+            O UseCognia foi desenhado com base nas resoluções do Conselho Federal de Fisioterapia
+            e Terapia Ocupacional para garantir que sua documentação clínica esteja em conformidade.
+          </p>
+        </div>
+
+        <div className="mt-10 grid gap-6 sm:grid-cols-2">
+          {coffitoItems.map(({ norm, title, text }) => (
+            <article
+              key={norm}
+              className="rounded-lg border border-[#E7E4DA] bg-[#FFFFFF] p-6 shadow-sm"
+            >
+              <div className="flex items-start gap-3">
+                <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sage-50 text-sage-700">
+                  <Shield className="h-5 w-5" />
+                </span>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.15em] text-sage-700">{norm}</p>
+                  <h3 className="mt-1 font-semibold text-[#211F1C]">{title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-[#7C776B]">{text}</p>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <div className="mt-8 rounded-lg border border-sky-100 bg-sky-50 p-5">
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-sky-600" />
+            <p className="text-sm leading-relaxed text-[#49443D]">
+              <strong>Responsabilidade técnica:</strong> a IA do UseCognia gera apenas rascunhos
+              de evolução para revisão do fisioterapeuta. O diagnóstico cinesiofuncional, o plano
+              terapêutico e a conduta são sempre de responsabilidade exclusiva do fisioterapeuta
+              habilitado, conforme a COFFITO Res. 414/2012.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── FAQ ── */}
+      <section className="border-y border-[#E7E4DA] bg-[#FFFFFF]">
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
+          <div className="mx-auto max-w-2xl">
+            <div className="text-center">
+              <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">
+                Dúvidas frequentes
+              </p>
+              <h2 className="mt-3 text-2xl font-bold text-[#211F1C] sm:text-3xl">
+                Perguntas de fisioterapeutas
+              </h2>
+            </div>
+            <div className="mt-10 divide-y divide-[#E7E4DA]">
+              {faq.map(({ q, a }) => (
+                <details key={q} className="group py-5">
+                  <summary className="flex cursor-pointer list-none items-start justify-between gap-4">
+                    <h3 className="font-semibold text-[#211F1C]">{q}</h3>
+                    <ChevronRight className="mt-0.5 h-5 w-5 shrink-0 text-[#7C776B] transition-transform group-open:rotate-90" />
+                  </summary>
+                  <p className="mt-3 text-sm leading-relaxed text-[#5F5A51]">{a}</p>
+                </details>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 

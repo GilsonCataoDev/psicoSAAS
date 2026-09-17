@@ -186,6 +186,14 @@ export function LeadCaptureForm({
           <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{serverError}</p>
         )}
 
+        {/* Aviso LGPD - exibido ANTES do botão de submit conforme art. 9° LGPD */}
+        <p className="text-center text-xs leading-5 text-gray-500">
+          Seus dados serão usados exclusivamente para contato sobre o UseCognia, conforme nossa{' '}
+          <a href="/privacidade" className="underline hover:text-gray-700">Política de Privacidade</a>.
+          Você pode solicitar exclusão a qualquer momento pelo e-mail{' '}
+          <a href="mailto:privacidade@usecognia.com.br" className="underline hover:text-gray-700">privacidade@usecognia.com.br</a>.
+        </p>
+
         {/* Submit */}
         <button
           type="submit"
@@ -194,12 +202,6 @@ export function LeadCaptureForm({
         >
           {isSubmitting ? 'Enviando…' : ctaLabel}
         </button>
-        <p className="text-center text-xs leading-5 text-gray-500">
-          Seus dados serão usados exclusivamente para contato sobre o UseCognia, conforme nossa{' '}
-          <a href="/privacidade" className="underline hover:text-gray-700">Política de Privacidade</a>.
-          Você pode solicitar exclusão a qualquer momento pelo e-mail{' '}
-          <a href="mailto:privacidade@usecognia.com.br" className="underline hover:text-gray-700">privacidade@usecognia.com.br</a>.
-        </p>
       </form>
     </div>
   )
