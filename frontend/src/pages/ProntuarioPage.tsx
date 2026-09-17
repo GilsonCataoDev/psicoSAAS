@@ -21,6 +21,8 @@ import EvaEvolutionChart from '@/components/instruments/EvaEvolutionChart'
 import AntropometricoChart from '@/components/instruments/AntropometricoChart'
 import FuncionalChart from '@/components/instruments/FuncionalChart'
 import EscalasEvolutionChart from '@/components/instruments/EscalasEvolutionChart'
+import FisioEscalasChart from '@/components/instruments/FisioEscalasChart'
+import NutriEscalasChart from '@/components/instruments/NutriEscalasChart'
 
 const TABS = [
   { id: 'identificacao', label: 'Identificação' },
@@ -1371,6 +1373,16 @@ export default function ProntuarioPage() {
             </section>
           )}
 
+          {/* Gráfico de evolução das escalas de fisioterapia — Berg, Tinetti, EVA-Dor */}
+          {isFisio && (
+            <section className="mt-6">
+              <h2 className="mb-3 text-base font-semibold text-neutral-800 dark:text-neutral-200">
+                Evolução das Escalas
+              </h2>
+              <FisioEscalasChart patientId={id ?? ''} />
+            </section>
+          )}
+
           {/* Gráfico de evolução antropométrica — exclusivo para nutrição */}
           {isNutri && (
             <section className="mt-8">
@@ -1378,6 +1390,16 @@ export default function ProntuarioPage() {
                 Evolução Antropométrica
               </h2>
               <AntropometricoChart patientId={id ?? ''} />
+            </section>
+          )}
+
+          {/* Gráfico de evolução das escalas de nutrição — PREDIMED */}
+          {isNutri && (
+            <section className="mt-6">
+              <h2 className="mb-3 text-base font-semibold text-neutral-800 dark:text-neutral-200">
+                Evolução das Escalas
+              </h2>
+              <NutriEscalasChart patientId={id ?? ''} />
             </section>
           )}
         </div>
