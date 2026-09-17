@@ -13,6 +13,7 @@ import { ReferralModule }  from '../referral/referral.module'
 import { BillingModule }   from '../billing/billing.module'
 import { AuditModule }     from '../audit/audit.module'
 import { PlanAccessModule } from '../../common/plan-access/plan-access.module'
+import { SalesModule }     from '../sales/sales.module'
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { PlanAccessModule } from '../../common/plan-access/plan-access.module'
     BillingModule,
     AuditModule,
     PlanAccessModule,
+    SalesModule,
     // SecurityModule e StorageModule sao @Global() — nao precisam ser importados aqui
   ],
   controllers: [AuthController],

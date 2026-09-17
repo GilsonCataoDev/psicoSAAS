@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common'
+import { Module, forwardRef } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { AsaasService } from './asaas.service'
 import { BillingWebhookService } from './billing-webhook.service'
@@ -11,9 +11,14 @@ import { WebhookEvent } from './entities/webhook-event.entity'
 import { User } from '../auth/entities/user.entity'
 import { EmailLog } from '../email/entities/email-log.entity'
 import { ReferralModule } from '../referral/referral.module'
+import { SalesModule } from '../sales/sales.module'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Subscription, WebhookEvent, User, EmailLog]), ReferralModule],
+  imports: [
+    TypeOrmModule.forFeature([Subscription, WebhookEvent, User, EmailLog]),
+    ReferralModule,
+    forwardRef(() => SalesModule),
+  ],
   controllers: [BillingController],
   providers: [
     AsaasService,

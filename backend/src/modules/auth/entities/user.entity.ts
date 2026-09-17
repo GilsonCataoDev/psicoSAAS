@@ -69,6 +69,10 @@ export class User {
   @Column({ nullable: true })
   referralCode?: string   // código usado no cadastro
 
+  /** Código do vendedor usado no cadastro (sistema de comissão). */
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  salesCouponCode?: string | null
+
   /** Token de reset de senha (HMAC hex) — limpo após uso ou expiração */
   @Column({ default: false })
   emailVerified: boolean

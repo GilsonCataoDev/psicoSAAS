@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
@@ -14,9 +14,11 @@ import {
   CreditCard,
   CircleDollarSign,
   Database,
+  DollarSign,
   Eye,
   Mail,
   MessageCircle,
+  Plus,
   Radar,
   Search,
   ShieldCheck,
@@ -928,8 +930,295 @@ function HealthScoresTab() {
   )
 }
 
+// ── Vendedores ────────────────────────────────────────────────────────────────
+
+type CommissionStatus = 'pending' | 'validating' | 'payable' | 'paid' | 'refunded' | 'chargeback'
+
+interface SalesRep {
+  id: string; name: string; email: string; couponCode: string
+  pixKeyType: string; status: string; commissionAmount: number
+  phone: string | null; createdAt: string; accessToken: string
+}
+
+interface SalesCommission {
+  id: string; status: CommissionStatus; couponCode: string
+  commissionAmount: number; grossAmount: number | null
+  paymentApprovedAt: string | null; commissionAvailableAt: string | null
+  commissionPaidAt: string | null; payoutReference: string | null
+  createdAt: string
+  salesRep: { id: string; name: string; email: string; pixKey: string; pixKeyType: string } | null
+  user: { name: string; email: string } | null
+}
+
+const COMM_STATUS_LABEL: Record<CommissionStatus, string> = {
+  pending: 'Aguardando', validating: 'Validando', payable: 'A pagar',
+  paid: 'Pago', refunded: 'Estornado', chargeback: 'Chargeback',
+}
+const COMM_STATUS_COLOR: Record<CommissionStatus, string> = {
+  pending: 'bg-neutral-100 text-neutral-600', validating: 'bg-amber-100 text-amber-700',
+  payable: 'bg-blue-100 text-blue-700', paid: 'bg-emerald-100 text-emerald-700',
+  refunded: 'bg-rose-100 text-rose-700', chargeback: 'bg-rose-100 text-rose-700',
+}
+
+function brlSales(v: number) {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
+}
+
+function VendedoresTab() {
+  const [reps, setReps] = useState<SalesRep[]>([])
+  const [commissions, setCommissions] = useState<SalesCommission[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selectedRep, setSelectedRep] = useState<string | null>(null)
+  const [showNewRep, setShowNewRep] = useState(false)
+  const [payoutRef, setPayoutRef] = useState('')
+  const [payoutCommId, setPayoutCommId] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  // new rep form
+  const [form, setForm] = useState({
+    name: '', email: '', phone: '', couponCode: '',
+    pixKey: '', pixKeyType: 'pix', commissionAmount: '48.95',
+  })
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const [repsRes, commsRes] = await Promise.all([
+        api.get('/sales/reps'),
+        api.get('/sales/commissions'),
+      ])
+      setReps(repsRes.data ?? [])
+      setCommissions(commsRes.data ?? [])
+    } catch { /* silencioso */ }
+    finally { setLoading(false) }
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  async function handleCreateRep() {
+    setSaving(true)
+    try {
+      await api.post('/sales/reps', {
+        name: form.name, email: form.email,
+        phone: form.phone || undefined,
+        couponCode: form.couponCode,
+        pixKey: form.pixKey,
+        pixKeyType: form.pixKeyType,
+        commissionAmount: Number(form.commissionAmount),
+      })
+      toast.success('Vendedor criado!')
+      setShowNewRep(false)
+      setForm({ name: '', email: '', phone: '', couponCode: '', pixKey: '', pixKeyType: 'pix', commissionAmount: '48.95' })
+      load()
+    } catch {
+      toast.error('Erro ao criar vendedor')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleToggleStatus(rep: SalesRep) {
+    try {
+      await api.patch(`/sales/reps/${rep.id}`, { status: rep.status === 'active' ? 'inactive' : 'active' })
+      load()
+    } catch { toast.error('Erro ao atualizar status') }
+  }
+
+  async function handleMarkPaid(commissionId: string) {
+    if (!payoutRef.trim()) { toast.error('Informe a referência do Pix'); return }
+    setSaving(true)
+    try {
+      await api.post(`/sales/commissions/${commissionId}/paid`, { payoutReference: payoutRef })
+      toast.success('Comissão marcada como paga!')
+      setPayoutCommId(null)
+      setPayoutRef('')
+      load()
+    } catch { toast.error('Erro ao marcar como paga') }
+    finally { setSaving(false) }
+  }
+
+  const repCommissions = (repId: string) =>
+    commissions.filter(c => c.salesRep?.id === repId)
+
+  const payableSum = (repId: string) =>
+    repCommissions(repId).filter(c => c.status === 'payable')
+      .reduce((s, c) => s + Number(c.commissionAmount), 0)
+
+  if (loading) return <div className="py-10 text-center text-sm text-neutral-400">Carregando…</div>
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-semibold text-neutral-800">Vendedores ({reps.length})</h2>
+        <button
+          onClick={() => setShowNewRep(v => !v)}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-sage-600 px-3 py-2 text-sm font-medium text-white hover:bg-sage-700"
+        >
+          <Plus className="h-4 w-4" /> Novo vendedor
+        </button>
+      </div>
+
+      {showNewRep && (
+        <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-neutral-700">Novo vendedor</h3>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {[
+              { label: 'Nome', key: 'name', type: 'text' },
+              { label: 'E-mail', key: 'email', type: 'email' },
+              { label: 'Telefone (opcional)', key: 'phone', type: 'text' },
+              { label: 'Código do cupom', key: 'couponCode', type: 'text' },
+              { label: 'Chave Pix', key: 'pixKey', type: 'text' },
+              { label: 'Comissão (R$)', key: 'commissionAmount', type: 'number' },
+            ].map(({ label, key, type }) => (
+              <div key={key}>
+                <label className="mb-1 block text-xs font-medium text-neutral-600">{label}</label>
+                <input
+                  type={type}
+                  value={(form as any)[key]}
+                  onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                  className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-sage-400"
+                />
+              </div>
+            ))}
+            <div>
+              <label className="mb-1 block text-xs font-medium text-neutral-600">Tipo da Chave Pix</label>
+              <select
+                value={form.pixKeyType}
+                onChange={e => setForm(f => ({ ...f, pixKeyType: e.target.value }))}
+                className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-sage-400"
+              >
+                {['cpf', 'cnpj', 'email', 'phone', 'random'].map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button onClick={handleCreateRep} disabled={saving}
+              className="rounded-lg bg-sage-600 px-4 py-2 text-sm font-medium text-white hover:bg-sage-700 disabled:opacity-50">
+              {saving ? 'Salvando…' : 'Salvar'}
+            </button>
+            <button onClick={() => setShowNewRep(false)}
+              className="rounded-lg border border-neutral-200 px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-100">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {reps.length === 0 ? (
+        <p className="text-sm text-neutral-400">Nenhum vendedor cadastrado.</p>
+      ) : (
+        <div className="space-y-2">
+          {reps.map(rep => (
+            <div key={rep.id} className="rounded-xl border border-neutral-200 bg-white">
+              <button
+                className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-neutral-50"
+                onClick={() => setSelectedRep(selectedRep === rep.id ? null : rep.id)}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-semibold text-neutral-800">{rep.name}</span>
+                    <code className="rounded bg-neutral-100 px-1.5 py-0.5 text-xs font-mono text-neutral-700">{rep.couponCode}</code>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${rep.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-neutral-100 text-neutral-500'}`}>
+                      {rep.status === 'active' ? 'Ativo' : 'Inativo'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-neutral-400 mt-0.5">{rep.email}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-sm font-semibold text-blue-700">{brlSales(payableSum(rep.id))}</p>
+                  <p className="text-xs text-neutral-400">a pagar</p>
+                </div>
+                <ChevronRight className={`h-4 w-4 text-neutral-400 transition-transform ${selectedRep === rep.id ? 'rotate-90' : ''}`} />
+              </button>
+
+              {selectedRep === rep.id && (
+                <div className="border-t border-neutral-100 px-4 pb-4">
+                  <div className="flex justify-between pt-3 pb-2">
+                    <p className="text-xs font-semibold text-neutral-600">
+                      Comissões ({repCommissions(rep.id).length})
+                    </p>
+                    <div className="flex gap-2">
+                      <a
+                        href={`/vendedor/${rep.accessToken}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-sage-600 hover:underline"
+                      >
+                        Portal do vendedor ↗
+                      </a>
+                      <button
+                        onClick={() => handleToggleStatus(rep)}
+                        className="text-xs text-neutral-500 hover:text-neutral-700 underline"
+                      >
+                        {rep.status === 'active' ? 'Desativar' : 'Ativar'}
+                      </button>
+                    </div>
+                  </div>
+                  {repCommissions(rep.id).length === 0 ? (
+                    <p className="text-xs text-neutral-400 py-2">Sem comissões.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {repCommissions(rep.id).map(c => (
+                        <div key={c.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-neutral-50 px-3 py-2">
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium text-neutral-700">{c.user?.name ?? 'Cliente'}</p>
+                            <p className="text-xs text-neutral-400">{c.user?.email}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${COMM_STATUS_COLOR[c.status]}`}>
+                              {COMM_STATUS_LABEL[c.status]}
+                            </span>
+                            <span className="text-sm font-semibold text-neutral-800">{brlSales(c.commissionAmount)}</span>
+                            {c.status === 'payable' && (
+                              payoutCommId === c.id ? (
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="text"
+                                    placeholder="Ref. Pix"
+                                    value={payoutRef}
+                                    onChange={e => setPayoutRef(e.target.value)}
+                                    className="w-28 rounded border border-neutral-200 px-2 py-1 text-xs outline-none"
+                                  />
+                                  <button
+                                    onClick={() => handleMarkPaid(c.id)}
+                                    disabled={saving}
+                                    className="rounded bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                                  >
+                                    OK
+                                  </button>
+                                  <button onClick={() => setPayoutCommId(null)} className="text-xs text-neutral-400 hover:text-neutral-600">✕</button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => setPayoutCommId(c.id)}
+                                  className="rounded bg-emerald-50 border border-emerald-200 px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
+                                >
+                                  Marcar pago
+                                </button>
+                              )
+                            )}
+                            {c.payoutReference && (
+                              <span className="text-xs text-neutral-400" title={c.payoutReference}>ref: {c.payoutReference.slice(0, 12)}…</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function AdminPage() {
-  const [tab, setTab] = useState<'users' | 'monitor' | 'health' | 'referrals'>('users')
+  const [tab, setTab] = useState<'users' | 'monitor' | 'health' | 'referrals' | 'vendedores'>('users')
   const [confirmCleanup, setConfirmCleanup] = useState(false)
   const { data: stats } = useAdminStats()
   const cleanup = useCleanupTestUsers()
@@ -1004,12 +1293,13 @@ export default function AdminPage() {
       )}
 
       {/* Tabs */}
-      <div className="grid grid-cols-4 gap-1 rounded-xl border border-neutral-100 bg-neutral-50 p-1">
+      <div className="grid grid-cols-5 gap-1 rounded-xl border border-neutral-100 bg-neutral-50 p-1">
         {([
           { key: 'users', icon: Users, label: 'Usuários' },
           { key: 'health', icon: TrendingUp, label: 'Engajamento' },
           { key: 'monitor', icon: Activity, label: 'Monitor' },
-          { key: 'referrals', icon: CircleDollarSign, label: 'Comissões' },
+          { key: 'referrals', icon: CircleDollarSign, label: 'Indicações' },
+          { key: 'vendedores', icon: DollarSign, label: 'Vendedores' },
         ] as const).map(({ key, icon: Icon, label }) => (
           <button
             key={key}
@@ -1030,6 +1320,7 @@ export default function AdminPage() {
       {tab === 'health' && <HealthScoresTab />}
       {tab === 'monitor' && <MonitorTab />}
       {tab === 'referrals' && <ReferralCommissionsTab />}
+      {tab === 'vendedores' && <VendedoresTab />}
 
       <ConfirmDialog
         open={confirmCleanup}

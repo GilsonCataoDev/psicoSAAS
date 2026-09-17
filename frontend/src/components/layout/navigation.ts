@@ -1,5 +1,5 @@
 import { UseCogniaIconName } from '@/components/ui/UseCogniaIcon'
-import { hasProfessionCapability, type ProfessionCapability } from '@/lib/professions'
+import { hasProfessionCapability, hasAestheticsModules, type ProfessionCapability } from '@/lib/professions'
 import { termsFor } from '@/lib/terms'
 
 export type NavigationItem = {
@@ -10,6 +10,8 @@ export type NavigationItem = {
   mobile?: boolean
   /** Capacidade profissional exigida para exibir a ferramenta. */
   requiredCapability?: ProfessionCapability
+  /** Filtro arbitrário por profissão — exibe o item somente quando retorna true. */
+  professionGate?: (profession?: string | null) => boolean
 }
 
 export const NAVIGATION_ITEMS: NavigationItem[] = [
@@ -21,6 +23,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { to: '/documentos', icon: 'documents', label: 'Documentos' },
   { to: '/instrumentos', icon: 'instruments', label: 'Instrumentos', proOnly: true, requiredCapability: 'instruments' },
   { to: '/avaliacoes', icon: 'assessments', label: 'Avaliações', proOnly: true, requiredCapability: 'neuropsych_assessments' },
+  { to: '/estoque', icon: 'inventory', label: 'Estoque', professionGate: hasAestheticsModules },
   { to: '/financeiro', icon: 'financial', label: 'Financeiro', mobile: true },
   { to: '/crm', icon: 'public-link', label: 'CRM' },
   { to: '/relatorios', icon: 'sessions', label: 'Relatórios' },
@@ -35,7 +38,10 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
 export function getNavigationItems(profession?: string | null): NavigationItem[] {
   const t = termsFor(profession)
   return NAVIGATION_ITEMS
-    .filter(item => !item.requiredCapability || hasProfessionCapability(profession, item.requiredCapability))
+    .filter(item =>
+      (!item.requiredCapability || hasProfessionCapability(profession, item.requiredCapability)) &&
+      (!item.professionGate || item.professionGate(profession))
+    )
     .map(item => {
       if (item.to === '/pacientes') return { ...item, label: t.patientsCapitalized }
       if (item.to === '/sessoes') return { ...item, label: t.sessionsCapitalized }

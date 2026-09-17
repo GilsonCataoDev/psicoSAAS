@@ -1,5 +1,4 @@
 import { ArrowRight, CheckCircle2, X, Zap } from 'lucide-react'
-import ReferralCard from '@/components/features/referral/ReferralCard'
 import { type Subscription } from '@/store/subscription'
 import { PRICING_PLANS } from '@/data/pricingPlans'
 
@@ -118,7 +117,6 @@ export function PlanTab({
           </div>
         )}
       </div>
-      <ReferralCard />
     </>
   )
 }

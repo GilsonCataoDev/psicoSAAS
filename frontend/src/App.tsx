@@ -42,11 +42,13 @@ const NeuropsychAssessmentPage = lazy(() => import('@/pages/NeuropsychAssessment
 const ProspectingPage     = lazy(() => import('@/pages/admin/ProspectingPage'))
 const RelatoriosPage      = lazy(() => import('@/pages/RelatoriosPage'))
 const CRMPage             = lazy(() => import('@/pages/CRMPage'))
+const EstoquePage         = lazy(() => import('@/pages/EstoquePage'))
 
 // Landing pages por profissão — lazy loaded
 const FisioterapeutasPage = lazy(() => import('@/pages/landing/FisioterapeutasPage'))
 const NutricionistasPage  = lazy(() => import('@/pages/landing/NutricionistasPage'))
 const PsicologosPage      = lazy(() => import('@/pages/landing/PsicologosPage'))
+const EsteticistasPage    = lazy(() => import('@/pages/landing/EsteticistasPage'))
 
 // Public pages — lazy loaded
 const BookingPage         = lazy(() => import('@/pages/public/BookingPage'))
@@ -57,6 +59,7 @@ const EvolucaoPsicologicaPage = lazy(() => import('@/pages/public/EvolucaoPsicol
 const PatientPortalPage   = lazy(() => import('@/pages/public/PatientPortalPage'))
 const NpsSurveyPage       = lazy(() => import('@/pages/NpsSurveyPage'))
 const NeuropsychShareLaudoPage = lazy(() => import('@/pages/public/NeuropsychShareLaudoPage'))
+const VendedorPortalPage      = lazy(() => import('@/pages/public/VendedorPortalPage'))
 
 function PageLoader() {
   return (
@@ -131,6 +134,7 @@ export default function App() {
         <Route path="/fisioterapeutas" element={<FisioterapeutasPage />} />
         <Route path="/nutricionistas" element={<NutricionistasPage />} />
         <Route path="/psicologos" element={<PsicologosPage />} />
+        <Route path="/esteticistas" element={<EsteticistasPage />} />
         <Route path="/inicio" element={<Navigate to="/plataforma" replace />} />
         <Route path="/venda" element={<Navigate to="/plataforma" replace />} />
         <Route path="/privacidade" element={<LegalPage type="privacy" />} />
@@ -166,6 +170,7 @@ export default function App() {
         <Route path="/portal/:token" element={<PatientPortalPage />} />
         <Route path="/avaliar/:token" element={<NpsSurveyPage />} />
         <Route path="/laudo/:token" element={<NeuropsychShareLaudoPage />} />
+        <Route path="/vendedor/:token" element={<VendedorPortalPage />} />
 
         {/* ── App interno (autenticado) ────────────────────────────── */}
         <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
@@ -188,6 +193,7 @@ export default function App() {
             <Route path="configuracoes" element={<SettingsPage />} />
             <Route path="relatorios" element={<RelatoriosPage />} />
             <Route path="crm" element={<CRMPage />} />
+            <Route path="estoque" element={<EstoquePage />} />
             <Route path="instrumentos" element={<ProfessionCapabilityRoute capability="instruments"><ProOnlyRoute><InstrumentosPage /></ProOnlyRoute></ProfessionCapabilityRoute>} />
             <Route path="avaliacoes" element={<ProfessionCapabilityRoute capability="neuropsych_assessments"><ProOnlyRoute><NeuropsychAssessmentsPage /></ProOnlyRoute></ProfessionCapabilityRoute>} />
             <Route path="avaliacoes/:id" element={<ProfessionCapabilityRoute capability="neuropsych_assessments"><ProOnlyRoute><NeuropsychAssessmentPage /></ProOnlyRoute></ProfessionCapabilityRoute>} />

@@ -8,12 +8,13 @@ import { track, trackMetaConversion, trackGoogleAdsConversion } from '@/lib/anal
 // Types
 // ---------------------------------------------------------------------------
 
-type LeadProfession = 'psicologia' | 'fisioterapia' | 'nutricao' | 'outro'
+type LeadProfession = 'psicologia' | 'fisioterapia' | 'nutricao' | 'estetica' | 'outro'
 
 const ALL_PROFESSION_OPTIONS: LeadProfession[] = [
   'psicologia',
   'fisioterapia',
   'nutricao',
+  'estetica',
   'outro',
 ]
 
@@ -21,6 +22,7 @@ const PROFESSION_LABELS: Record<LeadProfession, string> = {
   psicologia:   'Psicologia',
   fisioterapia: 'Fisioterapia',
   nutricao:     'Nutrição',
+  estetica:     'Estética',
   outro:        'Outro',
 }
 
@@ -41,7 +43,7 @@ export interface LeadCaptureFormProps {
 const schema = z.object({
   name:       z.string().min(1, 'Nome é obrigatório').max(200),
   email:      z.string().email('E-mail inválido').max(200),
-  profession: z.enum(['psicologia', 'fisioterapia', 'nutricao', 'outro'] as const),
+  profession: z.enum(['psicologia', 'fisioterapia', 'nutricao', 'estetica', 'outro'] as const),
 })
 
 type FormValues = z.infer<typeof schema>

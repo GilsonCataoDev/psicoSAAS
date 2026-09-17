@@ -44,6 +44,8 @@ import { AiGovernanceModule } from './modules/ai-governance/ai-governance.module
 import { ProspectLifecycleModule } from './common/prospect-lifecycle/prospect-lifecycle.module'
 import { ProductHelpModule } from './modules/product-help/product-help.module'
 import { NutritionAssessmentsModule } from './modules/nutrition-assessments/nutrition-assessments.module'
+import { InventoryModule } from './modules/inventory/inventory.module'
+import { SalesModule } from './modules/sales/sales.module'
 
 const readPositiveInt = (value: string | undefined, fallback: number): number => {
   const parsed = Number(value)
@@ -113,6 +115,8 @@ const readPositiveInt = (value: string | undefined, fallback: number): number =>
     ProspectingModule,
     NpsModule,
     LeadsModule,
+    InventoryModule,
+    SalesModule,
   ],
   controllers: [HealthController],
   providers: [

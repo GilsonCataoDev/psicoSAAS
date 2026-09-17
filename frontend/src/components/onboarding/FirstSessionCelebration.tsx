@@ -1,14 +1,12 @@
-import { CalendarPlus, CheckCircle2, Copy, FileText, Gift, MessageSquareText, Sparkles, TimerReset, X } from 'lucide-react'
+import { CalendarPlus, FileText, MessageSquareText, Sparkles, TimerReset, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useReferral } from '@/components/features/referral/useReferral'
 import { useTerms } from '@/hooks/useTerms'
 
 export default function FirstSessionCelebration() {
   const t = useTerms()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
-  const { stats, referralUrl, copied, copyLink, shareWhatsApp } = useReferral(open)
 
   useEffect(() => {
     const handler = () => setOpen(true)
@@ -85,52 +83,6 @@ export default function FirstSessionCelebration() {
           </div>
         </div>
 
-        {stats && (
-          <div className="mt-4 rounded-2xl border border-neutral-200 bg-neutral-50/70 p-4 dark:border-white/10 dark:bg-white/5">
-            <div className="flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sage-100 text-sage-700 dark:bg-sage-500/20 dark:text-sage-200">
-                <Gift size={18} />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-800 dark:text-white">Indique e ganhe</p>
-                <p className="mt-1 text-xs leading-5 text-gray-500 dark:text-gray-300">
-                  Ganhe R$ 48,95 quando um novo profissional assinar pelo seu link e o pagamento passar pelo prazo de validação.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-3 flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2.5 dark:border-white/10 dark:bg-white/5">
-              <p className="min-w-0 flex-1 truncate font-mono text-xs text-neutral-600 dark:text-gray-300">
-                {referralUrl}
-              </p>
-              <button
-                type="button"
-                onClick={copyLink}
-                className="shrink-0 rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-sage-700 dark:hover:bg-white/10"
-                aria-label="Copiar link de indicação"
-              >
-                {copied ? <CheckCircle2 size={17} className="text-sage-600" /> : <Copy size={17} />}
-              </button>
-            </div>
-
-            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={copyLink}
-                className="h-10 rounded-xl border border-neutral-200 bg-white px-3 text-sm font-medium text-neutral-600 hover:border-sage-300 hover:text-sage-700 dark:border-white/10 dark:bg-white/5 dark:text-gray-200"
-              >
-                {copied ? 'Link copiado' : 'Copiar link'}
-              </button>
-              <button
-                type="button"
-                onClick={shareWhatsApp}
-                className="h-10 rounded-xl bg-sage-600 px-3 text-sm font-semibold text-white hover:bg-sage-700"
-              >
-                Compartilhar no WhatsApp
-              </button>
-            </div>
-          </div>
-        )}
 
         <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <button type="button" onClick={close} className="h-11 rounded-xl px-4 text-sm font-medium text-gray-500 hover:text-gray-800 dark:text-gray-300">

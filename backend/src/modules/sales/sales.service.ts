@@ -1,0 +1,220 @@
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { InjectRepository } from '@nestjs/typeorm'
+import { IsNull, LessThanOrEqual, Repository } from 'typeorm'
+import { SalesRep } from './entities/sales-rep.entity'
+import { SalesCommission } from './entities/sales-commission.entity'
+import { CreateSalesRepDto } from './dto/create-sales-rep.dto'
+import { UpdateSalesRepDto } from './dto/update-sales-rep.dto'
+
+@Injectable()
+export class SalesService {
+  private readonly logger = new Logger(SalesService.name)
+
+  constructor(
+    @InjectRepository(SalesRep) private readonly reps: Repository<SalesRep>,
+    @InjectRepository(SalesCommission) private readonly commissions: Repository<SalesCommission>,
+  ) {}
+
+  async findRepByCoupon(code: string): Promise<SalesRep | null> {
+    return this.reps.findOne({
+      where: { couponCode: code.toUpperCase(), status: 'active' },
+    })
+  }
+
+  async getRepByToken(token: string): Promise<SalesRep | null> {
+    return this.reps.findOne({ where: { accessToken: token } })
+  }
+
+  async createRep(dto: CreateSalesRepDto): Promise<SalesRep> {
+    const rep = this.reps.create({
+      ...dto,
+      couponCode: dto.couponCode.toUpperCase(),
+      accessToken: crypto.randomUUID(),
+    })
+    return this.reps.save(rep)
+  }
+
+  async updateRep(id: string, dto: UpdateSalesRepDto): Promise<SalesRep> {
+    const rep = await this.reps.findOneBy({ id })
+    if (!rep) throw new NotFoundException('Vendedor não encontrado')
+    if (dto.couponCode) dto.couponCode = dto.couponCode.toUpperCase()
+    Object.assign(rep, dto)
+    return this.reps.save(rep)
+  }
+
+  async listReps(): Promise<SalesRep[]> {
+    return this.reps.find({ order: { name: 'ASC' } })
+  }
+
+  async handlePaymentApproved(
+    userId: string,
+    paymentId: string,
+    grossAmount: number,
+  ): Promise<void> {
+    const commission = await this.commissions.findOne({
+      where: { userId, status: 'pending' },
+      relations: ['salesRep'],
+    })
+    if (!commission) return
+    if (commission.paymentId) return // idempotente
+
+    const availableAt = new Date()
+    availableAt.setDate(availableAt.getDate() + 30)
+
+    commission.paymentId = paymentId
+    commission.grossAmount = grossAmount
+    commission.commissionAmount = commission.salesRep?.commissionAmount ?? commission.commissionAmount
+    commission.paymentApprovedAt = new Date()
+    commission.commissionAvailableAt = availableAt
+    commission.status = 'validating'
+
+    await this.commissions.save(commission)
+    this.logger.log(
+      `[Sales] Comissão ${commission.id} movida para validating userId=${userId} paymentId=${paymentId}`,
+    )
+  }
+
+  async handlePaymentReversed(
+    userId: string,
+    paymentId: string,
+    reason: string,
+  ): Promise<void> {
+    const commission = await this.commissions.findOne({
+      where: { userId, paymentId },
+    })
+    if (!commission) return
+
+    const newStatus = reason.toLowerCase().includes('chargeback') ? 'chargeback' : 'refunded'
+    commission.status = newStatus
+    commission.ineligibleReason = reason
+    await this.commissions.save(commission)
+    this.logger.log(
+      `[Sales] Comissão ${commission.id} marcada como ${newStatus} userId=${userId}`,
+    )
+  }
+
+  private async releaseValidatedCommissions(salesRepId?: string): Promise<void> {
+    const where: Record<string, unknown> = {
+      status: 'validating',
+      commissionAvailableAt: LessThanOrEqual(new Date()),
+    }
+    if (salesRepId) where['salesRepId'] = salesRepId
+
+    const ready = await this.commissions.find({ where: where as any })
+    for (const c of ready) {
+      c.status = 'payable'
+      await this.commissions.save(c)
+    }
+  }
+
+  async getStats(salesRepId: string) {
+    await this.releaseValidatedCommissions(salesRepId)
+
+    const all = await this.commissions.find({
+      where: { salesRepId },
+      relations: ['user'],
+      order: { createdAt: 'DESC' },
+    })
+
+    const sum = (status: string) =>
+      all
+        .filter(c => c.status === status)
+        .reduce((acc, c) => acc + Number(c.commissionAmount), 0)
+
+    const count = (status: string) => all.filter(c => c.status === status).length
+
+    const nextPayable = all
+      .filter(c => c.status === 'payable')
+      .sort((a, b) => (a.commissionAvailableAt?.getTime() ?? 0) - (b.commissionAvailableAt?.getTime() ?? 0))[0]
+
+    return {
+      totalSales: all.length,
+      pendingCount: count('pending') + count('validating'),
+      payableCount: count('payable'),
+      paidCount: count('paid'),
+      pendingAmount: sum('pending') + sum('validating'),
+      payableAmount: sum('payable'),
+      paidAmount: sum('paid'),
+      nextPaymentAt: nextPayable?.commissionAvailableAt ?? null,
+      commissions: all.map(c => ({
+        id: c.id,
+        status: c.status,
+        couponCode: c.couponCode,
+        commissionAmount: Number(c.commissionAmount),
+        grossAmount: c.grossAmount ? Number(c.grossAmount) : null,
+        paymentApprovedAt: c.paymentApprovedAt,
+        commissionAvailableAt: c.commissionAvailableAt,
+        commissionPaidAt: c.commissionPaidAt,
+        createdAt: c.createdAt,
+        userName: c.user?.name ?? null,
+      })),
+    }
+  }
+
+  async markPaid(commissionId: string, payoutReference: string): Promise<void> {
+    const commission = await this.commissions.findOneBy({ id: commissionId })
+    if (!commission) throw new NotFoundException('Comissão não encontrada')
+    if (commission.status !== 'payable') {
+      throw new BadRequestException(`Comissão não está no status payable (status atual: ${commission.status})`)
+    }
+    commission.status = 'paid'
+    commission.commissionPaidAt = new Date()
+    commission.payoutReference = payoutReference
+    await this.commissions.save(commission)
+    this.logger.log(`[Sales] Comissão ${commissionId} marcada como paga ref=${payoutReference}`)
+  }
+
+  async adminListCommissions(filters?: { status?: string; salesRepId?: string }) {
+    await this.releaseValidatedCommissions()
+
+    const qb = this.commissions
+      .createQueryBuilder('c')
+      .leftJoinAndSelect('c.salesRep', 'rep')
+      .leftJoinAndSelect('c.user', 'u')
+      .orderBy('c.createdAt', 'DESC')
+
+    if (filters?.status) qb.andWhere('c.status = :status', { status: filters.status })
+    if (filters?.salesRepId) qb.andWhere('c.salesRepId = :salesRepId', { salesRepId: filters.salesRepId })
+
+    const all = await qb.getMany()
+
+    return all.map(c => ({
+      id: c.id,
+      status: c.status,
+      couponCode: c.couponCode,
+      commissionAmount: Number(c.commissionAmount),
+      grossAmount: c.grossAmount ? Number(c.grossAmount) : null,
+      paymentApprovedAt: c.paymentApprovedAt,
+      commissionAvailableAt: c.commissionAvailableAt,
+      commissionPaidAt: c.commissionPaidAt,
+      payoutReference: c.payoutReference,
+      createdAt: c.createdAt,
+      salesRep: c.salesRep
+        ? {
+            id: c.salesRep.id,
+            name: c.salesRep.name,
+            email: c.salesRep.email,
+            pixKey: c.salesRep.pixKey,
+            pixKeyType: c.salesRep.pixKeyType,
+          }
+        : null,
+      user: c.user ? { name: c.user.name, email: c.user.email } : null,
+    }))
+  }
+
+  async createCommission(data: {
+    salesRepId: string
+    userId: string
+    couponCode: string
+    commissionAmount: number
+  }): Promise<SalesCommission> {
+    const commission = this.commissions.create({
+      salesRepId: data.salesRepId,
+      userId: data.userId,
+      couponCode: data.couponCode,
+      commissionAmount: data.commissionAmount,
+      status: 'pending',
+    })
+    return this.commissions.save(commission)
+  }
+}

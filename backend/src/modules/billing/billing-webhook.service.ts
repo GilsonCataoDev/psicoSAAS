@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable, Logger, Optional } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
@@ -9,6 +9,7 @@ import { WebhookEvent } from './entities/webhook-event.entity'
 import { AsaasService } from './asaas.service'
 import { secretsMatch } from '../../common/crypto/encrypt.util'
 import { ReferralService } from '../referral/referral.service'
+import { SalesService } from '../sales/sales.service'
 
 @Injectable()
 export class BillingWebhookService {
@@ -25,6 +26,7 @@ export class BillingWebhookService {
     private readonly email: EmailService,
     private readonly asaas: AsaasService,
     private readonly referrals: ReferralService,
+    @Optional() private readonly sales?: SalesService,
   ) {}
 
   isValidOrigin(headers: Record<string, any>, payload: any): boolean {
@@ -109,13 +111,11 @@ export class BillingWebhookService {
 
     await this.subscriptions.save(subscription)
 
-    const paymentId = payload?.payment?.id
+    const paymentId = payload?.payment?.id as string | undefined
     if (eventType === 'PAYMENT_RECEIVED' || eventType === 'PAYMENT_CONFIRMED') {
-      await this.referrals.handlePaymentApproved(
-        subscription.userId,
-        paymentId,
-        Number(payload?.payment?.value),
-      )
+      await this.referrals.handlePaymentApproved(subscription.userId, paymentId, Number(payload?.payment?.value))
+      this.sales?.handlePaymentApproved(subscription.userId, paymentId, Number(payload?.payment?.value ?? 0))
+        .catch((err: any) => this.logger.warn(`[Sales] handlePaymentApproved erro: ${err?.message ?? err}`))
     } else if ([
       'PAYMENT_REFUNDED',
       'PAYMENT_PARTIALLY_REFUNDED',
@@ -126,6 +126,8 @@ export class BillingWebhookService {
       'PAYMENT_RECEIVED_IN_CASH_UNDONE',
     ].includes(eventType)) {
       await this.referrals.handlePaymentReversed(subscription.userId, paymentId, eventType)
+      this.sales?.handlePaymentReversed(subscription.userId, paymentId, eventType)
+        .catch((err: any) => this.logger.warn(`[Sales] handlePaymentReversed erro: ${err?.message ?? err}`))
     }
 
     this.logger.log(

@@ -75,6 +75,7 @@ export default function RegisterPage() {
   const [isStudent, setIsStudent] = useState(false)
   const [crpValue, setCrpValue] = useState('')
   const [referralCode, setReferralCode] = useState('')
+  const [couponCode, setCouponCode] = useState<string | null>(null)
   const [accountData, setAccountData] = useState<AccountData | null>(null)
   const [cardNumber, setCardNumber] = useState('')
   const [searchParams] = useSearchParams()
@@ -91,13 +92,15 @@ export default function RegisterPage() {
       const code = ref.trim().toUpperCase().slice(0, 20)
       setReferralCode(code)
       localStorage.setItem('usecognia_referral', JSON.stringify({ code, expiresAt: Date.now() + 30 * 86400000 }))
-      return
+    } else {
+      try {
+        const saved = JSON.parse(localStorage.getItem('usecognia_referral') ?? 'null')
+        if (saved?.code && saved?.expiresAt > Date.now()) setReferralCode(String(saved.code).slice(0, 20))
+        else localStorage.removeItem('usecognia_referral')
+      } catch { localStorage.removeItem('usecognia_referral') }
     }
-    try {
-      const saved = JSON.parse(localStorage.getItem('usecognia_referral') ?? 'null')
-      if (saved?.code && saved?.expiresAt > Date.now()) setReferralCode(String(saved.code).slice(0, 20))
-      else localStorage.removeItem('usecognia_referral')
-    } catch { localStorage.removeItem('usecognia_referral') }
+    const coupon = searchParams.get('coupon')
+    if (coupon) setCouponCode(coupon.toUpperCase())
   }, [searchParams])
 
   // ── formulário step 1 ───────────────────────────────────────────────────
@@ -150,6 +153,7 @@ export default function RegisterPage() {
           ? (isStudent ? { isStudent: true } : { crp: data.crp })
           : (crpValue.trim() ? { crp: crpValue.trim() } : {})),
         ...(referralCode ? { referralCode } : {}),
+        ...(couponCode ? { couponCode } : {}),
       })
       if (res.data.tokens) {
         const { setNativeTokens } = await import('@/lib/nativeAuth')
@@ -238,6 +242,14 @@ export default function RegisterPage() {
         Criar sua conta
       </h2>
       <p className="text-neutral-500 mb-6">7 dias grátis, sem cobrança agora</p>
+
+      {couponCode && (
+        <div className="mb-4 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+          <span>🎟️</span>
+          <span>Cupom <strong>{couponCode}</strong> aplicado — 50% off no primeiro mês.</span>
+        </div>
+      )}
+
 
       <form onSubmit={handleSubmit(onSubmitAccount)} className="space-y-4">
         <div>

@@ -12,7 +12,6 @@ import { useAuthStore } from '@/store/auth'
 import { useDashboard } from '@/hooks/api/dashboard'
 import { useSessions } from '@/hooks/api/sessions'
 import { useNpsResults } from '@/hooks/api/nps'
-import ReferralCard from '@/components/features/referral/ReferralCard'
 import { OnboardingProfile, useOnboardingStore } from '@/store/onboarding'
 import { useTerms } from '@/hooks/useTerms'
 import type { Terms } from '@/lib/terms'
@@ -737,12 +736,7 @@ export default function DashboardPage() {
       {/* NPS */}
       <NpsCard />
 
-      {/* Referral — visível para usuários com ao menos 1 paciente ativo */}
-      {onboardingCompleted && (s?.activePatients ?? 0) >= 1 && (
-        <ReferralCard />
-      )}
-
-      {sessionDefaults && (
+{sessionDefaults && (
         <Suspense fallback={null}>
           <NewSessionModal
             open

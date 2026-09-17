@@ -27,6 +27,7 @@ import { AsaasService } from '../billing/asaas.service'
 import { AuditService } from '../audit/audit.service'
 import { ProspectLifecycleService } from '../../common/prospect-lifecycle/prospect-lifecycle.service'
 import { PlanAccessService } from '../../common/plan-access/plan-access.service'
+import { SalesService } from '../sales/sales.service'
 
 /** Campos de UpdatePreferencesDto que só têm efeito em contas com plano Pro
  * (automação de cobrança/lembrete via WhatsApp). O bloqueio real acontece no
@@ -88,6 +89,7 @@ export class AuthService {
     private storage:       StorageService,
     private planAccess:    PlanAccessService,
     @Optional() private readonly prospectLifecycle?: ProspectLifecycleService,
+    @Optional() private readonly salesService?: SalesService,
   ) {}
 
   // ── Registro ───────────────────────────────────────────────────────────────
@@ -108,7 +110,7 @@ export class AuthService {
       throw new BadRequestException('Registro profissional inválido')
     }
 
-    const { referralCode, password, termsAccepted: _termsAccepted, termsVersion, ...userData } = dto
+    const { referralCode, couponCode, password, termsAccepted: _termsAccepted, termsVersion, ...userData } = dto
     const passwordHash = await hashPassword(password)
     const verificationToken = randomBytes(32).toString('hex')
     const user = this.users.create({
@@ -134,6 +136,22 @@ export class AuthService {
     if (referralCode) {
       await this.referral.applyReferral(referralCode, user).catch((err) => {
         this.logger.warn(`[Register] Falha ao aplicar indicacao user=${user.id}: ${err?.message ?? err}`)
+      })
+    }
+
+    if (couponCode && this.salesService) {
+      await this.salesService.findRepByCoupon(couponCode).then(async (rep) => {
+        if (!rep) return
+        await this.users.update(user.id, { salesCouponCode: couponCode.toUpperCase() })
+        await this.salesService!.createCommission({
+          salesRepId: rep.id,
+          userId: user.id,
+          couponCode: couponCode.toUpperCase(),
+          commissionAmount: rep.commissionAmount,
+        })
+        this.logger.log(`[Register] Cupom de vendedor ${couponCode} aplicado para user=${user.id}`)
+      }).catch((err) => {
+        this.logger.warn(`[Register] Falha ao aplicar cupom de vendedor user=${user.id}: ${err?.message ?? err}`)
       })
     }
 

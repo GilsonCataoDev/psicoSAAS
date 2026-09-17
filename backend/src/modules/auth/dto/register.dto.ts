@@ -64,6 +64,13 @@ export class RegisterDto {
   @Transform(({ value }) => value?.trim().toUpperCase())
   referralCode?: string
 
+  /** Código de cupom de vendedor (sistema de comissão). Distinto do referralCode. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  @Transform(({ value }) => value?.trim().toUpperCase())
+  couponCode?: string
+
   @IsBoolean()
   @Equals(true, { message: 'E necessario aceitar os Termos de Uso' })
   termsAccepted: boolean

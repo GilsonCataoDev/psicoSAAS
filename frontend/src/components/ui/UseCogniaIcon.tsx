@@ -18,6 +18,7 @@ import {
   LucideIcon,
   MailCheck,
   MessageCircle,
+  Package,
   Settings,
   ShieldCheck,
   Sparkles,
@@ -53,6 +54,7 @@ export type UseCogniaIconName =
   | 'error'
   | 'warning'
   | 'profile'
+  | 'inventory'
 
 interface UseCogniaIconProps {
   name: UseCogniaIconName
@@ -87,6 +89,7 @@ const ICONS: Record<UseCogniaIconName, LucideIcon> = {
   error: XCircle,
   warning: AlertTriangle,
   profile: User,
+  inventory: Package,
 }
 
 export default function UseCogniaIcon({
