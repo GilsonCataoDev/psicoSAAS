@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+﻿import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowRight,
@@ -99,11 +99,11 @@ const faq = [
   },
   {
     q: 'Tem versão gratuita para nutricionistas?',
-    a: 'Sim. O plano gratuito inclui até 10 pacientes, prontuário nutricional completo, agenda de consultas e acesso às principais funcionalidades — sem cartão de crédito e sem prazo de validade. Para clínicas com mais pacientes, há planos pagos a partir de R$ 49/mês.',
+    a: 'Sim — 7 dias grátis com acesso completo, sem cartão de crédito e sem compromisso. Para continuar após o teste, os planos começam em R$ 49/mês.',
   },
   {
-    q: 'Quanto custa depois do plano gratuito?',
-    a: 'O plano gratuito é permanente — inclui até 10 pacientes sem prazo. Para atender mais pacientes, os planos pagos começam em R$ 49/mês, sem contrato anual e com cancelamento quando quiser diretamente pelo painel.',
+    q: 'Existe período de teste gratuito?',
+    a: 'Sim — 7 dias grátis, sem cartão de crédito. Após o teste, os planos pagos começam em R$ 49/mês, sem contrato anual e com cancelamento quando quiser diretamente pelo painel.',
   },
   {
     q: 'Os dados dos meus pacientes ficam seguros?',
@@ -158,7 +158,7 @@ export default function NutricionistasPage() {
               to={REGISTER_URL}
               className="hidden rounded-md bg-sage-800 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sage-900 sm:inline-flex"
             >
-              Cadastre-se grátis
+              Testar 7 dias grátis
             </Link>
           </div>
         </div>
@@ -186,7 +186,7 @@ export default function NutricionistasPage() {
                 to={REGISTER_URL}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[#CFF3DE] px-6 text-sm font-bold text-[#143D2D] shadow-lg shadow-black/15 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
               >
-                Comece grátis — sem cartão <ArrowRight className="h-4 w-4" />
+                Teste 7 dias grátis <ArrowRight className="h-4 w-4" />
               </Link>
               <a
                 href="#features"
@@ -196,7 +196,7 @@ export default function NutricionistasPage() {
               </a>
             </div>
             <p className="mt-3 text-sm text-white/40">
-              Até 10 pacientes grátis · sem cartão de crédito
+              7 dias grátis · sem cartão de crédito
             </p>
           </div>
         </div>
@@ -450,23 +450,23 @@ export default function NutricionistasPage() {
       <section className="bg-[#1D352D] px-4 py-20 text-white sm:px-5">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-200">
-            Risco zero — comece grátis
+            Risco zero — 7 dias grátis
           </p>
           <h2 className="mt-4 text-2xl font-bold leading-snug sm:text-3xl">
             Prontuário nutricional completo, recordatório digital e plano alimentar — sem custo para começar
           </h2>
           <p className="mx-auto mt-4 max-w-lg text-white/80">
-            Configure em 5 minutos e comece a atender sem papel. O plano gratuito não expira — 10 pacientes para sempre, sem cartão de crédito.
+            Configure em 5 minutos e teste por 7 dias sem compromisso. Se não for para você, cancela com um clique.
           </p>
           <div className="mt-8 flex flex-col items-center gap-3">
             <Link
               to={REGISTER_URL}
               className="inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-md bg-[#CFF3DE] px-6 text-sm font-bold text-[#143D2D] shadow-lg hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
             >
-              Comece grátis agora <ArrowRight className="h-4 w-4" />
+              Começar teste grátis <ArrowRight className="h-4 w-4" />
             </Link>
             <p className="text-sm text-white/75">
-              Plano gratuito permanente · sem cartão · cancele quando quiser
+              7 dias grátis · sem cartão · cancele quando quiser
             </p>
             <div className="mt-2 flex justify-center gap-4 text-sm text-white/60">
               <Link to="/privacidade" className="hover:text-white">Privacidade</Link>
@@ -535,7 +535,7 @@ export default function NutricionistasPage() {
           to={REGISTER_URL}
           className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-sage-800 text-sm font-bold text-white"
         >
-          Comece grátis — sem cartão <ArrowRight className="h-4 w-4" />
+          Teste 7 dias grátis <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
     </main>

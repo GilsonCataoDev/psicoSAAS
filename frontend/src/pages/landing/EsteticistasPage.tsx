@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+﻿import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowRight,
@@ -114,11 +114,11 @@ const faq = [
   },
   {
     q: 'Tem versão gratuita para esteticistas?',
-    a: 'Sim. O plano gratuito inclui até 10 clientes, ficha de anamnese completa, controle de pacotes, agenda e acesso às principais funcionalidades — sem cartão de crédito e sem prazo. Para clínicas maiores, há planos pagos a partir de R$ 49/mês.',
+    a: 'Sim — 7 dias grátis com acesso completo, sem cartão de crédito e sem compromisso. Para continuar após o teste, os planos começam em R$ 49/mês.',
   },
   {
-    q: 'Quanto custa depois do plano gratuito?',
-    a: 'O plano gratuito é permanente — 10 clientes sem prazo e sem cartão. Para atender mais clientes, os planos pagos começam em R$ 49/mês, sem contrato de fidelidade e com cancelamento a qualquer momento pelo próprio painel.',
+    q: 'Existe período de teste gratuito?',
+    a: 'Sim — 7 dias grátis com acesso completo, sem cartão de crédito e sem compromisso. Após o teste, os planos pagos começam em R$ 49/mês, sem contrato de fidelidade e com cancelamento quando quiser pelo próprio painel.',
   },
   {
     q: 'Os dados e fotos das minhas clientes ficam seguros?',
@@ -173,7 +173,7 @@ export default function EsteticistasPage() {
               to={REGISTER_URL}
               className="hidden rounded-md bg-[#2D1A2E] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#3D2140] sm:inline-flex"
             >
-              Cadastre-se grátis
+              Testar 7 dias grátis
             </Link>
           </div>
         </div>
@@ -201,7 +201,7 @@ export default function EsteticistasPage() {
                 to={REGISTER_URL}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[#F9D8E8] px-6 text-sm font-bold text-[#4A1030] shadow-lg shadow-black/15 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
               >
-                Cadastre-se grátis <ArrowRight className="h-4 w-4" />
+                Testar 7 dias grátis <ArrowRight className="h-4 w-4" />
               </Link>
               <a
                 href="#features"
@@ -211,7 +211,7 @@ export default function EsteticistasPage() {
               </a>
             </div>
             <p className="mt-3 text-sm text-white/40">
-              Até 10 clientes grátis · sem cartão de crédito
+              7 dias grátis · sem cartão de crédito
             </p>
           </div>
         </div>
@@ -464,23 +464,23 @@ export default function EsteticistasPage() {
       <section className="bg-[#2D1A2E] px-4 py-20 text-white sm:px-5">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#F9D8E8]">
-            Risco zero — comece grátis
+            Risco zero — 7 dias grátis
           </p>
           <h2 className="mt-4 text-2xl font-bold leading-snug sm:text-3xl">
             Anamnese digital, controle de pacotes e agenda automática — sem custo para começar
           </h2>
           <p className="mx-auto mt-4 max-w-lg text-white/80">
-            Configure sua clínica em 5 minutos. O plano gratuito não expira — 10 clientes para sempre, sem cartão de crédito e sem burocracia.
+            Configure sua clínica em 5 minutos e teste por 7 dias sem compromisso. Se não for para você, cancela com um clique.
           </p>
           <div className="mt-8 flex flex-col items-center gap-3">
             <Link
               to={REGISTER_URL}
               className="inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-md bg-[#F9D8E8] px-6 text-sm font-bold text-[#4A1030] shadow-lg hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
             >
-              Comece grátis agora <ArrowRight className="h-4 w-4" />
+              Começar teste grátis <ArrowRight className="h-4 w-4" />
             </Link>
             <p className="text-sm text-white/75">
-              Plano gratuito permanente · sem cartão · cancele quando quiser
+              7 dias grátis · sem cartão · cancele quando quiser
             </p>
             <div className="mt-2 flex justify-center gap-4 text-sm text-white/60">
               <Link to="/privacidade" className="hover:text-white">Privacidade</Link>
@@ -549,7 +549,7 @@ export default function EsteticistasPage() {
           to={REGISTER_URL}
           className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[#2D1A2E] text-sm font-bold text-white"
         >
-          Comece grátis — sem cartão <ArrowRight className="h-4 w-4" />
+          Teste 7 dias grátis <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
     </main>
