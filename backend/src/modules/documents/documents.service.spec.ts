@@ -61,19 +61,31 @@ describe('DocumentsService.create — guarda de CRP', () => {
 })
 
 describe('DocumentsService.create — tipos privativos de psicologia', () => {
-  // Relatório e atestado psicológicos são atos regulados pela Res. CFP 06/2019.
-  // O frontend esconde os tipos, mas esconder no navegador não é controle.
-  for (const type of ['relatorio', 'atestado'] as const) {
-    it(`recusa ${type} quando a conta não é de psicologia`, async () => {
-      const { svc } = createService()
-      const nutricionista = makeUser({ crp: null, isStudent: false, profession: 'nutricao' })
+  // Atestado psicológico é regulado pela Res. CFP 06/2019 e permanece
+  // exclusivo de Psicologia. Relatórios também existem nas demais profissões.
+  it('recusa atestado quando a conta não é de psicologia', async () => {
+    const { svc } = createService()
+    const nutricionista = makeUser({ crp: null, isStudent: false, profession: 'nutricao' })
 
-      await expect(svc.create(nutricionista, {
-        patientId: 'p1', patientName: 'Cliente Teste', type,
-        title: 'Documento', content: 'conteúdo qualquer preenchido',
-      }, '127.0.0.1')).rejects.toThrow(BadRequestException)
-    })
-  }
+    await expect(svc.create(nutricionista, {
+      patientId: 'p1', patientName: 'Cliente Teste', type: 'atestado',
+      title: 'Documento', content: 'conteúdo qualquer preenchido',
+    }, '127.0.0.1')).rejects.toThrow(BadRequestException)
+  })
+
+  it('permite relatório para nutrição', async () => {
+    const { svc, repo, planAccess } = createService()
+    planAccess.getCurrentPlan.mockResolvedValue('pro')
+    const nutricionista = makeUser({ crp: null, isStudent: false, profession: 'nutricao' })
+
+    const result = await svc.create(nutricionista, {
+      patientId: 'p1', patientName: 'Cliente Teste', type: 'relatorio',
+      title: 'Relatório', content: 'conteúdo qualquer preenchido',
+    }, '127.0.0.1')
+
+    expect(result).toBeDefined()
+    expect(repo.save).toHaveBeenCalled()
+  })
 
   it('permite os tipos neutros para profissões não-psicologia', async () => {
     const { svc, repo, planAccess } = createService()
