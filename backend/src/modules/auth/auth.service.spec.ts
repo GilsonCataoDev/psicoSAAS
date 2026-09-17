@@ -98,7 +98,7 @@ async function createService(
       { provide: DataSource, useValue: dataSourceMock },
       { provide: JwtService,   useValue: { sign: jest.fn().mockReturnValue('jwt-token') } },
       { provide: EmailService, useValue: { sendEmailVerification: jest.fn().mockResolvedValue(undefined), sendWelcome: jest.fn().mockResolvedValue(undefined), sendPasswordReset: jest.fn().mockResolvedValue(undefined) } },
-      { provide: ReferralService, useValue: { applyReferral: jest.fn().mockResolvedValue(undefined) } },
+      { provide: ReferralService, useValue: { applyReferral: jest.fn().mockResolvedValue(undefined), isValidCode: jest.fn().mockResolvedValue(true) } },
       { provide: AsaasService,    useValue: { cancelSubscription: jest.fn().mockResolvedValue(undefined) } },
       { provide: AuditService,    useValue: { record: jest.fn().mockResolvedValue(undefined) } },
       { provide: RiskEngineService, useValue: { assessLoginRisk: jest.fn().mockResolvedValue({ score: 0, level: 'low', signals: {} }) } },

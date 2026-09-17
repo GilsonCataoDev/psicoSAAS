@@ -110,18 +110,6 @@ export class BillingController {
     return this.billing.getMine(req.user)
   }
 
-  @Get('upgrade-offer')
-  @UseGuards(JwtAuthGuard)
-  upgradeOffer(@Request() req: any) {
-    return this.billing.getFreeUpgradeOffer(req.user)
-  }
-
-  @Post('upgrade-offer/viewed')
-  @UseGuards(JwtAuthGuard, CsrfGuard)
-  acknowledgeUpgradeOffer(@Request() req: any) {
-    return this.billing.acknowledgeFreeUpgradeOffer(req.user.id)
-  }
-
   @Post('webhook')
   @HttpCode(200)
   @Throttle({ short: { limit: 60, ttl: 60 * 1000 } })

@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Copy,
   CreditCard,
+  CircleDollarSign,
   Database,
   Eye,
   Mail,
@@ -25,7 +26,7 @@ import {
   Webhook,
   X,
 } from 'lucide-react'
-import { useAdminStats, useAdminUsers, useAdminOverrideSubscription, useAdminMonitor, useAdminHealthScores, useCleanupTestUsers, useImpersonateUser, useSendProUpgradeCampaign, AdminUser, HealthScore } from '@/hooks/useApi'
+import { useAdminStats, useAdminUsers, useAdminOverrideSubscription, useAdminMonitor, useAdminHealthScores, useCleanupTestUsers, useImpersonateUser, useSendProUpgradeCampaign, useAdminReferralCommissions, useMarkReferralCommissionPaid, AdminUser, HealthScore } from '@/hooks/useApi'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { useAuthStore } from '@/store/auth'
 import { useSubscriptionStore } from '@/store/subscription'
@@ -187,7 +188,7 @@ function UsersTab() {
   }
 
   async function sendCampaign() {
-    if (!window.confirm('Enviar uma única vez a oferta Pro para todas as contas Free ativas, verificadas e ainda não contatadas?')) return
+    if (!window.confirm('Enviar uma única vez a apresentação do plano Pro para todas as contas Free ativas, verificadas e ainda não contatadas?')) return
     try {
       const result = await sendProCampaign.mutateAsync()
       toast.success(`${result.sent} e-mail(s) enviado(s).${result.failed ? ` ${result.failed} falharam.` : ''}`)
@@ -245,7 +246,7 @@ function UsersTab() {
             className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-sage-600 px-3 text-sm font-semibold text-white hover:bg-sage-700 disabled:opacity-50"
           >
             <Mail className="h-4 w-4" />
-            {sendProCampaign.isPending ? 'Enviando…' : 'Enviar oferta Pro'}
+            {sendProCampaign.isPending ? 'Enviando…' : 'Apresentar plano Pro'}
           </button>
         </div>
       </div>
@@ -370,6 +371,63 @@ function UsersTab() {
     </>
   )
 }
+
+function ReferralCommissionsTab() {
+  const [status, setStatus] = useState('')
+  const { data = [], isLoading } = useAdminReferralCommissions(status || undefined)
+  const markPaid = useMarkReferralCommissionPaid()
+
+  function confirmPayment(id: string) {
+    const reference = window.prompt('Informe o identificador do Pix/comprovante:')?.trim()
+    if (!reference) return
+    markPaid.mutate({ id, payoutReference: reference }, {
+      onSuccess: () => toast.success('Comissão marcada como paga.'),
+      onError: (error: any) => toast.error(error?.response?.data?.message ?? 'Não foi possível registrar o pagamento.'),
+    })
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between rounded-2xl border border-neutral-100 bg-white p-3">
+        <div>
+          <p className="text-sm font-semibold text-neutral-800">Comissões de indicação</p>
+          <p className="text-xs text-neutral-500">Pagamento manual por Pix após 30 dias de validação.</p>
+        </div>
+        <select className="h-9 rounded-lg border border-neutral-200 px-2 text-xs" value={status} onChange={event => setStatus(event.target.value)}>
+          <option value="">Todas</option><option value="validating">Em validação</option>
+          <option value="payable">Liberadas</option><option value="paid">Pagas</option>
+          <option value="refunded">Estornadas</option><option value="chargeback">Contestadas</option>
+        </select>
+      </div>
+      <div className="overflow-x-auto rounded-2xl border border-neutral-100 bg-white shadow-sm">
+        <table className="min-w-[900px] w-full text-sm">
+          <thead><tr className="border-b border-neutral-100 bg-neutral-50 text-left text-xs uppercase text-neutral-400">
+            <th className="px-4 py-3">Indicador</th><th className="px-4 py-3">Indicado</th><th className="px-4 py-3">Comissão</th>
+            <th className="px-4 py-3">Liberação</th><th className="px-4 py-3">Pix</th><th className="px-4 py-3">Status</th><th className="px-4 py-3" />
+          </tr></thead>
+          <tbody>
+            {data.map(item => (
+              <tr key={item.id} className="border-b border-neutral-50">
+                <td className="px-4 py-3"><p className="font-medium text-neutral-700">{item.referrer.name}</p><p className="text-xs text-neutral-400">{item.referrer.email}</p></td>
+                <td className="px-4 py-3 text-neutral-600">{item.referred.name ?? '—'}</td>
+                <td className="px-4 py-3 font-semibold text-neutral-700">{moneyAdmin.format(item.commissionAmount)}</td>
+                <td className="px-4 py-3 text-xs text-neutral-500">{formatShortDate(item.commissionAvailableAt)}</td>
+                <td className="px-4 py-3 text-xs text-neutral-500">{item.payout ? `${item.payout.pixKeyType}: ${item.payout.pixKey}` : 'Não cadastrado'}</td>
+                <td className="px-4 py-3 text-xs font-medium text-neutral-600">{item.status}</td>
+                <td className="px-4 py-3 text-right">
+                  {item.status === 'payable' && <button className="rounded-lg bg-sage-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50" disabled={!item.payout || markPaid.isPending} onClick={() => confirmPayment(item.id)}>Marcar paga</button>}
+                </td>
+              </tr>
+            ))}
+            {!isLoading && data.length === 0 && <tr><td colSpan={7} className="py-10 text-center text-xs text-neutral-400">Nenhuma comissão encontrada.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+const moneyAdmin = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 
 function MonitorTab() {
   const { data: monitor, isLoading } = useAdminMonitor()
@@ -871,7 +929,7 @@ function HealthScoresTab() {
 }
 
 export default function AdminPage() {
-  const [tab, setTab] = useState<'users' | 'monitor' | 'health'>('users')
+  const [tab, setTab] = useState<'users' | 'monitor' | 'health' | 'referrals'>('users')
   const [confirmCleanup, setConfirmCleanup] = useState(false)
   const { data: stats } = useAdminStats()
   const cleanup = useCleanupTestUsers()
@@ -946,11 +1004,12 @@ export default function AdminPage() {
       )}
 
       {/* Tabs */}
-      <div className="grid grid-cols-3 gap-1 rounded-xl border border-neutral-100 bg-neutral-50 p-1">
+      <div className="grid grid-cols-4 gap-1 rounded-xl border border-neutral-100 bg-neutral-50 p-1">
         {([
           { key: 'users', icon: Users, label: 'Usuários' },
           { key: 'health', icon: TrendingUp, label: 'Engajamento' },
           { key: 'monitor', icon: Activity, label: 'Monitor' },
+          { key: 'referrals', icon: CircleDollarSign, label: 'Comissões' },
         ] as const).map(({ key, icon: Icon, label }) => (
           <button
             key={key}
@@ -970,6 +1029,7 @@ export default function AdminPage() {
       {tab === 'users' && <UsersTab />}
       {tab === 'health' && <HealthScoresTab />}
       {tab === 'monitor' && <MonitorTab />}
+      {tab === 'referrals' && <ReferralCommissionsTab />}
 
       <ConfirmDialog
         open={confirmCleanup}

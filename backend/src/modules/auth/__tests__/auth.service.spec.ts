@@ -107,7 +107,7 @@ describe('AuthService', () => {
         { provide: getRepositoryToken(LoginAttempt), useValue: loginAttemptsRepo },
         { provide: JwtService,     useValue: { sign: jest.fn().mockReturnValue('access-token') } },
         { provide: EmailService,   useValue: { sendEmailVerification: jest.fn().mockResolvedValue(undefined), sendWelcome: jest.fn().mockResolvedValue(undefined), sendPasswordReset: jest.fn().mockResolvedValue(undefined) } },
-        { provide: ReferralService, useValue: { applyReferral: jest.fn() } },
+        { provide: ReferralService, useValue: { applyReferral: jest.fn(), isValidCode: jest.fn().mockResolvedValue(true) } },
         { provide: AsaasService, useValue: { cancelSubscription: jest.fn().mockResolvedValue(undefined) } },
         { provide: AuditService, useValue: { record: jest.fn().mockResolvedValue(undefined) } },
         { provide: RiskEngineService, useValue: { assessLoginRisk: jest.fn().mockResolvedValue({ level: 'low' }) } },

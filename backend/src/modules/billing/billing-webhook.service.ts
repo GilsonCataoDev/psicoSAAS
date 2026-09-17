@@ -8,6 +8,7 @@ import { Subscription } from './entities/subscription.entity'
 import { WebhookEvent } from './entities/webhook-event.entity'
 import { AsaasService } from './asaas.service'
 import { secretsMatch } from '../../common/crypto/encrypt.util'
+import { ReferralService } from '../referral/referral.service'
 
 @Injectable()
 export class BillingWebhookService {
@@ -23,6 +24,7 @@ export class BillingWebhookService {
     private readonly cfg: ConfigService,
     private readonly email: EmailService,
     private readonly asaas: AsaasService,
+    private readonly referrals: ReferralService,
   ) {}
 
   isValidOrigin(headers: Record<string, any>, payload: any): boolean {
@@ -106,6 +108,25 @@ export class BillingWebhookService {
     }
 
     await this.subscriptions.save(subscription)
+
+    const paymentId = payload?.payment?.id
+    if (eventType === 'PAYMENT_RECEIVED' || eventType === 'PAYMENT_CONFIRMED') {
+      await this.referrals.handlePaymentApproved(
+        subscription.userId,
+        paymentId,
+        Number(payload?.payment?.value),
+      )
+    } else if ([
+      'PAYMENT_REFUNDED',
+      'PAYMENT_PARTIALLY_REFUNDED',
+      'PAYMENT_REFUND_IN_PROGRESS',
+      'PAYMENT_CHARGEBACK_REQUESTED',
+      'PAYMENT_CHARGEBACK_DISPUTE',
+      'PAYMENT_AWAITING_CHARGEBACK_REVERSAL',
+      'PAYMENT_RECEIVED_IN_CASH_UNDONE',
+    ].includes(eventType)) {
+      await this.referrals.handlePaymentReversed(subscription.userId, paymentId, eventType)
+    }
 
     this.logger.log(
       `[Asaas webhook] Subscription ${subscription.id} status ${previousStatus} -> ${subscription.status}`,

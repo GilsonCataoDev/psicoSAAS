@@ -7,6 +7,7 @@ import { AsaasService } from '../asaas.service'
 import { BillingWebhookService } from '../billing-webhook.service'
 import { Subscription } from '../entities/subscription.entity'
 import { WebhookEvent } from '../entities/webhook-event.entity'
+import { ReferralService } from '../../referral/referral.service'
 
 const makeSubscription = (overrides: Partial<Subscription> = {}): Subscription => ({
   id: 'local-sub-1',
@@ -33,6 +34,7 @@ describe('BillingWebhookService', () => {
   let service: BillingWebhookService
   let subscriptions: { findOne: jest.Mock; save: jest.Mock }
   let asaas: { updateSubscriptionPlan: jest.Mock }
+  let referrals: { handlePaymentApproved: jest.Mock; handlePaymentReversed: jest.Mock }
 
   beforeEach(async () => {
     subscriptions = {
@@ -44,6 +46,7 @@ describe('BillingWebhookService', () => {
       save: jest.fn(value => Promise.resolve(value)),
     }
     asaas = { updateSubscriptionPlan: jest.fn().mockResolvedValue(undefined) }
+    referrals = { handlePaymentApproved: jest.fn(), handlePaymentReversed: jest.fn() }
 
     const module = await Test.createTestingModule({
       providers: [
@@ -54,10 +57,22 @@ describe('BillingWebhookService', () => {
         { provide: ConfigService, useValue: { get: jest.fn(() => 'webhook-secret') } },
         { provide: EmailService, useValue: { send: jest.fn() } },
         { provide: AsaasService, useValue: asaas },
+        { provide: ReferralService, useValue: referrals },
       ],
     }).compile()
 
     service = module.get(BillingWebhookService)
+  })
+
+  it('registers referral commission from the first approved payment', async () => {
+    subscriptions.findOne.mockResolvedValue(makeSubscription())
+
+    await service.process({
+      event: 'PAYMENT_RECEIVED',
+      payment: { id: 'payment-1', subscription: 'gateway-sub-1', value: 97.90 },
+    })
+
+    expect(referrals.handlePaymentApproved).toHaveBeenCalledWith('user-1', 'payment-1', 97.90)
   })
 
   it.each([

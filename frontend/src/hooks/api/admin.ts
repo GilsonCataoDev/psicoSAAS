@@ -140,3 +140,34 @@ export function useSendProUpgradeCampaign() {
     }),
   })
 }
+
+export interface AdminReferralCommission {
+  id: string
+  status: string
+  referrer: { id: string; name: string; email: string }
+  referred: { id?: string; name?: string }
+  firstPaymentGross: number
+  commissionAmount: number
+  paymentApprovedAt?: string | null
+  commissionAvailableAt?: string | null
+  commissionPaidAt?: string | null
+  payoutReference?: string | null
+  payout: { pixKeyType: string; pixKey: string; taxpayerId: string; termsAcceptedAt: string } | null
+}
+
+export function useAdminReferralCommissions(status?: string) {
+  return useQuery({
+    queryKey: ['admin', 'referral-commissions', status],
+    queryFn: () => api.get('/admin/referrals/commissions', { params: status ? { status } : undefined })
+      .then(response => response.data as AdminReferralCommission[]),
+  })
+}
+
+export function useMarkReferralCommissionPaid() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, payoutReference }: { id: string; payoutReference: string }) =>
+      api.patch(`/admin/referrals/commissions/${id}/paid`, { payoutReference }).then(response => response.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'referral-commissions'] }),
+  })
+}

@@ -32,6 +32,20 @@ export interface Patient {
   updatedAt: string
 }
 
+export interface NutritionAssessment {
+  id: string
+  patientId: string
+  assessedAt: string
+  weightKg: number
+  heightCm?: number
+  waistCm?: number
+  bodyFatPercent?: number
+  notes?: string
+  imc?: number
+  createdAt: string
+  updatedAt: string
+}
+
 export type NeuropsychDomain =
   | 'intelligence'
   | 'attention'

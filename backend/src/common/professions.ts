@@ -35,6 +35,7 @@ export const DEFAULT_PROFESSION: Profession = 'psicologia'
 export const PROFESSION_CAPABILITIES = [
   'instruments',
   'neuropsych_assessments',
+  'nutrition_assessments',
 ] as const
 
 export type ProfessionCapability = (typeof PROFESSION_CAPABILITIES)[number]
@@ -42,7 +43,7 @@ export type ProfessionCapability = (typeof PROFESSION_CAPABILITIES)[number]
 const CAPABILITIES_BY_PROFESSION: Record<Profession, readonly ProfessionCapability[]> = {
   psicologia: ['instruments', 'neuropsych_assessments'],
   psiquiatria: [],
-  nutricao: ['instruments'],
+  nutricao: ['instruments', 'nutrition_assessments'],
   fisioterapia: ['instruments'],
   fonoaudiologia: [],
   terapia_ocupacional: [],

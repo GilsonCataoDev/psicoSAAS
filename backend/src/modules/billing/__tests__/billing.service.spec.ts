@@ -217,34 +217,8 @@ describe('BillingService', () => {
     })
   })
 
-  describe('one-time Pro activation offer', () => {
-    it('shows the R$ 34,90 offer once to an active Free account', async () => {
-      const sub = makeSub({
-        plan: 'free',
-        status: 'active',
-        gatewaySubscriptionId: null,
-        upgradeOfferViewedAt: null,
-        activationOfferRedeemedAt: null,
-      })
-      repo.findOne.mockResolvedValue(sub)
-
-      const first = await service.getFreeUpgradeOffer(makeUser())
-      expect(first).toEqual(expect.objectContaining({
-        eligible: true,
-        shouldNotify: true,
-        offerCode: 'PRO3490',
-        promotionalPrice: 34.90,
-        regularPrice: 97.90,
-      }))
-
-      await service.acknowledgeFreeUpgradeOffer('user-1')
-      const afterAcknowledgement = await service.getFreeUpgradeOffer(makeUser())
-
-      expect(afterAcknowledgement.eligible).toBe(true)
-      expect(afterAcknowledgement.shouldNotify).toBe(false)
-    })
-
-    it('charges R$ 34,90 for one cycle and records redemption', async () => {
+  describe('preço sem oferta de ativação', () => {
+    it('does not create a new first-month promotion', async () => {
       const sub = makeSub({
         plan: 'free',
         status: 'active',
@@ -267,26 +241,42 @@ describe('BillingService', () => {
         'sub-1',
         'card-token',
         expect.any(String),
-        expect.objectContaining({ valueOverride: 34.90 }),
+        undefined,
       )
       expect(repo.save).toHaveBeenLastCalledWith(expect.objectContaining({
-        promoCode: 'PRO3490',
-        promoCyclesTotal: 1,
-        activationOfferRedeemedAt: expect.any(Date),
+        promoCode: null,
+        promoCyclesTotal: 0,
       }))
     })
 
-    it('does not offer the campaign again after redemption', async () => {
-      repo.findOne.mockResolvedValue(makeSub({
-        plan: 'free',
-        status: 'active',
-        activationOfferRedeemedAt: new Date(),
-      }))
+    it('honors a legacy promotion that was already activated', async () => {
+      const sub = makeSub({
+        plan: 'pro',
+        status: 'trialing',
+        gatewayCustomerId: null,
+        gatewaySubscriptionId: null,
+        hasUsedTrial: true,
+        promoCode: 'PRO3490',
+        promoDiscountPercent: 0,
+        promoCyclesTotal: 1,
+        promoCyclesUsed: 0,
+      })
+      repo.findOne.mockResolvedValue(sub)
 
-      const offer = await service.getFreeUpgradeOffer(makeUser())
+      await service.subscribe(
+        { ...makeUser(), name: 'Test', createdAt: new Date() } as any,
+        'pro',
+        'card-token',
+      )
 
-      expect(offer.eligible).toBe(false)
-      expect(offer.shouldNotify).toBe(false)
+      expect(asaas.createSubscription).toHaveBeenCalledWith(
+        'cus_123',
+        'pro',
+        'sub-1',
+        'card-token',
+        expect.any(String),
+        expect.objectContaining({ valueOverride: 34.90 }),
+      )
     })
   })
 })

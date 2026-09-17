@@ -98,6 +98,9 @@ export class AuthService {
     if (!dto.termsAccepted) {
       throw new BadRequestException('E necessario aceitar os Termos de Uso')
     }
+    if (dto.referralCode && !await this.referral.isValidCode(dto.referralCode)) {
+      throw new BadRequestException('Código de indicação inválido')
+    }
 
     // RegisterDto so cobra formato de CRP para psicologia (@ValidateIf), entao
     // o registro das demais profissoes chega sem validacao nenhuma.

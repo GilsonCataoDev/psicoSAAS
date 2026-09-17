@@ -94,7 +94,7 @@ export default function FirstSessionCelebration() {
               <div>
                 <p className="text-sm font-semibold text-gray-800 dark:text-white">Indique e ganhe</p>
                 <p className="mt-1 text-xs leading-5 text-gray-500 dark:text-gray-300">
-                  Indique outro psicologo e ganhe 30 dias de beneficio quando ele ativar a conta.
+                  Ganhe R$ 48,95 quando um novo profissional assinar pelo seu link e o pagamento passar pelo prazo de validação.
                 </p>
               </div>
             </div>

@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { Eye } from 'lucide-react'
 import Sidebar from './Sidebar'
@@ -9,7 +9,6 @@ import BottomNav from './BottomNav'
 import TopBar from './TopBar'
 import PWAInstallBanner from '@/components/ui/PWAInstallBanner'
 import PushNotificationBanner from '@/components/ui/PushNotificationBanner'
-import Modal from '@/components/ui/Modal'
 import { api, USE_MOCK, type AuthAxiosRequestConfig } from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 import { useSubscriptionStore } from '@/store/subscription'
@@ -194,85 +193,6 @@ function SubscriptionBanner() {
   return null
 }
 
-type UpgradeOffer = {
-  eligible: boolean
-  shouldNotify: boolean
-  offerCode: string | null
-  promotionalPrice: number | null
-  regularPrice: number
-  includesTrial: boolean
-  discount: { pro: string } | null
-  title: string
-  message: string
-  benefits: string[]
-}
-
-function FreeUpgradeOfferModal() {
-  const subscription = useSubscriptionStore((s) => s.subscription)
-  const plan = String(subscription.planId ?? subscription.plan ?? 'free')
-  const queryClient = useQueryClient()
-  const [hidden, setHidden] = useState(false)
-  const enabled = subscription.status === 'active' && plan === 'free'
-  const { data } = useQuery({
-    queryKey: ['billing', 'upgrade-offer'],
-    queryFn: () => api.get<UpgradeOffer>('/billing/upgrade-offer').then(res => res.data),
-    enabled,
-    staleTime: 60 * 60 * 1000,
-  })
-
-  if (!enabled || hidden || !data?.shouldNotify) return null
-
-  function dismiss() {
-    setHidden(true)
-    queryClient.setQueryData<UpgradeOffer>(['billing', 'upgrade-offer'], current => (
-      current ? { ...current, shouldNotify: false } : current
-    ))
-    void api.post('/billing/upgrade-offer/viewed').catch(() => {
-      queryClient.invalidateQueries({ queryKey: ['billing', 'upgrade-offer'] })
-    })
-  }
-
-  return (
-    <Modal
-      open
-      onClose={dismiss}
-      title="Novidades no UseCognia Pro"
-      description="Uma condição especial para sua conta Free"
-      size="md"
-      closeLabel="Fechar"
-    >
-      <div className="overflow-hidden rounded-2xl border border-sage-200 bg-gradient-to-br from-sage-50 to-white p-5 dark:border-sage-400/20 dark:from-sage-500/15 dark:to-cognia-panel">
-        <p className="text-sm font-medium text-sage-700 dark:text-sage-200">{data.title}</p>
-        <div className="mt-3 flex flex-wrap items-end gap-x-3 gap-y-1">
-          <span className="font-display text-4xl font-semibold text-sage-700 dark:text-sage-200">R$ 34,90</span>
-          <span className="pb-1 text-sm text-neutral-600 dark:text-neutral-300">no primeiro mês</span>
-        </div>
-        <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-300">
-          Depois, R$ 97,90/mês. {data.includesTrial ? 'Você ainda tem 7 dias de teste incluídos.' : 'Sem fidelidade.'}
-        </p>
-      </div>
-
-      <p className="mt-5 text-sm text-neutral-600 dark:text-neutral-300">{data.message}</p>
-      <ul className="mt-4 space-y-2 text-sm text-neutral-700 dark:text-neutral-200">
-        {data.benefits.map(benefit => (
-          <li key={benefit} className="flex gap-2">
-            <span aria-hidden="true" className="text-sage-600">✓</span>
-            <span>{benefit}</span>
-          </li>
-        ))}
-      </ul>
-
-      <p className="mt-4 text-xs text-neutral-500 dark:text-neutral-400">
-        Oferta aplicada automaticamente uma vez por conta elegível.
-      </p>
-      <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <button type="button" onClick={dismiss} className="btn-secondary">Agora não</button>
-        <Link to="/planos" onClick={dismiss} className="btn-primary text-center">Conhecer o Pro</Link>
-      </div>
-    </Modal>
-  )
-}
-
 function EmailVerificationBanner() {
   const user = useAuthStore((s) => s.user)
   const [sending, setSending] = useState(false)
@@ -428,7 +348,6 @@ export default function AppLayout() {
           <div className="max-w-7xl mx-auto">
             <EmailVerificationBanner />
             <SubscriptionBanner />
-            <FreeUpgradeOfferModal />
             <AnimatePresence mode="wait">
               <motion.div
                 key={location.pathname}

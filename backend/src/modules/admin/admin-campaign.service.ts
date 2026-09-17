@@ -13,7 +13,7 @@ interface ProOfferRecipient {
 @Injectable()
 export class AdminCampaignService {
   private readonly logger = new Logger(AdminCampaignService.name)
-  private readonly campaignLock = 'usecognia:campaign:pro3790'
+  private readonly campaignLock = 'usecognia:campaign:pro-upgrade'
 
   constructor(
     private readonly dataSource: DataSource,

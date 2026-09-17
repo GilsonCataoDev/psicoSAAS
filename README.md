@@ -57,13 +57,13 @@ UseCognia é um SaaS completo para profissionais de saúde brasileiros que reduz
 - Alerta de pacientes inativos há mais de 30 dias
 - Gráfico de receita mensal (Recharts)
 
-### Monetizacao, Beta e acesso
-- **Beta gratuito sem cartao** — novos usuarios podem acessar a plataforma durante a fase Beta sem passar por checkout
-- **Trial pago preparado** — tokenizacao do cartao feita no backend via Asaas; dados do cartao nao sao salvos quando o fluxo comercial estiver ativo
+### Monetizacao e acesso
+- **Plano Pro por R$ 97,90/mes** — plano comercial publico unico, com teste gratuito de 7 dias e cartao obrigatorio
+- **Checkout seguro** — tokenizacao do cartao feita no backend via Asaas; numero completo e CVV nao sao persistidos pelo UseCognia
 - **Billing desacoplado do dominio clinico** — modulo `billing` com subscription propria, migrations e `SubscriptionGuard`
 - **Asaas** — criacao de customer, subscription com `CREDIT_CARD`, webhook idempotente e atualizacao de cartao
 - **Controle de acesso global** — usuarios `active` e `trialing` acessam; `past_due` usa grace period; `canceled` e `none` bloqueiam
-- **Frontend de monetizacao** — `/planos` funciona como tela de acesso Beta nesta fase; o checkout pago permanece preservado no codigo para retomada comercial
+- **Frontend de monetizacao** — `/planos` apresenta o Pro e inicia o checkout do teste de 7 dias
 - **Metricas SaaS** — endpoint de contagem por status e MRR basico por plano
 
 ### Administração e conformidade
@@ -329,28 +329,28 @@ Cobertura atual: brute-force de login, rotação/replay de refresh token, expira
 
 ---
 
-## Beta, billing e monetizacao
+## Billing e monetizacao
 
 ### Fluxo principal
-1. Usuario cria conta pelo fluxo Beta.
-2. Backend libera acesso `free/active` automaticamente quando `BETA_FREE_ACCESS` nao esta definido como `false`.
-3. Frontend mostra `/planos` como tela de acesso Beta, sem cartao.
-4. Quando o fluxo comercial voltar, o checkout pago pode usar `POST /billing/tokenize` e `POST /billing/subscribe`.
-5. No fluxo pago, o backend cria ou reutiliza a subscription local, agenda cobranca para D+7 e salva:
+1. Usuario cria a conta e escolhe o plano Pro por R$ 97,90/mes.
+2. O checkout usa `POST /billing/tokenize` e `POST /billing/subscribe`; os dados sensiveis do cartao nao sao persistidos pelo UseCognia.
+3. O backend cria ou reutiliza a subscription local, agenda a primeira cobranca para D+7 e salva:
    - `status = trialing`
    - `trialEndsAt = agora + 7 dias`
    - `hasUsedTrial = true`
-6. Webhook Asaas atualiza:
+4. Webhook Asaas atualiza:
    - `PAYMENT_RECEIVED` ou `PAYMENT_CONFIRMED` -> `active`
    - `PAYMENT_OVERDUE` -> `past_due`
    - `SUBSCRIPTION_CANCELLED` ou `SUBSCRIPTION_DELETED` -> `canceled`
+
+O estado interno `free` e a flag `BETA_FREE_ACCESS` permanecem apenas para compatibilidade e acessos administrativos/legados; eles nao representam um plano gratuito ofertado publicamente.
 
 ### Endpoints de billing
 
 | Metodo | Rota | Uso |
 |---|---|---|
-| `GET` | `/billing/me` | Retorna a subscription do usuario; no Beta, cria/retorna `free/active` quando nao existir |
-| `POST` | `/billing/free` | Ativa acesso gratuito/Beta |
+| `GET` | `/billing/me` | Retorna a assinatura e o estado de acesso do usuario |
+| `POST` | `/billing/free` | Compatibilidade interna para acessos Beta/legados; nao e uma oferta publica |
 | `POST` | `/billing/tokenize` | Tokeniza cartao no backend; nao persiste dados sensiveis |
 | `POST` | `/billing/subscribe` | Inicia trial pago de 7 dias com cartao obrigatorio quando o checkout comercial estiver ativo |
 | `POST` | `/billing/update-card` | Atualiza cartao e tenta nova cobranca quando `past_due` |
@@ -371,11 +371,31 @@ Cobertura atual: brute-force de login, rotação/replay de refresh token, expira
 - Falha de pagamento via webhook: envia "Pagamento recusado".
 
 ### Frontend
-- `/planos` mostra a tela de Beta gratuito nesta fase.
-- CTA padrao: "Quero testar o Beta".
+- `/planos` mostra o plano Pro por R$ 97,90/mes e o teste gratuito de 7 dias.
+- CTA padrao: "Ativar 7 dias gratis".
 - `past_due`: mostra "Seu teste terminou e o pagamento falhou." e botao "Pagar agora".
-- Banner global mostra "Beta gratuito ativo" para usuarios `free/active`.
 - Polling de `/billing/me` roda a cada 5s apenas em `trialing` ou `pending` e para ao virar `active`.
+
+---
+
+## Programa de indicacao
+
+- Cada participante recebe um codigo e um link individual.
+- O novo cliente pode informar o codigo no cadastro ou concluir o cadastro em ate 30 dias depois de acessar o link.
+- O indicado contrata o Pro pelo valor normal de **R$ 97,90/mes**; o codigo nao concede desconto.
+- O participante recebe uma comissao unica de **50% do primeiro pagamento aprovado, limitada a R$ 48,95**.
+- A comissao fica em validacao por 30 dias e so e liberada se nao houver estorno, chargeback, fraude ou autoindicacao.
+- O pagamento e processado por Pix, em ciclo mensal, usando os dados cadastrados pelo participante.
+- CPF/CNPJ e chave Pix ficam criptografados; aceite dos termos, versao do regulamento e movimentacoes da comissao sao auditaveis.
+- O painel administrativo acompanha os estados `pending`, `validating`, `payable`, `paid`, `reversed` e `ineligible` e registra o comprovante do pagamento.
+
+Fluxo resumido: `cadastro com indicacao -> primeiro pagamento confirmado -> 30 dias de validacao -> comissao disponivel -> pagamento registrado`.
+
+Indicações antigas nao geram comissao retroativa. A promocao publica de primeiro mes por R$ 34,90 foi removida; o tratamento tecnico de promocoes ja ativadas permanece somente para honrar contratos existentes.
+
+Consulte as regras completas em [docs/programa-de-indicacao.md](docs/programa-de-indicacao.md).
+
+Antes do deploy desta funcionalidade, execute as migrations do backend, incluindo `1785440000000-CreateReferralCommissions.ts`.
 
 ---
 

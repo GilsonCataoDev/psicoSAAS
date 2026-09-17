@@ -23,7 +23,7 @@ import {
   usePatientAuditLog, type AuditEntry,
 } from '@/hooks/useApi'
 import { useAuthStore } from '@/store/auth'
-import { hasProfessionCapability, hasPhysiotherapyModules, hasPsychologyModules } from '@/lib/professions'
+import { hasNutritionModules, hasProfessionCapability, hasPhysiotherapyModules, hasPsychologyModules } from '@/lib/professions'
 import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
@@ -36,6 +36,7 @@ import LegacyNotesMigrationModal from '@/components/features/patients/LegacyNote
 import { useHasPlan } from '@/store/subscription'
 import { buildPatientDetailSummary, buildScaleEvolutionSeries } from '@/lib/patient-detail-summary'
 import { useTerms } from '@/hooks/useTerms'
+import NutritionProgressPanel from '@/components/features/nutrition/NutritionProgressPanel'
 
 const MOODS = ['', '1', '2', '3', '4', '5']
 const WEEKDAYS = ['Domingo', 'Segunda', 'Terca', 'Quarta', 'Quinta', 'Sexta', 'Sabado']
@@ -62,6 +63,7 @@ export default function PatientDetailPage() {
   const createFinancial = useCreateFinancial()
   const updatePatient = useUpdatePatient()
   const isFisio = hasPhysiotherapyModules(profession)
+  const isNutrition = hasNutritionModules(profession)
   const { data: instrumentAssignments = [] } = useInstrumentAssignments(id, hasInstruments)
   const updateInstrumentAnswers = useUpdateInstrumentAnswers()
   const assessmentAiInterpretation = useAssessmentAiInterpretation()
@@ -591,6 +593,8 @@ export default function PatientDetailPage() {
           </div>
         </section>
       )}
+
+      {isNutrition && <NutritionProgressPanel patientId={patient.id} />}
 
       {patient.hasFixedSchedule && (
         <RecurringSessionsCard

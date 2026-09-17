@@ -43,6 +43,7 @@ import { PlanAccessModule } from './common/plan-access/plan-access.module'
 import { AiGovernanceModule } from './modules/ai-governance/ai-governance.module'
 import { ProspectLifecycleModule } from './common/prospect-lifecycle/prospect-lifecycle.module'
 import { ProductHelpModule } from './modules/product-help/product-help.module'
+import { NutritionAssessmentsModule } from './modules/nutrition-assessments/nutrition-assessments.module'
 
 const readPositiveInt = (value: string | undefined, fallback: number): number => {
   const parsed = Number(value)
@@ -103,6 +104,7 @@ const readPositiveInt = (value: string | undefined, fallback: number): number =>
     DataExportModule,
     GoogleCalendarModule,
     InstrumentAssignmentsModule,
+    NutritionAssessmentsModule,
     NeuropsychAssessmentsModule,
     TemplatesModule,
     AdminModule,

@@ -74,7 +74,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [isStudent, setIsStudent] = useState(false)
   const [crpValue, setCrpValue] = useState('')
-  const [referralCode, setReferralCode] = useState<string | null>(null)
+  const [referralCode, setReferralCode] = useState('')
   const [accountData, setAccountData] = useState<AccountData | null>(null)
   const [cardNumber, setCardNumber] = useState('')
   const [searchParams] = useSearchParams()
@@ -87,7 +87,17 @@ export default function RegisterPage() {
 
   useEffect(() => {
     const ref = searchParams.get('ref') || searchParams.get('referral')
-    if (ref) setReferralCode(ref.toUpperCase())
+    if (ref) {
+      const code = ref.trim().toUpperCase().slice(0, 20)
+      setReferralCode(code)
+      localStorage.setItem('usecognia_referral', JSON.stringify({ code, expiresAt: Date.now() + 30 * 86400000 }))
+      return
+    }
+    try {
+      const saved = JSON.parse(localStorage.getItem('usecognia_referral') ?? 'null')
+      if (saved?.code && saved?.expiresAt > Date.now()) setReferralCode(String(saved.code).slice(0, 20))
+      else localStorage.removeItem('usecognia_referral')
+    } catch { localStorage.removeItem('usecognia_referral') }
   }, [searchParams])
 
   // ── formulário step 1 ───────────────────────────────────────────────────
@@ -147,6 +157,7 @@ export default function RegisterPage() {
       }
       setAuth(res.data.user)
       if (res.data.csrfToken) setCsrfToken(res.data.csrfToken)
+      localStorage.removeItem('usecognia_referral')
       setAccountData(data)
       setStep(2)
     } catch (err: any) {
@@ -156,6 +167,8 @@ export default function RegisterPage() {
         toast.error('Muitas tentativas. Aguarde um minuto e tente novamente.')
       } else if (msg === 'E-mail já cadastrado') {
         toast.error('Este e-mail já está em uso. Tente fazer login.')
+      } else if (msg === 'Código de indicação inválido') {
+        toast.error('Código de indicação inválido. Confira o código ou deixe o campo vazio.')
       } else {
         toast.error('Não foi possível criar a conta. Tente novamente.')
       }
@@ -226,12 +239,6 @@ export default function RegisterPage() {
       </h2>
       <p className="text-neutral-500 mb-6">7 dias grátis, sem cobrança agora</p>
 
-      {referralCode && (
-        <div className="mb-4 px-3 py-2 bg-sage-50 border border-sage-200 rounded-lg text-sm text-sage-700">
-          Indicado por um colega — código <strong>{referralCode}</strong> aplicado.
-        </div>
-      )}
-
       <form onSubmit={handleSubmit(onSubmitAccount)} className="space-y-4">
         <div>
           <label htmlFor="register-name" className="label">Nome completo</label>
@@ -258,6 +265,19 @@ export default function RegisterPage() {
             aria-invalid={!!errors.email}
           />
           {errors.email && <p className="text-rose-500 text-xs mt-1">{errors.email.message}</p>}
+        </div>
+
+        <div>
+          <label htmlFor="register-referral" className="label">Código de indicação <span className="font-normal text-neutral-400">(opcional)</span></label>
+          <input
+            id="register-referral"
+            value={referralCode}
+            onChange={event => setReferralCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20))}
+            className="input-field uppercase"
+            placeholder="Ex.: MARIA"
+            autoComplete="off"
+          />
+          {referralCode && <p className="mt-1 text-xs text-sage-700">O código será validado no cadastro. O valor da assinatura não muda.</p>}
         </div>
 
         <div>

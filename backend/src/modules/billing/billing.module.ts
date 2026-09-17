@@ -10,9 +10,10 @@ import { Subscription } from './entities/subscription.entity'
 import { WebhookEvent } from './entities/webhook-event.entity'
 import { User } from '../auth/entities/user.entity'
 import { EmailLog } from '../email/entities/email-log.entity'
+import { ReferralModule } from '../referral/referral.module'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Subscription, WebhookEvent, User, EmailLog])],
+  imports: [TypeOrmModule.forFeature([Subscription, WebhookEvent, User, EmailLog]), ReferralModule],
   controllers: [BillingController],
   providers: [
     AsaasService,

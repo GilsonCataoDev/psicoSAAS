@@ -17,11 +17,11 @@ import { PLAN_PRICES, PLAN_LIMITS } from '../plans'
 
 const REPO = join(__dirname, '..', '..', '..', '..')
 
-/** Valor da oferta de ativação — declarado em billing.service.ts. */
-function readActivationOfferValue(): number {
+/** Valor legado, mantido apenas para honrar ofertas já ativadas. */
+function readLegacyActivationOfferValue(): number {
   const source = readFileSync(join(REPO, 'backend/src/modules/billing/billing.service.ts'), 'utf8')
-  const match = source.match(/ACTIVATION_OFFER_VALUE\s*=\s*([\d.]+)/)
-  if (!match) throw new Error('ACTIVATION_OFFER_VALUE não encontrado em billing.service.ts')
+  const match = source.match(/LEGACY_ACTIVATION_OFFER_VALUE\s*=\s*([\d.]+)/)
+  if (!match) throw new Error('LEGACY_ACTIVATION_OFFER_VALUE não encontrado em billing.service.ts')
   return Number(match[1])
 }
 
@@ -54,7 +54,7 @@ function extractPrices(source: string): number[] {
 }
 
 describe('contrato de preço entre backend e frontend', () => {
-  const activationOffer = readActivationOfferValue()
+  const legacyActivationOffer = readLegacyActivationOfferValue()
 
   it('o catálogo do frontend cobra o mesmo que o backend', () => {
     const catalog = readFileSync(join(REPO, 'frontend/src/config/planCatalog.ts'), 'utf8')
@@ -78,8 +78,8 @@ describe('contrato de preço entre backend e frontend', () => {
   })
 
   it('nenhuma superfície anuncia um preço que o backend não pratica', () => {
-    // Valores legítimos: o preço do plano, a oferta de ativação e zero.
-    const allowed = new Set<number>([...Object.values(PLAN_PRICES), activationOffer, 0])
+    // O valor legado só pode permanecer no backend para honrar ofertas já ativadas.
+    const allowed = new Set<number>([...Object.values(PLAN_PRICES), legacyActivationOffer, 0])
     const offenders: string[] = []
 
     for (const relative of PRICE_SURFACES) {
