@@ -1,4 +1,4 @@
-import { hasPsychologyModules, hasPhysiotherapyModules, hasNutritionModules, type Profession } from '@/lib/professions'
+import { hasPsychologyModules, hasPhysiotherapyModules, hasNutritionModules, hasAestheticsModules, type Profession } from '@/lib/professions'
 export interface Prontuario {
   id: string
   patientId: string
@@ -162,6 +162,25 @@ const PROFESSIONAL_RECORD_TEMPLATES: Partial<Record<Profession, ProfessionalReco
       ] },
     ],
   },
+  estetica: {
+    intakeTitle: 'Avaliação estética',
+    planTitle: 'Plano de atendimento estético',
+    goalLabel: 'Objetivos estéticos',
+    goalPlaceholder: 'Metas acordadas com a cliente...',
+    groups: [
+      { title: 'Perfil de pele e queixa principal', fields: [
+        { key: 'skinType', label: 'Tipo de pele', placeholder: 'Oleosa, seca, mista, sensível, normal...', rows: 2 },
+        { key: 'fitzpatrick', label: 'Fototipo Fitzpatrick', placeholder: 'I a VI — reação ao sol e sensibilidade', rows: 1 },
+        { key: 'mainConcern', label: 'Queixa principal', placeholder: 'Motivo do atendimento e objetivo da cliente', rows: 2 },
+        { key: 'previousTreatments', label: 'Tratamentos anteriores', placeholder: 'Procedimentos, produtos em uso, reações observadas', rows: 3 },
+      ] },
+      { title: 'Histórico de saúde relevante', fields: [
+        { key: 'medications', label: 'Medicamentos e suplementos em uso', placeholder: 'Nome e dose quando informado', rows: 2 },
+        { key: 'allergies', label: 'Alergias e sensibilidades conhecidas', placeholder: 'Substâncias, ingredientes ou procedimentos a evitar', rows: 2 },
+        { key: 'contraindications', label: 'Contraindicações identificadas', placeholder: 'Gestação, isotretinoína, cirurgia recente, doenças de pele ativas...', rows: 2 },
+      ] },
+    ],
+  },
 }
 
 /** Psicologia conserva a ficha clínica existente; áreas mapeadas recebem campos próprios. */
@@ -204,12 +223,14 @@ export function docTypeLabels(profession?: string | null): Record<DocType, strin
   const psi   = hasPsychologyModules(profession)
   const fisio = hasPhysiotherapyModules(profession)
   const nutri = hasNutritionModules(profession)
+  const estet = hasAestheticsModules(profession)
   return {
     declaracao:    'Declaração de Comparecimento',
     recibo:        'Recibo de Pagamento',
     relatorio:     psi   ? 'Relatório Psicológico'
                  : fisio ? 'Laudo Fisioterapêutico'
                  : nutri ? 'Relatório Nutricional'
+                 : estet ? 'Relatório Estético'
                  :         'Relatório',
     atestado:      psi   ? 'Atestado Psicológico'
                  :         'Atestado',
@@ -223,6 +244,7 @@ export function docTypesFor(profession?: string | null): DocType[] {
   if (hasPsychologyModules(profession))    return [...base, 'relatorio', 'atestado']
   if (hasPhysiotherapyModules(profession)) return [...base, 'relatorio']
   if (hasNutritionModules(profession))     return [...base, 'relatorio']
+  if (hasAestheticsModules(profession))    return [...base, 'relatorio']
   return base
 }
 

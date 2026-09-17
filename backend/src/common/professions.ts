@@ -19,6 +19,7 @@ export const PROFESSIONS = [
   'assistencia_social',
   'odontologia',
   'personal_trainer',
+  'estetica',
   'outro',
 ] as const
 
@@ -48,6 +49,7 @@ const CAPABILITIES_BY_PROFESSION: Record<Profession, readonly ProfessionCapabili
   assistencia_social: [],
   odontologia: [],
   personal_trainer: [],
+  estetica: [],
   outro: [],
 }
 
@@ -75,6 +77,7 @@ export const PROFESSION_LABELS: Record<Profession, string> = {
   assistencia_social: 'Serviço Social',
   odontologia: 'Odontologia',
   personal_trainer: 'Personal Trainer',
+  estetica: 'Estética',
   outro: 'Outra profissão',
 }
 
@@ -106,6 +109,14 @@ export function hasPhysiotherapyModules(profession?: string | null): boolean {
  */
 export function hasNutritionModules(profession?: string | null): boolean {
   return (profession ?? DEFAULT_PROFESSION) === 'nutricao'
+}
+
+/**
+ * Esteticistas têm ficha de atendimento própria com campos de pele, fototipo
+ * e contraindicações. Não há conselho federal autárquico (Lei 13.643/2018).
+ */
+export function hasAestheticsModules(profession?: string | null): boolean {
+  return (profession ?? DEFAULT_PROFESSION) === 'estetica'
 }
 
 /**
@@ -155,6 +166,7 @@ export const COUNCIL_LABELS: Record<Profession, string | null> = {
   assistencia_social: 'CRESS',
   odontologia: 'CRO',
   personal_trainer: 'CREF',
+  estetica: null,
   outro: null,
 }
 

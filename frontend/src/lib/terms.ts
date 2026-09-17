@@ -98,6 +98,14 @@ const TERMS: Record<Profession | 'generico', Terms> = {
     record: 'ficha de treino', recordCapitalized: 'Ficha de Treino',
     intake: 'avaliação física', intakeCapitalized: 'Avaliação física',
   },
+  estetica: {
+    patient: 'cliente', patientCapitalized: 'Cliente',
+    patients: 'clientes', patientsCapitalized: 'Clientes',
+    session: 'atendimento', sessionCapitalized: 'Atendimento',
+    sessions: 'atendimentos', sessionsCapitalized: 'Atendimentos',
+    record: 'ficha de atendimento', recordCapitalized: 'Ficha de Atendimento',
+    intake: 'avaliação estética', intakeCapitalized: 'Avaliação Estética',
+  },
   outro: {
     patient: 'cliente', patientCapitalized: 'Cliente', patients: 'clientes', patientsCapitalized: 'Clientes',
     session: 'atendimento', sessionCapitalized: 'Atendimento', sessions: 'atendimentos', sessionsCapitalized: 'Atendimentos',

@@ -135,6 +135,17 @@ const TERMS: Record<Profession | 'generico', Terms> = {
     record: 'ficha de treino', recordCapitalized: 'Ficha de Treino', documentKind: 'profissional',
     recordTitle: 'Ficha de Treino', recordCopyTitle: 'Cópia da Ficha de Treino',
   },
+  estetica: {
+    patient: 'cliente', patientCapitalized: 'Cliente',
+    patients: 'clientes', patientsCapitalized: 'Clientes',
+    session: 'atendimento', sessionCapitalized: 'Atendimento',
+    sessions: 'atendimentos', sessionsCapitalized: 'Atendimentos',
+    sessionPlain: 'atendimento', sessionPlainCapitalized: 'Atendimento',
+    sessionPossessivePlain: 'Seu atendimento', sessionAgreement: 'o',
+    record: 'ficha de atendimento', recordCapitalized: 'Ficha de Atendimento',
+    documentKind: 'profissional',
+    recordTitle: 'Ficha de Atendimento', recordCopyTitle: 'Cópia da Ficha de Atendimento',
+  },
   outro: {
     patient: 'cliente', patientCapitalized: 'Cliente', patients: 'clientes', patientsCapitalized: 'Clientes',
     session: 'atendimento', sessionCapitalized: 'Atendimento', sessions: 'atendimentos', sessionsCapitalized: 'Atendimentos',

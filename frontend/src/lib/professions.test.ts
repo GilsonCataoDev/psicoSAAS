@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { hasPhysiotherapyModules, hasPsychologyModules, hasNutritionModules, hasInstrumentsModule, hasProfessionCapability, councilLabel, PROFESSIONS } from './professions'
+import { hasPhysiotherapyModules, hasPsychologyModules, hasNutritionModules, hasAestheticsModules, hasInstrumentsModule, hasProfessionCapability, councilLabel, PROFESSIONS } from './professions'
 
 describe('hasPhysiotherapyModules', () => {
   it('libera os campos da COFFITO 414/2012 só para fisioterapia', () => {
@@ -56,6 +56,30 @@ describe('hasNutritionModules', () => {
   })
 })
 
+describe('hasAestheticsModules', () => {
+  it('libera módulo estético só para estetica', () => {
+    expect(hasAestheticsModules('estetica')).toBe(true)
+  })
+
+  it('não vaza para nenhuma outra profissão', () => {
+    for (const p of PROFESSIONS.filter(p => p !== 'estetica')) {
+      expect(hasAestheticsModules(p)).toBe(false)
+    }
+  })
+
+  it('assume false quando profissão está ausente (conta antiga = psicologia)', () => {
+    expect(hasAestheticsModules(undefined)).toBe(false)
+    expect(hasAestheticsModules(null)).toBe(false)
+  })
+
+  it('é mutuamente exclusivo com psicologia, fisioterapia e nutricao', () => {
+    for (const p of PROFESSIONS) {
+      const flags = [hasPsychologyModules(p), hasPhysiotherapyModules(p), hasNutritionModules(p), hasAestheticsModules(p)]
+      expect(flags.filter(Boolean).length).toBeLessThanOrEqual(1)
+    }
+  })
+})
+
 describe('hasInstrumentsModule', () => {
   it('habilita instrumentos para psicologia, fisioterapia e nutricao', () => {
     expect(hasInstrumentsModule('psicologia')).toBe(true)
@@ -64,7 +88,7 @@ describe('hasInstrumentsModule', () => {
   })
 
   it('não habilita para profissões sem catálogo', () => {
-    for (const p of ['terapia_ocupacional', 'odontologia', 'fonoaudiologia'] as const) {
+    for (const p of ['terapia_ocupacional', 'odontologia', 'fonoaudiologia', 'estetica'] as const) {
       expect(hasInstrumentsModule(p)).toBe(false)
     }
   })

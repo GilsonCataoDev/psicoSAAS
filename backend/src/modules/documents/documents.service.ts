@@ -12,7 +12,7 @@ import { PLAN_LIMITS } from '../../common/plans'
 import { PlanAccessService } from '../../common/plan-access/plan-access.service'
 import { EmailService } from '../email/email.service'
 import { termsFor } from '../../common/terms'
-import { DEFAULT_PROFESSION, requiresCrp, hasPhysiotherapyModules, hasNutritionModules } from '../../common/professions'
+import { DEFAULT_PROFESSION, requiresCrp, hasPhysiotherapyModules, hasNutritionModules, hasAestheticsModules } from '../../common/professions'
 
 export interface CreateDocumentDto {
   patientId: string
@@ -33,12 +33,14 @@ function docTypeLabels(profession?: string | null): Record<DocType, string> {
   const psi   = requiresCrp(profession)
   const fisio = hasPhysiotherapyModules(profession)
   const nutri = hasNutritionModules(profession)
+  const estet = hasAestheticsModules(profession)
   return {
     declaracao: 'Declaração de Comparecimento',
     recibo: 'Recibo de Pagamento',
     relatorio: psi   ? 'Relatório Psicológico'
              : fisio ? 'Laudo Fisioterapêutico'
              : nutri ? 'Relatório Nutricional'
+             : estet ? 'Relatório Estético'
              :         'Relatório',
     atestado: psi ? 'Atestado Psicológico' : 'Atestado',
     encaminhamento: 'Carta de Encaminhamento',
@@ -153,7 +155,7 @@ export class DocumentsService {
     if (dto.type === 'atestado' && !requiresCrp(user.profession)) {
       throw new BadRequestException('Atestado é exclusivo de contas de psicologia.')
     }
-    if (dto.type === 'relatorio' && !requiresCrp(user.profession) && !hasPhysiotherapyModules(user.profession) && !hasNutritionModules(user.profession)) {
+    if (dto.type === 'relatorio' && !requiresCrp(user.profession) && !hasPhysiotherapyModules(user.profession) && !hasNutritionModules(user.profession) && !hasAestheticsModules(user.profession)) {
       throw new BadRequestException('Este tipo de documento não está disponível para sua profissão.')
     }
     // CRP e do conselho de psicologia. Exigi-lo de outras profissoes travaria
