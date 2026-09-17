@@ -1,5 +1,309 @@
 [
   {
+    "slug": "prontuario-psicologico-digital-o-que-a-cfp-exige",
+    "title": "Prontuário psicológico digital: o que a CFP exige e como organizar o seu",
+    "description": "Guia prático sobre prontuário psicológico digital: campos obrigatórios segundo a CFP Res. 001/2009, boas práticas de documentação e como escolher um sistema adequado.",
+    "image": "/blog/og/prontuario-psicologico-digital-o-que-a-cfp-exige.png",
+    "category": "Regulação e compliance",
+    "publishedAt": "2026-09-17",
+    "updatedAt": "2026-09-17",
+    "readingMinutes": 8,
+    "author": "Equipe UseCognia",
+    "keywords": [
+      "prontuário psicológico digital",
+      "CFP prontuário digital",
+      "software para consultório de psicologia",
+      "agenda para psicólogos",
+      "CFP Res. 001/2009 prontuário"
+    ],
+    "relatedSlugs": [
+      "como-organizar-prontuario-psicologico-com-seguranca",
+      "lgpd-para-psicologos-guia-pratico"
+    ],
+    "intro": [
+      "Manter um prontuário psicológico em papel ou planilha representa risco real: perda de dados, dificuldade de acesso em fiscalizações e ausência de campos que o Conselho Federal de Psicologia exige. Com o crescimento do atendimento online e do volume de pacientes, a migração para o prontuário psicológico digital deixou de ser uma conveniência e passou a ser parte do exercício ético e regulatório da profissão.",
+      "Este guia apresenta o que a CFP determina sobre documentação clínica, quais campos o sistema precisa ter e quais critérios usar ao escolher um software de prontuário para psicólogos."
+    ],
+    "sections": [
+      {
+        "heading": "O que a CFP Res. 001/2009 determina sobre o prontuário",
+        "paragraphs": [
+          "A Resolução CFP nº 001/2009 (com alterações da Res. 05/2010) regulamenta a prestação de serviços psicológicos realizados por meios tecnológicos, mas também consolida entendimentos sobre a guarda e o conteúdo do prontuário psicológico. Já a CFP Res. 06/2019 define os documentos psicológicos — declaração, atestado, relatório e laudo — com requisitos próprios para cada um.",
+          "Em conjunto, essas normas estabelecem que o prontuário deve conter o registro suficiente para reconstruir o processo de avaliação e acompanhamento do paciente, identificar o profissional responsável por cada registro e garantir sigilo e integridade das informações ao longo do prazo de guarda."
+        ]
+      },
+      {
+        "heading": "Campos obrigatórios do prontuário psicológico digital",
+        "paragraphs": [
+          "Identificação do paciente: nome completo, data de nascimento, contato e, quando aplicável, dados do responsável legal. Em atendimento online, registre também a localidade e o tipo de plataforma utilizada.",
+          "Demanda e queixa principal: registro do motivo pelo qual o paciente procurou atendimento, com suas próprias palavras quando relevante para o processo clínico.",
+          "Histórico clínico e anamnese psicológica: antecedentes relevantes, contexto familiar e social, tratamentos anteriores, uso de medicação e fatores de risco identificados na triagem.",
+          "Instrumentos aplicados e resultados: quando houver aplicação de escalas padronizadas (como PHQ-9, GAD-7, DASS-21), registre o instrumento, a data, o escore obtido e a interpretação clínica. Não reproduza os itens das escalas com direitos autorais — registre o resultado e a conclusão.",
+          "Evolução de cada sessão: data, conteúdo trabalhado, observações clínicas relevantes, conduta adotada e eventuais intercorrências. Evite registros genéricos; a evolução precisa ser suficiente para sustentar o raciocínio clínico documentado.",
+          "Hipótese diagnóstica e formulação clínica: quando aplicável, a abordagem teórica adotada, a hipótese diagnóstica e os objetivos do processo terapêutico.",
+          "Documentos psicológicos emitidos: cada declaração, atestado, relatório ou laudo deve seguir os requisitos da CFP Res. 06/2019 e ficar arquivado vinculado ao prontuário do paciente.",
+          "Identificação profissional: cada registro deve identificar o psicólogo responsável com nome completo e número de inscrição no CRP."
+        ]
+      },
+      {
+        "heading": "Critérios para escolher um software de prontuário psicológico",
+        "paragraphs": [
+          "O sistema precisa ter campos próprios para psicologia, não apenas um editor de texto genérico. Campos de evolução estruturada, aplicação de escalas com pontuação automática e templates para documentos conforme CFP Res. 06/2019 fazem diferença no dia a dia.",
+          "Verifique também a conformidade com a LGPD: dados psicológicos são dados sensíveis de saúde (art. 11 da Lei 13.709/2018) e exigem medidas técnicas específicas de proteção, controle de acesso e registro de operações.",
+          "Praticidade operacional também importa: agenda integrada ao prontuário, acesso pelo celular durante a sessão e exportação de dados em formato legível reduzem o tempo administrativo e aumentam a consistência dos registros."
+        ]
+      },
+      {
+        "heading": "Como o UseCognia organiza o prontuário psicológico digital",
+        "paragraphs": [
+          "O UseCognia foi desenvolvido com os campos e fluxos específicos da psicologia clínica: evolução estruturada por sessão, 25+ escalas com pontuação automática e gráficos de evolução, templates de documentos segundo a CFP Res. 06/2019 e IA que gera rascunhos de evolução para revisão do profissional — nunca como conduta autônoma.",
+          "O sistema é compatível com LGPD para dados sensíveis de saúde e funciona em qualquer dispositivo, permitindo registro durante ou logo após a sessão. Se você quer ver como funciona na prática, acesse a página de psicólogos e comece gratuitamente com até 10 pacientes, sem cartão de crédito: usecognia.com.br/psicologos"
+        ]
+      }
+    ],
+    "checklist": [
+      "Registrar identificação completa do paciente na abertura do prontuário",
+      "Documentar a demanda e queixa principal com as palavras do paciente quando relevante",
+      "Preencher anamnese com antecedentes clínicos, contexto familiar e fatores de risco",
+      "Registrar instrumentos aplicados com escore e interpretação — sem reproduzir itens protegidos",
+      "Preencher evolução a cada sessão com conduta e observações clínicas objetivas",
+      "Arquivar documentos psicológicos emitidos vinculados ao prontuário",
+      "Assinar cada registro com nome completo e número de inscrição no CRP",
+      "Verificar se o sistema adota medidas de proteção compatíveis com a LGPD para dados sensíveis"
+    ],
+    "references": [
+      {
+        "label": "Resolução CFP nº 001/2009 — prestação de serviços por meios tecnológicos — Conselho Federal de Psicologia",
+        "url": "https://site.cfp.org.br/wp-content/uploads/2009/02/resolucao2009_001.pdf"
+      },
+      {
+        "label": "Resolução CFP nº 06/2019 — elaboração de documentos psicológicos — Conselho Federal de Psicologia",
+        "url": "https://site.cfp.org.br/wp-content/uploads/2019/09/Resolucao_CFP_06-2019.pdf"
+      },
+      {
+        "label": "Lei nº 13.709/2018 — Lei Geral de Proteção de Dados Pessoais (LGPD)",
+        "url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm"
+      }
+    ],
+    "faq": [
+      {
+        "question": "O prontuário psicológico pode ser 100% digital?",
+        "answer": "Sim. A CFP admite prontuário eletrônico desde que garantidos sigilo, integridade dos dados, identificação do profissional em cada registro e acesso do paciente quando solicitado. O sistema utilizado deve adotar medidas compatíveis com a LGPD para dados sensíveis de saúde."
+      },
+      {
+        "question": "Quanto tempo devo guardar o prontuário psicológico?",
+        "answer": "A orientação do CFP é de guarda por pelo menos cinco anos após o encerramento do processo. Para menores de idade, o prazo começa a contar a partir da maioridade. Verifique também eventuais exigências do plano de saúde ou instituição onde atua."
+      },
+      {
+        "question": "Uma IA pode escrever a evolução do paciente?",
+        "answer": "Não de forma autônoma. O registro no prontuário é responsabilidade exclusiva do psicólogo habilitado. Ferramentas de IA podem gerar rascunhos para que o profissional revise, corrija e assine — mas o conteúdo final precisa refletir a decisão clínica do psicólogo, conforme a CFP Res. 001/2009."
+      }
+    ]
+  },
+  {
+    "slug": "prontuario-fisioterapeutico-digital-campos-coffito-414",
+    "title": "Prontuário fisioterapêutico digital: campos obrigatórios da COFFITO Res. 414/2012",
+    "description": "Guia prático sobre prontuário fisioterapêutico digital: o que a COFFITO Res. 414/2012 exige, quais campos não podem faltar e como escolher um sistema adequado para fisioterapeutas.",
+    "image": "/blog/og/prontuario-fisioterapeutico-digital-campos-coffito-414.png",
+    "category": "Regulação e compliance",
+    "publishedAt": "2026-09-17",
+    "updatedAt": "2026-09-17",
+    "readingMinutes": 8,
+    "author": "Equipe UseCognia",
+    "keywords": [
+      "prontuário fisioterapêutico digital",
+      "COFFITO 414/2012 prontuário",
+      "software para fisioterapeutas",
+      "semiologia fisioterapêutica digital",
+      "diagnóstico cinesiofuncional"
+    ],
+    "relatedSlugs": [
+      "coffito-414-prontuario-fisioterapeutico-o-que-registrar",
+      "lgpd-para-psicologos-guia-pratico"
+    ],
+    "intro": [
+      "Muitos fisioterapeutas ainda registram suas evoluções em planilhas, fichas em papel ou sistemas de prontuário médico adaptados. Esses formatos não contemplam campos específicos da fisioterapia — como o diagnóstico cinesiofuncional e o quantitativo provável de atendimentos — e podem deixar lacunas importantes em uma fiscalização do CREFITO ou em um processo ético.",
+      "A COFFITO Res. 414/2012 estabelece a estrutura mínima do prontuário fisioterapêutico e determina que ele pode ser físico ou eletrônico. Este guia detalha o que o sistema precisa ter, quais campos costumam ser omitidos e como escolher um software de prontuário adequado para fisioterapeutas."
+    ],
+    "sections": [
+      {
+        "heading": "Por que o prontuário fisioterapêutico exige campos específicos",
+        "paragraphs": [
+          "O prontuário médico genérico foi desenvolvido para registrar diagnóstico nosológico, prescrição e evolução clínica. O raciocínio fisioterapêutico é diferente: parte da semiologia físico-funcional, chega ao diagnóstico cinesiofuncional, define objetivos terapêuticos, estima o número de sessões e registra a evolução funcional a cada atendimento.",
+          "Um sistema sem esses campos força o fisioterapeuta a improvisar — registrar o diagnóstico cinesiofuncional em campo de 'observações' ou omitir o quantitativo de sessões porque não há onde colocar. Essas omissões são exatamente o que os conselhos regionais verificam em fiscalizações."
+        ]
+      },
+      {
+        "heading": "O que a COFFITO Res. 414/2012 exige no prontuário",
+        "paragraphs": [
+          "Identificação do paciente: dados completos de identificação, atualizados a cada período de tratamento.",
+          "Anamnese fisioterapêutica: queixa principal, história do problema atual, antecedentes pessoais e familiares, hábitos de vida e tratamentos anteriores relevantes para a conduta.",
+          "Avaliação pela semiologia fisioterapêutica: achados objetivos do exame físico — goniometria, testes ortopédicos, avaliação postural, força muscular, mobilidade, equilíbrio, marcha e escalas de dor, com valores, lateralidade e condições de teste quando relevantes.",
+          "Diagnóstico cinesiofuncional: campo obrigatório e privativo do fisioterapeuta. Documenta as alterações de movimento, função e desempenho identificadas na avaliação. É distinto do diagnóstico médico e deve constar separadamente no prontuário.",
+          "Prognóstico fisioterapêutico: estimativa de evolução funcional com base nos achados, considerando limitações e potencial de recuperação.",
+          "Plano de tratamento e objetivos: procedimentos, recursos e técnicas propostos, cada um relacionado a objetivos terapêuticos mensuráveis.",
+          "Quantitativo provável de atendimentos: campo específico da fisioterapia, frequentemente ausente em sistemas genéricos. A estimativa pode ser revisada, mas alterações devem ser justificadas no prontuário.",
+          "Evolução em cada sessão: registro da condição apresentada, procedimentos realizados, evolução físico-funcional e eventuais intercorrências. Evite descrições genéricas como 'sessão sem intercorrências'.",
+          "Alta fisioterapêutica: desfecho do tratamento, objetivos alcançados ou pendentes, orientações fornecidas e encaminhamento quando indicado.",
+          "Identificação profissional: nome completo e número de inscrição no CREFITO em cada registro."
+        ]
+      },
+      {
+        "heading": "Critérios para escolher um software de prontuário fisioterapêutico",
+        "paragraphs": [
+          "O sistema precisa ter campos separados para diagnóstico cinesiofuncional, quantitativo de atendimentos e evolução estruturada por sessão. Se esses campos não existirem nativamente, o profissional acaba anotando em campos livres ou omitindo informações.",
+          "Para clínicas que trabalham com pacotes de sessões, o controle financeiro integrado ao prontuário evita desencontros entre o registrado clinicamente e o cobrado. Confirme também se o sistema permite exportar os dados do paciente em caso de migração ou auditoria.",
+          "Conformidade com a LGPD é obrigatória: dados fisioterapêuticos são dados sensíveis de saúde. Verifique se o fornecedor oferece criptografia, controle de acesso e política de privacidade compatível com a Lei 13.709/2018."
+        ]
+      },
+      {
+        "heading": "Como o UseCognia organiza o prontuário fisioterapêutico digital",
+        "paragraphs": [
+          "O UseCognia tem campos específicos para fisioterapia: diagnóstico cinesiofuncional separado do diagnóstico médico, quantitativo provável de atendimentos por paciente, escalas de avaliação funcional (Tinetti, Berg, Escala de Equilíbrio) com gráficos de evolução, e registro estruturado de evolução por sessão.",
+          "A IA do sistema pode gerar rascunhos de evolução para revisão do fisioterapeuta — nunca como conduta autônoma. O plano de tratamento, o diagnóstico cinesiofuncional e a conduta são sempre de responsabilidade do profissional habilitado, conforme a COFFITO Res. 414/2012. Acesse a página de fisioterapeutas e comece gratuitamente com até 10 pacientes: usecognia.com.br/fisioterapeutas"
+        ]
+      }
+    ],
+    "checklist": [
+      "Registrar identificação completa do paciente e atualizar a cada período de tratamento",
+      "Documentar a semiologia fisioterapêutica com valores objetivos e lateralidade",
+      "Registrar o diagnóstico cinesiofuncional antes de iniciar o plano de tratamento",
+      "Incluir o quantitativo provável de atendimentos e justificar revisões no prontuário",
+      "Preencher a evolução com condição apresentada, procedimentos e resultado a cada sessão",
+      "Registrar a alta com desfecho, objetivos alcançados e orientações fornecidas",
+      "Assinar cada registro com nome completo e número de inscrição no CREFITO",
+      "Verificar conformidade LGPD do sistema para dados sensíveis de saúde"
+    ],
+    "references": [
+      {
+        "label": "Resolução COFFITO nº 414/2012 — Conselho Federal de Fisioterapia e Terapia Ocupacional",
+        "url": "https://www.coffito.gov.br/nsite/?p=3177"
+      },
+      {
+        "label": "Lei nº 13.709/2018 — Lei Geral de Proteção de Dados Pessoais (LGPD)",
+        "url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm"
+      }
+    ],
+    "faq": [
+      {
+        "question": "O diagnóstico cinesiofuncional é obrigatório no prontuário fisioterapêutico?",
+        "answer": "Sim. A COFFITO Res. 414/2012 exige o registro do diagnóstico cinesiofuncional como campo próprio do prontuário. Ele identifica as alterações de movimento e função que fundamentam a conduta fisioterapêutica e é distinto do diagnóstico médico."
+      },
+      {
+        "question": "Posso usar prontuário eletrônico como fisioterapeuta?",
+        "answer": "Sim. A resolução admite prontuário físico ou eletrônico, desde que garantidos sigilo, integridade dos dados e identificação do profissional vinculada a cada registro. O sistema deve ser compatível com a LGPD para dados sensíveis de saúde."
+      },
+      {
+        "question": "O que acontece se o prontuário não tiver o diagnóstico cinesiofuncional?",
+        "answer": "Em uma fiscalização do Sistema COFFITO/CREFITO ou em processo ético, a ausência do diagnóstico cinesiofuncional impede relacionar os achados da avaliação às condutas adotadas. Isso pode ser interpretado como documentação inadequada, com consequências disciplinares para o profissional."
+      }
+    ]
+  },
+  {
+    "slug": "prontuario-nutricional-digital-o-que-a-cfn-exige",
+    "title": "Prontuário nutricional digital: o que a CFN 594/2017 exige e como digitalizar",
+    "description": "Guia prático sobre prontuário nutricional digital: campos obrigatórios conforme a CFN 594/2017, como migrar do papel para o digital e critérios para escolher um software para nutricionistas.",
+    "image": "/blog/og/prontuario-nutricional-digital-o-que-a-cfn-exige.png",
+    "category": "Regulação e compliance",
+    "publishedAt": "2026-09-17",
+    "updatedAt": "2026-09-17",
+    "readingMinutes": 8,
+    "author": "Equipe UseCognia",
+    "keywords": [
+      "prontuário nutricional digital",
+      "CFN 594/2017 prontuário",
+      "software para nutricionistas",
+      "recordatório alimentar digital",
+      "diagnóstico nutricional prontuário"
+    ],
+    "relatedSlugs": [
+      "cfn-599-prontuario-nutricional-campos-registrar",
+      "lgpd-para-psicologos-guia-pratico"
+    ],
+    "intro": [
+      "Registrar anamnese alimentar em papel, manter o plano alimentar no Excel e enviar a evolução pelo WhatsApp não é apenas impraticável — é um risco regulatório. A CFN 594/2017 define campos específicos para o prontuário nutricional, e a documentação fragmentada em múltiplas ferramentas torna difícil demonstrar a coerência entre avaliação, diagnóstico e conduta em uma fiscalização do CRN.",
+      "A digitalização do prontuário nutricional resolve o problema da dispersão de informações, mas o sistema escolhido precisa ter os campos certos. Este guia explica o que a CFN exige, como organizar a migração do papel para o digital e quais critérios usar ao avaliar um software para nutricionistas."
+    ],
+    "sections": [
+      {
+        "heading": "O que a CFN 594/2017 define para o prontuário nutricional",
+        "paragraphs": [
+          "A Resolução CFN nº 594/2017 é a norma que estabelece a estrutura mínima do prontuário nutricional para os nutricionistas que prestam assistência direta. Ela define campos obrigatórios, determina que o prontuário pode ser físico ou eletrônico e reforça o dever de manter documentação suficiente para verificação da assistência prestada.",
+          "Complementarmente, a CFN Res. 599/2018 (Código de Ética) estabelece deveres éticos relacionados à documentação e à responsabilidade sobre os registros. A conduta nutricional — incluindo diagnóstico e prescrição dietética — é ato privativo do nutricionista, previsto na Lei nº 8.234/1991."
+        ]
+      },
+      {
+        "heading": "Campos que o prontuário nutricional digital precisa ter",
+        "paragraphs": [
+          "Identificação completa do paciente: nome completo, data de nascimento, sexo, contatos e, quando relevante, responsável legal. Inclua nome social quando solicitado.",
+          "Triagem de risco nutricional: registro do risco identificado na triagem e o nível de assistência necessário, conforme o protocolo do serviço.",
+          "Anamnese alimentar e nutricional: histórico clínico e familiar, hábitos alimentares, atividade física, medicamentos em uso, alergias e intolerâncias, restrições alimentares e fatores socioeconômicos relevantes para o consumo.",
+          "Inquérito de consumo alimentar: a norma exige o registro do consumo, sem determinar obrigatoriamente o recordatório de 24 horas. Recordatório, diário alimentar ou questionário de frequência alimentar são admitidos, desde que documentados no prontuário.",
+          "Avaliação antropométrica: peso, estatura e IMC são componentes obrigatórios. Circunferências, pregas cutâneas e composição corporal são complementares conforme a finalidade da avaliação.",
+          "Diagnóstico nutricional: hipótese diagnóstica com protocolo de referência utilizado. O diagnóstico nutricional descreve o estado ou problema nutricional — é diferente do diagnóstico médico de doenças.",
+          "Plano alimentar e conduta: prescrição coerente com a avaliação e o diagnóstico, com valor energético, distribuição de macronutrientes, fracionamento e orientações. Registre data e assinatura do nutricionista em cada versão.",
+          "Evolução a cada consulta: data, antropometria, aceitação, alteração ou manutenção de conduta, exames disponíveis e reavaliação do diagnóstico. Evite registros vagos.",
+          "Alta nutricional ou encerramento: desfecho documentado com orientações finais, ou justificativa quando dispensadas.",
+          "Identificação profissional: nome, CRN, jurisdição e assinatura em cada registro."
+        ]
+      },
+      {
+        "heading": "Como organizar a migração do papel para o digital",
+        "paragraphs": [
+          "Não é necessário digitalizar prontuários antigos imediatamente. O recomendado é iniciar o uso do sistema digital para pacientes novos e, progressivamente, registrar os retornos dos pacientes em acompanhamento no formato digital. Mantenha os prontuários físicos pelo prazo mínimo de guarda previsto na norma.",
+          "Antes de migrar, verifique se o sistema escolhido permite exportar seus dados em formato legível (PDF, CSV). Isso garante portabilidade em caso de troca de fornecedor e protege o profissional contra perda de acesso ao histórico dos pacientes.",
+          "Treine-se nos campos antes do primeiro atendimento no novo sistema. O ganho de tempo vem na segunda semana, não no primeiro dia — o período de adaptação é normal."
+        ]
+      },
+      {
+        "heading": "Como o UseCognia organiza o prontuário nutricional digital",
+        "paragraphs": [
+          "O UseCognia tem campos nativos para nutrição: recordatório alimentar digital integrado ao prontuário, avaliação antropométrica com gráficos de evolução de peso e IMC, plano alimentar com distribuição de macronutrientes vinculado ao prontuário do paciente e evolução estruturada por consulta.",
+          "A IA do sistema pode gerar um rascunho de evolução para revisão do nutricionista — sem substituir o diagnóstico nutricional nem a prescrição dietética, que são sempre responsabilidade do profissional habilitado conforme a CFN 594/2017. Para ver como funciona na prática, acesse a página de nutricionistas e comece gratuitamente com até 10 pacientes: usecognia.com.br/nutricionistas"
+        ]
+      }
+    ],
+    "checklist": [
+      "Registrar identificação completa na abertura do prontuário, incluindo nome social quando solicitado",
+      "Aplicar triagem de risco nutricional e documentar o nível de assistência",
+      "Preencher anamnese com histórico clínico, hábitos, intolerâncias e fatores socioeconômicos relevantes",
+      "Registrar inquérito de consumo alimentar (recordatório, diário ou questionário de frequência)",
+      "Documentar avaliação antropométrica com peso, estatura e IMC obrigatoriamente",
+      "Registrar o diagnóstico nutricional com o protocolo de referência utilizado",
+      "Elaborar plano alimentar coerente com a avaliação, com valor energético e macronutrientes",
+      "Preencher evolução a cada consulta com dados objetivos — evitar registros vagos",
+      "Assinar cada registro com nome, CRN, jurisdição e carimbo ou vínculo eletrônico"
+    ],
+    "references": [
+      {
+        "label": "Resolução CFN nº 594/2017 — prontuário nutricional — Conselho Federal de Nutricionistas",
+        "url": "https://cfn.org.br/wp-content/uploads/resolucoes/DOU_594.pdf"
+      },
+      {
+        "label": "Resolução CFN nº 599/2018 — Código de Ética e de Conduta do Nutricionista",
+        "url": "https://cfn.org.br/wp-content/uploads/2018/04/codigo-de-etica.pdf"
+      },
+      {
+        "label": "Lei nº 8.234/1991 — regulamentação da profissão de nutricionista",
+        "url": "https://www.planalto.gov.br/ccivil_03/leis/1989_1994/l8234.htm"
+      }
+    ],
+    "faq": [
+      {
+        "question": "O prontuário nutricional pode ser 100% digital?",
+        "answer": "Sim. A CFN 594/2017 admite prontuário físico ou eletrônico, desde que mantidos sigilo, integridade dos dados e identificação do profissional em cada registro. O sistema utilizado deve ser compatível com a LGPD para dados sensíveis de saúde."
+      },
+      {
+        "question": "O recordatório alimentar de 24 horas é obrigatório?",
+        "answer": "A norma exige o registro do consumo alimentar, mas não determina obrigatoriamente o recordatório de 24 horas. O nutricionista pode utilizar recordatório, diário alimentar ou questionário de frequência alimentar — desde que o instrumento utilizado seja documentado no prontuário."
+      },
+      {
+        "question": "Por quanto tempo devo guardar o prontuário nutricional?",
+        "answer": "A orientação é de guarda mínima enquanto durar o vínculo profissional com o paciente e por prazo compatível com as normas do CFN e da instituição. Consulte também as exigências específicas do serviço onde atua e a legislação local."
+      }
+    ]
+  },
+  {
     "slug": "coffito-414-prontuario-fisioterapeutico-o-que-registrar",
     "title": "Prontuário fisioterapêutico COFFITO 414: o que registrar",
     "description": "Guia prático dos campos obrigatórios exigidos pela Resolução COFFITO 414/2012 no prontuário fisioterapêutico.",
