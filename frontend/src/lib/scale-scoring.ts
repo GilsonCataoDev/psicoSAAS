@@ -175,14 +175,6 @@ export const SCALE_CONFIGS: Record<string, ScaleConfig> = {
       { id: 'q6', label: 'Sentir-se facilmente irritado(a) ou irritável' },
       { id: 'q7', label: 'Sentir medo como se algo horrível pudesse acontecer' },
     ],
-    criticalItems: [
-      {
-        itemId: 'q17',
-        minValue: 1,
-        label: 'Ideação suicida positiva',
-        note: 'Requer avaliação imediata de risco suicida, independentemente do total.',
-      },
-    ],
     thresholds: [
       { max: 4,  label: 'Mínimo',   color: 'text-emerald-700 bg-emerald-50' },
       { max: 9,  label: 'Leve',     color: 'text-yellow-700 bg-yellow-50' },

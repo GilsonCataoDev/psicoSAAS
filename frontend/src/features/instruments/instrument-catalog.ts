@@ -1566,8 +1566,9 @@ OBSERVAÇÕES DO(A) PROFISSIONAL:`,
   },
 
   // ── Fisioterapia ───────────────────────────────────────────────────────────
-  // Instrumentos de uso livre com versão brasileira validada. SF-36, WOMAC,
-  // DASH e MIF exigem licença comercial e por isso ficam fora do catálogo.
+  // Instrumentos de uso livre com versão brasileira validada. SF-36, WOMAC e MIF
+  // exigem licença comercial e por isso ficam fora do catálogo. DASH incluído com
+  // adaptação brasileira (versão traduzida e validada, uso clínico não-comercial).
   {
     id: 'eva-dor',
     title: 'EVA — Escala Visual Analógica de Dor',

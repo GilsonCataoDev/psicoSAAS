@@ -45,7 +45,7 @@ const features = [
   },
   {
     icon: Layers,
-    title: 'Controle de sessões por pacote (COFFITO 414)',
+    title: 'Controle de sessões por pacote (COFFITO Res. 414/2012)',
     text: 'Gerencie pacotes pré-pagos de atendimento com controle automático de saldo de sessões por paciente.',
     accent: 'text-amber-600 bg-amber-50',
   },
@@ -61,7 +61,7 @@ export default function FisioterapeutasPage() {
   usePageSeo({
     title: 'Prontuário fisioterapêutico digital — UseCognia',
     description:
-      'Prontuário fisioterapêutico com diagnóstico cinesiofuncional, semiologia estruturada e controle de sessões por pacote. Conforme COFFITO 414.',
+      'Prontuário fisioterapêutico com diagnóstico cinesiofuncional, semiologia estruturada e controle de sessões por pacote. Conforme COFFITO Res. 414/2012.',
     canonicalPath: '/fisioterapeutas',
   })
 
@@ -157,7 +157,7 @@ export default function FisioterapeutasPage() {
             </h2>
             <p className="mt-4 leading-relaxed text-[#5F5A51]">
               Prontuário genérico não documenta o raciocínio clínico fisioterapêutico, não controla
-              pacotes de atendimento e não tem os campos exigidos pela COFFITO 414.
+              pacotes de atendimento e não tem os campos exigidos pela COFFITO Res. 414/2012.
             </p>
           </div>
           <div className="grid gap-3">
@@ -226,7 +226,8 @@ export default function FisioterapeutasPage() {
           <LeadCaptureForm
             source="landing-fisioterapeutas"
             defaultProfession="fisioterapia"
-            title="Quero o checklist COFFITO 414"
+            title="Quero o checklist COFFITO Res. 414/2012"
+            professionOptions={['fisioterapia']}
             ctaLabel="Enviar checklist por e-mail"
           />
         </div>
