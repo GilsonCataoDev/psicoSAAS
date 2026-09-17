@@ -19,6 +19,10 @@ const isDev = import.meta.env.DEV
 const META_PIXEL_ID = '1606308730880987'
 let metaPixelLoaded = false
 
+// Google Ads — preencher VITE_GOOGLE_ADS_ID com o ID da conta (AW-XXXXXXXXXX) no .env de produção.
+const GOOGLE_ADS_ID = import.meta.env.VITE_GOOGLE_ADS_ID as string | undefined
+let googleAdsLoaded = false
+
 const CONSENT_KEY   = 'usecognia.analytics-consent'
 const CONSENT_EVENT = 'usecognia:analytics-consent'
 const ATTRIBUTION_KEY = 'usecognia_marketing_attribution'
@@ -194,13 +198,44 @@ export function trackMetaConversion(event: string) {
 
 subscribeAnalyticsConsent(granted => { if (granted) loadMetaPixel() })
 
+// ─── Google Ads (consent-gated — envia dados à Google) ───────────────────────
+
+function loadGoogleAds() {
+  if (isDev || googleAdsLoaded || !GOOGLE_ADS_ID || typeof window === 'undefined') return
+  googleAdsLoaded = true
+  const w = window as any
+  w.dataLayer = w.dataLayer || []
+  w.gtag = function (...args: unknown[]) { w.dataLayer.push(args) }
+  w.gtag('js', new Date())
+  w.gtag('config', GOOGLE_ADS_ID)
+  const script = document.createElement('script')
+  script.async = true
+  script.src = `https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ADS_ID}`
+  document.head.appendChild(script)
+}
+
+/** Dispara um evento de conversão do Google Ads. Exige consentimento e VITE_GOOGLE_ADS_ID configurado. */
+export function trackGoogleAdsConversion(conversionLabel: string, value?: number) {
+  if (isDev || getAnalyticsConsent() !== true || !GOOGLE_ADS_ID || !conversionLabel) return
+  loadGoogleAds()
+  ;(window as any).gtag?.('event', 'conversion', {
+    send_to: conversionLabel,
+    ...(value !== undefined ? { value, currency: 'BRL' } : {}),
+  })
+}
+
+subscribeAnalyticsConsent(granted => { if (granted) loadGoogleAds() })
+
 // ─── public API ───────────────────────────────────────────────────────────────
 
 /** Call once on app boot. Fires $pageview + landing_page_viewed anonymously. */
 export function initAnalytics() {
   const props = sanitizeProperties({ ...captureAttribution(), landing_path: publicPathCategory() })
   void loadAnalytics().then(ph => ph?.capture(EVENTS.LANDING_PAGE_VIEWED, props))
-  if (getAnalyticsConsent() === true) loadMetaPixel()
+  if (getAnalyticsConsent() === true) {
+    loadMetaPixel()
+    loadGoogleAds()
+  }
 }
 
 /**

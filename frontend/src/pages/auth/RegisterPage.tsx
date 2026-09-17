@@ -11,7 +11,7 @@ import { isValidCrpFormat, getCrpRegion, openCfpVerification, formatCrpInput } f
 import { DEFAULT_PROFESSION, PROFESSIONS, PROFESSION_LABELS, councilLabel, requiresCrp, type Profession } from '@/lib/professions'
 import { useTokenizeCard, useSubscribeTrial } from '@/hooks/api/billing'
 import toast from 'react-hot-toast'
-import { track, EVENTS, trackMetaConversion } from '@/lib/analytics'
+import { track, EVENTS, trackMetaConversion, trackGoogleAdsConversion } from '@/lib/analytics'
 import UseCogniaIcon from '@/components/ui/UseCogniaIcon'
 
 // ── Step 1: dados da conta ─────────────────────────────────────────────────
@@ -202,6 +202,7 @@ export default function RegisterPage() {
         profession: accountData?.profession ?? 'psicologia',
       })
       trackMetaConversion('Lead')
+      trackGoogleAdsConversion(import.meta.env.VITE_GOOGLE_ADS_CONV_REGISTER ?? '')
       toast.success('Teste de 7 dias ativado! Seja bem-vindo(a) 🎉')
       const requestedPlan = searchParams.get('plano')
       navigate(requestedPlan === 'essencial' || requestedPlan === 'pro' ? '/planos?plano=pro' : '/')
