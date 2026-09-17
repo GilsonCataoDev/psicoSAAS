@@ -76,11 +76,14 @@ describe('hasProfessionCapability', () => {
     expect(hasProfessionCapability('odontologia', 'instruments')).toBe(false)
   })
 
-  it('profissão ausente ou vazia cai em psicologia — mesmas capabilities da profissão padrão', () => {
-    // hasProfessionCapability usa || — null, undefined e '' resolvem para DEFAULT_PROFESSION
-    // psicologia tem 'instruments', portanto o resultado é true (não false)
+  it('null/undefined caem em psicologia (conta antiga) — capabilities da profissão padrão', () => {
+    // ?? coage apenas null/undefined → DEFAULT_PROFESSION; '' permanece '' (profissão inválida)
     expect(hasProfessionCapability(null, 'instruments')).toBe(true)
-    expect(hasProfessionCapability('', 'instruments')).toBe(true)
+    expect(hasProfessionCapability(undefined, 'instruments')).toBe(true)
+  })
+
+  it('string vazia não libera módulo — comportamento consistente com hasPsychologyModules', () => {
+    expect(hasProfessionCapability('', 'instruments')).toBe(false)
   })
 
   it('retorna false para capability inexistente mesmo em profissão válida', () => {

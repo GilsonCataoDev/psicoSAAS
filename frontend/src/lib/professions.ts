@@ -48,7 +48,7 @@ export function hasProfessionCapability(
   profession: string | null | undefined,
   capability: ProfessionCapability,
 ): boolean {
-  const resolved = profession || DEFAULT_PROFESSION
+  const resolved = profession ?? DEFAULT_PROFESSION
   return (CAPABILITIES_BY_PROFESSION[resolved as Profession] ?? []).includes(capability)
 }
 

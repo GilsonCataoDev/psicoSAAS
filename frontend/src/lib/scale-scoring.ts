@@ -1138,7 +1138,8 @@ export const SCALE_CONFIGS: Record<string, ScaleConfig> = {
     ],
     thresholds: [
       // Thresholds aplicados à soma bruta (n=30): score DASH = (soma−30)/120×100
-      // soma ≤54 → DASH ≤20; soma ≤78 → DASH ≤40; soma ≤102 → DASH ≤60; soma ≤150 → DASH ≤100
+      // soma=30 → DASH=0; soma ≤54 → DASH ≤20; soma ≤78 → DASH ≤40; soma ≤102 → DASH ≤60; soma ≤150 → DASH ≤100
+      { max: 30,  label: 'Sem incapacidade',          color: 'text-emerald-700 bg-emerald-50' },
       { max: 54,  label: 'Incapacidade leve',        color: 'text-emerald-700 bg-emerald-50' },
       { max: 78,  label: 'Incapacidade moderada',    color: 'text-yellow-700 bg-yellow-50' },
       { max: 102, label: 'Incapacidade significativa', color: 'text-orange-700 bg-orange-50' },

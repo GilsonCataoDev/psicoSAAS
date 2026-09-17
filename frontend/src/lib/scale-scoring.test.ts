@@ -122,8 +122,8 @@ describe('DASH — Disabilities of the Arm, Shoulder and Hand', () => {
 
   it('classifica nas faixas de incapacidade pelo limiar da soma bruta', () => {
     // Os thresholds são aplicados à soma bruta; DASH % = (soma−30)/120×100
-    // Faixa mais baixa cobre soma 30–54 (DASH 0–20 %); a mais alta cobre até 150 (DASH 100 %)
-    expect(interpretScaleResult('dash', 30, null, null)?.level?.label).toBe('Incapacidade leve')
+    // soma=30 → DASH=0 (sem incapacidade); soma 31–54 → DASH 1–20 % (leve)
+    expect(interpretScaleResult('dash', 30, null, null)?.level?.label).toBe('Sem incapacidade')
     expect(interpretScaleResult('dash', 54, null, null)?.level?.label).toBe('Incapacidade leve')
     expect(interpretScaleResult('dash', 78, null, null)?.level?.label).toBe('Incapacidade moderada')
     expect(interpretScaleResult('dash', 102, null, null)?.level?.label).toBe('Incapacidade significativa')
