@@ -1,4 +1,4 @@
-﻿import { useEffect } from 'react'
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowRight,
@@ -38,25 +38,25 @@ const features = [
     icon: Activity,
     title: 'Diagnóstico cinesiofuncional separado do diagnóstico médico',
     text: 'Campo exclusivo para o fisioterapeuta registrar o diagnóstico cinesiofuncional sem misturar com o CID médico.',
-    accent: 'text-sky-600 bg-sky-50',
+    accent: 'text-emerald-400 bg-emerald-900/60',
   },
   {
     icon: Ruler,
     title: 'Semiologia estruturada: goniometria, testes ortopédicos, escala de dor',
     text: 'Formulários de avaliação prontos para documentar a avaliação inicial e reavaliações com os dados que a clínica precisa.',
-    accent: 'text-sage-600 bg-sage-50',
+    accent: 'text-teal-300 bg-teal-900/60',
   },
   {
     icon: Layers,
     title: 'Controle de sessões por pacote (COFFITO Res. 414/2012)',
     text: 'Gerencie pacotes pré-pagos de atendimento com controle automático de saldo de sessões por paciente.',
-    accent: 'text-amber-600 bg-amber-50',
+    accent: 'text-emerald-400 bg-emerald-900/60',
   },
   {
     icon: FileCheck2,
     title: 'Evolução por sessão com assinatura e CREFITO',
     text: 'Registro de evolução por sessão com identificação do profissional e número de registro no CREFITO, conforme a resolução.',
-    accent: 'text-purple-600 bg-purple-50',
+    accent: 'text-teal-300 bg-teal-900/60',
   },
 ]
 
@@ -130,22 +130,22 @@ export default function FisioterapeutasPage() {
             </span>
           </Link>
           <nav className="hidden items-center gap-6 text-sm font-medium text-[#5F5A51] md:flex">
-            <a href="#features" className="hover:text-sage-700">Funcionalidades</a>
-            <a href="#coffito" className="hover:text-sage-700">Conformidade COFFITO</a>
-            <a href="#lead" className="hover:text-sage-700">Checklist grátis</a>
-            <Link to="/blog" className="hover:text-sage-700">Blog</Link>
-            <Link to="/precos" className="hover:text-sage-700">Planos</Link>
+            <a href="#features" className="hover:text-emerald-600">Funcionalidades</a>
+            <a href="#coffito" className="hover:text-emerald-600">Conformidade COFFITO</a>
+            <a href="#lead" className="hover:text-emerald-600">Checklist grátis</a>
+            <Link to="/blog" className="hover:text-emerald-600">Blog</Link>
+            <Link to="/precos" className="hover:text-emerald-600">Planos</Link>
           </nav>
           <div className="flex items-center gap-2">
             <Link
               to="/login"
-              className="hidden px-3 py-2 text-sm font-semibold text-[#49443D] hover:text-sage-700 sm:inline-flex"
+              className="hidden px-3 py-2 text-sm font-semibold text-[#49443D] hover:text-emerald-600 sm:inline-flex"
             >
               Entrar
             </Link>
             <Link
               to={REGISTER_URL}
-              className="hidden rounded-md bg-sage-800 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sage-900 sm:inline-flex"
+              className="hidden rounded-md bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-400 sm:inline-flex"
             >
               Testar 7 dias grátis
             </Link>
@@ -154,11 +154,24 @@ export default function FisioterapeutasPage() {
       </header>
 
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden bg-[#1D352D] text-white">
+      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-950 via-teal-900 to-emerald-900 text-white">
         <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
+        {/* Decorative runner/movement figure */}
+        <div className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/4 opacity-10">
+          <svg width="520" height="520" viewBox="0 0 200 200" fill="white" xmlns="http://www.w3.org/2000/svg">
+            {/* Body in motion */}
+            <circle cx="130" cy="40" r="16"/>
+            <path d="M130 56 L118 100 L90 130 L75 165" stroke="white" strokeWidth="10" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M118 100 L95 115 L70 105" stroke="white" strokeWidth="10" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M130 56 L148 90 L165 120" stroke="white" strokeWidth="10" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M90 130 L100 160 L115 175" stroke="white" strokeWidth="10" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+            {/* Pulse/motion lines */}
+            <path d="M20 90 L45 90 L55 60 L70 120 L80 90 L160 90" stroke="white" strokeWidth="5" fill="none" strokeLinecap="round" strokeLinejoin="round" opacity="0.6"/>
+          </svg>
+        </div>
         <div className="mx-auto max-w-6xl px-4 py-14 sm:px-5 lg:py-24">
           <div className="max-w-2xl">
-            <p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-3 py-1 text-sm font-semibold text-sage-200">
+            <p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-3 py-1 text-sm font-semibold text-teal-300">
               Para fisioterapeutas
             </p>
 
@@ -173,7 +186,7 @@ export default function FisioterapeutasPage() {
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <Link
                 to={REGISTER_URL}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[#CFF3DE] px-6 text-sm font-bold text-[#143D2D] shadow-lg shadow-black/15 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-emerald-500 px-6 text-sm font-bold text-white shadow-lg shadow-black/15 hover:bg-emerald-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
               >
                 Testar 7 dias grátis <ArrowRight className="h-4 w-4" />
               </Link>
@@ -217,7 +230,7 @@ export default function FisioterapeutasPage() {
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
         <div className="grid gap-8 lg:grid-cols-[0.9fr_1fr]">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">O problema</p>
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-emerald-600">O problema</p>
             <h2 className="mt-3 text-2xl font-bold text-[#211F1C] sm:text-3xl">
               O sistema que você usa foi feito para médicos, não para fisioterapeutas.
             </h2>
@@ -230,7 +243,7 @@ export default function FisioterapeutasPage() {
             {pains.map((item) => (
               <article
                 key={item.title}
-                className="rounded-lg border border-[#E7E4DA] bg-[#FFFFFF] p-5 shadow-sm transition-shadow hover:shadow-md"
+                className="rounded-2xl border border-emerald-100 bg-[#FFFFFF] p-5 shadow-sm transition-shadow hover:shadow-md"
               >
                 <h3 className="font-semibold text-[#211F1C]">{item.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-[#7C776B]">{item.text}</p>
@@ -241,16 +254,16 @@ export default function FisioterapeutasPage() {
       </section>
 
       {/* ── Features ── */}
-      <section id="features" className="border-y border-[#E7E4DA] bg-[#FFFFFF]">
+      <section id="features" className="border-y border-emerald-800/40 bg-emerald-950">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
           <div className="mx-auto max-w-2xl text-center">
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-teal-300">
               Funcionalidades
             </p>
-            <h2 className="mt-3 text-2xl font-bold text-[#211F1C] sm:text-3xl">
+            <h2 className="mt-3 text-2xl font-bold text-white sm:text-3xl">
               Tudo que a clínica de fisioterapia precisa, no mesmo lugar.
             </h2>
-            <p className="mt-4 leading-relaxed text-[#5F5A51]">
+            <p className="mt-4 leading-relaxed text-emerald-200">
               Campos e fluxos pensados para a fisioterapia, não adaptados de outro contexto.
             </p>
           </div>
@@ -259,15 +272,15 @@ export default function FisioterapeutasPage() {
             {features.map(({ icon: Icon, title, text, accent }) => (
               <article
                 key={title}
-                className="rounded-lg border border-[#E7E4DA] bg-[#F7F8F5] p-5 transition-shadow hover:shadow-md"
+                className="rounded-2xl bg-emerald-950/50 border border-emerald-800/40 p-5 transition-shadow hover:shadow-lg hover:shadow-emerald-900/50"
               >
                 <span
                   className={`mb-4 inline-flex h-9 w-9 items-center justify-center rounded-lg ${accent}`}
                 >
                   <Icon className="h-5 w-5" />
                 </span>
-                <h3 className="font-semibold text-[#211F1C]">{title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-[#7C776B]">{text}</p>
+                <h3 className="font-semibold text-white">{title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-emerald-300">{text}</p>
               </article>
             ))}
           </div>
@@ -278,7 +291,7 @@ export default function FisioterapeutasPage() {
       <section className="border-y border-[#E7E4DA] bg-[#FFFFFF]">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
           <div className="mb-10 text-center">
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-emerald-600">
               O que dizem os fisioterapeutas
             </p>
             <h2 className="mt-3 text-2xl font-bold text-[#211F1C] sm:text-3xl">
@@ -303,7 +316,7 @@ export default function FisioterapeutasPage() {
                 role: 'Fisioterapeuta neurológico, clínica particular — Recife',
               },
             ].map(({ quote, name, role }) => (
-              <article key={name} className="flex flex-col gap-4 rounded-lg border border-[#E7E4DA] bg-[#F7F8F5] p-6">
+              <article key={name} className="flex flex-col gap-4 rounded-2xl border border-emerald-100 bg-emerald-50/40 p-6">
                 <div className="flex gap-1 text-amber-400">
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} className="h-4 w-4 fill-current" />
@@ -324,7 +337,7 @@ export default function FisioterapeutasPage() {
       <section id="lead" className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
         <div className="mx-auto max-w-xl">
           <div className="mb-8 text-center">
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-emerald-600">
               Recurso gratuito
             </p>
             <h2 className="mt-3 text-2xl font-bold text-[#211F1C]">
@@ -348,7 +361,7 @@ export default function FisioterapeutasPage() {
       {/* ── Conformidade regulatória (COFFITO) ── */}
       <section id="coffito" className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">
+          <p className="text-sm font-bold uppercase tracking-[0.18em] text-emerald-600">
             Conformidade regulatória
           </p>
           <h2 className="mt-3 text-2xl font-bold text-[#211F1C] sm:text-3xl">
@@ -364,14 +377,14 @@ export default function FisioterapeutasPage() {
           {coffitoItems.map(({ norm, title, text }) => (
             <article
               key={norm}
-              className="rounded-lg border border-[#E7E4DA] bg-[#FFFFFF] p-6 shadow-sm"
+              className="rounded-2xl border border-emerald-100 bg-[#FFFFFF] p-6 shadow-sm"
             >
               <div className="flex items-start gap-3">
-                <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sage-50 text-sage-700">
+                <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
                   <Shield className="h-5 w-5" />
                 </span>
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.15em] text-sage-700">{norm}</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.15em] text-emerald-600">{norm}</p>
                   <h3 className="mt-1 font-semibold text-[#211F1C]">{title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-[#7C776B]">{text}</p>
                 </div>
@@ -380,9 +393,9 @@ export default function FisioterapeutasPage() {
           ))}
         </div>
 
-        <div className="mt-8 rounded-lg border border-sky-100 bg-sky-50 p-5">
+        <div className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
           <div className="flex items-start gap-3">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-sky-600" />
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
             <p className="text-sm leading-relaxed text-[#49443D]">
               <strong>Responsabilidade técnica:</strong> a IA do UseCognia gera apenas rascunhos
               de evolução para revisão do fisioterapeuta. O diagnóstico cinesiofuncional, o plano
@@ -398,7 +411,7 @@ export default function FisioterapeutasPage() {
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
           <div className="mx-auto max-w-2xl">
             <div className="text-center">
-              <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">
+              <p className="text-sm font-bold uppercase tracking-[0.18em] text-emerald-600">
                 Dúvidas frequentes
               </p>
               <h2 className="mt-3 text-2xl font-bold text-[#211F1C] sm:text-3xl">
@@ -421,9 +434,9 @@ export default function FisioterapeutasPage() {
       </section>
 
       {/* ── CTA final ── */}
-      <section className="bg-[#1D352D] px-4 py-20 text-white sm:px-5">
+      <section className="bg-gradient-to-br from-teal-900 via-emerald-900 to-emerald-950 px-4 py-20 text-white sm:px-5">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-200">
+          <p className="text-sm font-bold uppercase tracking-[0.18em] text-teal-300">
             Risco zero — 7 dias grátis
           </p>
           <h2 className="mt-4 text-2xl font-bold leading-snug sm:text-3xl">
@@ -435,7 +448,7 @@ export default function FisioterapeutasPage() {
           <div className="mt-8 flex flex-col items-center gap-3">
             <Link
               to={REGISTER_URL}
-              className="inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-md bg-[#CFF3DE] px-6 text-sm font-bold text-[#143D2D] shadow-lg hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+              className="inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-md bg-emerald-400 px-6 text-sm font-bold text-white shadow-lg hover:bg-white hover:text-emerald-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
             >
               Começar teste grátis <ArrowRight className="h-4 w-4" />
             </Link>
@@ -466,7 +479,7 @@ export default function FisioterapeutasPage() {
               </p>
               <a
                 href="mailto:usecognia@gmail.com"
-                className="mt-3 block text-sm text-sage-700 hover:underline"
+                className="mt-3 block text-sm text-emerald-600 hover:underline"
               >
                 usecognia@gmail.com
               </a>
@@ -474,25 +487,25 @@ export default function FisioterapeutasPage() {
             <div>
               <p className="mb-4 text-xs font-bold uppercase tracking-[0.15em] text-[#7C776B]">Produto</p>
               <ul className="space-y-2.5 text-sm text-[#49443D]">
-                <li><a href="#features" className="hover:text-sage-700">Funcionalidades</a></li>
-                <li><Link to="/precos" className="hover:text-sage-700">Planos pagos</Link></li>
-                <li><Link to="/seguranca" className="hover:text-sage-700">Segurança</Link></li>
-                <li><Link to="/blog" className="hover:text-sage-700">Blog</Link></li>
+                <li><a href="#features" className="hover:text-emerald-600">Funcionalidades</a></li>
+                <li><Link to="/precos" className="hover:text-emerald-600">Planos pagos</Link></li>
+                <li><Link to="/seguranca" className="hover:text-emerald-600">Segurança</Link></li>
+                <li><Link to="/blog" className="hover:text-emerald-600">Blog</Link></li>
               </ul>
             </div>
             <div>
               <p className="mb-4 text-xs font-bold uppercase tracking-[0.15em] text-[#7C776B]">Conta</p>
               <ul className="space-y-2.5 text-sm text-[#49443D]">
-                <li><Link to={REGISTER_URL} className="hover:text-sage-700">Criar conta</Link></li>
-                <li><Link to="/login" className="hover:text-sage-700">Entrar</Link></li>
+                <li><Link to={REGISTER_URL} className="hover:text-emerald-600">Criar conta</Link></li>
+                <li><Link to="/login" className="hover:text-emerald-600">Entrar</Link></li>
               </ul>
             </div>
             <div>
               <p className="mb-4 text-xs font-bold uppercase tracking-[0.15em] text-[#7C776B]">Legal</p>
               <ul className="space-y-2.5 text-sm text-[#49443D]">
-                <li><Link to="/privacidade" className="hover:text-sage-700">Privacidade</Link></li>
-                <li><Link to="/termos" className="hover:text-sage-700">Termos de uso</Link></li>
-                <li><Link to="/acessibilidade" className="hover:text-sage-700">Acessibilidade</Link></li>
+                <li><Link to="/privacidade" className="hover:text-emerald-600">Privacidade</Link></li>
+                <li><Link to="/termos" className="hover:text-emerald-600">Termos de uso</Link></li>
+                <li><Link to="/acessibilidade" className="hover:text-emerald-600">Acessibilidade</Link></li>
               </ul>
             </div>
           </div>
@@ -507,7 +520,7 @@ export default function FisioterapeutasPage() {
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[#D9D5C9] bg-white/95 p-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur sm:hidden">
         <Link
           to={REGISTER_URL}
-          className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-sage-800 text-sm font-bold text-white"
+          className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-emerald-500 text-sm font-bold text-white"
         >
           Teste 7 dias grátis <ArrowRight className="h-4 w-4" />
         </Link>

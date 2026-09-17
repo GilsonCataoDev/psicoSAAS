@@ -1,4 +1,4 @@
-﻿import { useEffect } from 'react'
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowRight,
@@ -41,37 +41,37 @@ const features = [
     icon: ClipboardList,
     title: 'Prontuário psicológico completo',
     text: 'Anamnese, HDA, antecedentes pessoais e familiares, hipótese diagnóstica e evolução por sessão em campos estruturados para a clínica psicológica.',
-    accent: 'text-indigo-600 bg-indigo-50',
+    accent: 'text-indigo-400 bg-indigo-900/60',
   },
   {
     icon: BarChart3,
     title: '25+ escalas validadas com pontuação automática',
     text: 'PHQ-9, GAD-7, DASS-21, BDI-II (versão adaptada para o Brasil), BAI (versão adaptada para o Brasil) e outras escalas com aplicação digital, cálculo automático do escore e gráfico de evolução ao longo do tratamento.',
-    accent: 'text-sky-600 bg-sky-50',
+    accent: 'text-purple-400 bg-purple-900/60',
   },
   {
     icon: Sparkles,
     title: 'Avaliação Neuropsicológica guiada por IA',
     text: 'Módulo para auxiliar na estruturação de laudos neuropsicológicos e gerar rascunho de laudo para revisão e validação do profissional. A interpretação dos instrumentos e as conclusões diagnósticas são sempre de responsabilidade exclusiva do neuropsicólogo.',
-    accent: 'text-violet-600 bg-violet-50',
+    accent: 'text-violet-400 bg-violet-900/60',
   },
   {
     icon: FileCheck2,
     title: 'Relatório e Atestado Psicológico conforme CFP Res. 06/2019',
     text: 'Modelos de documentos psicológicos com todos os elementos exigidos pela resolução: identificação, método, resultados, conclusão e assinatura do CRP.',
-    accent: 'text-sage-600 bg-sage-50',
+    accent: 'text-indigo-400 bg-indigo-900/60',
   },
   {
     icon: Layers,
     title: 'Plano terapêutico estruturado',
     text: 'Registre abordagem teórica, objetivos terapêuticos, frequência e metas de curto e longo prazo — tudo vinculado ao prontuário do paciente.',
-    accent: 'text-amber-600 bg-amber-50',
+    accent: 'text-purple-400 bg-purple-900/60',
   },
   {
     icon: Zap,
     title: 'IA para redigir evoluções e resumos de sessão',
     text: 'Gere um rascunho da evolução de sessão com base nos tópicos que você anotou. O texto final é sempre revisado e assinado pelo psicólogo.',
-    accent: 'text-emerald-600 bg-emerald-50',
+    accent: 'text-violet-400 bg-violet-900/60',
   },
 ]
 
@@ -145,22 +145,22 @@ export default function PsicologosPage() {
             </span>
           </Link>
           <nav className="hidden items-center gap-6 text-sm font-medium text-[#5F5A51] md:flex">
-            <a href="#features" className="hover:text-sage-700">Funcionalidades</a>
-            <a href="#cfp" className="hover:text-sage-700">Conformidade CFP</a>
-            <a href="#lead" className="hover:text-sage-700">Checklist grátis</a>
-            <Link to="/blog" className="hover:text-sage-700">Blog</Link>
-            <Link to="/precos" className="hover:text-sage-700">Planos</Link>
+            <a href="#features" className="hover:text-indigo-600">Funcionalidades</a>
+            <a href="#cfp" className="hover:text-indigo-600">Conformidade CFP</a>
+            <a href="#lead" className="hover:text-indigo-600">Checklist grátis</a>
+            <Link to="/blog" className="hover:text-indigo-600">Blog</Link>
+            <Link to="/precos" className="hover:text-indigo-600">Planos</Link>
           </nav>
           <div className="flex items-center gap-2">
             <Link
               to="/login"
-              className="hidden px-3 py-2 text-sm font-semibold text-[#49443D] hover:text-sage-700 sm:inline-flex"
+              className="hidden px-3 py-2 text-sm font-semibold text-[#49443D] hover:text-indigo-600 sm:inline-flex"
             >
               Entrar
             </Link>
             <Link
               to={REGISTER_URL}
-              className="hidden rounded-md bg-sage-800 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sage-900 sm:inline-flex"
+              className="hidden rounded-md bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 sm:inline-flex"
             >
               Testar 7 dias grátis
             </Link>
@@ -169,11 +169,21 @@ export default function PsicologosPage() {
       </header>
 
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden bg-[#1D352D] text-white">
+      <section className="relative overflow-hidden bg-gradient-to-br from-indigo-950 via-indigo-900 to-purple-900 text-white">
         <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
+        {/* Decorative brain icon */}
+        <div className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/4 opacity-10">
+          <svg width="520" height="520" viewBox="0 0 200 200" fill="white" xmlns="http://www.w3.org/2000/svg">
+            <path d="M100 25 C82 25 67 36 62 52 C54 48 44 50 40 60 C32 58 25 65 26 74 C19 77 14 86 17 95 C13 105 18 116 28 120 C30 135 43 145 58 142 C63 154 75 162 89 159 L89 175 L111 175 L111 159 C125 162 137 154 142 142 C157 145 170 135 172 120 C182 116 187 105 183 95 C186 86 181 77 174 74 C175 65 168 58 160 60 C156 50 146 48 138 52 C133 36 118 25 100 25 Z"/>
+            <path d="M75 85 Q100 92 125 85" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round"/>
+            <path d="M70 105 Q100 114 130 105" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round"/>
+            <path d="M78 124 Q100 131 122 124" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round"/>
+            <line x1="100" y1="60" x2="100" y2="142" stroke="white" strokeWidth="2" strokeDasharray="4 3"/>
+          </svg>
+        </div>
         <div className="mx-auto max-w-6xl px-4 py-14 sm:px-5 lg:py-24">
           <div className="max-w-2xl">
-            <p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-3 py-1 text-sm font-semibold text-sage-200">
+            <p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-3 py-1 text-sm font-semibold text-purple-300">
               Para psicólogos
             </p>
 
@@ -188,7 +198,7 @@ export default function PsicologosPage() {
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
                 to={REGISTER_URL}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[#CFF3DE] px-6 text-sm font-bold text-[#143D2D] shadow-lg shadow-black/15 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-indigo-500 px-6 text-sm font-bold text-white shadow-lg shadow-black/15 hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
               >
                 Teste 7 dias grátis <ArrowRight className="h-4 w-4" />
               </Link>
@@ -232,7 +242,7 @@ export default function PsicologosPage() {
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
         <div className="grid gap-8 lg:grid-cols-[0.9fr_1fr]">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">O problema</p>
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-indigo-500">O problema</p>
             <h2 className="mt-3 text-2xl font-bold text-[#211F1C] sm:text-3xl">
               O sistema que você usa foi feito para médicos, não para psicólogos.
             </h2>
@@ -246,7 +256,7 @@ export default function PsicologosPage() {
             {pains.map((item) => (
               <article
                 key={item.title}
-                className="rounded-lg border border-[#E7E4DA] bg-[#FFFFFF] p-5 shadow-sm transition-shadow hover:shadow-md"
+                className="rounded-2xl border border-indigo-100 bg-[#FFFFFF] p-5 shadow-sm transition-shadow hover:shadow-md"
               >
                 <h3 className="font-semibold text-[#211F1C]">{item.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-[#7C776B]">{item.text}</p>
@@ -257,16 +267,16 @@ export default function PsicologosPage() {
       </section>
 
       {/* ── Features ── */}
-      <section id="features" className="border-y border-[#E7E4DA] bg-[#FFFFFF]">
+      <section id="features" className="border-y border-indigo-800/40 bg-indigo-950">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
           <div className="mx-auto max-w-2xl text-center">
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-purple-300">
               Funcionalidades
             </p>
-            <h2 className="mt-3 text-2xl font-bold text-[#211F1C] sm:text-3xl">
+            <h2 className="mt-3 text-2xl font-bold text-white sm:text-3xl">
               Da anamnese ao laudo, tudo no mesmo prontuário psicológico.
             </h2>
-            <p className="mt-4 leading-relaxed text-[#5F5A51]">
+            <p className="mt-4 leading-relaxed text-indigo-200">
               Campos e fluxos pensados para a psicologia clínica, com IA que apoia sem substituir
               o julgamento do profissional.
             </p>
@@ -276,23 +286,23 @@ export default function PsicologosPage() {
             {features.map(({ icon: Icon, title, text, accent }) => (
               <article
                 key={title}
-                className="rounded-lg border border-[#E7E4DA] bg-[#F7F8F5] p-5 transition-shadow hover:shadow-md"
+                className="rounded-2xl bg-indigo-950/50 border border-indigo-800/40 p-5 transition-shadow hover:shadow-lg hover:shadow-indigo-900/50"
               >
                 <span
                   className={`mb-4 inline-flex h-9 w-9 items-center justify-center rounded-lg ${accent}`}
                 >
                   <Icon className="h-5 w-5" />
                 </span>
-                <h3 className="font-semibold text-[#211F1C]">{title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-[#7C776B]">{text}</p>
+                <h3 className="font-semibold text-white">{title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-indigo-300">{text}</p>
               </article>
             ))}
           </div>
 
-          <div className="mt-8 rounded-lg border border-indigo-100 bg-indigo-50 p-5">
+          <div className="mt-8 rounded-2xl border border-indigo-700/40 bg-indigo-900/50 p-5">
             <div className="flex items-start gap-3">
-              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
-              <p className="text-sm leading-relaxed text-[#49443D]">
+              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-indigo-400" />
+              <p className="text-sm leading-relaxed text-indigo-100">
                 <strong>Responsabilidade técnica:</strong> a IA do UseCognia gera rascunhos para
                 revisão do profissional. O diagnóstico psicológico, a conduta clínica e os
                 documentos psicológicos são sempre de responsabilidade exclusiva do psicólogo
@@ -306,7 +316,7 @@ export default function PsicologosPage() {
       {/* ── Conformidade regulatória (CFP) ── */}
       <section id="cfp" className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">
+          <p className="text-sm font-bold uppercase tracking-[0.18em] text-indigo-500">
             Conformidade regulatória
           </p>
           <h2 className="mt-3 text-2xl font-bold text-[#211F1C] sm:text-3xl">
@@ -322,14 +332,14 @@ export default function PsicologosPage() {
           {cfpItems.map(({ norm, title, text }) => (
             <article
               key={norm}
-              className="rounded-lg border border-[#E7E4DA] bg-[#FFFFFF] p-6 shadow-sm"
+              className="rounded-2xl border border-indigo-100 bg-[#FFFFFF] p-6 shadow-sm"
             >
               <div className="flex items-start gap-3">
-                <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sage-50 text-sage-700">
+                <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-500">
                   <Shield className="h-5 w-5" />
                 </span>
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.15em] text-sage-700">{norm}</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.15em] text-indigo-500">{norm}</p>
                   <h3 className="mt-1 font-semibold text-[#211F1C]">{title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-[#7C776B]">{text}</p>
                 </div>
@@ -338,7 +348,7 @@ export default function PsicologosPage() {
           ))}
         </div>
 
-        <div className="mt-6 rounded-lg border border-sage-100 bg-sage-50 p-5">
+        <div className="mt-6 rounded-2xl border border-indigo-200 bg-indigo-50 p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm leading-relaxed text-[#49443D]">
               <strong>Baixe o checklist gratuito</strong> com todos os campos obrigatórios do
@@ -346,7 +356,7 @@ export default function PsicologosPage() {
             </p>
             <a
               href="#lead"
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-md bg-sage-800 px-5 py-2.5 text-sm font-semibold text-white hover:bg-sage-900"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-md bg-indigo-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-400"
             >
               Baixar checklist <ArrowRight className="h-4 w-4" />
             </a>
@@ -358,7 +368,7 @@ export default function PsicologosPage() {
       <section className="border-y border-[#E7E4DA] bg-[#FFFFFF]">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
           <div className="mb-10 text-center">
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-indigo-500">
               O que dizem os psicólogos
             </p>
             <h2 className="mt-3 text-2xl font-bold text-[#211F1C] sm:text-3xl">
@@ -383,7 +393,7 @@ export default function PsicologosPage() {
                 role: 'Psicóloga clínica infantil, Porto Alegre',
               },
             ].map(({ quote, name, role }) => (
-              <article key={name} className="flex flex-col gap-4 rounded-lg border border-[#E7E4DA] bg-[#F7F8F5] p-6">
+              <article key={name} className="flex flex-col gap-4 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-6">
                 <div className="flex gap-1 text-amber-400">
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} className="h-4 w-4 fill-current" />
@@ -404,7 +414,7 @@ export default function PsicologosPage() {
       <section id="lead" className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
         <div className="mx-auto max-w-xl">
           <div className="mb-8 text-center">
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-indigo-500">
               Recurso gratuito
             </p>
             <h2 className="mt-3 text-2xl font-bold text-[#211F1C]">
@@ -430,7 +440,7 @@ export default function PsicologosPage() {
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-5">
           <div className="mx-auto max-w-2xl">
             <div className="text-center">
-              <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-700">
+              <p className="text-sm font-bold uppercase tracking-[0.18em] text-indigo-500">
                 Dúvidas frequentes
               </p>
               <h2 className="mt-3 text-2xl font-bold text-[#211F1C] sm:text-3xl">
@@ -453,9 +463,9 @@ export default function PsicologosPage() {
       </section>
 
       {/* ── CTA final ── */}
-      <section className="bg-[#1D352D] px-4 py-20 text-white sm:px-5">
+      <section className="bg-gradient-to-br from-purple-900 via-indigo-900 to-indigo-950 px-4 py-20 text-white sm:px-5">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-bold uppercase tracking-[0.18em] text-sage-200">
+          <p className="text-sm font-bold uppercase tracking-[0.18em] text-purple-300">
             Risco zero — 7 dias grátis
           </p>
           <h2 className="mt-4 text-2xl font-bold leading-snug sm:text-3xl">
@@ -467,7 +477,7 @@ export default function PsicologosPage() {
           <div className="mt-8 flex flex-col items-center gap-3">
             <Link
               to="/cadastro?profissao=psicologia"
-              className="inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-md bg-[#CFF3DE] px-6 text-sm font-bold text-[#143D2D] shadow-lg hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+              className="inline-flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-md bg-indigo-400 px-6 text-sm font-bold text-white shadow-lg hover:bg-white hover:text-indigo-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
             >
               Começar teste grátis <ArrowRight className="h-4 w-4" />
             </Link>
@@ -498,7 +508,7 @@ export default function PsicologosPage() {
               </p>
               <a
                 href="mailto:usecognia@gmail.com"
-                className="mt-3 block text-sm text-sage-700 hover:underline"
+                className="mt-3 block text-sm text-indigo-500 hover:underline"
               >
                 usecognia@gmail.com
               </a>
@@ -506,25 +516,25 @@ export default function PsicologosPage() {
             <div>
               <p className="mb-4 text-xs font-bold uppercase tracking-[0.15em] text-[#7C776B]">Produto</p>
               <ul className="space-y-2.5 text-sm text-[#49443D]">
-                <li><a href="#features" className="hover:text-sage-700">Funcionalidades</a></li>
-                <li><Link to="/precos" className="hover:text-sage-700">Planos pagos</Link></li>
-                <li><Link to="/seguranca" className="hover:text-sage-700">Segurança</Link></li>
-                <li><Link to="/blog" className="hover:text-sage-700">Blog</Link></li>
+                <li><a href="#features" className="hover:text-indigo-500">Funcionalidades</a></li>
+                <li><Link to="/precos" className="hover:text-indigo-500">Planos pagos</Link></li>
+                <li><Link to="/seguranca" className="hover:text-indigo-500">Segurança</Link></li>
+                <li><Link to="/blog" className="hover:text-indigo-500">Blog</Link></li>
               </ul>
             </div>
             <div>
               <p className="mb-4 text-xs font-bold uppercase tracking-[0.15em] text-[#7C776B]">Conta</p>
               <ul className="space-y-2.5 text-sm text-[#49443D]">
-                <li><Link to={REGISTER_URL} className="hover:text-sage-700">Criar conta</Link></li>
-                <li><Link to="/login" className="hover:text-sage-700">Entrar</Link></li>
+                <li><Link to={REGISTER_URL} className="hover:text-indigo-500">Criar conta</Link></li>
+                <li><Link to="/login" className="hover:text-indigo-500">Entrar</Link></li>
               </ul>
             </div>
             <div>
               <p className="mb-4 text-xs font-bold uppercase tracking-[0.15em] text-[#7C776B]">Legal</p>
               <ul className="space-y-2.5 text-sm text-[#49443D]">
-                <li><Link to="/privacidade" className="hover:text-sage-700">Privacidade</Link></li>
-                <li><Link to="/termos" className="hover:text-sage-700">Termos de uso</Link></li>
-                <li><Link to="/acessibilidade" className="hover:text-sage-700">Acessibilidade</Link></li>
+                <li><Link to="/privacidade" className="hover:text-indigo-500">Privacidade</Link></li>
+                <li><Link to="/termos" className="hover:text-indigo-500">Termos de uso</Link></li>
+                <li><Link to="/acessibilidade" className="hover:text-indigo-500">Acessibilidade</Link></li>
               </ul>
             </div>
           </div>
@@ -539,7 +549,7 @@ export default function PsicologosPage() {
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[#D9D5C9] bg-white/95 p-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur sm:hidden">
         <Link
           to="/cadastro?profissao=psicologia"
-          className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-sage-800 text-sm font-bold text-white"
+          className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-indigo-500 text-sm font-bold text-white"
         >
           Teste 7 dias grátis <ArrowRight className="h-4 w-4" />
         </Link>
