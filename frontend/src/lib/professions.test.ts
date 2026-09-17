@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { hasPhysiotherapyModules, hasPsychologyModules, hasNutritionModules, hasInstrumentsModule, councilLabel, PROFESSIONS } from './professions'
+import { hasPhysiotherapyModules, hasPsychologyModules, hasNutritionModules, hasInstrumentsModule, hasProfessionCapability, councilLabel, PROFESSIONS } from './professions'
 
 describe('hasPhysiotherapyModules', () => {
   it('libera os campos da COFFITO 414/2012 só para fisioterapia', () => {
@@ -66,6 +66,27 @@ describe('hasInstrumentsModule', () => {
   it('não habilita para profissões sem catálogo', () => {
     for (const p of ['terapia_ocupacional', 'odontologia', 'fonoaudiologia'] as const) {
       expect(hasInstrumentsModule(p)).toBe(false)
+    }
+  })
+})
+
+describe('hasProfessionCapability', () => {
+  it('retorna false para profissão desconhecida fora do sistema', () => {
+    // 'odontologia' não tem entradas de capability registradas
+    expect(hasProfessionCapability('odontologia', 'instruments')).toBe(false)
+  })
+
+  it('profissão ausente ou vazia cai em psicologia — mesmas capabilities da profissão padrão', () => {
+    // hasProfessionCapability usa || — null, undefined e '' resolvem para DEFAULT_PROFESSION
+    // psicologia tem 'instruments', portanto o resultado é true (não false)
+    expect(hasProfessionCapability(null, 'instruments')).toBe(true)
+    expect(hasProfessionCapability('', 'instruments')).toBe(true)
+  })
+
+  it('retorna false para capability inexistente mesmo em profissão válida', () => {
+    // Nenhuma profissão deve ter uma capability inventada
+    for (const profession of PROFESSIONS) {
+      expect(hasProfessionCapability(profession, 'inexistente' as never)).toBe(false)
     }
   })
 })
