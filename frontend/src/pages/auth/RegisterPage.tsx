@@ -76,6 +76,8 @@ export default function RegisterPage() {
   const [crpValue, setCrpValue] = useState('')
   const [referralCode, setReferralCode] = useState('')
   const [couponCode, setCouponCode] = useState<string | null>(null)
+  const [couponInputVisible, setCouponInputVisible] = useState(false)
+  const [couponInput, setCouponInput] = useState('')
   const [accountData, setAccountData] = useState<AccountData | null>(null)
   const [cardNumber, setCardNumber] = useState('')
   const [searchParams] = useSearchParams()
@@ -100,7 +102,11 @@ export default function RegisterPage() {
       } catch { localStorage.removeItem('usecognia_referral') }
     }
     const coupon = searchParams.get('coupon')
-    if (coupon) setCouponCode(coupon.toUpperCase())
+    if (coupon) {
+      const c = coupon.toUpperCase()
+      setCouponCode(c)
+      setCouponInput(c)
+    }
   }, [searchParams])
 
   // ── formulário step 1 ───────────────────────────────────────────────────
@@ -290,6 +296,39 @@ export default function RegisterPage() {
             autoComplete="off"
           />
           {referralCode && <p className="mt-1 text-xs text-sage-700">O código será validado no cadastro. O valor da assinatura não muda.</p>}
+        </div>
+
+        <div>
+          {!couponInputVisible && !couponCode ? (
+            <button
+              type="button"
+              onClick={() => setCouponInputVisible(true)}
+              className="text-xs text-neutral-400 hover:text-sage-700 underline underline-offset-2 transition-colors"
+            >
+              Tenho um cupom de desconto
+            </button>
+          ) : (
+            <>
+              <label htmlFor="register-coupon" className="label">
+                Cupom de desconto <span className="font-normal text-neutral-400">(opcional)</span>
+              </label>
+              <input
+                id="register-coupon"
+                value={couponInput}
+                onChange={e => {
+                  const v = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 30)
+                  setCouponInput(v)
+                  setCouponCode(v || null)
+                }}
+                className="input-field uppercase"
+                placeholder="Ex.: PROMO50"
+                autoComplete="off"
+              />
+              {couponCode && (
+                <p className="mt-1 text-xs text-amber-700">Cupom <strong>{couponCode}</strong> será aplicado no cadastro.</p>
+              )}
+            </>
+          )}
         </div>
 
         <div>
