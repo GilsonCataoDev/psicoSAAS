@@ -15,7 +15,7 @@ import { IsIn, IsOptional, IsUUID } from 'class-validator'
 import { PatientAttachmentKind } from './entities/patient-attachment.entity'
 
 class UploadPatientAttachmentDto {
-  @IsIn(['test_result', 'final_report', 'supporting_document', 'other']) @IsOptional()
+  @IsIn(['test_result', 'final_report', 'supporting_document', 'other', 'before_after_photo']) @IsOptional()
   kind?: PatientAttachmentKind
 
   @IsUUID() @IsOptional() assessmentId?: string

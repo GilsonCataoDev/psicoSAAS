@@ -7,7 +7,7 @@ import { User } from '../../auth/entities/user.entity'
 import { NeuropsychAssessment } from '../../neuropsych-assessments/entities/neuropsych-assessment.entity'
 import { encryptedTextTransformer } from '../../../common/crypto/encrypt.util'
 
-export type PatientAttachmentKind = 'test_result' | 'final_report' | 'supporting_document' | 'other'
+export type PatientAttachmentKind = 'test_result' | 'final_report' | 'supporting_document' | 'other' | 'before_after_photo'
 
 /**
  * Documento anexado ao prontuário de um paciente (material clínico legado,

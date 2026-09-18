@@ -3,7 +3,7 @@ import {
   ArrowLeft, Phone, Mail, Calendar, Plus, Lock,
   ClipboardList, MessageCircle, CheckCircle2, Save,
   CalendarDays, Banknote, Clock, FileText, Pencil,
-  BookOpenText, BrainCircuit, BarChart3, Copy, Paperclip, Download, Trash2, Eye, Sparkles, Loader2,
+  BookOpenText, BrainCircuit, BarChart3, Copy, Paperclip, Download, Trash2, Eye, Sparkles, Loader2, Camera, UtensilsCrossed,
 } from 'lucide-react'
 import { SCALE_CONFIGS, getCriticalResponses, interpretScaleResult } from '@/lib/scale-scoring'
 import Avatar from '@/components/ui/Avatar'
@@ -23,7 +23,7 @@ import {
   usePatientAuditLog, type AuditEntry,
 } from '@/hooks/useApi'
 import { useAuthStore } from '@/store/auth'
-import { hasNutritionModules, hasProfessionCapability, hasPhysiotherapyModules, hasPsychologyModules } from '@/lib/professions'
+import { hasNutritionModules, hasProfessionCapability, hasPhysiotherapyModules, hasPsychologyModules, hasAestheticsModules } from '@/lib/professions'
 import NewSessionModal from '@/components/features/sessions/NewSessionModal'
 import Modal from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
@@ -37,6 +37,8 @@ import { useHasPlan } from '@/store/subscription'
 import { buildPatientDetailSummary, buildScaleEvolutionSeries } from '@/lib/patient-detail-summary'
 import { useTerms } from '@/hooks/useTerms'
 import NutritionProgressPanel from '@/components/features/nutrition/NutritionProgressPanel'
+import NutritionPlanTab from '@/components/features/nutrition/NutritionPlanTab'
+import BeforeAfterGallery from '@/components/patients/BeforeAfterGallery'
 
 const MOODS = ['', '1', '2', '3', '4', '5']
 const WEEKDAYS = ['Domingo', 'Segunda', 'Terca', 'Quarta', 'Quinta', 'Sexta', 'Sabado']
@@ -64,6 +66,7 @@ export default function PatientDetailPage() {
   const updatePatient = useUpdatePatient()
   const isFisio = hasPhysiotherapyModules(profession)
   const isNutrition = hasNutritionModules(profession)
+  const isAesthetics = hasAestheticsModules(profession)
   const { data: instrumentAssignments = [] } = useInstrumentAssignments(id, hasInstruments)
   const updateInstrumentAnswers = useUpdateInstrumentAnswers()
   const assessmentAiInterpretation = useAssessmentAiInterpretation()
@@ -159,7 +162,7 @@ export default function PatientDetailPage() {
       toast.error(error?.response?.data?.message ?? 'Não foi possível iniciar a avaliação')
     }
   }
-  const [tab, setTab] = useState<'record' | 'timeline' | 'responses' | 'notes' | 'financial' | 'contacts'>('record')
+  const [tab, setTab] = useState<'record' | 'timeline' | 'responses' | 'notes' | 'financial' | 'contacts' | 'photos' | 'nutrition_plan'>('record')
   const [showSessionModal, setShowSessionModal] = useState(false)
   const [showLegacyMigration, setShowLegacyMigration] = useState(false)
   const [showEditPatientModal, setShowEditPatientModal] = useState(false)
@@ -882,6 +885,8 @@ export default function PatientDetailPage() {
           { id: 'notes',     label: 'Anotacoes privadas', icon: Lock          },
           { id: 'financial', label: 'Financeiro',   icon: Banknote      },
           { id: 'contacts',  label: 'Contatos',     icon: MessageCircle },
+          ...(isAesthetics ? [{ id: 'photos', label: 'Fotos', icon: Camera }] : []),
+          ...(isNutrition ? [{ id: 'nutrition_plan', label: 'Plano Alimentar', icon: UtensilsCrossed }] : []),
         ].map(tabItem => (
           <button key={tabItem.id} onClick={() => setTab(tabItem.id as any)}
             className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-sm transition-all text-center ${
@@ -1321,6 +1326,16 @@ export default function PatientDetailPage() {
           <ContactLogsSection patientId={patient.id} />
           <AuditLogCard patientId={patient.id} />
         </div>
+      )}
+
+      {/* ── Galeria de fotos antes/depois (esteticistas) ─────────────── */}
+      {tab === 'photos' && isAesthetics && (
+        <BeforeAfterGallery patientId={patient.id} />
+      )}
+
+      {/* ── Plano alimentar (nutricionistas) ─────────────────────────── */}
+      {tab === 'nutrition_plan' && isNutrition && (
+        <NutritionPlanTab patientId={patient.id} />
       )}
 
       <NewSessionModal

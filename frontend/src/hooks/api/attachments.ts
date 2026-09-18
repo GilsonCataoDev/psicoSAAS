@@ -6,7 +6,7 @@ export type PatientAttachment = {
   filename: string
   mimeType: string
   size: number
-  kind: 'test_result' | 'final_report' | 'supporting_document' | 'other'
+  kind: 'test_result' | 'final_report' | 'supporting_document' | 'other' | 'before_after_photo'
   assessmentId?: string
   createdAt: string
 }
