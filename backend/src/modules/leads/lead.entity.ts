@@ -4,6 +4,7 @@ export enum LeadProfession {
   Psicologia    = 'psicologia',
   Fisioterapia  = 'fisioterapia',
   Nutricao      = 'nutricao',
+  Estetica      = 'estetica',
   Outro         = 'outro',
 }
 
