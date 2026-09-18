@@ -8,6 +8,7 @@ import {
   Sparkles,
   FileCheck2,
   Layers,
+  ListChecks,
   Zap,
   Shield,
   CheckCircle2,
@@ -72,6 +73,12 @@ const features = [
     title: 'IA para redigir evoluções e resumos de sessão',
     text: 'Gere um rascunho da evolução de sessão com base nos tópicos que você anotou. O texto final é sempre revisado e assinado pelo psicólogo.',
     accent: 'text-violet-400 bg-violet-900/60',
+  },
+  {
+    icon: ListChecks,
+    title: 'Atividades entre sessões via portal do paciente',
+    text: 'Envie tarefas e atividades terapêuticas ao paciente pelo portal digital. O paciente acessa pelo celular, realiza a atividade e marca como concluída — você acompanha o engajamento direto no prontuário, sem WhatsApp.',
+    accent: 'text-indigo-400 bg-indigo-900/60',
   },
 ]
 

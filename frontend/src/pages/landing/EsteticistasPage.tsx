@@ -4,6 +4,7 @@ import {
   ArrowRight,
   Boxes,
   Calendar,
+  Camera,
   CheckCircle2,
   ChevronRight,
   ClipboardList,
@@ -40,8 +41,8 @@ const pains = [
 const features = [
   {
     icon: ClipboardList,
-    title: 'Anamnese com Fitzpatrick, contraindicações e histórico',
-    text: 'Registre fototipo de Fitzpatrick, tipo de pele, alergias, medicamentos em uso e histórico de tratamentos. Campo de Fitzpatrick por protocolo — nenhum sistema genérico oferece isso. Informação estruturada e acessível em qualquer atendimento.',
+    title: 'Ficha de Anamnese Estética completa',
+    text: 'Instrumento de anamnese específico para estética: fototipo de Fitzpatrick, tipo de pele, alergias, medicamentos em uso, contraindicações, histórico de procedimentos e plano de tratamento. Tudo estruturado num instrumento dedicado — nenhum sistema genérico oferece isso.',
     accent: 'text-rose-400 bg-rose-900/60',
   },
   {
@@ -78,6 +79,12 @@ const features = [
     icon: UserCheck,
     title: 'Evolução e relatório estético',
     text: 'Registre a evolução de cada sessão — produto, técnica, parâmetros e reações observadas. Emita relatório de progresso para compartilhar com a cliente ao final do protocolo.',
+    accent: 'text-pink-300 bg-pink-900/60',
+  },
+  {
+    icon: Camera,
+    title: 'Galeria de fotos antes/depois',
+    text: 'Registre fotos clínicas do progresso da cliente com criptografia e proteção LGPD. As imagens ficam vinculadas à ficha e são visíveis somente por você — a funcionalidade mais pedida do segmento, agora disponível no UseCognia.',
     accent: 'text-pink-300 bg-pink-900/60',
   },
   {

@@ -45,8 +45,8 @@ const features = [
   },
   {
     icon: UtensilsCrossed,
-    title: 'Plano alimentar integrado ao prontuário',
-    text: 'Elabore e registre o plano alimentar com valor energético, distribuição de macronutrientes e orientações, tudo vinculado ao prontuário do paciente e acessível em qualquer consulta.',
+    title: 'Plano alimentar digital com histórico',
+    text: 'Crie o plano alimentar direto no sistema — título, conteúdo, calorias e validade. Cada plano fica salvo no histórico do paciente: consulte, compare ou reaproveite planos anteriores sem sair do prontuário.',
     accent: 'text-lime-400 bg-lime-900/60',
   },
   {
@@ -63,8 +63,8 @@ const features = [
   },
   {
     icon: TrendingUp,
-    title: 'Avaliação antropométrica completa num só registro',
-    text: 'Peso, altura, IMC, circunferências abdominais e de membros, e dobras cutâneas — tudo num só registro, sem planilha paralela. Gráficos de evolução para mostrar ao paciente o progresso real da composição corporal ao longo do acompanhamento.',
+    title: 'Avaliação antropométrica com IMC automático',
+    text: 'Peso, altura, IMC, circunferências e dobras cutâneas — tudo num só registro. Ao informar peso e altura, o IMC é calculado em tempo real com a classificação (abaixo do peso, normal, sobrepeso, obesidade I, II ou III). Gráficos de evolução para mostrar ao paciente o progresso real ao longo do acompanhamento.',
     accent: 'text-amber-400 bg-amber-900/60',
   },
   {
