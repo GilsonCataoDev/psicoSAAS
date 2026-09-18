@@ -41,9 +41,13 @@ describe('termsFor em páginas públicas', () => {
 })
 
 describe('getNavigationItems', () => {
-  it('devolve a navegação original para psicologia', () => {
-    expect(getNavigationItems('psicologia')).toEqual(NAVIGATION_ITEMS)
-    expect(getNavigationItems(undefined)).toEqual(NAVIGATION_ITEMS)
+  it('devolve a navegação filtrada para psicologia (sem módulos de outras profissões)', () => {
+    // '/estoque' tem professionGate de estética — psicologia não o enxerga
+    const expected = NAVIGATION_ITEMS.filter(item => !item.professionGate || item.professionGate('psicologia'))
+    expect(getNavigationItems('psicologia')).toEqual(expected)
+    expect(getNavigationItems(undefined)).toEqual(expected)
+    // garantia direta: estoque some para psicologia
+    expect(getNavigationItems('psicologia').map(i => i.to)).not.toContain('/estoque')
   })
 
   it('esconde módulos exclusivos de psicologia para profissões sem catálogo', () => {
@@ -51,20 +55,29 @@ describe('getNavigationItems', () => {
     const rotasOdonto = getNavigationItems('odontologia').map(i => i.to)
     expect(rotasOdonto).not.toContain('/instrumentos')
     expect(rotasOdonto).not.toContain('/avaliacoes')
+    expect(rotasOdonto).not.toContain('/estoque')
     expect(rotasOdonto).toContain('/pacientes')
     expect(rotasOdonto).toContain('/agenda')
     expect(rotasOdonto).toContain('/financeiro')
   })
 
-  it('mostra /instrumentos para psicologia, fisioterapia e nutricao', () => {
+  it('mostra /instrumentos para psicologia, fisioterapia, nutricao e estetica', () => {
     expect(getNavigationItems('psicologia').map(i => i.to)).toContain('/instrumentos')
     expect(getNavigationItems('fisioterapia').map(i => i.to)).toContain('/instrumentos')
     expect(getNavigationItems('nutricao').map(i => i.to)).toContain('/instrumentos')
+    expect(getNavigationItems('estetica').map(i => i.to)).toContain('/instrumentos')
   })
 
   it('nunca mostra /avaliacoes fora da psicologia', () => {
-    for (const p of ['nutricao', 'fisioterapia', 'odontologia']) {
+    for (const p of ['nutricao', 'fisioterapia', 'estetica', 'odontologia']) {
       expect(getNavigationItems(p).map(i => i.to)).not.toContain('/avaliacoes')
+    }
+  })
+
+  it('mostra /estoque apenas para estética', () => {
+    expect(getNavigationItems('estetica').map(i => i.to)).toContain('/estoque')
+    for (const p of ['psicologia', 'fisioterapia', 'nutricao', 'odontologia']) {
+      expect(getNavigationItems(p).map(i => i.to)).not.toContain('/estoque')
     }
   })
 
