@@ -163,7 +163,7 @@ export default function PatientDetailPage() {
       toast.error(error?.response?.data?.message ?? 'Não foi possível iniciar a avaliação')
     }
   }
-  const [tab, setTab] = useState<'record' | 'timeline' | 'responses' | 'notes' | 'financial' | 'contacts' | 'photos' | 'nutrition_plan'>('record')
+  const [tab, setTab] = useState<'record' | 'timeline' | 'responses' | 'notes' | 'financial' | 'contacts' | 'photos' | 'nutrition_plan' | 'tasks'>('record')
   const [showSessionModal, setShowSessionModal] = useState(false)
   const [showLegacyMigration, setShowLegacyMigration] = useState(false)
   const [showEditPatientModal, setShowEditPatientModal] = useState(false)
