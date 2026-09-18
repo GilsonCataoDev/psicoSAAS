@@ -42,7 +42,7 @@ describe('instrument catalog', () => {
 })
 
 describe('instrumentsFor', () => {
-  const FISIO_IDS = ['eva-dor', 'oswestry', 'berg', 'tinetti', 'dash']
+  const FISIO_IDS = ['eva-dor', 'oswestry', 'berg', 'tinetti', 'dash', 'barthel']
   const NUTRI_IDS = ['anamnese-nutricional', 'recordatorio-24h', 'diario-alimentar', 'qfca', 'predimed']
 
   it('não muda nada para psicologia — todo item sem `professions` continua visível', () => {

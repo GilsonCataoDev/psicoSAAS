@@ -28,6 +28,16 @@ const SCALES = [
     axisNote: '↑ melhor',
   },
   {
+    id: 'barthel',
+    label: 'Barthel',
+    max: 100,
+    lineColor: '#0891b2',
+    threshMod: 86,
+    threshSev: 60,
+    inverted: true,  // score alto = melhor
+    axisNote: '↑ melhor',
+  },
+  {
     id: 'eva-dor',
     label: 'EVA-Dor',
     max: 10,
@@ -82,6 +92,7 @@ export default function FisioEscalasChart({ patientId }: FisioEscalasChartProps)
   const scalePoints: Record<ScaleId, { score: number; completedAt: string }[]> = {
     berg: [],
     tinetti: [],
+    barthel: [],
     'eva-dor': [],
   }
 
@@ -105,7 +116,7 @@ export default function FisioEscalasChart({ patientId }: FisioEscalasChartProps)
   if (activeScales.length === 0) {
     return (
       <div className="rounded-2xl border border-[#DDE5DC] bg-neutral-50 px-4 py-8 text-center dark:border-white/10 dark:bg-white/5">
-        <p className="text-sm text-neutral-400">Aplique Berg, Tinetti ou EVA-Dor para ver a evolução</p>
+        <p className="text-sm text-neutral-400">Aplique Berg, Tinetti, Barthel ou EVA-Dor para ver a evolução</p>
         <p className="mt-1 text-xs text-neutral-300">
           Pelo menos 2 aplicações completas de uma mesma escala são necessárias para exibir o gráfico.
         </p>

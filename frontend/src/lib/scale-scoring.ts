@@ -1177,6 +1177,39 @@ export const SCALE_CONFIGS: Record<string, ScaleConfig> = {
     ],
     note: 'Score 0–14: ≥10 = boa adesão à dieta mediterrânea; 7–9 = moderada; ≤6 = baixa. Referência: Schröder et al., 2011 (adaptação brasileira).',
   },
+
+  // ── Índice de Barthel ──────────────────────────────────────────────────────
+  barthel: {
+    options: [{ value: 0, label: '0' }, { value: 5, label: '5' }, { value: 10, label: '10' }],
+    items: [
+      { id: 'b1',  label: '1. Alimentação',
+        options: [{ value: 0, label: '0 — Incapaz' }, { value: 5, label: '5 — Precisa de ajuda' }, { value: 10, label: '10 — Independente' }] },
+      { id: 'b2',  label: '2. Banho',
+        options: [{ value: 0, label: '0 — Dependente' }, { value: 5, label: '5 — Independente' }] },
+      { id: 'b3',  label: '3. Higiene pessoal (rosto, dentes, barba)',
+        options: [{ value: 0, label: '0 — Precisa de ajuda' }, { value: 5, label: '5 — Independente' }] },
+      { id: 'b4',  label: '4. Vestir-se',
+        options: [{ value: 0, label: '0 — Dependente' }, { value: 5, label: '5 — Precisa de ajuda' }, { value: 10, label: '10 — Independente' }] },
+      { id: 'b5',  label: '5. Controle intestinal',
+        options: [{ value: 0, label: '0 — Incontinente/precisa de enema' }, { value: 5, label: '5 — Acidente ocasional' }, { value: 10, label: '10 — Continente' }] },
+      { id: 'b6',  label: '6. Controle vesical',
+        options: [{ value: 0, label: '0 — Incontinente ou cateterizado sem controle' }, { value: 5, label: '5 — Acidente ocasional' }, { value: 10, label: '10 — Continente' }] },
+      { id: 'b7',  label: '7. Uso do sanitário (WC)',
+        options: [{ value: 0, label: '0 — Dependente' }, { value: 5, label: '5 — Precisa de ajuda' }, { value: 10, label: '10 — Independente' }] },
+      { id: 'b8',  label: '8. Transferência cama ↔ cadeira',
+        options: [{ value: 0, label: '0 — Incapaz — sem equilíbrio sentado' }, { value: 5, label: '5 — Grande ajuda (2 pessoas)' }, { value: 10, label: '10 — Pequena ajuda' }, { value: 15, label: '15 — Independente' }] },
+      { id: 'b9',  label: '9. Deambulação (nível)',
+        options: [{ value: 0, label: '0 — Imóvel/cadeira de rodas sem independência' }, { value: 5, label: '5 — Independente em cadeira de rodas ≥ 50 m' }, { value: 10, label: '10 — Caminha com ajuda ≥ 50 m' }, { value: 15, label: '15 — Independente ≥ 50 m' }] },
+      { id: 'b10', label: '10. Subida de escadas',
+        options: [{ value: 0, label: '0 — Incapaz' }, { value: 5, label: '5 — Precisa de ajuda' }, { value: 10, label: '10 — Independente' }] },
+    ],
+    thresholds: [
+      { max: 59,  label: 'Dependência grave',    color: 'text-red-700 bg-red-50' },
+      { max: 85,  label: 'Dependência moderada', color: 'text-orange-700 bg-orange-50' },
+      { max: 100, label: 'Independência',         color: 'text-emerald-700 bg-emerald-50' },
+    ],
+    note: 'Score 0–100: 0–59 = dependência grave; 60–85 = moderada; 86–100 = independência/leve comprometimento. Mahoney & Barthel, 1965. Validação brasileira: Minosso et al., 2010.',
+  },
 }
 
 // ── Scoring helpers ───────────────────────────────────────────────────────────

@@ -1628,6 +1628,23 @@ Necessário: cronômetro, cadeira com e sem apoio de braço, banquinho/degrau, r
 OBSERVAÇÕES DO(A) PROFISSIONAL:`,
   },
 
+  {
+    id: 'barthel',
+    title: 'Índice de Barthel',
+    description: 'Avalia independência funcional em 10 atividades de vida diária (0–100). Amplamente usado em reabilitação e geriatria para monitorar evolução funcional.',
+    category: 'escala',
+    tags: ['independência funcional', 'AVD', 'reabilitação', 'geriatria', 'AVC', 'fisioterapia'],
+    ageGroups: ['adulto'],
+    professions: ['fisioterapia'],
+    Icon: Compass,
+    template: `ÍNDICE DE BARTHEL
+
+Avaliação das atividades de vida diária (AVD) — pontuação 0–100.
+Referência: Mahoney & Barthel, 1965 | Validação BR: Minosso et al., 2010
+
+OBSERVAÇÕES DO(A) FISIOTERAPEUTA:`,
+  },
+
   // ── Nutrição ─────────────────────────────────────────────────────────────────
 
   {
