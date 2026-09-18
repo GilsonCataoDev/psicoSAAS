@@ -39,8 +39,8 @@ const pains = [
 const features = [
   {
     icon: ClipboardList,
-    title: 'Prontuário psicológico completo',
-    text: 'Anamnese, HDA, antecedentes pessoais e familiares, hipótese diagnóstica e evolução por sessão em campos estruturados para a clínica psicológica.',
+    title: 'Prontuário em conformidade com CFP Res. 001/2009',
+    text: 'Campos obrigatórios da resolução já estruturados: identificação completa, demanda, hipótese diagnóstica, evolução por sessão, plano terapêutico e prazo de guarda. Sem adaptar sistema de médico — tudo pensado para a psicologia clínica.',
     accent: 'text-indigo-400 bg-indigo-900/60',
   },
   {
@@ -307,6 +307,15 @@ export default function PsicologosPage() {
                 revisão do profissional. O diagnóstico psicológico, a conduta clínica e os
                 documentos psicológicos são sempre de responsabilidade exclusiva do psicólogo
                 habilitado, conforme a CFP Res. 001/2009 (e alterações Res. 05/2010) e a CFP Res. 06/2019.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-purple-700/40 bg-purple-900/30 p-5">
+            <div className="flex items-start gap-3">
+              <Shield className="mt-0.5 h-5 w-5 shrink-0 text-purple-400" />
+              <p className="text-sm leading-relaxed text-indigo-100">
+                <strong>Privacidade dos dados clínicos:</strong> prontuários e dados de saúde são tratados como dados sensíveis (LGPD art. 11) e nunca são usados para treinar modelos de IA de terceiros. Armazenamento com criptografia em trânsito e em repouso — seus prontuários ficam só seus.
               </p>
             </div>
           </div>

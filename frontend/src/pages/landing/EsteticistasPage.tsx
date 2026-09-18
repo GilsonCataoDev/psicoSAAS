@@ -9,6 +9,7 @@ import {
   ClipboardList,
   FileText,
   PackageCheck,
+  Percent,
   Shield,
   Sparkles,
   Star,
@@ -27,8 +28,8 @@ const pains = [
     text: 'Dados de saúde da cliente (alergias, medicamentos, doenças) são dados sensíveis pela LGPD. Guardá-los em papel ou grupo de WhatsApp expõe você a sanções e complica a defesa em caso de reação adversa.',
   },
   {
-    title: 'Controle de pacotes de sessões em caderno — você perde, a cliente recorda diferente',
-    text: 'Pacote de 10 sessões de drenagem, 4 de 10 usadas — quem controla? Conflitos por contagem de sessões são a principal queixa entre clientes e esteticistas. Um sistema elimina o problema na raiz.',
+    title: 'Controle de pacotes em caderno — você perde, a cliente lembra diferente, a briga é certa',
+    text: 'Pacote de 10 sessões de drenagem, 4 de 10 usadas — quem controla? Conflitos por contagem de sessões são a principal queixa entre clientes e esteticistas. Com o UseCognia, cada sessão é registrada em tempo real e a cliente vê o saldo junto com você.',
   },
   {
     title: 'Sem termo de consentimento por procedimento — responsabilidade civil exposta',
@@ -39,8 +40,8 @@ const pains = [
 const features = [
   {
     icon: ClipboardList,
-    title: 'Anamnese estética digital',
-    text: 'Registre fototipo Fitzpatrick, tipo de pele, contraindicações, medicamentos em uso e histórico de tratamentos. Informação estruturada, acessível em qualquer atendimento.',
+    title: 'Anamnese com Fitzpatrick, contraindicações e histórico',
+    text: 'Registre fototipo de Fitzpatrick, tipo de pele, alergias, medicamentos em uso e histórico de tratamentos. Campo de Fitzpatrick por protocolo — nenhum sistema genérico oferece isso. Informação estruturada e acessível em qualquer atendimento.',
     accent: 'text-rose-400 bg-rose-900/60',
   },
   {
@@ -51,9 +52,15 @@ const features = [
   },
   {
     icon: Boxes,
-    title: 'Estoque de produtos',
+    title: 'Estoque de produtos com alerta de mínimo',
     text: 'Cadastre ácidos, seruns, cremes e materiais descartáveis com quantidade atual e alerta de estoque mínimo. Nunca mais perceber no meio do atendimento que o produto acabou.',
     accent: 'text-rose-400 bg-rose-900/60',
+  },
+  {
+    icon: Percent,
+    title: 'Controle de comissões da equipe',
+    text: 'Defina percentual de comissão por profissional e acompanhe automaticamente o valor a pagar por atendimentos realizados. Sem planilha, sem discussão no fechamento do mês.',
+    accent: 'text-pink-300 bg-pink-900/60',
   },
   {
     icon: FileText,
@@ -85,7 +92,7 @@ const lgpdItems = [
   {
     norm: 'LGPD — art. 11',
     title: 'Dado sensível de saúde exige proteção reforçada',
-    text: 'Alergias, medicamentos, histórico de saúde e fotos antes/depois são dados sensíveis pela LGPD — independentemente de você ser ou não profissional de saúde no sentido regulatório. O UseCognia trata esses dados com criptografia e controles de acesso adequados.',
+    text: 'Alergias, medicamentos, histórico de saúde e fotos antes/depois são dados sensíveis pela LGPD. O UseCognia registra a autorização de uso de imagem integrada à ficha da cliente — sem formulário separado. Armazenamento com criptografia e controles de acesso: fotos e prontuário protegidos no mesmo lugar.',
   },
   {
     norm: 'CDC — art. 6',

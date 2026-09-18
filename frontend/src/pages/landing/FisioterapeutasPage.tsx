@@ -42,8 +42,8 @@ const features = [
   },
   {
     icon: Ruler,
-    title: 'Semiologia estruturada: goniometria, testes ortopédicos, escala de dor',
-    text: 'Formulários de avaliação prontos para documentar a avaliação inicial e reavaliações com os dados que a clínica precisa.',
+    title: 'Escalas funcionais e semiologia: EVA, Barthel, MRC, Berg',
+    text: 'Avaliação estruturada com as escalas que a fisioterapia usa no dia a dia: EVA (dor), Escala de Barthel (independência funcional), MRC (força muscular) e Escala de Berg (equilíbrio). Goniometria e testes ortopédicos padronizados na mesma ficha — sem papel separado.',
     accent: 'text-teal-300 bg-teal-900/60',
   },
   {
@@ -180,7 +180,7 @@ export default function FisioterapeutasPage() {
             </h1>
 
             <p className="mt-5 max-w-lg text-base leading-relaxed text-white/80 sm:text-lg">
-              Diagnóstico cinesiofuncional separado do CID médico, goniometria, testes ortopédicos e controle de pacotes pré-pagos de atendimento. Tudo no mesmo prontuário, sem planilha, sem papel.
+              Diagnóstico cinesiofuncional separado do CID médico, escalas funcionais (EVA, Barthel, MRC, Berg), goniometria e controle de pacotes pré-pagos. Prontuário conforme COFFITO Res. 414/2012 — sem planilha, sem papel.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-4">
@@ -402,6 +402,21 @@ export default function FisioterapeutasPage() {
               terapêutico e a conduta são sempre de responsabilidade exclusiva do fisioterapeuta
               habilitado, conforme a COFFITO Res. 414/2012.
             </p>
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm leading-relaxed text-[#49443D]">
+              <strong>Baixe o checklist gratuito</strong> com todos os campos obrigatórios do
+              prontuário fisioterapêutico segundo a COFFITO Res. 414/2012.
+            </p>
+            <a
+              href="#lead"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-md bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-400"
+            >
+              Baixar checklist <ArrowRight className="h-4 w-4" />
+            </a>
           </div>
         </div>
       </section>

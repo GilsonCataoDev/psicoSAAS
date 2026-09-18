@@ -39,8 +39,8 @@ const pains = [
 const features = [
   {
     icon: BookOpen,
-    title: 'Recordatório alimentar digital',
-    text: 'Registre recordatório de 24h, diário alimentar ou questionário de frequência diretamente no prontuário, sem planilhas externas. Histórico de consumo consultado em segundos.',
+    title: 'Anamnese e recordatório alimentar completos',
+    text: 'Anamnese alimentar, recordatório de 24h, diário alimentar e questionário de frequência de consumo — tudo no prontuário, sem planilha externa. Diagnóstico nutricional vinculado ao histórico do paciente, como exige a CFN 594/2017.',
     accent: 'text-amber-400 bg-amber-900/60',
   },
   {
@@ -63,8 +63,8 @@ const features = [
   },
   {
     icon: TrendingUp,
-    title: 'Relatórios de evolução antropométrica',
-    text: 'Acompanhe peso, IMC, circunferências e composição corporal em gráficos de evolução. Mostre ao paciente seu progresso de forma visual e motivadora.',
+    title: 'Avaliação antropométrica completa num só registro',
+    text: 'Peso, altura, IMC, circunferências abdominais e de membros, e dobras cutâneas — tudo num só registro, sem planilha paralela. Gráficos de evolução para mostrar ao paciente o progresso real da composição corporal ao longo do acompanhamento.',
     accent: 'text-amber-400 bg-amber-900/60',
   },
   {
@@ -235,8 +235,8 @@ export default function NutricionistasPage() {
             </div>
             <div className="hidden h-10 w-px bg-[#E7E4DA] sm:block" />
             <div className="flex flex-col items-center gap-1 text-center sm:items-end sm:text-right">
-              <p className="text-2xl font-bold text-[#211F1C]">5 min</p>
-              <p className="text-sm text-[#7C776B]">para configurar e começar a atender</p>
+              <p className="text-2xl font-bold text-[#211F1C]">Sem fidelidade</p>
+              <p className="text-sm text-[#7C776B]">sem contrato anual — cancele quando quiser pelo painel</p>
             </div>
           </div>
         </div>
