@@ -3,7 +3,7 @@ import {
   HeartPulse, Activity, BarChart3, ShieldAlert,
   PenLine, Smile, Moon, Gauge, Compass, Users, Brain,
   AlertCircle, Globe, Sun, ListChecks, Zap, TrendingUp, Award, Flame, Frown,
-  Utensils, BookOpen, NotebookPen, Apple,
+  Utensils, BookOpen, NotebookPen, Apple, Sparkles,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { DEFAULT_PROFESSION, type Profession } from '@/lib/professions'
@@ -2082,6 +2082,77 @@ Responda Sim (1) ou Não (0) a cada pergunta.
 SCORE TOTAL: ___ / 14
 Interpretação: ≤6 = baixa adesão  |  7–9 = adesão moderada  |  ≥10 = boa adesão
 Referência: Schröder et al., 2011 (adaptação brasileira).
+
+OBSERVAÇÕES DO(A) PROFISSIONAL:`,
+  },
+
+  // ── Estética ────────────────────────────────────────────────────────────────
+  {
+    id: 'anamnese-estetica',
+    title: 'Ficha de Anamnese Estética',
+    description: 'Avaliação inicial completa: histórico de saúde, tipo de pele, fototipo de Fitzpatrick, queixas estéticas e contraindicações.',
+    category: 'formulario',
+    tags: ['anamnese', 'estética', 'pele', 'fototipo', 'avaliação inicial'],
+    ageGroups: ['adulto'],
+    Icon: Sparkles,
+    professions: ['estetica'],
+    template: `FICHA DE ANAMNESE ESTÉTICA
+
+IDENTIFICAÇÃO
+Nome completo:
+Data de nascimento:
+Idade:
+Sexo/Gênero:
+Profissão/Ocupação:
+Telefone:
+E-mail:
+
+HISTÓRICO DE SAÚDE
+Doenças sistêmicas (diabetes, hipertensão, cardiopatias, etc.):
+Uso de medicamentos (incluindo anticoagulantes, hormônios, isotretinoína):
+Alergias conhecidas (cosméticos, metais, outros):
+Gravidez ou amamentação:
+Uso de anticoncepcional:
+Histórico de queloides ou cicatrizes hipertróficas:
+Cirurgias recentes (≤ 6 meses):
+Implantes ou próteses:
+Tratamentos estéticos em curso:
+
+AVALIAÇÃO DA PELE
+Tipo de pele:
+  ( ) Normal   ( ) Seca   ( ) Oleosa   ( ) Mista   ( ) Sensível   ( ) Desidratada
+
+Fototipo de Fitzpatrick:
+  ( ) I — Muito clara, sempre queima, nunca bronzeia
+  ( ) II — Clara, sempre queima, bronzeia pouco
+  ( ) III — Morena clara, às vezes queima, bronzeia moderadamente
+  ( ) IV — Morena moderada, raramente queima, bronzeia facilmente
+  ( ) V — Morena escura, raramente queima, bronzeia muito
+  ( ) VI — Negra, nunca queima, bronzeia intensamente
+
+Condições observadas:
+  ( ) Acne / comedões   ( ) Melasma / manchas   ( ) Rosácea   ( ) Flacidez
+  ( ) Rugas / linhas de expressão   ( ) Celulite   ( ) Estrias   ( ) Outros: ___
+
+Sensibilidade a produtos ou procedimentos anteriores:
+
+QUEIXAS ESTÉTICAS PRINCIPAIS
+1.
+2.
+3.
+
+PROCEDIMENTOS ANTERIORES
+Tipo e data dos procedimentos realizados:
+Resultados e intercorrências:
+
+CONTRAINDICAÇÕES IDENTIFICADAS
+
+PLANO DE TRATAMENTO PROPOSTO
+Objetivo(s):
+Procedimento(s) indicado(s):
+Número estimado de sessões:
+Intervalo entre sessões:
+Cuidados pós-procedimento orientados:
 
 OBSERVAÇÕES DO(A) PROFISSIONAL:`,
   },

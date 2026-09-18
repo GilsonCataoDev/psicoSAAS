@@ -15,6 +15,24 @@ import RecordingPanel from '@/components/ui/RecordingPanel'
 import { useHasPlan } from '@/store/subscription'
 import { useAuthStore } from '@/store/auth'
 import { hasPhysiotherapyModules, hasNutritionModules, hasPsychologyModules } from '@/lib/professions'
+
+/** Classificação ABESO/OMS pelo IMC. */
+function classifyImc(imc: number): string {
+  if (imc < 18.5) return 'Abaixo do peso'
+  if (imc < 25)   return 'Peso normal'
+  if (imc < 30)   return 'Sobrepeso'
+  if (imc < 35)   return 'Obesidade grau I'
+  if (imc < 40)   return 'Obesidade grau II'
+  return 'Obesidade grau III'
+}
+
+function calcImcPreview(weightStr: string, heightStr: string): { value: number; label: string } | null {
+  const w = Number(weightStr)
+  const h = Number(heightStr)
+  if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) return null
+  const imc = w / ((h / 100) ** 2)
+  return { value: Number(imc.toFixed(1)), label: classifyImc(imc) }
+}
 import PatientRecordDeliveryModal from '@/components/features/patients/PatientRecordDeliveryModal'
 import { useTerms } from '@/hooks/useTerms'
 import EvaEvolutionChart from '@/components/instruments/EvaEvolutionChart'
@@ -968,6 +986,16 @@ export default function ProntuarioPage() {
                     />
                   </div>
                 </div>
+                {(() => {
+                  const preview = calcImcPreview(evolNutritionWeight, evolNutritionHeight)
+                  return preview ? (
+                    <div className="mt-2 flex items-center gap-2 rounded-lg bg-sage-50 px-3 py-2 text-sm dark:bg-sage-900/30">
+                      <span className="font-semibold text-sage-700 dark:text-sage-300">IMC {preview.value}</span>
+                      <span className="text-neutral-500 dark:text-neutral-400">·</span>
+                      <span className="text-neutral-600 dark:text-neutral-300">{preview.label}</span>
+                    </div>
+                  ) : null
+                })()}
               </fieldset>
             )}
 
@@ -1208,6 +1236,16 @@ export default function ProntuarioPage() {
                             />
                           </div>
                         </div>
+                        {(() => {
+                          const preview = calcImcPreview(editNutritionWeight, editNutritionHeight)
+                          return preview ? (
+                            <div className="mt-2 flex items-center gap-2 rounded-lg bg-sage-50 px-3 py-2 text-sm dark:bg-sage-900/30">
+                              <span className="font-semibold text-sage-700 dark:text-sage-300">IMC {preview.value}</span>
+                              <span className="text-neutral-500 dark:text-neutral-400">·</span>
+                              <span className="text-neutral-600 dark:text-neutral-300">{preview.label}</span>
+                            </div>
+                          ) : null
+                        })()}
                       </fieldset>
                     )}
                     {isFisio && (

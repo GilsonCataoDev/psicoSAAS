@@ -28,6 +28,7 @@ export const PROFESSION_CAPABILITIES = [
   'instruments',
   'neuropsych_assessments',
   'nutrition_assessments',
+  'nutrition_plans',
 ] as const
 
 export type ProfessionCapability = (typeof PROFESSION_CAPABILITIES)[number]
@@ -35,14 +36,14 @@ export type ProfessionCapability = (typeof PROFESSION_CAPABILITIES)[number]
 const CAPABILITIES_BY_PROFESSION: Record<Profession, readonly ProfessionCapability[]> = {
   psicologia: ['instruments', 'neuropsych_assessments'],
   psiquiatria: [],
-  nutricao: ['instruments', 'nutrition_assessments'],
+  nutricao: ['instruments', 'nutrition_assessments', 'nutrition_plans'],
   fisioterapia: ['instruments'],
   fonoaudiologia: [],
   terapia_ocupacional: [],
   assistencia_social: [],
   odontologia: [],
   personal_trainer: [],
-  estetica: [],
+  estetica: ['instruments'],
   outro: [],
 }
 

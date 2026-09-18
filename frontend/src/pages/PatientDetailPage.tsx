@@ -21,6 +21,7 @@ import {
   useAssessmentAiInterpretation, useAppointments,
   usePatientContactLogs, type ContactLog,
   usePatientAuditLog, type AuditEntry,
+  usePatientTasks, useCreatePatientTask, useUpdatePatientTask, useDeletePatientTask, type PatientTask,
 } from '@/hooks/useApi'
 import { useAuthStore } from '@/store/auth'
 import { hasNutritionModules, hasProfessionCapability, hasPhysiotherapyModules, hasPsychologyModules, hasAestheticsModules } from '@/lib/professions'

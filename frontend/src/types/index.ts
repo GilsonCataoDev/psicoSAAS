@@ -46,6 +46,19 @@ export interface NutritionAssessment {
   updatedAt: string
 }
 
+export interface NutritionPlan {
+  id: string
+  patientId: string
+  userId: string
+  title: string
+  content: string
+  totalCalories: number | null
+  validFrom: string | null
+  validUntil: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 export type NeuropsychDomain =
   | 'intelligence'
   | 'attention'

@@ -44,8 +44,10 @@ import { AiGovernanceModule } from './modules/ai-governance/ai-governance.module
 import { ProspectLifecycleModule } from './common/prospect-lifecycle/prospect-lifecycle.module'
 import { ProductHelpModule } from './modules/product-help/product-help.module'
 import { NutritionAssessmentsModule } from './modules/nutrition-assessments/nutrition-assessments.module'
+import { NutritionPlansModule } from './modules/nutrition-plans/nutrition-plans.module'
 import { InventoryModule } from './modules/inventory/inventory.module'
 import { SalesModule } from './modules/sales/sales.module'
+import { PatientTasksModule } from './modules/patient-tasks/patient-tasks.module'
 
 const readPositiveInt = (value: string | undefined, fallback: number): number => {
   const parsed = Number(value)
@@ -107,6 +109,7 @@ const readPositiveInt = (value: string | undefined, fallback: number): number =>
     GoogleCalendarModule,
     InstrumentAssignmentsModule,
     NutritionAssessmentsModule,
+    NutritionPlansModule,
     NeuropsychAssessmentsModule,
     TemplatesModule,
     AdminModule,
@@ -117,6 +120,7 @@ const readPositiveInt = (value: string | undefined, fallback: number): number =>
     LeadsModule,
     InventoryModule,
     SalesModule,
+    PatientTasksModule,
   ],
   controllers: [HealthController],
   providers: [

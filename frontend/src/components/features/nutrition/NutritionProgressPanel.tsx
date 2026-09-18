@@ -10,6 +10,25 @@ type Props = { patientId: string }
 
 const toNumber = (value: string) => Number(value.replace(',', '.'))
 
+/** Classificação ABESO/OMS pelo IMC. */
+function classifyImc(imc: number): string {
+  if (imc < 18.5) return 'Abaixo do peso'
+  if (imc < 25)   return 'Peso normal'
+  if (imc < 30)   return 'Sobrepeso'
+  if (imc < 35)   return 'Obesidade grau I'
+  if (imc < 40)   return 'Obesidade grau II'
+  return 'Obesidade grau III'
+}
+
+/** Calcula o IMC (kg/m²) a partir de peso (kg) e altura (cm). Retorna null se os dados forem inválidos. */
+function calcImcPreview(weightStr: string, heightStr: string): { value: number; label: string } | null {
+  const w = toNumber(weightStr)
+  const h = toNumber(heightStr)
+  if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) return null
+  const imc = w / ((h / 100) ** 2)
+  return { value: Number(imc.toFixed(1)), label: classifyImc(imc) }
+}
+
 export default function NutritionProgressPanel({ patientId }: Props) {
   const { data: assessments = [], isLoading } = useNutritionAssessments(patientId)
   const createAssessment = useCreateNutritionAssessment()
@@ -79,7 +98,7 @@ export default function NutritionProgressPanel({ patientId }: Props) {
         <>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Metric label="Último peso" value={`${latest!.weightKg.toFixed(1)} kg`} />
-            <Metric label="IMC atual" value={latest?.imc ? String(latest.imc) : '—'} />
+            <Metric label="IMC atual" value={latest?.imc ? `${latest.imc} · ${classifyImc(latest.imc)}` : '—'} />
             <Metric label="Cintura" value={latest?.waistCm ? `${latest.waistCm} cm` : '—'} />
             <Metric label="% gordura" value={latest?.bodyFatPercent ? `${latest.bodyFatPercent}%` : '—'} />
           </div>
@@ -91,7 +110,7 @@ export default function NutritionProgressPanel({ patientId }: Props) {
               <div key={item.id} className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm">
                 <div className="min-w-0">
                   <span className="font-medium text-neutral-800 dark:text-neutral-100">{formatDate(item.assessedAt)} · {item.weightKg.toFixed(1)} kg</span>
-                  {item.imc && <span className="ml-2 text-neutral-400">IMC {item.imc}</span>}
+                  {item.imc && <span className="ml-2 text-neutral-400">IMC {item.imc} · {classifyImc(item.imc)}</span>}
                   {item.notes && <p className="mt-0.5 truncate text-xs text-neutral-500 dark:text-neutral-300">{item.notes}</p>}
                 </div>
                 <button type="button" aria-label="Excluir registro" onClick={() => remove(item.id)} disabled={deleteAssessment.isPending} className="rounded-lg p-1.5 text-neutral-400 hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-950/30"><Trash2 className="h-4 w-4" /></button>
@@ -112,6 +131,16 @@ export default function NutritionProgressPanel({ patientId }: Props) {
             <Field label="Cintura (cm)"><input inputMode="decimal" value={form.waistCm} onChange={e => setForm({ ...form, waistCm: e.target.value })} className="input-field w-full" placeholder="Ex.: 78" /></Field>
             <Field label="Gordura corporal (%)"><input inputMode="decimal" value={form.bodyFatPercent} onChange={e => setForm({ ...form, bodyFatPercent: e.target.value })} className="input-field w-full" placeholder="Opcional" /></Field>
           </div>
+          {(() => {
+            const preview = calcImcPreview(form.weightKg, form.heightCm)
+            return preview ? (
+              <div className="flex items-center gap-2 rounded-lg bg-sage-50 px-3 py-2 text-sm dark:bg-sage-900/30">
+                <span className="font-semibold text-sage-700 dark:text-sage-300">IMC {preview.value}</span>
+                <span className="text-neutral-500 dark:text-neutral-400">·</span>
+                <span className="text-neutral-600 dark:text-neutral-300">{preview.label}</span>
+              </div>
+            ) : null
+          })()}
           <Field label="Observações"><textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} className="input-field min-h-20 w-full resize-y" placeholder="Opcional" maxLength={4000} /></Field>
           <div className="flex justify-end gap-2"><button type="button" className="btn-secondary" onClick={() => setOpen(false)}>Cancelar</button><button type="button" className="btn-primary inline-flex items-center gap-1.5" disabled={createAssessment.isPending} onClick={save}><Scale className="h-4 w-4" />{createAssessment.isPending ? 'Salvando...' : 'Salvar avaliação'}</button></div>
         </div>

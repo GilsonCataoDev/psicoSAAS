@@ -81,14 +81,15 @@ describe('hasAestheticsModules', () => {
 })
 
 describe('hasInstrumentsModule', () => {
-  it('habilita instrumentos para psicologia, fisioterapia e nutricao', () => {
+  it('habilita instrumentos para psicologia, fisioterapia, nutricao e estetica', () => {
     expect(hasInstrumentsModule('psicologia')).toBe(true)
     expect(hasInstrumentsModule('fisioterapia')).toBe(true)
     expect(hasInstrumentsModule('nutricao')).toBe(true)
+    expect(hasInstrumentsModule('estetica')).toBe(true)
   })
 
   it('não habilita para profissões sem catálogo', () => {
-    for (const p of ['terapia_ocupacional', 'odontologia', 'fonoaudiologia', 'estetica'] as const) {
+    for (const p of ['terapia_ocupacional', 'odontologia', 'fonoaudiologia'] as const) {
       expect(hasInstrumentsModule(p)).toBe(false)
     }
   })
