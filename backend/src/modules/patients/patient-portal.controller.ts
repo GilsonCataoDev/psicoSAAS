@@ -3,11 +3,15 @@ import { Throttle } from '@nestjs/throttler'
 import { PublicRoute } from '../../common/decorators/public-route.decorator'
 import { UpdatePatientPortalIntakeDto } from './dto/patient-portal.dto'
 import { PatientsService } from './patients.service'
+import { PatientTasksService } from '../patient-tasks/patient-tasks.service'
 
 @PublicRoute()
 @Controller('patient-portal')
 export class PatientPortalController {
-  constructor(private svc: PatientsService) {}
+  constructor(
+    private svc: PatientsService,
+    private tasksSvc: PatientTasksService,
+  ) {}
 
   @Get(':token')
   @Header('Cache-Control', 'private, no-store')
@@ -21,5 +25,21 @@ export class PatientPortalController {
   @Throttle({ short: { limit: 8, ttl: 60 * 1000 } })
   updateIntake(@Param('token') token: string, @Body() dto: UpdatePatientPortalIntakeDto) {
     return this.svc.updatePortalIntake(token, dto)
+  }
+
+  @Patch(':token/tasks/:taskId/complete')
+  @Header('Cache-Control', 'private, no-store')
+  @Throttle({ short: { limit: 20, ttl: 60 * 1000 } })
+  async completeTask(@Param('token') token: string, @Param('taskId') taskId: string) {
+    const patientId = await this.svc.getPatientIdByPortalToken(token)
+    return this.tasksSvc.completeByPortal(taskId, patientId)
+  }
+
+  @Patch(':token/tasks/:taskId/uncomplete')
+  @Header('Cache-Control', 'private, no-store')
+  @Throttle({ short: { limit: 20, ttl: 60 * 1000 } })
+  async uncompleteTask(@Param('token') token: string, @Param('taskId') taskId: string) {
+    const patientId = await this.svc.getPatientIdByPortalToken(token)
+    return this.tasksSvc.uncompleteByPortal(taskId, patientId)
   }
 }

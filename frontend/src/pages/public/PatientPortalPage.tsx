@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock, Lock, UserRound } from 'lucide-react'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock, Lock, UserRound, CheckSquare, Square } from 'lucide-react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { api, type AuthAxiosRequestConfig } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
@@ -39,6 +39,13 @@ type PatientPortal = {
     contatoEmergenciaPhone?: string
     contatoEmergenciaRelacao?: string
   }
+  tasks: Array<{
+    id: string
+    title: string
+    description?: string | null
+    dueDate?: string | null
+    completedAt?: string | null
+  }>
 }
 
 type IntakeForm = {
@@ -73,6 +80,7 @@ const STEPS = [
   { title: 'Boas-vindas', description: 'Confira seus próximos horários.' },
   { title: 'Seus dados', description: 'Revise contatos e dados de identificação.' },
   { title: 'Atendimento', description: 'Complete informações importantes para a profissional.' },
+  { title: 'Atividades', description: 'Atividades a realizar entre as sessões.' },
 ]
 
 function publicConfig(): AuthAxiosRequestConfig {
@@ -81,6 +89,7 @@ function publicConfig(): AuthAxiosRequestConfig {
 
 export default function PatientPortalPage() {
   const { token } = useParams()
+  const qc = useQueryClient()
   const [form, setForm] = useState<IntakeForm>(emptyForm)
   const [step, setStep] = useState(0)
 
@@ -120,6 +129,17 @@ export default function PatientPortalPage() {
       portal.refetch()
     },
     onError: () => toast.error('Não foi possível salvar agora.'),
+  })
+
+  const toggleTask = useMutation({
+    mutationFn: ({ taskId, complete }: { taskId: string; complete: boolean }) => {
+      const action = complete ? 'complete' : 'uncomplete'
+      return api.patch(`/patient-portal/${token}/tasks/${taskId}/${action}`, {}, publicConfig()).then(r => r.data)
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['patient-portal', token] })
+    },
+    onError: () => toast.error('Não foi possível atualizar a atividade.'),
   })
 
   const professional = useMemo(() => {
@@ -191,7 +211,7 @@ export default function PatientPortalPage() {
               </div>
             </div>
           </div>
-          <div className="mt-5 grid grid-cols-3 gap-2">
+          <div className="mt-5 grid grid-cols-4 gap-2">
             {STEPS.map((item, index) => (
               <div key={item.title} className="min-w-0">
                 <div className={`h-1.5 rounded-full ${index <= step ? 'bg-sage-600' : 'bg-neutral-200'}`} />
@@ -277,6 +297,53 @@ export default function PatientPortalPage() {
             </div>
           )}
 
+          {step === 3 && (
+            <div>
+              <div className="mb-4 flex items-center gap-2">
+                <CheckSquare className="h-4 w-4 text-sage-600" />
+                <h3 className="text-sm font-semibold text-neutral-800">Atividades entre sessões</h3>
+              </div>
+              {(!portal.data.tasks || portal.data.tasks.length === 0) ? (
+                <p className="rounded-xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-5 text-sm text-neutral-500">
+                  Nenhuma atividade pendente. Seu terapeuta irá adicionar atividades aqui.
+                </p>
+              ) : (
+                <div className="divide-y divide-neutral-100 rounded-xl border border-neutral-100">
+                  {portal.data.tasks.map(task => (
+                    <div key={task.id} className="flex items-start gap-3 px-4 py-3">
+                      <button
+                        type="button"
+                        disabled={toggleTask.isPending}
+                        onClick={() => toggleTask.mutate({ taskId: task.id, complete: !task.completedAt })}
+                        className="mt-0.5 shrink-0 text-sage-600 hover:text-sage-800 transition-colors disabled:opacity-50"
+                        aria-label={task.completedAt ? 'Desmarcar atividade' : 'Marcar como concluída'}
+                      >
+                        {task.completedAt
+                          ? <CheckSquare className="h-5 w-5" />
+                          : <Square className="h-5 w-5 text-neutral-300" />
+                        }
+                      </button>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-medium ${task.completedAt ? 'line-through text-neutral-400' : 'text-neutral-800'}`}>
+                          {task.title}
+                        </p>
+                        {task.description && (
+                          <p className="mt-0.5 text-xs leading-relaxed text-neutral-500">{task.description}</p>
+                        )}
+                        {task.dueDate && !task.completedAt && (
+                          <p className="mt-1 text-xs text-neutral-400">Entrega: {formatDate(task.dueDate)}</p>
+                        )}
+                        {task.completedAt && (
+                          <p className="mt-1 text-xs font-medium text-sage-600">Concluída</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {step === 2 && (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <label className="block sm:col-span-2">
@@ -316,19 +383,32 @@ export default function PatientPortalPage() {
                 </button>
               )}
               {step < STEPS.length - 1 ? (
-                <button type="button" onClick={nextStep} className="btn-primary inline-flex items-center justify-center gap-2">
-                  Continuar
-                  <ChevronRight className="h-4 w-4" />
-                </button>
+                step === 2 ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => { saveIntake.mutate(form); nextStep() }}
+                      disabled={saveIntake.isPending}
+                      className="btn-primary inline-flex items-center justify-center gap-2"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      {saveIntake.isPending ? 'Salvando...' : 'Salvar e continuar'}
+                    </button>
+                  </>
+                ) : (
+                  <button type="button" onClick={nextStep} className="btn-primary inline-flex items-center justify-center gap-2">
+                    Continuar
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                )
               ) : (
                 <button
                   type="button"
-                  onClick={() => saveIntake.mutate(form)}
-                  disabled={saveIntake.isPending}
+                  onClick={() => { setStep(0); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
                   className="btn-primary inline-flex items-center justify-center gap-2"
                 >
                   <CheckCircle2 className="h-4 w-4" />
-                  {saveIntake.isPending ? 'Salvando...' : 'Salvar informações'}
+                  Concluído
                 </button>
               )}
             </div>

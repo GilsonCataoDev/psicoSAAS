@@ -4,6 +4,7 @@ import {
   ClipboardList, MessageCircle, CheckCircle2, Save,
   CalendarDays, Banknote, Clock, FileText, Pencil,
   BookOpenText, BrainCircuit, BarChart3, Copy, Paperclip, Download, Trash2, Eye, Sparkles, Loader2, Camera, UtensilsCrossed,
+  CheckSquare, Square,
 } from 'lucide-react'
 import { SCALE_CONFIGS, getCriticalResponses, interpretScaleResult } from '@/lib/scale-scoring'
 import Avatar from '@/components/ui/Avatar'
@@ -169,6 +170,39 @@ export default function PatientDetailPage() {
   const [showEditPatientModal, setShowEditPatientModal] = useState(false)
   const [showDeletePatientModal, setShowDeletePatientModal] = useState(false)
   const deletePatient = useDeletePatient()
+
+  // ── Tarefas ──────────────────────────────────────────────────────────────────
+  const { data: patientTasksList = [] } = usePatientTasks(id)
+  const createTask = useCreatePatientTask(id)
+  const deleteTask = useDeletePatientTask(id)
+  const [newTaskForm, setNewTaskForm] = useState({ title: '', description: '', dueDate: '' })
+  const [showNewTaskForm, setShowNewTaskForm] = useState(false)
+
+  async function handleCreateTask() {
+    if (!newTaskForm.title.trim()) return
+    try {
+      await createTask.mutateAsync({
+        title: newTaskForm.title.trim(),
+        description: newTaskForm.description || undefined,
+        dueDate: newTaskForm.dueDate || undefined,
+      })
+      setNewTaskForm({ title: '', description: '', dueDate: '' })
+      setShowNewTaskForm(false)
+      toast.success('Atividade criada')
+    } catch {
+      toast.error('Não foi possível criar a atividade.')
+    }
+  }
+
+  async function handleDeleteTask(task: PatientTask) {
+    if (!window.confirm(`Excluir a atividade "${task.title}"? Essa ação não pode ser desfeita.`)) return
+    try {
+      await deleteTask.mutateAsync(task.id)
+      toast.success('Atividade excluída')
+    } catch {
+      toast.error('Não foi possível excluir a atividade.')
+    }
+  }
 
   async function handleDeletePatient() {
     if (!patient) return
@@ -888,6 +922,7 @@ export default function PatientDetailPage() {
           { id: 'contacts',  label: 'Contatos',     icon: MessageCircle },
           ...(isAesthetics ? [{ id: 'photos', label: 'Fotos', icon: Camera }] : []),
           ...(isNutrition ? [{ id: 'nutrition_plan', label: 'Plano Alimentar', icon: UtensilsCrossed }] : []),
+          { id: 'tasks', label: 'Atividades', icon: CheckSquare },
         ].map(tabItem => (
           <button key={tabItem.id} onClick={() => setTab(tabItem.id as any)}
             className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-sm transition-all text-center ${
@@ -1337,6 +1372,124 @@ export default function PatientDetailPage() {
       {/* ── Plano alimentar (nutricionistas) ─────────────────────────── */}
       {tab === 'nutrition_plan' && isNutrition && (
         <NutritionPlanTab patientId={patient.id} />
+      )}
+
+      {/* ── Atividades entre sessões ──────────────────────────────────── */}
+      {tab === 'tasks' && (
+        <div className="card space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <CheckSquare className="w-4 h-4 text-sage-600" />
+              <h2 className="font-semibold text-neutral-800 text-sm">Atividades entre {t.sessions}</h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowNewTaskForm(v => !v)}
+              className="btn-primary text-sm flex items-center gap-1.5"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Nova atividade
+            </button>
+          </div>
+
+          {showNewTaskForm && (
+            <div className="rounded-xl border border-sage-100 bg-sage-50 p-4 space-y-3">
+              <div>
+                <label className="label">Título <span className="text-rose-500">*</span></label>
+                <input
+                  value={newTaskForm.title}
+                  onChange={e => setNewTaskForm(f => ({ ...f, title: e.target.value }))}
+                  className="input-field"
+                  placeholder="Ex: Diário de pensamentos, exercício de respiração..."
+                  maxLength={200}
+                />
+              </div>
+              <div>
+                <label className="label">Descrição (opcional)</label>
+                <textarea
+                  value={newTaskForm.description}
+                  onChange={e => setNewTaskForm(f => ({ ...f, description: e.target.value }))}
+                  className="input-field resize-none"
+                  rows={2}
+                  placeholder="Instruções adicionais para o paciente..."
+                />
+              </div>
+              <div>
+                <label className="label">Data de entrega (opcional)</label>
+                <input
+                  type="date"
+                  value={newTaskForm.dueDate}
+                  onChange={e => setNewTaskForm(f => ({ ...f, dueDate: e.target.value }))}
+                  className="input-field"
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => { setShowNewTaskForm(false); setNewTaskForm({ title: '', description: '', dueDate: '' }) }}
+                  className="btn-secondary text-sm"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreateTask}
+                  disabled={createTask.isPending || !newTaskForm.title.trim()}
+                  className="btn-primary text-sm"
+                >
+                  {createTask.isPending ? 'Salvando...' : 'Criar atividade'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {patientTasksList.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-8 text-center">
+              <CheckSquare className="mx-auto h-8 w-8 text-neutral-300" />
+              <p className="mt-3 font-medium text-neutral-600">Nenhuma atividade cadastrada</p>
+              <p className="mt-1 text-sm text-neutral-400">
+                Crie atividades para o {t.patient} realizar entre as {t.sessions}.
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-neutral-100 rounded-xl border border-neutral-100">
+              {patientTasksList.map(task => (
+                <div key={task.id} className="flex items-start gap-3 px-4 py-3">
+                  <div className="mt-0.5 shrink-0">
+                    {task.completedAt
+                      ? <CheckSquare className="h-4 w-4 text-sage-600" />
+                      : <Square className="h-4 w-4 text-neutral-300" />
+                    }
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium ${task.completedAt ? 'line-through text-neutral-400' : 'text-neutral-800'}`}>
+                      {task.title}
+                    </p>
+                    {task.description && (
+                      <p className="mt-0.5 text-xs text-neutral-500 line-clamp-2">{task.description}</p>
+                    )}
+                    <div className="mt-1 flex items-center gap-3 text-xs text-neutral-400">
+                      {task.dueDate && (
+                        <span>Entrega: {formatDate(task.dueDate)}</span>
+                      )}
+                      {task.completedAt && (
+                        <span className="text-sage-600 font-medium">Concluída em {formatDate(task.completedAt)}</span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteTask(task)}
+                    className="shrink-0 p-1 rounded text-neutral-300 hover:text-rose-500 hover:bg-rose-50 transition-colors"
+                    title="Excluir atividade"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       <NewSessionModal

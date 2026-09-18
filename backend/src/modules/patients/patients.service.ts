@@ -21,6 +21,8 @@ import { StorageService } from '../../common/storage/storage.service'
 import { DEFAULT_PROFESSION } from '../../common/professions'
 import { termsFor } from '../../common/terms'
 import { WhatsAppDeliveryLog } from '../notifications/entities/whatsapp-delivery-log.entity'
+import { PatientTasksService } from '../patient-tasks/patient-tasks.service'
+import { PatientTask } from '../patient-tasks/entities/patient-task.entity'
 
 type EncryptedProntuario = {
   __encrypted: 'usecognia.prontuario.v1' | 'psicosaas.prontuario.v1'
@@ -88,6 +90,7 @@ type PatientPortalDto = {
     contatoEmergenciaPhone?: string
     contatoEmergenciaRelacao?: string
   }
+  tasks: PatientTask[]
 }
 
 const PRONTUARIO_ENCRYPTED_MARKER = 'usecognia.prontuario.v1'
@@ -111,6 +114,7 @@ export class PatientsService {
     private readonly storage: StorageService,
     private readonly dataSource: DataSource,
     @Optional() private readonly prospectLifecycle?: ProspectLifecycleService,
+    @Optional() private readonly patientTasks?: PatientTasksService,
   ) {}
 
   // ─── Helpers de criptografia ────────────────────────────────────────────────
@@ -378,7 +382,14 @@ export class PatientsService {
         contatoEmergenciaPhone: pr.contatoEmergenciaPhone,
         contatoEmergenciaRelacao: pr.contatoEmergenciaRelacao,
       },
+      tasks: this.patientTasks ? await this.patientTasks.findForPortal(patient.id) : [],
     }
+  }
+
+  /** Expõe o patientId validado pelo token para uso em outros controllers do portal. */
+  async getPatientIdByPortalToken(token: string): Promise<string> {
+    const patient = await this.findByPortalToken(token)
+    return patient.id
   }
 
   async updatePortalIntake(token: string, dto: UpdatePatientPortalIntakeDto): Promise<{ saved: boolean }> {
