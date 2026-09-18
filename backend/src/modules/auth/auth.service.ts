@@ -103,6 +103,12 @@ export class AuthService {
     if (dto.referralCode && !await this.referral.isValidCode(dto.referralCode)) {
       throw new BadRequestException('Código de indicação inválido')
     }
+    const salesRep = dto.couponCode && this.salesService
+      ? await this.salesService.findRepByCoupon(dto.couponCode)
+      : null
+    if (dto.couponCode && !salesRep) {
+      throw new BadRequestException('Cupom de vendedor inválido ou inativo')
+    }
 
     // RegisterDto so cobra formato de CRP para psicologia (@ValidateIf), entao
     // o registro das demais profissoes chega sem validacao nenhuma.
@@ -113,9 +119,10 @@ export class AuthService {
     const { referralCode, couponCode, password, termsAccepted: _termsAccepted, termsVersion, ...userData } = dto
     const passwordHash = await hashPassword(password)
     const verificationToken = randomBytes(32).toString('hex')
-    const user = this.users.create({
+    let user = this.users.create({
       ...userData,
       email: userData.email.toLowerCase(),
+      salesCouponCode: salesRep && couponCode ? couponCode.toUpperCase() : null,
       passwordHash,
       emailVerified: false,
       emailVerificationToken: hashToken(verificationToken),
@@ -123,7 +130,21 @@ export class AuthService {
       termsAcceptedAt: new Date(),
       termsVersion: termsVersion ?? CURRENT_TERMS_VERSION,
     })
-    await this.users.save(user)
+    if (salesRep && couponCode && this.salesService) {
+      user = await this.dataSource.transaction(async manager => {
+        const savedUser = await manager.getRepository(User).save(user)
+        await this.salesService!.createCommission({
+          salesRepId: salesRep.id,
+          userId: savedUser.id,
+          couponCode: couponCode.toUpperCase(),
+          commissionAmount: salesRep.commissionAmount,
+        }, manager)
+        return savedUser
+      })
+      this.logger.log(`[Register] Cupom de vendedor ${couponCode} aplicado para user=${user.id}`)
+    } else {
+      user = await this.users.save(user)
+    }
 
     await this.prospectLifecycle?.markRegistered({
       userId: user.id,
@@ -136,22 +157,6 @@ export class AuthService {
     if (referralCode) {
       await this.referral.applyReferral(referralCode, user).catch((err) => {
         this.logger.warn(`[Register] Falha ao aplicar indicacao user=${user.id}: ${err?.message ?? err}`)
-      })
-    }
-
-    if (couponCode && this.salesService) {
-      await this.salesService.findRepByCoupon(couponCode).then(async (rep) => {
-        if (!rep) return
-        await this.users.update(user.id, { salesCouponCode: couponCode.toUpperCase() })
-        await this.salesService!.createCommission({
-          salesRepId: rep.id,
-          userId: user.id,
-          couponCode: couponCode.toUpperCase(),
-          commissionAmount: rep.commissionAmount,
-        })
-        this.logger.log(`[Register] Cupom de vendedor ${couponCode} aplicado para user=${user.id}`)
-      }).catch((err) => {
-        this.logger.warn(`[Register] Falha ao aplicar cupom de vendedor user=${user.id}: ${err?.message ?? err}`)
       })
     }
 

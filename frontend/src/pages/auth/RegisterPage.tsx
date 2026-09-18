@@ -179,6 +179,8 @@ export default function RegisterPage() {
         toast.error('Este e-mail já está em uso. Tente fazer login.')
       } else if (msg === 'Código de indicação inválido') {
         toast.error('Código de indicação inválido. Confira o código ou deixe o campo vazio.')
+      } else if (msg === 'Cupom de vendedor inválido ou inativo') {
+        toast.error('Código de vendedor inválido ou inativo. Confira o código ou deixe o campo vazio.')
       } else {
         toast.error('Não foi possível criar a conta. Tente novamente.')
       }
@@ -252,7 +254,7 @@ export default function RegisterPage() {
       {couponCode && (
         <div className="mb-4 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
           <span>🎟️</span>
-          <span>Cupom <strong>{couponCode}</strong> aplicado — 50% off no primeiro mês.</span>
+          <span>Código do vendedor <strong>{couponCode}</strong> informado. Ele será validado ao criar a conta.</span>
         </div>
       )}
 
@@ -305,23 +307,23 @@ export default function RegisterPage() {
               onClick={() => setCouponInputVisible(true)}
               className="text-xs text-neutral-400 hover:text-sage-700 underline underline-offset-2 transition-colors"
             >
-              Tenho um cupom de desconto
+              Tenho um código de vendedor
             </button>
           ) : (
             <>
               <label htmlFor="register-coupon" className="label">
-                Cupom de desconto <span className="font-normal text-neutral-400">(opcional)</span>
+                Código do vendedor <span className="font-normal text-neutral-400">(opcional)</span>
               </label>
               <input
                 id="register-coupon"
                 value={couponInput}
                 onChange={e => {
-                  const v = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 30)
+                  const v = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20)
                   setCouponInput(v)
                   setCouponCode(v || null)
                 }}
                 className="input-field uppercase"
-                placeholder="Ex.: PROMO50"
+                placeholder="Ex.: MARIA10"
                 autoComplete="off"
               />
               {couponCode && (

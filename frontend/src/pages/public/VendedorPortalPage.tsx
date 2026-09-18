@@ -20,7 +20,7 @@ interface Commission {
   commissionAvailableAt: string | null
   commissionPaidAt: string | null
   createdAt: string
-  userName: string | null
+  clientReference: string
 }
 
 interface PortalData {
@@ -127,7 +127,7 @@ export default function VendedorPortalPage() {
             </span>
           </div>
           <p className="mt-2 text-xs text-neutral-400">
-            Compartilhe este código. Novos clientes ganham 50% de desconto no primeiro mês e você recebe comissão.
+            Compartilhe este código para que as novas assinaturas sejam identificadas como suas vendas.
           </p>
         </div>
 
@@ -172,7 +172,7 @@ export default function VendedorPortalPage() {
                 <li key={c.id} className="flex flex-col gap-1 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="space-y-0.5">
                     <p className="text-sm font-medium text-neutral-700">
-                      {c.userName ?? 'Cliente'}
+                      {c.clientReference}
                     </p>
                     <p className="text-xs text-neutral-400">
                       Cadastro em {formatDate(c.createdAt)}

@@ -18,6 +18,8 @@ UseCognia é um SaaS completo para profissionais de saúde brasileiros que reduz
 **Decisões de arquitetura:** [docs/decisions.md](docs/decisions.md)  
 **Changelog:** [CHANGELOG.md](CHANGELOG.md)
 
+**Manual de vendas e comissões:** [docs/manual-de-vendas-e-comissoes.md](docs/manual-de-vendas-e-comissoes.md)
+
 **Site:** [usecognia.com.br](https://usecognia.com.br)
 
 ---

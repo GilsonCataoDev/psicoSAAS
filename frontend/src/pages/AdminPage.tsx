@@ -977,7 +977,7 @@ function VendedoresTab() {
   // new rep form
   const [form, setForm] = useState({
     name: '', email: '', phone: '', couponCode: '',
-    pixKey: '', pixKeyType: 'pix', commissionAmount: '48.95',
+    pixKey: '', pixKeyType: 'email', commissionAmount: '48.95',
   })
 
   const load = useCallback(async () => {
@@ -1008,7 +1008,7 @@ function VendedoresTab() {
       })
       toast.success('Vendedor criado!')
       setShowNewRep(false)
-      setForm({ name: '', email: '', phone: '', couponCode: '', pixKey: '', pixKeyType: 'pix', commissionAmount: '48.95' })
+      setForm({ name: '', email: '', phone: '', couponCode: '', pixKey: '', pixKeyType: 'email', commissionAmount: '48.95' })
       load()
     } catch {
       toast.error('Erro ao criar vendedor')

@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { IsNull, LessThanOrEqual, Repository } from 'typeorm'
+import { EntityManager, LessThanOrEqual, Repository } from 'typeorm'
 import { SalesRep } from './entities/sales-rep.entity'
 import { SalesCommission } from './entities/sales-commission.entity'
 import { CreateSalesRepDto } from './dto/create-sales-rep.dto'
@@ -22,7 +22,7 @@ export class SalesService {
   }
 
   async getRepByToken(token: string): Promise<SalesRep | null> {
-    return this.reps.findOne({ where: { accessToken: token } })
+    return this.reps.findOne({ where: { accessToken: token, status: 'active' } })
   }
 
   async createRep(dto: CreateSalesRepDto): Promise<SalesRep> {
@@ -93,7 +93,7 @@ export class SalesService {
     )
   }
 
-  private async releaseValidatedCommissions(salesRepId?: string): Promise<void> {
+  async releaseDueCommissions(salesRepId?: string): Promise<number> {
     const where: Record<string, unknown> = {
       status: 'validating',
       commissionAvailableAt: LessThanOrEqual(new Date()),
@@ -105,14 +105,14 @@ export class SalesService {
       c.status = 'payable'
       await this.commissions.save(c)
     }
+    return ready.length
   }
 
   async getStats(salesRepId: string) {
-    await this.releaseValidatedCommissions(salesRepId)
+    await this.releaseDueCommissions(salesRepId)
 
     const all = await this.commissions.find({
       where: { salesRepId },
-      relations: ['user'],
       order: { createdAt: 'DESC' },
     })
 
@@ -146,7 +146,7 @@ export class SalesService {
         commissionAvailableAt: c.commissionAvailableAt,
         commissionPaidAt: c.commissionPaidAt,
         createdAt: c.createdAt,
-        userName: c.user?.name ?? null,
+        clientReference: this.clientReference(c.userId, c.id),
       })),
     }
   }
@@ -165,7 +165,7 @@ export class SalesService {
   }
 
   async adminListCommissions(filters?: { status?: string; salesRepId?: string }) {
-    await this.releaseValidatedCommissions()
+    await this.releaseDueCommissions()
 
     const qb = this.commissions
       .createQueryBuilder('c')
@@ -207,14 +207,23 @@ export class SalesService {
     userId: string
     couponCode: string
     commissionAmount: number
-  }): Promise<SalesCommission> {
-    const commission = this.commissions.create({
+  }, manager?: EntityManager): Promise<SalesCommission> {
+    const repository = manager?.getRepository(SalesCommission) ?? this.commissions
+    const existing = await repository.findOne({ where: { userId: data.userId } })
+    if (existing) return existing
+
+    const commission = repository.create({
       salesRepId: data.salesRepId,
       userId: data.userId,
       couponCode: data.couponCode,
       commissionAmount: data.commissionAmount,
       status: 'pending',
     })
-    return this.commissions.save(commission)
+    return repository.save(commission)
+  }
+
+  private clientReference(userId: string | null, commissionId: string): string {
+    const source = userId ?? commissionId
+    return `Cliente ${source.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6).toUpperCase()}`
   }
 }

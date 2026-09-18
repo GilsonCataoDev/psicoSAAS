@@ -226,12 +226,7 @@ function ItemModal({
 export default function EstoquePage() {
   const profession = useAuthStore((s) => s.user?.profession)
   const navigate = useNavigate()
-
-  // Gate de profissão
-  if (!hasAestheticsModules(profession)) {
-    navigate('/dashboard', { replace: true })
-    return null
-  }
+  const canAccessInventory = hasAestheticsModules(profession)
 
   const [items, setItems] = useState<InventoryItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -250,7 +245,17 @@ export default function EstoquePage() {
     }
   }, [])
 
-  useEffect(() => { loadItems() }, [loadItems])
+  useEffect(() => {
+    if (!canAccessInventory) {
+      navigate('/dashboard', { replace: true })
+      return
+    }
+
+    void loadItems()
+  }, [canAccessInventory, loadItems, navigate])
+
+  // O retorno precisa ficar depois dos hooks para manter a ordem entre renders.
+  if (!canAccessInventory) return null
 
   async function handleDelete(item: InventoryItem) {
     if (!window.confirm(`Remover "${item.name}" do estoque?`)) return

@@ -16,6 +16,7 @@ import { RiskEngineService } from '../../common/security/risk-engine.service'
 import { SuspiciousActivityService } from '../../common/security/suspicious-activity.service'
 import { StorageService } from '../../common/storage/storage.service'
 import { PlanAccessService } from '../../common/plan-access/plan-access.service'
+import { SalesService } from '../sales/sales.service'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -88,6 +89,10 @@ async function createService(
     deleteStrict: jest.fn().mockResolvedValue(undefined),
     keyFromUrl: jest.fn(),
   }
+  const salesMock = {
+    findRepByCoupon: jest.fn().mockResolvedValue(null),
+    createCommission: jest.fn().mockResolvedValue(undefined),
+  }
 
   const module: TestingModule = await Test.createTestingModule({
     providers: [
@@ -105,11 +110,12 @@ async function createService(
       { provide: SuspiciousActivityService, useValue: { isIpBlocked: jest.fn().mockResolvedValue(false), recordFailedAttempt: jest.fn().mockResolvedValue(undefined) } },
       { provide: StorageService,  useValue: storageMock },
       { provide: PlanAccessService, useValue: { hasAccess: jest.fn().mockResolvedValue(false), getCurrentPlan: jest.fn().mockResolvedValue('free') } },
+      { provide: SalesService, useValue: salesMock },
     ],
   }).compile()
 
   const service = module.get<AuthService>(AuthService)
-  return { service, userRepo, refreshTokenRepo, loginAttemptRepo, dataSourceMock, storageMock }
+  return { service, userRepo, refreshTokenRepo, loginAttemptRepo, dataSourceMock, storageMock, salesMock }
 }
 
 // ── Testes ─────────────────────────────────────────────────────────────────────
@@ -135,6 +141,42 @@ describe('AuthService', () => {
         name: 'Novo', email: 'novo@example.com', password: 'senha1234',
         crp: '12345/SP', phone: '11987654321', termsAccepted: false,
       })).rejects.toThrow()
+    })
+
+    it('deve rejeitar cupom de vendedor inválido antes de criar o usuário', async () => {
+      const { service, userRepo, salesMock } = await createService()
+      userRepo.findOneBy.mockResolvedValue(null)
+      salesMock.findRepByCoupon.mockResolvedValue(null)
+
+      await expect(service.register({
+        name: 'Novo', email: 'novo@example.com', password: 'senha1234',
+        crp: '12345/SP', phone: '11987654321', termsAccepted: true,
+        couponCode: 'INVALIDO',
+      })).rejects.toThrow('Cupom de vendedor inválido ou inativo')
+
+      expect(userRepo.save).not.toHaveBeenCalled()
+      expect(salesMock.createCommission).not.toHaveBeenCalled()
+    })
+
+    it('deve criar usuário e comissão na mesma transação para cupom válido', async () => {
+      const { service, userRepo, salesMock, dataSourceMock } = await createService()
+      userRepo.findOneBy.mockResolvedValue(null)
+      userRepo.save.mockImplementation((user: any) => Promise.resolve({ ...user, id: 'new-id' }))
+      salesMock.findRepByCoupon.mockResolvedValue({ id: 'rep-1', commissionAmount: 48.95 })
+
+      await service.register({
+        name: 'Novo', email: 'novo@example.com', password: 'senha1234',
+        crp: '12345/SP', phone: '11987654321', termsAccepted: true,
+        couponCode: 'MARIA10',
+      })
+
+      expect(dataSourceMock.transaction).toHaveBeenCalled()
+      expect(salesMock.createCommission).toHaveBeenCalledWith(expect.objectContaining({
+        salesRepId: 'rep-1',
+        userId: 'new-id',
+        couponCode: 'MARIA10',
+        commissionAmount: 48.95,
+      }), expect.any(Object))
     })
 
     it('deve criar usuário com emailVerified=false e retornar tokens', async () => {
