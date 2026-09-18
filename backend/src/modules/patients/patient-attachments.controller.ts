@@ -22,7 +22,7 @@ class UploadPatientAttachmentDto {
 }
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
-const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
+const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 
 // NoImpersonationGuard (após JwtAuthGuard) bloqueia arquivos clínicos durante impersonação.
 @Controller('patients/:patientId/attachments')
