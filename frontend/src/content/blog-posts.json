@@ -1,5 +1,85 @@
 [
   {
+    "slug": "psicologia-em-pauta-semana-2026-09-18",
+    "title": "Atualizações para psicólogos: o que merece atenção na semana de 18 de setembro de 2026",
+    "description": "Curadoria semanal de atualizações relevantes para atualidades para psicólogos, com fontes institucionais, impactos práticos, cuidados e perguntas frequentes.",
+    "image": "/blog/og/psicologia-em-pauta-semana-2026-09-18.png",
+    "category": "Atualidades para psicólogos",
+    "publishedAt": "2026-09-18",
+    "updatedAt": "2026-09-18",
+    "readingMinutes": 6,
+    "author": "Equipe UseCognia",
+    "keywords": [
+      "notícias para psicólogos",
+      "psicologia hoje",
+      "notícias de saúde mental",
+      "psicologia no Brasil",
+      "notícias CFP",
+      "atualização para psicólogos"
+    ],
+    "relatedSlugs": [
+      "software-para-psicologo-guia-completo-2026",
+      "lgpd-para-psicologos-guia-pratico"
+    ],
+    "intro": [
+      "Esta curadoria reúne publicações recentes de fontes institucionais consultadas em 18 de setembro de 2026. Os títulos levam ao conteúdo original para conferência.",
+      "Selecionamos apenas temas explicitamente ligados à área, e a edição só é publicada quando reúne ao menos duas fontes institucionais independentes. O conteúdo é informativo e não substitui orientação clínica, ética ou jurídica individual."
+    ],
+    "sections": [
+      {
+        "heading": "1. O que foi publicado: Estudo aponta esgotamento emocional e burnout de médicos de UTI",
+        "paragraphs": [
+          "Agência Brasil — Saúde publicou uma atualização sobre o tema. A curadoria não reproduz a matéria: use o link em “Fontes consultadas” para conferir contexto, data, escopo e eventuais limitações no conteúdo original.",
+          "Por que isso merece atenção na rotina profissional: O tema ajuda a acompanhar o contexto de saúde mental, mas não substitui avaliação individual nem autoriza conclusões clínicas sobre pacientes."
+        ]
+      },
+      {
+        "heading": "2. O que foi publicado: ALERTA NA SAÚDE E NA EDUCAÇÃO: Entenda os riscos do PL 1.675/2023 para a Psicologia e a Fonoaudiologia",
+        "paragraphs": [
+          "Conselho Federal de Psicologia publicou uma atualização sobre o tema. A curadoria não reproduz a matéria: use o link em “Fontes consultadas” para conferir contexto, data, escopo e eventuais limitações no conteúdo original.",
+          "Por que isso merece atenção na rotina profissional: O profissional deve consultar o texto original e verificar se a atualização altera documentos, registros, comunicação ou prestação do serviço."
+        ]
+      },
+      {
+        "heading": "Como transformar informação em uma rotina mais organizada",
+        "paragraphs": [
+          "Antes de mudar um procedimento, registre a fonte, confirme se a orientação se aplica ao seu contexto e defina uma ação verificável. Mudanças em comunicação, documentos, agenda ou tratamento de dados devem ser revisadas pelo profissional responsável.",
+          "O UseCognia ajuda a centralizar agenda, pacientes, prontuários, documentos e financeiro. Essa organização reduz tarefas dispersas, mas não substitui decisões técnicas, clínicas ou éticas do profissional."
+        ]
+      }
+    ],
+    "checklist": [
+      "Abrir e ler as fontes originais desta curadoria",
+      "Separar informação pública de evidência aplicável ao caso individual",
+      "Conferir a publicação original do CFP antes de alterar procedimentos profissionais",
+      "Registrar mudanças de processo somente após validação profissional"
+    ],
+    "references": [
+      {
+        "label": "Estudo aponta esgotamento emocional e burnout de médicos de UTI — Agência Brasil — Saúde",
+        "url": "https://agenciabrasil.ebc.com.br/saude/noticia/2026-09/estudo-aponta-esgotamento-emocional-e-burnout-de-medicos-de-uti"
+      },
+      {
+        "label": "ALERTA NA SAÚDE E NA EDUCAÇÃO: Entenda os riscos do PL 1.675/2023 para a Psicologia e a Fonoaudiologia — Conselho Federal de Psicologia",
+        "url": "https://site.cfp.org.br/alerta-na-saude-e-na-educacao-entenda-os-riscos-do-pl-1-675-2023-para-a-psicologia-e-a-fonoaudiologia"
+      }
+    ],
+    "faq": [
+      {
+        "question": "Uma notícia ou publicação institucional muda automaticamente a prática profissional?",
+        "answer": "Não. Consulte a fonte original, verifique a vigência e, quando necessário, busque orientação do conselho federal da sua profissão ou de assessoria especializada antes de alterar procedimentos."
+      },
+      {
+        "question": "Posso aplicar uma informação desta curadoria diretamente aos pacientes?",
+        "answer": "Não de forma automática. Informações públicas precisam ser avaliadas no contexto individual e nunca substituem raciocínio clínico, consentimento e responsabilidade profissional."
+      },
+      {
+        "question": "Como acompanhar atualizações sem aumentar a burocracia do consultório?",
+        "answer": "Reserve um momento semanal para ler as fontes originais, registre apenas mudanças aplicáveis e mantenha agenda, documentos e registros organizados em um fluxo único."
+      }
+    ]
+  },
+  {
     "slug": "prontuario-psicologico-digital-o-que-a-cfp-exige",
     "title": "Prontuário psicológico digital: o que a CFP exige e como organizar o seu",
     "description": "Guia prático sobre prontuário psicológico digital: campos obrigatórios segundo a CFP Res. 001/2009, boas práticas de documentação e como escolher um sistema adequado.",
