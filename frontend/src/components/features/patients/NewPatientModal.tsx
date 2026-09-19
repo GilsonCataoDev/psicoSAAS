@@ -188,22 +188,30 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
             <label className="label">Data de nascimento</label>
             <input {...register('birthDate')} type="date" className="input-field" />
           </div>
+          {showCareMode && (
           <div>
             <label className="label">Pronomes</label>
             <input {...register('pronouns')} className="input-field" placeholder="ela/dele, ele/dele..." />
           </div>
+          )}
+          {showCareMode && (
           <div>
             <label className="label">Raça/cor</label>
             <input {...register('race')} className="input-field" placeholder="Autodeclarada" />
           </div>
+          )}
+          {showCareMode && (
           <div>
             <label className="label">Gênero</label>
             <input {...register('gender')} className="input-field" placeholder="Autodeclarado" />
           </div>
+          )}
+          {showCareMode && (
           <div>
             <label className="label">Orientação sexual</label>
             <input {...register('sexualOrientation')} className="input-field" placeholder="Autodeclarada" />
           </div>
+          )}
           <div>
             <label className="label">CPF / CNPJ <span className="text-neutral-400 font-normal">(para cobrança)</span></label>
             <input {...register('cpfCnpj')}
@@ -312,6 +320,7 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
           )}
         </div>
 
+        {showCareMode && (
         <div>
           <label className="label">Temas de trabalho</label>
           <div className="flex flex-wrap gap-2">
@@ -327,6 +336,7 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
             ))}
           </div>
         </div>
+        )}
 
         <div className="flex justify-end gap-3 pt-2">
           <button type="button" onClick={onClose} className="btn-secondary">Cancelar</button>
