@@ -100,6 +100,9 @@ export class AuthService {
     if (!dto.termsAccepted) {
       throw new BadRequestException('E necessario aceitar os Termos de Uso')
     }
+    if (dto.referralCode && dto.couponCode) {
+      throw new BadRequestException('Use apenas um código de indicação ou de vendedor')
+    }
     if (dto.referralCode && !await this.referral.isValidCode(dto.referralCode)) {
       throw new BadRequestException('Código de indicação inválido')
     }

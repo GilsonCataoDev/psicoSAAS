@@ -8,6 +8,7 @@ import { BillingWebhookService } from '../billing-webhook.service'
 import { Subscription } from '../entities/subscription.entity'
 import { WebhookEvent } from '../entities/webhook-event.entity'
 import { ReferralService } from '../../referral/referral.service'
+import { SalesService } from '../../sales/sales.service'
 
 const makeSubscription = (overrides: Partial<Subscription> = {}): Subscription => ({
   id: 'local-sub-1',
@@ -35,18 +36,30 @@ describe('BillingWebhookService', () => {
   let subscriptions: { findOne: jest.Mock; save: jest.Mock }
   let asaas: { updateSubscriptionPlan: jest.Mock }
   let referrals: { handlePaymentApproved: jest.Mock; handlePaymentReversed: jest.Mock }
+  let sales: { hasAttribution: jest.Mock; handlePaymentApproved: jest.Mock; handlePaymentReversed: jest.Mock }
+  let events: { create: jest.Mock; save: jest.Mock; exist: jest.Mock; delete: jest.Mock }
 
   beforeEach(async () => {
     subscriptions = {
       findOne: jest.fn(),
       save: jest.fn(value => Promise.resolve(value)),
     }
-    const events = {
+    events = {
       create: jest.fn(value => value),
       save: jest.fn(value => Promise.resolve(value)),
+      exist: jest.fn().mockResolvedValue(false),
+      delete: jest.fn().mockResolvedValue({ affected: 1 }),
     }
     asaas = { updateSubscriptionPlan: jest.fn().mockResolvedValue(undefined) }
-    referrals = { handlePaymentApproved: jest.fn(), handlePaymentReversed: jest.fn() }
+    referrals = {
+      handlePaymentApproved: jest.fn().mockResolvedValue(undefined),
+      handlePaymentReversed: jest.fn().mockResolvedValue(undefined),
+    }
+    sales = {
+      hasAttribution: jest.fn().mockResolvedValue(false),
+      handlePaymentApproved: jest.fn().mockResolvedValue(undefined),
+      handlePaymentReversed: jest.fn().mockResolvedValue(undefined),
+    }
 
     const module = await Test.createTestingModule({
       providers: [
@@ -58,6 +71,7 @@ describe('BillingWebhookService', () => {
         { provide: EmailService, useValue: { send: jest.fn() } },
         { provide: AsaasService, useValue: asaas },
         { provide: ReferralService, useValue: referrals },
+        { provide: SalesService, useValue: sales },
       ],
     }).compile()
 
@@ -73,6 +87,66 @@ describe('BillingWebhookService', () => {
     })
 
     expect(referrals.handlePaymentApproved).toHaveBeenCalledWith('user-1', 'payment-1', 97.90)
+  })
+
+  it('aguarda a comissão de vendedor antes de concluir o webhook', async () => {
+    subscriptions.findOne.mockResolvedValue(makeSubscription())
+    sales.hasAttribution.mockResolvedValue(true)
+    let release!: () => void
+    sales.handlePaymentApproved.mockReturnValue(new Promise<void>(resolve => { release = resolve }))
+
+    let completed = false
+    const processing = service.process({
+      event: 'PAYMENT_RECEIVED',
+      payment: { id: 'payment-1', subscription: 'gateway-sub-1', value: 97.90 },
+    }).then(() => { completed = true })
+
+    await new Promise(resolve => setImmediate(resolve))
+    expect(completed).toBe(false)
+    release()
+    await processing
+    expect(completed).toBe(true)
+  })
+
+  it('prioriza o cupom de vendedor e não gera comissão de indicação em duplicidade', async () => {
+    subscriptions.findOne.mockResolvedValue(makeSubscription())
+    sales.hasAttribution.mockResolvedValue(true)
+
+    await service.process({
+      event: 'PAYMENT_RECEIVED',
+      payment: { id: 'payment-1', subscription: 'gateway-sub-1', value: 97.90 },
+    })
+
+    expect(sales.handlePaymentApproved).toHaveBeenCalled()
+    expect(referrals.handlePaymentApproved).not.toHaveBeenCalled()
+  })
+
+  it('não reativa pagamento que já possui evento terminal', async () => {
+    const subscription = makeSubscription({ status: 'past_due' })
+    subscriptions.findOne.mockResolvedValue(subscription)
+    events.exist.mockResolvedValue(true)
+
+    await service.process({
+      event: 'PAYMENT_CONFIRMED',
+      payment: { id: 'payment-1', subscription: 'gateway-sub-1', value: 97.90 },
+    })
+
+    expect(subscription.status).toBe('past_due')
+    expect(sales.handlePaymentApproved).not.toHaveBeenCalled()
+    expect(referrals.handlePaymentApproved).not.toHaveBeenCalled()
+  })
+
+  it('libera a idempotência quando o processamento falha', async () => {
+    subscriptions.findOne.mockResolvedValue(makeSubscription())
+    sales.hasAttribution.mockResolvedValue(true)
+    sales.handlePaymentApproved.mockRejectedValue(new Error('banco indisponível'))
+
+    await expect(service.process({
+      event: 'PAYMENT_RECEIVED',
+      payment: { id: 'payment-1', subscription: 'gateway-sub-1', value: 97.90 },
+    })).rejects.toThrow('banco indisponível')
+
+    expect(events.delete).toHaveBeenCalledWith({ eventId: 'PAYMENT_RECEIVED:payment-1' })
   })
 
   it.each([

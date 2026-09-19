@@ -932,7 +932,7 @@ function HealthScoresTab() {
 
 // ── Vendedores ────────────────────────────────────────────────────────────────
 
-type CommissionStatus = 'pending' | 'validating' | 'payable' | 'paid' | 'refunded' | 'chargeback'
+type CommissionStatus = 'pending' | 'validating' | 'payable' | 'paid' | 'refunded' | 'chargeback' | 'clawback'
 
 interface SalesRep {
   id: string; name: string; email: string; couponCode: string
@@ -952,12 +952,13 @@ interface SalesCommission {
 
 const COMM_STATUS_LABEL: Record<CommissionStatus, string> = {
   pending: 'Aguardando', validating: 'Validando', payable: 'A pagar',
-  paid: 'Pago', refunded: 'Estornado', chargeback: 'Chargeback',
+  paid: 'Pago', refunded: 'Estornado', chargeback: 'Chargeback', clawback: 'Valor a recuperar',
 }
 const COMM_STATUS_COLOR: Record<CommissionStatus, string> = {
   pending: 'bg-neutral-100 text-neutral-600', validating: 'bg-amber-100 text-amber-700',
   payable: 'bg-blue-100 text-blue-700', paid: 'bg-emerald-100 text-emerald-700',
   refunded: 'bg-rose-100 text-rose-700', chargeback: 'bg-rose-100 text-rose-700',
+  clawback: 'bg-violet-100 text-violet-700',
 }
 
 function brlSales(v: number) {

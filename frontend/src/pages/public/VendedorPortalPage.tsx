@@ -9,6 +9,7 @@ type CommissionStatus =
   | 'paid'
   | 'refunded'
   | 'chargeback'
+  | 'clawback'
 
 interface Commission {
   id: string
@@ -46,6 +47,7 @@ const STATUS_LABELS: Record<CommissionStatus, string> = {
   paid: 'Pago',
   refunded: 'Estornado',
   chargeback: 'Chargeback',
+  clawback: 'Pagamento em revisão',
 }
 
 const STATUS_COLORS: Record<CommissionStatus, string> = {
@@ -55,6 +57,7 @@ const STATUS_COLORS: Record<CommissionStatus, string> = {
   paid: 'bg-emerald-100 text-emerald-700',
   refunded: 'bg-rose-100 text-rose-700',
   chargeback: 'bg-rose-100 text-rose-700',
+  clawback: 'bg-violet-100 text-violet-700',
 }
 
 function brl(value: number) {

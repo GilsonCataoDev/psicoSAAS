@@ -104,6 +104,8 @@ export default function RegisterPage() {
     const coupon = searchParams.get('coupon')
     if (coupon) {
       const c = coupon.toUpperCase()
+      setReferralCode('')
+      localStorage.removeItem('usecognia_referral')
       setCouponCode(c)
       setCouponInput(c)
     }
@@ -287,7 +289,7 @@ export default function RegisterPage() {
           {errors.email && <p className="text-rose-500 text-xs mt-1">{errors.email.message}</p>}
         </div>
 
-        <div>
+        {!couponCode && <div>
           <label htmlFor="register-referral" className="label">Código de indicação <span className="font-normal text-neutral-400">(opcional)</span></label>
           <input
             id="register-referral"
@@ -298,7 +300,7 @@ export default function RegisterPage() {
             autoComplete="off"
           />
           {referralCode && <p className="mt-1 text-xs text-sage-700">O código será validado no cadastro. O valor da assinatura não muda.</p>}
-        </div>
+        </div>}
 
         <div>
           {!couponInputVisible && !couponCode ? (
@@ -319,6 +321,10 @@ export default function RegisterPage() {
                 value={couponInput}
                 onChange={e => {
                   const v = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20)
+                  if (v) {
+                    setReferralCode('')
+                    localStorage.removeItem('usecognia_referral')
+                  }
                   setCouponInput(v)
                   setCouponCode(v || null)
                 }}

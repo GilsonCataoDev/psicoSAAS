@@ -179,6 +179,21 @@ describe('AuthService', () => {
       }), expect.any(Object))
     })
 
+    it('deve rejeitar indicação e cupom de vendedor no mesmo cadastro', async () => {
+      const { service, userRepo, salesMock } = await createService()
+      userRepo.findOneBy.mockResolvedValue(null)
+      salesMock.findRepByCoupon.mockResolvedValue({ id: 'rep-1', commissionAmount: 48.95 })
+
+      await expect(service.register({
+        name: 'Novo', email: 'novo@example.com', password: 'Senha123!',
+        crp: '02/12345', phone: '87999999999', termsAccepted: true,
+        referralCode: 'AMIGO', couponCode: 'MARIA10',
+      })).rejects.toThrow('Use apenas um código de indicação ou de vendedor')
+
+      expect(userRepo.save).not.toHaveBeenCalled()
+      expect(salesMock.createCommission).not.toHaveBeenCalled()
+    })
+
     it('deve criar usuário com emailVerified=false e retornar tokens', async () => {
       const { service, userRepo, refreshTokenRepo } = await createService()
       userRepo.findOneBy.mockResolvedValue(null)

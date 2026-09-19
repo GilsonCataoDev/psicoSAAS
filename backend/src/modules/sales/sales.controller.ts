@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   NotFoundException,
   Param,
   ParseUUIDPipe,
@@ -64,6 +65,7 @@ export class SalesController {
 
   @PublicRoute()
   @Get('portal/:token')
+  @Header('Cache-Control', 'private, no-store')
   async getPortal(@Param('token') token: string) {
     const rep = await this.sales.getRepByToken(token)
     if (!rep) throw new NotFoundException('Link inválido ou expirado')

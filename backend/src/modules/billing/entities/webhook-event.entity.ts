@@ -11,6 +11,9 @@ export class WebhookEvent {
   @Column({ type: 'varchar' })
   eventType: string
 
+  @Column({ type: 'varchar', length: 200, nullable: true })
+  paymentId: string | null
+
   @Column({ type: 'jsonb' })
   payload: Record<string, unknown>
 

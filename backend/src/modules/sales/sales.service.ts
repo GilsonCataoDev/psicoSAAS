@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { EntityManager, LessThanOrEqual, Repository } from 'typeorm'
+import { EntityManager, In, IsNull, LessThanOrEqual, Repository } from 'typeorm'
 import { SalesRep } from './entities/sales-rep.entity'
 import { SalesCommission } from './entities/sales-commission.entity'
 import { CreateSalesRepDto } from './dto/create-sales-rep.dto'
@@ -23,6 +23,10 @@ export class SalesService {
 
   async getRepByToken(token: string): Promise<SalesRep | null> {
     return this.reps.findOne({ where: { accessToken: token, status: 'active' } })
+  }
+
+  async hasAttribution(userId: string): Promise<boolean> {
+    return this.commissions.exist({ where: { userId } })
   }
 
   async createRep(dto: CreateSalesRepDto): Promise<SalesRep> {
@@ -48,12 +52,15 @@ export class SalesService {
 
   async handlePaymentApproved(
     userId: string,
-    paymentId: string,
+    paymentId: string | undefined,
     grossAmount: number,
   ): Promise<void> {
+    if (!paymentId?.trim() || !Number.isFinite(grossAmount) || grossAmount <= 0) {
+      this.logger.warn(`[Sales] Pagamento inválido ignorado userId=${userId}`)
+      return
+    }
     const commission = await this.commissions.findOne({
       where: { userId, status: 'pending' },
-      relations: ['salesRep'],
     })
     if (!commission) return
     if (commission.paymentId) return // idempotente
@@ -61,14 +68,21 @@ export class SalesService {
     const availableAt = new Date()
     availableAt.setDate(availableAt.getDate() + 30)
 
-    commission.paymentId = paymentId
-    commission.grossAmount = grossAmount
-    commission.commissionAmount = commission.salesRep?.commissionAmount ?? commission.commissionAmount
-    commission.paymentApprovedAt = new Date()
-    commission.commissionAvailableAt = availableAt
-    commission.status = 'validating'
-
-    await this.commissions.save(commission)
+    const commissionAmount = Math.round(
+      Math.min(Number(commission.commissionAmount), grossAmount / 2) * 100,
+    ) / 100
+    const result = await this.commissions.update(
+      { id: commission.id, status: 'pending', paymentId: IsNull() },
+      {
+        paymentId: paymentId.trim(),
+        grossAmount,
+        commissionAmount,
+        paymentApprovedAt: new Date(),
+        commissionAvailableAt: availableAt,
+        status: 'validating',
+      },
+    )
+    if (!result.affected) return
     this.logger.log(
       `[Sales] Comissão ${commission.id} movida para validating userId=${userId} paymentId=${paymentId}`,
     )
@@ -79,17 +93,18 @@ export class SalesService {
     paymentId: string,
     reason: string,
   ): Promise<void> {
-    const commission = await this.commissions.findOne({
-      where: { userId, paymentId },
-    })
-    if (!commission) return
-
     const newStatus = reason.toLowerCase().includes('chargeback') ? 'chargeback' : 'refunded'
-    commission.status = newStatus
-    commission.ineligibleReason = reason
-    await this.commissions.save(commission)
+    const paid = await this.commissions.update(
+      { userId, paymentId, status: 'paid' },
+      { status: 'clawback', ineligibleReason: reason.slice(0, 240) },
+    )
+    const reversed = await this.commissions.update(
+      { userId, paymentId, status: In(['validating', 'payable']) },
+      { status: newStatus, ineligibleReason: reason.slice(0, 240) },
+    )
+    if (!paid.affected && !reversed.affected) return
     this.logger.log(
-      `[Sales] Comissão ${commission.id} marcada como ${newStatus} userId=${userId}`,
+      `[Sales] Comissão revertida para ${paid.affected ? 'clawback' : newStatus} userId=${userId}`,
     )
   }
 
@@ -100,12 +115,8 @@ export class SalesService {
     }
     if (salesRepId) where['salesRepId'] = salesRepId
 
-    const ready = await this.commissions.find({ where: where as any })
-    for (const c of ready) {
-      c.status = 'payable'
-      await this.commissions.save(c)
-    }
-    return ready.length
+    const result = await this.commissions.update(where as any, { status: 'payable' })
+    return result.affected ?? 0
   }
 
   async getStats(salesRepId: string) {
@@ -123,8 +134,8 @@ export class SalesService {
 
     const count = (status: string) => all.filter(c => c.status === status).length
 
-    const nextPayable = all
-      .filter(c => c.status === 'payable')
+    const nextValidation = all
+      .filter(c => c.status === 'validating' && c.commissionAvailableAt)
       .sort((a, b) => (a.commissionAvailableAt?.getTime() ?? 0) - (b.commissionAvailableAt?.getTime() ?? 0))[0]
 
     return {
@@ -135,7 +146,7 @@ export class SalesService {
       pendingAmount: sum('pending') + sum('validating'),
       payableAmount: sum('payable'),
       paidAmount: sum('paid'),
-      nextPaymentAt: nextPayable?.commissionAvailableAt ?? null,
+      nextPaymentAt: nextValidation?.commissionAvailableAt ?? null,
       commissions: all.map(c => ({
         id: c.id,
         status: c.status,
@@ -152,16 +163,18 @@ export class SalesService {
   }
 
   async markPaid(commissionId: string, payoutReference: string): Promise<void> {
-    const commission = await this.commissions.findOneBy({ id: commissionId })
-    if (!commission) throw new NotFoundException('Comissão não encontrada')
-    if (commission.status !== 'payable') {
+    const reference = payoutReference.trim()
+    if (reference.length < 3) throw new BadRequestException('Informe uma referência de pagamento válida')
+    const result = await this.commissions.update(
+      { id: commissionId, status: 'payable' },
+      { status: 'paid', commissionPaidAt: new Date(), payoutReference: reference },
+    )
+    if (!result.affected) {
+      const commission = await this.commissions.findOneBy({ id: commissionId })
+      if (!commission) throw new NotFoundException('Comissão não encontrada')
       throw new BadRequestException(`Comissão não está no status payable (status atual: ${commission.status})`)
     }
-    commission.status = 'paid'
-    commission.commissionPaidAt = new Date()
-    commission.payoutReference = payoutReference
-    await this.commissions.save(commission)
-    this.logger.log(`[Sales] Comissão ${commissionId} marcada como paga ref=${payoutReference}`)
+    this.logger.log(`[Sales] Comissão ${commissionId} marcada como paga ref=${reference}`)
   }
 
   async adminListCommissions(filters?: { status?: string; salesRepId?: string }) {

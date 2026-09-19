@@ -1,7 +1,7 @@
 import { Injectable, Logger, Optional } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { In, Repository } from 'typeorm'
 import { EmailService } from '../email/email.service'
 import { User } from '../auth/entities/user.entity'
 import { Subscription } from './entities/subscription.entity'
@@ -10,6 +10,17 @@ import { AsaasService } from './asaas.service'
 import { secretsMatch } from '../../common/crypto/encrypt.util'
 import { ReferralService } from '../referral/referral.service'
 import { SalesService } from '../sales/sales.service'
+
+const APPROVED_PAYMENT_EVENTS = ['PAYMENT_RECEIVED', 'PAYMENT_CONFIRMED'] as const
+const TERMINAL_PAYMENT_EVENTS = [
+  'PAYMENT_REFUNDED',
+  'PAYMENT_PARTIALLY_REFUNDED',
+  'PAYMENT_REFUND_IN_PROGRESS',
+  'PAYMENT_CHARGEBACK_REQUESTED',
+  'PAYMENT_CHARGEBACK_DISPUTE',
+  'PAYMENT_AWAITING_CHARGEBACK_REVERSAL',
+  'PAYMENT_RECEIVED_IN_CASH_UNDONE',
+] as const
 
 @Injectable()
 export class BillingWebhookService {
@@ -59,10 +70,45 @@ export class BillingWebhookService {
       return
     }
 
+    try {
+      await this.processLoggedEvent(eventType, eventId, payload)
+    } catch (err) {
+      await this.events.delete({ eventId }).catch(deleteErr => {
+        this.logger.error(`[Asaas webhook] Falha ao liberar evento ${eventId} para retry`, deleteErr)
+      })
+      throw err
+    }
+  }
+
+  private async processLoggedEvent(eventType: string, eventId: string, payload: any): Promise<void> {
+    const supportedEvents = [
+      ...APPROVED_PAYMENT_EVENTS,
+      'PAYMENT_OVERDUE',
+      'PAYMENT_DELETED',
+      ...TERMINAL_PAYMENT_EVENTS,
+      'SUBSCRIPTION_CANCELLED',
+      'SUBSCRIPTION_DELETED',
+      'SUBSCRIPTION_INACTIVATED',
+    ]
+    if (!supportedEvents.includes(eventType as any)) {
+      this.logger.log(`[Asaas webhook] Evento ignorado event=${eventType}`)
+      return
+    }
+
+    const paymentId = payload?.payment?.id as string | undefined
+    if (
+      APPROVED_PAYMENT_EVENTS.includes(eventType as any)
+      && paymentId
+      && await this.hasTerminalPaymentEvent(paymentId)
+    ) {
+      this.logger.warn(`[Asaas webhook] Aprovação obsoleta ignorada paymentId=${paymentId}`)
+      return
+    }
+
     const subscription = await this.findSubscription(payload)
     if (!subscription) {
       this.logger.warn(`[Asaas webhook] Subscription não encontrada event=${eventType} id=${eventId}`)
-      return
+      throw new Error(`Subscription não encontrada para o evento ${eventId}`)
     }
 
     const previousStatus = subscription.status
@@ -105,29 +151,22 @@ export class BillingWebhookService {
         }
         break
       default:
-        this.logger.log(`[Asaas webhook] Evento ignorado event=${eventType}`)
         return
     }
 
     await this.subscriptions.save(subscription)
 
-    const paymentId = payload?.payment?.id as string | undefined
-    if (eventType === 'PAYMENT_RECEIVED' || eventType === 'PAYMENT_CONFIRMED') {
-      await this.referrals.handlePaymentApproved(subscription.userId, paymentId, Number(payload?.payment?.value))
-      this.sales?.handlePaymentApproved(subscription.userId, paymentId, Number(payload?.payment?.value ?? 0))
-        .catch((err: any) => this.logger.warn(`[Sales] handlePaymentApproved erro: ${err?.message ?? err}`))
-    } else if ([
-      'PAYMENT_REFUNDED',
-      'PAYMENT_PARTIALLY_REFUNDED',
-      'PAYMENT_REFUND_IN_PROGRESS',
-      'PAYMENT_CHARGEBACK_REQUESTED',
-      'PAYMENT_CHARGEBACK_DISPUTE',
-      'PAYMENT_AWAITING_CHARGEBACK_REVERSAL',
-      'PAYMENT_RECEIVED_IN_CASH_UNDONE',
-    ].includes(eventType)) {
+    if (APPROVED_PAYMENT_EVENTS.includes(eventType as any)) {
+      const grossAmount = Number(payload?.payment?.value)
+      const hasSalesAttribution = await this.sales?.hasAttribution(subscription.userId) ?? false
+      if (hasSalesAttribution) {
+        await this.sales?.handlePaymentApproved(subscription.userId, paymentId, grossAmount)
+      } else {
+        await this.referrals.handlePaymentApproved(subscription.userId, paymentId, grossAmount)
+      }
+    } else if (TERMINAL_PAYMENT_EVENTS.includes(eventType as any)) {
       await this.referrals.handlePaymentReversed(subscription.userId, paymentId, eventType)
-      this.sales?.handlePaymentReversed(subscription.userId, paymentId, eventType)
-        .catch((err: any) => this.logger.warn(`[Sales] handlePaymentReversed erro: ${err?.message ?? err}`))
+      await this.sales?.handlePaymentReversed(subscription.userId, paymentId, eventType)
     }
 
     this.logger.log(
@@ -176,6 +215,7 @@ export class BillingWebhookService {
       await this.events.save(this.events.create({
         eventId,
         eventType,
+        paymentId: payload?.payment?.id ?? null,
         payload: this.sanitizeWebhookPayload(payload), // Mantém auditoria sem persistir payload financeiro bruto.
       }))
       return true
@@ -184,6 +224,15 @@ export class BillingWebhookService {
       this.logger.error('[Asaas webhook] Erro ao registrar idempotência', err)
       throw err
     }
+  }
+
+  private async hasTerminalPaymentEvent(paymentId: string): Promise<boolean> {
+    return this.events.exist({
+      where: {
+        paymentId,
+        eventType: In([...TERMINAL_PAYMENT_EVENTS]),
+      },
+    })
   }
 
   private async findSubscription(payload: any): Promise<Subscription | null> {

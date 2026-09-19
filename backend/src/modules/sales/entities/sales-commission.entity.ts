@@ -17,6 +17,7 @@ export type CommissionStatus =
   | 'paid'
   | 'refunded'
   | 'chargeback'
+  | 'clawback'
 
 @Entity('sales_commissions')
 export class SalesCommission {
