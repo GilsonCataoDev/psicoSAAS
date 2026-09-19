@@ -35,6 +35,7 @@ test('agenda pública mantém contexto e controles legíveis no celular', async 
   })
 
   await page.goto('/agendar/responsivo')
+  await page.getByRole('button', { name: 'Recusar' }).click()
   await page.getByRole('button', { name: 'Escolher horário' }).click()
 
   await expect(page.getByText('Escolher data', { exact: true })).toBeVisible()
