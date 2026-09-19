@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { EntityManager, In, IsNull, LessThanOrEqual, Repository } from 'typeorm'
+import { isUUID } from 'class-validator'
 import { SalesRep } from './entities/sales-rep.entity'
 import { SalesCommission } from './entities/sales-commission.entity'
 import { CreateSalesRepDto } from './dto/create-sales-rep.dto'
@@ -22,6 +23,7 @@ export class SalesService {
   }
 
   async getRepByToken(token: string): Promise<SalesRep | null> {
+    if (!isUUID(token)) return null
     return this.reps.findOne({ where: { accessToken: token, status: 'active' } })
   }
 

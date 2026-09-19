@@ -26,12 +26,18 @@ describe('SalesService', () => {
 
   it('aceita o token apenas quando o vendedor está ativo', async () => {
     reps.findOne.mockResolvedValue(null)
+    const token = '7b84a3a4-3197-4adc-9e8d-d43cf3347f58'
 
-    await service.getRepByToken('token-secreto')
+    await service.getRepByToken(token)
 
     expect(reps.findOne).toHaveBeenCalledWith({
-      where: { accessToken: 'token-secreto', status: 'active' },
+      where: { accessToken: token, status: 'active' },
     })
+  })
+
+  it('rejeita token de portal malformado sem consultar o banco', async () => {
+    await expect(service.getRepByToken('token-inexistente')).resolves.toBeNull()
+    expect(reps.findOne).not.toHaveBeenCalled()
   })
 
   it('identifica atribuição de vendedor pelo cliente', async () => {
