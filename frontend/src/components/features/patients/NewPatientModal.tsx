@@ -38,6 +38,7 @@ const schema = z.object({
     .regex(/^\d{11}$|^\d{14}$/, 'CPF (11 dígitos) ou CNPJ (14 dígitos)')
     .optional()
     .or(z.literal('')),
+  acquisitionSource: z.string().optional(),
 }).superRefine((data, ctx) => {
   if ((data.billingType === 'monthly_package' || data.billingType === 'session_package') && data.monthlyPackagePrice <= 0) {
     ctx.addIssue({ code: 'custom', path: ['monthlyPackagePrice'], message: 'Informe o valor do pacote' })
@@ -337,6 +338,18 @@ export default function NewPatientModal({ open, onClose }: { open: boolean; onCl
           </div>
         </div>
         )}
+
+        <div>
+          <label className="label">Como nos conheceu?</label>
+          <select {...register('acquisitionSource')} className="input-field w-full">
+            <option value="">Não informado</option>
+            <option value="indicacao">Indicação de paciente</option>
+            <option value="instagram">Instagram</option>
+            <option value="google">Google</option>
+            <option value="site">Site</option>
+            <option value="outro">Outro</option>
+          </select>
+        </div>
 
         <div className="flex justify-end gap-3 pt-2">
           <button type="button" onClick={onClose} className="btn-secondary">Cancelar</button>

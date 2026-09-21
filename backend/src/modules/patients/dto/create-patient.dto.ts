@@ -150,4 +150,13 @@ export class CreatePatientDto {
   @IsOptional()
   @Matches(/^\d{11}$|^\d{14}$/, { message: 'cpfCnpj deve ter 11 digitos (CPF) ou 14 digitos (CNPJ)' })
   cpfCnpj?: string
+
+  @IsIn(['lead', 'first_session', 'active', 'inactive', 'discharged']) @IsOptional()
+  crmStage?: 'lead' | 'first_session' | 'active' | 'inactive' | 'discharged'
+
+  @Transform(({ value }) => emptyToUndefined(value))
+  @IsString()
+  @MaxLength(100)
+  @IsOptional()
+  acquisitionSource?: string
 }

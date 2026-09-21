@@ -10,6 +10,7 @@ import { encryptedTextTransformer } from '../../../common/crypto/encrypt.util'
 export type PatientStatus = 'active' | 'paused' | 'discharged'
 export type PatientBillingType = 'per_session' | 'monthly_package' | 'session_package'
 export type PatientCareMode = 'psychotherapy' | 'neuropsychological_assessment'
+export type PatientCrmStage = 'lead' | 'first_session' | 'active' | 'inactive' | 'discharged'
 
 @Entity('patients')
 export class Patient {
@@ -67,6 +68,14 @@ export class Patient {
 
   /** ID do cliente no Asaas do psicólogo — evita criar duplicatas a cada cobrança */
   @Column({ nullable: true }) asaasCustomerId?: string
+
+  /** Etapa CRM do paciente — funil de captação e acompanhamento */
+  @Column({ type: 'varchar', length: 30, default: 'lead' })
+  crmStage: PatientCrmStage
+
+  /** Canal de captação — como o paciente chegou ao profissional */
+  @Column({ type: 'text', nullable: true })
+  acquisitionSource?: string
 
   @Column({ nullable: true })
   portalTokenHash?: string

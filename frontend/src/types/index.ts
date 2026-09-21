@@ -30,6 +30,8 @@ export interface Patient {
   avatarColor: string
   createdAt: string
   updatedAt: string
+  crmStage?: 'lead' | 'first_session' | 'active' | 'inactive' | 'discharged'
+  acquisitionSource?: string
 }
 
 export interface NutritionAssessment {

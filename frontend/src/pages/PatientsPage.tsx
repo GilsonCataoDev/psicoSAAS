@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import { AlertTriangle, BrainCircuit, Download, Filter, LayoutGrid, LayoutList, MessageCircle, Plus, Search, TrendingUp, Upload, UsersRound, X } from 'lucide-react'
+import { AlertTriangle, BrainCircuit, Cake, Download, Filter, LayoutGrid, LayoutList, MessageCircle, Plus, Search, TrendingUp, Upload, UsersRound, X } from 'lucide-react'
 import Avatar from '@/components/ui/Avatar'
 import { TagBadge, StatusBadge } from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
@@ -18,6 +18,24 @@ import { hasPsychologyModules } from '@/lib/professions'
 import { useAuthStore } from '@/store/auth'
 
 type PatientStatus = 'active' | 'paused' | 'discharged'
+type PatientCrmStage = 'lead' | 'first_session' | 'active' | 'inactive' | 'discharged'
+
+const CRM_COLUMNS: { stage: PatientCrmStage; label: string; color: string; bg: string }[] = [
+  { stage: 'lead',          label: 'Novo contato',          color: 'text-violet-700', bg: 'bg-violet-50 dark:bg-violet-950/30' },
+  { stage: 'first_session', label: 'Aguardando 1ª sessão',  color: 'text-amber-700',  bg: 'bg-amber-50 dark:bg-amber-950/30' },
+  { stage: 'active',        label: 'Em acompanhamento',     color: 'text-emerald-700',bg: 'bg-emerald-50 dark:bg-emerald-950/30' },
+  { stage: 'inactive',      label: 'Inativo',               color: 'text-neutral-600',bg: 'bg-neutral-100 dark:bg-neutral-800/40' },
+  { stage: 'discharged',    label: 'Alta',                  color: 'text-sky-700',    bg: 'bg-sky-50 dark:bg-sky-950/30' },
+]
+
+const ACQUISITION_OPTIONS = [
+  { value: '', label: '(Não informado)' },
+  { value: 'indicacao', label: 'Indicação de paciente' },
+  { value: 'instagram', label: 'Instagram' },
+  { value: 'google', label: 'Google' },
+  { value: 'site', label: 'Site' },
+  { value: 'outro', label: 'Outro' },
+]
 
 export default function PatientsPage() {
   const t = useTerms()
@@ -38,10 +56,15 @@ export default function PatientsPage() {
   const [filterBilling, setFilterBilling] = useState<'all' | 'per_session' | 'monthly_package' | 'session_package'>('all')
   const [filterDateFrom, setFilterDateFrom] = useState('')
   const [filterDateTo, setFilterDateTo] = useState('')
+  const [filterAcquisitionSource, setFilterAcquisitionSource] = useState('')
   const [page, setPage] = useState(1)
   const [showModal, setShowModal] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
   const [showReengagement, setShowReengagement] = useState(false)
+  const [dismissedBirthdays, setDismissedBirthdays] = useState(() => {
+    try { return localStorage.getItem('psicoSAAS_dismissedBirthdays') === new Date().toISOString().slice(0, 10) }
+    catch { return false }
+  })
 
   const { data: patientsPage, isLoading } = usePatientsPaginated({
     page, limit: 50, search, status: filter === 'all' ? '' : filter,
@@ -73,15 +96,48 @@ export default function PatientsPage() {
 
   const [dismissedInactive, setDismissedInactive] = useState(false)
 
+  // Birthday alerts — pacientes com aniversário hoje ou nos próximos 7 dias
+  const birthdayPatients = useMemo(() => {
+    const today = new Date()
+    const todayMD = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+    const result: { patient: typeof patients[0]; daysUntil: number }[] = []
+    for (const p of patients) {
+      if (!p.birthDate) continue
+      const parts = p.birthDate.split('-')
+      if (parts.length < 3) continue
+      const month = parts[1]
+      const day = parts[2]
+      const thisYear = new Date(today.getFullYear(), parseInt(month) - 1, parseInt(day))
+      const diff = Math.round((thisYear.getTime() - today.setHours(0, 0, 0, 0)) / 86400000)
+      const daysUntil = diff < 0 ? diff + 365 : diff
+      if (daysUntil <= 7) result.push({ patient: p, daysUntil })
+    }
+    return result.sort((a, b) => a.daysUntil - b.daysUntil)
+  }, [patients])
+
+  // Próximos agendamentos por paciente (para cards)
+  const nextAppointmentByPatient = useMemo(() => {
+    const now = new Date()
+    return allSessions.reduce<Record<string, string>>((acc, s) => {
+      const d = new Date((s as any).date ?? (s as any).scheduledAt ?? '')
+      if (isNaN(d.getTime()) || d < now) return acc
+      if (!acc[(s as any).patientId] || d < new Date(acc[(s as any).patientId])) {
+        acc[(s as any).patientId] = d.toISOString()
+      }
+      return acc
+    }, {})
+  }, [allSessions])
+
   const allTags = Array.from(new Set(patients.flatMap(p => (p.tags ?? []) as string[]))).sort((a, b) => a.localeCompare(b, 'pt-BR'))
 
-  const hasAdvancedFilter = filterTags.length > 0 || filterBilling !== 'all' || filterDateFrom || filterDateTo
+  const hasAdvancedFilter = filterTags.length > 0 || filterBilling !== 'all' || filterDateFrom || filterDateTo || filterAcquisitionSource !== ''
 
   function clearAdvanced() {
     setFilterTags([])
     setFilterBilling('all')
     setFilterDateFrom('')
     setFilterDateTo('')
+    setFilterAcquisitionSource('')
   }
 
   function toggleTag(tag: string) {
@@ -97,7 +153,8 @@ export default function PatientsPage() {
     const startIso = patientStartDate(p.startDate, p.createdAt) ?? ''
     const matchFrom = !filterDateFrom || startIso >= filterDateFrom
     const matchTo = !filterDateTo || startIso <= filterDateTo
-    return matchCareMode && matchTags && matchBilling && matchFrom && matchTo
+    const matchAcquisition = filterAcquisitionSource === '' || (p.acquisitionSource ?? '') === filterAcquisitionSource
+    return matchCareMode && matchTags && matchBilling && matchFrom && matchTo && matchAcquisition
   })
 
   const groupedPatients = filtered.reduce<Record<string, Patient[]>>((groups, patient) => {
@@ -136,7 +193,11 @@ export default function PatientsPage() {
   function exportCSV() {
     const STATUS_LABEL: Record<string, string> = { active: 'Ativo', paused: 'Pausado', discharged: 'Alta' }
     const BILLING_LABEL: Record<string, string> = { per_session: 'Por sessão', monthly_package: 'Pacote mensal', session_package: 'Pacote de atendimentos' }
-    const headers = ['Nome', 'Status', 'Email', 'Telefone', 'Cobrança', 'Valor (R$)', 'Tags', 'Início', 'Cadastro']
+    const ACQUISITION_LABEL: Record<string, string> = {
+      indicacao: 'Indicação de paciente', instagram: 'Instagram', google: 'Google',
+      site: 'Site', outro: 'Outro',
+    }
+    const headers = ['Nome', 'Status', 'Email', 'Telefone', 'Cobrança', 'Valor (R$)', 'Tags', 'Origem', 'Início', 'Cadastro']
     const rows = filtered.map(p => [
       p.name,
       STATUS_LABEL[p.status] ?? p.status,
@@ -147,6 +208,7 @@ export default function PatientsPage() {
         ? Number(p.monthlyPackagePrice ?? 0).toFixed(2)
         : Number(p.sessionPrice ?? 0).toFixed(2),
       (p.tags ?? []).join('; '),
+      ACQUISITION_LABEL[p.acquisitionSource ?? ''] ?? (p.acquisitionSource ?? ''),
       formatDate(patientStartDate(p.startDate, p.createdAt)),
       formatDate(p.createdAt),
     ])
@@ -239,6 +301,43 @@ export default function PatientsPage() {
         </div>
       </div>
 
+      {/* Alerta de aniversariantes */}
+      {!dismissedBirthdays && birthdayPatients.length > 0 && (
+        <div className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3">
+          <Cake className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-rose-800">
+              {birthdayPatients.length === 1
+                ? `${birthdayPatients[0].patient.name} faz aniversário ${birthdayPatients[0].daysUntil === 0 ? 'hoje!' : `em ${birthdayPatients[0].daysUntil} dia(s)`}`
+                : `${birthdayPatients.length} ${t.patients} fazem aniversário essa semana`}
+            </p>
+            {birthdayPatients.length > 1 && (
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {birthdayPatients.map(({ patient: bp, daysUntil }) => (
+                  <Link
+                    key={bp.id}
+                    to={`/pacientes/${bp.id}`}
+                    className="text-xs px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 hover:bg-rose-200 transition-colors font-medium"
+                  >
+                    {bp.name}{daysUntil === 0 ? ' 🎂' : ''}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+          <button
+            onClick={() => {
+              setDismissedBirthdays(true)
+              try { localStorage.setItem('psicoSAAS_dismissedBirthdays', new Date().toISOString().slice(0, 10)) } catch {}
+            }}
+            className="text-rose-400 hover:text-rose-600 transition-colors shrink-0"
+            aria-label="Fechar"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       {/* Alerta de pacientes inativos */}
       {!dismissedInactive && inactivePatients.length > 0 && (
         <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
@@ -312,7 +411,7 @@ export default function PatientsPage() {
           Avançado
           {hasAdvancedFilter && (
             <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-sage-500 text-[10px] text-white font-bold">
-              {filterTags.length + (filterBilling !== 'all' ? 1 : 0) + (filterDateFrom ? 1 : 0) + (filterDateTo ? 1 : 0)}
+              {filterTags.length + (filterBilling !== 'all' ? 1 : 0) + (filterAcquisitionSource ? 1 : 0) + (filterDateFrom ? 1 : 0) + (filterDateTo ? 1 : 0)}
             </span>
           )}
         </button>
@@ -350,7 +449,7 @@ export default function PatientsPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
               <label className="text-xs font-medium text-neutral-500 block mb-1">Cobrança</label>
               <select
@@ -362,6 +461,18 @@ export default function PatientsPage() {
                 <option value="per_session">Por sessão</option>
                 <option value="monthly_package">Pacote mensal</option>
                 <option value="session_package">Pacote de atendimentos</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-neutral-500 block mb-1">Origem</label>
+              <select
+                value={filterAcquisitionSource}
+                onChange={e => setFilterAcquisitionSource(e.target.value)}
+                className="input-field w-full"
+              >
+                {ACQUISITION_OPTIONS.map(o => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
               </select>
             </div>
             <div>
@@ -428,7 +539,14 @@ export default function PatientsPage() {
               </div>
               <div className="grid gap-3">
                 {groupedPatients[letter].map((patient) => (
-                  <PatientCard key={patient.id} patient={patient} inactive={inactivePatients.some(p => p.id === patient.id)} />
+                  <PatientCard
+                    key={patient.id}
+                    patient={patient}
+                    inactive={inactivePatients.some(p => p.id === patient.id)}
+                    lastSession={lastSessionByPatient[patient.id]}
+                    nextAppointment={nextAppointmentByPatient[patient.id]}
+                    latestNextSteps={(allSessions as any[]).filter(s => s.patientId === patient.id).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]?.nextSteps}
+                  />
                 ))}
               </div>
             </section>
@@ -608,44 +726,38 @@ function RetentionPanel() {
   )
 }
 
-const KANBAN_COLUMNS: { status: PatientStatus; label: string; color: string; bg: string }[] = [
-  { status: 'active',     label: 'Ativo',   color: 'text-emerald-700', bg: 'bg-emerald-50 dark:bg-emerald-950/30' },
-  { status: 'paused',     label: 'Pausado', color: 'text-amber-700',   bg: 'bg-amber-50 dark:bg-amber-950/30' },
-  { status: 'discharged', label: 'Alta',    color: 'text-sky-700',     bg: 'bg-sky-50 dark:bg-sky-950/30' },
-]
-
 function KanbanBoard({ patients }: { patients: Patient[] }) {
   const updatePatient = useUpdatePatient()
   const dragId = useRef<string | null>(null)
-  const [dragOver, setDragOver] = useState<PatientStatus | null>(null)
+  const [dragOver, setDragOver] = useState<PatientCrmStage | null>(null)
 
-  function handleDrop(status: PatientStatus) {
+  function handleDrop(stage: PatientCrmStage) {
     if (!dragId.current) return
     const patient = patients.find(p => p.id === dragId.current)
-    if (!patient || patient.status === status) return
+    if (!patient || (patient.crmStage ?? 'lead') === stage) return
     updatePatient.mutate(
-      { id: patient.id, data: { status } },
-      { onError: () => toast.error('Erro ao atualizar status') },
+      { id: patient.id, data: { crmStage: stage } as any },
+      { onError: () => toast.error('Erro ao atualizar etapa') },
     )
     dragId.current = null
     setDragOver(null)
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
-      {KANBAN_COLUMNS.map(col => {
-        const colPatients = patients.filter(p => p.status === col.status)
-        const isOver = dragOver === col.status
+    <div className="grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-5 gap-3 items-start">
+      {CRM_COLUMNS.map(col => {
+        const colPatients = patients.filter(p => (p.crmStage ?? 'lead') === col.stage)
+        const isOver = dragOver === col.stage
         return (
           <div
-            key={col.status}
-            onDragOver={e => { e.preventDefault(); setDragOver(col.status) }}
+            key={col.stage}
+            onDragOver={e => { e.preventDefault(); setDragOver(col.stage) }}
             onDragLeave={() => setDragOver(null)}
-            onDrop={() => handleDrop(col.status)}
+            onDrop={() => handleDrop(col.stage)}
             className={`rounded-2xl p-3 min-h-[200px] transition-all ${col.bg} ${isOver ? 'ring-2 ring-sage-400 ring-offset-2' : ''}`}
           >
-            <div className={`flex items-center justify-between mb-3 px-1`}>
-              <h3 className={`text-sm font-bold ${col.color}`}>{col.label}</h3>
+            <div className="flex items-center justify-between mb-3 px-1">
+              <h3 className={`text-xs font-bold ${col.color}`}>{col.label}</h3>
               <span className={`text-xs font-semibold px-2 py-0.5 rounded-full bg-white/70 ${col.color}`}>
                 {colPatients.length}
               </span>
@@ -672,11 +784,24 @@ function KanbanBoard({ patients }: { patients: Patient[] }) {
                         {patient.billingType === 'monthly_package'
                           ? `${formatCurrency(Number(patient.monthlyPackagePrice ?? 0))}/mês`
                           : patient.billingType === 'session_package'
-                          ? `Pacote de atendimentos · ${formatCurrency(Number(patient.monthlyPackagePrice ?? 0))}`
+                          ? `Pacote · ${formatCurrency(Number(patient.monthlyPackagePrice ?? 0))}`
                           : `${formatCurrency(Number(patient.sessionPrice ?? 0))}/sessão`}
                       </p>
                     </div>
                   </Link>
+                  {/* Menu para mover etapa sem drag */}
+                  <div className="mt-2 flex items-center gap-1 flex-wrap">
+                    {CRM_COLUMNS.filter(c => c.stage !== col.stage).map(c => (
+                      <button
+                        key={c.stage}
+                        onClick={e => { e.preventDefault(); updatePatient.mutate({ id: patient.id, data: { crmStage: c.stage } as any }, { onError: () => toast.error('Erro ao mover') }) }}
+                        className={`text-[10px] px-1.5 py-0.5 rounded-full border transition-colors ${c.color} border-current opacity-60 hover:opacity-100 bg-white/80`}
+                        title={`Mover para ${c.label}`}
+                      >
+                        → {c.label}
+                      </button>
+                    ))}
+                  </div>
                   {patient.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
                       {patient.tags.slice(0, 2).map(tag => <TagBadge key={tag} tag={tag} small />)}
@@ -695,8 +820,39 @@ function KanbanBoard({ patients }: { patients: Patient[] }) {
   )
 }
 
-function PatientCard({ patient, inactive }: { patient: Patient; inactive?: boolean }) {
+function PatientCard({
+  patient,
+  inactive,
+  lastSession,
+  nextAppointment,
+  latestNextSteps,
+}: {
+  patient: Patient
+  inactive?: boolean
+  lastSession?: Date
+  nextAppointment?: string
+  latestNextSteps?: string
+}) {
   const t = useTerms()
+
+  const daysSinceLast = lastSession
+    ? Math.floor((Date.now() - lastSession.getTime()) / 86400000)
+    : null
+
+  const daysSinceColor = daysSinceLast === null
+    ? 'text-neutral-400'
+    : daysSinceLast > 21
+    ? 'text-amber-600 font-semibold'
+    : 'text-emerald-600'
+
+  const monthlyValue = patient.billingType === 'monthly_package' || patient.billingType === 'session_package'
+    ? `${formatCurrency(Number(patient.monthlyPackagePrice ?? 0))}${patient.billingType === 'monthly_package' ? '/mês' : ' (pacote)'}`
+    : `${formatCurrency(Number(patient.sessionPrice ?? 0))}/${t.session}`
+
+  const truncatedNextSteps = latestNextSteps && latestNextSteps.trim()
+    ? latestNextSteps.length > 80 ? latestNextSteps.slice(0, 80) + '…' : latestNextSteps
+    : null
+
   return (
     <Link
       to={`/pacientes/${patient.id}`}
@@ -725,12 +881,20 @@ function PatientCard({ patient, inactive }: { patient: Patient; inactive?: boole
           )}
         </div>
         <p className="text-xs text-neutral-400 mt-0.5 truncate">
-          Desde {formatDate(patientStartDate(patient.startDate, patient.createdAt))} · {patient.billingType === 'monthly_package'
-            ? `${formatCurrency(Number(patient.monthlyPackagePrice ?? 0))}/mês · ${patient.monthlyIncludedSessions ?? 4} ${t.sessions}`
-            : patient.billingType === 'session_package'
-            ? `Pacote de atendimentos · ${formatCurrency(Number(patient.monthlyPackagePrice ?? 0))}`
-            : `${formatCurrency(Number(patient.sessionPrice ?? 0))}/${t.session}`}
+          Desde {formatDate(patientStartDate(patient.startDate, patient.createdAt))} · {monthlyValue}
+          {nextAppointment && (
+            <> · <span className="text-sage-600">Próxima: {formatDate(nextAppointment)}</span></>
+          )}
+          {daysSinceLast !== null && (
+            <> · <span className={daysSinceColor}>{daysSinceLast}d sem sessão</span></>
+          )}
+          {daysSinceLast === null && !nextAppointment && (
+            <> · <span className="text-neutral-400">Sem sessões</span></>
+          )}
         </p>
+        {truncatedNextSteps && (
+          <p className="text-xs text-neutral-500 mt-0.5 truncate italic">{truncatedNextSteps}</p>
+        )}
         {patient.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1.5">
             {patient.tags.slice(0, 3).map(tag => <TagBadge key={tag} tag={tag} small />)}
