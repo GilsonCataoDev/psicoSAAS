@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Mic, MicOff } from 'lucide-react'
+import { Mic } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cn } from '@/lib/utils'
 import { accumulateFinalTranscript } from './voice-capture'
@@ -137,17 +137,25 @@ export default function DictationButton({ value, onChange, className }: Dictatio
       className={cn(
         'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50',
         state === 'listening'
-          ? 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
+          ? 'border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100'
           : 'border-neutral-200 bg-white text-neutral-500 hover:border-sage-200 hover:bg-sage-50 hover:text-sage-700',
         className,
       )}
-      title={state === 'listening' ? 'Parar ditado nativo' : 'Ditado nativo por voz'}
-      aria-label={state === 'listening' ? 'Parar ditado nativo' : 'Iniciar ditado nativo'}
+      title={state === 'listening' ? 'Clique para parar o ditado' : 'Ditado por voz (navegador, sem custo)'}
+      aria-label={state === 'listening' ? 'Parar ditado' : 'Iniciar ditado por voz'}
+      aria-pressed={state === 'listening'}
     >
-      {state === 'listening'
-        ? <><MicOff className="h-3.5 w-3.5" /> Parar</>
-        : <><Mic className="h-3.5 w-3.5" /> Ditar</>
-      }
+      {state === 'listening' ? (
+        <>
+          <span className="relative flex h-3.5 w-3.5 shrink-0 items-center justify-center">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-60" />
+            <Mic className="relative h-3 w-3" />
+          </span>
+          Escutando…
+        </>
+      ) : (
+        <><Mic className="h-3.5 w-3.5" /> Ditar</>
+      )}
     </button>
   )
 }

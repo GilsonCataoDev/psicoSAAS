@@ -1,17 +1,23 @@
 import { Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { PRODUCT_HELP_CONTEXT, PRODUCT_HELP_ROUTES } from './product-help.catalog'
-import type { ProductHelpAiAnswer, ProductHelpAiClient } from './product-help-ai.client'
+import type { ConversationTurn, ProductHelpAiAnswer, ProductHelpAiClient } from './product-help-ai.client'
 
 @Injectable()
 export class GeminiProductHelpClient implements ProductHelpAiClient {
   constructor(private readonly config: ConfigService) {}
 
-  async answer(question: string): Promise<ProductHelpAiAnswer> {
+  async answer(question: string, history: ConversationTurn[] = []): Promise<ProductHelpAiAnswer> {
     const apiKey = this.config.get<string>('GEMINI_API_KEY')?.trim()
     if (!apiKey) throw new Error('Gemini help is not configured')
 
     const model = this.config.get<string>('GEMINI_HELP_MODEL')?.trim() || 'gemini-2.5-flash-lite'
+
+    const priorTurns = history.slice(-6).map(turn => ({
+      role: turn.role,
+      parts: [{ text: turn.text.slice(0, 1600) }],
+    }))
+
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
       {
@@ -31,10 +37,14 @@ export class GeminiProductHelpClient implements ProductHelpAiClient {
               'Use apenas o contexto fornecido. Se não souber, diga que a pessoa deve falar com o suporte.',
             ].join(' ') }],
           },
-          contents: [{
-            role: 'user',
-            parts: [{ text: `CONTEXTO DO PRODUTO:\n${PRODUCT_HELP_CONTEXT}\n\nDÚVIDA DE USO:\n${question}` }],
-          }],
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: `CONTEXTO DO PRODUTO:\n${PRODUCT_HELP_CONTEXT}\n\nDÚVIDA DE USO:\n${priorTurns.length === 0 ? question : 'Veja o histórico abaixo e responda à última mensagem.'}` }],
+            },
+            ...priorTurns,
+            ...(priorTurns.length > 0 ? [{ role: 'user' as const, parts: [{ text: question }] }] : []),
+          ],
           generationConfig: {
             temperature: 0.1,
             maxOutputTokens: 350,

@@ -30,7 +30,9 @@ UseCognia é um SaaS completo para profissionais de saúde brasileiros que reduz
 - **Pessoas** — cadastro de pacientes com tags emocionais, pronomes, preço/duração da sessão e linha do tempo
 - **Prontuário** — anamnese, plano terapêutico e anotações clínicas criptografadas, com **exportação completa em PDF** (dados, anamnese, plano e todas as sessões)
 - **Sessões** — registro de cada encontro com humor, resumo, próximos passos e anotações privadas
-- **Ditado por voz** — campos clínicos preenchíveis por voz (Web Speech API, pt-BR)
+- **Ditado por voz** — campos clínicos preenchíveis por voz (Web Speech API, pt-BR, sem custo)
+- **Gravação e transcrição por IA** (Pro) — grava o áudio da sessão (microfone ou chamada) e transcreve via Groq Whisper Large v3 Turbo; transcrição disponível para cópia ou geração de rascunho
+- **Resumo automático por IA** (Pro) — gera rascunho de evolução clínica estruturado (demanda, condutas, resposta, próximos passos) a partir da transcrição; rascunho separado da evolução e revisável antes de salvar
 - **Documentos** — geração de declarações, encaminhamentos e atestados com QR code de verificação e envio por e-mail
 - **Instrumentos clínicos** — biblioteca por profissão: psicologia (20+ escalas/formulários com pontuação automática, 4 baterias prontas), fisioterapia (EVA, Oswestry/ODI, Berg), nutrição (anamnese, recordatório 24h, diário alimentar, QFCA); link público para o paciente responder
 - **Calculadoras nutricionais** — IMC (OMS), RCQ, TMB (Mifflin-St Jeor), GET, proteína e hidratação; plano alimentar semanal gerado por IA
@@ -67,6 +69,13 @@ UseCognia é um SaaS completo para profissionais de saúde brasileiros que reduz
 - **Controle de acesso global** — usuarios `active` e `trialing` acessam; `past_due` usa grace period; `canceled` e `none` bloqueiam
 - **Frontend de monetizacao** — `/planos` apresenta o Pro e inicia o checkout do teste de 7 dias
 - **Metricas SaaS** — endpoint de contagem por status e MRR basico por plano
+
+### Assistente de Ajuda (chatbot)
+
+- **Assistente "Ajuda"** — chatbot flutuante com IA (Gemini Flash Lite) que responde dúvidas sobre o uso do sistema
+- **Multi-turno** — mantém o histórico da conversa (até 6 turnos anteriores) para respostas contextualizadas
+- **Catálogo de tópicos** — 17 tópicos cobrindo todas as áreas: sessões, ditado por voz, gravação, resumo por IA, agenda, documentos, instrumentos, avaliações neuropsicológicas, portal do paciente, WhatsApp e planos
+- **Bloqueio de dados clínicos** — o assistente recusa qualquer pergunta que contenha dados de pacientes; responde apenas dúvidas de uso do sistema
 
 ### Administração e conformidade
 - **Painel admin** (`/admin`) — stats (usuários, MRR, trials), listagem paginada de usuários e override de plano/assinatura, restrito a e-mails em `ADMIN_EMAILS`
@@ -241,6 +250,11 @@ SMTP_PORT=587
 SMTP_USER=seu@email.com
 SMTP_PASS=senha
 
+# IA — transcrição Whisper e resumo por IA
+GROQ_API_KEY=sua-chave-groq          # grátis: 30 req/min, 14.400/dia
+GEMINI_API_KEY=sua-chave-gemini      # grátis: assistente de Ajuda (chatbot)
+# ANTHROPIC_API_KEY=opcional-fallback
+
 # Asaas billing
 ASAAS_API_KEY=seu-token-asaas
 ASAAS_BASE_URL=https://sandbox.asaas.com/api/v3
@@ -321,6 +335,9 @@ Cobertura atual: brute-force de login, rotação/replay de refresh token, expira
 | `ADMIN_EMAILS` | E-mails com acesso ao painel `/admin` (separados por vírgula) |
 | `COMPED_PRO_EMAILS` | E-mails com plano Pro cortesia (separados por vírgula) |
 | `ALLOWED_ORIGINS` | Origens extras permitidas no CORS |
+| `GROQ_API_KEY` | Groq — transcrição Whisper e resumo por IA (Llama 3.3 70B) |
+| `GEMINI_API_KEY` | Google Gemini — assistente de Ajuda (chatbot, Gemini Flash Lite) |
+| `ANTHROPIC_API_KEY` | Anthropic Claude — fallback de texto se GROQ_API_KEY ausente |
 | `SENTRY_DSN` | Monitoramento de erros (opcional) |
 | `WHATSAPP_API_URL` / `WHATSAPP_API_KEY` / `WHATSAPP_INSTANCE_PREFIX` | Integração WhatsApp (opcional) |
 | `TYPEORM_SYNC` | Manter ausente/false em producao; use migrations |
@@ -451,9 +468,10 @@ Tipografia:
 - [x] Lembretes de sessão por WhatsApp
 - [x] Notificações push (Web Push API)
 
-### Aguardando configuração de API
-- [ ] Transcrição de áudio de sessão — requer `GROQ_API_KEY` (Whisper Large v3 Turbo, ~US$0,033/sessão de 50 min). `OPENAI_API_KEY` fica como fallback opcional.
-- [ ] Resumo e rascunho de prontuario por IA — requer `ANTHROPIC_API_KEY` (Claude Haiku 4.5, liberado a partir do Essencial). O backend registra tokens e custo estimado em `ai_usage` usando US$1/M tokens de entrada e US$5/M tokens de saida.
+### Concluído (recente)
+- [x] Transcrição de áudio de sessão via Groq Whisper Large v3 Turbo (Pro)
+- [x] Resumo automático de sessão por IA com saída estruturada (Groq Llama 3.3 70B, fallback Anthropic Haiku)
+- [x] Assistente de Ajuda com chatbot multi-turno (Gemini Flash Lite, 17 tópicos)
 
 ### Próximas versões
 - [ ] App mobile (React Native)

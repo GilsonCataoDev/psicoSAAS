@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { PRODUCT_HELP_AI_CLIENT, type ProductHelpAiClient } from './product-help-ai.client'
+import { PRODUCT_HELP_AI_CLIENT, type ConversationTurn, type ProductHelpAiClient } from './product-help-ai.client'
 import { PRODUCT_HELP_ROUTES, PRODUCT_HELP_TOPICS } from './product-help.catalog'
 
 export type ProductHelpResponse = {
@@ -35,12 +35,12 @@ export class ProductHelpService {
     @Inject(PRODUCT_HELP_AI_CLIENT) private readonly aiClient: ProductHelpAiClient,
   ) {}
 
-  async ask(rawQuestion: string): Promise<ProductHelpResponse> {
+  async ask(rawQuestion: string, history?: ConversationTurn[]): Promise<ProductHelpResponse> {
     const question = rawQuestion.trim()
     if (this.containsRestrictedContent(question)) return this.blockedResponse()
 
     try {
-      const result = await this.aiClient.answer(question)
+      const result = await this.aiClient.answer(question, history)
       return {
         answer: result.answer,
         path: this.safePath(result.path),

@@ -9,10 +9,11 @@ export type ProductHelpResponse = {
   blocked: boolean
 }
 
+export type ConversationTurn = { role: 'user' | 'model'; text: string }
+
 export function useProductHelp() {
   return useMutation({
-    mutationFn: (question: string) => api
-      .post<ProductHelpResponse>('/product-help/ask', { question })
-      .then(response => response.data),
+    mutationFn: ({ question, history }: { question: string; history?: ConversationTurn[] }) =>
+      api.post<ProductHelpResponse>('/product-help/ask', { question, history }).then(r => r.data),
   })
 }

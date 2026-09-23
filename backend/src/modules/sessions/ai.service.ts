@@ -211,7 +211,22 @@ export class AiService {
 
     const cleanInput = pseudonymizeClinicalText(transcription.trim(), patientName)?.slice(0, 6000) ?? ''
 
-    const prompt = `Você é um assistente de organização de registros para ${this.professionalLabel(profession)}. Com base na transcrição abaixo de um atendimento, elabore um rascunho conciso de evolução. Escreva em linguagem técnica, primeira pessoa do profissional, sem diagnóstico, prescrição ou decisão profissional. Inclua: demanda trabalhada, condutas registradas, resposta observada e próximos passos sugeridos. Preserve com exatidão datas, prazos, contagens de ocorrências e detalhes de eventos históricos ou secundários mencionados — não os substitua por descrições vagas mesmo quando o fato mais recente da sessão dominar o restante do texto. Máximo 250 palavras. O profissional revisará e editará antes de salvar.
+    const prompt = `Você é um assistente de organização de registros para ${this.professionalLabel(profession)}.
+Com base na transcrição abaixo de um atendimento, elabore um rascunho de evolução clínica estruturado nas 4 seções a seguir.
+
+REGRAS:
+- Linguagem técnica, primeira pessoa do profissional (ex: "paciente relatou", "foi trabalhado", "proposto para próxima sessão").
+- Nunca produza diagnóstico, prescrição ou decisão clínica — apenas registre o que foi feito e observado.
+- Preserve com exatidão datas, prazos, contagens de ocorrências e qualquer detalhe factual específico mencionado.
+- Cada seção deve ter no máximo 2 frases; total máximo 200 palavras.
+- Se a transcrição não tiver conteúdo suficiente para uma seção, escreva "—" nessa seção.
+- Finalize com a linha: "Rascunho gerado por IA — revisar antes de salvar."
+
+Formato de saída (use exatamente estes rótulos):
+**Demanda trabalhada:** ...
+**Condutas registradas:** ...
+**Resposta observada:** ...
+**Próximos passos:** ...
 
 Transcrição:
 ${cleanInput}`

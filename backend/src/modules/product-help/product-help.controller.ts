@@ -13,6 +13,6 @@ export class ProductHelpController {
   @Post('ask')
   @Throttle({ long: { limit: 15, ttl: 60_000 } })
   ask(@Body() dto: AskProductHelpDto) {
-    return this.productHelp.ask(dto.question)
+    return this.productHelp.ask(dto.question, dto.history)
   }
 }
